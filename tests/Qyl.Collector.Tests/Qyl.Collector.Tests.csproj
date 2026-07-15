@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj"/>
     <ProjectReference Include="../../services/qyl.collector/qyl.collector.csproj"/>
   </ItemGroup>
 

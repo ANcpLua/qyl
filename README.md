@@ -3,7 +3,8 @@
 qyl is an OpenTelemetry-compatible observability product for ingesting,
 investigating, and visualizing telemetry across all four OTLP signals — traces,
 logs, metrics, and profiles — with GenAI cost intelligence on top: provider
-billing synchronization, live model-pricing catalogs, and the GenAI ETL audit.
+billing synchronization, the live OpenRouter model-pricing catalog, and the
+GenAI ETL audit.
 The product is the collector, DuckDB storage, public investigation API,
 dashboard, and local distributed-app host. OpenTelemetry supplies the ingestion
 protocol and telemetry vocabulary; it is not Qyl's product API.
@@ -42,10 +43,10 @@ The main components are:
 | `services/qyl.dashboard` | React investigation interface backed by generated client contracts |
 | `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
-| `packages/Qyl.Host` | Unpublished local distributed-app host: fluent AppHost-equivalent with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
+| `packages/Qyl.Host` | Published distributed-app runner library with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
 | `packages/Qyl.Host.Console` | Host console frontend consuming the generated TypeScript contracts (build/typecheck-gated) |
 | `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner (stdio/HTTP/in-process resources, OTLP export of the MCP SDK ActivitySource) |
-| `packages/Qyl.Run.Host` | Composed local host entry point: the collector plus its isolated diagnostics collector |
+| `packages/Qyl.Run.Host` | The `qyl` dotnet tool; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
 | `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |
 
@@ -87,6 +88,10 @@ it does not use a CLR profiler or runtime IL rewriting. Its generated
 [`coverage-matrix.md`](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation/blob/main/docs/coverage-matrix.md)
 is the detailed capability and evidence record. Qyl does not duplicate that matrix
 or turn configuration-only rows into runtime-coverage claims.
+
+Applications onboard through the `Qyl.Sdk` package published from that repository:
+`builder.AddQyl()` activates the instrumentation, wires the OpenTelemetry SDK, and
+exports to a qyl collector in one call.
 
 ## GenAI ETL audit
 
@@ -167,20 +172,19 @@ states explicitly.
 
 Catalog pricing is a separate boundary from provider billing. Qyl has no embedded
 model/rate table and does not infer prices from model-name prefixes, aliases, or
-release-date suffixes. Configured source adapters fetch their provider API, parse
-the returned price dimensions, activate a content-addressed immutable snapshot,
-and notify consumers through the shared catalog refresh pipeline. Source priority,
-endpoint, freshness, timeout, and response-size limits are configuration, not
-model-specific branches in the audit path.
+release-date suffixes. OpenRouter is the sole model-pricing source: Qyl parses its
+returned price dimensions and activates a content-addressed immutable snapshot.
+Freshness, timeout, and response-size limits are configuration, not model-specific
+branches in the audit path.
 
-The first adapter uses OpenRouter's
-[`GET /api/v1/models`](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
-API. OpenRouter publishes the lowest available rate for a model, so Qyl records
+The collector uses OpenRouter's
+[`GET /api/v1/models?output_modalities=all`](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
+API so non-text model metadata is not omitted by the endpoint's default filter.
+OpenRouter publishes the lowest available rate for a model, so Qyl records
 `minimum_available_rate` provenance rather than presenting the result as an
-official provider bill or a uniquely routed endpoint price. The API currently
-works without a key; `QYL_OPENROUTER_API_KEY` can be supplied when the provider
-requires authenticated access. Qyl sends no trace, prompt, completion, or project
-data to this endpoint.
+official provider bill or a uniquely routed endpoint price.
+`QYL_OPENROUTER_API_KEY` supplies the optional Bearer token. Qyl sends no trace,
+prompt, completion, or project data to this endpoint.
 
 Each physical model-call span is evaluated before workflow aggregation. The actual
 response model is preferred over the requested model, identities are matched
@@ -203,60 +207,63 @@ Configure live catalog synchronization with environment variables:
 
 | Variable | Meaning |
 | --- | --- |
-| `QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES` | Refresh interval; defaults to 60 and accepts 1–1440. Startup and expiry events are coalesced through the catalog refresh queue. |
+| `QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES` | Refresh interval; defaults to 60 and accepts 1–1440. The collector refreshes once at startup and then once per interval. |
 | `QYL_MODEL_PRICING_MAX_STALENESS_MINUTES` | Maximum age of the latest successful verification; defaults to three refresh intervals (at least 60 minutes). A stale snapshot cannot price a cluster. |
-| `QYL_MODEL_PRICING_RETAINED_SNAPSHOTS` | Maximum immutable catalog snapshots retained per configured source; defaults to 32 and accepts 1–1024. Activation and pruning are one storage transaction. |
-| `QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS` | Provider catalog request timeout; defaults to 30 and accepts 1–300. |
-| `QYL_MODEL_PRICING_MAX_RESPONSE_MIB` | Maximum accepted provider response size; defaults to 16 and accepts 1–64. |
-| `QYL_OPENROUTER_MODEL_CATALOG_ENABLED` | Registers the OpenRouter source adapter; defaults to `true`. |
-| `QYL_OPENROUTER_MODEL_CATALOG_PRIORITY` | Deterministic source-selection priority; lower values win and the default is 100. |
-| `QYL_OPENROUTER_MODELS_ENDPOINT` | OpenRouter Models API endpoint; defaults to `https://openrouter.ai/api/v1/models` and must be HTTPS. |
-| `QYL_OPENROUTER_API_KEY` | Optional bearer token for the Models API. It is sent only to an `openrouter.ai` HTTPS host. |
+| `QYL_MODEL_PRICING_RETAINED_SNAPSHOTS` | Maximum immutable OpenRouter catalog snapshots retained; defaults to 32 and accepts 1–1024. Activation and pruning are one storage transaction. |
+| `QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS` | OpenRouter catalog request timeout; defaults to 30 and accepts 1–300. |
+| `QYL_MODEL_PRICING_MAX_RESPONSE_MIB` | Maximum accepted OpenRouter response size; defaults to 16 and accepts 1–64. |
+| `QYL_OPENROUTER_API_KEY` | Optional bearer token for the fixed OpenRouter Models API endpoint. |
 
-## Run locally
+## Run qyl locally
 
-Requirements: the .NET SDK selected by `global.json` and Node.js `^20.19.0` or `>=22.12.0`.
-
-Start the collector:
+Install the prerelease dotnet tool and start the complete local product:
 
 ```bash
-QYL_BIND_ADDRESS=127.0.0.1 QYL_OTLP_AUTH_MODE=Unsecured \
-  dotnet run --project services/qyl.collector
+dotnet tool install --global qyl --prerelease
+qyl up
 ```
 
-Start the dashboard in another terminal:
+`qyl up` is self-contained at the package level: its RID-specific tool package
+contains the collector and embedded dashboard it launches. It does not clone qyl,
+look for repository-relative projects, or require Node.js. The supported runtime
+identifiers are `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`, and
+`win-arm64`; the .NET 10 runtime is required.
+
+Open `http://127.0.0.1:5100` for the dashboard.
+
+Instrument a .NET application with the first-party SDK:
 
 ```bash
-cd services/qyl.dashboard
-npm install
-npm run dev
+dotnet add package Qyl.Sdk
 ```
 
-The browser dashboard is a development surface served whenever auth is not
-`ApiKey`; it binds to loopback by default (`QYL_BIND_ADDRESS` accepts other
-addresses, so avoid remote bindings in `Unsecured` mode explicitly) and never
-stores the ingest-capable API key. `ApiKey` deployments expose only the generated
-product API and OTLP endpoints; use a generated client rather than the dashboard.
-
-Or run the local host, which composes the collector and its isolated diagnostics
-collector:
-
-```bash
-dotnet run --project packages/Qyl.Run.Host
+```csharp
+builder.AddQyl();
 ```
 
-Point an OTLP exporter at the collector:
+`AddQyl()` boots the compile-time auto-instrumentation, registers the ASP.NET Core,
+HttpClient, and GenAI trace sources, propagates `session.id` across each trace, and
+exports over OTLP to a locally discovered `qyl up` collector — no environment
+variables required. Standard `OTEL_*` variables take precedence when set.
+
+Any other OTLP-compliant source works by pointing its exporter at the collector:
 
 ```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
+The runner binds only to loopback and starts a second isolated collector for the
+product collector's own telemetry. `qyl up` fails before launch when one of its
+fixed ports is already occupied; it never attaches to an unrelated process.
+
 | Port | Purpose |
 | --- | --- |
-| `5100` | Product API and OTLP/HTTP; embedded dashboard in `Unsecured` mode (loopback by default) |
+| `5100` | Product API and embedded dashboard in local `Unsecured` mode |
 | `4317` | OTLP/gRPC receiver |
 | `4318` | Dedicated OTLP/HTTP receiver |
+| `5200` | Isolated diagnostics collector API |
+| `18888` | Loopback runner resource API |
 
 ### Native AOT publish
 
@@ -272,6 +279,15 @@ Run the repository gate before pushing:
 
 ```bash
 dotnet run --project eng/build/build.csproj -- Ci
+```
+
+To prove the distributable itself, build the frontends, pack every published
+library plus all RID-specific `qyl` tool packages, install the current platform's
+tool into a clean directory, ingest a real OTLP trace, read it back through the
+product API, and verify Ctrl-C tears down every child:
+
+```bash
+dotnet run --project eng/build/build.csproj -- PackSmoke
 ```
 
 Generated files are outputs, not editing surfaces. Change the owning TypeSpec,

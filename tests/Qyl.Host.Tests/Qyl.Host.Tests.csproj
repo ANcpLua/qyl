@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="../../packages/Qyl.Host/Qyl.Host.csproj"/>
     <ProjectReference Include="../../packages/Qyl.Host.Mcp/Qyl.Host.Mcp.csproj"/>
+    <ProjectReference Include="../../packages/Qyl.Run.Host/Qyl.Run.Host.csproj"/>
   </ItemGroup>
 
 </Project>

@@ -241,6 +241,29 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             builder.AppendLine();
         }
 
+        foreach (var valueClass in policy.WellKnownValueClasses.OrderBy(static item => item.Key, StringComparer.Ordinal))
+        {
+            var (values, incubating) = resolver.WellKnownValues(valueClass.Value);
+            builder.AppendLine();
+            builder.Append("    internal static class ").AppendLine(valueClass.Key);
+            builder.AppendLine("    {");
+            foreach (var (fieldName, value) in values)
+            {
+                builder.Append("        internal const string ")
+                    .Append(fieldName)
+                    .Append(" = ")
+                    .Append(StringLiteral(value))
+                    .Append(';');
+
+                if (incubating)
+                    builder.Append(" // incubating");
+
+                builder.AppendLine();
+            }
+
+            builder.AppendLine("    }");
+        }
+
         builder.AppendLine("}");
         return builder.ToString();
     }
@@ -514,6 +537,7 @@ internal sealed class CollectorSemanticPolicyConfig
     public string[] DeniedTokenExemptKeys { get; init; } = [];
     public string[] SpanHotAttributeKeys { get; init; } = [];
     public Dictionary<string, string> ProjectionConstants { get; init; } = [];
+    public Dictionary<string, string> WellKnownValueClasses { get; init; } = [];
 
     public void Validate(string relativePath)
     {
@@ -537,6 +561,9 @@ internal sealed class CollectorSemanticPolicyConfig
 
         RequireNoEmptyValues(ProjectionConstants.Keys, relativePath, "projectionConstants keys");
         RequireNoEmptyValues(ProjectionConstants.Values, relativePath, "projectionConstants values");
+
+        RequireNoEmptyValues(WellKnownValueClasses.Keys, relativePath, "wellKnownValueClasses keys");
+        RequireNoEmptyValues(WellKnownValueClasses.Values, relativePath, "wellKnownValueClasses values");
     }
 
     private static void RequireNonEmpty(IReadOnlyCollection<string> values, string relativePath, string section)
@@ -621,6 +648,40 @@ internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, strin
                 $"Semantic convention attribute key '{value}' is not present in the configured package references.");
 
         return value;
+    }
+
+    public (IReadOnlyList<(string FieldName, string Value)> Values, bool Incubating) WellKnownValues(string typePath)
+    {
+        foreach (var (packageId, namespaceRoot) in (ReadOnlySpan<(string, string)>)
+                 [
+                     (ICollectorSemanticCatalog.StablePackageId,
+                         "Qyl.OpenTelemetry.SemanticConventions.Attributes."),
+                     (ICollectorSemanticCatalog.IncubatingPackageId,
+                         "Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.")
+                 ])
+        {
+            if (ResolveAssembly(packageId).GetType(namespaceRoot + typePath, throwOnError: false) is not { } type)
+                continue;
+
+            var values = type
+                .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+                .Where(static field => field is { IsLiteral: true, IsInitOnly: false } &&
+                                       field.FieldType == typeof(string))
+                .Select(static field => (field.Name, (string)field.GetRawConstantValue()!))
+                .OrderBy(static pair => pair.Item1, StringComparer.Ordinal)
+                .ToArray();
+
+            if (values.Length is 0)
+            {
+                throw new InvalidOperationException(
+                    $"Semantic convention value class '{typePath}' declares no public string constants.");
+            }
+
+            return (values, packageId == ICollectorSemanticCatalog.IncubatingPackageId);
+        }
+
+        throw new InvalidOperationException(
+            $"Semantic convention value class '{typePath}' is not present in the configured package references.");
     }
 
     public string SchemaUrlCurrent()

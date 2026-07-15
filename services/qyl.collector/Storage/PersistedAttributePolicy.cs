@@ -21,11 +21,27 @@ internal static class PersistedAttributePolicy
     internal static string? SerializeMetricAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
         Serialize(attributes, AttributeKeySets.IsSafeMetricAttribute);
 
+    internal static string? SerializeMetricAuxiliaryAttributes(
+        IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
+        Serialize(attributes, AttributeKeySets.IsSafeMetricAuxiliaryAttribute);
+
     internal static string? SerializeProfileAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
         Serialize(attributes, AttributeKeySets.IsSafeProfileAttribute);
 
-    internal static string? SerializeResourceAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, AttributeKeySets.IsSafeResourceAttribute);
+    internal static string? SerializeResourceAttributes(
+        IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs)
+    {
+        if (entityRefs.Count is 0)
+            return Serialize(attributes, AttributeKeySets.IsSafeResourceAttribute);
+
+        var referencedKeys = entityRefs
+            .SelectMany(static entityRef => entityRef.IdKeys.Concat(entityRef.DescriptionKeys))
+            .ToHashSet(StringComparer.Ordinal);
+        return Serialize(attributes, key =>
+            AttributeKeySets.IsSafeResourceAttribute(key) ||
+            referencedKeys.Contains(key) && AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key));
+    }
 
     private static string? SerializeSpanAttributesCore(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes,

@@ -2,7 +2,6 @@ namespace Qyl.Collector.Cost;
 
 internal sealed record ModelPricingCatalogSourceStatus(
     string SourceId,
-    int Priority,
     Uri Endpoint,
     string Status,
     DateTimeOffset? LastAttemptAt,
@@ -14,52 +13,41 @@ internal sealed record ModelPricingCatalogSourceStatus(
     string? FailureCategory);
 
 internal sealed class ModelPricingCatalogStateService(
-    ModelPricingCatalogSourceRegistry registry,
+    OpenRouterModelPricingCatalogSource source,
     ModelPricingCatalogOptions options,
     IQylStore store,
     TimeProvider timeProvider)
 {
-    public async Task<IReadOnlyList<ModelPricingCatalogSourceStatus>> GetSourcesAsync(
+    public async Task<ModelPricingCatalogSourceStatus> GetAsync(
         CancellationToken cancellationToken = default)
     {
-        var stored = await store.GetModelPricingCatalogSourcesAsync(cancellationToken)
+        var state = await store.GetModelPricingCatalogSourceAsync(source.SourceId, cancellationToken)
             .ConfigureAwait(false);
-        var storedBySource = stored.ToDictionary(
-            static state => state.Source.SourceId,
-            StringComparer.Ordinal);
-        var result = new List<ModelPricingCatalogSourceStatus>();
-        foreach (var source in registry.Sources)
+        if (state is null ||
+            !string.Equals(
+                state.Source.ConfiguredFingerprint,
+                source.ConfigurationFingerprint,
+                StringComparison.Ordinal))
         {
-            storedBySource.Remove(source.SourceId, out var state);
-            result.Add(state is null
-                ? new ModelPricingCatalogSourceStatus(
-                    source.SourceId,
-                    source.Priority,
-                    source.SourceEndpoint,
-                    "pending",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null)
-                : Map(source.Priority, state, "configured"));
+            return new ModelPricingCatalogSourceStatus(
+                source.SourceId,
+                source.SourceEndpoint,
+                "pending",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         }
 
-        foreach (var state in storedBySource.Values.OrderBy(static value => value.Source.SourceId, StringComparer.Ordinal))
-            result.Add(Map(int.MaxValue, state, "unconfigured"));
-        return result;
+        return Map(state);
     }
 
-    private ModelPricingCatalogSourceStatus Map(
-        int priority,
-        ModelPricingCatalogSourceState state,
-        string configurationStatus)
+    private ModelPricingCatalogSourceStatus Map(ModelPricingCatalogSourceState state)
     {
-        var status = configurationStatus is "configured"
-            ? state.Source.Status
-            : configurationStatus;
+        var status = state.Source.Status;
         if (status is "current" &&
             (state.Source.LastVerifiedAt is not { } verifiedAt ||
              timeProvider.GetUtcNow() - verifiedAt > options.MaximumStaleAge))
@@ -68,9 +56,8 @@ internal sealed class ModelPricingCatalogStateService(
         }
 
         return new ModelPricingCatalogSourceStatus(
-            state.Source.SourceId,
-            priority,
-            new Uri(state.Source.ConfiguredEndpoint),
+            source.SourceId,
+            source.SourceEndpoint,
             status,
             state.Source.LastAttemptAt,
             state.Source.LastVerifiedAt,

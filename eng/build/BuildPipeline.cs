@@ -47,10 +47,12 @@ interface IPipeline : IHazSourcePaths
         .Unlisted()
         .Description("Run frontend tests (Vitest)")
         .DependsOn(FrontendInstall)
-        .Executes(() => NpmTasks.NpmRun(s => s
-            .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
-            .SetCommand("test")
-            .SetArguments("--", "--run")));
+        .Executes(() =>
+        {
+            foreach (var directory in FrontendDirectories)
+                ProcessTasks.StartProcess("npm", "test -- --run", directory, logOutput: true)
+                    .AssertZeroExitCode();
+        });
 
     Target FrontendE2E => d => d
         .Description("Exercise the embedded Release collector, dashboard, product API, and OTLP routes")

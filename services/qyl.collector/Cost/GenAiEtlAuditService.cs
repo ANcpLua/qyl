@@ -278,8 +278,8 @@ internal sealed class GenAiEtlAuditService
         var costGroups = BuildCostGroups(buckets, periodStart, periodEnd);
         var seeds = rows.Select(CreateSeed).ToArray();
         var estimateTask = _catalogEstimator.EstimateAsync(rows, snapshot.UsageBuckets, ct);
-        var catalogSourcesTask = _catalogState.GetSourcesAsync(ct);
-        await Task.WhenAll(estimateTask, catalogSourcesTask).ConfigureAwait(false);
+        var catalogSourceTask = _catalogState.GetAsync(ct);
+        await Task.WhenAll(estimateTask, catalogSourceTask).ConfigureAwait(false);
         var estimates = await estimateTask.ConfigureAwait(false);
 
         var contractClusters = new List<AuditCluster>(seeds.Length);
@@ -373,7 +373,7 @@ internal sealed class GenAiEtlAuditService
             estimatedCatalogTokenCostUsd,
             candidateSpendShare,
             costSources,
-            MapCatalogSources(await catalogSourcesTask.ConfigureAwait(false)),
+            MapCatalogSource(await catalogSourceTask.ConfigureAwait(false)),
             clustersWithShares);
     }
 
@@ -670,9 +670,7 @@ internal sealed class GenAiEtlAuditService
             ? CostContracts.ModelCatalogMatchKind.ExactModelId
             : CostContracts.ModelCatalogMatchKind.ExactCanonicalSlug,
         RetrievedAt = provenance.RetrievedAt,
-        PriceSemantics = provenance.PriceSemantics is "published_rate"
-            ? CostContracts.ModelCatalogPriceSemantics.PublishedRate
-            : CostContracts.ModelCatalogPriceSemantics.MinimumAvailableRate
+        PriceSemantics = CostContracts.ModelCatalogPriceSemantics.MinimumAvailableRate
     };
 
     private static CostContracts.ModelCatalogTokenEstimateComponent MapCatalogComponent(
@@ -834,29 +832,24 @@ internal sealed class GenAiEtlAuditService
             ? CostContracts.ModelCatalogBillingMode.PerRequest
             : CostContracts.ModelCatalogBillingMode.PerUnit;
 
-    private static IReadOnlyList<CostContracts.ModelCatalogSource> MapCatalogSources(
-        IReadOnlyList<ModelPricingCatalogSourceStatus> sources) =>
-        [.. sources
-            .OrderBy(static source => source.Priority)
-            .ThenBy(static source => source.SourceId, StringComparer.Ordinal)
-            .Select(static source => new CostContracts.ModelCatalogSource
+    private static IReadOnlyList<CostContracts.ModelCatalogSource> MapCatalogSource(
+        ModelPricingCatalogSourceStatus source) =>
+        [
+            new CostContracts.ModelCatalogSource
             {
                 SourceId = source.SourceId,
-                Priority = source.Priority,
+                // Required by the released contract; there is only one configured catalog.
+                Priority = OpenRouterModelPricingCatalogSource.ContractPriority,
                 Status = source.Status switch
                 {
-                    "unconfigured" => CostContracts.ModelCatalogSourceStatus.Unconfigured,
                     "pending" => CostContracts.ModelCatalogSourceStatus.Pending,
                     "current" => CostContracts.ModelCatalogSourceStatus.Current,
                     "stale" => CostContracts.ModelCatalogSourceStatus.Stale,
                     _ => CostContracts.ModelCatalogSourceStatus.SyncFailed
                 },
-                PriceSemantics = source.PriceSemantics switch
-                {
-                    "minimum_available_rate" => CostContracts.ModelCatalogPriceSemantics.MinimumAvailableRate,
-                    "published_rate" => CostContracts.ModelCatalogPriceSemantics.PublishedRate,
-                    _ => null
-                },
+                PriceSemantics = source.PriceSemantics is "minimum_available_rate"
+                    ? CostContracts.ModelCatalogPriceSemantics.MinimumAvailableRate
+                    : null,
                 SourceEndpoint = source.Endpoint.AbsoluteUri,
                 LastAttemptAt = source.LastAttemptAt,
                 LastVerifiedAt = source.LastVerifiedAt,
@@ -864,7 +857,8 @@ internal sealed class GenAiEtlAuditService
                 ActiveSnapshotId = source.SnapshotId,
                 ModelCount = source.ModelCount,
                 FailureCategory = source.FailureCategory
-            })];
+            }
+        ];
 
     private static IReadOnlyList<CostContracts.GenAiEtlValidationMetric> MapValidationMetrics(
         GenAiEtlAuditMetric value) => value switch

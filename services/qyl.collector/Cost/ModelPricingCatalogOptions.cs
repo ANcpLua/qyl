@@ -10,7 +10,7 @@ internal sealed record ModelPricingCatalogOptions
 
     public required TimeSpan MaximumStaleAge { get; init; }
 
-    public required int RetainedSnapshotsPerSource { get; init; }
+    public required int RetainedSnapshots { get; init; }
 
     public static ModelPricingCatalogOptions FromConfiguration(IConfiguration configuration)
     {
@@ -59,61 +59,15 @@ internal sealed record ModelPricingCatalogOptions
             HttpTimeout = TimeSpan.FromSeconds(timeoutSeconds),
             MaximumResponseBytes = maximumResponseMib * 1024L * 1024L,
             MaximumStaleAge = TimeSpan.FromMinutes(maximumStaleMinutes),
-            RetainedSnapshotsPerSource = retainedSnapshots
+            RetainedSnapshots = retainedSnapshots
         };
     }
 }
 
-internal sealed record OpenRouterModelPricingCatalogOptions(
-    bool Enabled,
-    int Priority,
-    Uri Endpoint,
-    string? ApiKey)
+internal sealed record OpenRouterModelPricingCatalogOptions(string? ApiKey)
 {
-    private static readonly Uri s_defaultEndpoint = new("https://openrouter.ai/api/v1/models");
-
     public static OpenRouterModelPricingCatalogOptions FromConfiguration(IConfiguration configuration)
-    {
-        var priority = configuration.GetValue("QYL_OPENROUTER_MODEL_CATALOG_PRIORITY", 100);
-        if (priority < 0)
-            throw new InvalidOperationException("QYL_OPENROUTER_MODEL_CATALOG_PRIORITY cannot be negative.");
-
-        var endpoint = ReadEndpoint(configuration["QYL_OPENROUTER_MODELS_ENDPOINT"]);
-        var apiKey = ReadOptionalSecret(configuration["QYL_OPENROUTER_API_KEY"]);
-        if (apiKey is not null &&
-            !string.Equals(endpoint.Host, "openrouter.ai", StringComparison.OrdinalIgnoreCase) &&
-            !endpoint.Host.EndsWith(".openrouter.ai", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                "QYL_OPENROUTER_API_KEY can only be sent to an openrouter.ai HTTPS host.");
-        }
-        if (apiKey is not null && (endpoint.Query.Length is not 0 || endpoint.Fragment.Length is not 0))
-        {
-            throw new InvalidOperationException(
-                "QYL_OPENROUTER_MODELS_ENDPOINT cannot contain a query or fragment when an API key is configured.");
-        }
-
-        return new OpenRouterModelPricingCatalogOptions(
-            configuration.GetValue("QYL_OPENROUTER_MODEL_CATALOG_ENABLED", true),
-            priority,
-            endpoint,
-            apiKey);
-    }
-
-    private static Uri ReadEndpoint(string? configured)
-    {
-        if (string.IsNullOrWhiteSpace(configured)) return s_defaultEndpoint;
-        if (!Uri.TryCreate(configured.Trim(), UriKind.Absolute, out var endpoint) ||
-            !string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
-            endpoint.Host.Length is 0 ||
-            endpoint.UserInfo.Length is not 0)
-        {
-            throw new InvalidOperationException(
-                "QYL_OPENROUTER_MODELS_ENDPOINT must be an absolute HTTPS URL without user information.");
-        }
-
-        return endpoint;
-    }
+        => new(ReadOptionalSecret(configuration["QYL_OPENROUTER_API_KEY"]));
 
     private static string? ReadOptionalSecret(string? value)
     {

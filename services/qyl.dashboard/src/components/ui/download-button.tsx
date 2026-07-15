@@ -2,10 +2,11 @@ import {useState} from 'react';
 import {ChevronDown, Download, FileJson, FileSpreadsheet} from 'lucide-react';
 import {Button} from './button';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from './dropdown-menu';
-import {downloadData, type ExportFormat} from '@/lib/download';
+import {downloadCsv, downloadJson, type ExportFormat} from '@/lib/download';
 
-export interface DownloadButtonProps<T extends Record<string, unknown>> {
-    getData: () => T[];
+export interface DownloadButtonProps<TJson, TCsv extends Record<string, unknown>> {
+    getJsonData: () => readonly TJson[];
+    getCsvData: () => readonly TCsv[];
     filenamePrefix: string;
     columns?: string[];
     variant?: 'default' | 'outline' | 'secondary' | 'ghost';
@@ -14,25 +15,28 @@ export interface DownloadButtonProps<T extends Record<string, unknown>> {
     className?: string;
 }
 
-export function DownloadButton<T extends Record<string, unknown>>({
-                                                                      getData,
+export function DownloadButton<TJson, TCsv extends Record<string, unknown>>({
+                                                                      getJsonData,
+                                                                      getCsvData,
                                                                       filenamePrefix,
                                                                       columns,
                                                                       variant = 'outline',
                                                                       size = 'sm',
                                                                       disabled = false,
                                                                       className,
-                                                                  }: DownloadButtonProps<T>) {
+                                                                  }: DownloadButtonProps<TJson, TCsv>) {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const handleDownload = async (format: ExportFormat) => {
         setIsDownloading(true);
         try {
-            const data = getData();
-            if (data.length === 0) {
-                return;
+            if (format === 'json') {
+                const data = getJsonData();
+                if (data.length > 0) downloadJson(data, filenamePrefix);
+            } else {
+                const data = getCsvData();
+                if (data.length > 0) downloadCsv(data, filenamePrefix, columns);
             }
-            downloadData(data, format, filenamePrefix, columns);
         } finally {
             setIsDownloading(false);
         }

@@ -1,15 +1,11 @@
 import {useQuery} from '@tanstack/react-query';
 import type {
-    CursorPageSessionEntity,
-    CursorPageSpan,
-    CursorPageTrace,
     SessionEntity,
     Span,
 } from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
-
-type TelemetrySpan = Span;
+import {parseSessionPage, parseSessionTracePage, parseSpanPage, parseTracePage} from '@/lib/contract-validation';
 
 export const telemetryKeys = {
     all: ['telemetry'] as const,
@@ -25,7 +21,7 @@ export const telemetryKeys = {
 export function useSessions() {
     return useQuery({
         queryKey: telemetryKeys.sessions(),
-        queryFn: () => fetchJson<CursorPageSessionEntity>('/api/v1/sessions'),
+        queryFn: () => fetchJson('/api/v1/sessions', parseSessionPage),
         select: (data): SessionEntity[] => data.items,
         refetchInterval: 10000,
     });
@@ -34,8 +30,11 @@ export function useSessions() {
 export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
-        queryFn: () => fetchJson<CursorPageTrace>(`/api/v1/sessions/${sessionId}/traces`),
-        select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
+        queryFn: () => fetchJson(
+            `/api/v1/sessions/${sessionId}/traces`,
+            value => parseSessionTracePage(value, sessionId),
+        ),
+        select: (data): Span[] => data.items.flatMap((trace) => trace.spans),
         enabled: !!sessionId,
     });
 }
@@ -43,8 +42,11 @@ export function useSessionSpans(sessionId: string) {
 export function useTraceSpans(traceId: string) {
     return useQuery({
         queryKey: telemetryKeys.traceSpans(traceId),
-        queryFn: () => fetchJson<CursorPageSpan>(`/api/v1/traces/${traceId}/spans`),
-        select: (data): TelemetrySpan[] => data.items,
+        queryFn: () => fetchJson(
+            `/api/v1/traces/${traceId}/spans`,
+            value => parseSpanPage(value, traceId),
+        ),
+        select: (data): Span[] => data.items,
         enabled: !!traceId,
     });
 }
@@ -52,8 +54,8 @@ export function useTraceSpans(traceId: string) {
 export function useTraces(enabled = true) {
     return useQuery({
         queryKey: telemetryKeys.traces(),
-        queryFn: () => fetchJson<CursorPageTrace>('/api/v1/traces'),
-        select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
+        queryFn: () => fetchJson('/api/v1/traces', parseTracePage),
+        select: (data): Span[] => data.items.flatMap((trace) => trace.spans),
         enabled,
         refetchInterval: 10000,
     });
@@ -71,7 +73,7 @@ export function selectTraceViewSource(args: {
     return 'session';
 }
 
-export function getSpanColor(span: TelemetrySpan): string {
+export function getSpanColor(span: Span): string {
     const attrs = getAttributesRecord(span);
     if (attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
@@ -92,7 +94,7 @@ export function getSpanColor(span: TelemetrySpan): string {
     return 'hsl(var(--span-internal))';
 }
 
-export function getSpanTypeLabel(span: TelemetrySpan): string {
+export function getSpanTypeLabel(span: Span): string {
     const attrs = getAttributesRecord(span);
     if (attrs['gen_ai.provider.name']) {
         return 'GenAI';

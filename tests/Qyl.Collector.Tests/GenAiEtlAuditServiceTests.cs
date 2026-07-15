@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,67 @@ public sealed class GenAiEtlAuditServiceTests
         new(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset s_periodEnd = s_periodStart.AddDays(1);
     private static readonly DateTimeOffset s_now = s_periodEnd.AddMinutes(5);
+    private static readonly ThrowOnSendHandler s_catalogHandler = new();
+    private static readonly HttpClient s_catalogHttpClient = new(s_catalogHandler, disposeHandler: false);
+    private static readonly OpenRouterModelPricingCatalogSource s_catalogSource = new(
+        s_catalogHttpClient,
+        new FixedTimeProvider(s_now),
+        new OpenRouterModelPricingCatalogOptions(null),
+        16 * 1024 * 1024);
+
+    [Fact]
+    public async Task Report_prices_observed_usage_from_the_refreshed_OpenRouter_catalog()
+    {
+        const string payload = """
+                               {
+                                 "data": [
+                                   {
+                                     "id": "anthropic/claude-test",
+                                     "canonical_slug": "anthropic/claude-test-20260701",
+                                     "pricing": {
+                                       "prompt": "0.01",
+                                       "completion": "0.02"
+                                     }
+                                   }
+                                 ]
+                               }
+                               """;
+        await using var store = new DuckDbStore(":memory:");
+        await InsertCallsAsync(store, "workload", "anthropic/claude-test", 2);
+        using var handler = new JsonResponseHandler(payload);
+        using var client = new HttpClient(handler, disposeHandler: false);
+        using var catalogSource = new OpenRouterModelPricingCatalogSource(
+            client,
+            new FixedTimeProvider(s_now),
+            new OpenRouterModelPricingCatalogOptions(null),
+            16 * 1024 * 1024);
+        var options = CreateCatalogOptions();
+        using var refresh = new ModelPricingCatalogRefreshService(
+            catalogSource,
+            options,
+            store,
+            new FixedTimeProvider(s_now),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<ModelPricingCatalogRefreshService>.Instance);
+
+        await refresh.RefreshAsync(TestContext.Current.CancellationToken);
+        var report = await CreateService(store).GetReportAsync(
+            "default",
+            s_periodStart,
+            s_periodEnd,
+            25,
+            TestContext.Current.CancellationToken);
+
+        var estimate = Assert.IsType<GenAiEtlCatalogTokenCalculatedEstimate>(
+            Assert.Single(report.Clusters).CatalogTokenEstimate);
+        Assert.Equal(0.5, estimate.EstimatedCatalogTokenCostUsd);
+        Assert.Equal(0.25, estimate.EstimatedCatalogTokenCostPerCallUsd);
+        Assert.Equal("openrouter", estimate.Provenance.SourceId);
+        Assert.Equal(
+            OpenRouterModelPricingCatalogSource.CatalogEndpoint.AbsoluteUri,
+            estimate.Provenance.SourceEndpoint);
+        Assert.Equal(ModelCatalogPriceSemantics.MinimumAvailableRate, estimate.Provenance.PriceSemantics);
+        Assert.Equal(ModelCatalogSourceStatus.Current, Assert.Single(report.CatalogSources).Status);
+    }
 
     [Fact]
     public async Task Report_keeps_official_provider_model_cost_source_level_and_exposes_missing_evidence()
@@ -499,18 +561,9 @@ public sealed class GenAiEtlAuditServiceTests
         string? anthropicWorkspaceId = null)
     {
         var timeProvider = new FixedTimeProvider(s_now);
-        var catalogOptions = new ModelPricingCatalogOptions
-        {
-            SyncInterval = TimeSpan.FromHours(1),
-            HttpTimeout = TimeSpan.FromSeconds(30),
-            MaximumResponseBytes = 16 * 1024 * 1024,
-            MaximumStaleAge = TimeSpan.FromHours(3),
-            RetainedSnapshotsPerSource = 32
-        };
-        var catalogSources = new ModelPricingCatalogSourceRegistry([new StubCatalogSource()]);
+        var catalogOptions = CreateCatalogOptions();
         var catalogRepository = new ModelPricingCatalogRepository(
             store,
-            catalogSources,
             catalogOptions,
             timeProvider);
 
@@ -532,10 +585,19 @@ public sealed class GenAiEtlAuditServiceTests
                     ? ProviderCostScope.Organization
                     : ProviderCostScope.ForIdentifier(anthropicWorkspaceId)
             },
-            new GenAiEtlCatalogEstimator(catalogRepository, catalogSources),
-            new ModelPricingCatalogStateService(catalogSources, catalogOptions, store, timeProvider),
+            new GenAiEtlCatalogEstimator(catalogRepository),
+            new ModelPricingCatalogStateService(s_catalogSource, catalogOptions, store, timeProvider),
             timeProvider);
     }
+
+    private static ModelPricingCatalogOptions CreateCatalogOptions() => new()
+    {
+        SyncInterval = TimeSpan.FromHours(1),
+        HttpTimeout = TimeSpan.FromSeconds(30),
+        MaximumResponseBytes = 16 * 1024 * 1024,
+        MaximumStaleAge = TimeSpan.FromHours(3),
+        RetainedSnapshots = 32
+    };
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {
@@ -555,17 +617,25 @@ public sealed class GenAiEtlAuditServiceTests
             throw new InvalidOperationException("The report service must not call provider APIs inline.");
     }
 
-    private sealed class StubCatalogSource : IModelPricingCatalogSource
+    private sealed class ThrowOnSendHandler : HttpMessageHandler
     {
-        public string SourceId => "openrouter";
-
-        public int Priority => 100;
-
-        public string ConfigurationFingerprint => "test";
-
-        public Uri SourceEndpoint { get; } = new("https://openrouter.ai/api/v1/models");
-
-        public Task<ModelPricingCatalogFetchResult> FetchAsync(CancellationToken cancellationToken = default) =>
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) =>
             throw new InvalidOperationException("The report service must not call catalog APIs inline.");
+    }
+
+    private sealed class JsonResponseHandler(string payload) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json")
+            });
+        }
     }
 }

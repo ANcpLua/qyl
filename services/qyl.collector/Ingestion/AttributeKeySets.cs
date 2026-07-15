@@ -20,6 +20,11 @@ internal static class AttributeKeySets
     internal static bool IsSafeMetricAttribute(string key) =>
         !IsDeniedMetricKey(key) && CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key);
 
+    // Descriptor metadata, scope attributes, and exemplar filtered attributes are not metric
+    // dimensions and therefore are not constrained to the semantic-convention dimension catalog.
+    // They still cross the same persistence privacy boundary and honor the credential deny rules.
+    internal static bool IsSafeMetricAuxiliaryAttribute(string key) => !IsDeniedMetricKey(key);
+
     private static bool IsDeniedMetricKey(string key) =>
         CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key)
             ? CollectorSemanticAttributeCatalog.DeniedExactKeys.Contains(key) ||
@@ -33,6 +38,11 @@ internal static class AttributeKeySets
         !IsDenied(key) &&
         (CollectorSemanticAttributeCatalog.ResourceAttributeAllowList.Contains(key) ||
          CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList.Contains(key));
+
+    // Entity references may identify resources with application-defined attributes that are not
+    // part of the semantic-convention catalog. Persist only those explicitly referenced keys, and
+    // keep the same credential/privacy boundary as every other persisted resource attribute.
+    internal static bool IsSafeEntityReferencedResourceAttribute(string key) => !IsDenied(key);
 
     internal static bool ShouldCaptureSpanAttribute(string key) =>
         IsSafeSpanAttribute(key) ||

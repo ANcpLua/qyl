@@ -14,7 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
-import {consumeSse} from '@/lib/api';
+import {consumeSse, parseLogSsePayload} from '@/lib/api';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
@@ -23,7 +23,25 @@ import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from 
 import {OnboardingHint} from '@/components/OnboardingHint';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
-import type {ContractLogRecord, LogLevel, LogStreamEvent, LogViewRecord} from '@/types';
+import {formatAttributeValue} from '@/lib/attribute-value';
+import type {AttributeValue, LogRecord} from '@ancplua/qyl-api-schema/types';
+
+type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+interface LogViewRecord {
+    original: LogRecord;
+    timestamp: string;
+    observedTimestamp: string;
+    traceId?: string;
+    spanId?: string;
+    eventName?: string;
+    severityNumber: number;
+    severityText: LogLevel;
+    body: string;
+    attributes: Record<string, AttributeValue>;
+    serviceName: string;
+    serviceVersion?: string;
+}
 
 const MAX_LOGS = 10_000;
 const AUTO_SCROLL_THRESHOLD = 100;
@@ -43,16 +61,18 @@ const LOG_LEVEL_CONFIG: Record<
 
 const LOG_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 
-function normalizeLogRecord(log: ContractLogRecord): LogViewRecord {
+function normalizeLogRecord(log: LogRecord): LogViewRecord {
     const timeUnixNano = log.time_unix_nano;
     const observedUnixNano = log.observed_time_unix_nano;
     const severityNumber = log.severity_number;
 
     return {
+        original: log,
         timestamp: unixNanoToIso(timeUnixNano),
         observedTimestamp: unixNanoToIso(observedUnixNano),
         traceId: log.trace_id,
         spanId: log.span_id,
+        eventName: log.event_name,
         severityNumber,
         severityText: normalizeSeverity(log.severity_text, severityNumber),
         body: normalizeBody(log.body),
@@ -62,7 +82,7 @@ function normalizeLogRecord(log: ContractLogRecord): LogViewRecord {
     };
 }
 
-function normalizeSeverity(severityText: ContractLogRecord['severity_text'], severityNumber: number): LogLevel {
+function normalizeSeverity(severityText: LogRecord['severity_text'], severityNumber: number): LogLevel {
     if (typeof severityText === 'string') {
         const normalized = severityText.trim().toLowerCase();
         if (LOG_LEVELS.includes(normalized as LogLevel)) return normalized as LogLevel;
@@ -76,7 +96,7 @@ function normalizeSeverity(severityText: ContractLogRecord['severity_text'], sev
                         : 'trace';
 }
 
-function normalizeBody(body: ContractLogRecord['body']): string {
+function normalizeBody(body: LogRecord['body']): string {
     if ('string_value' in body) return body.string_value;
     if ('bytes_value' in body) return body.bytes_value;
     if ('array_value' in body) return JSON.stringify(body.array_value);
@@ -84,7 +104,7 @@ function normalizeBody(body: ContractLogRecord['body']): string {
 }
 
 function normalizeAttributes(
-    attributes?: ContractLogRecord['attributes'],
+    attributes?: LogRecord['attributes'],
 ): LogViewRecord['attributes'] {
     if (!attributes) return {};
     const record: LogViewRecord['attributes'] = {};
@@ -196,6 +216,13 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                             </div>
                         )}
 
+                        {log.eventName && (
+                            <div>
+                                <h4 className="text-xs font-medium text-brutal-slate mb-1">Event name</h4>
+                                <CopyableText value={log.eventName} label="Event name"/>
+                            </div>
+                        )}
+
                         {Object.keys(log.attributes).length > 0 && (
                             <div>
                                 <h4 className="text-xs font-medium text-brutal-slate mb-1">Attributes</h4>
@@ -204,7 +231,7 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                                         <div key={key} className="flex items-center text-sm">
                                             <span className="text-brutal-slate">{key}:</span>
                                             <CopyableText
-                                                value={String(value)}
+                                                value={formatAttributeValue(value)}
                                                 label={key}
                                                 className="ml-2"
                                                 truncate
@@ -278,9 +305,9 @@ function useLiveLogs(
                     controller.signal,
                     () => setIsConnected(true),
                     frame => {
-                        if (frame.event !== 'log') return;
+                        const event = parseLogSsePayload(frame);
+                        if (event.type !== 'log') return;
                         if (frame.id && seenEventIdsRef.current.has(frame.id)) return;
-                        const event = JSON.parse(frame.data) as LogStreamEvent;
                         queueLogs([normalizeLogRecord(event.data)]);
                         if (frame.id) {
                             lastEventIdRef.current = frame.id;
@@ -381,7 +408,7 @@ export function LogsPage() {
                     log.body.toLowerCase().includes(searchLower) ||
                     log.serviceName.toLowerCase().includes(searchLower) ||
                     Object.values(log.attributes).some((v) =>
-                        String(v).toLowerCase().includes(searchLower)
+                        formatAttributeValue(v).toLowerCase().includes(searchLower)
                     );
                 if (!matches) return false;
             }
@@ -551,17 +578,19 @@ export function LogsPage() {
                 </Button>
 
                 <DownloadButton
-                    getData={() => filteredLogs.map(log => ({
+                    getJsonData={() => filteredLogs.map(log => log.original)}
+                    getCsvData={() => filteredLogs.map(log => ({
                         timestamp: log.timestamp,
                         level: log.severityText,
                         service: log.serviceName,
                         message: log.body,
                         traceId: log.traceId ?? '',
                         spanId: log.spanId ?? '',
+                        eventName: log.eventName ?? '',
                         attributes: log.attributes,
                     }))}
                     filenamePrefix="logs"
-                    columns={['timestamp', 'level', 'service', 'message', 'traceId', 'spanId', 'attributes']}
+                    columns={['timestamp', 'level', 'service', 'message', 'traceId', 'spanId', 'eventName', 'attributes']}
                     disabled={filteredLogs.length === 0}
                 />
 

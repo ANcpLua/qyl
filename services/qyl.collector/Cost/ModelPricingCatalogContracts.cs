@@ -2,50 +2,6 @@ using System.Net;
 
 namespace Qyl.Collector.Cost;
 
-internal interface IModelPricingCatalogSource
-{
-    string SourceId { get; }
-
-    int Priority { get; }
-
-    string ConfigurationFingerprint { get; }
-
-    Uri SourceEndpoint { get; }
-
-    Task<ModelPricingCatalogFetchResult> FetchAsync(CancellationToken cancellationToken = default);
-}
-
-internal sealed class ModelPricingCatalogSourceRegistry
-{
-    public ModelPricingCatalogSourceRegistry(IEnumerable<IModelPricingCatalogSource> sources)
-    {
-        Sources = sources
-            .OrderBy(static source => source.Priority)
-            .ThenBy(static source => source.SourceId, StringComparer.Ordinal)
-            .ToArray();
-        var duplicate = Sources
-            .GroupBy(static source => source.SourceId, StringComparer.Ordinal)
-            .FirstOrDefault(static group => group.Count() > 1);
-        if (duplicate is not null)
-            throw new InvalidOperationException($"Model-pricing source '{duplicate.Key}' is registered more than once.");
-
-        foreach (var source in Sources)
-        {
-            if (!ModelPricingCatalogValidation.IsIdentifier(source.SourceId, 64))
-                throw new InvalidOperationException($"Model-pricing source id '{source.SourceId}' is invalid.");
-            if (source.Priority < 0 || !ModelPricingCatalogValidation.IsIdentifier(
-                    source.ConfigurationFingerprint,
-                    128))
-            {
-                throw new InvalidOperationException(
-                    $"Model-pricing source '{source.SourceId}' has invalid ordering or configuration identity.");
-            }
-        }
-    }
-
-    public IReadOnlyList<IModelPricingCatalogSource> Sources { get; }
-}
-
 internal enum ModelPricingCatalogFailureCategory
 {
     Authentication,
@@ -119,7 +75,7 @@ internal static class ModelPricingCatalogValidation
     public static bool IsValid(ModelPricingCatalogSnapshot snapshot)
     {
         if (!IsIdentifier(snapshot.SourceId, 64) ||
-            snapshot.PriceSemantics is not ("minimum_available_rate" or "published_rate") ||
+            snapshot.PriceSemantics is not "minimum_available_rate" ||
             !snapshot.SourceEndpoint.IsAbsoluteUri ||
             snapshot.Models.Count is 0 or > 100_000)
         {

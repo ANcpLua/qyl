@@ -135,7 +135,7 @@ internal static class OtlpJsonIdNormalizer
                 return SpanIdBytes;
         }
 
-        if (IsTraceLinkPath(path) || IsLogRecordPath(path) || IsProfileLinkPath(path))
+        if (IsTraceLinkPath(path) || IsLogRecordPath(path) || IsMetricExemplarPath(path) || IsProfileLinkPath(path))
         {
             if (IsName(propertyName, "traceId", "trace_id")) return TraceIdBytes;
             if (IsName(propertyName, "spanId", "span_id")) return SpanIdBytes;
@@ -167,6 +167,21 @@ internal static class OtlpJsonIdNormalizer
         IsName(path[0], "resourceLogs", "resource_logs") &&
         IsName(path[1], "scopeLogs", "scope_logs") &&
         IsName(path[2], "logRecords", "log_records");
+
+    private static bool IsMetricExemplarPath(IReadOnlyList<string> path) =>
+        path.Count is 6 &&
+        IsName(path[0], "resourceMetrics", "resource_metrics") &&
+        IsName(path[1], "scopeMetrics", "scope_metrics") &&
+        IsName(path[2], "metrics", "metrics") &&
+        IsMetricDataName(path[3]) &&
+        IsName(path[4], "dataPoints", "data_points") &&
+        IsName(path[5], "exemplars", "exemplars");
+
+    private static bool IsMetricDataName(string name) =>
+        IsName(name, "gauge", "gauge") ||
+        IsName(name, "sum", "sum") ||
+        IsName(name, "histogram", "histogram") ||
+        IsName(name, "exponentialHistogram", "exponential_histogram");
 
     private static bool IsProfilePath(IReadOnlyList<string> path) =>
         path.Count is 3 &&

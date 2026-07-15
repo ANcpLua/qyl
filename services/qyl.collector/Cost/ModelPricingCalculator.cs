@@ -126,51 +126,8 @@ internal sealed record ModelPricingEstimateResult(
     IReadOnlyList<ModelPricingEstimateComponent> Components,
     IReadOnlyList<ModelPricingEstimateExclusion> Exclusions);
 
-internal sealed class ModelPricingCalculator(ModelPricingCatalogRepository repository)
+internal static class ModelPricingCalculator
 {
-    public async Task<ModelPricingEstimateResult> CalculateCallAsync(
-        string sourceId,
-        string? observedModel,
-        ModelPricingUsage usage,
-        CancellationToken cancellationToken = default)
-    {
-        var catalog = await repository.GetAsync(sourceId, cancellationToken).ConfigureAwait(false);
-        return catalog.Availability switch
-        {
-            ModelPricingCatalogAvailability.SourceUnavailable =>
-                Failure(ModelPricingEstimateStatus.SourceUnavailable, sourceId),
-            ModelPricingCatalogAvailability.Stale =>
-                Failure(ModelPricingEstimateStatus.StaleSource, sourceId),
-            _ => Calculate(
-                catalog.Version!,
-                observedModel,
-                usage,
-                aggregateCallCount: 1)
-        };
-    }
-
-    public async Task<ModelPricingEstimateResult> CalculateAggregateAsync(
-        string sourceId,
-        string? observedModel,
-        long callCount,
-        ModelPricingUsage aggregateUsage,
-        CancellationToken cancellationToken = default)
-    {
-        var catalog = await repository.GetAsync(sourceId, cancellationToken).ConfigureAwait(false);
-        return catalog.Availability switch
-        {
-            ModelPricingCatalogAvailability.SourceUnavailable =>
-                Failure(ModelPricingEstimateStatus.SourceUnavailable, sourceId),
-            ModelPricingCatalogAvailability.Stale =>
-                Failure(ModelPricingEstimateStatus.StaleSource, sourceId),
-            _ => Calculate(
-                catalog.Version!,
-                observedModel,
-                aggregateUsage,
-                callCount)
-        };
-    }
-
     internal static ModelPricingEstimateResult Calculate(
         ModelPricingCatalogVersion version,
         string? observedModel,

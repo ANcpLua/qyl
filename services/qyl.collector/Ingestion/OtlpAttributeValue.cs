@@ -4,6 +4,7 @@ namespace Qyl.Collector.Ingestion;
 
 internal enum OtlpAttributeValueKind
 {
+    Empty,
     String,
     Bool,
     Int,
@@ -24,6 +25,8 @@ internal sealed class OtlpAttributeValue
     }
 
     public OtlpAttributeValueKind Kind { get; }
+
+    public static OtlpAttributeValue Empty { get; } = new(OtlpAttributeValueKind.Empty, DBNull.Value);
 
     public static OtlpAttributeValue FromString(string value) => new(OtlpAttributeValueKind.String, value);
 
@@ -72,6 +75,7 @@ internal sealed class OtlpAttributeValue
     public string ToStableString() =>
         Kind switch
         {
+            OtlpAttributeValueKind.Empty => "null",
             OtlpAttributeValueKind.String => (string)value,
             OtlpAttributeValueKind.Bool => (bool)value ? "true" : "false",
             OtlpAttributeValueKind.Int => ((long)value).ToString(CultureInfo.InvariantCulture),
@@ -80,10 +84,20 @@ internal sealed class OtlpAttributeValue
             _ => WriteJsonToString()
         };
 
+    public string ToIdentityString()
+    {
+        var builder = new StringBuilder();
+        AppendIdentityTo(builder);
+        return builder.ToString();
+    }
+
     public void WriteJsonValue(Utf8JsonWriter writer)
     {
         switch (Kind)
         {
+            case OtlpAttributeValueKind.Empty:
+                writer.WriteNullValue();
+                break;
             case OtlpAttributeValueKind.String:
                 writer.WriteStringValue((string)value);
                 break;
@@ -91,10 +105,17 @@ internal sealed class OtlpAttributeValue
                 writer.WriteBooleanValue((bool)value);
                 break;
             case OtlpAttributeValueKind.Int:
-                writer.WriteNumberValue((long)value);
+                writer.WriteStartObject();
+                writer.WriteString("type", "int");
+                writer.WriteString("value", ((long)value).ToString(CultureInfo.InvariantCulture));
+                writer.WriteEndObject();
                 break;
             case OtlpAttributeValueKind.Double:
+                writer.WriteStartObject();
+                writer.WriteString("type", "double");
+                writer.WritePropertyName("value");
                 WriteDouble(writer, (double)value);
+                writer.WriteEndObject();
                 break;
             case OtlpAttributeValueKind.Bytes:
                 writer.WriteStartObject();
@@ -110,12 +131,16 @@ internal sealed class OtlpAttributeValue
                 break;
             case OtlpAttributeValueKind.KeyValueList:
                 writer.WriteStartObject();
+                writer.WriteString("type", "kvlist");
+                writer.WritePropertyName("values");
+                writer.WriteStartObject();
                 foreach (var (key, nestedValue) in ((IReadOnlyDictionary<string, OtlpAttributeValue>)value)
                          .OrderBy(static item => item.Key, StringComparer.Ordinal))
                 {
                     writer.WritePropertyName(key);
                     nestedValue.WriteJsonValue(writer);
                 }
+                writer.WriteEndObject();
                 writer.WriteEndObject();
                 break;
             default:
@@ -144,4 +169,59 @@ internal sealed class OtlpAttributeValue
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
+
+    private void AppendIdentityTo(StringBuilder builder)
+    {
+        builder.Append((int)Kind).Append('{');
+        switch (Kind)
+        {
+            case OtlpAttributeValueKind.Empty:
+                break;
+            case OtlpAttributeValueKind.String:
+                AppendIdentitySegment(builder, (string)value);
+                break;
+            case OtlpAttributeValueKind.Bool:
+                AppendIdentitySegment(builder, (bool)value ? "true" : "false");
+                break;
+            case OtlpAttributeValueKind.Int:
+                AppendIdentitySegment(builder, ((long)value).ToString(CultureInfo.InvariantCulture));
+                break;
+            case OtlpAttributeValueKind.Double:
+                AppendIdentitySegment(builder, ((double)value).ToString("R", CultureInfo.InvariantCulture));
+                break;
+            case OtlpAttributeValueKind.Bytes:
+                AppendIdentitySegment(builder, Convert.ToBase64String((byte[])value));
+                break;
+            case OtlpAttributeValueKind.Array:
+            {
+                var items = (IReadOnlyList<OtlpAttributeValue>)value;
+                builder.Append(items.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+                foreach (var item in items)
+                    AppendIdentitySegment(builder, item.ToIdentityString());
+                break;
+            }
+            case OtlpAttributeValueKind.KeyValueList:
+            {
+                var items = (IReadOnlyDictionary<string, OtlpAttributeValue>)value;
+                builder.Append(items.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+                foreach (var (key, nestedValue) in items.OrderBy(static item => item.Key, StringComparer.Ordinal))
+                {
+                    AppendIdentitySegment(builder, key);
+                    AppendIdentitySegment(builder, nestedValue.ToIdentityString());
+                }
+
+                break;
+            }
+            default:
+                throw new InvalidOperationException($"Unknown OTLP attribute value kind '{Kind}'.");
+        }
+
+        builder.Append('}');
+    }
+
+    private static void AppendIdentitySegment(StringBuilder builder, string segment) =>
+        builder
+            .Append(segment.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':')
+            .Append(segment);
 }

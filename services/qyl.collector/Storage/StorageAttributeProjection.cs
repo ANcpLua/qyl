@@ -1,35 +1,33 @@
-using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
-
 namespace Qyl.Collector.Storage;
 
 internal static class StorageAttributeProjection
 {
     private static readonly FrozenSet<string> s_genAiOperationNames = FrozenSet.Create(
         StringComparer.OrdinalIgnoreCase,
-        GenAiAttributes.OperationNameValues.Chat,
-        GenAiAttributes.OperationNameValues.CreateAgent,
-        GenAiAttributes.OperationNameValues.CreateMemory,
-        GenAiAttributes.OperationNameValues.CreateMemoryStore,
-        GenAiAttributes.OperationNameValues.DeleteMemory,
-        GenAiAttributes.OperationNameValues.DeleteMemoryStore,
-        GenAiAttributes.OperationNameValues.Embeddings,
-        GenAiAttributes.OperationNameValues.ExecuteTool,
-        GenAiAttributes.OperationNameValues.GenerateContent,
-        GenAiAttributes.OperationNameValues.InvokeAgent,
-        GenAiAttributes.OperationNameValues.InvokeWorkflow,
-        GenAiAttributes.OperationNameValues.Plan,
-        GenAiAttributes.OperationNameValues.Retrieval,
-        GenAiAttributes.OperationNameValues.SearchMemory,
-        GenAiAttributes.OperationNameValues.TextCompletion,
-        GenAiAttributes.OperationNameValues.UpdateMemory,
-        GenAiAttributes.OperationNameValues.UpsertMemory);
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Chat,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.CreateAgent,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.CreateMemory,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.CreateMemoryStore,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.DeleteMemory,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.DeleteMemoryStore,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Embeddings,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.ExecuteTool,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.GenerateContent,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.InvokeAgent,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.InvokeWorkflow,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Plan,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Retrieval,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.SearchMemory,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.TextCompletion,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.UpdateMemory,
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.UpsertMemory);
 
     private static readonly FrozenSet<string> s_genAiOutputTypes = FrozenSet.Create(
         StringComparer.OrdinalIgnoreCase,
-        GenAiAttributes.OutputTypeValues.Image,
-        GenAiAttributes.OutputTypeValues.Json,
-        GenAiAttributes.OutputTypeValues.Speech,
-        GenAiAttributes.OutputTypeValues.Text);
+        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Image,
+        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Json,
+        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Speech,
+        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Text);
 
     internal static SpanHotAttributeProjection ExtractSpanHotAttributes(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>

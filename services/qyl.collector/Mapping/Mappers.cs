@@ -3,6 +3,7 @@ using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Profiles;
 using Qyl.Api.Contracts.OTel.Traces;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
@@ -15,48 +16,210 @@ internal static class ContractJson
 {
     public static IReadOnlyList<ContractAttribute>? ParseAttributes(string? json)
     {
+        if (TryParseAttributes(json, out var attributes)) return attributes;
+        throw new InvalidDataException("Stored attributes do not match the generated AttributeValue contract.");
+    }
+
+    public static bool TryParseAttributes(string? json, out IReadOnlyList<ContractAttribute>? attributes)
+    {
+        attributes = null;
         if (string.IsNullOrWhiteSpace(json))
-            return null;
+            return true;
 
         try
         {
             using var document = JsonDocument.Parse(json);
             if (document.RootElement.ValueKind is not JsonValueKind.Object)
-                return null;
+                return false;
 
-            var attributes = new List<ContractAttribute>();
+            var parsed = new List<ContractAttribute>();
+            var keys = new HashSet<string>(StringComparer.Ordinal);
             foreach (var property in document.RootElement.EnumerateObject())
-                attributes.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value) ?? "" });
+            {
+                if (!keys.Add(property.Name) || !TryReadValue(property.Value, out var value)) return false;
+                parsed.Add(new ContractAttribute { Key = property.Name, Value = value });
+            }
 
-            return attributes;
+            attributes = parsed;
+            return true;
         }
         catch (JsonException)
         {
-            return null;
+            return false;
         }
     }
 
-    private static object? ReadValue(JsonElement value) =>
-        value.ValueKind switch
-        {
-            JsonValueKind.String => value.GetString() ?? "",
-            JsonValueKind.Number when value.TryGetInt64(out var int64) => int64,
-            JsonValueKind.Number when value.TryGetDouble(out var number) => number,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Array => value.EnumerateArray().Select(ReadValue).ToArray(),
-            JsonValueKind.Object => ReadObject(value),
-            JsonValueKind.Null => null,
-            _ => value.GetRawText()
-        };
-
-    private static Dictionary<string, object?> ReadObject(JsonElement value)
+    private static bool TryReadValue(JsonElement value, out object? result)
     {
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
-        foreach (var property in value.EnumerateObject())
-            result[property.Name] = ReadValue(property.Value);
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.String:
+                result = value.GetString() ?? "";
+                return true;
+            case JsonValueKind.True:
+                result = true;
+                return true;
+            case JsonValueKind.False:
+                result = false;
+                return true;
+            case JsonValueKind.Null:
+                // Attribute.Value is required even for an empty OTLP AnyValue. Keeping an explicit
+                // null JsonElement prevents the context-wide WhenWritingNull policy from omitting it.
+                result = value.Clone();
+                return true;
+            case JsonValueKind.Array:
+            {
+                var items = new object?[value.GetArrayLength()];
+                var index = 0;
+                foreach (var item in value.EnumerateArray())
+                {
+                    if (!TryReadValue(item, out items[index]))
+                    {
+                        result = null;
+                        return false;
+                    }
 
-        return result;
+                    index++;
+                }
+
+                result = items;
+                return true;
+            }
+            case JsonValueKind.Object:
+                return TryReadTaggedValue(value, out result);
+            default:
+                // Untagged JSON numbers are ambiguous: an OTLP int64 and a finite double can have
+                // the same JSON token. The generated contract therefore requires tagged wrappers.
+                result = null;
+                return false;
+        }
+    }
+
+    private static bool TryReadTaggedValue(JsonElement value, out object? result)
+    {
+        result = null;
+        if (!value.TryGetProperty("type", out var typeProperty) ||
+            typeProperty.ValueKind is not JsonValueKind.String)
+        {
+            return false;
+        }
+
+        switch (typeProperty.GetString())
+        {
+            case "bytes":
+                if (!HasExactProperties(value, "type", "base64") ||
+                    !value.TryGetProperty("base64", out var base64Property) ||
+                    base64Property.ValueKind is not JsonValueKind.String)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    result = new AttributeBytesValue
+                    {
+                        Type = "bytes",
+                        Base64 = Convert.FromBase64String(base64Property.GetString() ?? "")
+                    };
+                    return true;
+                }
+                catch (FormatException)
+                {
+                    return false;
+                }
+
+            case "int":
+                if (!HasExactProperties(value, "type", "value") ||
+                    !value.TryGetProperty("value", out var integerProperty) ||
+                    integerProperty.ValueKind is not JsonValueKind.String ||
+                    !long.TryParse(
+                        integerProperty.GetString(),
+                        NumberStyles.AllowLeadingSign,
+                        CultureInfo.InvariantCulture,
+                        out var integer))
+                {
+                    return false;
+                }
+
+                result = new AttributeIntValue { Type = "int", Value = integer };
+                return true;
+
+            case "double":
+                if (!HasExactProperties(value, "type", "value") ||
+                    !value.TryGetProperty("value", out var doubleProperty) ||
+                    !TryReadDouble(doubleProperty, out var number))
+                {
+                    return false;
+                }
+
+                result = new AttributeDoubleValue { Type = "double", Value = number };
+                return true;
+
+            case "kvlist":
+                if (!HasExactProperties(value, "type", "values") ||
+                    !value.TryGetProperty("values", out var valuesProperty) ||
+                    valuesProperty.ValueKind is not JsonValueKind.Object ||
+                    !TryReadValueDictionary(valuesProperty, out var values))
+                {
+                    return false;
+                }
+
+                result = new AttributeKeyValueListValue { Type = "kvlist", Values = values };
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryReadValueDictionary(
+        JsonElement value,
+        out IReadOnlyDictionary<string, object?> values)
+    {
+        var parsed = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var property in value.EnumerateObject())
+        {
+            if (!parsed.TryAdd(property.Name, null) || !TryReadValue(property.Value, out var item))
+            {
+                values = null!;
+                return false;
+            }
+
+            parsed[property.Name] = item;
+        }
+
+        values = parsed;
+        return true;
+    }
+
+    private static bool TryReadDouble(JsonElement value, out double number)
+    {
+        if (value.ValueKind is JsonValueKind.Number && value.TryGetDouble(out number)) return true;
+        if (value.ValueKind is JsonValueKind.String)
+        {
+            number = value.GetString() switch
+            {
+                "NaN" => double.NaN,
+                "Infinity" => double.PositiveInfinity,
+                "-Infinity" => double.NegativeInfinity,
+                _ => 0
+            };
+            return value.GetString() is "NaN" or "Infinity" or "-Infinity";
+        }
+
+        number = 0;
+        return false;
+    }
+
+    private static bool HasExactProperties(JsonElement value, params string[] expected)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in value.EnumerateObject())
+        {
+            if (!names.Add(property.Name)) return false;
+        }
+
+        return names.SetEquals(expected);
     }
 }
 
@@ -64,6 +227,114 @@ internal static class ResourceMapping
 {
     public static string ServiceNameOrUnknown(string? serviceName) =>
         string.IsNullOrWhiteSpace(serviceName) ? "unknown" : serviceName;
+
+    public static IReadOnlyList<EntityRef>? ParseEntityRefs(
+        string? json,
+        IReadOnlyList<ContractAttribute>? resourceAttributes)
+    {
+        if (TryParseEntityRefs(json, resourceAttributes, out var entityRefs)) return entityRefs;
+        throw new InvalidDataException("Stored Resource entity references are invalid.");
+    }
+
+    public static IReadOnlyList<EntityRef>? ParseEntityRefs(string? json, string? resourceJson) =>
+        ParseEntityRefs(json, ContractJson.ParseAttributes(resourceJson));
+
+    public static bool TryParseEntityRefs(
+        string? json,
+        IReadOnlyList<ContractAttribute>? resourceAttributes,
+        out IReadOnlyList<EntityRef>? entityRefs)
+    {
+        entityRefs = null;
+        if (string.IsNullOrWhiteSpace(json)) return true;
+
+        List<ResourceEntityRefIngestionRecord>? stored;
+        try
+        {
+            stored = JsonSerializer.Deserialize(
+                json,
+                StorageJsonSerializerContext.Default.ResourceEntityRefIngestionRecordList);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        if (stored is null) return false;
+        var resourceKeys = resourceAttributes?.Select(static attribute => attribute.Key)
+            .ToHashSet(StringComparer.Ordinal) ?? [];
+        if (resourceAttributes is not null && resourceKeys.Count != resourceAttributes.Count) return false;
+
+        var mapped = new List<EntityRef>(stored.Count);
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        string? previousIdentity = null;
+        foreach (var entityRef in stored)
+        {
+            if (entityRef is null ||
+                entityRef.SchemaUrl is "" ||
+                string.IsNullOrWhiteSpace(entityRef.Type) ||
+                entityRef.IdKeys is not { Count: > 0 } idKeys ||
+                entityRef.DescriptionKeys is not { } descriptionKeys ||
+                !IsCanonicalKeyList(idKeys) ||
+                !IsCanonicalKeyList(descriptionKeys) ||
+                idKeys.Any(key => !resourceKeys.Contains(key)) ||
+                descriptionKeys.Any(key => !resourceKeys.Contains(key)))
+            {
+                return false;
+            }
+
+            var identity = GetIdentity(entityRef.Type, idKeys);
+            if (!identities.Add(identity) ||
+                previousIdentity is not null && StringComparer.Ordinal.Compare(previousIdentity, identity) >= 0)
+            {
+                return false;
+            }
+
+            previousIdentity = identity;
+            mapped.Add(new EntityRef
+            {
+                SchemaUrl = entityRef.SchemaUrl,
+                Type = entityRef.Type,
+                IdKeys = idKeys,
+                DescriptionKeys = descriptionKeys.Count is 0 ? null : descriptionKeys
+            });
+        }
+
+        entityRefs = mapped.Count is 0 ? null : mapped;
+        return true;
+    }
+
+    private static bool IsCanonicalKeyList(IReadOnlyList<string> keys)
+    {
+        string? previous = null;
+        foreach (var key in keys)
+        {
+            if (string.IsNullOrWhiteSpace(key) ||
+                previous is not null && StringComparer.Ordinal.Compare(previous, key) >= 0)
+            {
+                return false;
+            }
+
+            previous = key;
+        }
+
+        return true;
+    }
+
+    private static string GetIdentity(string type, IReadOnlyList<string> idKeys)
+    {
+        var builder = new StringBuilder();
+        AppendSegment(builder, type);
+        builder.Append(idKeys.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+        foreach (var key in idKeys)
+            AppendSegment(builder, key);
+        return builder.ToString();
+    }
+
+    private static void AppendSegment(StringBuilder builder, string value) =>
+        builder
+            .Append(value.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':')
+            .Append(value);
 }
 
 internal static class SpanMapper
@@ -75,7 +346,7 @@ internal static class SpanMapper
             r.Name, r.Kind, r.StatusCode,
             r.StartTimeUnixNano, r.EndTimeUnixNano,
             r.ServiceName,
-            r.AttributesJson, r.ResourceJson, r.SchemaUrl,
+            r.AttributesJson, r.ResourceJson, r.ResourceEntityRefsJson, r.SchemaUrl,
             r.StatusMessage, r.EventsJson, r.LinksJson))
     ];
 
@@ -162,7 +433,7 @@ internal static class SpanMapper
         string name, byte kind, byte statusCode,
         ulong startTimeUnixNano, ulong endTimeUnixNano,
         string? serviceName,
-        string? attributesJson, string? resourceJson, string? schemaUrl,
+        string? attributesJson, string? resourceJson, string? resourceEntityRefsJson, string? schemaUrl,
         string? statusMessage, string? eventsJson, string? linksJson)
     {
         var attributes = ContractJson.ParseAttributes(attributesJson);
@@ -188,7 +459,8 @@ internal static class SpanMapper
             Resource = new Resource
             {
                 ServiceName = ResourceMapping.ServiceNameOrUnknown(serviceName),
-                Attributes = resourceAttributes
+                Attributes = resourceAttributes,
+                EntityRefs = ResourceMapping.ParseEntityRefs(resourceEntityRefsJson, resourceAttributes)
             },
             InstrumentationScope = schemaUrl is null
                 ? null
@@ -210,10 +482,12 @@ internal static class LogMapper
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             TraceId = record.TraceId,
             SpanId = record.SpanId,
+            EventName = record.EventName,
             Resource = new Resource
             {
                 ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
-                Attributes = ContractJson.ParseAttributes(record.ResourceJson)
+                Attributes = ContractJson.ParseAttributes(record.ResourceJson),
+                EntityRefs = ResourceMapping.ParseEntityRefs(record.ResourceEntityRefsJson, record.ResourceJson)
             }
         };
 
@@ -243,6 +517,503 @@ internal static class LogMapper
     }
 }
 
+internal static class MetricMapper
+{
+    public static MetricPoint ToContract(MetricStorageRow record) =>
+        TryToContract(record, out var contract)
+            ? contract
+            : throw new InvalidDataException(
+                $"Stored metric '{record.MetricId}' does not contain a complete MetricPoint projection.");
+
+    public static bool TryToContract(MetricStorageRow record, out MetricPoint contract)
+    {
+        contract = null!;
+        if (record.ContractProjectionVersion is not MetricStorageRow.CurrentContractProjectionVersion ||
+            string.IsNullOrWhiteSpace(record.MetricName) ||
+            record.TimeUnixNano is 0 ||
+            record.StartTimeUnixNano is not { } startTimeUnixNano ||
+            record.Flags is not { } storedFlags || storedFlags is < 0 or > uint.MaxValue ||
+            record.ResourceDroppedAttributesCount is not { } resourceDroppedCount ||
+            resourceDroppedCount is < 0 or > uint.MaxValue ||
+            record.HasInstrumentationScope is not (0 or 1) ||
+            record.ScopeDroppedAttributesCount is not { } scopeDroppedCount ||
+            scopeDroppedCount is < 0 or > uint.MaxValue ||
+            !ContractJson.TryParseAttributes(record.MetadataJson, out var metadata) ||
+            !ContractJson.TryParseAttributes(record.AttributesJson, out var attributes) ||
+            !ContractJson.TryParseAttributes(record.ResourceJson, out var resourceAttributes) ||
+            !ResourceMapping.TryParseEntityRefs(
+                record.ResourceEntityRefsJson,
+                resourceAttributes,
+                out var resourceEntityRefs) ||
+            !ContractJson.TryParseAttributes(record.ScopeAttributesJson, out var scopeAttributes) ||
+            !TryMapExemplars(record.ExemplarsJson, out var exemplars))
+        {
+            return false;
+        }
+
+        var hasScope = record.HasInstrumentationScope is 1;
+        if (!hasScope &&
+            (record.ScopeName is not null || record.ScopeVersion is not null ||
+             scopeAttributes is not null || scopeDroppedCount is not 0))
+        {
+            return false;
+        }
+
+        var resource = new Resource
+        {
+            ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
+            Attributes = resourceAttributes,
+            DroppedAttributesCount = resourceDroppedCount,
+            EntityRefs = resourceEntityRefs
+        };
+        var scope = hasScope
+            ? new InstrumentationScope
+            {
+                ScopeName = record.ScopeName ?? "",
+                ScopeVersion = record.ScopeVersion,
+                ScopeAttributes = scopeAttributes,
+                DroppedAttributesCount = scopeDroppedCount
+            }
+            : null;
+        var flags = (uint)storedFlags;
+        var noRecordedValue = (flags & 1U) is not 0;
+        if (noRecordedValue && exemplars is { Count: > 0 }) return false;
+
+        switch (record.MetricType)
+        {
+            case MetricStorageTypes.Gauge:
+                if (!TryMapNumberValue(
+                        record.IntValue,
+                        record.DoubleValue,
+                        noRecordedValue,
+                        out var gaugeValue)) return false;
+                contract = new GaugeMetricPoint
+                {
+                    Name = record.MetricName,
+                    Description = record.Description,
+                    Unit = record.Unit,
+                    Metadata = metadata,
+                    Attributes = attributes,
+                    StartTimeUnixNano = startTimeUnixNano,
+                    TimeUnixNano = record.TimeUnixNano,
+                    Flags = flags,
+                    Resource = resource,
+                    ResourceSchemaUrl = record.ResourceSchemaUrl,
+                    InstrumentationScope = scope,
+                    ScopeSchemaUrl = record.ScopeSchemaUrl,
+                    Value = gaugeValue,
+                    Exemplars = exemplars
+                };
+                return true;
+
+            case MetricStorageTypes.Sum:
+                if (!TryMapNumberValue(
+                        record.IntValue,
+                        record.DoubleValue,
+                        noRecordedValue,
+                        out var sumValue) ||
+                    !TryMapAggregationTemporality(record.AggregationTemporality, out var sumTemporality) ||
+                    record.IsMonotonic is not (0 or 1))
+                {
+                    return false;
+                }
+
+                contract = new SumMetricPoint
+                {
+                    Name = record.MetricName,
+                    Description = record.Description,
+                    Unit = record.Unit,
+                    Metadata = metadata,
+                    Attributes = attributes,
+                    StartTimeUnixNano = startTimeUnixNano,
+                    TimeUnixNano = record.TimeUnixNano,
+                    Flags = flags,
+                    Resource = resource,
+                    ResourceSchemaUrl = record.ResourceSchemaUrl,
+                    InstrumentationScope = scope,
+                    ScopeSchemaUrl = record.ScopeSchemaUrl,
+                    Value = sumValue,
+                    AggregationTemporality = sumTemporality,
+                    IsMonotonic = record.IsMonotonic is 1,
+                    Exemplars = exemplars
+                };
+                return true;
+
+            case MetricStorageTypes.Histogram:
+                if (record.Count is not { } histogramCount ||
+                    !TryMapAggregationTemporality(record.AggregationTemporality, out var histogramTemporality) ||
+                    !TryReadHistogramBuckets(record.BucketsJson, histogramCount, out var histogramBuckets) ||
+                    !IsValidCountAndSum(histogramCount, record.Sum) ||
+                    !IsValidMinMax(record.Min, record.Max) ||
+                    noRecordedValue && !IsCanonicalNoRecordedHistogram(
+                        histogramCount,
+                        record.Sum,
+                        record.Min,
+                        record.Max,
+                        histogramBuckets))
+                {
+                    return false;
+                }
+
+                contract = new HistogramMetricPoint
+                {
+                    Name = record.MetricName,
+                    Description = record.Description,
+                    Unit = record.Unit,
+                    Metadata = metadata,
+                    Attributes = attributes,
+                    StartTimeUnixNano = startTimeUnixNano,
+                    TimeUnixNano = record.TimeUnixNano,
+                    Flags = flags,
+                    Resource = resource,
+                    ResourceSchemaUrl = record.ResourceSchemaUrl,
+                    InstrumentationScope = scope,
+                    ScopeSchemaUrl = record.ScopeSchemaUrl,
+                    Count = histogramCount,
+                    Sum = record.Sum,
+                    BucketCounts = histogramBuckets.BucketCounts,
+                    ExplicitBounds = histogramBuckets.ExplicitBounds,
+                    Min = record.Min,
+                    Max = record.Max,
+                    AggregationTemporality = histogramTemporality,
+                    Exemplars = exemplars
+                };
+                return true;
+
+            case MetricStorageTypes.ExponentialHistogram:
+                if (record.Count is not { } exponentialCount ||
+                    record.ExponentialHistogramScale is not { } scale ||
+                    record.ExponentialHistogramZeroCount is not { } zeroCount ||
+                    record.ExponentialHistogramZeroThreshold is not { } zeroThreshold ||
+                    !TryMapAggregationTemporality(record.AggregationTemporality, out var exponentialTemporality) ||
+                    !TryReadExponentialHistogramBuckets(
+                        record.ExponentialHistogramBucketsJson,
+                        out var exponentialBuckets) ||
+                    !double.IsFinite(zeroThreshold) || zeroThreshold < 0 ||
+                    !TrySumExponentialBuckets(exponentialBuckets, zeroCount, out var distributedCount) ||
+                    distributedCount != exponentialCount ||
+                    !IsValidCountAndSum(exponentialCount, record.Sum) ||
+                    !IsValidMinMax(record.Min, record.Max) ||
+                    noRecordedValue && !IsCanonicalNoRecordedExponentialHistogram(
+                        exponentialCount,
+                        record.Sum,
+                        scale,
+                        zeroCount,
+                        zeroThreshold,
+                        exponentialBuckets,
+                        record.Min,
+                        record.Max))
+                {
+                    return false;
+                }
+
+                contract = new ExponentialHistogramMetricPoint
+                {
+                    Name = record.MetricName,
+                    Description = record.Description,
+                    Unit = record.Unit,
+                    Metadata = metadata,
+                    Attributes = attributes,
+                    StartTimeUnixNano = startTimeUnixNano,
+                    TimeUnixNano = record.TimeUnixNano,
+                    Flags = flags,
+                    Resource = resource,
+                    ResourceSchemaUrl = record.ResourceSchemaUrl,
+                    InstrumentationScope = scope,
+                    ScopeSchemaUrl = record.ScopeSchemaUrl,
+                    Count = exponentialCount,
+                    Sum = record.Sum,
+                    Scale = scale,
+                    ZeroCount = zeroCount,
+                    ZeroThreshold = zeroThreshold,
+                    Positive = new ExponentialHistogramBuckets
+                    {
+                        Offset = exponentialBuckets.PositiveOffset,
+                        BucketCounts = exponentialBuckets.PositiveBucketCounts
+                    },
+                    Negative = new ExponentialHistogramBuckets
+                    {
+                        Offset = exponentialBuckets.NegativeOffset,
+                        BucketCounts = exponentialBuckets.NegativeBucketCounts
+                    },
+                    Min = record.Min,
+                    Max = record.Max,
+                    AggregationTemporality = exponentialTemporality,
+                    Exemplars = exemplars
+                };
+                return true;
+
+            case MetricStorageTypes.Summary:
+                if (record.Count is not { } summaryCount || record.Sum is not { } summarySum ||
+                    !IsValidCountAndSum(summaryCount, summarySum) ||
+                    !TryReadSummaryQuantiles(record.SummaryQuantilesJson, out var quantiles) ||
+                    noRecordedValue &&
+                    (summaryCount is not 0 || summarySum is not 0 || quantiles.Count is not 0))
+                {
+                    return false;
+                }
+
+                contract = new SummaryMetricPoint
+                {
+                    Name = record.MetricName,
+                    Description = record.Description,
+                    Unit = record.Unit,
+                    Metadata = metadata,
+                    Attributes = attributes,
+                    StartTimeUnixNano = startTimeUnixNano,
+                    TimeUnixNano = record.TimeUnixNano,
+                    Flags = flags,
+                    Resource = resource,
+                    ResourceSchemaUrl = record.ResourceSchemaUrl,
+                    InstrumentationScope = scope,
+                    ScopeSchemaUrl = record.ScopeSchemaUrl,
+                    Count = summaryCount,
+                    Sum = summarySum,
+                    QuantileValues = quantiles
+                };
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryMapNumberValue(
+        long? intValue,
+        double? doubleValue,
+        bool allowAbsent,
+        out MetricNumberValue? value)
+    {
+        value = null;
+        if (allowAbsent) return !intValue.HasValue && !doubleValue.HasValue;
+        if (intValue.HasValue == doubleValue.HasValue) return false;
+
+        value = intValue is { } integer
+            ? new MetricIntegerValue { AsInt = integer }
+            : new MetricDoubleValue { AsDouble = doubleValue!.Value };
+        return true;
+    }
+
+    private static bool TryMapAggregationTemporality(
+        byte? stored,
+        out AggregationTemporality temporality)
+    {
+        temporality = stored switch
+        {
+            1 => AggregationTemporality.Delta,
+            2 => AggregationTemporality.Cumulative,
+            _ => default
+        };
+        return stored is 1 or 2;
+    }
+
+    private static bool TryMapExemplars(
+        string? json,
+        out IReadOnlyList<MetricExemplar>? exemplars)
+    {
+        exemplars = null;
+        if (string.IsNullOrWhiteSpace(json)) return true;
+
+        List<MetricExemplarJson>? stored;
+        try
+        {
+            stored = JsonSerializer.Deserialize(json, StorageJsonSerializerContext.Default.MetricExemplarJsonList);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        if (stored is null) return false;
+        var mapped = new List<MetricExemplar>(stored.Count);
+        foreach (var exemplar in stored)
+        {
+            if (exemplar.TimeUnixNano is 0 ||
+                !TryMapNumberValue(exemplar.IntValue, exemplar.DoubleValue, allowAbsent: false, out var value) ||
+                !ContractJson.TryParseAttributes(exemplar.FilteredAttributesJson, out var filteredAttributes))
+            {
+                return false;
+            }
+
+            mapped.Add(new MetricExemplar
+            {
+                TimeUnixNano = exemplar.TimeUnixNano,
+                Value = value!,
+                SpanId = exemplar.SpanId,
+                TraceId = exemplar.TraceId,
+                FilteredAttributes = filteredAttributes
+            });
+        }
+
+        exemplars = mapped;
+        return true;
+    }
+
+    private static bool TryReadHistogramBuckets(
+        string? json,
+        ulong count,
+        out MetricHistogramBucketsJson buckets)
+    {
+        buckets = null!;
+        if (string.IsNullOrWhiteSpace(json)) return false;
+        try
+        {
+            buckets = JsonSerializer.Deserialize(
+                json,
+                StorageJsonSerializerContext.Default.MetricHistogramBucketsJson)!;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        if (buckets is null ||
+            !((buckets.BucketCounts.Length is 0 && buckets.ExplicitBounds.Length is 0) ||
+              buckets.BucketCounts.Length == buckets.ExplicitBounds.Length + 1))
+        {
+            return false;
+        }
+
+        var previous = double.NegativeInfinity;
+        foreach (var bound in buckets.ExplicitBounds)
+        {
+            if (!double.IsFinite(bound) || bound <= previous) return false;
+            previous = bound;
+        }
+
+        return buckets.BucketCounts.Length is 0 ||
+               TrySum(buckets.BucketCounts, out var bucketCount) && bucketCount == count;
+    }
+
+    private static bool TryReadExponentialHistogramBuckets(
+        string? json,
+        out MetricExponentialHistogramBucketsJson buckets)
+    {
+        buckets = null!;
+        if (string.IsNullOrWhiteSpace(json)) return false;
+        try
+        {
+            buckets = JsonSerializer.Deserialize(
+                json,
+                StorageJsonSerializerContext.Default.MetricExponentialHistogramBucketsJson)!;
+            return buckets is not null;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadSummaryQuantiles(
+        string? json,
+        out IReadOnlyList<SummaryQuantileValue> quantiles)
+    {
+        quantiles = [];
+        if (string.IsNullOrWhiteSpace(json)) return false;
+
+        List<MetricSummaryQuantileJson>? stored;
+        try
+        {
+            stored = JsonSerializer.Deserialize(
+                json,
+                StorageJsonSerializerContext.Default.MetricSummaryQuantileJsonList);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        if (stored is null) return false;
+        var previous = -1d;
+        var mapped = new List<SummaryQuantileValue>(stored.Count);
+        foreach (var value in stored)
+        {
+            if (!double.IsFinite(value.Quantile) || value.Quantile is < 0 or > 1 ||
+                value.Quantile <= previous || double.IsNaN(value.Value) || value.Value < 0)
+            {
+                return false;
+            }
+
+            mapped.Add(new SummaryQuantileValue { Quantile = value.Quantile, Value = value.Value });
+            previous = value.Quantile;
+        }
+
+        quantiles = mapped;
+        return true;
+    }
+
+    private static bool IsValidCountAndSum(ulong count, double? sum) =>
+        count is not 0 || sum is null or 0;
+
+    private static bool IsValidMinMax(double? min, double? max) =>
+        !(min.HasValue && double.IsNaN(min.Value)) &&
+        !(max.HasValue && double.IsNaN(max.Value)) &&
+        !(min.HasValue && max.HasValue && min.Value > max.Value);
+
+    private static bool IsCanonicalNoRecordedHistogram(
+        ulong count,
+        double? sum,
+        double? min,
+        double? max,
+        MetricHistogramBucketsJson buckets) =>
+        count is 0 && sum is null && min is null && max is null &&
+        buckets.ExplicitBounds.Length is 0 && buckets.BucketCounts.Length is 0;
+
+    private static bool IsCanonicalNoRecordedExponentialHistogram(
+        ulong count,
+        double? sum,
+        int scale,
+        ulong zeroCount,
+        double zeroThreshold,
+        MetricExponentialHistogramBucketsJson buckets,
+        double? min,
+        double? max) =>
+        count is 0 && sum is null && scale is 0 && zeroCount is 0 && zeroThreshold is 0 &&
+        buckets.PositiveOffset is 0 && buckets.PositiveBucketCounts.Length is 0 &&
+        buckets.NegativeOffset is 0 && buckets.NegativeBucketCounts.Length is 0 &&
+        min is null && max is null;
+
+    private static bool TrySumExponentialBuckets(
+        MetricExponentialHistogramBucketsJson buckets,
+        ulong zeroCount,
+        out ulong count)
+    {
+        if (!TrySum(buckets.PositiveBucketCounts, out var positive) ||
+            !TrySum(buckets.NegativeBucketCounts, out var negative))
+        {
+            count = 0;
+            return false;
+        }
+
+        try
+        {
+            count = checked(zeroCount + positive + negative);
+            return true;
+        }
+        catch (OverflowException)
+        {
+            count = 0;
+            return false;
+        }
+    }
+
+    private static bool TrySum(IEnumerable<ulong> values, out ulong sum)
+    {
+        sum = 0;
+        try
+        {
+            foreach (var value in values)
+                sum = checked(sum + value);
+            return true;
+        }
+        catch (OverflowException)
+        {
+            sum = 0;
+            return false;
+        }
+    }
+}
+
 internal static class ProfileMapper
 {
     public static Profile ToContract(ProfileStorageRow record) =>
@@ -256,7 +1027,8 @@ internal static class ProfileMapper
             Resource = new Resource
             {
                 ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
-                Attributes = ContractJson.ParseAttributes(record.ResourceJson)
+                Attributes = ContractJson.ParseAttributes(record.ResourceJson),
+                EntityRefs = ResourceMapping.ParseEntityRefs(record.ResourceEntityRefsJson, record.ResourceJson)
             },
             InstrumentationScope = string.IsNullOrWhiteSpace(record.SchemaUrl)
                 ? null
@@ -347,7 +1119,10 @@ internal static class ProfileMapper
             Resource = new Resource
             {
                 ServiceName = string.IsNullOrWhiteSpace(detail.Profile.ServiceName) ? "unknown" : detail.Profile.ServiceName,
-                Attributes = ContractJson.ParseAttributes(detail.Profile.ResourceJson)
+                Attributes = ContractJson.ParseAttributes(detail.Profile.ResourceJson),
+                EntityRefs = ResourceMapping.ParseEntityRefs(
+                    detail.Profile.ResourceEntityRefsJson,
+                    detail.Profile.ResourceJson)
             },
             InstrumentationScope = string.IsNullOrWhiteSpace(detail.Profile.SchemaUrl)
                 ? null

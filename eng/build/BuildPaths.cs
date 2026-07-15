@@ -17,18 +17,29 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
     AbsolutePath HostConsoleDirectory => PackagesDirectory / "Qyl.Host.Console";
+    AbsolutePath QylToolSmokeProject => RootDirectory / "eng" / "tools" / "QylToolSmoke" / "QylToolSmoke.csproj";
     AbsolutePath[] FrontendDirectories => [DashboardDirectory, HostConsoleDirectory];
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
 
-    /// <summary>
-    ///     Projects with IsPackable=true — the packages qyl actually ships.
-    ///     Qyl.Run.Host is deliberately not here: its csproj keeps the runnable
-    ///     launcher unpacked and Qyl.Host as the packable artifact.
-    /// </summary>
+    /// <summary>Projects with IsPackable=true — the packages qyl actually ships.</summary>
     AbsolutePath[] ShippablePackProjects =>
     [
         PackagesDirectory / "Qyl.Host" / "Qyl.Host.csproj",
-        PackagesDirectory / "Qyl.Host.Mcp" / "Qyl.Host.Mcp.csproj"
+        PackagesDirectory / "Qyl.Host.Mcp" / "Qyl.Host.Mcp.csproj",
+        PackagesDirectory / "Qyl.Run.Host" / "Qyl.Run.Host.csproj"
+    ];
+
+    string[] ShippablePackageIds =>
+    [
+        "qyl.host",
+        "qyl.host.mcp",
+        "qyl",
+        "qyl.linux-x64",
+        "qyl.linux-arm64",
+        "qyl.osx-x64",
+        "qyl.osx-arm64",
+        "qyl.win-x64",
+        "qyl.win-arm64"
     ];
 }
 

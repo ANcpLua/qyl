@@ -6,15 +6,18 @@ internal sealed class OpenRouterModelPricingCatalogSource(
     HttpClient httpClient,
     TimeProvider timeProvider,
     OpenRouterModelPricingCatalogOptions options,
-    long maximumResponseBytes) : IModelPricingCatalogSource, IDisposable
+    long maximumResponseBytes) : IDisposable
 {
-    public string SourceId => "openrouter";
+    internal const string CatalogSourceId = "openrouter";
+    internal const int ContractPriority = 100;
+    internal static readonly Uri CatalogEndpoint =
+        new("https://openrouter.ai/api/v1/models?output_modalities=all");
 
-    public int Priority => options.Priority;
+    public string SourceId { get; } = CatalogSourceId;
 
     public string ConfigurationFingerprint { get; } = CreateConfigurationFingerprint(options);
 
-    public Uri SourceEndpoint => options.Endpoint;
+    public Uri SourceEndpoint { get; } = CatalogEndpoint;
 
     public void Dispose() => httpClient.Dispose();
 
@@ -168,7 +171,8 @@ internal sealed class OpenRouterModelPricingCatalogSource(
             !element.TryGetProperty("pricing", out var pricing) ||
             pricing.ValueKind is not JsonValueKind.Object ||
             !TryReadRates(
-                pricing.EnumerateObject().Where(static property => !property.NameEquals("overrides")),
+                pricing.EnumerateObject().Where(static property =>
+                    !property.NameEquals("overrides") && !property.NameEquals("discount")),
                 out var rates,
                 out hasDynamicPrice))
         {
@@ -250,6 +254,15 @@ internal sealed class OpenRouterModelPricingCatalogSource(
         foreach (var element in overrides.EnumerateArray())
         {
             priority++;
+            if (element.ValueKind is JsonValueKind.Object &&
+                (element.TryGetProperty("utc_start", out _) || element.TryGetProperty("utc_end", out _)))
+            {
+                // Aggregated audit usage cannot select a UTC-conditioned rate without
+                // inventing the per-call routing evidence, so this model stays unpriced.
+                hasDynamicPrice = true;
+                return true;
+            }
+
             if (element.ValueKind is not JsonValueKind.Object ||
                 !element.TryGetProperty("min_prompt_tokens", out var minimum) ||
                 !minimum.TryGetInt64(out var minimumPromptTokens) ||
@@ -260,7 +273,8 @@ internal sealed class OpenRouterModelPricingCatalogSource(
 
             if (!TryReadRates(
                     element.EnumerateObject()
-                        .Where(static property => !property.NameEquals("min_prompt_tokens")),
+                        .Where(static property =>
+                            !property.NameEquals("min_prompt_tokens") && !property.NameEquals("discount")),
                     out var rates,
                     out hasDynamicPrice) ||
                 rates.Count is 0)
@@ -345,7 +359,7 @@ internal sealed class OpenRouterModelPricingCatalogSource(
             ? "anonymous"
             : Convert.ToHexString(SHA256.HashData(
                 System.Text.Encoding.UTF8.GetBytes(sourceOptions.ApiKey)));
-        var material = $"openrouter-models-v1/normalized-pricing-v1\n{sourceOptions.Endpoint.AbsoluteUri}\n{credentialIdentity}";
+        var material = $"openrouter-models-v1/normalized-pricing-v2\n{CatalogEndpoint.AbsoluteUri}\n{credentialIdentity}";
         return Convert.ToHexString(SHA256.HashData(
                 System.Text.Encoding.UTF8.GetBytes(material)))
             .ToLowerInvariant();

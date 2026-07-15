@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
@@ -8,7 +9,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Api.Contracts.Common.Errors;
-using Qyl.Api.Contracts.Runner.Mcp;
 using Qyl.Host.Internal;
 using Qyl.Host.Mcp;
 
@@ -89,54 +89,64 @@ public sealed class McpVerticalTests
             };
             Assert.True(await resource.ReadinessProbe!.IsReadyAsync(state, timeout.Token));
             Assert.True(clients.TryGet(resource.Name, out var connectedClient));
-            var directList = McpContractMapper.ToContract(
-                await connectedClient.ListToolsAsync(new ListToolsRequestParams(), timeout.Token));
+            var directList = await connectedClient.ListToolsAsync(new ListToolsRequestParams(), timeout.Token);
             Assert.Single(directList.Tools);
-            Assert.NotEmpty(JsonSerializer.SerializeToUtf8Bytes(
-                directList,
-                McpRunnerJsonContext.Default.RunnerMcpToolsResponse));
+            Assert.NotEmpty(McpSdkJson.Serialize(directList));
 
             using (var listResponse = await http.GetAsync(toolsUri, timeout.Token))
             {
                 Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
-                var list = await listResponse.Content.ReadFromJsonAsync<RunnerMcpToolsResponse>(timeout.Token);
-                var tool = Assert.Single(Assert.IsType<RunnerMcpToolsResponse>(list).Tools);
+                var list = await listResponse.Content.ReadFromJsonAsync(
+                    McpSdkJson.TypeInfo<ListToolsResult>(),
+                    timeout.Token);
+                var tool = Assert.Single(Assert.IsType<ListToolsResult>(list).Tools);
                 Assert.Equal("echo", tool.Name);
-                Assert.True(Assert.IsType<JsonElement>(tool.Annotations?["readOnlyHint"]).GetBoolean());
+                Assert.True(tool.Annotations?.ReadOnlyHint);
             }
 
-            using (var callResponse = await PostJsonAsync(
+            using (var callResponse = await PostMcpAsync(
                        http,
                        $"http://127.0.0.1:{port}/runner/mcp/vertical/tools/call",
-                       """{"name":"echo","arguments":{"value":"live"}}""",
+                       new CallToolRequestParams
+                       {
+                           Name = "echo",
+                           Arguments = new Dictionary<string, JsonElement>
+                           {
+                               ["value"] = JsonSerializer.SerializeToElement("live")
+                           }
+                       },
                        timeout.Token))
             {
                 Assert.Equal(HttpStatusCode.OK, callResponse.StatusCode);
-                var call = await callResponse.Content.ReadFromJsonAsync<RunnerMcpToolCallResponse>(timeout.Token);
+                var call = await callResponse.Content.ReadFromJsonAsync(
+                    McpSdkJson.TypeInfo<CallToolResult>(),
+                    timeout.Token);
                 Assert.Equal(
                     "echo:live",
-                    Assert.IsType<RunnerMcpTextContent>(
-                        Assert.Single(Assert.IsType<RunnerMcpToolCallResponse>(call).Content)).Text);
+                    Assert.IsType<TextContentBlock>(
+                        Assert.Single(Assert.IsType<CallToolResult>(call).Content)).Text);
             }
 
-            using (var readResponse = await PostJsonAsync(
+            using (var readResponse = await PostMcpAsync(
                        http,
                        $"http://127.0.0.1:{port}/runner/mcp/vertical/resources/read",
-                       """{"uri":"qyl://resource/static"}""",
+                       new ReadResourceRequestParams { Uri = "qyl://resource/static" },
                        timeout.Token))
             {
                 Assert.Equal(HttpStatusCode.OK, readResponse.StatusCode);
-                var read = await readResponse.Content.ReadFromJsonAsync<RunnerMcpResourceReadResponse>(timeout.Token);
+                var read = await readResponse.Content.ReadFromJsonAsync(
+                    McpSdkJson.TypeInfo<ReadResourceResult>(),
+                    timeout.Token);
                 Assert.Equal(
                     "resource-body",
-                    Assert.IsType<RunnerMcpTextResourceContent>(Assert.Single(
-                        Assert.IsType<RunnerMcpResourceReadResponse>(read).Contents)).Text);
+                    Assert.IsType<TextResourceContents>(Assert.Single(
+                        Assert.IsType<ReadResourceResult>(read).Contents)).Text);
             }
 
             using (var invalidResponse = await PostJsonAsync(
                        http,
                        $"http://127.0.0.1:{port}/runner/mcp/vertical/resources/read",
-                       """{"uri":"/relative"}""",
+                       "{}",
                        timeout.Token))
             {
                 Assert.Equal(HttpStatusCode.BadRequest, invalidResponse.StatusCode);
@@ -169,6 +179,17 @@ public sealed class McpVerticalTests
         CancellationToken cancellationToken)
     {
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        return await client.PostAsync(uri, content, cancellationToken);
+    }
+
+    private static async Task<HttpResponseMessage> PostMcpAsync<T>(
+        HttpClient client,
+        string uri,
+        T body,
+        CancellationToken cancellationToken)
+    {
+        using var content = new ByteArrayContent(McpSdkJson.Serialize(body));
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         return await client.PostAsync(uri, content, cancellationToken);
     }
 

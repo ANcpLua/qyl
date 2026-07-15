@@ -18,22 +18,15 @@ internal sealed record ModelPricingCatalogReadResult(
 
 internal sealed class ModelPricingCatalogRepository(
     IQylStore store,
-    ModelPricingCatalogSourceRegistry registry,
     ModelPricingCatalogOptions options,
     TimeProvider timeProvider)
 {
     public async Task<ModelPricingCatalogReadResult> GetAsync(
-        string sourceId,
         CancellationToken cancellationToken = default)
     {
-        if (!registry.Sources.Any(source => string.Equals(source.SourceId, sourceId, StringComparison.Ordinal)))
-        {
-            return new ModelPricingCatalogReadResult(
-                ModelPricingCatalogAvailability.SourceUnavailable,
-                null);
-        }
-
-        var stored = await store.GetModelPricingCatalogAsync(sourceId, cancellationToken)
+        var stored = await store.GetModelPricingCatalogAsync(
+                OpenRouterModelPricingCatalogSource.CatalogSourceId,
+                cancellationToken)
             .ConfigureAwait(false);
         if (stored?.Source.LastVerifiedAt is not { } lastSuccessAt || stored.Models.Count is 0)
         {

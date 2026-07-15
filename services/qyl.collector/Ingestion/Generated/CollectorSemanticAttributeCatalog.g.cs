@@ -914,4 +914,33 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string HttpRoute = "http.route";
     internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.43.0";
     internal const string ServiceName = "service.name";
+
+    internal static class GenAiOperationNameValues
+    {
+        internal const string Chat = "chat"; // incubating
+        internal const string CreateAgent = "create_agent"; // incubating
+        internal const string CreateMemory = "create_memory"; // incubating
+        internal const string CreateMemoryStore = "create_memory_store"; // incubating
+        internal const string DeleteMemory = "delete_memory"; // incubating
+        internal const string DeleteMemoryStore = "delete_memory_store"; // incubating
+        internal const string Embeddings = "embeddings"; // incubating
+        internal const string ExecuteTool = "execute_tool"; // incubating
+        internal const string GenerateContent = "generate_content"; // incubating
+        internal const string InvokeAgent = "invoke_agent"; // incubating
+        internal const string InvokeWorkflow = "invoke_workflow"; // incubating
+        internal const string Plan = "plan"; // incubating
+        internal const string Retrieval = "retrieval"; // incubating
+        internal const string SearchMemory = "search_memory"; // incubating
+        internal const string TextCompletion = "text_completion"; // incubating
+        internal const string UpdateMemory = "update_memory"; // incubating
+        internal const string UpsertMemory = "upsert_memory"; // incubating
+    }
+
+    internal static class GenAiOutputTypeValues
+    {
+        internal const string Image = "image"; // incubating
+        internal const string Json = "json"; // incubating
+        internal const string Speech = "speech"; // incubating
+        internal const string Text = "text"; // incubating
+    }
 }

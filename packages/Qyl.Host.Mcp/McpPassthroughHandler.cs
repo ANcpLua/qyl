@@ -12,17 +12,12 @@ using ContractNotFoundError = Qyl.Api.Contracts.Common.Errors.NotFoundError;
 using ContractProblemDetailsMediaType = Qyl.Api.Contracts.Common.Errors.ProblemDetailsMediaType;
 using ContractValidationError = Qyl.Api.Contracts.Common.Errors.ValidationError;
 using ContractValidationErrorDetail = Qyl.Api.Contracts.Common.Errors.ValidationErrorDetail;
-using ContractReadRequest = Qyl.Api.Contracts.Runner.Mcp.RunnerMcpResourceReadRequest;
-using ContractReadResponse = Qyl.Api.Contracts.Runner.Mcp.RunnerMcpResourceReadResponse;
-using ContractToolCallRequest = Qyl.Api.Contracts.Runner.Mcp.RunnerMcpToolCallRequest;
-using ContractToolCallResponse = Qyl.Api.Contracts.Runner.Mcp.RunnerMcpToolCallResponse;
-using ContractToolsResponse = Qyl.Api.Contracts.Runner.Mcp.RunnerMcpToolsResponse;
 
 namespace Qyl.Host.Mcp;
 
 /// <summary>
 /// Loopback runner projection of tools/list, tools/call, and resources/read. The MCP SDK owns
-/// the upstream protocol; qyl maps its objects onto generated runner contracts at this HTTP boundary.
+/// both the upstream protocol and these passthrough request and response bodies.
 /// </summary>
 internal sealed class McpPassthroughHandler(
     McpClientRegistry clients,
@@ -82,26 +77,21 @@ internal sealed class McpPassthroughHandler(
             {
                 case McpRoute.ListTools:
                 {
-                    var sdkResult = await client.ListToolsAsync(new ListToolsRequestParams(), cancellationToken)
+                    var result = await client.ListToolsAsync(new ListToolsRequestParams(), cancellationToken)
                         .ConfigureAwait(false);
-                    var result = McpContractMapper.ToContract(sdkResult);
-                    payload = JsonSerializer.SerializeToUtf8Bytes(
-                        result,
-                        McpRunnerJsonContext.Default.RunnerMcpToolsResponse);
+                    payload = McpSdkJson.Serialize(result);
                     break;
                 }
                 case McpRoute.CallTool:
                 {
-                    ContractToolCallRequest request;
-                    CallToolRequestParams sdkRequest;
+                    CallToolRequestParams request;
                     try
                     {
                         request = await ReadBodyAsync(
                                 context,
-                                McpRunnerJsonContext.Default.RunnerMcpToolCallRequest,
+                                McpSdkJson.TypeInfo<CallToolRequestParams>(),
                                 cancellationToken)
                             .ConfigureAwait(false);
-                        sdkRequest = McpContractMapper.ToSdk(request);
                     }
                     catch (Exception ex) when (ex is JsonException or InvalidOperationException or
                                                    ArgumentException or OverflowException)
@@ -109,25 +99,20 @@ internal sealed class McpPassthroughHandler(
                         throw new InvalidDataException("The MCP tool-call body is invalid.", ex);
                     }
 
-                    var sdkResult = await client.CallToolAsync(sdkRequest, cancellationToken).ConfigureAwait(false);
-                    var result = McpContractMapper.ToContract(sdkResult);
-                    payload = JsonSerializer.SerializeToUtf8Bytes(
-                        result,
-                        McpRunnerJsonContext.Default.RunnerMcpToolCallResponse);
+                    var result = await client.CallToolAsync(request, cancellationToken).ConfigureAwait(false);
+                    payload = McpSdkJson.Serialize(result);
                     break;
                 }
                 default:
                 {
-                    ContractReadRequest request;
-                    ReadResourceRequestParams sdkRequest;
+                    ReadResourceRequestParams request;
                     try
                     {
                         request = await ReadBodyAsync(
                                 context,
-                                McpRunnerJsonContext.Default.RunnerMcpResourceReadRequest,
+                                McpSdkJson.TypeInfo<ReadResourceRequestParams>(),
                                 cancellationToken)
                             .ConfigureAwait(false);
-                        sdkRequest = McpContractMapper.ToSdk(request);
                     }
                     catch (Exception ex) when (ex is JsonException or InvalidOperationException or
                                                    ArgumentException or OverflowException)
@@ -135,12 +120,9 @@ internal sealed class McpPassthroughHandler(
                         throw new InvalidDataException("The MCP resource-read body is invalid.", ex);
                     }
 
-                    var sdkResult = await client.ReadResourceAsync(sdkRequest, cancellationToken)
+                    var result = await client.ReadResourceAsync(request, cancellationToken)
                         .ConfigureAwait(false);
-                    var result = McpContractMapper.ToContract(sdkResult);
-                    payload = JsonSerializer.SerializeToUtf8Bytes(
-                        result,
-                        McpRunnerJsonContext.Default.RunnerMcpResourceReadResponse);
+                    payload = McpSdkJson.Serialize(result);
                     break;
                 }
             }
@@ -244,7 +226,7 @@ internal sealed class McpPassthroughHandler(
                 ResourceType = resourceType,
                 ResourceId = resourceId
             },
-            McpRunnerJsonContext.Default.NotFoundError);
+            QylMcpProblemJsonContext.Default.NotFoundError);
 
     private static Task RespondConflictAsync(HttpListenerContext context, string resource, string detail) =>
         RespondProblemAsync(
@@ -258,7 +240,7 @@ internal sealed class McpPassthroughHandler(
                 Detail = detail,
                 ConflictingResource = resource
             },
-            McpRunnerJsonContext.Default.ConflictError);
+            QylMcpProblemJsonContext.Default.ConflictError);
 
     private static Task RespondValidationAsync(HttpListenerContext context, string detail) =>
         RespondProblemAsync(
@@ -280,7 +262,7 @@ internal sealed class McpPassthroughHandler(
                     }
                 ]
             },
-            McpRunnerJsonContext.Default.ValidationError);
+            QylMcpProblemJsonContext.Default.ValidationError);
 
     private static Task RespondBadGatewayAsync(HttpListenerContext context, string resource) =>
         RespondProblemAsync(
@@ -294,7 +276,7 @@ internal sealed class McpPassthroughHandler(
                 Detail = $"Runner resource '{resource}' did not complete the MCP request.",
                 Dependency = resource
             },
-            McpRunnerJsonContext.Default.BadGatewayError);
+            QylMcpProblemJsonContext.Default.BadGatewayError);
 
     private static Task RespondInternalErrorAsync(HttpListenerContext context) =>
         RespondProblemAsync(
@@ -308,7 +290,7 @@ internal sealed class McpPassthroughHandler(
                 Detail = "The runner could not complete the MCP request.",
                 ErrorCode = "runner.mcp_failed"
             },
-            McpRunnerJsonContext.Default.InternalServerError);
+            QylMcpProblemJsonContext.Default.InternalServerError);
 
     private static async Task RespondProblemAsync<T>(
         HttpListenerContext context,
@@ -343,25 +325,20 @@ internal sealed class McpPassthroughHandler(
     }
 }
 
+internal static class McpSdkJson
+{
+    internal static JsonTypeInfo<T> TypeInfo<T>() =>
+        McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(T)) as JsonTypeInfo<T>
+        ?? throw new NotSupportedException($"The MCP SDK JSON context does not include {typeof(T).FullName}.");
+
+    internal static byte[] Serialize<T>(T value) =>
+        JsonSerializer.SerializeToUtf8Bytes(value, TypeInfo<T>());
+}
+
 [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-[JsonSerializable(typeof(ContractToolsResponse))]
-[JsonSerializable(typeof(ContractToolCallRequest))]
-[JsonSerializable(typeof(ContractToolCallResponse))]
-[JsonSerializable(typeof(ContractReadRequest))]
-[JsonSerializable(typeof(ContractReadResponse))]
 [JsonSerializable(typeof(ContractNotFoundError))]
 [JsonSerializable(typeof(ContractConflictError))]
 [JsonSerializable(typeof(ContractValidationError))]
 [JsonSerializable(typeof(ContractBadGatewayError))]
 [JsonSerializable(typeof(ContractInternalServerError))]
-[JsonSerializable(typeof(JsonElement))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpTextContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpImageContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpAudioContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpEmbeddedResourceContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpResourceLinkContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpToolUseContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpToolResultContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpTextResourceContent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Runner.Mcp.RunnerMcpBlobResourceContent))]
-internal sealed partial class McpRunnerJsonContext : JsonSerializerContext;
+internal sealed partial class QylMcpProblemJsonContext : JsonSerializerContext;

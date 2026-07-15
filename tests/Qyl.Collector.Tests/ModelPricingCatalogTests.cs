@@ -8,11 +8,26 @@ namespace Qyl.Collector.Tests;
 
 public sealed class ModelPricingCatalogTests
 {
+    private const string ValidCatalogPayload = """
+                                                       {
+                                                         "data": [
+                                                           {
+                                                             "id": "openai/gpt-test",
+                                                             "canonical_slug": "openai/gpt-test-20260714",
+                                                             "pricing": {
+                                                               "prompt": "0.01",
+                                                               "completion": "0.02"
+                                                             }
+                                                           }
+                                                         ]
+                                                       }
+                                                       """;
+
     private static readonly DateTimeOffset s_now =
         new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task OpenRouter_adapter_normalizes_dynamic_rates_preserves_ordered_overrides_and_skips_router_prices()
+    public async Task OpenRouter_adapter_normalizes_documented_meters_ignores_discount_and_skips_router_prices()
     {
         const string payload = """
                                {
@@ -23,7 +38,15 @@ public sealed class ModelPricingCatalogTests
                                      "pricing": {
                                        "prompt": "0.01",
                                        "completion": "0.02",
+                                       "request": "0.005",
+                                       "image": "0.25",
+                                       "web_search": "0.003",
+                                       "internal_reasoning": "0.015",
+                                       "input_cache_read": "0.001",
+                                       "input_cache_write": "0.006",
+                                       "input_cache_write_1h": "0.012",
                                        "audio": "0.5",
+                                       "discount": 0,
                                        "overrides": [
                                          { "min_prompt_tokens": 100, "prompt": "0.03" },
                                          { "min_prompt_tokens": 50, "completion": "0.04" }
@@ -38,16 +61,12 @@ public sealed class ModelPricingCatalogTests
                                  ]
                                }
                                """;
-        using var handler = new RecordingHandler(payload);
+        using var handler = new MutableResponseHandler(payload);
         using var client = new HttpClient(handler);
         using var source = new OpenRouterModelPricingCatalogSource(
             client,
             new FixedTimeProvider(s_now),
-            new OpenRouterModelPricingCatalogOptions(
-                true,
-                20,
-                new Uri("https://openrouter.ai/api/v1/models"),
-                "catalog-key"),
+            new OpenRouterModelPricingCatalogOptions("catalog-key"),
             1024 * 1024);
 
         var result = await source.FetchAsync(TestContext.Current.CancellationToken);
@@ -59,14 +78,32 @@ public sealed class ModelPricingCatalogTests
         var model = Assert.Single(snapshot.Models);
         Assert.Equal("openai/gpt-test", model.ModelId);
         Assert.Equal("openai/gpt-test-20260714", model.CanonicalModelId);
-        Assert.Equal(ModelPricingBillingMode.Base,
-            Assert.Single(model.Rates, static rate => rate.SourceMeter == "prompt").BillingMode);
+        AssertRate(model, "prompt", "input_tokens", "token", "usd_per_token",
+            ModelPricingBillingMode.Base, null, 0.01m);
+        AssertRate(model, "completion", "output_tokens", "token", "usd_per_token",
+            ModelPricingBillingMode.Base, null, 0.02m);
+        AssertRate(model, "request", "requests", "request", "usd_per_request",
+            ModelPricingBillingMode.Surcharge, null, 0.005m);
+        AssertRate(model, "image", "input_images", "image", "usd_per_image",
+            ModelPricingBillingMode.Surcharge, null, 0.25m);
+        AssertRate(model, "web_search", "web_searches", "search", "usd_per_search",
+            ModelPricingBillingMode.Surcharge, null, 0.003m);
+        AssertRate(model, "internal_reasoning", "reasoning_output_tokens", "token", "usd_per_token",
+            ModelPricingBillingMode.Replacement, "output_tokens", 0.015m);
+        AssertRate(model, "input_cache_read", "cache_read_input_tokens", "token", "usd_per_token",
+            ModelPricingBillingMode.Replacement, "input_tokens", 0.001m);
+        AssertRate(model, "input_cache_write", "cache_write_input_tokens", "token", "usd_per_token",
+            ModelPricingBillingMode.Replacement, "input_tokens", 0.006m);
+        AssertRate(model, "input_cache_write_1h", "cache_write_1h_input_tokens", "token", "usd_per_token",
+            ModelPricingBillingMode.Replacement, "input_tokens", 0.012m);
         Assert.Equal(ModelPricingBillingMode.Unsupported,
             Assert.Single(model.Rates, static rate => rate.SourceMeter == "audio").BillingMode);
+        Assert.DoesNotContain(model.Rates, static rate => rate.SourceMeter == "discount");
         Assert.Equal([100m, 50m], model.Overrides.Select(static value => value.ExclusiveMinimumQuantity));
         Assert.Equal("Bearer", handler.AuthorizationScheme);
         Assert.Equal("catalog-key", handler.AuthorizationParameter);
-        Assert.Equal(20, source.Priority);
+        Assert.Equal(HttpMethod.Get, handler.Method);
+        Assert.Equal(OpenRouterModelPricingCatalogSource.CatalogEndpoint, handler.RequestUri);
         Assert.Equal(64, source.ConfigurationFingerprint.Length);
     }
 
@@ -246,53 +283,87 @@ public sealed class ModelPricingCatalogTests
     }
 
     [Fact]
-    public async Task Refresh_activates_content_once_retains_same_scope_and_invalidates_changed_configuration()
+    public async Task Refresh_reuses_content_retains_same_credential_scope_and_invalidates_changed_credentials()
     {
         await using var store = new DuckDbStore(":memory:");
-        var source = new MutableSource(CreateVersion().Catalog, new string('a', 64));
+        using var handler = new MutableResponseHandler(ValidCatalogPayload);
+        using var client = new HttpClient(handler, disposeHandler: false);
+        using var source = new OpenRouterModelPricingCatalogSource(
+            client,
+            new FixedTimeProvider(s_now),
+            new OpenRouterModelPricingCatalogOptions("catalog-key-a"),
+            1024 * 1024);
         var options = new ModelPricingCatalogOptions
         {
             SyncInterval = TimeSpan.FromHours(1),
             HttpTimeout = TimeSpan.FromSeconds(30),
             MaximumResponseBytes = 16 * 1024 * 1024,
             MaximumStaleAge = TimeSpan.FromHours(3),
-            RetainedSnapshotsPerSource = 32
+            RetainedSnapshots = 32
         };
         using var service = new ModelPricingCatalogRefreshService(
-            new ModelPricingCatalogSourceRegistry([source]),
+            source,
             options,
             store,
             new FixedTimeProvider(s_now),
             NullLogger<ModelPricingCatalogRefreshService>.Instance);
-        var changes = 0;
-        service.SnapshotChanged += (_, _) => changes++;
 
-        await service.RefreshAllAsync(TestContext.Current.CancellationToken);
-        await service.RefreshAllAsync(TestContext.Current.CancellationToken);
+        await service.RefreshAsync(TestContext.Current.CancellationToken);
+        var firstState = await store.GetModelPricingCatalogSourceAsync(
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(firstState);
+        Assert.NotNull(firstState.ActiveSnapshot);
+        var firstSnapshotId = firstState.ActiveSnapshot.SnapshotId;
 
-        Assert.Equal(1, changes);
-        var state = Assert.Single(await store.GetModelPricingCatalogSourcesAsync(
-            TestContext.Current.CancellationToken));
+        await service.RefreshAsync(TestContext.Current.CancellationToken);
+
+        var state = await store.GetModelPricingCatalogSourceAsync(
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(state);
         Assert.Equal("current", state.Source.Status);
-        Assert.NotNull(state.ActiveSnapshot);
-        Assert.Equal(state.Source.ActiveSnapshotId, state.ActiveSnapshot.SnapshotId);
-        Assert.Equal(1, state.ActiveSnapshot.ModelCount);
+        Assert.Equal(firstSnapshotId, state.ActiveSnapshot?.SnapshotId);
+        Assert.Equal(state.Source.ActiveSnapshotId, state.ActiveSnapshot?.SnapshotId);
+        Assert.Equal(1, state.ActiveSnapshot?.ModelCount);
 
-        source.Result = ModelPricingCatalogFetchResult.Failed(
-            ModelPricingCatalogFailureCategory.ProviderUnavailable);
-        await service.RefreshAllAsync(TestContext.Current.CancellationToken);
+        handler.StatusCode = HttpStatusCode.ServiceUnavailable;
+        await service.RefreshAsync(TestContext.Current.CancellationToken);
         Assert.NotNull((await store.GetModelPricingCatalogAsync(
-            "openrouter",
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
             TestContext.Current.CancellationToken))?.Snapshot);
+        state = await store.GetModelPricingCatalogSourceAsync(
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(state);
+        Assert.Equal("sync_failed", state.Source.Status);
+        Assert.Equal(firstSnapshotId, state.ActiveSnapshot?.SnapshotId);
 
-        source.ConfigurationFingerprint = new string('b', 64);
-        await service.RefreshAllAsync(TestContext.Current.CancellationToken);
+        using var changedHandler = new MutableResponseHandler(ValidCatalogPayload)
+        {
+            StatusCode = HttpStatusCode.ServiceUnavailable
+        };
+        using var changedClient = new HttpClient(changedHandler, disposeHandler: false);
+        using var changedSource = new OpenRouterModelPricingCatalogSource(
+            changedClient,
+            new FixedTimeProvider(s_now),
+            new OpenRouterModelPricingCatalogOptions("catalog-key-b"),
+            1024 * 1024);
+        using var changedService = new ModelPricingCatalogRefreshService(
+            changedSource,
+            options,
+            store,
+            new FixedTimeProvider(s_now),
+            NullLogger<ModelPricingCatalogRefreshService>.Instance);
+        await changedService.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.Null(await store.GetModelPricingCatalogAsync(
-            "openrouter",
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
             TestContext.Current.CancellationToken));
-        state = Assert.Single(await store.GetModelPricingCatalogSourcesAsync(
-            TestContext.Current.CancellationToken));
+        state = await store.GetModelPricingCatalogSourceAsync(
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(state);
         Assert.Equal("sync_failed", state.Source.Status);
         Assert.Null(state.Source.ActiveSnapshotId);
         Assert.Null(state.ActiveSnapshot);
@@ -302,64 +373,64 @@ public sealed class ModelPricingCatalogTests
     public async Task Source_state_derives_staleness_from_the_configured_freshness_window()
     {
         await using var store = new DuckDbStore(":memory:");
-        var source = new MutableSource(CreateVersion().Catalog, new string('a', 64));
-        var registry = new ModelPricingCatalogSourceRegistry([source]);
+        using var handler = new MutableResponseHandler(ValidCatalogPayload);
+        using var client = new HttpClient(handler, disposeHandler: false);
+        using var source = new OpenRouterModelPricingCatalogSource(
+            client,
+            new FixedTimeProvider(s_now),
+            new OpenRouterModelPricingCatalogOptions(null),
+            1024 * 1024);
         var options = new ModelPricingCatalogOptions
         {
             SyncInterval = TimeSpan.FromHours(1),
             HttpTimeout = TimeSpan.FromSeconds(30),
             MaximumResponseBytes = 16 * 1024 * 1024,
             MaximumStaleAge = TimeSpan.FromHours(3),
-            RetainedSnapshotsPerSource = 32
+            RetainedSnapshots = 32
         };
         using var refresh = new ModelPricingCatalogRefreshService(
-            registry,
+            source,
             options,
             store,
             new FixedTimeProvider(s_now),
             NullLogger<ModelPricingCatalogRefreshService>.Instance);
-        await refresh.RefreshAllAsync(TestContext.Current.CancellationToken);
+        await refresh.RefreshAsync(TestContext.Current.CancellationToken);
 
         var staleState = new ModelPricingCatalogStateService(
-            registry,
+            source,
             options,
             store,
             new FixedTimeProvider(s_now.AddHours(4)));
         Assert.Equal(
             "stale",
-            Assert.Single(await staleState.GetSourcesAsync(TestContext.Current.CancellationToken)).Status);
+            (await staleState.GetAsync(TestContext.Current.CancellationToken)).Status);
 
-        source.Result = ModelPricingCatalogFetchResult.Failed(
-            ModelPricingCatalogFailureCategory.ProviderUnavailable);
-        await refresh.RefreshAllAsync(TestContext.Current.CancellationToken);
+        handler.StatusCode = HttpStatusCode.ServiceUnavailable;
+        await refresh.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "sync_failed",
-            Assert.Single(await staleState.GetSourcesAsync(TestContext.Current.CancellationToken)).Status);
+            (await staleState.GetAsync(TestContext.Current.CancellationToken)).Status);
     }
 
     [Fact]
-    public void Configuration_binds_credentials_to_the_official_host_and_source_registry_orders_by_priority()
+    public void Configuration_trims_api_key_and_rejects_invalid_characters()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["QYL_OPENROUTER_MODELS_ENDPOINT"] = "https://prices.example.test/models",
-            ["QYL_OPENROUTER_API_KEY"] = "secret"
+            ["QYL_OPENROUTER_API_KEY"] = "  secret  "
         }).Build();
 
-        Assert.Throws<InvalidOperationException>(() =>
-            OpenRouterModelPricingCatalogOptions.FromConfiguration(configuration));
+        Assert.Equal(
+            "secret",
+            OpenRouterModelPricingCatalogOptions.FromConfiguration(configuration).ApiKey);
 
-        var later = new MutableSource(
-            CreateVersion().Catalog with { SourceId = "later" },
-            new string('c', 64),
-            priority: 200);
-        var earlier = new MutableSource(
-            CreateVersion().Catalog with { SourceId = "earlier" },
-            new string('d', 64),
-            priority: 10);
-        var registry = new ModelPricingCatalogSourceRegistry([later, earlier]);
-        Assert.Equal([10, 200], registry.Sources.Select(static source => source.Priority));
+        var invalid = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["QYL_OPENROUTER_API_KEY"] = "not valid"
+        }).Build();
+        Assert.Throws<InvalidOperationException>(() =>
+            OpenRouterModelPricingCatalogOptions.FromConfiguration(invalid));
     }
 
     [Fact]
@@ -372,11 +443,7 @@ public sealed class ModelPricingCatalogTests
         using var source = new OpenRouterModelPricingCatalogSource(
             client,
             new FixedTimeProvider(s_now),
-            new OpenRouterModelPricingCatalogOptions(
-                true,
-                20,
-                new Uri("https://openrouter.ai/api/v1/models"),
-                null),
+            new OpenRouterModelPricingCatalogOptions(null),
             maximumResponseBytes: 64);
 
         var result = await source.FetchAsync(TestContext.Current.CancellationToken);
@@ -412,12 +479,29 @@ public sealed class ModelPricingCatalogTests
                     [Rate("prompt", "input_tokens", "token", ModelPricingBillingMode.Base, null, 0.025m)])
             ]);
         var catalog = new ModelPricingCatalogSnapshot(
-            "openrouter",
-            new Uri("https://openrouter.ai/api/v1/models"),
+            OpenRouterModelPricingCatalogSource.CatalogSourceId,
+            OpenRouterModelPricingCatalogSource.CatalogEndpoint,
             "minimum_available_rate",
             s_now,
             [model]);
         return new ModelPricingCatalogVersion("snapshot-test", s_now, catalog);
+    }
+
+    private static void AssertRate(
+        ModelPricingCatalogModel model,
+        string sourceMeter,
+        string usageDimension,
+        string unit,
+        string sourceBillingMode,
+        ModelPricingBillingMode billingMode,
+        string? replacesUsageDimension,
+        decimal usdPerUnit)
+    {
+        var rate = Assert.Single(model.Rates, rate => rate.SourceMeter == sourceMeter);
+        Assert.Equal(
+            (usageDimension, unit, sourceBillingMode, billingMode, replacesUsageDimension, usdPerUnit),
+            (rate.UsageDimension, rate.Unit, rate.SourceBillingMode, rate.BillingMode,
+                rate.ReplacesUsageDimension, rate.UsdPerUnit));
     }
 
     private static ModelPricingRate Rate(
@@ -441,37 +525,13 @@ public sealed class ModelPricingCatalogTests
             replaces,
             amount);
 
-    private sealed class MutableSource : IModelPricingCatalogSource
-    {
-        public MutableSource(
-            ModelPricingCatalogSnapshot snapshot,
-            string configurationFingerprint,
-            int priority = 100)
-        {
-            SourceEndpoint = snapshot.SourceEndpoint;
-            ConfigurationFingerprint = configurationFingerprint;
-            Priority = priority;
-            Result = ModelPricingCatalogFetchResult.Success(snapshot);
-        }
-
-        public string SourceId => Result.Snapshot?.SourceId ?? "openrouter";
-        public int Priority { get; }
-        public string ConfigurationFingerprint { get; set; }
-        public Uri SourceEndpoint { get; }
-        public ModelPricingCatalogFetchResult Result { get; set; }
-
-        public Task<ModelPricingCatalogFetchResult> FetchAsync(
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(Result);
-        }
-    }
-
-    private sealed class RecordingHandler(string payload) : HttpMessageHandler
+    private sealed class MutableResponseHandler(string payload) : HttpMessageHandler
     {
         public string? AuthorizationScheme { get; private set; }
         public string? AuthorizationParameter { get; private set; }
+        public HttpMethod? Method { get; private set; }
+        public Uri? RequestUri { get; private set; }
+        public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -480,7 +540,9 @@ public sealed class ModelPricingCatalogTests
             cancellationToken.ThrowIfCancellationRequested();
             AuthorizationScheme = request.Headers.Authorization?.Scheme;
             AuthorizationParameter = request.Headers.Authorization?.Parameter;
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            Method = request.Method;
+            RequestUri = request.RequestUri;
+            return Task.FromResult(new HttpResponseMessage(StatusCode)
             {
                 Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json")
             });

@@ -21,6 +21,7 @@ interface IPack : IHazSourcePaths, IHazConfiguration
 
     Target Pack => d => d
         .Description("Pack the shippable packages into Artifacts/nuget")
+        .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<ICompile>(static x => x.Compile)
         .Produces(NuGetArtifactsDirectory / "*.nupkg")
         .Executes(() =>
@@ -39,6 +40,15 @@ interface IPack : IHazSourcePaths, IHazConfiguration
             }
         });
 
+    Target PackSmoke => d => d
+        .Description("Install the packed qyl tool into a clean directory and exercise its product vertical")
+        .DependsOn(Pack)
+        .Executes(() => DotNetTasks.DotNetRun(s => s
+            .SetProjectFile(QylToolSmokeProject)
+            .SetConfiguration(Configuration)
+            .EnableNoBuild()
+            .SetApplicationArguments(NuGetArtifactsDirectory)));
+
     Target CleanLocalPackagesCache => d => d
         .Unlisted()
         .Description("Remove locally packed qyl package ids from the global NuGet cache so fresh packs win")
@@ -48,15 +58,11 @@ interface IPack : IHazSourcePaths, IHazConfiguration
             // servers reduces the chance of a locked cache directory.
             DotNetTasks.DotNet("build-server shutdown");
 
-            var packageIds = ShippablePackProjects
-                .Select(static project => project.NameWithoutExtension.ToLowerInvariant())
-                .ToArray();
-
             var output = DotNetTasks.DotNet("nuget locals global-packages --list", RootDirectory, logOutput: false);
             foreach (var line in output.Where(static line => line.Text.StartsWith("global-packages: ", StringComparison.Ordinal)))
             {
                 AbsolutePath packagesDir = Path.GetFullPath(line.Text["global-packages: ".Length..].Trim());
-                foreach (var packageId in packageIds)
+                foreach (var packageId in ShippablePackageIds)
                 {
                     var cachedPackage = packagesDir / packageId;
                     if (cachedPackage.DirectoryExists())

@@ -1,5 +1,3 @@
-using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
-
 namespace Qyl.Collector.Storage;
 
 internal sealed record GenAiEtlAuditStorageRow
@@ -77,10 +75,10 @@ internal sealed record GenAiEtlAuditUsageBucket
     {
         var requiresOutput = OperationName switch
         {
-            GenAiAttributes.OperationNameValues.Chat or
-                GenAiAttributes.OperationNameValues.GenerateContent or
-                GenAiAttributes.OperationNameValues.TextCompletion => true,
-            GenAiAttributes.OperationNameValues.Embeddings => false,
+            CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Chat or
+                CollectorSemanticAttributeCatalog.GenAiOperationNameValues.GenerateContent or
+                CollectorSemanticAttributeCatalog.GenAiOperationNameValues.TextCompletion => true,
+            CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Embeddings => false,
             _ => (bool?)null
         };
         if (!requiresOutput.HasValue)

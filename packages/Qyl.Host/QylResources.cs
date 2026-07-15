@@ -39,6 +39,13 @@ internal sealed record QylLaunchSpec
     public string HealthPath { get; init; } = QylConstants.Routes.Health;
 }
 
+internal sealed record QylProcessCommand
+{
+    public required string Executable { get; init; }
+    public ReadOnlyCollection<string> Args { get; init; } = ReadOnlyCollection<string>.Empty;
+    public string? WorkingDirectory { get; init; }
+}
+
 internal enum ResourceLifecycle
 {
     Pending,

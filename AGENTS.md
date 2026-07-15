@@ -41,6 +41,34 @@ change TypeSpec first, regenerate `Qyl.Api.Contracts` and client artifacts, then
 to the generated contract. Accessibility modifiers do not decide contract status:
 anything serialized across a boundary is a contract.
 
+## External API services
+
+- **Model-price catalog:** OpenRouter is Qyl's sole model-pricing authority. The
+  collector refreshes
+  [`GET https://openrouter.ai/api/v1/models?output_modalities=all`](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
+  to estimate observed model usage without maintaining provider-specific price
+  tables. Its model-level `pricing` object is the lowest currently available
+  OpenRouter rate, not a historical price, customer contract, routed-endpoint
+  quote, or provider invoice. Preserve the source URL, retrieval time, immutable
+  snapshot id, and `minimum_available_rate` semantics. Price fields such as
+  `prompt`, `completion`, `request`, `image`, `web_search`,
+  `internal_reasoning`, and `input_cache_read`/`input_cache_write` are decimal
+  USD values per their documented token, request, image, search, audio, or other
+  unit. Apply supported conditional overrides in source order and fail closed when
+  required usage or a pricing condition is unavailable. `QYL_OPENROUTER_API_KEY`
+  supplies the optional Bearer token. Do not add another model-price adapter or a
+  configurable replacement endpoint without an explicit product-boundary change.
+- **OpenRouter diagnostics:**
+  [`GET /api/v1/models/{author}/{slug}/endpoints`](https://openrouter.ai/docs/api/api-reference/endpoints/list-all-endpoints-for-a-model)
+  exposes provider-specific endpoint prices. It has a different response shape and
+  is a reference for investigating catalog discrepancies; Qyl does not call it in
+  the pricing path.
+- **Actual provider billing:** OpenAI
+  `GET https://api.openai.com/v1/organization/costs` and Anthropic
+  `GET https://api.anthropic.com/v1/organizations/cost_report` reconcile billed
+  organization or workspace spend. They stay separate from OpenRouter catalog
+  estimates and must never be treated as interchangeable price sources.
+
 ## Implementation rules
 
 - A public capability needs an executable owner: a product call path, an owned

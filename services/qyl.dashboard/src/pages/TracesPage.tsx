@@ -27,12 +27,10 @@ import {
 } from '@/hooks/use-telemetry';
 import type {Span} from '@/types';
 import {getStatusLabel} from '@/types';
-
-type TelemetrySpan = Span;
+import {attributeNumber, attributeString, formatAttributeValue} from '@/lib/attribute-value';
 
 function getServiceName(span: Span): string {
-    const attr = span.resource?.attributes?.find(a => a.key === 'service.name');
-    return (attr?.value as string) ?? 'unknown';
+    return span.resource['service.name'];
 }
 
 function getDurationNs(span: Span): number {
@@ -42,11 +40,11 @@ function getDurationNs(span: Span): number {
 function getGenAiAttrs(span: Span) {
     const attrs = getAttributesRecord(span);
     return {
-        provider: attrs['gen_ai.provider.name'] as string | undefined,
-        requestModel: attrs['gen_ai.request.model'] as string | undefined,
-        inputTokens: attrs['gen_ai.usage.input_tokens'] as number | undefined,
-        outputTokens: attrs['gen_ai.usage.output_tokens'] as number | undefined,
-        costUsd: attrs['gen_ai.response.cost_usd'] as number | undefined,
+        provider: attributeString(attrs['gen_ai.provider.name']),
+        requestModel: attributeString(attrs['gen_ai.request.model']),
+        inputTokens: attributeNumber(attrs['gen_ai.usage.input_tokens']),
+        outputTokens: attributeNumber(attrs['gen_ai.usage.output_tokens']),
+        costUsd: attributeNumber(attrs['gen_ai.response.cost_usd']),
     };
 }
 
@@ -57,14 +55,14 @@ function getTotalTokens(span: Span): number | null {
 }
 
 interface FlattenedSpan {
-    span: TelemetrySpan;
+    span: Span;
     depth: number;
     hasChildren: boolean;
     isExpanded: boolean;
 }
 
 interface SpanRowProps {
-    span: TelemetrySpan;
+    span: Span;
     depth: number;
     isExpanded: boolean;
     onToggle: () => void;
@@ -177,7 +175,7 @@ function SpanRow({
     );
 }
 
-function SpanDetails({span}: { span: TelemetrySpan }) {
+function SpanDetails({span}: { span: Span }) {
     const attributes = getAttributesRecord(span);
     const totalTokens = getTotalTokens(span);
     const genai = getGenAiAttrs(span);
@@ -268,7 +266,7 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
                 <h4 className="text-sm font-medium mb-2">Attributes</h4>
                 <div className="space-y-2 text-sm">
                     {Object.entries(attributes).map(([key, value]) => {
-                        const stringValue = String(value);
+                        const stringValue = formatAttributeValue(value);
                         const isStructured = isStructuredContent(stringValue);
 
                         if (isStructured) {
@@ -360,7 +358,7 @@ export function TracesPage() {
     const sessionId = searchParams.get('session') || '';
     const traceId = searchParams.get('traceId') || '';
 
-    const [selectedSpan, setSelectedSpan] = useState<TelemetrySpan | null>(null);
+    const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
     const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
     const [filterText, setFilterText] = useState('');
 
@@ -388,7 +386,7 @@ export function TracesPage() {
     const {data: spans = [], isLoading} = activeQuery;
 
     const {childrenMap, timelineStart, timelineEnd} = useMemo(() => {
-        const childrenMap = new Map<string, TelemetrySpan[]>();
+        const childrenMap = new Map<string, Span[]>();
         let minTime = Infinity;
         let maxTime = -Infinity;
 
@@ -427,17 +425,18 @@ export function TracesPage() {
             .filter((s) => !s.parent_span_id || !loadedSpanIds.has(s.parent_span_id))
             .sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
 
-        const matchesFilter = (span: TelemetrySpan): boolean => {
+        const matchesFilter = (span: Span): boolean => {
             if (!filterText) return true;
             const attributes = getAttributesRecord(span);
             return (
                 span.name.toLowerCase().includes(filterLower) ||
                 getServiceName(span).toLowerCase().includes(filterLower) ||
-                Object.values(attributes).some((v) => String(v).toLowerCase().includes(filterLower))
+                Object.values(attributes).some((v) =>
+                    formatAttributeValue(v).toLowerCase().includes(filterLower))
             );
         };
 
-        const flatten = (span: TelemetrySpan, depth: number) => {
+        const flatten = (span: Span, depth: number) => {
             const children = childrenMap.get(span.span_id) || [];
             const hasChildren = children.length > 0;
             const isExpanded = expandedSpans.has(span.span_id);
@@ -525,24 +524,36 @@ export function TracesPage() {
                     </Button>
 
                     <DownloadButton
-                        getData={() => spans.map(span => {
-                            const attrs = getAttributesRecord(span);
-                            return {
-                                traceId: span.trace_id,
-                                spanId: span.span_id,
-                                parentSpanId: span.parent_span_id ?? '',
-                                name: span.name,
-                                kind: span.kind,
-                                serviceName: getServiceName(span),
-                                startTimeUnixNano: span.start_time_unix_nano,
-                                endTimeUnixNano: span.end_time_unix_nano,
-                                durationMs: nsToMs(getDurationNs(span)),
-                                statusCode: span.status.code,
-                                statusMessage: span.status.message ?? '',
-                                ...attrs,
-                            };
-                        })}
+                        getJsonData={() => spans}
+                        getCsvData={() => spans.map(span => ({
+                            traceId: span.trace_id,
+                            spanId: span.span_id,
+                            parentSpanId: span.parent_span_id ?? '',
+                            name: span.name,
+                            kind: span.kind,
+                            serviceName: getServiceName(span),
+                            startTimeUnixNano: span.start_time_unix_nano,
+                            endTimeUnixNano: span.end_time_unix_nano,
+                            durationMs: nsToMs(getDurationNs(span)),
+                            statusCode: span.status.code,
+                            statusMessage: span.status.message ?? '',
+                            attributes: getAttributesRecord(span),
+                        }))}
                         filenamePrefix="traces"
+                        columns={[
+                            'traceId',
+                            'spanId',
+                            'parentSpanId',
+                            'name',
+                            'kind',
+                            'serviceName',
+                            'startTimeUnixNano',
+                            'endTimeUnixNano',
+                            'durationMs',
+                            'statusCode',
+                            'statusMessage',
+                            'attributes',
+                        ]}
                         disabled={spans.length === 0}
                     />
                 </div>

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Qyl.Collector.Storage;
 
 internal static class IngestionStorageMapper
@@ -48,6 +50,7 @@ internal static class IngestionStorageMapper
             ? span.EndTimeUnixNano - span.StartTimeUnixNano
             : 0UL;
         var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span.Attributes);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(span.ResourceEntityRefs);
 
         return new SpanStorageRow
         {
@@ -74,7 +77,10 @@ internal static class IngestionStorageMapper
             GenAiCacheCreationInputTokens = projection.GenAiCacheCreationInputTokens,
             GenAiReasoningTokens = projection.GenAiReasoningTokens,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes, projection),
-            ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(span.ResourceAttributes),
+            ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
+                span.ResourceAttributes,
+                span.ResourceEntityRefs),
+            ResourceEntityRefsJson = resourceEntityRefsJson,
             SchemaUrl = span.SchemaUrl,
             StatusMessage = span.StatusMessage,
             EventsJson = SpanChildStorage.SerializeEvents(span.Events),
@@ -92,7 +98,13 @@ internal static class IngestionStorageMapper
         var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation);
         var body = ToSafeLogBody(log.BodyText);
         var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
-        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(log.ResourceAttributes);
+        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
+            log.ResourceAttributes,
+            log.ResourceEntityRefs);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(log.ResourceEntityRefs);
+        var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
+            log.ResourceEntityRefs,
+            log.ResourceAttributes);
 
         return new LogStorageRow
         {
@@ -102,6 +114,7 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, projectId);
                 AppendIdentityPart(builder, log.TraceId);
                 AppendIdentityPart(builder, log.SpanId);
+                AppendIdentityPart(builder, log.EventName);
                 AppendIdentityPart(builder, sessionId);
                 AppendIdentityPart(builder, log.TimeUnixNano);
                 AppendIdentityPart(builder, log.ObservedTimeUnixNano);
@@ -111,9 +124,12 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, log.ServiceName);
                 AppendIdentityPart(builder, attributesJson);
                 AppendIdentityPart(builder, resourceJson);
+                if (!string.IsNullOrEmpty(resourceEntityRefsIdentity))
+                    AppendIdentityPart(builder, resourceEntityRefsIdentity);
             }),
             TraceId = log.TraceId,
             SpanId = log.SpanId,
+            EventName = log.EventName,
             SessionId = sessionId,
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano,
@@ -122,7 +138,8 @@ internal static class IngestionStorageMapper
             Body = body,
             ServiceName = log.ServiceName,
             AttributesJson = attributesJson,
-            ResourceJson = resourceJson
+            ResourceJson = resourceJson,
+            ResourceEntityRefsJson = resourceEntityRefsJson
         };
     }
 
@@ -130,7 +147,15 @@ internal static class IngestionStorageMapper
     {
         var projectId = ProjectScope.Normalize(metric.ProjectIdHint);
         var attributesJson = PersistedAttributePolicy.SerializeMetricAttributes(metric.Attributes);
-        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(metric.ResourceAttributes);
+        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
+            metric.ResourceAttributes,
+            metric.ResourceEntityRefs);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(metric.ResourceEntityRefs);
+        var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
+            metric.ResourceEntityRefs,
+            metric.ResourceAttributes);
+        var metadataJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(metric.Metadata);
+        var scopeAttributesJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(metric.ScopeAttributes);
 
         return new MetricStorageRow
         {
@@ -140,42 +165,79 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, projectId);
                 AppendIdentityPart(builder, metric.MetricName);
                 AppendIdentityPart(builder, metric.MetricType);
+                AppendIdentityPart(builder, metric.AggregationTemporality);
+                AppendIdentityPart(builder,
+                    metric.IsMonotonic.HasValue ? (int?)(metric.IsMonotonic.Value ? 1 : 0) : null);
                 AppendIdentityPart(builder, metric.Unit);
+                AppendIdentityPart(builder, metric.ResourceSchemaUrl);
+                AppendIdentityPart(builder, metric.ResourceDroppedAttributesCount.ToString(CultureInfo.InvariantCulture));
+                AppendIdentityPart(builder, metric.HasInstrumentationScope ? 1 : 0);
                 AppendIdentityPart(builder, metric.ScopeName);
+                AppendIdentityPart(builder, metric.ScopeVersion);
+                AppendIdentityPart(builder, metric.ScopeDroppedAttributesCount.ToString(CultureInfo.InvariantCulture));
+                AppendIdentityPart(builder, metric.ScopeSchemaUrl);
                 AppendIdentityPart(builder, metric.TimeUnixNano);
-                AppendIdentityPart(builder, metric.StartTimeUnixNano);
+                AppendIdentityPart(
+                    builder,
+                    metric.MetricType is MetricStorageTypes.Gauge ? (ulong?)null : metric.StartTimeUnixNano);
                 AppendIdentityPart(builder, metric.ServiceName);
                 // Identity uses the raw dimensions, not the persisted allow-list projection, so
                 // data points differing only in a non-persisted dimension stay distinct rows.
-                AppendIdentityPart(builder, metric.Attributes.Count);
-                foreach (var (key, value) in metric.Attributes.OrderBy(static item => item.Key, StringComparer.Ordinal))
-                {
-                    AppendIdentityPart(builder, key);
-                    AppendIdentityPart(builder, value.ToStableString());
-                }
-
-                AppendIdentityPart(builder, resourceJson);
+                AppendIdentityAttributes(builder, metric.Attributes);
+                AppendIdentityAttributes(builder, metric.ResourceAttributes);
+                if (!string.IsNullOrEmpty(resourceEntityRefsIdentity))
+                    AppendIdentityPart(builder, resourceEntityRefsIdentity);
+                AppendIdentityAttributes(builder, metric.ScopeAttributes);
             }),
+            ContractProjectionVersion = MetricStorageRow.CurrentContractProjectionVersion,
             MetricName = metric.MetricName,
             MetricType = (byte)Math.Clamp(metric.MetricType, 0, 5),
             Unit = metric.Unit,
             Description = metric.Description,
+            MetadataJson = metadataJson,
+            ResourceSchemaUrl = metric.ResourceSchemaUrl,
+            ResourceDroppedAttributesCount = metric.ResourceDroppedAttributesCount,
+            HasInstrumentationScope = (byte)(metric.HasInstrumentationScope ? 1 : 0),
             ScopeName = metric.ScopeName,
+            ScopeVersion = metric.ScopeVersion,
+            ScopeAttributesJson = scopeAttributesJson,
+            ScopeDroppedAttributesCount = metric.ScopeDroppedAttributesCount,
+            ScopeSchemaUrl = metric.ScopeSchemaUrl,
             TimeUnixNano = metric.TimeUnixNano,
             StartTimeUnixNano = metric.StartTimeUnixNano,
-            Value = metric.Value,
+            Value = null,
+            IntValue = metric.IntValue,
+            DoubleValue = metric.DoubleValue,
+            Flags = metric.Flags,
+            ExemplarsJson = SerializeMetricExemplars(metric.Exemplars),
             Count = metric.Count,
             Sum = metric.Sum,
             Min = metric.Min,
             Max = metric.Max,
-            BucketsJson = metric.BucketsJson,
+            BucketsJson = metric.MetricType is MetricStorageTypes.Histogram
+                ? SerializeHistogramBuckets(metric.HistogramBounds ?? [], metric.HistogramCounts ?? [])
+                : null,
+            ExponentialHistogramScale = metric.ExponentialHistogramScale,
+            ExponentialHistogramZeroCount = metric.ExponentialHistogramZeroCount,
+            ExponentialHistogramZeroThreshold = metric.ExponentialHistogramZeroThreshold,
+            ExponentialHistogramBucketsJson = metric.MetricType is MetricStorageTypes.ExponentialHistogram
+                ? SerializeExponentialHistogramBuckets(
+                    metric.ExponentialHistogramPositive ??
+                    new MetricExponentialHistogramBucketsIngestionRecord(0, []),
+                    metric.ExponentialHistogramNegative ??
+                    new MetricExponentialHistogramBucketsIngestionRecord(0, []))
+                : null,
+            SummaryQuantilesJson = metric.MetricType is MetricStorageTypes.Summary
+                ? SerializeSummaryQuantiles(metric.SummaryQuantiles ?? [])
+                : null,
             IsMonotonic = metric.IsMonotonic is { } monotonic ? (byte)(monotonic ? 1 : 0) : null,
             AggregationTemporality = metric.AggregationTemporality is { } temporality
                 ? (byte)Math.Clamp(temporality, 0, 2)
                 : null,
             ServiceName = metric.ServiceName,
             AttributesJson = attributesJson,
-            ResourceJson = resourceJson
+            ResourceJson = resourceJson,
+            ResourceEntityRefsJson = resourceEntityRefsJson
         };
     }
 
@@ -183,8 +245,19 @@ internal static class IngestionStorageMapper
     {
         var projectId = ProjectScope.Normalize(profile.ProjectIdHint);
         var attributesJson = PersistedAttributePolicy.SerializeProfileAttributes(profile.Attributes);
-        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(profile.ResourceAttributes);
-        var profileId = ResolveProfileId(projectId, profile, attributesJson, resourceJson);
+        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
+            profile.ResourceAttributes,
+            profile.ResourceEntityRefs);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(profile.ResourceEntityRefs);
+        var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
+            profile.ResourceEntityRefs,
+            profile.ResourceAttributes);
+        var profileId = ResolveProfileId(
+            projectId,
+            profile,
+            attributesJson,
+            resourceJson,
+            resourceEntityRefsIdentity);
         var header = new ProfileStorageRow
         {
             ProjectId = projectId,
@@ -201,6 +274,7 @@ internal static class IngestionStorageMapper
             ServiceName = profile.ServiceName,
             AttributesJson = attributesJson,
             ResourceJson = resourceJson,
+            ResourceEntityRefsJson = resourceEntityRefsJson,
             SchemaUrl = profile.SchemaUrl
         };
 
@@ -269,7 +343,8 @@ internal static class IngestionStorageMapper
         string projectId,
         ProfileIngestionRecord profile,
         string? attributesJson,
-        string? resourceJson)
+        string? resourceJson,
+        string? resourceEntityRefsIdentity)
     {
         if (!string.IsNullOrWhiteSpace(profile.ProfileId))
             return profile.ProfileId;
@@ -289,6 +364,8 @@ internal static class IngestionStorageMapper
             AppendIdentityPart(builder, profile.ServiceName);
             AppendIdentityPart(builder, attributesJson);
             AppendIdentityPart(builder, resourceJson);
+            if (!string.IsNullOrEmpty(resourceEntityRefsIdentity))
+                AppendIdentityPart(builder, resourceEntityRefsIdentity);
             AppendIdentityPart(builder, profile.SchemaUrl);
 
             AppendIdentityPart(builder, profile.Functions.Count);
@@ -422,6 +499,18 @@ internal static class IngestionStorageMapper
             AppendIdentityPart(builder, value);
     }
 
+    private static void AppendIdentityAttributes(
+        StringBuilder builder,
+        IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
+    {
+        AppendIdentityPart(builder, attributes.Count);
+        foreach (var (key, value) in attributes.OrderBy(static item => item.Key, StringComparer.Ordinal))
+        {
+            AppendIdentityPart(builder, key);
+            AppendIdentityPart(builder, value.ToIdentityString());
+        }
+    }
+
     private static string? ToSafeLogBody(string? raw)
     {
         if (string.IsNullOrEmpty(raw))
@@ -460,4 +549,99 @@ internal static class IngestionStorageMapper
         >= 21 => "FATAL",
         _ => "UNSPECIFIED"
     };
+
+    private static string? SerializeResourceEntityRefs(
+        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs) =>
+        entityRefs.Count is 0
+            ? null
+            : JsonSerializer.Serialize(
+                entityRefs as List<ResourceEntityRefIngestionRecord> ?? [.. entityRefs],
+                StorageJsonSerializerContext.Default.ResourceEntityRefIngestionRecordList);
+
+    private static string? GetResourceEntityRefsIdentity(
+        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs,
+        IReadOnlyDictionary<string, OtlpAttributeValue> resourceAttributes)
+    {
+        if (entityRefs.Count is 0) return null;
+
+        var identities = new List<string>(entityRefs.Count);
+        foreach (var entityRef in entityRefs)
+        {
+            var identity = new StringBuilder();
+            AppendIdentityPart(identity, entityRef.Type);
+            var idKeys = entityRef.IdKeys.Order(StringComparer.Ordinal).ToArray();
+            AppendIdentityPart(identity, idKeys.Length);
+            foreach (var key in idKeys)
+            {
+                if (!resourceAttributes.TryGetValue(key, out var value))
+                {
+                    throw new InvalidDataException(
+                        $"Resource entity id_key '{key}' does not reference a persisted resource attribute.");
+                }
+
+                AppendIdentityPart(identity, key);
+                AppendIdentityPart(identity, value.ToIdentityString());
+            }
+            identities.Add(identity.ToString());
+        }
+
+        identities.Sort(StringComparer.Ordinal);
+        var result = new StringBuilder();
+        AppendIdentityPart(result, identities.Count);
+        foreach (var identity in identities)
+            AppendIdentityPart(result, identity);
+        return result.ToString();
+    }
+
+    private static string SerializeHistogramBuckets(
+        IReadOnlyList<double> explicitBounds,
+        IReadOnlyList<ulong> bucketCounts) =>
+        JsonSerializer.Serialize(
+            new MetricHistogramBucketsJson
+            {
+                ExplicitBounds = [.. explicitBounds],
+                BucketCounts = [.. bucketCounts]
+            },
+            StorageJsonSerializerContext.Default.MetricHistogramBucketsJson);
+
+    private static string SerializeExponentialHistogramBuckets(
+        MetricExponentialHistogramBucketsIngestionRecord positive,
+        MetricExponentialHistogramBucketsIngestionRecord negative) =>
+        JsonSerializer.Serialize(
+            new MetricExponentialHistogramBucketsJson
+            {
+                PositiveOffset = positive.Offset,
+                PositiveBucketCounts = [.. positive.BucketCounts],
+                NegativeOffset = negative.Offset,
+                NegativeBucketCounts = [.. negative.BucketCounts]
+            },
+            StorageJsonSerializerContext.Default.MetricExponentialHistogramBucketsJson);
+
+    private static string? SerializeMetricExemplars(IReadOnlyList<MetricExemplarIngestionRecord> exemplars)
+    {
+        if (exemplars.Count is 0) return null;
+
+        var stored = exemplars.Select(static exemplar => new MetricExemplarJson
+        {
+            TimeUnixNano = exemplar.TimeUnixNano,
+            IntValue = exemplar.IntValue,
+            DoubleValue = exemplar.DoubleValue,
+            SpanId = exemplar.SpanId,
+            TraceId = exemplar.TraceId,
+            FilteredAttributesJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(
+                exemplar.FilteredAttributes)
+        }).ToList();
+        return JsonSerializer.Serialize(stored, StorageJsonSerializerContext.Default.MetricExemplarJsonList);
+    }
+
+    private static string SerializeSummaryQuantiles(
+        IReadOnlyList<MetricSummaryQuantileIngestionRecord> quantiles)
+    {
+        var stored = quantiles.Select(static value => new MetricSummaryQuantileJson
+        {
+            Quantile = value.Quantile,
+            Value = value.Value
+        }).ToList();
+        return JsonSerializer.Serialize(stored, StorageJsonSerializerContext.Default.MetricSummaryQuantileJsonList);
+    }
 }
