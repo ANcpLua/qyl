@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -476,6 +477,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/traces", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/profiles", expectedDefault);
+            var expectedGenAiEtlAuditDefault = ReadOpenApiIntegerSchemaValue(
+                document,
+                "/api/v1/cost/etl-audit",
+                "limit",
+                "default");
 
             var expected = new Dictionary<string, int>(StringComparer.Ordinal)
             {
@@ -483,7 +489,13 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
                 ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
                 ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
-                ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum")
+                ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum"),
+                ["GenAiEtlAuditDefaultLimit"] = expectedGenAiEtlAuditDefault,
+                ["GenAiEtlAuditMaxLimit"] = ReadOpenApiIntegerSchemaValue(
+                    document,
+                    "/api/v1/cost/etl-audit",
+                    "limit",
+                    "maximum")
             };
 
             var mismatches = expected
@@ -2126,8 +2138,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "ModelPricingService",
                 "ModelPricingRow",
                 "GenAiCostUsd",
-                "OpenRouter",
-                "model_pricing",
                 "ModelPricingDdl",
                 "ModelPricingTiersDdl",
                 "CostByModelHourlyViewDdl",
@@ -2520,6 +2530,70 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
         });
 
+    Target VerifyModelPricingRatesAreProviderSupplied => d => d
+        .Unlisted()
+        .Description("Verify model-pricing rates are parsed from provider catalogs, not embedded in collector code")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var offenders = CollectorSourceFiles()
+                .SelectMany(file =>
+                {
+                    var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString());
+                    return tree.GetCompilationUnitRoot()
+                        .DescendantNodes()
+                        .OfType<ObjectCreationExpressionSyntax>()
+                        .Where(static creation =>
+                            creation.Type.ToString().EndsWith("ModelPricingRate", StringComparison.Ordinal))
+                        .SelectMany(creation => creation.ArgumentList?.Arguments ?? [])
+                        .Where(static argument => IsNonZeroNumericLiteral(argument.Expression))
+                        .Select(argument => (
+                            File: RootDirectory.GetRelativePathTo(file).ToString(),
+                            Line: argument.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
+                            Text: argument.Expression.ToString()));
+                })
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector model-pricing rates come from provider catalog values");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Embedded model-pricing rate at {File}:{Line}: {Text}",
+                    offender.File, offender.Line, offender.Text);
+
+            throw new InvalidOperationException(
+                "Do not embed model prices in collector code. Parse rates from configured provider catalog APIs.");
+
+            static bool IsNonZeroNumericLiteral(ExpressionSyntax expression)
+            {
+                if (expression is LiteralExpressionSyntax literal &&
+                    literal.Token.Value is IConvertible convertible)
+                {
+                    try
+                    {
+                        return convertible.ToDecimal(CultureInfo.InvariantCulture) is not 0;
+                    }
+                    catch (FormatException)
+                    {
+                        return false;
+                    }
+                    catch (InvalidCastException)
+                    {
+                        return false;
+                    }
+                }
+
+                return expression is PrefixUnaryExpressionSyntax
+                {
+                    OperatorToken.RawKind: (int)SyntaxKind.MinusToken,
+                    Operand: LiteralExpressionSyntax
+                };
+            }
+        });
+
     Target Verify => d => d
         .Description("Run collector and frontend verification checks")
         .DependsOn(VerifyFrontendApiTypes)
@@ -2558,6 +2632,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
+        .DependsOn(VerifyModelPricingRatesAreProviderSupplied)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
         {

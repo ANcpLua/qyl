@@ -1,5 +1,11 @@
 /** Shared HTTP helpers for the local, unsecured development dashboard. */
 
+import type {
+    GenAiEtlAuditEvaluationRequest,
+    GenAiEtlAuditEvaluationResponse,
+    GenAiEtlAuditReport,
+} from '@/types';
+
 export interface SseEvent {
     event: string;
     data: string;
@@ -66,10 +72,49 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
     return res.json();
 }
 
-export async function postJson<T>(url: string, body: unknown): Promise<T> {
+export async function postJson<T>(url: string, body: unknown, headers?: HeadersInit): Promise<T> {
     return fetchJson<T>(url, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json'},
         body: JSON.stringify(body),
     });
+}
+
+function costAuditUrl(path: string, startTime?: string, endTime?: string, limit?: number): string {
+    const query = new URLSearchParams();
+    if (startTime) query.set('startTime', startTime);
+    if (endTime) query.set('endTime', endTime);
+    if (limit !== undefined) query.set('limit', String(limit));
+    const suffix = query.toString();
+    return suffix ? `${path}?${suffix}` : path;
+}
+
+function projectScopeHeaders(projectScope?: string): HeadersInit | undefined {
+    const normalized = projectScope?.trim();
+    return normalized ? {'X-Qyl-Project': normalized} : undefined;
+}
+
+export function fetchGenAiEtlAudit(
+    startTime?: string,
+    endTime?: string,
+    limit = 25,
+    projectScope?: string,
+): Promise<GenAiEtlAuditReport> {
+    return fetchJson<GenAiEtlAuditReport>(
+        costAuditUrl('/api/v1/cost/etl-audit', startTime, endTime, limit),
+        {headers: projectScopeHeaders(projectScope)},
+    );
+}
+
+export function evaluateGenAiEtlAudit(
+    request: GenAiEtlAuditEvaluationRequest,
+    startTime?: string,
+    endTime?: string,
+    projectScope?: string,
+): Promise<GenAiEtlAuditEvaluationResponse> {
+    return postJson<GenAiEtlAuditEvaluationResponse>(
+        costAuditUrl('/api/v1/cost/etl-audit/evaluate', startTime, endTime),
+        request,
+        projectScopeHeaders(projectScope),
+    );
 }

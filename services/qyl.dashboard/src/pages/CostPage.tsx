@@ -3,13 +3,15 @@ import {Gauge} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {OnboardingHint} from '@/components/OnboardingHint';
+import {EtlAuditView} from '@/components/cost/EtlAuditView';
 import {useSessions} from '@/hooks/use-telemetry';
 import type {SessionEntity} from '@/types';
 
 // Observed GenAI usage, sourced exclusively from the real session surface
-// (/api/v1/sessions → genai_usage). Dollar attribution is intentionally absent until
-// a provider-owned billing or catalog feed can attach explicit provenance.
+// (/api/v1/sessions → genai_usage). Provider billing totals remain source-level and
+// are never allocated to these session counters.
 
 interface SessionUsageRow {
     sessionId: string;
@@ -55,7 +57,7 @@ function SummaryCard({label, value, accent}: { label: string; value: string; acc
     );
 }
 
-export function CostPage() {
+function UsageOverview() {
     const {data: sessions = [], isLoading} = useSessions();
 
     const rows = useMemo(
@@ -86,7 +88,7 @@ export function CostPage() {
     }, [rows]);
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="space-y-4">
             <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-signal-orange"/>
                 <h2 className="text-sm font-semibold tracking-[0.14em] text-brutal-white">GENAI USAGE</h2>
@@ -103,8 +105,8 @@ export function CostPage() {
             </div>
 
             <div className="border border-signal-orange/35 bg-signal-orange/5 px-4 py-3 text-xs leading-5 text-brutal-slate">
-                Dollar cost is unavailable until a provider-owned billing or official catalog feed supplies
-                the value with source and retrieval provenance. Missing price data is never treated as zero.
+                Session token counters are intentionally unpriced. Provider billing totals remain source-level in the ETL
+                audit and are never allocated to sessions or traces; missing cost is never treated as zero.
             </div>
 
             {(totals.providers.size > 0 || totals.models.size > 0) && (
@@ -165,6 +167,32 @@ export function CostPage() {
                     )}
                 </CardContent>
             </Card>
+        </div>
+    );
+}
+
+export function CostPage() {
+    return (
+        <div className="p-4">
+            <Tabs defaultValue="overview">
+                <TabsList aria-label="Cost views"
+                          className="mb-4 h-auto border border-brutal-zinc/70 bg-brutal-carbon/92 p-1">
+                    <TabsTrigger value="overview"
+                                 className="px-4 py-2 text-xs uppercase tracking-[0.12em] data-[active]:bg-signal-orange data-[active]:text-brutal-black">
+                        Usage overview
+                    </TabsTrigger>
+                    <TabsTrigger value="etl-audit"
+                                 className="px-4 py-2 text-xs uppercase tracking-[0.12em] data-[active]:bg-signal-orange data-[active]:text-brutal-black">
+                        ETL audit
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="mt-0">
+                    <UsageOverview/>
+                </TabsContent>
+                <TabsContent value="etl-audit" className="mt-0">
+                    <EtlAuditView/>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

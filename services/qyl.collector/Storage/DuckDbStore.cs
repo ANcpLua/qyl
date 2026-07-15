@@ -938,6 +938,34 @@ internal sealed partial class DuckDbStore : IQylStore
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
+        using var providerCostCmd = con.CreateCommand();
+        providerCostCmd.CommandText = string.Concat(
+            ProviderCostBucketRow.CreateTableDdl, "\n",
+            ProviderCostSyncRow.CreateTableDdl, "\n",
+            ProviderCostBucketRow.MigrateTableDdl, "\n",
+            ProviderCostSyncRow.MigrateTableDdl, "\n",
+            ProviderCostBucketRow.IndexesDdl, "\n",
+            ProviderCostSyncRow.IndexesDdl);
+        providerCostCmd.ExecuteNonQuery();
+
+        using var modelPricingCatalogCmd = con.CreateCommand();
+        modelPricingCatalogCmd.CommandText = string.Concat(
+            ModelPricingCatalogSourceRow.CreateTableDdl, "\n",
+            ModelPricingCatalogSnapshotRow.CreateTableDdl, "\n",
+            ModelPricingCatalogModelRow.CreateTableDdl, "\n",
+            ModelPricingCatalogOverrideRow.CreateTableDdl, "\n",
+            ModelPricingCatalogRateRow.CreateTableDdl, "\n",
+            ModelPricingCatalogSourceRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogSnapshotRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogModelRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogOverrideRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogRateRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogModelRow.IndexesDdl, "\n",
+            ModelPricingCatalogSnapshotRow.IndexesDdl, "\n",
+            ModelPricingCatalogOverrideRow.IndexesDdl, "\n",
+            ModelPricingCatalogRateRow.IndexesDdl);
+        modelPricingCatalogCmd.ExecuteNonQuery();
+
         VerifyPersistedPrimaryKeys(con);
     }
 
@@ -956,6 +984,13 @@ internal sealed partial class DuckDbStore : IQylStore
         VerifyPersistedPrimaryKey(con, ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProviderCostBucketRow.TableName, ProviderCostBucketRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProviderCostSyncRow.TableName, ProviderCostSyncRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ModelPricingCatalogSourceRow.TableName, ModelPricingCatalogSourceRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ModelPricingCatalogSnapshotRow.TableName, ModelPricingCatalogSnapshotRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ModelPricingCatalogModelRow.TableName, ModelPricingCatalogModelRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ModelPricingCatalogOverrideRow.TableName, ModelPricingCatalogOverrideRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ModelPricingCatalogRateRow.TableName, ModelPricingCatalogRateRow.PrimaryKeyColumnsCsv);
     }
 
     private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string tableName, string expectedCsv)

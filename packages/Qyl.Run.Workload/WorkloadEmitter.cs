@@ -89,7 +89,8 @@ internal sealed partial class WorkloadEmitter(
             .SetSessionId(sessionId);
 
         await EmitDbSpanAsync(sessionId, stoppingToken).ConfigureAwait(false);
-        var latencyMs = await EmitGenAiSpanAsync(sessionId, profile, failed, stoppingToken).ConfigureAwait(false);
+        var latencyMs = await EmitGenAiSpanAsync(sessionId, route, profile, failed, stoppingToken)
+            .ConfigureAwait(false);
 
         var statusCode = failed ? StatusCodes.Status429TooManyRequests : StatusCodes.Status200OK;
         root.SetHttpResponseStatusCode(statusCode);
@@ -120,7 +121,7 @@ internal sealed partial class WorkloadEmitter(
         await Task.Delay(durationMs, stoppingToken).ConfigureAwait(false);
     }
 
-    private async Task<int> EmitGenAiSpanAsync(string sessionId, ModelProfile profile, bool failed,
+    private async Task<int> EmitGenAiSpanAsync(string sessionId, string route, ModelProfile profile, bool failed,
         CancellationToken stoppingToken)
     {
         var latencyMs = Random.Shared.Next(profile.LatencyMinMs, profile.LatencyMaxMs);
@@ -129,6 +130,9 @@ internal sealed partial class WorkloadEmitter(
 
         using var span = WorkloadTelemetry.Source.StartActivity($"chat {profile.Model}", ActivityKind.Client);
         span?.SetGenAiOperationName(GenAiSpans.GenAiOperationNameValues.Chat)
+            .SetGenAiOutputType(route is "/api/search"
+                ? GenAiSpans.GenAiOutputTypeValues.Json
+                : GenAiSpans.GenAiOutputTypeValues.Text)
             .SetGenAiProviderName(profile.Provider)
             .SetGenAiRequestModel(profile.Model)
             .SetGenAiRequestTemperature(Math.Round(Random.Shared.NextDouble(), 2, MidpointRounding.AwayFromZero))

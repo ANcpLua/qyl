@@ -144,6 +144,8 @@
   ],
   "spanHotAttributeKeys": [
     "gen_ai.provider.name",
+    "gen_ai.operation.name",
+    "gen_ai.output.type",
     "gen_ai.request.model",
     "gen_ai.response.model",
     "gen_ai.usage.input_tokens",
@@ -160,6 +162,8 @@
     "DbSystemName": "db.system.name",
     "GenAiToolCallId": "gen_ai.tool.call.id",
     "GenAiProviderName": "gen_ai.provider.name",
+    "GenAiOperationName": "gen_ai.operation.name",
+    "GenAiOutputType": "gen_ai.output.type",
     "GenAiRequestModel": "gen_ai.request.model",
     "GenAiResponseModel": "gen_ai.response.model",
     "GenAiInputTokens": "gen_ai.usage.input_tokens",

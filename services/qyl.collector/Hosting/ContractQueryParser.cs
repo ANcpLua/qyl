@@ -22,6 +22,15 @@ internal readonly record struct ParsedLogsParameters(
     DateTimeOffset? EndTime,
     int? Limit);
 
+internal readonly record struct ParsedGenAiEtlAuditParameters(
+    DateTimeOffset? StartTime,
+    DateTimeOffset? EndTime,
+    int? Limit);
+
+internal readonly record struct ParsedGenAiEtlAuditPeriod(
+    DateTimeOffset? StartTime,
+    DateTimeOffset? EndTime);
+
 internal static class ContractQueryParser
 {
     internal static IResult? ParseSessions(HttpRequest request, out ParsedSessionsParameters parsed)
@@ -69,6 +78,33 @@ internal static class ContractQueryParser
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
 
         parsed = new ParsedLogsParameters(severityMin, startTime, endTime, limit);
+        return null;
+    }
+
+    internal static IResult? ParseGenAiEtlAudit(
+        HttpRequest request,
+        out ParsedGenAiEtlAuditParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadDateTime("startTime", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("endTime", out var endTime) is { } endError) return endError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+
+        parsed = new ParsedGenAiEtlAuditParameters(startTime, endTime, limit);
+        return null;
+    }
+
+    internal static IResult? ParseGenAiEtlAuditPeriod(
+        HttpRequest request,
+        out ParsedGenAiEtlAuditPeriod parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadDateTime("startTime", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("endTime", out var endTime) is { } endError) return endError;
+
+        parsed = new ParsedGenAiEtlAuditPeriod(startTime, endTime);
         return null;
     }
 

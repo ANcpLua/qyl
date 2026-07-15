@@ -14,11 +14,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ancplua/qyl-api-schema": "0.5.10",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
+    "@ancplua/qyl-api-schema": "0.6.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",

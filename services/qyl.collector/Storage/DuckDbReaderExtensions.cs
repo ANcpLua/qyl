@@ -3,13 +3,18 @@ namespace Qyl.Collector.Storage;
 internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
 [DuckDbTable("spans",
-    Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;TraceId;SessionId;StartTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel",
+    Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName",
     OnConflict = """
     ON CONFLICT (project_id, trace_id, span_id) DO UPDATE SET
         end_time_unix_nano = EXCLUDED.end_time_unix_nano,
         duration_ns = EXCLUDED.duration_ns,
         status_code = EXCLUDED.status_code,
         service_name = COALESCE(EXCLUDED.service_name, service_name),
+        gen_ai_provider_name = EXCLUDED.gen_ai_provider_name,
+        gen_ai_operation_name = EXCLUDED.gen_ai_operation_name,
+        gen_ai_output_type = EXCLUDED.gen_ai_output_type,
+        gen_ai_request_model = EXCLUDED.gen_ai_request_model,
+        gen_ai_response_model = EXCLUDED.gen_ai_response_model,
         gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
         gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
         gen_ai_cache_read_input_tokens = EXCLUDED.gen_ai_cache_read_input_tokens,
@@ -43,7 +48,10 @@ internal sealed partial record SpanStorageRow
     public string? ServiceName { get; init; }
 
     public string? GenAiProviderName { get; init; }
+    public string? GenAiOperationName { get; init; }
+    public string? GenAiOutputType { get; init; }
     public string? GenAiRequestModel { get; init; }
+    public string? GenAiResponseModel { get; init; }
     public long? GenAiInputTokens { get; init; }
     public long? GenAiOutputTokens { get; init; }
     public long? GenAiCacheReadInputTokens { get; init; }

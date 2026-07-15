@@ -21,7 +21,13 @@ internal sealed partial class DuckDbStore
                                                         COALESCE(SUM(gen_ai_output_tokens) FILTER (WHERE name NOT LIKE 'invoke_agent%'), 0) AS output_tokens,
                                                         COUNT(*) FILTER (WHERE gen_ai_provider_name IS NOT NULL AND name NOT LIKE 'invoke_agent%') AS genai_request_count,
                                                         MIN(DISTINCT gen_ai_provider_name, {{SessionFacetValueLimit}}) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
-                                                        MIN(DISTINCT gen_ai_request_model, {{SessionFacetValueLimit}}) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models,
+                                                        MIN(DISTINCT COALESCE(
+                                                            NULLIF(TRIM(gen_ai_response_model), ''),
+                                                            NULLIF(TRIM(gen_ai_request_model), '')
+                                                        ), {{SessionFacetValueLimit}}) FILTER (WHERE COALESCE(
+                                                            NULLIF(TRIM(gen_ai_response_model), ''),
+                                                            NULLIF(TRIM(gen_ai_request_model), '')
+                                                        ) IS NOT NULL) AS models,
                                                         MIN(DISTINCT service_name, {{SessionFacetValueLimit}}) FILTER (WHERE service_name IS NOT NULL) AS services
                                                     FROM spans
                                                     """;
