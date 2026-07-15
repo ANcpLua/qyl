@@ -38,6 +38,12 @@ builder.Services.AddOpenTelemetry()
             {
                 Boundaries = WorkloadTelemetry.CreateGenAiTokenUsageBucketBoundaries()
             })
+        .AddView(
+            GenAiMetrics.MetricGenAiClientOperationDuration,
+            new ExplicitBucketHistogramConfiguration
+            {
+                Boundaries = WorkloadTelemetry.CreateGenAiOperationDurationBucketBoundaries()
+            })
         .AddOtlpExporter());
 
 builder.Logging.AddOpenTelemetry(logging =>

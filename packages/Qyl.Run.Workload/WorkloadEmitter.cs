@@ -155,10 +155,20 @@ internal sealed partial class WorkloadEmitter(
 
         await Task.Delay(latencyMs, stoppingToken).ConfigureAwait(false);
 
+        var durationSeconds = latencyMs / 1000.0;
+
         if (failed)
         {
             span?.SetErrorType("rate_limit_exceeded");
             span?.SetStatus(ActivityStatusCode.Error, "429 from provider");
+
+            WorkloadTelemetry.RecordGenAiOperationDuration(
+                GenAiSpans.GenAiOperationNameValues.Chat,
+                profile.Provider,
+                profile.Model,
+                responseModel: null,
+                durationSeconds,
+                errorType: "rate_limit_exceeded");
         }
         else
         {
@@ -166,6 +176,14 @@ internal sealed partial class WorkloadEmitter(
                 .SetGenAiResponseFinishReasons(["stop"])
                 .SetGenAiUsageInputTokens(inputTokens)
                 .SetGenAiUsageOutputTokens(outputTokens);
+
+            WorkloadTelemetry.RecordGenAiOperationDuration(
+                GenAiSpans.GenAiOperationNameValues.Chat,
+                profile.Provider,
+                profile.Model,
+                profile.Model,
+                durationSeconds,
+                errorType: null);
 
             WorkloadTelemetry.RecordGenAiTokenUsage(
                 GenAiSpans.GenAiOperationNameValues.Chat,
