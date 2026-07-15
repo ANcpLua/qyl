@@ -89,6 +89,10 @@ it does not use a CLR profiler or runtime IL rewriting. Its generated
 is the detailed capability and evidence record. Qyl does not duplicate that matrix
 or turn configuration-only rows into runtime-coverage claims.
 
+Applications onboard through the `Qyl.Sdk` package published from that repository:
+`builder.AddQyl()` activates the instrumentation, wires the OpenTelemetry SDK, and
+exports to a qyl collector in one call.
+
 ## GenAI ETL audit
 
 The GenAI ETL audit groups repeated calls by privacy-safe workflow dimensions,
@@ -225,8 +229,24 @@ look for repository-relative projects, or require Node.js. The supported runtime
 identifiers are `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`, and
 `win-arm64`; the .NET 10 runtime is required.
 
-Open `http://127.0.0.1:5100` for the dashboard. Point an OTLP exporter at the
-collector:
+Open `http://127.0.0.1:5100` for the dashboard.
+
+Instrument a .NET application with the first-party SDK:
+
+```bash
+dotnet add package Qyl.Sdk
+```
+
+```csharp
+builder.AddQyl();
+```
+
+`AddQyl()` boots the compile-time auto-instrumentation, registers the ASP.NET Core,
+HttpClient, and GenAI trace sources, propagates `session.id` across each trace, and
+exports over OTLP to a locally discovered `qyl up` collector — no environment
+variables required. Standard `OTEL_*` variables take precedence when set.
+
+Any other OTLP-compliant source works by pointing its exporter at the collector:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
