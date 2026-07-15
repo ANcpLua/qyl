@@ -154,6 +154,10 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             ValuesWithPrefixes(stableAttributeValues, policy.ProfileAttributeAllowList.StablePrefixes, "profileAttributeAllowList.stablePrefixes"),
             ValuesWithPrefixes(incubatingAttributeValues, policy.ProfileAttributeAllowList.IncubatingPrefixes, "profileAttributeAllowList.incubatingPrefixes"));
 
+        var metricAttributeAllowList = NormalizedValues(
+            ValuesWithPrefixes(stableAttributeValues, policy.MetricAttributeAllowList.StablePrefixes, "metricAttributeAllowList.stablePrefixes"),
+            ValuesWithPrefixes(incubatingAttributeValues, policy.MetricAttributeAllowList.IncubatingPrefixes, "metricAttributeAllowList.incubatingPrefixes"));
+
         var resourceAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
             ValuesWithPrefixes(incubatingAttributeValues, policy.ResourceAttributeAllowList.IncubatingPrefixes, "resourceAttributeAllowList.incubatingPrefixes"));
@@ -163,6 +167,10 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         var deniedExactKeys = ValuesWithPrefixes(allAttributeValues, policy.DeniedExactPrefixes, "deniedExactPrefixes")
             .Concat(resolver.RequiredAttributeValues(policy.DeniedExactKeys))
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static key => key, StringComparer.Ordinal)
+            .ToArray();
+
+        var deniedTokenExemptKeys = resolver.RequiredAttributeValues(policy.DeniedTokenExemptKeys)
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
 
@@ -204,9 +212,11 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ProfileAttributeAllowList", profileAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "MetricAttributeAllowList", metricAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "DeniedExactKeys", deniedExactKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteStringArray(builder, "DeniedKeyTokens", policy.DeniedKeyTokens);
+        WriteFrozenSet(builder, "DeniedTokenExemptKeys", deniedTokenExemptKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteFrozenSet(builder, "SpanHotAttributeKeys", spanHotAttributeKeys, "StringComparer.Ordinal", incubatingKeys);
 
         foreach (var projection in projectionConstants.OrderBy(static item => item.Key, StringComparer.Ordinal))
@@ -493,6 +503,7 @@ internal sealed class CollectorSemanticPolicyConfig
     public CollectorSemanticPrefixPolicy SpanAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy LogAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy ProfileAttributeAllowList { get; init; } = new();
+    public CollectorSemanticPrefixPolicy MetricAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy ResourceAttributeAllowList { get; init; } = new();
     public string[] QylResourceAttributeAllowList { get; init; } = [];
     public string[] ProjectIdResourceKeys { get; init; } = [];
@@ -500,6 +511,7 @@ internal sealed class CollectorSemanticPolicyConfig
     public string[] DeniedExactPrefixes { get; init; } = [];
     public string[] DeniedExactKeys { get; init; } = [];
     public string[] DeniedKeyTokens { get; init; } = [];
+    public string[] DeniedTokenExemptKeys { get; init; } = [];
     public string[] SpanHotAttributeKeys { get; init; } = [];
     public Dictionary<string, string> ProjectionConstants { get; init; } = [];
 
@@ -508,6 +520,7 @@ internal sealed class CollectorSemanticPolicyConfig
         SpanAttributeAllowList.Validate(relativePath, "spanAttributeAllowList");
         LogAttributeAllowList.Validate(relativePath, "logAttributeAllowList");
         ProfileAttributeAllowList.Validate(relativePath, "profileAttributeAllowList");
+        MetricAttributeAllowList.Validate(relativePath, "metricAttributeAllowList");
         ResourceAttributeAllowList.Validate(relativePath, "resourceAttributeAllowList");
 
         RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");
@@ -516,6 +529,7 @@ internal sealed class CollectorSemanticPolicyConfig
         RequireNonEmpty(DeniedExactPrefixes, relativePath, "deniedExactPrefixes");
         RequireNonEmpty(DeniedExactKeys, relativePath, "deniedExactKeys");
         RequireNonEmpty(DeniedKeyTokens, relativePath, "deniedKeyTokens");
+        RequireNonEmpty(DeniedTokenExemptKeys, relativePath, "deniedTokenExemptKeys");
         RequireNonEmpty(SpanHotAttributeKeys, relativePath, "spanHotAttributeKeys");
 
         if (ProjectionConstants.Count is 0)

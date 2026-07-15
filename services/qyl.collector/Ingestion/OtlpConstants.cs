@@ -2,7 +2,7 @@ namespace Qyl.Collector.Ingestion;
 
 internal static class OtlpConstants
 {
-    public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1development/profiles"];
+    public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1/metrics", "/v1development/profiles"];
 
     private static readonly string[] s_namespacePaths = Paths
         .Select(static path => path.IndexOf('/', 1) is var separator && separator >= 0

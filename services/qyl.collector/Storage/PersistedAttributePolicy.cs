@@ -18,6 +18,9 @@ internal static class PersistedAttributePolicy
     internal static string? SerializeLogAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
         Serialize(attributes, AttributeKeySets.IsSafeLogAttribute);
 
+    internal static string? SerializeMetricAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
+        Serialize(attributes, AttributeKeySets.IsSafeMetricAttribute);
+
     internal static string? SerializeProfileAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
         Serialize(attributes, AttributeKeySets.IsSafeProfileAttribute);
 

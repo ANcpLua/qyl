@@ -2,6 +2,7 @@ using Google.Protobuf;
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
@@ -44,6 +45,14 @@ internal static class OtlpPayloadParser
         encoding is OtlpPayloadEncoding.Protobuf
             ? ParseProtobufAsync(request, ExportLogsServiceRequest.Parser, ct)
             : ParseJsonAsync<ExportLogsServiceRequest>(request, ct);
+
+    public static Task<ExportMetricsServiceRequest> ParseMetricsRequestAsync(
+        HttpRequest request,
+        OtlpPayloadEncoding encoding,
+        CancellationToken ct = default) =>
+        encoding is OtlpPayloadEncoding.Protobuf
+            ? ParseProtobufAsync(request, ExportMetricsServiceRequest.Parser, ct)
+            : ParseJsonAsync<ExportMetricsServiceRequest>(request, ct);
 
     public static Task<ExportProfilesServiceRequest> ParseProfilesRequestAsync(
         HttpRequest request,

@@ -14,6 +14,18 @@ internal static class AttributeKeySets
     internal static bool IsSafeLogAttribute(string key) =>
         !IsDenied(key) && CollectorSemanticAttributeCatalog.LogAttributeAllowList.Contains(key);
 
+    // Metric dimensions are checked against their own allow-list, and registry keys that merely
+    // contain a denied credential token (e.g. gen_ai.token.type) skip the token scan while still
+    // honoring the exact deny-list and baggage prefix.
+    internal static bool IsSafeMetricAttribute(string key) =>
+        !IsDeniedMetricKey(key) && CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key);
+
+    private static bool IsDeniedMetricKey(string key) =>
+        CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key)
+            ? CollectorSemanticAttributeCatalog.DeniedExactKeys.Contains(key) ||
+              key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase)
+            : IsDenied(key);
+
     internal static bool IsSafeProfileAttribute(string key) =>
         !IsDenied(key) && CollectorSemanticAttributeCatalog.ProfileAttributeAllowList.Contains(key);
 

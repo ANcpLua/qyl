@@ -21,6 +21,17 @@ internal interface IQylStore : IAsyncDisposable
 
     Task InsertProfilesAsync(IReadOnlyList<ProfileDetail> results, CancellationToken ct = default);
 
+    Task InsertMetricsAsync(IReadOnlyList<MetricStorageRow> metrics, CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetricStorageRow>> GetMetricsAsync(
+        string projectId,
+        string? metricName = null,
+        string? serviceName = null,
+        ulong? start = null,
+        ulong? before = null,
+        int limit = 500,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,
         int limit = 100,

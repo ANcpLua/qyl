@@ -143,6 +143,69 @@ internal sealed partial record LogStorageRow
     public long IngestSequence { get; init; }
 }
 
+[DuckDbTable("metrics",
+    Indexes = "ProjectId,TimeUnixNano;ProjectId,MetricName;ProjectId,ServiceName",
+    OnConflict = """
+    ON CONFLICT (project_id, metric_id) DO UPDATE SET
+        metric_name = EXCLUDED.metric_name,
+        metric_type = EXCLUDED.metric_type,
+        unit = EXCLUDED.unit,
+        description = EXCLUDED.description,
+        scope_name = EXCLUDED.scope_name,
+        time_unix_nano = EXCLUDED.time_unix_nano,
+        start_time_unix_nano = EXCLUDED.start_time_unix_nano,
+        value = EXCLUDED.value,
+        count = EXCLUDED.count,
+        sum = EXCLUDED.sum,
+        min = EXCLUDED.min,
+        max = EXCLUDED.max,
+        buckets_json = EXCLUDED.buckets_json,
+        is_monotonic = EXCLUDED.is_monotonic,
+        aggregation_temporality = EXCLUDED.aggregation_temporality,
+        service_name = EXCLUDED.service_name,
+        attributes_json = EXCLUDED.attributes_json,
+        resource_json = EXCLUDED.resource_json
+    """)]
+internal sealed partial record MetricStorageRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
+    public required string ProjectId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string MetricId { get; init; }
+
+    public required string MetricName { get; init; }
+    public required byte MetricType { get; init; }
+    public string? Unit { get; init; }
+    public string? Description { get; init; }
+    public string? ScopeName { get; init; }
+
+    [DuckDbColumn(IsUBigInt = true)]
+    public required ulong TimeUnixNano { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
+    public ulong? StartTimeUnixNano { get; init; }
+
+    public double? Value { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
+    public ulong? Count { get; init; }
+    public double? Sum { get; init; }
+    public double? Min { get; init; }
+    public double? Max { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? BucketsJson { get; init; }
+    // 0/1 flag: the storage generator has no boolean mapping, matching Kind/StatusCode style.
+    public byte? IsMonotonic { get; init; }
+    public byte? AggregationTemporality { get; init; }
+
+    public string? ServiceName { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? AttributesJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ResourceJson { get; init; }
+
+    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
+    public DateTimeOffset? CreatedAt { get; init; }
+}
+
 [DuckDbTable("profiles",
     Indexes = "ProjectId;ProjectId,ProfileId;ProjectId,TraceId;ProjectId,SpanId;ProjectId,SessionId;ProjectId,TimeUnixNano;ProjectId,ServiceName;ProjectId,SampleType;TraceId;SessionId;TimeUnixNano;ServiceName;SampleType",
     OnConflict = """

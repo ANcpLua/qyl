@@ -42,6 +42,25 @@
       "profile."
     ]
   },
+  "metricAttributeAllowList": {
+    "stablePrefixes": [
+      "db.",
+      "error.",
+      "http.",
+      "network.",
+      "otel.",
+      "server."
+    ],
+    "incubatingPrefixes": [
+      "aspnetcore.",
+      "dotnet.",
+      "gen_ai.",
+      "mcp.",
+      "messaging.",
+      "rpc.",
+      "signalr."
+    ]
+  },
   "resourceAttributeAllowList": {
     "stablePrefixes": [
       "deployment.",
@@ -141,6 +160,9 @@
     "secret",
     "set-cookie",
     "token"
+  ],
+  "deniedTokenExemptKeys": [
+    "gen_ai.token.type"
   ],
   "spanHotAttributeKeys": [
     "gen_ai.provider.name",

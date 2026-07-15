@@ -1,7 +1,9 @@
 
+using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
@@ -9,6 +11,8 @@ using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoKeyValueList = OpenTelemetry.Proto.Common.V1.KeyValueList;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using ProtoMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
+using ProtoNumberDataPoint = OpenTelemetry.Proto.Metrics.V1.NumberDataPoint;
 using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
@@ -353,6 +357,212 @@ internal static class OtlpConverter
         }
 
         return dict;
+    }
+
+    #endregion
+
+    #region Metrics Conversion
+
+    public static MetricIngestionBatch ConvertMetrics(ExportMetricsServiceRequest otlp)
+    {
+        var metrics = new List<MetricIngestionRecord>();
+
+        foreach (var resourceMetrics in otlp.ResourceMetrics)
+        {
+            var serviceName = ExtractServiceNameFromProto(resourceMetrics.Resource);
+            var projectIdHint = ExtractProjectIdHintFromProto(resourceMetrics.Resource);
+            var resourceAttrs = ExtractResourceAttributesFromProto(resourceMetrics.Resource);
+
+            foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
+            {
+                var scopeName = scopeMetrics.Scope?.Name;
+                foreach (var metric in scopeMetrics.Metrics)
+                    AppendMetricDataPoints(metrics, metric, projectIdHint, serviceName, scopeName, resourceAttrs);
+            }
+        }
+
+        return new MetricIngestionBatch(metrics);
+    }
+
+    private static void AppendMetricDataPoints(
+        List<MetricIngestionRecord> metrics,
+        ProtoMetric metric,
+        string? projectIdHint,
+        string serviceName,
+        string? scopeName,
+        Dictionary<string, OtlpAttributeValue> resourceAttributes)
+    {
+        switch (metric.DataCase)
+        {
+            case ProtoMetric.DataOneofCase.Gauge:
+                foreach (var point in metric.Gauge.DataPoints)
+                {
+                    metrics.Add(CreateNumberMetricRecord(
+                        metric, MetricStorageTypes.Gauge, point, projectIdHint, serviceName, scopeName,
+                        resourceAttributes, isMonotonic: null, aggregationTemporality: null));
+                }
+
+                break;
+            case ProtoMetric.DataOneofCase.Sum:
+                foreach (var point in metric.Sum.DataPoints)
+                {
+                    metrics.Add(CreateNumberMetricRecord(
+                        metric, MetricStorageTypes.Sum, point, projectIdHint, serviceName, scopeName,
+                        resourceAttributes, metric.Sum.IsMonotonic, (int)metric.Sum.AggregationTemporality));
+                }
+
+                break;
+            case ProtoMetric.DataOneofCase.Histogram:
+                foreach (var point in metric.Histogram.DataPoints)
+                {
+                    metrics.Add(new MetricIngestionRecord
+                    {
+                        ProjectIdHint = projectIdHint,
+                        MetricName = metric.Name,
+                        MetricType = MetricStorageTypes.Histogram,
+                        Unit = NullIfEmpty(metric.Unit),
+                        Description = NullIfEmpty(metric.Description),
+                        ScopeName = NullIfEmpty(scopeName),
+                        TimeUnixNano = point.TimeUnixNano,
+                        StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
+                        Count = point.Count,
+                        Sum = point.HasSum ? point.Sum : null,
+                        Min = point.HasMin ? point.Min : null,
+                        Max = point.HasMax ? point.Max : null,
+                        BucketsJson = SerializeHistogramBuckets(point.ExplicitBounds, point.BucketCounts),
+                        AggregationTemporality = (int)metric.Histogram.AggregationTemporality,
+                        ServiceName = serviceName,
+                        Attributes = ExtractMetricAttributes(point.Attributes),
+                        ResourceAttributes = resourceAttributes
+                    });
+                }
+
+                break;
+            case ProtoMetric.DataOneofCase.ExponentialHistogram:
+                foreach (var point in metric.ExponentialHistogram.DataPoints)
+                {
+                    metrics.Add(new MetricIngestionRecord
+                    {
+                        ProjectIdHint = projectIdHint,
+                        MetricName = metric.Name,
+                        MetricType = MetricStorageTypes.ExponentialHistogram,
+                        Unit = NullIfEmpty(metric.Unit),
+                        Description = NullIfEmpty(metric.Description),
+                        ScopeName = NullIfEmpty(scopeName),
+                        TimeUnixNano = point.TimeUnixNano,
+                        StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
+                        Count = point.Count,
+                        Sum = point.HasSum ? point.Sum : null,
+                        Min = point.HasMin ? point.Min : null,
+                        Max = point.HasMax ? point.Max : null,
+                        AggregationTemporality = (int)metric.ExponentialHistogram.AggregationTemporality,
+                        ServiceName = serviceName,
+                        Attributes = ExtractMetricAttributes(point.Attributes),
+                        ResourceAttributes = resourceAttributes
+                    });
+                }
+
+                break;
+            case ProtoMetric.DataOneofCase.Summary:
+                foreach (var point in metric.Summary.DataPoints)
+                {
+                    metrics.Add(new MetricIngestionRecord
+                    {
+                        ProjectIdHint = projectIdHint,
+                        MetricName = metric.Name,
+                        MetricType = MetricStorageTypes.Summary,
+                        Unit = NullIfEmpty(metric.Unit),
+                        Description = NullIfEmpty(metric.Description),
+                        ScopeName = NullIfEmpty(scopeName),
+                        TimeUnixNano = point.TimeUnixNano,
+                        StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
+                        Count = point.Count,
+                        Sum = point.Sum,
+                        ServiceName = serviceName,
+                        Attributes = ExtractMetricAttributes(point.Attributes),
+                        ResourceAttributes = resourceAttributes
+                    });
+                }
+
+                break;
+        }
+    }
+
+    private static MetricIngestionRecord CreateNumberMetricRecord(
+        ProtoMetric metric,
+        int metricType,
+        ProtoNumberDataPoint point,
+        string? projectIdHint,
+        string serviceName,
+        string? scopeName,
+        Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        bool? isMonotonic,
+        int? aggregationTemporality) =>
+        new()
+        {
+            ProjectIdHint = projectIdHint,
+            MetricName = metric.Name,
+            MetricType = metricType,
+            Unit = NullIfEmpty(metric.Unit),
+            Description = NullIfEmpty(metric.Description),
+            ScopeName = NullIfEmpty(scopeName),
+            TimeUnixNano = point.TimeUnixNano,
+            StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
+            Value = point.ValueCase switch
+            {
+                ProtoNumberDataPoint.ValueOneofCase.AsDouble => point.AsDouble,
+                ProtoNumberDataPoint.ValueOneofCase.AsInt => point.AsInt,
+                _ => null
+            },
+            IsMonotonic = isMonotonic,
+            AggregationTemporality = aggregationTemporality,
+            ServiceName = serviceName,
+            Attributes = ExtractMetricAttributes(point.Attributes),
+            ResourceAttributes = resourceAttributes
+        };
+
+    // Metric dimensions are instrumentation-defined attribute keys drawn from the same semantic
+    // registries as span attributes, so the span allow-list is the persistence policy here too.
+    private static Dictionary<string, OtlpAttributeValue> ExtractMetricAttributes(
+        RepeatedField<ProtoKeyValue> attributes)
+    {
+        var dict = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        foreach (var attr in attributes)
+        {
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            var value = ConvertProtoAnyValue(attr.Value);
+            if (value is null) continue;
+            if (renamed) dict.TryAdd(key, value);
+            else dict[key] = value;
+        }
+
+        return dict;
+    }
+
+    private static string? SerializeHistogramBuckets(
+        RepeatedField<double> explicitBounds,
+        RepeatedField<ulong> bucketCounts)
+    {
+        if (bucketCounts.Count is 0)
+            return null;
+
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteStartArray("bounds");
+            foreach (var bound in explicitBounds)
+                writer.WriteNumberValue(bound);
+            writer.WriteEndArray();
+            writer.WriteStartArray("counts");
+            foreach (var count in bucketCounts)
+                writer.WriteNumberValue(count);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     #endregion

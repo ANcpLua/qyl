@@ -6,6 +6,43 @@ internal sealed record LogIngestionBatch(IReadOnlyList<LogIngestionRecord> Logs)
 
 internal sealed record ProfileIngestionBatch(IReadOnlyList<ProfileIngestionRecord> Profiles);
 
+// Storage discriminator for the OTLP metric data kind of a persisted data point.
+internal static class MetricStorageTypes
+{
+    public const int Gauge = 1;
+    public const int Sum = 2;
+    public const int Histogram = 3;
+    public const int ExponentialHistogram = 4;
+    public const int Summary = 5;
+}
+
+internal sealed record MetricIngestionBatch(IReadOnlyList<MetricIngestionRecord> Metrics);
+
+// One record per OTLP metric data point. Gauge/Sum points carry Value; Histogram and
+// ExponentialHistogram points carry Count/Sum/Min/Max (bucket layout is preserved as JSON).
+internal sealed record MetricIngestionRecord
+{
+    public string? ProjectIdHint { get; init; }
+    public required string MetricName { get; init; }
+    public required int MetricType { get; init; }
+    public string? Unit { get; init; }
+    public string? Description { get; init; }
+    public string? ScopeName { get; init; }
+    public required ulong TimeUnixNano { get; init; }
+    public ulong? StartTimeUnixNano { get; init; }
+    public double? Value { get; init; }
+    public ulong? Count { get; init; }
+    public double? Sum { get; init; }
+    public double? Min { get; init; }
+    public double? Max { get; init; }
+    public string? BucketsJson { get; init; }
+    public bool? IsMonotonic { get; init; }
+    public int? AggregationTemporality { get; init; }
+    public required string ServiceName { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
+}
+
 internal sealed record SpanIngestionRecord
 {
     public string? ProjectIdHint { get; init; }

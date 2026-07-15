@@ -12,6 +12,8 @@ internal sealed partial class DuckDbStore : IQylStore
     private const int MaxLogsPerBatch = 150;
 
     private const int MaxProfilesPerBatch = 50;
+
+    private const int MaxMetricsPerBatch = 150;
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
     private readonly CancellationTokenSource _cts = new();
@@ -491,6 +493,63 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct).ConfigureAwait(false);
     }
 
+    public async Task InsertMetricsAsync(IReadOnlyList<MetricStorageRow> metrics, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (metrics.Count is 0)
+            return;
+
+        await ExecuteWriteAsync(async (con, token) =>
+        {
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            await InsertRowsBatchedAsync(con, tx, metrics, MetricStorageRow.AddParameters,
+                MetricStorageRow.BuildMultiRowInsertSql, MaxMetricsPerBatch, token);
+            await tx.CommitAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyList<MetricStorageRow>> GetMetricsAsync(
+        string projectId,
+        string? metricName = null,
+        string? serviceName = null,
+        ulong? start = null,
+        ulong? before = null,
+        int limit = 500,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        return ExecuteReadAsync<IReadOnlyList<MetricStorageRow>>(con =>
+        {
+            var metrics = new List<MetricStorageRow>();
+            var qb = new QueryBuilder();
+
+            qb.Add("project_id = $N", projectId);
+            if (!string.IsNullOrEmpty(metricName))
+                qb.Add("metric_name = $N", metricName);
+            if (!string.IsNullOrEmpty(serviceName))
+                qb.Add("service_name = $N", serviceName);
+            if (start.HasValue)
+                qb.Add("time_unix_nano >= $N", (decimal)start.Value);
+            if (before.HasValue)
+                qb.Add("time_unix_nano <= $N", (decimal)before.Value);
+
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT " + MetricStorageRow.SelectColumnList
+                              + " FROM metrics " + qb.WhereClause
+                              + " ORDER BY time_unix_nano DESC, metric_id DESC LIMIT "
+                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+
+            qb.ApplyTo(cmd);
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                metrics.Add(MetricStorageRow.MapFromReader(reader));
+
+            return metrics;
+        }, ct);
+    }
+
     public Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
         string projectId,
         string? sessionId = null,
@@ -913,6 +972,13 @@ internal sealed partial class DuckDbStore : IQylStore
             LogStorageRow.IndexesDdl);
         logsCmd.ExecuteNonQuery();
 
+        using var metricsCmd = con.CreateCommand();
+        metricsCmd.CommandText = string.Concat(
+            MetricStorageRow.CreateTableDdl, "\n",
+            MetricStorageRow.MigrateTableDdl, "\n",
+            MetricStorageRow.IndexesDdl);
+        metricsCmd.ExecuteNonQuery();
+
         using var profilesCmd = con.CreateCommand();
         profilesCmd.CommandText = string.Concat(
             ProfileStorageRow.CreateTableDdl, "\n",
@@ -978,6 +1044,7 @@ internal sealed partial class DuckDbStore : IQylStore
     {
         VerifyPersistedPrimaryKey(con, SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, MetricStorageRow.TableName, MetricStorageRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileStorageRow.TableName, ProfileStorageRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileFunctionRow.TableName, ProfileFunctionRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileLocationRow.TableName, ProfileLocationRow.PrimaryKeyColumnsCsv);

@@ -21,6 +21,8 @@ using Qyl.Api.Contracts.Streaming;
 using Qyl.Api.Contracts.Cost;
 using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
 using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
+using ExportMetricsServiceRequest = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
+using ExportMetricsServiceResponse = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportProfilesServiceRequest = global::OpenTelemetry.Proto.Collector.Profiles.V1Development.ExportProfilesServiceRequest;
 using ExportProfilesServiceResponse = global::OpenTelemetry.Proto.Collector.Profiles.V1Development.ExportProfilesServiceResponse;
 using ExportTraceServiceRequest = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
@@ -34,11 +36,13 @@ internal static class CollectorEndpointExtensions
     {
         app.MapGrpcService<TraceServiceImpl>();
         app.MapGrpcService<LogsServiceImpl>();
+        app.MapGrpcService<MetricsServiceImpl>();
         app.MapGrpcService<ProfilesServiceImpl>();
 
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
+        otlp.MapPost("/metrics", IngestOtlpMetricsAsync);
         app.MapPost("/v1development/profiles", IngestOtlpProfilesAsync);
 
         var api = app.MapGroup("/api/v1");
@@ -236,6 +240,89 @@ internal static class CollectorEndpointExtensions
         }
     }
 
+
+    internal static async Task<IResult> IngestOtlpMetricsAsync(
+        HttpContext context,
+        IQylStore store,
+        CancellationToken ct)
+    {
+        var encoding = OtlpPayloadEncoding.Json;
+        ExportMetricsServiceRequest otlpData;
+        try
+        {
+            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
+            otlpData = await OtlpPayloadParser.ParseMetricsRequestAsync(context.Request, encoding, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpMetricsEndpoint");
+            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status415UnsupportedMediaType,
+                encoding,
+                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
+        }
+        catch (Exception ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpMetricsEndpoint");
+            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP metrics payload could not be decoded.");
+        }
+
+        try
+        {
+            if (otlpData.ResourceMetrics.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportMetricsServiceResponse());
+
+            var metricBatch = OtlpConverter.ConvertMetrics(otlpData);
+            var metrics = IngestionStorageMapper.ToMetricStorageRows(metricBatch);
+
+            if (metrics.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportMetricsServiceResponse());
+
+            await store.InsertMetricsAsync(metrics, ct);
+            return OtlpHttpResult.Success(
+                encoding,
+                new ExportMetricsServiceResponse());
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (InvalidDataException ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpMetricsEndpoint");
+            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP metrics payload is invalid.");
+        }
+        catch (Exception ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpMetricsEndpoint");
+            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                encoding,
+                "The collector could not persist the OTLP metrics payload.");
+        }
+    }
 
     internal static async Task<IResult> GetSessionsAsync(
         HttpContext httpContext,
@@ -1015,6 +1102,12 @@ internal static class CollectorEndpointExtensions
 internal static partial class OtlpLogsLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
+    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
+}
+
+internal static partial class OtlpMetricsLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP metrics payload")]
     public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
 }
 

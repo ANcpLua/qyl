@@ -22,6 +22,16 @@ internal static class IngestionStorageMapper
         return rows;
     }
 
+    public static List<MetricStorageRow> ToMetricStorageRows(MetricIngestionBatch batch)
+    {
+        var rows = new List<MetricStorageRow>(batch.Metrics.Count);
+
+        foreach (var metric in batch.Metrics)
+            rows.Add(ToMetricStorageRow(metric));
+
+        return rows;
+    }
+
     public static List<ProfileDetail> ToProfileStorageRows(ProfileIngestionBatch batch)
     {
         var rows = new List<ProfileDetail>(batch.Profiles.Count);
@@ -111,6 +121,59 @@ internal static class IngestionStorageMapper
             SeverityText = severityText,
             Body = body,
             ServiceName = log.ServiceName,
+            AttributesJson = attributesJson,
+            ResourceJson = resourceJson
+        };
+    }
+
+    private static MetricStorageRow ToMetricStorageRow(MetricIngestionRecord metric)
+    {
+        var projectId = ProjectScope.Normalize(metric.ProjectIdHint);
+        var attributesJson = PersistedAttributePolicy.SerializeMetricAttributes(metric.Attributes);
+        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(metric.ResourceAttributes);
+
+        return new MetricStorageRow
+        {
+            ProjectId = projectId,
+            MetricId = StableStorageId("metric", builder =>
+            {
+                AppendIdentityPart(builder, projectId);
+                AppendIdentityPart(builder, metric.MetricName);
+                AppendIdentityPart(builder, metric.MetricType);
+                AppendIdentityPart(builder, metric.Unit);
+                AppendIdentityPart(builder, metric.ScopeName);
+                AppendIdentityPart(builder, metric.TimeUnixNano);
+                AppendIdentityPart(builder, metric.StartTimeUnixNano);
+                AppendIdentityPart(builder, metric.ServiceName);
+                // Identity uses the raw dimensions, not the persisted allow-list projection, so
+                // data points differing only in a non-persisted dimension stay distinct rows.
+                AppendIdentityPart(builder, metric.Attributes.Count);
+                foreach (var (key, value) in metric.Attributes.OrderBy(static item => item.Key, StringComparer.Ordinal))
+                {
+                    AppendIdentityPart(builder, key);
+                    AppendIdentityPart(builder, value.ToStableString());
+                }
+
+                AppendIdentityPart(builder, resourceJson);
+            }),
+            MetricName = metric.MetricName,
+            MetricType = (byte)Math.Clamp(metric.MetricType, 0, 5),
+            Unit = metric.Unit,
+            Description = metric.Description,
+            ScopeName = metric.ScopeName,
+            TimeUnixNano = metric.TimeUnixNano,
+            StartTimeUnixNano = metric.StartTimeUnixNano,
+            Value = metric.Value,
+            Count = metric.Count,
+            Sum = metric.Sum,
+            Min = metric.Min,
+            Max = metric.Max,
+            BucketsJson = metric.BucketsJson,
+            IsMonotonic = metric.IsMonotonic is { } monotonic ? (byte)(monotonic ? 1 : 0) : null,
+            AggregationTemporality = metric.AggregationTemporality is { } temporality
+                ? (byte)Math.Clamp(temporality, 0, 2)
+                : null,
+            ServiceName = metric.ServiceName,
             AttributesJson = attributesJson,
             ResourceJson = resourceJson
         };
