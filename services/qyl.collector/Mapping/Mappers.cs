@@ -31,7 +31,7 @@ internal static class ContractJson
 
             var parsed = new List<ContractAttribute>();
             foreach (var property in document.RootElement.EnumerateObject())
-                parsed.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value)! });
+                parsed.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value) });
 
             attributes = parsed;
             return true;
