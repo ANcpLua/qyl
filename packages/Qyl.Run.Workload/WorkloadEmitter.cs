@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Metrics;
 
 namespace Qyl.Run.Workload;
 
 internal sealed partial class WorkloadEmitter(
     ILogger<WorkloadEmitter> logger,
+    MeterProvider meterProvider,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     private const int SessionLoops = 3;
@@ -39,8 +41,14 @@ internal sealed partial class WorkloadEmitter(
         if (string.Equals(Environment.GetEnvironmentVariable("QYL_WORKLOAD_ONESHOT"), "1",
                 StringComparison.Ordinal))
         {
-            await EmitConversationTurnAsync($"acceptance-{Guid.NewGuid():N}"[..28], stoppingToken)
+            await EmitConversationTurnAsync($"acceptance-{Guid.NewGuid():N}"[..28], stoppingToken,
+                    allowFailure: false)
                 .ConfigureAwait(false);
+            if (!meterProvider.ForceFlush(10_000))
+            {
+                throw new InvalidOperationException("Timed out exporting the one-shot workload metrics.");
+            }
+
             applicationLifetime.StopApplication();
             return;
         }
@@ -77,14 +85,18 @@ internal sealed partial class WorkloadEmitter(
     /// Avoids the <c>invoke_agent</c> prefix because session aggregation treats those spans
     /// as roll-ups and would double-count them.
     /// </summary>
-    private async Task EmitConversationTurnAsync(string sessionId, CancellationToken stoppingToken)
+    private async Task EmitConversationTurnAsync(string sessionId, CancellationToken stoppingToken,
+        bool allowFailure = true)
     {
         var profile = Profiles[Random.Shared.Next(Profiles.Length)];
         var route = Routes[Random.Shared.Next(Routes.Length)];
-        var failed = Random.Shared.Next(100) < ErrorPercent;
+        var failed = allowFailure && Random.Shared.Next(100) < ErrorPercent;
 
         using var root = WorkloadTelemetry.Source.StartActivity($"POST {route}", ActivityKind.Server);
-        if (root is null) return;
+        if (root is null)
+        {
+            return;
+        }
 
         root.SetHttpRequestMethod(HttpSpans.HttpRequestMethodValues.Post)
             .SetHttpRoute(route)
@@ -154,6 +166,14 @@ internal sealed partial class WorkloadEmitter(
                 .SetGenAiResponseFinishReasons(["stop"])
                 .SetGenAiUsageInputTokens(inputTokens)
                 .SetGenAiUsageOutputTokens(outputTokens);
+
+            WorkloadTelemetry.RecordGenAiTokenUsage(
+                GenAiSpans.GenAiOperationNameValues.Chat,
+                profile.Provider,
+                profile.Model,
+                profile.Model,
+                inputTokens,
+                outputTokens);
 
             LogTurnCompleted(logger, profile.Provider, profile.Model, inputTokens, outputTokens, latencyMs);
         }

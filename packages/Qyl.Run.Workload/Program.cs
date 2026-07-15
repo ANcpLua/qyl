@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Qyl.Run.Workload;
 
@@ -28,6 +29,15 @@ builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(static level => level >= 
 builder.Services.AddOpenTelemetry()
     .WithTracing(static tracing => tracing
         .AddSource(WorkloadTelemetry.SourceName)
+        .AddOtlpExporter())
+    .WithMetrics(static metrics => metrics
+        .AddMeter(WorkloadTelemetry.MeterName)
+        .AddView(
+            GenAiMetrics.MetricGenAiClientTokenUsage,
+            new ExplicitBucketHistogramConfiguration
+            {
+                Boundaries = WorkloadTelemetry.CreateGenAiTokenUsageBucketBoundaries()
+            })
         .AddOtlpExporter());
 
 builder.Logging.AddOpenTelemetry(logging =>
@@ -40,7 +50,10 @@ builder.Logging.AddOpenTelemetry(logging =>
         exporter.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
         // The acceptance process exits immediately after one record. Export synchronously so its
         // proof cannot depend on a batch timer; the long-running demo keeps the normal batch processor.
-        if (oneShot) processor.ExportProcessorType = ExportProcessorType.Simple;
+        if (oneShot)
+        {
+            processor.ExportProcessorType = ExportProcessorType.Simple;
+        }
     });
 });
 
