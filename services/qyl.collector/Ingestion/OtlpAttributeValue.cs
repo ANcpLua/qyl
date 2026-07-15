@@ -4,6 +4,7 @@ namespace Qyl.Collector.Ingestion;
 
 internal enum OtlpAttributeValueKind
 {
+    Empty,
     String,
     Bool,
     Int,
@@ -24,6 +25,8 @@ internal sealed class OtlpAttributeValue
     }
 
     public OtlpAttributeValueKind Kind { get; }
+
+    public static OtlpAttributeValue Empty { get; } = new(OtlpAttributeValueKind.Empty, DBNull.Value);
 
     public static OtlpAttributeValue FromString(string value) => new(OtlpAttributeValueKind.String, value);
 
@@ -72,6 +75,7 @@ internal sealed class OtlpAttributeValue
     public string ToStableString() =>
         Kind switch
         {
+            OtlpAttributeValueKind.Empty => "null",
             OtlpAttributeValueKind.String => (string)value,
             OtlpAttributeValueKind.Bool => (bool)value ? "true" : "false",
             OtlpAttributeValueKind.Int => ((long)value).ToString(CultureInfo.InvariantCulture),
@@ -91,6 +95,9 @@ internal sealed class OtlpAttributeValue
     {
         switch (Kind)
         {
+            case OtlpAttributeValueKind.Empty:
+                writer.WriteNullValue();
+                break;
             case OtlpAttributeValueKind.String:
                 writer.WriteStringValue((string)value);
                 break;
@@ -98,10 +105,17 @@ internal sealed class OtlpAttributeValue
                 writer.WriteBooleanValue((bool)value);
                 break;
             case OtlpAttributeValueKind.Int:
-                writer.WriteNumberValue((long)value);
+                writer.WriteStartObject();
+                writer.WriteString("type", "int");
+                writer.WriteString("value", ((long)value).ToString(CultureInfo.InvariantCulture));
+                writer.WriteEndObject();
                 break;
             case OtlpAttributeValueKind.Double:
+                writer.WriteStartObject();
+                writer.WriteString("type", "double");
+                writer.WritePropertyName("value");
                 WriteDouble(writer, (double)value);
+                writer.WriteEndObject();
                 break;
             case OtlpAttributeValueKind.Bytes:
                 writer.WriteStartObject();
@@ -117,12 +131,16 @@ internal sealed class OtlpAttributeValue
                 break;
             case OtlpAttributeValueKind.KeyValueList:
                 writer.WriteStartObject();
+                writer.WriteString("type", "kvlist");
+                writer.WritePropertyName("values");
+                writer.WriteStartObject();
                 foreach (var (key, nestedValue) in ((IReadOnlyDictionary<string, OtlpAttributeValue>)value)
                          .OrderBy(static item => item.Key, StringComparer.Ordinal))
                 {
                     writer.WritePropertyName(key);
                     nestedValue.WriteJsonValue(writer);
                 }
+                writer.WriteEndObject();
                 writer.WriteEndObject();
                 break;
             default:
@@ -157,6 +175,8 @@ internal sealed class OtlpAttributeValue
         builder.Append((int)Kind).Append('{');
         switch (Kind)
         {
+            case OtlpAttributeValueKind.Empty:
+                break;
             case OtlpAttributeValueKind.String:
                 AppendIdentitySegment(builder, (string)value);
                 break;

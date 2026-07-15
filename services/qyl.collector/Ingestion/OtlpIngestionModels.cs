@@ -59,6 +59,9 @@ internal sealed record MetricIngestionRecord
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
+    // Canonical identity of OTLP Resource.entity_refs. The public 0.5.15 contract cannot expose
+    // entity references yet, but they must still distinguish otherwise-identical metric points.
+    public required string ResourceEntityRefsIdentity { get; init; }
 }
 
 internal sealed record MetricExemplarIngestionRecord

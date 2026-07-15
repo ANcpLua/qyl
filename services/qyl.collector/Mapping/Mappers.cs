@@ -31,7 +31,7 @@ internal static class ContractJson
 
             var parsed = new List<ContractAttribute>();
             foreach (var property in document.RootElement.EnumerateObject())
-                parsed.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value) ?? "" });
+                parsed.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value)! });
 
             attributes = parsed;
             return true;
@@ -52,7 +52,9 @@ internal static class ContractJson
             JsonValueKind.False => false,
             JsonValueKind.Array => value.EnumerateArray().Select(ReadValue).ToArray(),
             JsonValueKind.Object => ReadObject(value),
-            JsonValueKind.Null => null,
+            // Attribute.value is required even for OTLP empty AnyValue. A cloned JsonElement keeps
+            // the explicit JSON null from being removed by the context's WhenWritingNull policy.
+            JsonValueKind.Null => value.Clone(),
             _ => value.GetRawText()
         };
 
@@ -304,11 +306,17 @@ internal static class MetricMapper
             }
             : null;
         var flags = (uint)storedFlags;
+        var noRecordedValue = (flags & 1U) is not 0;
+        if (noRecordedValue && exemplars is { Count: > 0 }) return false;
 
         switch (record.MetricType)
         {
             case MetricStorageTypes.Gauge:
-                if (!TryMapNumberValue(record.IntValue, record.DoubleValue, out var gaugeValue)) return false;
+                if (!TryMapNumberValue(
+                        record.IntValue,
+                        record.DoubleValue,
+                        noRecordedValue,
+                        out var gaugeValue)) return false;
                 contract = new GaugeMetricPoint
                 {
                     Name = record.MetricName,
@@ -323,13 +331,17 @@ internal static class MetricMapper
                     ResourceSchemaUrl = record.ResourceSchemaUrl,
                     InstrumentationScope = scope,
                     ScopeSchemaUrl = record.ScopeSchemaUrl,
-                    Value = gaugeValue,
+                    Value = gaugeValue!,
                     Exemplars = exemplars
                 };
                 return true;
 
             case MetricStorageTypes.Sum:
-                if (!TryMapNumberValue(record.IntValue, record.DoubleValue, out var sumValue) ||
+                if (!TryMapNumberValue(
+                        record.IntValue,
+                        record.DoubleValue,
+                        noRecordedValue,
+                        out var sumValue) ||
                     !TryMapAggregationTemporality(record.AggregationTemporality, out var sumTemporality) ||
                     record.IsMonotonic is not (0 or 1))
                 {
@@ -350,7 +362,7 @@ internal static class MetricMapper
                     ResourceSchemaUrl = record.ResourceSchemaUrl,
                     InstrumentationScope = scope,
                     ScopeSchemaUrl = record.ScopeSchemaUrl,
-                    Value = sumValue,
+                    Value = sumValue!,
                     AggregationTemporality = sumTemporality,
                     IsMonotonic = record.IsMonotonic is 1,
                     Exemplars = exemplars
@@ -360,7 +372,9 @@ internal static class MetricMapper
             case MetricStorageTypes.Histogram:
                 if (record.Count is not { } histogramCount ||
                     !TryMapAggregationTemporality(record.AggregationTemporality, out var histogramTemporality) ||
-                    !TryReadHistogramBuckets(record.BucketsJson, out var histogramBuckets))
+                    !TryReadHistogramBuckets(record.BucketsJson, histogramCount, out var histogramBuckets) ||
+                    !IsValidCountAndSum(histogramCount, record.Sum) ||
+                    !IsValidMinMax(record.Min, record.Max))
                 {
                     return false;
                 }
@@ -398,7 +412,12 @@ internal static class MetricMapper
                     !TryMapAggregationTemporality(record.AggregationTemporality, out var exponentialTemporality) ||
                     !TryReadExponentialHistogramBuckets(
                         record.ExponentialHistogramBucketsJson,
-                        out var exponentialBuckets))
+                        out var exponentialBuckets) ||
+                    !double.IsFinite(zeroThreshold) || zeroThreshold < 0 ||
+                    !TrySumExponentialBuckets(exponentialBuckets, zeroCount, out var distributedCount) ||
+                    distributedCount != exponentialCount ||
+                    !IsValidCountAndSum(exponentialCount, record.Sum) ||
+                    !IsValidMinMax(record.Min, record.Max))
                 {
                     return false;
                 }
@@ -441,6 +460,7 @@ internal static class MetricMapper
 
             case MetricStorageTypes.Summary:
                 if (record.Count is not { } summaryCount || record.Sum is not { } summarySum ||
+                    !IsValidCountAndSum(summaryCount, summarySum) ||
                     !TryReadSummaryQuantiles(record.SummaryQuantilesJson, out var quantiles))
                 {
                     return false;
@@ -471,9 +491,14 @@ internal static class MetricMapper
         }
     }
 
-    private static bool TryMapNumberValue(long? intValue, double? doubleValue, out MetricNumberValue value)
+    private static bool TryMapNumberValue(
+        long? intValue,
+        double? doubleValue,
+        bool allowAbsent,
+        out MetricNumberValue? value)
     {
-        value = null!;
+        value = null;
+        if (allowAbsent) return !intValue.HasValue && !doubleValue.HasValue;
         if (intValue.HasValue == doubleValue.HasValue) return false;
 
         value = intValue is { } integer
@@ -517,7 +542,7 @@ internal static class MetricMapper
         foreach (var exemplar in stored)
         {
             if (exemplar.TimeUnixNano is 0 ||
-                !TryMapNumberValue(exemplar.IntValue, exemplar.DoubleValue, out var value) ||
+                !TryMapNumberValue(exemplar.IntValue, exemplar.DoubleValue, allowAbsent: false, out var value) ||
                 !ContractJson.TryParseAttributes(exemplar.FilteredAttributesJson, out var filteredAttributes))
             {
                 return false;
@@ -526,7 +551,7 @@ internal static class MetricMapper
             mapped.Add(new MetricExemplar
             {
                 TimeUnixNano = exemplar.TimeUnixNano,
-                Value = value,
+                Value = value!,
                 SpanId = exemplar.SpanId,
                 TraceId = exemplar.TraceId,
                 FilteredAttributes = filteredAttributes
@@ -537,7 +562,10 @@ internal static class MetricMapper
         return true;
     }
 
-    private static bool TryReadHistogramBuckets(string? json, out MetricHistogramBucketsJson buckets)
+    private static bool TryReadHistogramBuckets(
+        string? json,
+        ulong count,
+        out MetricHistogramBucketsJson buckets)
     {
         buckets = null!;
         if (string.IsNullOrWhiteSpace(json)) return false;
@@ -552,9 +580,22 @@ internal static class MetricMapper
             return false;
         }
 
-        return buckets is not null &&
-               ((buckets.BucketCounts.Length is 0 && buckets.ExplicitBounds.Length is 0) ||
-                buckets.BucketCounts.Length == buckets.ExplicitBounds.Length + 1);
+        if (buckets is null ||
+            !((buckets.BucketCounts.Length is 0 && buckets.ExplicitBounds.Length is 0) ||
+              buckets.BucketCounts.Length == buckets.ExplicitBounds.Length + 1))
+        {
+            return false;
+        }
+
+        var previous = double.NegativeInfinity;
+        foreach (var bound in buckets.ExplicitBounds)
+        {
+            if (!double.IsFinite(bound) || bound <= previous) return false;
+            previous = bound;
+        }
+
+        return buckets.BucketCounts.Length is 0 ||
+               TrySum(buckets.BucketCounts, out var bucketCount) && bucketCount == count;
     }
 
     private static bool TryReadExponentialHistogramBuckets(
@@ -600,7 +641,7 @@ internal static class MetricMapper
         var mapped = new List<SummaryQuantileValue>(stored.Count);
         foreach (var value in stored)
         {
-            if (double.IsNaN(value.Quantile) || value.Quantile is < 0 or > 1 ||
+            if (!double.IsFinite(value.Quantile) || value.Quantile is < 0 or > 1 ||
                 value.Quantile <= previous || double.IsNaN(value.Value) || value.Value < 0)
             {
                 return false;
@@ -612,6 +653,54 @@ internal static class MetricMapper
 
         quantiles = mapped;
         return true;
+    }
+
+    private static bool IsValidCountAndSum(ulong count, double? sum) =>
+        count is not 0 || sum is null or 0;
+
+    private static bool IsValidMinMax(double? min, double? max) =>
+        !(min.HasValue && double.IsNaN(min.Value)) &&
+        !(max.HasValue && double.IsNaN(max.Value)) &&
+        !(min.HasValue && max.HasValue && min.Value > max.Value);
+
+    private static bool TrySumExponentialBuckets(
+        MetricExponentialHistogramBucketsJson buckets,
+        ulong zeroCount,
+        out ulong count)
+    {
+        if (!TrySum(buckets.PositiveBucketCounts, out var positive) ||
+            !TrySum(buckets.NegativeBucketCounts, out var negative))
+        {
+            count = 0;
+            return false;
+        }
+
+        try
+        {
+            count = checked(zeroCount + positive + negative);
+            return true;
+        }
+        catch (OverflowException)
+        {
+            count = 0;
+            return false;
+        }
+    }
+
+    private static bool TrySum(IEnumerable<ulong> values, out ulong sum)
+    {
+        sum = 0;
+        try
+        {
+            foreach (var value in values)
+                sum = checked(sum + value);
+            return true;
+        }
+        catch (OverflowException)
+        {
+            sum = 0;
+            return false;
+        }
     }
 }
 

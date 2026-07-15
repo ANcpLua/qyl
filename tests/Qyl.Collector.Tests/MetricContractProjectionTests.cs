@@ -45,7 +45,7 @@ public sealed class MetricContractProjectionTests
         Assert.Equal(long.MaxValue, Assert.IsType<MetricIntegerValue>(gauge.Value).AsInt);
         Assert.Equal<ulong>(0, gauge.StartTimeUnixNano);
         Assert.Equal<ulong>(100, gauge.TimeUnixNano);
-        Assert.Equal<uint>(1, gauge.Flags);
+        Assert.Equal<uint>(2, gauge.Flags);
         Assert.Equal("https://opentelemetry.io/schemas/1.38.0", gauge.ResourceSchemaUrl);
         Assert.Equal(2, gauge.Resource.DroppedAttributesCount);
         Assert.Contains(gauge.Metadata!, static attribute =>
@@ -101,7 +101,7 @@ public sealed class MetricContractProjectionTests
                 Assert.Equal(0.9, value.Quantile);
                 Assert.Equal(4.0, value.Value);
             });
-        Assert.Equal<uint>(1, summary.Flags);
+        Assert.Equal<uint>(2, summary.Flags);
     }
 
     [Fact]
@@ -148,6 +148,23 @@ public sealed class MetricContractProjectionTests
         Assert.NotEqual(
             RowsByName(integerAttribute)["test.gauge"].MetricId,
             RowsByName(doubleAttribute)["test.gauge"].MetricId);
+
+        var entityReferences = baseline.Clone();
+        entityReferences.ResourceMetrics[0].Resource.EntityRefs.Add(
+            new EntityRef { Type = "service", IdKeys = { "service.name" } });
+        entityReferences.ResourceMetrics[0].Resource.EntityRefs.Add(
+            new EntityRef { Type = "namespace", IdKeys = { "service.namespace" } });
+        var reorderedEntityReferences = entityReferences.Clone();
+        (reorderedEntityReferences.ResourceMetrics[0].Resource.EntityRefs[0],
+            reorderedEntityReferences.ResourceMetrics[0].Resource.EntityRefs[1]) =
+            (reorderedEntityReferences.ResourceMetrics[0].Resource.EntityRefs[1],
+                reorderedEntityReferences.ResourceMetrics[0].Resource.EntityRefs[0]);
+        Assert.NotEqual(
+            baselineRows["test.gauge"].MetricId,
+            RowsByName(entityReferences)["test.gauge"].MetricId);
+        Assert.Equal(
+            RowsByName(entityReferences)["test.gauge"].MetricId,
+            RowsByName(reorderedEntityReferences)["test.gauge"].MetricId);
     }
 
     [Fact]
@@ -158,12 +175,45 @@ public sealed class MetricContractProjectionTests
             .Single(static metric => metric.Name == "test.gauge").Gauge.DataPoints[0];
         gaugePoint.AsDouble = double.NaN;
         gaugePoint.Exemplars[0].AsDouble = double.PositiveInfinity;
+        gaugePoint.Attributes.Add(new KeyValue { Key = "http.request.method", Value = new AnyValue() });
+        request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+            .Single(static metric => metric.Name == "test.summary").Summary.DataPoints[0]
+            .QuantileValues[0].Value = double.PositiveInfinity;
 
         var contract = MetricMapper.ToContract(RowsByName(request)["test.gauge"]);
         var json = JsonSerializer.Serialize(contract, QylSerializerContext.Default.MetricPoint);
 
         Assert.Contains("\"as_double\":\"NaN\"", json, StringComparison.Ordinal);
         Assert.Contains("\"as_double\":\"Infinity\"", json, StringComparison.Ordinal);
+        Assert.Contains("{\"key\":\"http.request.method\",\"value\":null}", json, StringComparison.Ordinal);
+        var summary = MetricMapper.ToContract(RowsByName(request)["test.summary"]);
+        var summaryJson = JsonSerializer.Serialize(summary, QylSerializerContext.Default.MetricPoint);
+        Assert.Contains("\"value\":\"Infinity\"", summaryJson, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_recorded_value_points_discard_measurements_and_exemplars()
+    {
+        var request = BuildCompleteRequest();
+        var metrics = request.ResourceMetrics[0].ScopeMetrics[0].Metrics;
+        metrics.Single(static metric => metric.Name == "test.gauge").Gauge.DataPoints[0].Flags = 1;
+        metrics.Single(static metric => metric.Name == "test.sum").Sum.DataPoints[0].Flags = 1;
+        metrics.Single(static metric => metric.Name == "test.histogram").Histogram.DataPoints[0].Flags = 1;
+        metrics.Single(static metric => metric.Name == "test.exponential").ExponentialHistogram.DataPoints[0].Flags = 1;
+        metrics.Single(static metric => metric.Name == "test.summary").Summary.DataPoints[0].Flags = 1;
+
+        var rows = RowsByName(request);
+        Assert.Null(rows["test.gauge"].IntValue);
+        Assert.Null(rows["test.gauge"].DoubleValue);
+        Assert.Null(rows["test.gauge"].ExemplarsJson);
+        Assert.Equal<ulong?>(0, rows["test.histogram"].Count);
+        Assert.Equal<ulong?>(0, rows["test.exponential"].Count);
+        Assert.Equal<ulong?>(0, rows["test.summary"].Count);
+        Assert.Equal<double?>(0, rows["test.summary"].Sum);
+
+        Assert.Null(Assert.IsType<GaugeMetricPoint>(MetricMapper.ToContract(rows["test.gauge"])).Value);
+        Assert.Null(Assert.IsType<SumMetricPoint>(MetricMapper.ToContract(rows["test.sum"])).Value);
+        Assert.Empty(Assert.IsType<SummaryMetricPoint>(MetricMapper.ToContract(rows["test.summary"])).QuantileValues);
     }
 
     [Fact]
@@ -222,9 +272,46 @@ public sealed class MetricContractProjectionTests
         Assert.Throws<InvalidDataException>(() => OtlpConverter.ConvertMetrics(missingNumber));
     }
 
+    [Fact]
+    public void Invalid_metric_distributions_attributes_and_entity_references_are_rejected()
+    {
+        AssertInvalid(request =>
+            request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+                .Single(static metric => metric.Name == "test.histogram")
+                .Histogram.DataPoints[0].BucketCounts[0]++);
+        AssertInvalid(request =>
+            request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+                .Single(static metric => metric.Name == "test.histogram")
+                .Histogram.DataPoints[0].ExplicitBounds[1] = 0.1);
+        AssertInvalid(request =>
+            request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+                .Single(static metric => metric.Name == "test.exponential")
+                .ExponentialHistogram.DataPoints[0].ZeroCount++);
+        AssertInvalid(request =>
+            request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+                .Single(static metric => metric.Name == "test.summary")
+                .Summary.DataPoints[0].QuantileValues[0].Value = -1);
+        AssertInvalid(request =>
+        {
+            var point = request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+                .Single(static metric => metric.Name == "test.gauge").Gauge.DataPoints[0];
+            point.Attributes.Add(StringAttribute("duplicate", "one"));
+            point.Attributes.Add(StringAttribute("duplicate", "two"));
+        });
+        AssertInvalid(request => request.ResourceMetrics[0].Resource.EntityRefs.Add(
+            new EntityRef { Type = "service", IdKeys = { "missing.attribute" } }));
+    }
+
     private static Dictionary<string, MetricStorageRow> RowsByName(ExportMetricsServiceRequest request) =>
         IngestionStorageMapper.ToMetricStorageRows(OtlpConverter.ConvertMetrics(request))
             .ToDictionary(static row => row.MetricName, StringComparer.Ordinal);
+
+    private static void AssertInvalid(Action<ExportMetricsServiceRequest> mutate)
+    {
+        var request = BuildCompleteRequest();
+        mutate(request);
+        Assert.Throws<InvalidDataException>(() => OtlpConverter.ConvertMetrics(request));
+    }
 
     private static ExportMetricsServiceRequest BuildCompleteRequest()
     {
@@ -247,7 +334,7 @@ public sealed class MetricContractProjectionTests
         {
             StartTimeUnixNano = 0,
             TimeUnixNano = 100,
-            Flags = 1,
+            Flags = 2,
             AsInt = long.MaxValue,
             Exemplars =
             {
@@ -355,7 +442,7 @@ public sealed class MetricContractProjectionTests
                     {
                         StartTimeUnixNano = 0,
                         TimeUnixNano = 140,
-                        Flags = 1,
+                        Flags = 2,
                         Count = 10,
                         Sum = 25,
                         QuantileValues =

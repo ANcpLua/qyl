@@ -6,9 +6,11 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
+using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.Ingestion;
@@ -16,6 +18,10 @@ using Qyl.Collector.Mapping;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using OtlpExemplar = OpenTelemetry.Proto.Metrics.V1.Exemplar;
+using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
+using OtlpResourceMetrics = OpenTelemetry.Proto.Metrics.V1.ResourceMetrics;
+using OtlpScopeMetrics = OpenTelemetry.Proto.Metrics.V1.ScopeMetrics;
 using OtlpProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using OtlpProfileLink = OpenTelemetry.Proto.Profiles.V1Development.Link;
 using OtlpProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
@@ -362,6 +368,86 @@ public sealed class OtlpWireTests
     }
 
     [Fact]
+    public async Task Otlp_json_normalizes_metric_exemplar_ids_without_touching_unrelated_fields()
+    {
+        var traceId = SequentialBytes(128, 16);
+        var spanId = SequentialBytes(144, 8);
+        var request = new ExportMetricsServiceRequest
+        {
+            ResourceMetrics =
+            {
+                new OtlpResourceMetrics
+                {
+                    ScopeMetrics =
+                    {
+                        new OtlpScopeMetrics
+                        {
+                            Metrics =
+                            {
+                                new OtlpMetric
+                                {
+                                    Name = "gen_ai.client.token.usage",
+                                    Unit = "{token}",
+                                    Histogram = new Histogram
+                                    {
+                                        AggregationTemporality = AggregationTemporality.Cumulative,
+                                        DataPoints =
+                                        {
+                                            new HistogramDataPoint
+                                            {
+                                                TimeUnixNano = 1_000,
+                                                Count = 1,
+                                                Sum = 1,
+                                                BucketCounts = { 1UL },
+                                                Exemplars =
+                                                {
+                                                    new OtlpExemplar
+                                                    {
+                                                        TimeUnixNano = 999,
+                                                        AsInt = 1,
+                                                        TraceId = ByteString.CopyFrom(traceId),
+                                                        SpanId = ByteString.CopyFrom(spanId)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        var json = OfficialJson(request);
+        var point = json["resourceMetrics"]![0]!["scopeMetrics"]![0]!["metrics"]![0]!["histogram"]!["dataPoints"]![0]!;
+        var exemplar = point["exemplars"]![0]!;
+        exemplar["traceId"] = Convert.ToHexStringLower(traceId);
+        exemplar["spanId"] = Convert.ToHexStringLower(spanId);
+        point["future"] = new JsonObject
+        {
+            ["traceId"] = "unrelated-not-an-id",
+            ["spanId"] = "also-unrelated"
+        };
+
+        var parsed = await OtlpPayloadParser.ParseMetricsRequestAsync(
+            NewJsonRequest(json),
+            OtlpPayloadEncoding.Json,
+            TestContext.Current.CancellationToken);
+
+        var parsedExemplar = Assert.Single(Assert.Single(Assert.Single(
+            Assert.Single(Assert.Single(parsed.ResourceMetrics).ScopeMetrics).Metrics).Histogram.DataPoints).Exemplars);
+        Assert.Equal(traceId, parsedExemplar.TraceId.ToByteArray());
+        Assert.Equal(spanId, parsedExemplar.SpanId.ToByteArray());
+
+        exemplar["traceId"] = "not-hex";
+        await Assert.ThrowsAsync<InvalidDataException>(() => OtlpPayloadParser.ParseMetricsRequestAsync(
+            NewJsonRequest(json),
+            OtlpPayloadEncoding.Json,
+            TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task Otlp_http_results_emit_official_success_and_error_envelopes()
     {
         var successContext = NewResponseContext();
@@ -395,8 +481,11 @@ public sealed class OtlpWireTests
         const string persisted = """
                                  {
                                    "binary":{"type":"bytes","base64":"/wA="},
-                                   "kvlist":{"answer":42,"nested":[true,"value"]},
-                                   "mixed":[1,"two",false,{"deep":[null,3]}]
+                                   "empty":null,
+                                   "integer":{"type":"int","value":"9223372036854775807"},
+                                   "double":{"type":"double","value":"Infinity"},
+                                   "kvlist":{"type":"kvlist","values":{"answer":{"type":"int","value":"42"},"nested":[true,"value"]}},
+                                   "mixed":[{"type":"int","value":"1"},"two",false,{"type":"kvlist","values":{"deep":[null,{"type":"double","value":3}]}}]
                                  }
                                  """;
         var attributes = Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
@@ -407,10 +496,14 @@ public sealed class OtlpWireTests
             QylSerializerContext.Default.AttributeArray))!;
         Assert.Equal("bytes", node[0]!["value"]!["type"]!.GetValue<string>());
         Assert.Equal("/wA=", node[0]!["value"]!["base64"]!.GetValue<string>());
-        Assert.Equal(42, node[1]!["value"]!["answer"]!.GetValue<int>());
-        Assert.True(node[1]!["value"]!["nested"]![0]!.GetValue<bool>());
-        Assert.Equal("two", node[2]!["value"]![1]!.GetValue<string>());
-        Assert.Equal(3, node[2]!["value"]![3]!["deep"]![1]!.GetValue<int>());
+        Assert.True(node[1]!.AsObject().ContainsKey("value"));
+        Assert.Null(node[1]!["value"]);
+        Assert.Equal("9223372036854775807", node[2]!["value"]!["value"]!.GetValue<string>());
+        Assert.Equal("Infinity", node[3]!["value"]!["value"]!.GetValue<string>());
+        Assert.Equal("42", node[4]!["value"]!["values"]!["answer"]!["value"]!.GetValue<string>());
+        Assert.True(node[4]!["value"]!["values"]!["nested"]![0]!.GetValue<bool>());
+        Assert.Equal("two", node[5]!["value"]![1]!.GetValue<string>());
+        Assert.Equal(3, node[5]!["value"]![3]!["values"]!["deep"]![1]!["value"]!.GetValue<int>());
     }
 
     private static DefaultHttpContext NewResponseContext()

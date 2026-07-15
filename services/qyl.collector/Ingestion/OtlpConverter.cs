@@ -1,4 +1,4 @@
-
+using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -191,7 +191,7 @@ internal static class OtlpConverter
 
     private static OtlpAttributeValue? ConvertProtoAnyValue(ProtoAnyValue? value)
     {
-        if (value is null) return null;
+        if (value is null) return OtlpAttributeValue.Empty;
 
         return value.ValueCase switch
         {
@@ -202,7 +202,8 @@ internal static class OtlpConverter
             ProtoAnyValue.ValueOneofCase.BytesValue => OtlpAttributeValue.FromBytes(CopyBytes(value.BytesValue)),
             ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue),
             ProtoAnyValue.ValueOneofCase.KvlistValue => ConvertProtoKeyValueList(value.KvlistValue),
-            _ => null
+            ProtoAnyValue.ValueOneofCase.None => OtlpAttributeValue.Empty,
+            _ => throw new InvalidDataException("OTLP AnyValue contains an unknown value kind.")
         };
     }
 
@@ -211,8 +212,7 @@ internal static class OtlpConverter
         var items = new List<OtlpAttributeValue>(value.Values.Count);
         foreach (var item in value.Values)
         {
-            if (ConvertProtoAnyValue(item) is { } converted)
-                items.Add(converted);
+            items.Add(ConvertProtoAnyValue(item)!);
         }
 
         return OtlpAttributeValue.FromArray(items);
@@ -223,11 +223,11 @@ internal static class OtlpConverter
         var items = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var item in value.Values)
         {
-            if (string.IsNullOrEmpty(item.Key))
-                continue;
+            if (string.IsNullOrWhiteSpace(item.Key))
+                throw new InvalidDataException("OTLP key-value-list contains an empty key.");
 
-            if (ConvertProtoAnyValue(item.Value) is { } converted)
-                items[item.Key] = converted;
+            if (!items.TryAdd(item.Key, ConvertProtoAnyValue(item.Value)!))
+                throw new InvalidDataException($"OTLP key-value-list contains duplicate key '{item.Key}'.");
         }
 
         return OtlpAttributeValue.FromKeyValueList(items);
@@ -374,6 +374,7 @@ internal static class OtlpConverter
         {
             var serviceName = ExtractServiceNameFromProto(resourceMetrics.Resource);
             var projectIdHint = ExtractProjectIdHintFromProto(resourceMetrics.Resource);
+            var resourceEntityRefsIdentity = ExtractMetricResourceEntityRefsIdentity(resourceMetrics.Resource);
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceMetrics.Resource);
 
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
@@ -386,6 +387,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttrs,
+                        resourceEntityRefsIdentity,
                         resourceMetrics,
                         scopeMetrics);
                 }
@@ -401,6 +403,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        string resourceEntityRefsIdentity,
         ProtoResourceMetrics resourceMetrics,
         ProtoScopeMetrics scopeMetrics)
     {
@@ -424,6 +427,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
+                        resourceEntityRefsIdentity,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -446,6 +450,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
+                        resourceEntityRefsIdentity,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -461,7 +466,22 @@ internal static class OtlpConverter
                     metric.Name);
                 foreach (var point in metric.Histogram.DataPoints)
                 {
-                    ValidateExplicitHistogramBuckets(point.ExplicitBounds.Count, point.BucketCounts.Count, metric.Name);
+                    var noRecordedValue = HasNoRecordedValue(point.Flags);
+                    if (!noRecordedValue)
+                    {
+                        ValidateExplicitHistogram(
+                            point.ExplicitBounds,
+                            point.BucketCounts,
+                            point.Count,
+                            point.HasSum,
+                            point.Sum,
+                            point.HasMin,
+                            point.Min,
+                            point.HasMax,
+                            point.Max,
+                            metric.Name);
+                    }
+
                     metrics.Add(CreateMetricRecord(
                         metric,
                         MetricStorageTypes.Histogram,
@@ -473,17 +493,18 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
+                        resourceEntityRefsIdentity,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
                         scopeAttributes) with
                     {
-                        Count = point.Count,
-                        Sum = point.HasSum ? point.Sum : null,
-                        Min = point.HasMin ? point.Min : null,
-                        Max = point.HasMax ? point.Max : null,
-                        HistogramBounds = [.. point.ExplicitBounds],
-                        HistogramCounts = [.. point.BucketCounts],
+                        Count = noRecordedValue ? 0 : point.Count,
+                        Sum = !noRecordedValue && point.HasSum ? point.Sum : null,
+                        Min = !noRecordedValue && point.HasMin ? point.Min : null,
+                        Max = !noRecordedValue && point.HasMax ? point.Max : null,
+                        HistogramBounds = noRecordedValue ? [] : [.. point.ExplicitBounds],
+                        HistogramCounts = noRecordedValue ? [] : [.. point.BucketCounts],
                         AggregationTemporality = histogramTemporality
                     });
                 }
@@ -495,6 +516,24 @@ internal static class OtlpConverter
                     metric.Name);
                 foreach (var point in metric.ExponentialHistogram.DataPoints)
                 {
+                    var noRecordedValue = HasNoRecordedValue(point.Flags);
+                    if (!noRecordedValue)
+                    {
+                        ValidateExponentialHistogram(
+                            point.Count,
+                            point.HasSum,
+                            point.Sum,
+                            point.HasMin,
+                            point.Min,
+                            point.HasMax,
+                            point.Max,
+                            point.ZeroCount,
+                            point.ZeroThreshold,
+                            point.Positive,
+                            point.Negative,
+                            metric.Name);
+                    }
+
                     metrics.Add(CreateMetricRecord(
                         metric,
                         MetricStorageTypes.ExponentialHistogram,
@@ -506,20 +545,25 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
+                        resourceEntityRefsIdentity,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
                         scopeAttributes) with
                     {
-                        Count = point.Count,
-                        Sum = point.HasSum ? point.Sum : null,
-                        Min = point.HasMin ? point.Min : null,
-                        Max = point.HasMax ? point.Max : null,
-                        ExponentialHistogramScale = point.Scale,
-                        ExponentialHistogramZeroCount = point.ZeroCount,
-                        ExponentialHistogramZeroThreshold = point.ZeroThreshold,
-                        ExponentialHistogramPositive = ConvertExponentialBuckets(point.Positive),
-                        ExponentialHistogramNegative = ConvertExponentialBuckets(point.Negative),
+                        Count = noRecordedValue ? 0 : point.Count,
+                        Sum = !noRecordedValue && point.HasSum ? point.Sum : null,
+                        Min = !noRecordedValue && point.HasMin ? point.Min : null,
+                        Max = !noRecordedValue && point.HasMax ? point.Max : null,
+                        ExponentialHistogramScale = noRecordedValue ? 0 : point.Scale,
+                        ExponentialHistogramZeroCount = noRecordedValue ? 0 : point.ZeroCount,
+                        ExponentialHistogramZeroThreshold = noRecordedValue ? 0 : point.ZeroThreshold,
+                        ExponentialHistogramPositive = noRecordedValue
+                            ? new MetricExponentialHistogramBucketsIngestionRecord(0, [])
+                            : ConvertExponentialBuckets(point.Positive),
+                        ExponentialHistogramNegative = noRecordedValue
+                            ? new MetricExponentialHistogramBucketsIngestionRecord(0, [])
+                            : ConvertExponentialBuckets(point.Negative),
                         AggregationTemporality = exponentialTemporality
                     });
                 }
@@ -528,7 +572,13 @@ internal static class OtlpConverter
             case ProtoMetric.DataOneofCase.Summary:
                 foreach (var point in metric.Summary.DataPoints)
                 {
-                    ValidateSummaryQuantiles(point.QuantileValues, metric.Name);
+                    var noRecordedValue = HasNoRecordedValue(point.Flags);
+                    if (!noRecordedValue)
+                    {
+                        ValidateCountAndSum(point.Count, hasSum: true, point.Sum, metric.Name);
+                        ValidateSummaryQuantiles(point.QuantileValues, metric.Name);
+                    }
+
                     metrics.Add(CreateMetricRecord(
                         metric,
                         MetricStorageTypes.Summary,
@@ -540,18 +590,18 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
+                        resourceEntityRefsIdentity,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
                         scopeAttributes) with
                     {
-                        Count = point.Count,
-                        Sum = point.Sum,
-                        SummaryQuantiles =
-                        [
-                            .. point.QuantileValues.Select(static value =>
-                                new MetricSummaryQuantileIngestionRecord(value.Quantile, value.Value))
-                        ]
+                        Count = noRecordedValue ? 0 : point.Count,
+                        Sum = noRecordedValue ? 0 : point.Sum,
+                        SummaryQuantiles = noRecordedValue
+                            ? []
+                            : [.. point.QuantileValues.Select(static value =>
+                                new MetricSummaryQuantileIngestionRecord(value.Quantile, value.Value))]
                     });
                 }
 
@@ -566,6 +616,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        string resourceEntityRefsIdentity,
         ProtoResourceMetrics resourceMetrics,
         ProtoScopeMetrics scopeMetrics,
         IReadOnlyDictionary<string, OtlpAttributeValue> metadata,
@@ -584,6 +635,7 @@ internal static class OtlpConverter
             projectIdHint,
             serviceName,
             resourceAttributes,
+            resourceEntityRefsIdentity,
             resourceMetrics,
             scopeMetrics,
             metadata,
@@ -592,6 +644,9 @@ internal static class OtlpConverter
             IsMonotonic = isMonotonic,
             AggregationTemporality = aggregationTemporality
         };
+
+        if (HasNoRecordedValue(point.Flags))
+            return record;
 
         return point.ValueCase switch
         {
@@ -612,6 +667,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        string resourceEntityRefsIdentity,
         ProtoResourceMetrics resourceMetrics,
         ProtoScopeMetrics scopeMetrics,
         IReadOnlyDictionary<string, OtlpAttributeValue> metadata,
@@ -640,10 +696,11 @@ internal static class OtlpConverter
             TimeUnixNano = timeUnixNano,
             StartTimeUnixNano = startTimeUnixNano,
             Flags = flags,
-            Exemplars = ConvertMetricExemplars(exemplars),
+            Exemplars = HasNoRecordedValue(flags) ? [] : ConvertMetricExemplars(exemplars),
             ServiceName = serviceName,
             Attributes = ExtractMetricAttributes(attributes),
-            ResourceAttributes = resourceAttributes
+            ResourceAttributes = resourceAttributes,
+            ResourceEntityRefsIdentity = resourceEntityRefsIdentity
         };
     }
 
@@ -689,13 +746,134 @@ internal static class OtlpConverter
             : throw new InvalidDataException(
                 $"OTLP metric '{metricName}' has an unspecified aggregation temporality.");
 
-    private static void ValidateExplicitHistogramBuckets(int boundCount, int bucketCount, string metricName)
+    private const uint NoRecordedValueMask = 1;
+
+    private static bool HasNoRecordedValue(uint flags) => (flags & NoRecordedValueMask) is not 0;
+
+    private static void ValidateExplicitHistogram(
+        RepeatedField<double> explicitBounds,
+        RepeatedField<ulong> bucketCounts,
+        ulong count,
+        bool hasSum,
+        double sum,
+        bool hasMin,
+        double min,
+        bool hasMax,
+        double max,
+        string metricName)
     {
-        if ((bucketCount is 0 && boundCount is not 0) ||
-            (bucketCount > 0 && bucketCount != boundCount + 1))
+        if ((bucketCounts.Count is 0 && explicitBounds.Count is not 0) ||
+            (bucketCounts.Count > 0 && bucketCounts.Count != explicitBounds.Count + 1))
         {
             throw new InvalidDataException(
                 $"OTLP metric '{metricName}' has an invalid explicit histogram bucket layout.");
+        }
+
+        var previous = double.NegativeInfinity;
+        foreach (var bound in explicitBounds)
+        {
+            if (!double.IsFinite(bound) || bound <= previous)
+            {
+                throw new InvalidDataException(
+                    $"OTLP metric '{metricName}' has explicit histogram bounds that are not finite and strictly increasing.");
+            }
+
+            previous = bound;
+        }
+
+        if (bucketCounts.Count > 0 && SumBucketCounts(bucketCounts, metricName) != count)
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has histogram bucket counts that do not sum to count.");
+        }
+
+        ValidateCountAndSum(count, hasSum, sum, metricName);
+        ValidateMinMax(hasMin, min, hasMax, max, metricName);
+    }
+
+    private static void ValidateExponentialHistogram(
+        ulong count,
+        bool hasSum,
+        double sum,
+        bool hasMin,
+        double min,
+        bool hasMax,
+        double max,
+        ulong zeroCount,
+        double zeroThreshold,
+        global::OpenTelemetry.Proto.Metrics.V1.ExponentialHistogramDataPoint.Types.Buckets? positive,
+        global::OpenTelemetry.Proto.Metrics.V1.ExponentialHistogramDataPoint.Types.Buckets? negative,
+        string metricName)
+    {
+        if (!double.IsFinite(zeroThreshold) || zeroThreshold < 0)
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has an invalid exponential histogram zero threshold.");
+        }
+
+        var distributedCount = CheckedAdd(
+            zeroCount,
+            SumBucketCounts(positive?.BucketCounts, metricName),
+            metricName);
+        distributedCount = CheckedAdd(
+            distributedCount,
+            SumBucketCounts(negative?.BucketCounts, metricName),
+            metricName);
+        if (distributedCount != count)
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has exponential histogram bucket counts that do not sum to count.");
+        }
+
+        ValidateCountAndSum(count, hasSum, sum, metricName);
+        ValidateMinMax(hasMin, min, hasMax, max, metricName);
+    }
+
+    private static void ValidateCountAndSum(ulong count, bool hasSum, double sum, string metricName)
+    {
+        if (count is 0 && hasSum && sum is not 0)
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has count=0 with a non-zero sum.");
+        }
+    }
+
+    private static void ValidateMinMax(
+        bool hasMin,
+        double min,
+        bool hasMax,
+        double max,
+        string metricName)
+    {
+        if ((hasMin && double.IsNaN(min)) || (hasMax && double.IsNaN(max)) ||
+            (hasMin && hasMax && min > max))
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has invalid minimum/maximum values.");
+        }
+    }
+
+    private static ulong SumBucketCounts(IEnumerable<ulong>? values, string metricName)
+    {
+        if (values is null) return 0;
+
+        var total = 0UL;
+        foreach (var value in values)
+            total = CheckedAdd(total, value, metricName);
+        return total;
+    }
+
+    private static ulong CheckedAdd(ulong left, ulong right, string metricName)
+    {
+        try
+        {
+            return checked(left + right);
+        }
+        catch (OverflowException exception)
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has bucket counts whose sum overflows uint64.",
+                exception);
         }
     }
 
@@ -706,7 +884,7 @@ internal static class OtlpConverter
         var previous = -1d;
         foreach (var value in values)
         {
-            if (double.IsNaN(value.Quantile) || value.Quantile is < 0 or > 1 ||
+            if (!double.IsFinite(value.Quantile) || value.Quantile is < 0 or > 1 ||
                 value.Quantile <= previous || double.IsNaN(value.Value) || value.Value < 0)
             {
                 throw new InvalidDataException(
@@ -723,18 +901,116 @@ internal static class OtlpConverter
         RepeatedField<ProtoKeyValue> attributes)
     {
         var dict = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var sourceKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var attr in attributes)
         {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            var value = ConvertProtoAnyValue(attr.Value);
-            if (value is null) continue;
-            if (renamed) dict.TryAdd(key, value);
-            else dict[key] = value;
+            if (string.IsNullOrWhiteSpace(attr.Key))
+                throw new InvalidDataException("OTLP metric attribute key must not be empty.");
+            if (!sourceKeys.Add(attr.Key))
+                throw new InvalidDataException($"OTLP metric contains duplicate attribute key '{attr.Key}'.");
+
+            DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            var value = ConvertProtoAnyValue(attr.Value)!;
+            if (!dict.TryAdd(key, value))
+            {
+                throw new InvalidDataException(
+                    $"OTLP metric contains attribute keys that normalize to duplicate key '{key}'.");
+            }
         }
 
         return dict;
     }
+
+    private static string ExtractMetricResourceEntityRefsIdentity(ProtoResource? resource)
+    {
+        if (resource is null) return string.Empty;
+
+        var resourceAttributeKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var attribute in resource.Attributes)
+        {
+            if (string.IsNullOrWhiteSpace(attribute.Key))
+                throw new InvalidDataException("OTLP metric resource attribute key must not be empty.");
+            if (!resourceAttributeKeys.Add(attribute.Key))
+            {
+                throw new InvalidDataException(
+                    $"OTLP metric resource contains duplicate attribute key '{attribute.Key}'.");
+            }
+        }
+
+        if (resource.EntityRefs.Count is 0) return string.Empty;
+
+        var identities = new List<string>(resource.EntityRefs.Count);
+        var uniqueIdentities = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entityRef in resource.EntityRefs)
+        {
+            if (string.IsNullOrWhiteSpace(entityRef.Type))
+                throw new InvalidDataException("OTLP metric resource entity type must not be empty.");
+            if (entityRef.IdKeys.Count is 0)
+                throw new InvalidDataException("OTLP metric resource entity must contain at least one id_key.");
+
+            var idKeys = ValidateEntityReferenceKeys(
+                entityRef.IdKeys,
+                resourceAttributeKeys,
+                "id_key");
+            var descriptionKeys = ValidateEntityReferenceKeys(
+                entityRef.DescriptionKeys,
+                resourceAttributeKeys,
+                "description_key");
+
+            var builder = new StringBuilder();
+            AppendCanonicalSegment(builder, entityRef.SchemaUrl);
+            AppendCanonicalSegment(builder, entityRef.Type);
+            AppendCanonicalSegments(builder, idKeys);
+            AppendCanonicalSegments(builder, descriptionKeys);
+            var identity = builder.ToString();
+            if (!uniqueIdentities.Add(identity))
+                throw new InvalidDataException("OTLP metric resource contains a duplicate entity reference.");
+            identities.Add(identity);
+        }
+
+        identities.Sort(StringComparer.Ordinal);
+        var result = new StringBuilder();
+        AppendCanonicalSegments(result, identities);
+        return result.ToString();
+    }
+
+    private static IReadOnlyList<string> ValidateEntityReferenceKeys(
+        RepeatedField<string> keys,
+        IReadOnlySet<string> resourceAttributeKeys,
+        string fieldName)
+    {
+        var unique = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var key in keys)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                throw new InvalidDataException($"OTLP metric resource entity {fieldName} must not be empty.");
+            if (!unique.Add(key))
+            {
+                throw new InvalidDataException(
+                    $"OTLP metric resource entity contains duplicate {fieldName} '{key}'.");
+            }
+            if (!resourceAttributeKeys.Contains(key))
+            {
+                throw new InvalidDataException(
+                    $"OTLP metric resource entity {fieldName} '{key}' does not reference a resource attribute.");
+            }
+        }
+
+        return [.. unique.Order(StringComparer.Ordinal)];
+    }
+
+    private static void AppendCanonicalSegments(StringBuilder builder, IReadOnlyList<string> values)
+    {
+        builder.Append(values.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+        foreach (var value in values)
+            AppendCanonicalSegment(builder, value);
+    }
+
+    private static void AppendCanonicalSegment(StringBuilder builder, string value) =>
+        builder
+            .Append(value.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':')
+            .Append(value);
 
     #endregion
 

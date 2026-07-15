@@ -166,6 +166,8 @@ internal static class IngestionStorageMapper
                 // data points differing only in a non-persisted dimension stay distinct rows.
                 AppendIdentityAttributes(builder, metric.Attributes);
                 AppendIdentityAttributes(builder, metric.ResourceAttributes);
+                if (metric.ResourceEntityRefsIdentity.Length > 0)
+                    AppendIdentityPart(builder, metric.ResourceEntityRefsIdentity);
                 AppendIdentityAttributes(builder, metric.ScopeAttributes);
             }),
             ContractProjectionVersion = MetricStorageRow.CurrentContractProjectionVersion,

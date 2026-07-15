@@ -83,4 +83,5 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(object[]))]
 [JsonSerializable(typeof(Dictionary<string, object?>))]
+[JsonSerializable(typeof(JsonElement))]
 internal partial class QylSerializerContext : JsonSerializerContext;
