@@ -207,7 +207,9 @@ npm install
 npm run dev
 ```
 
-The browser dashboard is intentionally a loopback development surface and never
+The browser dashboard is a development surface served whenever auth is not
+`ApiKey`; it binds to loopback by default (`QYL_BIND_ADDRESS` accepts other
+addresses, so avoid remote bindings in `Unsecured` mode explicitly) and never
 stores the ingest-capable API key. `ApiKey` deployments expose only the generated
 product API and OTLP endpoints; use a generated client rather than the dashboard.
 
@@ -227,7 +229,7 @@ export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 
 | Port | Purpose |
 | --- | --- |
-| `5100` | Product API and OTLP/HTTP; embedded dashboard only in local `Unsecured` mode |
+| `5100` | Product API and OTLP/HTTP; embedded dashboard in `Unsecured` mode (loopback by default) |
 | `4317` | OTLP/gRPC receiver |
 | `4318` | Dedicated OTLP/HTTP receiver |
 

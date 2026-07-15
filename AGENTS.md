@@ -49,8 +49,9 @@ anything serialized across a boundary is a contract.
 - Tests and fixtures use real protocol types, valid programmatically generated data,
   or captured-and-sanitized datasets. Do not claim interoperability from hand-shaped
   JSON, substring checks over binary payloads, or mocks that merely echo inputs.
-- `Version.props` owns the Qyl product version; central package versions live in
-  `Directory.Packages.props`. Do not hardcode package or banner versions elsewhere.
+- `Version.props` owns the Qyl product version and the shared package-version
+  properties; `Directory.Packages.props` owns the central `PackageVersion` entries
+  that consume them. Do not hardcode package or banner versions elsewhere.
 - The toolchain is the `global.json` SDK (`10.0.301`, `latestFeature`) and C# 14.
   Interceptors are supported on this SDK; use the current Roslyn APIs.
 - Never hand-edit generated C#, protobuf output, TypeScript contracts, or generated
@@ -65,8 +66,9 @@ Run the narrow tests for the changed component and finish repository-wide work w
 dotnet run --project eng/build/build.csproj -- Ci
 ```
 
-The `Ci` target builds and tests the backend and both first-party frontends, runs
-Vitest and the embedded Release-product Playwright smoke, checks that both
+The `Ci` target builds and tests the backend, builds both first-party frontends,
+runs Vitest and the embedded Release-product Playwright smoke for the dashboard
+(the host console is build/typecheck only), checks that both
 frontends consume one exact generated contract package, and verifies the collector
 semantic catalog. For schema-boundary changes, also compile and test the owning
 `qyl-api-schema` repository and restore the resulting `Qyl.Api.Contracts` package
