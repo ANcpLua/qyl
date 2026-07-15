@@ -14,7 +14,11 @@ internal sealed partial class DuckDbStore
         CancellationToken ct = default) =>
         ExecuteWriteAsync(async (con, wct) =>
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(retainedSnapshots, 1);
+            if (retainedSnapshots < 1)
+                throw new ArgumentOutOfRangeException(
+                    nameof(retainedSnapshots),
+                    retainedSnapshots,
+                    "At least one catalog snapshot must be retained.");
             await using var tx = await con.BeginTransactionAsync(wct).ConfigureAwait(false);
             string? previousSnapshotId = null;
             string? previousConfigurationFingerprint = null;

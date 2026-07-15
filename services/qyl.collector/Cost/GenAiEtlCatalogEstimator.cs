@@ -33,8 +33,10 @@ internal sealed class GenAiEtlCatalogEstimator(ModelPricingCatalogRepository rep
         IReadOnlyList<GenAiEtlAuditUsageBucket> usageBuckets,
         CancellationToken cancellationToken = default)
     {
+#pragma warning disable RS0030 // Collector runtime code cannot depend on ANcpLua.Roslyn.Utilities.
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(usageBuckets);
+#pragma warning restore RS0030
 
         var catalog = await repository.GetAsync(cancellationToken).ConfigureAwait(false);
         return Estimate(rows, usageBuckets, catalog);
@@ -45,9 +47,11 @@ internal sealed class GenAiEtlCatalogEstimator(ModelPricingCatalogRepository rep
         IReadOnlyList<GenAiEtlAuditUsageBucket> usageBuckets,
         ModelPricingCatalogReadResult catalog)
     {
+#pragma warning disable RS0030 // Collector runtime code cannot depend on ANcpLua.Roslyn.Utilities.
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(usageBuckets);
         ArgumentNullException.ThrowIfNull(catalog);
+#pragma warning restore RS0030
         var bucketsByCluster = usageBuckets
             .GroupBy(static bucket => ClusterKey.From(bucket))
             .ToDictionary(static group => group.Key, static group => group.ToArray());
