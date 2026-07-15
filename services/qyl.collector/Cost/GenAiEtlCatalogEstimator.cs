@@ -26,14 +26,7 @@ internal sealed record GenAiEtlCatalogEstimateResult(
     IReadOnlyList<ModelPricingEstimateComponent> Components,
     IReadOnlyList<ModelPricingEstimateExclusion> Exclusions);
 
-internal sealed record GenAiEtlCatalogSourceRead(
-    string SourceId,
-    int Priority,
-    ModelPricingCatalogReadResult Catalog);
-
-internal sealed class GenAiEtlCatalogEstimator(
-    ModelPricingCatalogRepository repository,
-    ModelPricingCatalogSourceRegistry registry)
+internal sealed class GenAiEtlCatalogEstimator(ModelPricingCatalogRepository repository)
 {
     public async Task<IReadOnlyList<GenAiEtlCatalogEstimateResult>> EstimateAsync(
         IReadOnlyList<GenAiEtlAuditStorageRow> rows,
@@ -43,29 +36,18 @@ internal sealed class GenAiEtlCatalogEstimator(
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(usageBuckets);
 
-        var reads = await Task.WhenAll(registry.Sources.Select(async source =>
-            new GenAiEtlCatalogSourceRead(
-                source.SourceId,
-                source.Priority,
-                await repository.GetAsync(source.SourceId, cancellationToken).ConfigureAwait(false))))
-            .ConfigureAwait(false);
-
-        return Estimate(rows, usageBuckets, reads);
+        var catalog = await repository.GetAsync(cancellationToken).ConfigureAwait(false);
+        return Estimate(rows, usageBuckets, catalog);
     }
 
     internal static IReadOnlyList<GenAiEtlCatalogEstimateResult> Estimate(
         IReadOnlyList<GenAiEtlAuditStorageRow> rows,
         IReadOnlyList<GenAiEtlAuditUsageBucket> usageBuckets,
-        IReadOnlyList<GenAiEtlCatalogSourceRead> sources)
+        ModelPricingCatalogReadResult catalog)
     {
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(usageBuckets);
-        ArgumentNullException.ThrowIfNull(sources);
-
-        var orderedSources = sources
-            .OrderBy(static source => source.Priority)
-            .ThenBy(static source => source.SourceId, StringComparer.Ordinal)
-            .ToArray();
+        ArgumentNullException.ThrowIfNull(catalog);
         var bucketsByCluster = usageBuckets
             .GroupBy(static bucket => ClusterKey.From(bucket))
             .ToDictionary(static group => group.Key, static group => group.ToArray());
@@ -75,7 +57,7 @@ internal sealed class GenAiEtlCatalogEstimator(
         {
             var row = rows[index];
             bucketsByCluster.TryGetValue(ClusterKey.From(row), out var clusterBuckets);
-            estimates[index] = EstimateCluster(row, clusterBuckets ?? [], orderedSources);
+            estimates[index] = EstimateCluster(row, clusterBuckets ?? [], catalog);
         }
 
         return estimates;
@@ -84,7 +66,7 @@ internal sealed class GenAiEtlCatalogEstimator(
     private static GenAiEtlCatalogEstimateResult EstimateCluster(
         GenAiEtlAuditStorageRow row,
         IReadOnlyList<GenAiEtlAuditUsageBucket> buckets,
-        IReadOnlyList<GenAiEtlCatalogSourceRead> sources)
+        ModelPricingCatalogReadResult catalog)
     {
         var observedModel = row.ModelName;
         if (!ModelPricingCatalogValidation.IsText(observedModel, 512) ||
@@ -96,47 +78,28 @@ internal sealed class GenAiEtlCatalogEstimator(
         if (!HasCompleteUsage(row, buckets, out var usageFailure))
             return Failure(usageFailure);
 
-        var firstUsage = CreateUsage(buckets[0]);
-        var hasAvailableCatalog = false;
-        var hasStaleCatalog = false;
-        foreach (var source in sources)
+        if (catalog.Availability is ModelPricingCatalogAvailability.Stale)
+            return Failure(ModelPricingEstimateStatus.StaleSource);
+        if (catalog.Availability is not ModelPricingCatalogAvailability.Available || catalog.Version is null)
+            return Failure(ModelPricingEstimateStatus.SourceUnavailable);
+
+        var firstEstimate = CalculateBucket(
+            catalog.Version,
+            observedModel!,
+            row.OutputType,
+            CreateUsage(buckets[0]));
+        if (firstEstimate.Status is ModelPricingEstimateStatus.ModelNotFound)
         {
-            var read = source.Catalog;
-            if (read.Availability is ModelPricingCatalogAvailability.Stale)
-            {
-                hasStaleCatalog = true;
-                continue;
-            }
-
-            if (read.Availability is not ModelPricingCatalogAvailability.Available || read.Version is null)
-                continue;
-
-            hasAvailableCatalog = true;
-            var firstEstimate = CalculateBucket(
-                read.Version,
-                observedModel!,
-                row.OutputType,
-                firstUsage);
-            if (firstEstimate.Status is ModelPricingEstimateStatus.ModelNotFound)
-                continue;
-
-            // Once the highest-priority available source resolves (or ambiguously resolves)
-            // the exact observed identity, its outcome owns the cluster. Calculation failures
-            // must not select a more convenient or cheaper lower-priority catalog.
-            return AggregateOwnedSource(
-                row,
-                buckets,
-                read.Version,
-                identityBasis,
-                observedModel!,
-                firstEstimate);
+            return Failure(ModelPricingEstimateStatus.ModelNotFound);
         }
 
-        return Failure(hasAvailableCatalog
-            ? ModelPricingEstimateStatus.ModelNotFound
-            : hasStaleCatalog
-                ? ModelPricingEstimateStatus.StaleSource
-                : ModelPricingEstimateStatus.SourceUnavailable);
+        return AggregateOwnedSource(
+            row,
+            buckets,
+            catalog.Version,
+            identityBasis,
+            observedModel!,
+            firstEstimate);
     }
 
     private static GenAiEtlCatalogEstimateResult AggregateOwnedSource(

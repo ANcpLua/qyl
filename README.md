@@ -3,7 +3,8 @@
 qyl is an OpenTelemetry-compatible observability product for ingesting,
 investigating, and visualizing telemetry across all four OTLP signals — traces,
 logs, metrics, and profiles — with GenAI cost intelligence on top: provider
-billing synchronization, live model-pricing catalogs, and the GenAI ETL audit.
+billing synchronization, the live OpenRouter model-pricing catalog, and the
+GenAI ETL audit.
 The product is the collector, DuckDB storage, public investigation API,
 dashboard, and local distributed-app host. OpenTelemetry supplies the ingestion
 protocol and telemetry vocabulary; it is not Qyl's product API.
@@ -167,20 +168,19 @@ states explicitly.
 
 Catalog pricing is a separate boundary from provider billing. Qyl has no embedded
 model/rate table and does not infer prices from model-name prefixes, aliases, or
-release-date suffixes. Configured source adapters fetch their provider API, parse
-the returned price dimensions, activate a content-addressed immutable snapshot,
-and notify consumers through the shared catalog refresh pipeline. Source priority,
-endpoint, freshness, timeout, and response-size limits are configuration, not
-model-specific branches in the audit path.
+release-date suffixes. OpenRouter is the sole model-pricing source: Qyl parses its
+returned price dimensions and activates a content-addressed immutable snapshot.
+Freshness, timeout, and response-size limits are configuration, not model-specific
+branches in the audit path.
 
-The first adapter uses OpenRouter's
-[`GET /api/v1/models`](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
-API. OpenRouter publishes the lowest available rate for a model, so Qyl records
+The collector uses OpenRouter's
+[`GET /api/v1/models?output_modalities=all`](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
+API so non-text model metadata is not omitted by the endpoint's default filter.
+OpenRouter publishes the lowest available rate for a model, so Qyl records
 `minimum_available_rate` provenance rather than presenting the result as an
-official provider bill or a uniquely routed endpoint price. The API currently
-works without a key; `QYL_OPENROUTER_API_KEY` can be supplied when the provider
-requires authenticated access. Qyl sends no trace, prompt, completion, or project
-data to this endpoint.
+official provider bill or a uniquely routed endpoint price.
+`QYL_OPENROUTER_API_KEY` supplies the optional Bearer token. Qyl sends no trace,
+prompt, completion, or project data to this endpoint.
 
 Each physical model-call span is evaluated before workflow aggregation. The actual
 response model is preferred over the requested model, identities are matched
@@ -203,15 +203,12 @@ Configure live catalog synchronization with environment variables:
 
 | Variable | Meaning |
 | --- | --- |
-| `QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES` | Refresh interval; defaults to 60 and accepts 1–1440. Startup and expiry events are coalesced through the catalog refresh queue. |
+| `QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES` | Refresh interval; defaults to 60 and accepts 1–1440. The collector refreshes once at startup and then once per interval. |
 | `QYL_MODEL_PRICING_MAX_STALENESS_MINUTES` | Maximum age of the latest successful verification; defaults to three refresh intervals (at least 60 minutes). A stale snapshot cannot price a cluster. |
-| `QYL_MODEL_PRICING_RETAINED_SNAPSHOTS` | Maximum immutable catalog snapshots retained per configured source; defaults to 32 and accepts 1–1024. Activation and pruning are one storage transaction. |
-| `QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS` | Provider catalog request timeout; defaults to 30 and accepts 1–300. |
-| `QYL_MODEL_PRICING_MAX_RESPONSE_MIB` | Maximum accepted provider response size; defaults to 16 and accepts 1–64. |
-| `QYL_OPENROUTER_MODEL_CATALOG_ENABLED` | Registers the OpenRouter source adapter; defaults to `true`. |
-| `QYL_OPENROUTER_MODEL_CATALOG_PRIORITY` | Deterministic source-selection priority; lower values win and the default is 100. |
-| `QYL_OPENROUTER_MODELS_ENDPOINT` | OpenRouter Models API endpoint; defaults to `https://openrouter.ai/api/v1/models` and must be HTTPS. |
-| `QYL_OPENROUTER_API_KEY` | Optional bearer token for the Models API. It is sent only to an `openrouter.ai` HTTPS host. |
+| `QYL_MODEL_PRICING_RETAINED_SNAPSHOTS` | Maximum immutable OpenRouter catalog snapshots retained; defaults to 32 and accepts 1–1024. Activation and pruning are one storage transaction. |
+| `QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS` | OpenRouter catalog request timeout; defaults to 30 and accepts 1–300. |
+| `QYL_MODEL_PRICING_MAX_RESPONSE_MIB` | Maximum accepted OpenRouter response size; defaults to 16 and accepts 1–64. |
+| `QYL_OPENROUTER_API_KEY` | Optional bearer token for the fixed OpenRouter Models API endpoint. |
 
 ## Run locally
 

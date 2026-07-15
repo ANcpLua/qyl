@@ -10,11 +10,11 @@ internal sealed partial class DuckDbStore
         IReadOnlyList<ModelPricingCatalogModelRow> models,
         IReadOnlyList<ModelPricingCatalogOverrideRow> overrides,
         IReadOnlyList<ModelPricingCatalogRateRow> rates,
-        int retainedSnapshotsPerSource,
+        int retainedSnapshots,
         CancellationToken ct = default) =>
         ExecuteWriteAsync(async (con, wct) =>
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(retainedSnapshotsPerSource, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(retainedSnapshots, 1);
             await using var tx = await con.BeginTransactionAsync(wct).ConfigureAwait(false);
             string? previousSnapshotId = null;
             string? previousConfigurationFingerprint = null;
@@ -79,7 +79,7 @@ internal sealed partial class DuckDbStore
                     tx,
                     source.SourceId,
                     snapshot.SnapshotId,
-                    retainedSnapshotsPerSource,
+                    retainedSnapshots,
                     wct)
                 .ConfigureAwait(false);
             await tx.CommitAsync(wct).ConfigureAwait(false);
@@ -96,7 +96,7 @@ internal sealed partial class DuckDbStore
         DbTransaction transaction,
         string sourceId,
         string activeSnapshotId,
-        int retainedSnapshotsPerSource,
+        int retainedSnapshots,
         CancellationToken cancellationToken)
     {
         var obsolete = new List<string>();
@@ -112,7 +112,7 @@ internal sealed partial class DuckDbStore
                                   """;
             select.Parameters.Add(new DuckDBParameter { Value = sourceId });
             select.Parameters.Add(new DuckDBParameter { Value = activeSnapshotId });
-            select.Parameters.Add(new DuckDBParameter { Value = retainedSnapshotsPerSource - 1 });
+            select.Parameters.Add(new DuckDBParameter { Value = retainedSnapshots - 1 });
             await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
@@ -234,48 +234,50 @@ internal sealed partial class DuckDbStore
             return result;
         }, ct);
 
-    public Task<IReadOnlyList<ModelPricingCatalogSourceState>> GetModelPricingCatalogSourcesAsync(
+    public Task<ModelPricingCatalogSourceState?> GetModelPricingCatalogSourceAsync(
+        string sourceId,
         CancellationToken ct = default) =>
-        ExecuteReadAsync<IReadOnlyList<ModelPricingCatalogSourceState>>(static con =>
+        ExecuteReadAsync<ModelPricingCatalogSourceState?>(con =>
         {
             using var tx = con.BeginTransaction();
-            var sources = new List<ModelPricingCatalogSourceRow>();
+            ModelPricingCatalogSourceRow? source = null;
             using (var sourceCommand = con.CreateCommand())
             {
                 sourceCommand.Transaction = tx;
                 sourceCommand.CommandText = $"""
                                              SELECT {ModelPricingCatalogSourceRow.SelectColumnList}
                                              FROM model_pricing_catalog_sources
-                                             ORDER BY source_id
+                                             WHERE source_id = $1
                                              """;
+                sourceCommand.Parameters.Add(new DuckDBParameter { Value = sourceId });
                 using var reader = sourceCommand.ExecuteReader();
-                while (reader.Read()) sources.Add(ModelPricingCatalogSourceRow.MapFromReader(reader));
+                if (reader.Read()) source = ModelPricingCatalogSourceRow.MapFromReader(reader);
             }
 
-            var states = new List<ModelPricingCatalogSourceState>(sources.Count);
-            foreach (var source in sources)
+            if (source is null)
             {
-                ModelPricingCatalogSnapshotRow? snapshot = null;
-                if (source.ActiveSnapshotId is { } snapshotId)
-                {
-                    using var snapshotCommand = con.CreateCommand();
-                    snapshotCommand.Transaction = tx;
-                    snapshotCommand.CommandText = $"""
-                                                  SELECT {ModelPricingCatalogSnapshotRow.SelectColumnList}
-                                                  FROM model_pricing_catalog_snapshots
-                                                  WHERE source_id = $1 AND snapshot_id = $2
-                                                  """;
-                    snapshotCommand.Parameters.Add(new DuckDBParameter { Value = source.SourceId });
-                    snapshotCommand.Parameters.Add(new DuckDBParameter { Value = snapshotId });
-                    using var reader = snapshotCommand.ExecuteReader();
-                    if (reader.Read()) snapshot = ModelPricingCatalogSnapshotRow.MapFromReader(reader);
-                }
+                tx.Commit();
+                return null;
+            }
 
-                states.Add(new ModelPricingCatalogSourceState(source, snapshot));
+            ModelPricingCatalogSnapshotRow? snapshot = null;
+            if (source.ActiveSnapshotId is { } snapshotId)
+            {
+                using var snapshotCommand = con.CreateCommand();
+                snapshotCommand.Transaction = tx;
+                snapshotCommand.CommandText = $"""
+                                              SELECT {ModelPricingCatalogSnapshotRow.SelectColumnList}
+                                              FROM model_pricing_catalog_snapshots
+                                              WHERE source_id = $1 AND snapshot_id = $2
+                                              """;
+                snapshotCommand.Parameters.Add(new DuckDBParameter { Value = source.SourceId });
+                snapshotCommand.Parameters.Add(new DuckDBParameter { Value = snapshotId });
+                using var reader = snapshotCommand.ExecuteReader();
+                if (reader.Read()) snapshot = ModelPricingCatalogSnapshotRow.MapFromReader(reader);
             }
 
             tx.Commit();
-            return states;
+            return new ModelPricingCatalogSourceState(source, snapshot);
         }, ct);
 
     private static IReadOnlyList<T> ReadCatalogRows<T>(

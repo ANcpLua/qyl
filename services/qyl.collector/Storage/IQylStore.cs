@@ -102,7 +102,7 @@ internal interface IQylStore : IAsyncDisposable
         IReadOnlyList<ModelPricingCatalogModelRow> models,
         IReadOnlyList<ModelPricingCatalogOverrideRow> overrides,
         IReadOnlyList<ModelPricingCatalogRateRow> rates,
-        int retainedSnapshotsPerSource,
+        int retainedSnapshots,
         CancellationToken ct = default);
 
     Task UpsertModelPricingCatalogSourceAsync(
@@ -113,7 +113,8 @@ internal interface IQylStore : IAsyncDisposable
         string sourceId,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<ModelPricingCatalogSourceState>> GetModelPricingCatalogSourcesAsync(
+    Task<ModelPricingCatalogSourceState?> GetModelPricingCatalogSourceAsync(
+        string sourceId,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<GenAiEtlAuditStorageRow>> GetGenAiEtlAuditRowsAsync(

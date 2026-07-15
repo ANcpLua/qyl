@@ -259,7 +259,7 @@ function CatalogSourceCard({source}: { source: ModelCatalogSource }) {
                             </h4>
                         </div>
                         <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-brutal-slate">
-                            Model catalog · priority {integer.format(source.priority)}
+                            OpenRouter model catalog
                         </p>
                     </div>
                     <Badge className={cn('border text-[10px] uppercase tracking-[0.12em]', statusClass(source.status))}>

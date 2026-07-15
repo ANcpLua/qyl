@@ -36,33 +36,28 @@ internal static class CollectorCoreExtensions
         var modelPricingOptions = ModelPricingCatalogOptions.FromConfiguration(config);
         var openRouterOptions = OpenRouterModelPricingCatalogOptions.FromConfiguration(config);
         services.AddSingleton(modelPricingOptions);
-        if (openRouterOptions.Enabled)
+        services.AddSingleton(provider =>
         {
-            services.AddSingleton<IModelPricingCatalogSource>(provider =>
+            var handler = new HttpClientHandler
             {
-                var handler = new HttpClientHandler
-                {
-                    AllowAutoRedirect = false,
-                    CheckCertificateRevocationList = true
-                };
-                var client = new HttpClient(handler, disposeHandler: true)
-                {
-                    Timeout = modelPricingOptions.HttpTimeout,
-                    MaxResponseContentBufferSize = modelPricingOptions.MaximumResponseBytes
-                };
-                return new OpenRouterModelPricingCatalogSource(
-                    client,
-                    provider.GetRequiredService<TimeProvider>(),
-                    openRouterOptions,
-                    modelPricingOptions.MaximumResponseBytes);
-            });
-        }
+                AllowAutoRedirect = false,
+                CheckCertificateRevocationList = true
+            };
+            var client = new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = modelPricingOptions.HttpTimeout,
+                MaxResponseContentBufferSize = modelPricingOptions.MaximumResponseBytes
+            };
+            return new OpenRouterModelPricingCatalogSource(
+                client,
+                provider.GetRequiredService<TimeProvider>(),
+                openRouterOptions,
+                modelPricingOptions.MaximumResponseBytes);
+        });
 
-        services.AddSingleton<ModelPricingCatalogSourceRegistry>();
         services.AddSingleton<ModelPricingCatalogRepository>();
         services.AddSingleton<GenAiEtlCatalogEstimator>();
         services.AddSingleton<ModelPricingCatalogStateService>();
-        services.AddSingleton<ModelPricingCalculator>();
         services.AddSingleton<ModelPricingCatalogRefreshService>();
         services.AddHostedService(static provider =>
             provider.GetRequiredService<ModelPricingCatalogRefreshService>());

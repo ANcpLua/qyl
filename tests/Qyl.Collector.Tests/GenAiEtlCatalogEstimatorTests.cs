@@ -9,10 +9,10 @@ public sealed class GenAiEtlCatalogEstimatorTests
         new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void Estimate_uses_configured_priority_exact_identity_and_per_call_override_evidence()
+    public void Estimate_uses_exact_identity_and_per_call_override_evidence()
     {
-        var preferred = Version(
-            "preferred",
+        var catalog = Version(
+            "openrouter",
             "model/exact",
             "model/canonical",
             prompt: 0.02m,
@@ -26,13 +26,6 @@ public sealed class GenAiEtlCatalogEstimatorTests
                     100,
                     [Rate("prompt", "input_tokens", "token", ModelPricingBillingMode.Base, 0.03m)])
             ]);
-        var cheaper = Version(
-            "cheaper",
-            "model/exact",
-            "model/canonical",
-            prompt: 0.001m,
-            completion: 0.001m,
-            request: 0);
         var responseRow = Row(
             service: "response-service",
             calls: 3,
@@ -50,17 +43,14 @@ public sealed class GenAiEtlCatalogEstimatorTests
                 Bucket(responseRow, calls: 2, input: 120, output: 20),
                 Bucket(fallbackRow, calls: 1, input: 10, output: 5)
             ],
-            [
-                Available(cheaper, priority: 200),
-                Available(preferred, priority: 10)
-            ]);
+            Available(catalog));
 
         var response = estimates[0];
         Assert.Equal(ModelPricingEstimateStatus.Calculated, response.Status);
         Assert.Equal(3, response.PricedCallCount);
         Assert.Equal(11.5m, response.EstimatedTokenCostUsd);
         Assert.Equal(11.5m / 3, response.EstimatedTokenCostPerCallUsd);
-        Assert.Equal("preferred", response.Provenance?.SourceId);
+        Assert.Equal("openrouter", response.Provenance?.SourceId);
         Assert.Equal("model/exact", response.Provenance?.ObservedModelId);
         Assert.Equal("model/exact", response.Provenance?.PriceModelId);
         Assert.Equal(
@@ -94,7 +84,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
 
         var fallback = estimates[1];
         Assert.Equal(ModelPricingEstimateStatus.Calculated, fallback.Status);
-        Assert.Equal("preferred", fallback.Provenance?.SourceId);
+        Assert.Equal("openrouter", fallback.Provenance?.SourceId);
         Assert.Equal(
             GenAiEtlObservedModelIdentityBasis.RequestModelFallback,
             fallback.Provenance?.ObservedModelIdentityBasis);
@@ -102,10 +92,10 @@ public sealed class GenAiEtlCatalogEstimatorTests
     }
 
     [Fact]
-    public void Estimate_does_not_fall_through_after_owned_source_fails_one_physical_call()
+    public void Estimate_fails_closed_when_one_physical_call_has_unresolvable_pricing()
     {
         var ambiguousCache = Version(
-            "preferred",
+            "openrouter",
             "model/exact",
             canonical: null,
             prompt: 0.01m,
@@ -128,13 +118,6 @@ public sealed class GenAiEtlCatalogEstimatorTests
                     0.02m,
                     "input_tokens")
             ]);
-        var lowerPriority = Version(
-            "lower",
-            "model/exact",
-            canonical: null,
-            prompt: 0.001m,
-            completion: 0.001m,
-            request: 0);
         var row = Row("service", calls: 2);
 
         var estimate = Assert.Single(GenAiEtlCatalogEstimator.Estimate(
@@ -143,10 +126,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
                 Bucket(row, calls: 1, input: 10, output: 4, cacheWrite: 0),
                 Bucket(row, calls: 1, input: 10, output: 4, cacheWrite: 1)
             ],
-            [
-                Available(lowerPriority, priority: 100),
-                Available(ambiguousCache, priority: 1)
-            ]));
+            Available(ambiguousCache)));
 
         Assert.Equal(ModelPricingEstimateStatus.ConditionalPricingUnresolvable, estimate.Status);
         Assert.Equal(0, estimate.PricedCallCount);
@@ -165,7 +145,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
             prompt: 0.01m,
             completion: 0.02m,
             request: 0.1m);
-        var available = new[] { Available(version, priority: 1) };
+        var available = Available(version);
 
         var missingIdentity = Row("missing", calls: 1) with
         {
@@ -204,13 +184,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
             EstimateOne(
                 modelNotFound,
                 [Bucket(modelNotFound, calls: 1, input: 10, output: 4)],
-                [
-                    Available(version, priority: 1),
-                    new GenAiEtlCatalogSourceRead(
-                        "stale",
-                        2,
-                        new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.Stale, null))
-                ]).Status);
+                available).Status);
 
         var valid = Row("catalog-state", calls: 1);
         var validBucket = Bucket(valid, calls: 1, input: 10, output: 4);
@@ -219,25 +193,13 @@ public sealed class GenAiEtlCatalogEstimatorTests
             EstimateOne(
                 valid,
                 [validBucket],
-                [
-                    new GenAiEtlCatalogSourceRead(
-                        "stale",
-                        1,
-                        new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.Stale, null)),
-                    new GenAiEtlCatalogSourceRead(
-                        "offline",
-                        2,
-                        new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.SourceUnavailable, null))
-                ]).Status);
+                new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.Stale, null)).Status);
         Assert.Equal(
             ModelPricingEstimateStatus.SourceUnavailable,
             EstimateOne(
                 valid,
                 [validBucket],
-                [new GenAiEtlCatalogSourceRead(
-                    "offline",
-                    1,
-                    new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.SourceUnavailable, null))]).Status);
+                new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.SourceUnavailable, null)).Status);
     }
 
     [Fact]
@@ -267,7 +229,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
         var imageEstimate = EstimateOne(
             image,
             [Bucket(image, calls: 1, input: 10, output: 4)],
-            [Available(pricedModalities, priority: 1)]);
+            Available(pricedModalities));
         Assert.Equal(ModelPricingEstimateStatus.UnsupportedPricing, imageEstimate.Status);
         Assert.Empty(imageEstimate.Components);
 
@@ -275,14 +237,14 @@ public sealed class GenAiEtlCatalogEstimatorTests
         var speechEstimate = EstimateOne(
             speech,
             [Bucket(speech, calls: 1, input: 10, output: 4)],
-            [Available(pricedModalities, priority: 1)]);
+            Available(pricedModalities));
         Assert.Equal(ModelPricingEstimateStatus.UnsupportedPricing, speechEstimate.Status);
         Assert.Empty(speechEstimate.Components);
 
         var missingMeter = EstimateOne(
             image,
             [Bucket(image, calls: 1, input: 10, output: 4)],
-            [Available(noModalities, priority: 1)]);
+            Available(noModalities));
         Assert.Equal(ModelPricingEstimateStatus.UnsupportedPricing, missingMeter.Status);
         Assert.Empty(missingMeter.Components);
 
@@ -292,13 +254,13 @@ public sealed class GenAiEtlCatalogEstimatorTests
             EstimateOne(
                 futureModality,
                 [Bucket(futureModality, calls: 1, input: 10, output: 4)],
-                [Available(noModalities, priority: 1)]).Status);
+                Available(noModalities)).Status);
 
         var text = Row("text", calls: 1) with { OutputType = "text" };
         var textEstimate = EstimateOne(
             text,
             [Bucket(text, calls: 1, input: 10, output: 4)],
-            [Available(pricedModalities, priority: 1)]);
+            Available(pricedModalities));
         Assert.Equal(ModelPricingEstimateStatus.Calculated, textEstimate.Status);
         Assert.Contains(textEstimate.Exclusions, static exclusion => exclusion is
         {
@@ -325,7 +287,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
         var row = Row("embedding", calls: 1) with { OperationName = "embeddings" };
         var bucket = Bucket(row, calls: 1, input: 10, output: null);
 
-        var estimate = EstimateOne(row, [bucket], [Available(version, priority: 1)]);
+        var estimate = EstimateOne(row, [bucket], Available(version));
 
         Assert.Equal(ModelPricingEstimateStatus.Calculated, estimate.Status);
         Assert.Equal(0.2m, estimate.EstimatedTokenCostUsd);
@@ -339,21 +301,18 @@ public sealed class GenAiEtlCatalogEstimatorTests
         var missingInput = EstimateOne(
             row,
             [Bucket(row, calls: 1, input: null, output: null)],
-            [Available(version, priority: 1)]);
+            Available(version));
         Assert.Equal(ModelPricingEstimateStatus.IncompleteUsage, missingInput.Status);
     }
 
     private static GenAiEtlCatalogEstimateResult EstimateOne(
         GenAiEtlAuditStorageRow row,
         IReadOnlyList<GenAiEtlAuditUsageBucket> buckets,
-        IReadOnlyList<GenAiEtlCatalogSourceRead> sources) =>
-        Assert.Single(GenAiEtlCatalogEstimator.Estimate([row], buckets, sources));
+        ModelPricingCatalogReadResult catalog) =>
+        Assert.Single(GenAiEtlCatalogEstimator.Estimate([row], buckets, catalog));
 
-    private static GenAiEtlCatalogSourceRead Available(ModelPricingCatalogVersion version, int priority) =>
-        new(
-            version.Catalog.SourceId,
-            priority,
-            new ModelPricingCatalogReadResult(ModelPricingCatalogAvailability.Available, version));
+    private static ModelPricingCatalogReadResult Available(ModelPricingCatalogVersion version) =>
+        new(ModelPricingCatalogAvailability.Available, version);
 
     private static ModelPricingCatalogVersion Version(
         string sourceId,
@@ -375,7 +334,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
         var catalog = new ModelPricingCatalogSnapshot(
             sourceId,
             new Uri($"https://{sourceId}.example.test/models"),
-            "published_rate",
+            "minimum_available_rate",
             s_now,
             [new ModelPricingCatalogModel(modelId, canonical, "USD", rates, overrides ?? [])]);
         return new ModelPricingCatalogVersion($"snapshot-{sourceId}", s_now, catalog);
