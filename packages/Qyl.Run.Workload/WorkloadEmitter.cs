@@ -12,19 +12,22 @@ internal sealed partial class WorkloadEmitter(
 
     private const int ErrorPercent = 7;
 
-    // Representative provider/model identities for exercising GenAI usage aggregation.
+    // Model ids must byte-equal a live OpenRouter catalog `id` (or canonical_slug): the
+    // catalog estimator matches observed span models by exact ordinal comparison, so a
+    // fabricated or retired id makes every demo cluster report model_not_found instead
+    // of a priced estimate. Verified against GET /api/v1/models on 2026-07-15.
     private static readonly ModelProfile[] Profiles =
     [
-        new("anthropic", "claude-opus-4-6", 800, 6000, 300, 2200, 900, 3200),
-        new("anthropic", "claude-sonnet-4-6", 400, 4000, 150, 1500, 400, 1800),
-        new("anthropic", "claude-haiku-4-5", 200, 2000, 60, 700, 150, 700),
-        new("openai", "gpt-4o", 400, 4000, 150, 1400, 350, 1600),
-        new("openai", "gpt-4.1-mini", 200, 2500, 80, 900, 200, 900),
-        new("openai", "o3-mini", 300, 3000, 200, 1800, 700, 2800),
-        new("google", "gemini-2.5-pro", 500, 5000, 200, 1600, 500, 2200),
-        new("google", "gemini-2.5-flash", 200, 2200, 60, 800, 150, 800),
-        new("mistral", "mistral-large", 300, 2800, 100, 1000, 300, 1300),
-        new("deepseek", "deepseek-r1", 300, 3500, 250, 2000, 800, 3000),
+        new("anthropic", "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),
+        new("anthropic", "anthropic/claude-sonnet-5", 400, 4000, 150, 1500, 400, 1800),
+        new("anthropic", "anthropic/claude-haiku-4.5", 200, 2000, 60, 700, 150, 700),
+        new("openai", "openai/gpt-5.6-sol", 400, 4000, 150, 1400, 350, 1600),
+        new("openai", "openai/gpt-5.4-mini", 200, 2500, 80, 900, 200, 900),
+        new("openai", "openai/gpt-5.5", 300, 3000, 200, 1800, 700, 2800),
+        new("google", "google/gemini-3.1-pro-preview", 500, 5000, 200, 1600, 500, 2200),
+        new("google", "google/gemini-3.5-flash", 200, 2200, 60, 800, 150, 800),
+        new("mistralai", "mistralai/mistral-large-2512", 300, 2800, 100, 1000, 300, 1300),
+        new("deepseek", "deepseek/deepseek-v4-flash", 300, 3500, 250, 2000, 800, 3000),
     ];
 
     private static readonly string[] Routes = ["/api/chat", "/api/agents/plan", "/api/summarize", "/api/search"];
