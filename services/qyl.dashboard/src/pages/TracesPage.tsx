@@ -31,8 +31,7 @@ import {getStatusLabel} from '@/types';
 type TelemetrySpan = Span;
 
 function getServiceName(span: Span): string {
-    const attr = span.resource?.attributes?.find(a => a.key === 'service.name');
-    return (attr?.value as string) ?? 'unknown';
+    return span.resource['service.name'];
 }
 
 function getDurationNs(span: Span): number {

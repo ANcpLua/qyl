@@ -14,7 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
-import {consumeSse} from '@/lib/api';
+import {consumeSse, parseLogSsePayload} from '@/lib/api';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
@@ -23,7 +23,7 @@ import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from 
 import {OnboardingHint} from '@/components/OnboardingHint';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
-import type {ContractLogRecord, LogLevel, LogStreamEvent, LogViewRecord} from '@/types';
+import type {ContractLogRecord, LogLevel, LogViewRecord} from '@/types';
 
 const MAX_LOGS = 10_000;
 const AUTO_SCROLL_THRESHOLD = 100;
@@ -278,9 +278,9 @@ function useLiveLogs(
                     controller.signal,
                     () => setIsConnected(true),
                     frame => {
-                        if (frame.event !== 'log') return;
+                        const event = parseLogSsePayload(frame);
+                        if (event.type !== 'log') return;
                         if (frame.id && seenEventIdsRef.current.has(frame.id)) return;
-                        const event = JSON.parse(frame.data) as LogStreamEvent;
                         queueLogs([normalizeLogRecord(event.data)]);
                         if (frame.id) {
                             lastEventIdRef.current = frame.id;

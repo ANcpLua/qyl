@@ -5,11 +5,33 @@ import type {
     GenAiEtlAuditEvaluationResponse,
     GenAiEtlAuditReport,
 } from '@/types';
+import type {HeartbeatEvent, LogStreamEvent} from '@ancplua/qyl-api-schema/types';
+import {
+    parseGenAiEtlAuditEvaluationRequest,
+    parseGenAiEtlAuditEvaluationResponse,
+    parseGenAiEtlAuditReport,
+    parseHeartbeatEvent,
+    parseLogStreamEvent,
+    parseProblemDetails,
+} from '@/lib/contract-validation';
 
 export interface SseEvent {
     event: string;
     data: string;
     id?: string;
+}
+
+export function parseLogSsePayload(frame: SseEvent): LogStreamEvent | HeartbeatEvent {
+    let value: unknown;
+    try {
+        value = JSON.parse(frame.data);
+    } catch {
+        throw new Error(`Collector contract mismatch for /api/v1/stream/logs ${frame.event} event: invalid JSON`);
+    }
+
+    if (frame.event === 'log') return parseLogStreamEvent(value);
+    if (frame.event === 'heartbeat') return parseHeartbeatEvent(value);
+    throw new Error(`Collector contract mismatch for /api/v1/stream/logs: unsupported event '${frame.event}'`);
 }
 
 export async function consumeSse(
@@ -62,18 +84,41 @@ export async function consumeSse(
     }
 }
 
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+export async function fetchJson<T>(
+    url: string,
+    parse: (value: unknown) => T,
+    init?: RequestInit,
+): Promise<T> {
     const res = await fetch(url, {
         credentials: 'include',
         ...init,
         headers: init?.headers,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
+    const mediaType = res.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+    if (!res.ok) {
+        if (mediaType !== 'application/problem+json') {
+            throw new Error(
+                `Collector contract mismatch for ${url}: expected application/problem+json, got ${mediaType ?? 'no content type'}`,
+            );
+        }
+        const problem = parseProblemDetails(await res.json() as unknown);
+        throw new Error(`HTTP ${res.status}: ${problem.detail ?? problem.title}`);
+    }
+    if (mediaType !== 'application/json') {
+        throw new Error(
+            `Collector contract mismatch for ${url}: expected application/json, got ${mediaType ?? 'no content type'}`,
+        );
+    }
+    return parse(await res.json() as unknown);
 }
 
-export async function postJson<T>(url: string, body: unknown, headers?: HeadersInit): Promise<T> {
-    return fetchJson<T>(url, {
+export async function postJson<T>(
+    url: string,
+    body: unknown,
+    parse: (value: unknown) => T,
+    headers?: HeadersInit,
+): Promise<T> {
+    return fetchJson(url, parse, {
         method: 'POST',
         headers: {...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json'},
         body: JSON.stringify(body),
@@ -100,8 +145,9 @@ export function fetchGenAiEtlAudit(
     limit = 25,
     projectScope?: string,
 ): Promise<GenAiEtlAuditReport> {
-    return fetchJson<GenAiEtlAuditReport>(
+    return fetchJson(
         costAuditUrl('/api/v1/cost/etl-audit', startTime, endTime, limit),
+        parseGenAiEtlAuditReport,
         {headers: projectScopeHeaders(projectScope)},
     );
 }
@@ -112,9 +158,10 @@ export function evaluateGenAiEtlAudit(
     endTime?: string,
     projectScope?: string,
 ): Promise<GenAiEtlAuditEvaluationResponse> {
-    return postJson<GenAiEtlAuditEvaluationResponse>(
+    return postJson(
         costAuditUrl('/api/v1/cost/etl-audit/evaluate', startTime, endTime),
-        request,
+        parseGenAiEtlAuditEvaluationRequest(request),
+        parseGenAiEtlAuditEvaluationResponse,
         projectScopeHeaders(projectScope),
     );
 }

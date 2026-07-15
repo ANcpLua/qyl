@@ -1,13 +1,11 @@
 import {useQuery} from '@tanstack/react-query';
 import type {
-    CursorPageSessionEntity,
-    CursorPageSpan,
-    CursorPageTrace,
     SessionEntity,
     Span,
 } from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
+import {parseSessionPage, parseSpanPage, parseTracePage} from '@/lib/contract-validation';
 
 type TelemetrySpan = Span;
 
@@ -25,7 +23,7 @@ export const telemetryKeys = {
 export function useSessions() {
     return useQuery({
         queryKey: telemetryKeys.sessions(),
-        queryFn: () => fetchJson<CursorPageSessionEntity>('/api/v1/sessions'),
+        queryFn: () => fetchJson('/api/v1/sessions', parseSessionPage),
         select: (data): SessionEntity[] => data.items,
         refetchInterval: 10000,
     });
@@ -34,7 +32,10 @@ export function useSessions() {
 export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
-        queryFn: () => fetchJson<CursorPageTrace>(`/api/v1/sessions/${sessionId}/traces`),
+        queryFn: () => fetchJson(
+            `/api/v1/sessions/${sessionId}/traces`,
+            value => parseTracePage(value, `/api/v1/sessions/${sessionId}/traces`),
+        ),
         select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
         enabled: !!sessionId,
     });
@@ -43,7 +44,10 @@ export function useSessionSpans(sessionId: string) {
 export function useTraceSpans(traceId: string) {
     return useQuery({
         queryKey: telemetryKeys.traceSpans(traceId),
-        queryFn: () => fetchJson<CursorPageSpan>(`/api/v1/traces/${traceId}/spans`),
+        queryFn: () => fetchJson(
+            `/api/v1/traces/${traceId}/spans`,
+            value => parseSpanPage(value, `/api/v1/traces/${traceId}/spans`),
+        ),
         select: (data): TelemetrySpan[] => data.items,
         enabled: !!traceId,
     });
@@ -52,7 +56,7 @@ export function useTraceSpans(traceId: string) {
 export function useTraces(enabled = true) {
     return useQuery({
         queryKey: telemetryKeys.traces(),
-        queryFn: () => fetchJson<CursorPageTrace>('/api/v1/traces'),
+        queryFn: () => fetchJson('/api/v1/traces', parseTracePage),
         select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
         enabled,
         refetchInterval: 10000,

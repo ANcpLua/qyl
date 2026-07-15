@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {cn} from '@/lib/utils';
-import {HealthStatusValues, type HealthReport} from '@ancplua/qyl-api-schema/types';
+import {HealthStatusValues} from '@ancplua/qyl-api-schema/types';
+import {parseHealthReport} from '@/lib/contract-validation';
 
 type ProbeState = 'checking' | 'healthy' | 'unhealthy';
 
@@ -18,7 +19,11 @@ export function HealthIndicator() {
                     cache: 'no-store',
                     signal: controller.signal,
                 });
-                const report = await response.json() as HealthReport;
+                const mediaType = response.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+                if (mediaType !== 'application/json') {
+                    throw new Error(`Expected application/json, got ${mediaType ?? 'no content type'}`);
+                }
+                const report = parseHealthReport(await response.json() as unknown);
                 setState(response.ok && report.status !== HealthStatusValues.unhealthy
                     ? 'healthy'
                     : 'unhealthy');
