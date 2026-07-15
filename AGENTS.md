@@ -9,9 +9,12 @@ rules file.
 ## Product and delivery
 
 qyl is the collector, storage, investigation API, dashboard, and local host for an
-OpenTelemetry-compatible observability product. It is pre-beta. Unpublished Qyl
-surfaces may converge directly; published package versions are immutable and move
-through new versions rather than compatibility shims without a proven consumer.
+OpenTelemetry-compatible observability product. The collector ingests all four OTLP
+signals (traces, logs, metrics, profiles) and owns the GenAI cost subsystem:
+provider billing synchronization, the live model-pricing catalog, and the GenAI ETL
+audit. It is pre-beta. Unpublished Qyl surfaces may converge directly; published
+package versions are immutable and move through new versions rather than
+compatibility shims without a proven consumer.
 
 Work directly on `main`, preserve unrelated user changes, run the repository gates,
 make one intentional commit per coherent repository change, and push it. Generated
@@ -54,6 +57,10 @@ anything serialized across a boundary is a contract.
   that consume them. Do not hardcode package or banner versions elsewhere.
 - The toolchain is the `global.json` SDK (`10.0.301`, `latestFeature`) and C# 14.
   Interceptors are supported on this SDK; use the current Roslyn APIs.
+- Native AOT is the collector's publish contract (`QylAot` defaults on; the
+  Dockerfile publishes the native lane). `eng/scripts/collector-aot-smoke.sh` is
+  that lane's executable owner; `-p:QylAot=false` is the JIT diagnostic build with
+  full analyzer enforcement.
 - Never hand-edit generated C#, protobuf output, TypeScript contracts, or generated
   reports. Analyzer release manifests are maintained inputs and change with their
   analyzer rules.

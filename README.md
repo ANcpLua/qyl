@@ -1,10 +1,12 @@
 # qyl
 
 qyl is an OpenTelemetry-compatible observability product for ingesting,
-investigating, and visualizing telemetry. The product is the collector, DuckDB
-storage, public investigation API, dashboard, and local distributed-app host.
-OpenTelemetry supplies the ingestion protocol and telemetry vocabulary; it is not
-Qyl's product API.
+investigating, and visualizing telemetry across all four OTLP signals — traces,
+logs, metrics, and profiles — with GenAI cost intelligence on top: provider
+billing synchronization, live model-pricing catalogs, and the GenAI ETL audit.
+The product is the collector, DuckDB storage, public investigation API,
+dashboard, and local distributed-app host. OpenTelemetry supplies the ingestion
+protocol and telemetry vocabulary; it is not Qyl's product API.
 
 qyl is pre-beta. Unpublished surfaces converge directly on a small, executable
 product; compatibility requires a proven consumer.
@@ -24,22 +26,45 @@ qyl-api-schema                           TypeSpec product contract
         +----> generated TS contracts    dashboard and other consumers
         |
         v
-qyl.collector                            OTLP ingest -> DuckDB -> product API
-        |
+qyl.collector                            OTLP ingest (traces, logs, metrics,
+        |                                profiles) -> DuckDB -> product API;
+        |                                provider billing sync + live pricing
+        |                                catalog -> GenAI ETL audit
         v
-qyl.dashboard                            investigation UI
+qyl.dashboard                            investigation UI, including the Cost page
 ```
 
 The main components are:
 
 | Path | Responsibility |
 | --- | --- |
-| `services/qyl.collector` | Official OTLP wire ingestion, internal storage, and the generated-contract product API |
+| `services/qyl.collector` | Official OTLP wire ingestion (all four signals), DuckDB storage, the generated-contract product API, and the GenAI cost subsystem (provider billing sync, model-pricing catalog, ETL audit) |
 | `services/qyl.dashboard` | React investigation interface backed by generated client contracts |
 | `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
-| `packages/Qyl.Host` | Unpublished local distributed-app runner |
-| `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner |
+| `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
+| `packages/Qyl.Host` | Unpublished local distributed-app host: fluent AppHost-equivalent with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
+| `packages/Qyl.Host.Console` | Host console frontend consuming the generated TypeScript contracts (build/typecheck-gated) |
+| `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner (stdio/HTTP/in-process resources, OTLP export of the MCP SDK ActivitySource) |
+| `packages/Qyl.Run.Host` | Composed local host entry point: the collector plus its isolated diagnostics collector |
+| `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |
+
+## Ingestion and product API
+
+OTLP ingestion speaks the official protobuf contract on gRPC (`:4317` —
+trace, logs, metrics, and profiles services) and HTTP (`POST /v1/traces`,
+`/v1/logs`, `/v1/metrics`, plus `POST /v1development/profiles` for the
+development profiles signal).
+
+The generated product API is served under `/api/v1`:
+
+| Route group | Purpose |
+| --- | --- |
+| `/sessions`, `/sessions/stats`, `/sessions/{id}`, `/sessions/{id}/traces` | Session inventory, statistics, and session-scoped traces |
+| `/traces`, `/traces/{id}`, `/traces/{id}/spans` | Trace inventory and full span data |
+| `/logs`, `/stream/logs` | Log search and live log streaming |
+| `/cost/etl-audit`, `/cost/etl-audit/evaluate` | GenAI ETL audit report and scenario evaluation (detailed below) |
+| `/profiles`, `/profiles/{id}`, `/profiles/by-trace/{id}`, `/profiles/by-span/{id}` | Profile inventory and correlation lookups |
 
 ## Contract boundaries
 
@@ -232,6 +257,14 @@ export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 | `5100` | Product API and OTLP/HTTP; embedded dashboard in `Unsecured` mode (loopback by default) |
 | `4317` | OTLP/gRPC receiver |
 | `4318` | Dedicated OTLP/HTTP receiver |
+
+### Native AOT publish
+
+Native AOT is the collector's publish contract: `QylAot` defaults on, so
+`dotnet publish services/qyl.collector` produces a native binary, and the
+Dockerfile builds on the AOT SDK image and runs on `runtime-deps`. Publish with
+`-p:QylAot=false` for a JIT diagnostic build with full analyzer enforcement.
+The native lane's executable owner is `eng/scripts/collector-aot-smoke.sh`.
 
 ## Verify
 
