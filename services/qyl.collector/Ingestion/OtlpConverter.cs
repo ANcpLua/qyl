@@ -107,7 +107,7 @@ internal static class OtlpConverter
         if (resource is null) return new ResourceProjection(attrs, []);
 
         var sourceKeys = new HashSet<string>(StringComparer.Ordinal);
-        var projectedKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+        var projectedKeys = new Dictionary<string, ResourceAttributeProjectionKey>(StringComparer.Ordinal);
         var entityReferencedKeys = GetResourceEntityReferencedKeys(resource);
 
         foreach (var attr in resource.Attributes)
@@ -131,7 +131,7 @@ internal static class OtlpConverter
                     $"OTLP resource contains attribute keys that normalize to duplicate key '{key}'.");
             }
 
-            projectedKeys.Add(attr.Key, key);
+            projectedKeys.Add(attr.Key, new ResourceAttributeProjectionKey(key));
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
@@ -151,7 +151,7 @@ internal static class OtlpConverter
 
     private static IReadOnlyList<ResourceEntityRefIngestionRecord> ExtractResourceEntityRefs(
         ProtoResource resource,
-        IReadOnlyDictionary<string, string> projectedKeys,
+        IReadOnlyDictionary<string, ResourceAttributeProjectionKey> projectedKeys,
         IReadOnlyDictionary<string, OtlpAttributeValue> projectedAttributes)
     {
         if (resource.EntityRefs.Count is 0) return [];
@@ -188,7 +188,7 @@ internal static class OtlpConverter
 
     private static IReadOnlyList<string> NormalizeEntityReferenceKeys(
         RepeatedField<string> keys,
-        IReadOnlyDictionary<string, string> projectedKeys,
+        IReadOnlyDictionary<string, ResourceAttributeProjectionKey> projectedKeys,
         string fieldName)
     {
         var normalized = new HashSet<string>(StringComparer.Ordinal);
@@ -196,12 +196,13 @@ internal static class OtlpConverter
         {
             if (string.IsNullOrWhiteSpace(key))
                 throw new InvalidDataException($"OTLP resource entity {fieldName} must not be empty.");
-            if (!projectedKeys.TryGetValue(key, out var projectedKey))
+            if (!projectedKeys.TryGetValue(key, out var projection))
             {
                 throw new InvalidDataException(
                     $"OTLP resource entity {fieldName} '{key}' does not reference a persisted resource attribute.");
             }
 
+            var projectedKey = projection.PersistedKey;
             if (!normalized.Add(projectedKey))
             {
                 throw new InvalidDataException(
@@ -231,6 +232,8 @@ internal static class OtlpConverter
     private sealed record ResourceProjection(
         Dictionary<string, OtlpAttributeValue> Attributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> EntityRefs);
+
+    private readonly record struct ResourceAttributeProjectionKey(string PersistedKey);
 
     private static Dictionary<string, OtlpAttributeValue> ExtractAttributesFromProto(
         RepeatedField<ProtoKeyValue> protoAttributes,
