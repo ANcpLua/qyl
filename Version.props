@@ -16,7 +16,7 @@
     <GrpcToolsVersion>2.81.1</GrpcToolsVersion>
     <ANcpLuaRoslynUtilitiesVersion>2.2.36</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAgentsVersion>1.11.0</ANcpLuaAgentsVersion>
-    <QylApiContractsVersion>0.6.1</QylApiContractsVersion>
+    <QylApiContractsVersion>1.0.0</QylApiContractsVersion>
 
     <!-- Mirrors the SDK values so standalone checkouts resolve the same MAF graph. -->
     <MicrosoftAgentsAIVersion>1.11.0</MicrosoftAgentsAIVersion>
