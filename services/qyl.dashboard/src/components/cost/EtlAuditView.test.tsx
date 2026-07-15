@@ -9,7 +9,7 @@ import {
 } from './EtlAuditView';
 
 describe('buildScenarioRequest', () => {
-    it('sends the explicit frontier baseline required by the source-level cost policy', () => {
+    it('sends an explicit frontier baseline when the user supplies one', () => {
         expect(buildScenarioRequest('workflow-1', {
             coverage: '0.8',
             frontier: '0.04',
