@@ -29,10 +29,13 @@ public sealed class RunnerControlTests
                 [
                     "-u",
                     "-c",
-                    "import http.server, os, urllib.parse; " +
-                    "u = urllib.parse.urlparse(os.environ['ASPNETCORE_URLS']); " +
-                    "print('started', flush=True); " +
-                    "http.server.ThreadingHTTPServer((u.hostname, u.port), http.server.SimpleHTTPRequestHandler).serve_forever()"
+                    "import http.server, os, urllib.parse\n" +
+                    "u = urllib.parse.urlparse(os.environ['ASPNETCORE_URLS'])\n" +
+                    "class ReusableServer(http.server.ThreadingHTTPServer):\n" +
+                    "    allow_reuse_address = True\n" +
+                    "server = ReusableServer((u.hostname, u.port), http.server.SimpleHTTPRequestHandler)\n" +
+                    "print('started', flush=True)\n" +
+                    "server.serve_forever()"
                 ]),
                 HealthPath = "/"
             }
@@ -163,8 +166,18 @@ public sealed class RunnerControlTests
         ResourceLifecycle expected,
         CancellationToken cancellationToken)
     {
-        while (!registry.Snapshot.TryGetValue(resource, out var state) || state.Lifecycle != expected)
+        while (true)
+        {
+            if (registry.Snapshot.TryGetValue(resource, out var state))
+            {
+                if (state.Lifecycle == expected) return;
+                if (state.Lifecycle == ResourceLifecycle.Failed)
+                    throw new InvalidOperationException(
+                        $"Resource '{resource}' failed while waiting for {expected}: {state.LastError}");
+            }
+
             await Task.Delay(20, cancellationToken);
+        }
     }
 
     private static async Task WaitForLogCountAsync(

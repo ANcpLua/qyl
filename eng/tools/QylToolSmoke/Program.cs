@@ -72,7 +72,7 @@ try
             scratch,
             TimeSpan.FromMinutes(2));
         install.RequireExitCode(0, "clean tool install");
-        tool = Path.Combine(toolDirectory, OperatingSystem.IsWindows() ? "qyl.exe" : "qyl");
+        tool = ResolveInstalledTool(toolDirectory);
     }
 
     if (!File.Exists(tool)) throw new FileNotFoundException("Installed qyl command was not created.", tool);
@@ -121,6 +121,25 @@ try
 finally
 {
     if (Directory.Exists(scratch)) Directory.Delete(scratch, recursive: true);
+}
+
+static string ResolveInstalledTool(string toolDirectory)
+{
+    string[] commandNames = OperatingSystem.IsWindows() ? ["qyl.exe", "qyl"] : ["qyl", "qyl.exe"];
+    foreach (var commandName in commandNames)
+    {
+        var candidate = Path.Combine(toolDirectory, commandName);
+        if (File.Exists(candidate)) return candidate;
+    }
+
+    var contents = Directory.Exists(toolDirectory)
+        ? string.Join(", ", Directory.EnumerateFileSystemEntries(toolDirectory)
+            .Select(Path.GetFileName)
+            .Order(StringComparer.Ordinal))
+        : "<directory missing>";
+    throw new FileNotFoundException(
+        $"The qyl tool installation did not create a supported command shim in '{toolDirectory}'. " +
+        $"Top-level contents: {contents}.");
 }
 
 static async Task RunLiveAsync(string tool, string workingDirectory)
