@@ -1576,8 +1576,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             string[] forbidden =
             [
                 "ConvertProtoAnyValueToString",
-                "Dictionary<string, string>",
-                "IReadOnlyDictionary<string, string>",
                 "DictionaryStringString"
             ];
 
@@ -1586,6 +1584,31 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
                     .Select(token => (file.File, Token: token)))
                 .ToList();
+
+            // Resource normalization needs one original-key -> canonical-key map. It is permitted
+            // only under the explicit projectedKeys name; all OTLP attribute value carriers remain typed.
+            var stringDictionaryOffenders = ingestionFiles.Concat(storageFiles)
+                .SelectMany(file => CSharpSyntaxTree.ParseText(file.Text)
+                    .GetRoot()
+                    .DescendantNodes()
+                    .OfType<GenericNameSyntax>()
+                    .Where(static type =>
+                        type.Identifier.ValueText is "Dictionary" or "IReadOnlyDictionary" &&
+                        type.TypeArgumentList.Arguments is [PredefinedTypeSyntax first, PredefinedTypeSyntax second] &&
+                        first.Keyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StringKeyword) &&
+                        second.Keyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StringKeyword))
+                    .Where(static type => !type.AncestorsAndSelf().Any(static node => node switch
+                    {
+                        VariableDeclarationSyntax declaration => declaration.Variables.All(
+                            static variable => variable.Identifier.ValueText == "projectedKeys"),
+                        ParameterSyntax parameter => parameter.Identifier.ValueText == "projectedKeys",
+                        _ => false
+                    }))
+                    .Select(type => (
+                        file.File,
+                        Token: $"{type} at line {type.GetLocation().GetLineSpan().StartLinePosition.Line + 1}")))
+                .ToList();
+            offenders.AddRange(stringDictionaryOffenders);
 
             var converterText = ingestionFiles.Single(static file => file.File.EndsWith("Ingestion/OtlpConverter.cs", StringComparison.Ordinal)).Text;
             string[] converterRequired =
