@@ -23,6 +23,7 @@ public sealed class ModelPricingCatalogTests
                                      "pricing": {
                                        "prompt": "0.01",
                                        "completion": "0.02",
+                                       "request": "0.005",
                                        "audio": "0.5",
                                        "overrides": [
                                          { "min_prompt_tokens": 100, "prompt": "0.03" },
@@ -59,13 +60,25 @@ public sealed class ModelPricingCatalogTests
         var model = Assert.Single(snapshot.Models);
         Assert.Equal("openai/gpt-test", model.ModelId);
         Assert.Equal("openai/gpt-test-20260714", model.CanonicalModelId);
-        Assert.Equal(ModelPricingBillingMode.Base,
-            Assert.Single(model.Rates, static rate => rate.SourceMeter == "prompt").BillingMode);
+        var promptRate = Assert.Single(model.Rates, static rate => rate.SourceMeter == "prompt");
+        Assert.Equal(("input_tokens", "token", "usd_per_token", ModelPricingBillingMode.Base, 0.01m),
+            (promptRate.UsageDimension, promptRate.Unit, promptRate.SourceBillingMode,
+                promptRate.BillingMode, promptRate.UsdPerUnit));
+        var completionRate = Assert.Single(model.Rates, static rate => rate.SourceMeter == "completion");
+        Assert.Equal(("output_tokens", "token", "usd_per_token", ModelPricingBillingMode.Base, 0.02m),
+            (completionRate.UsageDimension, completionRate.Unit, completionRate.SourceBillingMode,
+                completionRate.BillingMode, completionRate.UsdPerUnit));
+        var requestRate = Assert.Single(model.Rates, static rate => rate.SourceMeter == "request");
+        Assert.Equal(("requests", "request", "usd_per_request", ModelPricingBillingMode.Surcharge, 0.005m),
+            (requestRate.UsageDimension, requestRate.Unit, requestRate.SourceBillingMode,
+                requestRate.BillingMode, requestRate.UsdPerUnit));
         Assert.Equal(ModelPricingBillingMode.Unsupported,
             Assert.Single(model.Rates, static rate => rate.SourceMeter == "audio").BillingMode);
         Assert.Equal([100m, 50m], model.Overrides.Select(static value => value.ExclusiveMinimumQuantity));
         Assert.Equal("Bearer", handler.AuthorizationScheme);
         Assert.Equal("catalog-key", handler.AuthorizationParameter);
+        Assert.Equal(HttpMethod.Get, handler.Method);
+        Assert.Equal(new Uri("https://openrouter.ai/api/v1/models"), handler.RequestUri);
         Assert.Equal(20, source.Priority);
         Assert.Equal(64, source.ConfigurationFingerprint.Length);
     }
@@ -472,6 +485,8 @@ public sealed class ModelPricingCatalogTests
     {
         public string? AuthorizationScheme { get; private set; }
         public string? AuthorizationParameter { get; private set; }
+        public HttpMethod? Method { get; private set; }
+        public Uri? RequestUri { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -480,6 +495,8 @@ public sealed class ModelPricingCatalogTests
             cancellationToken.ThrowIfCancellationRequested();
             AuthorizationScheme = request.Headers.Authorization?.Scheme;
             AuthorizationParameter = request.Headers.Authorization?.Parameter;
+            Method = request.Method;
+            RequestUri = request.RequestUri;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json")
