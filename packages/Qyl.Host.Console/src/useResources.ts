@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { parseResourceState } from "./contract-validation";
 import type { ResourceState } from "./types";
 
 const STREAM_URL = "/runner/resources/stream";
@@ -26,7 +27,7 @@ export function useResources(): { resources: ResourceState[]; connection: Connec
       source.onmessage = (event) => {
         if (cancelled) return;
         try {
-          const state = JSON.parse(event.data) as ResourceState;
+          const state = parseResourceState(JSON.parse(event.data));
           setByName((prev) => new Map(prev).set(state.name, state));
         } catch {
           // ignore a malformed frame
