@@ -2356,7 +2356,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             [
                 "/observe",
                 "/qyl.js",
-                "/metrics",
+                // "/metrics" left this list when OTLP metrics ingestion (POST /v1/metrics + gRPC)
+                // became a product surface again in 4d562455; the literal token cannot tell the
+                // OTLP route apart from the old scrape-style surface.
                 "/logs/live",
                 "/sessions/{sessionId}/spans",
                 "/traces/{traceId}/profiles",
