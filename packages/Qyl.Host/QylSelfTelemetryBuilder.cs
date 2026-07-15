@@ -18,14 +18,14 @@ public sealed class QylSelfTelemetryBuilder
 {
     private readonly QylAppBuilder _app;
     private readonly IQylResourceBuilder _owner;
-    private readonly string _ownerProject;
+    private readonly QylProcessCommand _ownerCommand;
     private IQylResourceBuilder? _target;
 
-    internal QylSelfTelemetryBuilder(QylAppBuilder app, IQylResourceBuilder owner, string ownerProject)
+    internal QylSelfTelemetryBuilder(QylAppBuilder app, IQylResourceBuilder owner, QylProcessCommand ownerCommand)
     {
         _app = app;
         _owner = owner;
-        _ownerProject = ownerProject;
+        _ownerCommand = ownerCommand;
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public sealed class QylSelfTelemetryBuilder
 
         // A dedicated diagnostics sink must also accept its owner's exporter, which sends no auth
         // headers: an inherited ApiKey mode would 401-drop every batch silently.
-        _target = _app.AddCollector(name, _ownerProject, port)
+        _target = _app.AddCollectorCore(name, _ownerCommand, port, selfTelemetry: null)
             .WithIsolatedStorage()
             .DisableSelfTelemetryExport()
             .WithEnvironment(QylConstants.Env.QylOtlpAuthMode, QylConstants.Collector.UnsecuredAuthMode);

@@ -26,8 +26,36 @@ public sealed class QylAppBuilder
     public IQylResourceBuilder AddCollector(string name, string project, int? port = null,
         Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
     {
-        QylGuard.NotNullOrWhiteSpace(name);
         QylGuard.NotNullOrWhiteSpace(project);
+        return AddCollectorCore(name, CreateDotNetProjectCommand(project), port, selfTelemetry);
+    }
+
+    /// <summary>
+    /// Adds a collector launched from an already-built executable or managed assembly. Arguments
+    /// are passed directly to <see cref="ProcessStartInfo.ArgumentList"/> without shell parsing.
+    /// The same command is reused for a dedicated self-telemetry collector when one is requested.
+    /// </summary>
+    public IQylResourceBuilder AddCollector(string name, string executable, IReadOnlyList<string> arguments,
+        int? port = null, string? workingDirectory = null,
+        Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
+    {
+        QylGuard.NotNullOrWhiteSpace(executable);
+        QylGuard.NotNull(arguments);
+        if (arguments.Any(static argument => argument is null))
+            throw new ArgumentException("Arguments cannot contain null values.", nameof(arguments));
+
+        return AddCollectorCore(name, new QylProcessCommand
+        {
+            Executable = executable,
+            Args = new ReadOnlyCollection<string>(arguments.ToArray()),
+            WorkingDirectory = workingDirectory
+        }, port, selfTelemetry);
+    }
+
+    internal IQylResourceBuilder AddCollectorCore(string name, QylProcessCommand command, int? port,
+        Action<QylSelfTelemetryBuilder>? selfTelemetry)
+    {
+        QylGuard.NotNullOrWhiteSpace(name);
         if (port is < 1 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(port), port, "Collector port must be in the range 1..65535.");
 
@@ -69,12 +97,12 @@ public sealed class QylAppBuilder
             Port = apiPort,
             OtlpHttpPort = otlpHttpPort,
             GrpcPort = grpcPort,
-            Launch = BuildLaunchSpec(project, name, env)
+            Launch = BuildLaunchSpec(command, name, env)
         });
 
         if (selfTelemetry is not null)
         {
-            var telemetry = new QylSelfTelemetryBuilder(this, builder, project);
+            var telemetry = new QylSelfTelemetryBuilder(this, builder, command);
             selfTelemetry(telemetry);
             telemetry.Apply();
         }
@@ -162,12 +190,13 @@ public sealed class QylAppBuilder
     private QylResourceBuilder AddCore(string name, QylResourceKind kind, int port, string? project)
     {
         QylGuard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(project);
         return Register(new QylResource
         {
             Name = name,
             Kind = kind,
             Port = port,
-            Launch = BuildLaunchSpec(project, name)
+            Launch = BuildLaunchSpec(CreateDotNetProjectCommand(project), name)
         });
     }
 
@@ -190,30 +219,33 @@ public sealed class QylAppBuilder
         var byName = _resources.ToDictionary(static r => r.Name, StringComparer.Ordinal);
 
         foreach (var resource in _resources)
-        foreach (var dep in resource.WaitsFor.Where(dep => !byName.ContainsKey(dep)))
-        {
-            throw new InvalidOperationException(
-                $"Resource '{resource.Name}' waits for unknown resource '{dep}'.");
-        }
+            foreach (var dep in resource.WaitsFor.Where(dep => !byName.ContainsKey(dep)))
+            {
+                throw new InvalidOperationException(
+                    $"Resource '{resource.Name}' waits for unknown resource '{dep}'.");
+            }
 
         var visiting = new HashSet<string>(StringComparer.Ordinal);
         var done = new HashSet<string>(StringComparer.Ordinal);
 
         void Visit(string name)
         {
-            if (done.Contains(name)) return;
+            if (done.Contains(name))
+                return;
             if (!visiting.Add(name))
             {
                 throw new InvalidOperationException(
                     $"WaitFor cycle detected involving resource '{name}' — a cycle can never become ready.");
             }
 
-            foreach (var dep in byName[name].WaitsFor) Visit(dep);
+            foreach (var dep in byName[name].WaitsFor)
+                Visit(dep);
             visiting.Remove(name);
             done.Add(name);
         }
 
-        foreach (var resource in _resources) Visit(resource.Name);
+        foreach (var resource in _resources)
+            Visit(resource.Name);
     }
 
     // First caller of a well-known port keeps it; later collectors get freshly claimed ports so the
@@ -260,25 +292,39 @@ public sealed class QylAppBuilder
         return new QylResourceBuilder(this, resource, (oldResource, newResource) =>
         {
             var index = _resources.IndexOf(oldResource);
-            if (index >= 0) _resources[index] = newResource;
+            if (index >= 0)
+                _resources[index] = newResource;
         });
     }
 
     private static IEnumerable<int> DeclaredPorts(QylResource resource)
     {
-        if (resource.Port > 0) yield return resource.Port;
-        if (resource.OtlpHttpPort > 0) yield return resource.OtlpHttpPort;
-        if (resource.GrpcPort > 0) yield return resource.GrpcPort;
+        if (resource.Port > 0)
+            yield return resource.Port;
+        if (resource.OtlpHttpPort > 0)
+            yield return resource.OtlpHttpPort;
+        if (resource.GrpcPort > 0)
+            yield return resource.GrpcPort;
     }
 
-    private static QylLaunchSpec BuildLaunchSpec(string? project, string serviceName,
+    private static QylProcessCommand CreateDotNetProjectCommand(string project)
+    {
+        return new QylProcessCommand
+        {
+            Executable = QylConstants.Orchestrator.DotnetExecutable,
+            // --no-launch-profile: a Properties/launchSettings.json in the child project would
+            // otherwise silently override every env var injected here, including the ports and the
+            // self-telemetry loop-breaker. Composition-declared env must always win.
+            Args = new ReadOnlyCollection<string>([
+                QylConstants.Orchestrator.RunCommand, QylConstants.Orchestrator.NoLaunchProfileFlag,
+                QylConstants.Orchestrator.ProjectFlag, project
+            ])
+        };
+    }
+
+    private static QylLaunchSpec BuildLaunchSpec(QylProcessCommand command, string serviceName,
         IReadOnlyDictionary<string, string>? extraEnv = null)
     {
-        if (project is null)
-        {
-            throw new InvalidOperationException($"Resource '{serviceName}' needs a project path.");
-        }
-
         var env = new Dictionary<string, string>
         {
             [QylConstants.Env.AspNetCoreEnvironment] = QylConstants.Environments.Dev,
@@ -288,19 +334,15 @@ public sealed class QylAppBuilder
 
         if (extraEnv is not null)
         {
-            foreach (var kv in extraEnv) env[kv.Key] = kv.Value;
+            foreach (var kv in extraEnv)
+                env[kv.Key] = kv.Value;
         }
 
         return new QylLaunchSpec
         {
-            Executable = QylConstants.Orchestrator.DotnetExecutable,
-            // --no-launch-profile: a Properties/launchSettings.json in the child project would
-            // otherwise silently override every env var injected here, including the ports and the
-            // self-telemetry loop-breaker. Composition-declared env must always win.
-            Args = new ReadOnlyCollection<string>([
-                QylConstants.Orchestrator.RunCommand, QylConstants.Orchestrator.NoLaunchProfileFlag,
-                QylConstants.Orchestrator.ProjectFlag, project
-            ]),
+            Executable = command.Executable,
+            Args = command.Args,
+            WorkingDirectory = command.WorkingDirectory,
             Env = env
         };
     }

@@ -43,10 +43,10 @@ The main components are:
 | `services/qyl.dashboard` | React investigation interface backed by generated client contracts |
 | `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
-| `packages/Qyl.Host` | Unpublished local distributed-app host: fluent AppHost-equivalent with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
+| `packages/Qyl.Host` | Published distributed-app runner library with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
 | `packages/Qyl.Host.Console` | Host console frontend consuming the generated TypeScript contracts (build/typecheck-gated) |
 | `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner (stdio/HTTP/in-process resources, OTLP export of the MCP SDK ActivitySource) |
-| `packages/Qyl.Run.Host` | Composed local host entry point: the collector plus its isolated diagnostics collector |
+| `packages/Qyl.Run.Host` | The `qyl` dotnet tool; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
 | `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |
 
@@ -210,50 +210,40 @@ Configure live catalog synchronization with environment variables:
 | `QYL_MODEL_PRICING_MAX_RESPONSE_MIB` | Maximum accepted OpenRouter response size; defaults to 16 and accepts 1–64. |
 | `QYL_OPENROUTER_API_KEY` | Optional bearer token for the fixed OpenRouter Models API endpoint. |
 
-## Run locally
+## Run qyl locally
 
-Requirements: the .NET SDK selected by `global.json` and Node.js `^20.19.0` or `>=22.12.0`.
-
-Start the collector:
+Install the prerelease dotnet tool and start the complete local product:
 
 ```bash
-QYL_BIND_ADDRESS=127.0.0.1 QYL_OTLP_AUTH_MODE=Unsecured \
-  dotnet run --project services/qyl.collector
+dotnet tool install --global qyl --prerelease
+qyl up
 ```
 
-Start the dashboard in another terminal:
+`qyl up` is self-contained at the package level: its RID-specific tool package
+contains the collector and embedded dashboard it launches. It does not clone qyl,
+look for repository-relative projects, or require Node.js. The supported runtime
+identifiers are `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`, and
+`win-arm64`; the .NET 10 runtime is required.
 
-```bash
-cd services/qyl.dashboard
-npm install
-npm run dev
-```
-
-The browser dashboard is a development surface served whenever auth is not
-`ApiKey`; it binds to loopback by default (`QYL_BIND_ADDRESS` accepts other
-addresses, so avoid remote bindings in `Unsecured` mode explicitly) and never
-stores the ingest-capable API key. `ApiKey` deployments expose only the generated
-product API and OTLP endpoints; use a generated client rather than the dashboard.
-
-Or run the local host, which composes the collector and its isolated diagnostics
+Open `http://127.0.0.1:5100` for the dashboard. Point an OTLP exporter at the
 collector:
 
 ```bash
-dotnet run --project packages/Qyl.Run.Host
-```
-
-Point an OTLP exporter at the collector:
-
-```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
+The runner binds only to loopback and starts a second isolated collector for the
+product collector's own telemetry. `qyl up` fails before launch when one of its
+fixed ports is already occupied; it never attaches to an unrelated process.
+
 | Port | Purpose |
 | --- | --- |
-| `5100` | Product API and OTLP/HTTP; embedded dashboard in `Unsecured` mode (loopback by default) |
+| `5100` | Product API and embedded dashboard in local `Unsecured` mode |
 | `4317` | OTLP/gRPC receiver |
 | `4318` | Dedicated OTLP/HTTP receiver |
+| `5200` | Isolated diagnostics collector API |
+| `18888` | Loopback runner resource API |
 
 ### Native AOT publish
 
@@ -269,6 +259,15 @@ Run the repository gate before pushing:
 
 ```bash
 dotnet run --project eng/build/build.csproj -- Ci
+```
+
+To prove the distributable itself, build the frontends, pack every published
+library plus all RID-specific `qyl` tool packages, install the current platform's
+tool into a clean directory, ingest a real OTLP trace, read it back through the
+product API, and verify Ctrl-C tears down every child:
+
+```bash
+dotnet run --project eng/build/build.csproj -- PackSmoke
 ```
 
 Generated files are outputs, not editing surfaces. Change the owning TypeSpec,
