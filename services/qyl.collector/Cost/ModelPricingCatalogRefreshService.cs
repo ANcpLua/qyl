@@ -7,7 +7,7 @@ internal enum ModelPricingCatalogRefreshReason
     Manual
 }
 
-internal sealed record ModelPricingCatalogRefreshRequest(
+internal sealed record ModelPricingCatalogRefreshSignal(
     string SourceId,
     ModelPricingCatalogRefreshReason Reason);
 
@@ -26,8 +26,8 @@ internal sealed partial class ModelPricingCatalogRefreshService(
     TimeProvider timeProvider,
     ILogger<ModelPricingCatalogRefreshService> logger) : BackgroundService
 {
-    private readonly Channel<ModelPricingCatalogRefreshRequest> _requests =
-        Channel.CreateUnbounded<ModelPricingCatalogRefreshRequest>(new UnboundedChannelOptions
+    private readonly Channel<ModelPricingCatalogRefreshSignal> _requests =
+        Channel.CreateUnbounded<ModelPricingCatalogRefreshSignal>(new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = false,
@@ -51,7 +51,7 @@ internal sealed partial class ModelPricingCatalogRefreshService(
         if (!registry.Sources.Any(source => string.Equals(source.SourceId, sourceId, StringComparison.Ordinal)))
             return false;
         if (!_queued.TryAdd(sourceId, 0)) return true;
-        if (_requests.Writer.TryWrite(new ModelPricingCatalogRefreshRequest(sourceId, reason))) return true;
+        if (_requests.Writer.TryWrite(new ModelPricingCatalogRefreshSignal(sourceId, reason))) return true;
         _queued.TryRemove(sourceId, out _);
         return false;
     }

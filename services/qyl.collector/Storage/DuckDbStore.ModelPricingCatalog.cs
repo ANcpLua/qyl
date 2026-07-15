@@ -21,17 +21,18 @@ internal sealed partial class DuckDbStore
             await using (var current = con.CreateCommand())
             {
                 current.Transaction = tx;
-                current.CommandText = """
-                                      SELECT active_snapshot_id, active_configuration_fingerprint
-                                      FROM model_pricing_catalog_sources
-                                      WHERE source_id = $1
-                                      """;
+                current.CommandText = $"""
+                                       SELECT {ModelPricingCatalogSourceRow.SelectColumnList}
+                                       FROM {ModelPricingCatalogSourceRow.TableName}
+                                       WHERE source_id = $1
+                                       """;
                 current.Parameters.Add(new DuckDBParameter { Value = source.SourceId });
                 await using var reader = await current.ExecuteReaderAsync(wct).ConfigureAwait(false);
                 if (await reader.ReadAsync(wct).ConfigureAwait(false))
                 {
-                    previousSnapshotId = DuckDbValueReader.ReadString(reader, 0);
-                    previousConfigurationFingerprint = DuckDbValueReader.ReadString(reader, 1);
+                    var row = ModelPricingCatalogSourceRow.MapFromReader(reader);
+                    previousSnapshotId = row.ActiveSnapshotId;
+                    previousConfigurationFingerprint = row.ActiveConfigurationFingerprint;
                 }
             }
 
@@ -102,13 +103,13 @@ internal sealed partial class DuckDbStore
         await using (var select = connection.CreateCommand())
         {
             select.Transaction = transaction;
-            select.CommandText = """
-                                 SELECT snapshot_id
-                                 FROM model_pricing_catalog_snapshots
-                                 WHERE source_id = $1 AND snapshot_id <> $2
-                                 ORDER BY retrieved_at DESC, snapshot_id DESC
-                                 OFFSET $3
-                                 """;
+            select.CommandText = $"""
+                                  SELECT snapshot_id
+                                  FROM {ModelPricingCatalogSnapshotRow.TableName}
+                                  WHERE source_id = $1 AND snapshot_id <> $2
+                                  ORDER BY retrieved_at DESC, snapshot_id DESC
+                                  OFFSET $3
+                                  """;
             select.Parameters.Add(new DuckDBParameter { Value = sourceId });
             select.Parameters.Add(new DuckDBParameter { Value = activeSnapshotId });
             select.Parameters.Add(new DuckDBParameter { Value = retainedSnapshotsPerSource - 1 });

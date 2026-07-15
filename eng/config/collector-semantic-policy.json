@@ -199,5 +199,9 @@
     "HttpRequestMethod": "http.request.method",
     "HttpRoute": "http.route",
     "ServiceName": "service.name"
+  },
+  "wellKnownValueClasses": {
+    "GenAiOperationNameValues": "GenAi.GenAiAttributes+OperationNameValues",
+    "GenAiOutputTypeValues": "GenAi.GenAiAttributes+OutputTypeValues"
   }
 }

@@ -35,7 +35,8 @@ internal sealed record MetricIngestionRecord
     public double? Sum { get; init; }
     public double? Min { get; init; }
     public double? Max { get; init; }
-    public string? BucketsJson { get; init; }
+    public IReadOnlyList<double>? HistogramBounds { get; init; }
+    public IReadOnlyList<ulong>? HistogramCounts { get; init; }
     public bool? IsMonotonic { get; init; }
     public int? AggregationTemporality { get; init; }
     public required string ServiceName { get; init; }

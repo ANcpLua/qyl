@@ -1,5 +1,3 @@
-using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
-
 namespace Qyl.Collector.Cost;
 
 internal enum GenAiEtlObservedModelIdentityBasis
@@ -272,14 +270,15 @@ internal sealed class GenAiEtlCatalogEstimator(
 
     private static bool IsUnsupportedOutputType(string? outputType) =>
         !string.IsNullOrWhiteSpace(outputType) &&
-        outputType is not (GenAiAttributes.OutputTypeValues.Text or GenAiAttributes.OutputTypeValues.Json);
+        outputType is not (CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Text
+            or CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Json);
 
     private static ModelPricingUsage CreateUsage(GenAiEtlAuditUsageBucket bucket) =>
         ModelPricingUsage.ForGenAiCall(
             bucket.InputTokens,
             string.Equals(
                 bucket.OperationName,
-                GenAiAttributes.OperationNameValues.Embeddings,
+                CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Embeddings,
                 StringComparison.Ordinal)
                 ? bucket.OutputTokens ?? 0
                 : bucket.OutputTokens,

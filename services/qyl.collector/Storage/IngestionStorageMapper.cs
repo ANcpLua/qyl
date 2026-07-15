@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Qyl.Collector.Storage;
 
 internal static class IngestionStorageMapper
@@ -168,7 +170,7 @@ internal static class IngestionStorageMapper
             Sum = metric.Sum,
             Min = metric.Min,
             Max = metric.Max,
-            BucketsJson = metric.BucketsJson,
+            BucketsJson = SerializeHistogramBuckets(metric.HistogramBounds, metric.HistogramCounts),
             IsMonotonic = metric.IsMonotonic is { } monotonic ? (byte)(monotonic ? 1 : 0) : null,
             AggregationTemporality = metric.AggregationTemporality is { } temporality
                 ? (byte)Math.Clamp(temporality, 0, 2)
@@ -460,4 +462,29 @@ internal static class IngestionStorageMapper
         >= 21 => "FATAL",
         _ => "UNSPECIFIED"
     };
+
+    private static string? SerializeHistogramBuckets(
+        IReadOnlyList<double>? explicitBounds,
+        IReadOnlyList<ulong>? bucketCounts)
+    {
+        if (bucketCounts is not { Count: > 0 })
+            return null;
+
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteStartArray("bounds");
+            foreach (var bound in explicitBounds ?? [])
+                writer.WriteNumberValue(bound);
+            writer.WriteEndArray();
+            writer.WriteStartArray("counts");
+            foreach (var count in bucketCounts)
+                writer.WriteNumberValue(count);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
 }

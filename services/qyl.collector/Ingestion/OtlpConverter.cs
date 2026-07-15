@@ -1,5 +1,4 @@
 
-using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -429,7 +428,8 @@ internal static class OtlpConverter
                         Sum = point.HasSum ? point.Sum : null,
                         Min = point.HasMin ? point.Min : null,
                         Max = point.HasMax ? point.Max : null,
-                        BucketsJson = SerializeHistogramBuckets(point.ExplicitBounds, point.BucketCounts),
+                        HistogramBounds = point.BucketCounts.Count > 0 ? [.. point.ExplicitBounds] : null,
+                        HistogramCounts = point.BucketCounts.Count > 0 ? [.. point.BucketCounts] : null,
                         AggregationTemporality = (int)metric.Histogram.AggregationTemporality,
                         ServiceName = serviceName,
                         Attributes = ExtractMetricAttributes(point.Attributes),
@@ -538,31 +538,6 @@ internal static class OtlpConverter
         }
 
         return dict;
-    }
-
-    private static string? SerializeHistogramBuckets(
-        RepeatedField<double> explicitBounds,
-        RepeatedField<ulong> bucketCounts)
-    {
-        if (bucketCounts.Count is 0)
-            return null;
-
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStartObject();
-            writer.WriteStartArray("bounds");
-            foreach (var bound in explicitBounds)
-                writer.WriteNumberValue(bound);
-            writer.WriteEndArray();
-            writer.WriteStartArray("counts");
-            foreach (var count in bucketCounts)
-                writer.WriteNumberValue(count);
-            writer.WriteEndArray();
-            writer.WriteEndObject();
-        }
-
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     #endregion
