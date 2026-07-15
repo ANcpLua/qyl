@@ -108,6 +108,7 @@ internal static class OtlpConverter
 
         var sourceKeys = new HashSet<string>(StringComparer.Ordinal);
         var projectedKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+        var entityReferencedKeys = GetResourceEntityReferencedKeys(resource);
 
         foreach (var attr in resource.Attributes)
         {
@@ -117,7 +118,12 @@ internal static class OtlpConverter
                 throw new InvalidDataException($"OTLP resource contains duplicate attribute key '{attr.Key}'.");
 
             DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.IsSafeResourceAttribute(key)) continue;
+            if (!AttributeKeySets.IsSafeResourceAttribute(key) &&
+                (!entityReferencedKeys.Contains(attr.Key) ||
+                 !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
+            {
+                continue;
+            }
 
             if (!attrs.TryAdd(key, ConvertProtoAnyValue(attr.Value)))
             {
@@ -129,6 +135,18 @@ internal static class OtlpConverter
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
+    }
+
+    private static HashSet<string> GetResourceEntityReferencedKeys(ProtoResource resource)
+    {
+        var referencedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entityRef in resource.EntityRefs)
+        {
+            referencedKeys.UnionWith(entityRef.IdKeys);
+            referencedKeys.UnionWith(entityRef.DescriptionKeys);
+        }
+
+        return referencedKeys;
     }
 
     private static IReadOnlyList<ResourceEntityRefIngestionRecord> ExtractResourceEntityRefs(

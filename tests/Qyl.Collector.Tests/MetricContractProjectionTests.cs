@@ -188,7 +188,7 @@ public sealed class MetricContractProjectionTests
         var schemaChanged = entityReferences.Clone();
         schemaChanged.ResourceMetrics[0].Resource.EntityRefs[0].SchemaUrl =
             "https://opentelemetry.io/schemas/1.38.0";
-        Assert.NotEqual(
+        Assert.Equal(
             RowsByName(entityReferences)["test.gauge"].MetricId,
             RowsByName(schemaChanged)["test.gauge"].MetricId);
     }

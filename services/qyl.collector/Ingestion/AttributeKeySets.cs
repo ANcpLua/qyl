@@ -39,6 +39,11 @@ internal static class AttributeKeySets
         (CollectorSemanticAttributeCatalog.ResourceAttributeAllowList.Contains(key) ||
          CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList.Contains(key));
 
+    // Entity references may identify resources with application-defined attributes that are not
+    // part of the semantic-convention catalog. Persist only those explicitly referenced keys, and
+    // keep the same credential/privacy boundary as every other persisted resource attribute.
+    internal static bool IsSafeEntityReferencedResourceAttribute(string key) => !IsDenied(key);
+
     internal static bool ShouldCaptureSpanAttribute(string key) =>
         IsSafeSpanAttribute(key) ||
         SessionCorrelation.Contains(key) ||

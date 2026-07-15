@@ -167,6 +167,144 @@ public sealed class ResourceEntityRefProjectionTests
 
         Assert.Equal(original.LogId, updated.LogId);
         Assert.NotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
+
+        changed = request.Clone();
+        changed.ResourceLogs[0].Resource.EntityRefs
+            .Single(static entityRef => entityRef.Type == "service")
+            .SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
+        updated = Assert.Single(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed)));
+
+        Assert.Equal(original.LogId, updated.LogId);
+        Assert.NotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
+    }
+
+    [Fact]
+    public void Empty_entity_references_preserve_pre_feature_stable_storage_ids()
+    {
+        var log = Assert.Single(IngestionStorageMapper.ToLogStorageRows(new LogIngestionBatch(
+        [
+            new LogIngestionRecord
+            {
+                TimeUnixNano = 1,
+                SeverityNumber = 0,
+                ServiceName = "unknown",
+                Attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceEntityRefs = []
+            }
+        ])));
+        Assert.Equal("log_61ff352f12dd8bf7c6aa5b159489ef27", log.LogId);
+
+        var metric = Assert.Single(IngestionStorageMapper.ToMetricStorageRows(new MetricIngestionBatch(
+        [
+            new MetricIngestionRecord
+            {
+                MetricName = "legacy.metric",
+                MetricType = MetricStorageTypes.Gauge,
+                Metadata = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceDroppedAttributesCount = 0,
+                HasInstrumentationScope = false,
+                ScopeAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ScopeDroppedAttributesCount = 0,
+                TimeUnixNano = 1,
+                StartTimeUnixNano = 0,
+                Flags = 0,
+                Exemplars = [],
+                ServiceName = "unknown",
+                Attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceEntityRefs = []
+            }
+        ])));
+        Assert.Equal("metric_7675ae3b4f9225873b3e27c0cfeedf16", metric.MetricId);
+
+        var profile = Assert.Single(IngestionStorageMapper.ToProfileStorageRows(new ProfileIngestionBatch(
+        [
+            new ProfileIngestionRecord
+            {
+                ProfileId = "",
+                TimeUnixNano = 1,
+                DurationNano = 0,
+                SampleCount = 0,
+                ServiceName = "unknown",
+                Attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
+                ResourceEntityRefs = [],
+                Functions = [],
+                Locations = [],
+                Mappings = [],
+                Samples = [],
+                Stacks = []
+            }
+        ])));
+        Assert.Equal("profile_5cf620f9c11a610c7e173457e29c2112", profile.Profile.ProfileId);
+    }
+
+    [Fact]
+    public void Entity_references_preserve_only_their_non_denied_custom_resource_attributes()
+    {
+        var resource = BuildResource();
+        resource.Attributes.Add(StringAttribute("custom.entity.id", "custom-1"));
+        resource.Attributes.Add(StringAttribute("custom.entity.description", "Custom entity"));
+        resource.Attributes.Add(StringAttribute("custom.unreferenced", "discard me"));
+        resource.EntityRefs.Add(new EntityRef
+        {
+            Type = "custom.entity",
+            IdKeys = { "custom.entity.id" },
+            DescriptionKeys = { "custom.entity.description" }
+        });
+
+        var span = SpanMapper.ToContracts([ProjectSingleSpan(resource)]).Single();
+        var attributes = Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
+            span.Resource.Attributes);
+        Assert.Contains(attributes, static attribute =>
+            attribute.Key == "custom.entity.id" && Equals(attribute.Value, "custom-1"));
+        Assert.Contains(attributes, static attribute =>
+            attribute.Key == "custom.entity.description" && Equals(attribute.Value, "Custom entity"));
+        Assert.DoesNotContain(attributes, static attribute => attribute.Key == "custom.unreferenced");
+
+        var denied = BuildResource();
+        denied.Attributes.Add(StringAttribute("custom.api_key", "do-not-store"));
+        denied.EntityRefs.Add(new EntityRef
+        {
+            Type = "custom.entity",
+            IdKeys = { "custom.api_key" }
+        });
+        Assert.Throws<InvalidDataException>(() => ProjectSingleSpan(denied));
+    }
+
+    private static SpanStorageRow ProjectSingleSpan(Resource resource)
+    {
+        var request = new ExportTraceServiceRequest
+        {
+            ResourceSpans =
+            {
+                new OtlpResourceSpans
+                {
+                    Resource = resource,
+                    ScopeSpans =
+                    {
+                        new OtlpScopeSpans
+                        {
+                            Spans =
+                            {
+                                new OtlpSpan
+                                {
+                                    TraceId = ByteString.CopyFrom(new byte[16]),
+                                    SpanId = ByteString.CopyFrom(new byte[8]),
+                                    Name = "entity-ref-custom-resource",
+                                    StartTimeUnixNano = 1,
+                                    EndTimeUnixNano = 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        return Assert.Single(IngestionStorageMapper.ToSpanStorageRows(
+            OtlpConverter.ConvertTraceRequest(request)));
     }
 
     private static Resource BuildResource() =>
