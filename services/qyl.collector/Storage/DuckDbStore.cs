@@ -499,10 +499,15 @@ internal sealed partial class DuckDbStore : IQylStore
         if (metrics.Count is 0)
             return;
 
+        var deduplicated = new Dictionary<(string ProjectId, string MetricId), MetricStorageRow>();
+        foreach (var metric in metrics)
+            deduplicated[(metric.ProjectId, metric.MetricId)] = metric;
+        var rows = deduplicated.Values.ToArray();
+
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            await InsertRowsBatchedAsync(con, tx, metrics, MetricStorageRow.AddParameters,
+            await InsertRowsBatchedAsync(con, tx, rows, MetricStorageRow.AddParameters,
                 MetricStorageRow.BuildMultiRowInsertSql, MaxMetricsPerBatch, token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
@@ -547,6 +552,64 @@ internal sealed partial class DuckDbStore : IQylStore
                 metrics.Add(MetricStorageRow.MapFromReader(reader));
 
             return metrics;
+        }, ct);
+    }
+
+    public Task<MetricStoragePage> GetMetricPageAsync(
+        string projectId,
+        MetricPageCursor? cursor,
+        byte? metricType,
+        string? metricName,
+        string? serviceName,
+        ulong? start,
+        ulong? end,
+        int limit,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (limit < 1)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Metric page limit must be positive.");
+
+        return ExecuteReadAsync(con =>
+        {
+            var metrics = new List<MetricStorageRow>(limit + 1);
+            var qb = new QueryBuilder();
+            qb.Add("project_id = $N", projectId);
+            qb.Add("contract_projection_version = $N", MetricStorageRow.CurrentContractProjectionVersion);
+            if (metricType.HasValue)
+                qb.Add("metric_type = $N", metricType.Value);
+            if (!string.IsNullOrEmpty(metricName))
+                qb.Add("metric_name = $N", metricName);
+            if (!string.IsNullOrEmpty(serviceName))
+                qb.Add("service_name = $N", serviceName);
+            if (start.HasValue)
+                qb.Add("time_unix_nano >= $N", (decimal)start.Value);
+            if (end.HasValue)
+                qb.Add("time_unix_nano <= $N", (decimal)end.Value);
+            if (cursor is { } after)
+            {
+                qb.AddDescendingCursor(
+                    "time_unix_nano",
+                    "metric_id",
+                    (decimal)after.TimeUnixNano,
+                    after.MetricId);
+            }
+
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT " + MetricStorageRow.SelectColumnList
+                              + " FROM metrics " + qb.WhereClause
+                              + " ORDER BY time_unix_nano DESC, metric_id DESC LIMIT "
+                              + qb.NextParam;
+            qb.ApplyTo(cmd);
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit + 1 });
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                metrics.Add(MetricStorageRow.MapFromReader(reader));
+
+            var hasMore = metrics.Count > limit;
+            if (hasMore) metrics.RemoveRange(limit, metrics.Count - limit);
+            return new MetricStoragePage(metrics, hasMore);
         }, ct);
     }
 
@@ -1194,6 +1257,21 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             _conditions.Add(condition.Replace("$N", $"${_paramIndex++}"));
             _parameters.Add(new DuckDBParameter { Value = value });
+        }
+
+        public void AddDescendingCursor(
+            string primaryColumn,
+            string tieBreakerColumn,
+            object primaryValue,
+            object tieBreakerValue)
+        {
+            var primaryParameter = $"${_paramIndex++}";
+            var tieBreakerParameter = $"${_paramIndex++}";
+            _conditions.Add(
+                $"({primaryColumn} < {primaryParameter} OR " +
+                $"({primaryColumn} = {primaryParameter} AND {tieBreakerColumn} < {tieBreakerParameter}))");
+            _parameters.Add(new DuckDBParameter { Value = primaryValue });
+            _parameters.Add(new DuckDBParameter { Value = tieBreakerValue });
         }
 
         public readonly string WhereClause =>

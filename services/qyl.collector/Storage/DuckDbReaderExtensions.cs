@@ -144,22 +144,40 @@ internal sealed partial record LogStorageRow
 }
 
 [DuckDbTable("metrics",
-    Indexes = "ProjectId,TimeUnixNano;ProjectId,MetricName;ProjectId,ServiceName",
+    Indexes = "ProjectId,TimeUnixNano;ProjectId,MetricName;ProjectId,ServiceName;ProjectId,ContractProjectionVersion,TimeUnixNano",
     OnConflict = """
     ON CONFLICT (project_id, metric_id) DO UPDATE SET
+        contract_projection_version = EXCLUDED.contract_projection_version,
         metric_name = EXCLUDED.metric_name,
         metric_type = EXCLUDED.metric_type,
         unit = EXCLUDED.unit,
         description = EXCLUDED.description,
+        metadata_json = EXCLUDED.metadata_json,
+        resource_schema_url = EXCLUDED.resource_schema_url,
+        resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,
+        has_instrumentation_scope = EXCLUDED.has_instrumentation_scope,
         scope_name = EXCLUDED.scope_name,
+        scope_version = EXCLUDED.scope_version,
+        scope_attributes_json = EXCLUDED.scope_attributes_json,
+        scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,
+        scope_schema_url = EXCLUDED.scope_schema_url,
         time_unix_nano = EXCLUDED.time_unix_nano,
         start_time_unix_nano = EXCLUDED.start_time_unix_nano,
         value = EXCLUDED.value,
+        int_value = EXCLUDED.int_value,
+        double_value = EXCLUDED.double_value,
+        flags = EXCLUDED.flags,
+        exemplars_json = EXCLUDED.exemplars_json,
         count = EXCLUDED.count,
         sum = EXCLUDED.sum,
         min = EXCLUDED.min,
         max = EXCLUDED.max,
         buckets_json = EXCLUDED.buckets_json,
+        exponential_histogram_scale = EXCLUDED.exponential_histogram_scale,
+        exponential_histogram_zero_count = EXCLUDED.exponential_histogram_zero_count,
+        exponential_histogram_zero_threshold = EXCLUDED.exponential_histogram_zero_threshold,
+        exponential_histogram_buckets_json = EXCLUDED.exponential_histogram_buckets_json,
+        summary_quantiles_json = EXCLUDED.summary_quantiles_json,
         is_monotonic = EXCLUDED.is_monotonic,
         aggregation_temporality = EXCLUDED.aggregation_temporality,
         service_name = EXCLUDED.service_name,
@@ -168,23 +186,46 @@ internal sealed partial record LogStorageRow
     """)]
 internal sealed partial record MetricStorageRow
 {
+    public const byte CurrentContractProjectionVersion = 1;
+
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
     public required string MetricId { get; init; }
 
+    // NULL marks rows written before the lossless MetricPoint projection existed. Those rows may
+    // remain queryable for internal diagnostics, but the product API must not fabricate fields that
+    // were never persisted.
+    public byte? ContractProjectionVersion { get; init; }
     public required string MetricName { get; init; }
     public required byte MetricType { get; init; }
     public string? Unit { get; init; }
     public string? Description { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? MetadataJson { get; init; }
+    public string? ResourceSchemaUrl { get; init; }
+    public long? ResourceDroppedAttributesCount { get; init; }
+    public byte? HasInstrumentationScope { get; init; }
     public string? ScopeName { get; init; }
+    public string? ScopeVersion { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ScopeAttributesJson { get; init; }
+    public long? ScopeDroppedAttributesCount { get; init; }
+    public string? ScopeSchemaUrl { get; init; }
 
     [DuckDbColumn(IsUBigInt = true)]
     public required ulong TimeUnixNano { get; init; }
     [DuckDbColumn(IsUBigInt = true)]
     public ulong? StartTimeUnixNano { get; init; }
 
+    // Legacy lossy number column retained only so schema migration can read/upsert older databases.
+    // New rows use exactly one of IntValue or DoubleValue and leave Value NULL.
     public double? Value { get; init; }
+    public long? IntValue { get; init; }
+    public double? DoubleValue { get; init; }
+    public long? Flags { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ExemplarsJson { get; init; }
     [DuckDbColumn(IsUBigInt = true)]
     public ulong? Count { get; init; }
     public double? Sum { get; init; }
@@ -192,6 +233,14 @@ internal sealed partial record MetricStorageRow
     public double? Max { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? BucketsJson { get; init; }
+    public int? ExponentialHistogramScale { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
+    public ulong? ExponentialHistogramZeroCount { get; init; }
+    public double? ExponentialHistogramZeroThreshold { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ExponentialHistogramBucketsJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? SummaryQuantilesJson { get; init; }
     // 0/1 flag: the storage generator has no boolean mapping, matching Kind/StatusCode style.
     public byte? IsMonotonic { get; init; }
     public byte? AggregationTemporality { get; init; }

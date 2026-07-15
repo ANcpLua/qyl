@@ -17,6 +17,7 @@ using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.Streaming;
 using Qyl.Api.Contracts.Cost;
 using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
@@ -58,6 +59,8 @@ internal static class CollectorEndpointExtensions
 
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/stream/logs", StreamLogsAsync);
+
+        api.MapGet("/metrics", GetMetricsAsync);
 
         api.MapGet("/cost/etl-audit", GetGenAiEtlAuditAsync);
         api.MapPost("/cost/etl-audit/evaluate", EvaluateGenAiEtlAuditAsync);
@@ -553,6 +556,77 @@ internal static class CollectorEndpointExtensions
             ct: ct);
 
         return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
+    }
+
+    internal static async Task<IResult> GetMetricsAsync(
+        HttpContext httpContext,
+        IQylStore store,
+        CancellationToken ct)
+    {
+        if (ContractQueryParser.ParseMetrics(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(
+                query.Limit,
+                ContractLimits.DefaultPageLimit,
+                ContractLimits.MetricMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
+        }
+
+        if (query.StartTime.HasValue && query.EndTime.HasValue && query.StartTime > query.EndTime)
+        {
+            return ContractErrorResults.Validation(
+                "endTime",
+                "End time must be greater than or equal to start time.",
+                "range.invalid",
+                query.EndTime.Value.ToString("O", CultureInfo.InvariantCulture));
+        }
+
+        MetricPageCursor? cursor = null;
+        if (query.Cursor is { } encodedCursor)
+        {
+            if (!MetricPageCursorCodec.TryDecode(encodedCursor, out var decodedCursor))
+            {
+                return ContractErrorResults.Validation(
+                    "cursor",
+                    "Cursor is not a valid qyl metric-page cursor.",
+                    "cursor.invalid",
+                    encodedCursor);
+            }
+
+            cursor = decodedCursor;
+        }
+
+        var page = await store.GetMetricPageAsync(
+                ResolveProjectScope(httpContext),
+                cursor,
+                query.MetricType,
+                query.Name,
+                query.ServiceName,
+                query.StartTime.HasValue
+                    ? QylTimeConversions.ToUnixNanoUnsigned(query.StartTime.Value.ToUniversalTime())
+                    : null,
+                query.EndTime.HasValue
+                    ? QylTimeConversions.ToUnixNanoUnsigned(query.EndTime.Value.ToUniversalTime())
+                    : null,
+                boundedLimit,
+                ct)
+            .ConfigureAwait(false);
+        var items = page.Items.Select(MetricMapper.ToContract).ToArray();
+        var nextCursor = page.HasMore && page.Items.Count > 0
+            ? MetricPageCursorCodec.Encode(new MetricPageCursor(
+                page.Items[^1].TimeUnixNano,
+                page.Items[^1].MetricId))
+            : null;
+
+        return Results.Ok(new CursorPageMetricPoint
+        {
+            Items = items,
+            HasMore = page.HasMore,
+            NextCursor = nextCursor
+        });
     }
 
     internal static async Task StreamLogsAsync(
@@ -1083,6 +1157,7 @@ internal static class CollectorEndpointExtensions
         public const int SessionMaxLimit = 1_000;
         public const int TraceMaxLimit = 1_000;
         public const int LogMaxLimit = 10_000;
+        public const int MetricMaxLimit = 1_000;
         public const int ProfileMaxLimit = 1_000;
         public const int GenAiEtlAuditDefaultLimit = 25;
         public const int GenAiEtlAuditMaxLimit = 100;

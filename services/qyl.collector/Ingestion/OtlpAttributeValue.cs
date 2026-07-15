@@ -80,6 +80,13 @@ internal sealed class OtlpAttributeValue
             _ => WriteJsonToString()
         };
 
+    public string ToIdentityString()
+    {
+        var builder = new StringBuilder();
+        AppendIdentityTo(builder);
+        return builder.ToString();
+    }
+
     public void WriteJsonValue(Utf8JsonWriter writer)
     {
         switch (Kind)
@@ -144,4 +151,57 @@ internal sealed class OtlpAttributeValue
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
+
+    private void AppendIdentityTo(StringBuilder builder)
+    {
+        builder.Append((int)Kind).Append('{');
+        switch (Kind)
+        {
+            case OtlpAttributeValueKind.String:
+                AppendIdentitySegment(builder, (string)value);
+                break;
+            case OtlpAttributeValueKind.Bool:
+                AppendIdentitySegment(builder, (bool)value ? "true" : "false");
+                break;
+            case OtlpAttributeValueKind.Int:
+                AppendIdentitySegment(builder, ((long)value).ToString(CultureInfo.InvariantCulture));
+                break;
+            case OtlpAttributeValueKind.Double:
+                AppendIdentitySegment(builder, ((double)value).ToString("R", CultureInfo.InvariantCulture));
+                break;
+            case OtlpAttributeValueKind.Bytes:
+                AppendIdentitySegment(builder, Convert.ToBase64String((byte[])value));
+                break;
+            case OtlpAttributeValueKind.Array:
+            {
+                var items = (IReadOnlyList<OtlpAttributeValue>)value;
+                builder.Append(items.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+                foreach (var item in items)
+                    AppendIdentitySegment(builder, item.ToIdentityString());
+                break;
+            }
+            case OtlpAttributeValueKind.KeyValueList:
+            {
+                var items = (IReadOnlyDictionary<string, OtlpAttributeValue>)value;
+                builder.Append(items.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+                foreach (var (key, nestedValue) in items.OrderBy(static item => item.Key, StringComparer.Ordinal))
+                {
+                    AppendIdentitySegment(builder, key);
+                    AppendIdentitySegment(builder, nestedValue.ToIdentityString());
+                }
+
+                break;
+            }
+            default:
+                throw new InvalidOperationException($"Unknown OTLP attribute value kind '{Kind}'.");
+        }
+
+        builder.Append('}');
+    }
+
+    private static void AppendIdentitySegment(StringBuilder builder, string segment) =>
+        builder
+            .Append(segment.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':')
+            .Append(segment);
 }

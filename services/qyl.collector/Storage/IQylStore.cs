@@ -13,6 +13,12 @@ internal sealed record TraceStoragePageItem(
     ulong ActivityUnixNano,
     IReadOnlyList<SpanStorageRow> Spans);
 
+internal readonly record struct MetricPageCursor(ulong TimeUnixNano, string MetricId);
+
+internal sealed record MetricStoragePage(
+    IReadOnlyList<MetricStorageRow> Items,
+    bool HasMore);
+
 internal interface IQylStore : IAsyncDisposable
 {
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
@@ -30,6 +36,17 @@ internal interface IQylStore : IAsyncDisposable
         ulong? start = null,
         ulong? before = null,
         int limit = 500,
+        CancellationToken ct = default);
+
+    Task<MetricStoragePage> GetMetricPageAsync(
+        string projectId,
+        MetricPageCursor? cursor,
+        byte? metricType,
+        string? metricName,
+        string? serviceName,
+        ulong? start,
+        ulong? end,
+        int limit,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(

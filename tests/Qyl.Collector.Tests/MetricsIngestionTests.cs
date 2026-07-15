@@ -68,11 +68,11 @@ public sealed class MetricsIngestionTests
             Assert.NotNull(point.AttributesJson);
             Assert.Contains("gen_ai.token.type", point.AttributesJson);
         });
-        Assert.Equal([512d, 12_574d], tokenPoints.Select(p => p.Value!.Value).Order());
+        Assert.Equal([512L, 12_574L], tokenPoints.Select(p => p.IntValue!.Value).Order());
 
         var gauge = Assert.Single(stored, m => m.MetricName == "process.runtime.gc.heap.size");
         Assert.Equal(1, gauge.MetricType);
-        Assert.Equal(1024.5, gauge.Value);
+        Assert.Equal(1024.5, gauge.DoubleValue);
     }
 
     [Fact]
@@ -133,8 +133,8 @@ public sealed class MetricsIngestionTests
         Assert.Equal(0.01, histogram.Min);
         Assert.Equal(0.3, histogram.Max);
         Assert.NotNull(histogram.BucketsJson);
-        Assert.Contains("\"bounds\":[0.05,0.1,0.5]", histogram.BucketsJson);
-        Assert.Contains("\"counts\":[1,1,2,0]", histogram.BucketsJson);
+        Assert.Contains("\"explicitBounds\":[0.05,0.1,0.5]", histogram.BucketsJson);
+        Assert.Contains("\"bucketCounts\":[1,1,2,0]", histogram.BucketsJson);
         Assert.Contains("http.request.method", histogram.AttributesJson);
     }
 
@@ -150,13 +150,17 @@ public sealed class MetricsIngestionTests
                 new Metric
                 {
                     Name = "http.server.active_requests",
-                    Sum = new Sum { DataPoints = { NumberPoint(timeNano: 400, asInt: 3) } }
+                    Sum = new Sum
+                    {
+                        AggregationTemporality = AggregationTemporality.Cumulative,
+                        DataPoints = { NumberPoint(timeNano: 400, asInt: 3) }
+                    }
                 }
             }
         }));
 
         var rows = IngestionStorageMapper.ToMetricStorageRows(OtlpConverter.ConvertMetrics(request));
-        await store.InsertMetricsAsync(rows, TestContext.Current.CancellationToken);
+        await store.InsertMetricsAsync([.. rows, .. rows], TestContext.Current.CancellationToken);
         await store.InsertMetricsAsync(rows, TestContext.Current.CancellationToken);
 
         var stored = await store.GetMetricsAsync("default", ct: TestContext.Current.CancellationToken);

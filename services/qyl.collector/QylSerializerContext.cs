@@ -4,6 +4,7 @@ using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Profiles;
 using Qyl.Api.Contracts.OTel.Traces;
 using Qyl.Api.Contracts.Streaming;
@@ -17,7 +18,8 @@ namespace Qyl.Collector;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    NumberHandling = JsonNumberHandling.AllowReadingFromString,
+    NumberHandling = JsonNumberHandling.AllowReadingFromString |
+                     JsonNumberHandling.AllowNamedFloatingPointLiterals,
     WriteIndented = false)]
 [JsonSerializable(typeof(Span))]
 [JsonSerializable(typeof(Span[]))]
@@ -35,6 +37,19 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(LogBodyArray))]
 [JsonSerializable(typeof(LogBodyBytes))]
 [JsonSerializable(typeof(CursorPageLogRecord))]
+[JsonSerializable(typeof(MetricPoint))]
+[JsonSerializable(typeof(GaugeMetricPoint))]
+[JsonSerializable(typeof(SumMetricPoint))]
+[JsonSerializable(typeof(HistogramMetricPoint))]
+[JsonSerializable(typeof(ExponentialHistogramMetricPoint))]
+[JsonSerializable(typeof(SummaryMetricPoint))]
+[JsonSerializable(typeof(MetricNumberValue))]
+[JsonSerializable(typeof(MetricIntegerValue))]
+[JsonSerializable(typeof(MetricDoubleValue))]
+[JsonSerializable(typeof(MetricExemplar))]
+[JsonSerializable(typeof(ExponentialHistogramBuckets))]
+[JsonSerializable(typeof(SummaryQuantileValue))]
+[JsonSerializable(typeof(CursorPageMetricPoint))]
 [JsonSerializable(typeof(Profile))]
 [JsonSerializable(typeof(Profile[]))]
 [JsonSerializable(typeof(List<Profile>))]

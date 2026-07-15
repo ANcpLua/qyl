@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Collector.Hosting;
+using QylTimeConversions = Qyl.Collector.Primitives.TimeConversions;
 
 namespace Qyl.Collector.Tests;
 
@@ -23,6 +24,12 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.Logs, "startTime", "13/07/2026", "query.invalid_date_time" },
             { QueryEndpoint.Logs, "endTime", "2026-07-13T10:00:00", "query.invalid_date_time" },
             { QueryEndpoint.Logs, "limit", "0x10", "query.invalid_integer" },
+            { QueryEndpoint.Metrics, "type", "counter", "query.invalid_enum" },
+            { QueryEndpoint.Metrics, "startTime", "yesterday", "query.invalid_date_time" },
+            { QueryEndpoint.Metrics, "endTime", "tomorrow", "query.invalid_date_time" },
+            { QueryEndpoint.Metrics, "startTime", "9999-12-31T23:59:59Z", "query.invalid_date_time" },
+            { QueryEndpoint.Metrics, "limit", "many", "query.invalid_integer" },
+            { QueryEndpoint.Metrics, "cursor", "not-a-qyl-cursor", "cursor.invalid" },
             { QueryEndpoint.GenAiEtlAudit, "startTime", "last-month", "query.invalid_date_time" },
             { QueryEndpoint.GenAiEtlAudit, "endTime", "next-month", "query.invalid_date_time" },
             { QueryEndpoint.GenAiEtlAudit, "limit", "all", "query.invalid_integer" },
@@ -41,6 +48,7 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.Traces, "limit", "1001", "limit.out_of_range" },
             { QueryEndpoint.Logs, "severityMin", "25", "severity.out_of_range" },
             { QueryEndpoint.Logs, "limit", "10001", "limit.out_of_range" },
+            { QueryEndpoint.Metrics, "limit", "1001", "limit.out_of_range" },
             { QueryEndpoint.GenAiEtlAudit, "limit", "101", "limit.out_of_range" },
             { QueryEndpoint.LogStream, "minSeverity", "0", "severity.out_of_range" },
             { QueryEndpoint.Profiles, "limit", "0", "limit.out_of_range" },
@@ -117,6 +125,9 @@ public sealed class ContractQueryParserTests
         Assert.Equal(TimeSpan.Zero, parsed.StartTime?.Offset);
         Assert.Equal(TimeSpan.FromHours(2), parsed.EndTime?.Offset);
         Assert.Equal(50, parsed.Limit);
+        Assert.Equal(
+            123_456_700UL,
+            QylTimeConversions.ToUnixNanoUnsigned(parsed.StartTime!.Value) % 1_000_000_000UL);
     }
 
     [Fact]
@@ -158,6 +169,8 @@ public sealed class ContractQueryParserTests
                 context, null!, TestContext.Current.CancellationToken),
             QueryEndpoint.Logs => await CollectorEndpointExtensions.GetLogsAsync(
                 context, null!, null, null, null, null, null, TestContext.Current.CancellationToken),
+            QueryEndpoint.Metrics => await CollectorEndpointExtensions.GetMetricsAsync(
+                context, null!, TestContext.Current.CancellationToken),
             QueryEndpoint.GenAiEtlAudit => await CollectorEndpointExtensions.GetGenAiEtlAuditAsync(
                 context, null!, TimeProvider.System, TestContext.Current.CancellationToken),
             QueryEndpoint.GenAiEtlAuditEvaluation => await CollectorEndpointExtensions.EvaluateGenAiEtlAuditAsync(
@@ -207,6 +220,7 @@ public sealed class ContractQueryParserTests
         SessionStats,
         Traces,
         Logs,
+        Metrics,
         GenAiEtlAudit,
         GenAiEtlAuditEvaluation,
         LogStream,

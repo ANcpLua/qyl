@@ -476,6 +476,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             var expectedDefault = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "default");
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/traces", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/metrics", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/profiles", expectedDefault);
             var expectedGenAiEtlAuditDefault = ReadOpenApiIntegerSchemaValue(
                 document,
@@ -489,6 +490,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
                 ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
                 ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
+                ["MetricMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "maximum"),
                 ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum"),
                 ["GenAiEtlAuditDefaultLimit"] = expectedGenAiEtlAuditDefault,
                 ["GenAiEtlAuditMaxLimit"] = ReadOpenApiIntegerSchemaValue(
@@ -518,6 +520,79 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             throw new InvalidOperationException(
                 "Collector endpoint limits must match qyl-api-schema OpenAPI. Update qyl-api-schema first, regenerate/publish contracts, then update ContractLimits.");
+        });
+
+    Target VerifyCollectorRoutesMatchOpenApi => d => d
+        .Unlisted()
+        .Description("Verify every qyl-api-schema product route is explicitly mapped by the collector")
+        .DependsOn<IPipeline>(static x => x.FrontendInstall)
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
+            var packageDirectory = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema";
+            using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageDirectory / "package.json"));
+            var openApiExport = packageDocument.RootElement.GetProperty("exports")
+                .GetProperty("./openapi")
+                .GetProperty("default")
+                .GetString() ?? throw new InvalidOperationException(
+                "The installed qyl-api-schema package does not export ./openapi.");
+            var openApiFile = packageDirectory / openApiExport.TrimStart('.', '/');
+            using var openApiDocument = JsonDocument.Parse(File.ReadAllText(openApiFile));
+
+            var operationNames = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "delete", "get", "patch", "post", "put"
+            };
+            var expected = openApiDocument.RootElement.GetProperty("paths")
+                .EnumerateObject()
+                .Where(static path => path.Name.StartsWith("/api/v1/", StringComparison.Ordinal))
+                .SelectMany(path => path.Value.EnumerateObject()
+                    .Where(operation => operationNames.Contains(operation.Name))
+                    .Select(operation => $"{operation.Name.ToUpperInvariant()} {path.Name}"))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(endpointFile), path: endpointFile.ToString());
+            var actual = tree.GetCompilationUnitRoot().DescendantNodes()
+                .OfType<InvocationExpressionSyntax>()
+                .Select(static invocation => (Invocation: invocation, Member: invocation.Expression as MemberAccessExpressionSyntax))
+                .Where(static item => item.Member?.Expression is IdentifierNameSyntax { Identifier.ValueText: "api" })
+                .Select(static item =>
+                {
+                    var method = item.Member!.Name.Identifier.ValueText switch
+                    {
+                        "MapDelete" => "DELETE",
+                        "MapGet" => "GET",
+                        "MapPatch" => "PATCH",
+                        "MapPost" => "POST",
+                        "MapPut" => "PUT",
+                        _ => null
+                    };
+                    var route = item.Invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression
+                        as LiteralExpressionSyntax;
+                    return method is null || route is null
+                        ? null
+                        : $"{method} /api/v1{route.Token.ValueText}";
+                })
+                .Where(static route => route is not null)
+                .Select(static route => route!)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var missing = expected.Except(actual, StringComparer.Ordinal).OrderBy(static route => route).ToArray();
+            var extra = actual.Except(expected, StringComparer.Ordinal).OrderBy(static route => route).ToArray();
+            if (missing.Length is 0 && extra.Length is 0)
+            {
+                Log.Information("Collector product routes exactly match qyl-api-schema OpenAPI");
+                return;
+            }
+
+            foreach (var route in missing)
+                Log.Error("  Missing collector product route: {Route}", route);
+            foreach (var route in extra)
+                Log.Error("  Collector route absent from qyl-api-schema: {Route}", route);
+
+            throw new InvalidOperationException(
+                "Collector /api/v1 routes must exactly match the installed qyl-api-schema OpenAPI contract.");
         });
 
     Target VerifyCollectorUsesSemanticConstants => d => d
@@ -2608,6 +2683,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorHttpJsonContextUsesOnlyContracts)
         .DependsOn(VerifyCollectorEndpointResponsesUseContracts)
         .DependsOn(VerifyCollectorEndpointLimitsMatchOpenApi)
+        .DependsOn(VerifyCollectorRoutesMatchOpenApi)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorTelemetryUsesBuildVersion)
         .DependsOn(VerifyCollectorHasNoRuntimeRoslynUtilityReference)

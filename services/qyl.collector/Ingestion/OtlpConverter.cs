@@ -10,8 +10,11 @@ using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoKeyValueList = OpenTelemetry.Proto.Common.V1.KeyValueList;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using ProtoExemplar = OpenTelemetry.Proto.Metrics.V1.Exemplar;
 using ProtoMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 using ProtoNumberDataPoint = OpenTelemetry.Proto.Metrics.V1.NumberDataPoint;
+using ProtoResourceMetrics = OpenTelemetry.Proto.Metrics.V1.ResourceMetrics;
+using ProtoScopeMetrics = OpenTelemetry.Proto.Metrics.V1.ScopeMetrics;
 using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
@@ -374,9 +377,17 @@ internal static class OtlpConverter
 
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
             {
-                var scopeName = scopeMetrics.Scope?.Name;
                 foreach (var metric in scopeMetrics.Metrics)
-                    AppendMetricDataPoints(metrics, metric, projectIdHint, serviceName, scopeName, resourceAttrs);
+                {
+                    AppendMetricDataPoints(
+                        metrics,
+                        metric,
+                        projectIdHint,
+                        serviceName,
+                        resourceAttrs,
+                        resourceMetrics,
+                        scopeMetrics);
+                }
             }
         }
 
@@ -388,77 +399,127 @@ internal static class OtlpConverter
         ProtoMetric metric,
         string? projectIdHint,
         string serviceName,
-        string? scopeName,
-        Dictionary<string, OtlpAttributeValue> resourceAttributes)
+        Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        ProtoResourceMetrics resourceMetrics,
+        ProtoScopeMetrics scopeMetrics)
     {
+        if (string.IsNullOrWhiteSpace(metric.Name))
+            throw new InvalidDataException("OTLP metric name must not be empty.");
+
+        var metadata = ExtractMetricAttributes(metric.Metadata);
+        var scopeAttributes = scopeMetrics.Scope is null
+            ? new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal)
+            : ExtractMetricAttributes(scopeMetrics.Scope.Attributes);
+
         switch (metric.DataCase)
         {
             case ProtoMetric.DataOneofCase.Gauge:
                 foreach (var point in metric.Gauge.DataPoints)
                 {
                     metrics.Add(CreateNumberMetricRecord(
-                        metric, MetricStorageTypes.Gauge, point, projectIdHint, serviceName, scopeName,
-                        resourceAttributes, isMonotonic: null, aggregationTemporality: null));
+                        metric,
+                        MetricStorageTypes.Gauge,
+                        point,
+                        projectIdHint,
+                        serviceName,
+                        resourceAttributes,
+                        resourceMetrics,
+                        scopeMetrics,
+                        metadata,
+                        scopeAttributes,
+                        isMonotonic: null,
+                        aggregationTemporality: null));
                 }
 
                 break;
             case ProtoMetric.DataOneofCase.Sum:
+                var sumTemporality = RequireAggregationTemporality(
+                    (int)metric.Sum.AggregationTemporality,
+                    metric.Name);
                 foreach (var point in metric.Sum.DataPoints)
                 {
                     metrics.Add(CreateNumberMetricRecord(
-                        metric, MetricStorageTypes.Sum, point, projectIdHint, serviceName, scopeName,
-                        resourceAttributes, metric.Sum.IsMonotonic, (int)metric.Sum.AggregationTemporality));
+                        metric,
+                        MetricStorageTypes.Sum,
+                        point,
+                        projectIdHint,
+                        serviceName,
+                        resourceAttributes,
+                        resourceMetrics,
+                        scopeMetrics,
+                        metadata,
+                        scopeAttributes,
+                        metric.Sum.IsMonotonic,
+                        sumTemporality));
                 }
 
                 break;
             case ProtoMetric.DataOneofCase.Histogram:
+                var histogramTemporality = RequireAggregationTemporality(
+                    (int)metric.Histogram.AggregationTemporality,
+                    metric.Name);
                 foreach (var point in metric.Histogram.DataPoints)
                 {
-                    metrics.Add(new MetricIngestionRecord
+                    ValidateExplicitHistogramBuckets(point.ExplicitBounds.Count, point.BucketCounts.Count, metric.Name);
+                    metrics.Add(CreateMetricRecord(
+                        metric,
+                        MetricStorageTypes.Histogram,
+                        point.TimeUnixNano,
+                        point.StartTimeUnixNano,
+                        point.Flags,
+                        point.Attributes,
+                        point.Exemplars,
+                        projectIdHint,
+                        serviceName,
+                        resourceAttributes,
+                        resourceMetrics,
+                        scopeMetrics,
+                        metadata,
+                        scopeAttributes) with
                     {
-                        ProjectIdHint = projectIdHint,
-                        MetricName = metric.Name,
-                        MetricType = MetricStorageTypes.Histogram,
-                        Unit = NullIfEmpty(metric.Unit),
-                        Description = NullIfEmpty(metric.Description),
-                        ScopeName = NullIfEmpty(scopeName),
-                        TimeUnixNano = point.TimeUnixNano,
-                        StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
                         Count = point.Count,
                         Sum = point.HasSum ? point.Sum : null,
                         Min = point.HasMin ? point.Min : null,
                         Max = point.HasMax ? point.Max : null,
-                        HistogramBounds = point.BucketCounts.Count > 0 ? [.. point.ExplicitBounds] : null,
-                        HistogramCounts = point.BucketCounts.Count > 0 ? [.. point.BucketCounts] : null,
-                        AggregationTemporality = (int)metric.Histogram.AggregationTemporality,
-                        ServiceName = serviceName,
-                        Attributes = ExtractMetricAttributes(point.Attributes),
-                        ResourceAttributes = resourceAttributes
+                        HistogramBounds = [.. point.ExplicitBounds],
+                        HistogramCounts = [.. point.BucketCounts],
+                        AggregationTemporality = histogramTemporality
                     });
                 }
 
                 break;
             case ProtoMetric.DataOneofCase.ExponentialHistogram:
+                var exponentialTemporality = RequireAggregationTemporality(
+                    (int)metric.ExponentialHistogram.AggregationTemporality,
+                    metric.Name);
                 foreach (var point in metric.ExponentialHistogram.DataPoints)
                 {
-                    metrics.Add(new MetricIngestionRecord
+                    metrics.Add(CreateMetricRecord(
+                        metric,
+                        MetricStorageTypes.ExponentialHistogram,
+                        point.TimeUnixNano,
+                        point.StartTimeUnixNano,
+                        point.Flags,
+                        point.Attributes,
+                        point.Exemplars,
+                        projectIdHint,
+                        serviceName,
+                        resourceAttributes,
+                        resourceMetrics,
+                        scopeMetrics,
+                        metadata,
+                        scopeAttributes) with
                     {
-                        ProjectIdHint = projectIdHint,
-                        MetricName = metric.Name,
-                        MetricType = MetricStorageTypes.ExponentialHistogram,
-                        Unit = NullIfEmpty(metric.Unit),
-                        Description = NullIfEmpty(metric.Description),
-                        ScopeName = NullIfEmpty(scopeName),
-                        TimeUnixNano = point.TimeUnixNano,
-                        StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
                         Count = point.Count,
                         Sum = point.HasSum ? point.Sum : null,
                         Min = point.HasMin ? point.Min : null,
                         Max = point.HasMax ? point.Max : null,
-                        AggregationTemporality = (int)metric.ExponentialHistogram.AggregationTemporality,
-                        ServiceName = serviceName,
-                        Attributes = ExtractMetricAttributes(point.Attributes),
-                        ResourceAttributes = resourceAttributes
+                        ExponentialHistogramScale = point.Scale,
+                        ExponentialHistogramZeroCount = point.ZeroCount,
+                        ExponentialHistogramZeroThreshold = point.ZeroThreshold,
+                        ExponentialHistogramPositive = ConvertExponentialBuckets(point.Positive),
+                        ExponentialHistogramNegative = ConvertExponentialBuckets(point.Negative),
+                        AggregationTemporality = exponentialTemporality
                     });
                 }
 
@@ -466,21 +527,30 @@ internal static class OtlpConverter
             case ProtoMetric.DataOneofCase.Summary:
                 foreach (var point in metric.Summary.DataPoints)
                 {
-                    metrics.Add(new MetricIngestionRecord
+                    ValidateSummaryQuantiles(point.QuantileValues, metric.Name);
+                    metrics.Add(CreateMetricRecord(
+                        metric,
+                        MetricStorageTypes.Summary,
+                        point.TimeUnixNano,
+                        point.StartTimeUnixNano,
+                        point.Flags,
+                        point.Attributes,
+                        exemplars: null,
+                        projectIdHint,
+                        serviceName,
+                        resourceAttributes,
+                        resourceMetrics,
+                        scopeMetrics,
+                        metadata,
+                        scopeAttributes) with
                     {
-                        ProjectIdHint = projectIdHint,
-                        MetricName = metric.Name,
-                        MetricType = MetricStorageTypes.Summary,
-                        Unit = NullIfEmpty(metric.Unit),
-                        Description = NullIfEmpty(metric.Description),
-                        ScopeName = NullIfEmpty(scopeName),
-                        TimeUnixNano = point.TimeUnixNano,
-                        StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
                         Count = point.Count,
                         Sum = point.Sum,
-                        ServiceName = serviceName,
-                        Attributes = ExtractMetricAttributes(point.Attributes),
-                        ResourceAttributes = resourceAttributes
+                        SummaryQuantiles =
+                        [
+                            .. point.QuantileValues.Select(static value =>
+                                new MetricSummaryQuantileIngestionRecord(value.Quantile, value.Value))
+                        ]
                     });
                 }
 
@@ -494,32 +564,157 @@ internal static class OtlpConverter
         ProtoNumberDataPoint point,
         string? projectIdHint,
         string serviceName,
-        string? scopeName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        ProtoResourceMetrics resourceMetrics,
+        ProtoScopeMetrics scopeMetrics,
+        IReadOnlyDictionary<string, OtlpAttributeValue> metadata,
+        IReadOnlyDictionary<string, OtlpAttributeValue> scopeAttributes,
         bool? isMonotonic,
-        int? aggregationTemporality) =>
-        new()
+        int? aggregationTemporality)
+    {
+        var record = CreateMetricRecord(
+            metric,
+            metricType,
+            point.TimeUnixNano,
+            point.StartTimeUnixNano,
+            point.Flags,
+            point.Attributes,
+            point.Exemplars,
+            projectIdHint,
+            serviceName,
+            resourceAttributes,
+            resourceMetrics,
+            scopeMetrics,
+            metadata,
+            scopeAttributes) with
+        {
+            IsMonotonic = isMonotonic,
+            AggregationTemporality = aggregationTemporality
+        };
+
+        return point.ValueCase switch
+        {
+            ProtoNumberDataPoint.ValueOneofCase.AsDouble => record with { DoubleValue = point.AsDouble },
+            ProtoNumberDataPoint.ValueOneofCase.AsInt => record with { IntValue = point.AsInt },
+            _ => throw new InvalidDataException($"OTLP metric '{metric.Name}' has a number point without a value.")
+        };
+    }
+
+    private static MetricIngestionRecord CreateMetricRecord(
+        ProtoMetric metric,
+        int metricType,
+        ulong timeUnixNano,
+        ulong startTimeUnixNano,
+        uint flags,
+        RepeatedField<ProtoKeyValue> attributes,
+        RepeatedField<ProtoExemplar>? exemplars,
+        string? projectIdHint,
+        string serviceName,
+        Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        ProtoResourceMetrics resourceMetrics,
+        ProtoScopeMetrics scopeMetrics,
+        IReadOnlyDictionary<string, OtlpAttributeValue> metadata,
+        IReadOnlyDictionary<string, OtlpAttributeValue> scopeAttributes)
+    {
+        if (timeUnixNano is 0)
+            throw new InvalidDataException($"OTLP metric '{metric.Name}' has a data point with time_unix_nano=0.");
+
+        var scope = scopeMetrics.Scope;
+        return new MetricIngestionRecord
         {
             ProjectIdHint = projectIdHint,
             MetricName = metric.Name,
             MetricType = metricType,
             Unit = NullIfEmpty(metric.Unit),
             Description = NullIfEmpty(metric.Description),
-            ScopeName = NullIfEmpty(scopeName),
-            TimeUnixNano = point.TimeUnixNano,
-            StartTimeUnixNano = point.StartTimeUnixNano > 0 ? point.StartTimeUnixNano : null,
-            Value = point.ValueCase switch
-            {
-                ProtoNumberDataPoint.ValueOneofCase.AsDouble => point.AsDouble,
-                ProtoNumberDataPoint.ValueOneofCase.AsInt => point.AsInt,
-                _ => null
-            },
-            IsMonotonic = isMonotonic,
-            AggregationTemporality = aggregationTemporality,
+            Metadata = metadata,
+            ResourceSchemaUrl = NullIfEmpty(resourceMetrics.SchemaUrl),
+            ResourceDroppedAttributesCount = resourceMetrics.Resource?.DroppedAttributesCount ?? 0,
+            HasInstrumentationScope = scope is not null,
+            ScopeName = NullIfEmpty(scope?.Name),
+            ScopeVersion = NullIfEmpty(scope?.Version),
+            ScopeAttributes = scopeAttributes,
+            ScopeDroppedAttributesCount = scope?.DroppedAttributesCount ?? 0,
+            ScopeSchemaUrl = NullIfEmpty(scopeMetrics.SchemaUrl),
+            TimeUnixNano = timeUnixNano,
+            StartTimeUnixNano = startTimeUnixNano,
+            Flags = flags,
+            Exemplars = ConvertMetricExemplars(exemplars),
             ServiceName = serviceName,
-            Attributes = ExtractMetricAttributes(point.Attributes),
+            Attributes = ExtractMetricAttributes(attributes),
             ResourceAttributes = resourceAttributes
         };
+    }
+
+    private static IReadOnlyList<MetricExemplarIngestionRecord> ConvertMetricExemplars(
+        RepeatedField<ProtoExemplar>? exemplars)
+    {
+        if (exemplars is not { Count: > 0 }) return [];
+
+        var result = new List<MetricExemplarIngestionRecord>(exemplars.Count);
+        foreach (var exemplar in exemplars)
+        {
+            if (exemplar.TimeUnixNano is 0)
+                throw new InvalidDataException("OTLP metric exemplar has time_unix_nano=0.");
+
+            var converted = new MetricExemplarIngestionRecord
+            {
+                TimeUnixNano = exemplar.TimeUnixNano,
+                SpanId = RequireIdOrAbsent(exemplar.SpanId, 8, "exemplar.span_id"),
+                TraceId = RequireIdOrAbsent(exemplar.TraceId, 16, "exemplar.trace_id"),
+                FilteredAttributes = ExtractMetricAttributes(exemplar.FilteredAttributes)
+            };
+            converted = exemplar.ValueCase switch
+            {
+                ProtoExemplar.ValueOneofCase.AsDouble => converted with { DoubleValue = exemplar.AsDouble },
+                ProtoExemplar.ValueOneofCase.AsInt => converted with { IntValue = exemplar.AsInt },
+                _ => throw new InvalidDataException("OTLP metric exemplar does not contain a numeric value.")
+            };
+            result.Add(converted);
+        }
+
+        return result;
+    }
+
+    private static MetricExponentialHistogramBucketsIngestionRecord ConvertExponentialBuckets(
+        global::OpenTelemetry.Proto.Metrics.V1.ExponentialHistogramDataPoint.Types.Buckets? buckets) =>
+        buckets is null
+            ? new MetricExponentialHistogramBucketsIngestionRecord(0, [])
+            : new MetricExponentialHistogramBucketsIngestionRecord(buckets.Offset, [.. buckets.BucketCounts]);
+
+    private static int RequireAggregationTemporality(int temporality, string metricName) =>
+        temporality is 1 or 2
+            ? temporality
+            : throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has an unspecified aggregation temporality.");
+
+    private static void ValidateExplicitHistogramBuckets(int boundCount, int bucketCount, string metricName)
+    {
+        if ((bucketCount is 0 && boundCount is not 0) ||
+            (bucketCount > 0 && bucketCount != boundCount + 1))
+        {
+            throw new InvalidDataException(
+                $"OTLP metric '{metricName}' has an invalid explicit histogram bucket layout.");
+        }
+    }
+
+    private static void ValidateSummaryQuantiles(
+        RepeatedField<global::OpenTelemetry.Proto.Metrics.V1.SummaryDataPoint.Types.ValueAtQuantile> values,
+        string metricName)
+    {
+        var previous = -1d;
+        foreach (var value in values)
+        {
+            if (double.IsNaN(value.Quantile) || value.Quantile is < 0 or > 1 ||
+                value.Quantile <= previous || double.IsNaN(value.Value) || value.Value < 0)
+            {
+                throw new InvalidDataException(
+                    $"OTLP metric '{metricName}' has invalid summary quantile values.");
+            }
+
+            previous = value.Quantile;
+        }
+    }
 
     // Metric dimensions are instrumentation-defined attribute keys drawn from the same semantic
     // registries as span attributes, so the span allow-list is the persistence policy here too.

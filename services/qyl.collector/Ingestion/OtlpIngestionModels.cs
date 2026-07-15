@@ -27,22 +27,55 @@ internal sealed record MetricIngestionRecord
     public required int MetricType { get; init; }
     public string? Unit { get; init; }
     public string? Description { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> Metadata { get; init; }
+    public string? ResourceSchemaUrl { get; init; }
+    public required uint ResourceDroppedAttributesCount { get; init; }
+    public required bool HasInstrumentationScope { get; init; }
     public string? ScopeName { get; init; }
+    public string? ScopeVersion { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; }
+    public required uint ScopeDroppedAttributesCount { get; init; }
+    public string? ScopeSchemaUrl { get; init; }
     public required ulong TimeUnixNano { get; init; }
-    public ulong? StartTimeUnixNano { get; init; }
-    public double? Value { get; init; }
+    public required ulong StartTimeUnixNano { get; init; }
+    public long? IntValue { get; init; }
+    public double? DoubleValue { get; init; }
+    public required uint Flags { get; init; }
+    public required IReadOnlyList<MetricExemplarIngestionRecord> Exemplars { get; init; }
     public ulong? Count { get; init; }
     public double? Sum { get; init; }
     public double? Min { get; init; }
     public double? Max { get; init; }
     public IReadOnlyList<double>? HistogramBounds { get; init; }
     public IReadOnlyList<ulong>? HistogramCounts { get; init; }
+    public int? ExponentialHistogramScale { get; init; }
+    public ulong? ExponentialHistogramZeroCount { get; init; }
+    public double? ExponentialHistogramZeroThreshold { get; init; }
+    public MetricExponentialHistogramBucketsIngestionRecord? ExponentialHistogramPositive { get; init; }
+    public MetricExponentialHistogramBucketsIngestionRecord? ExponentialHistogramNegative { get; init; }
+    public IReadOnlyList<MetricSummaryQuantileIngestionRecord>? SummaryQuantiles { get; init; }
     public bool? IsMonotonic { get; init; }
     public int? AggregationTemporality { get; init; }
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
 }
+
+internal sealed record MetricExemplarIngestionRecord
+{
+    public required ulong TimeUnixNano { get; init; }
+    public long? IntValue { get; init; }
+    public double? DoubleValue { get; init; }
+    public string? SpanId { get; init; }
+    public string? TraceId { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> FilteredAttributes { get; init; }
+}
+
+internal sealed record MetricExponentialHistogramBucketsIngestionRecord(
+    int Offset,
+    IReadOnlyList<ulong> BucketCounts);
+
+internal readonly record struct MetricSummaryQuantileIngestionRecord(double Quantile, double Value);
 
 internal sealed record SpanIngestionRecord
 {

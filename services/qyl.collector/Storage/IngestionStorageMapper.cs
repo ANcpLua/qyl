@@ -133,6 +133,8 @@ internal static class IngestionStorageMapper
         var projectId = ProjectScope.Normalize(metric.ProjectIdHint);
         var attributesJson = PersistedAttributePolicy.SerializeMetricAttributes(metric.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(metric.ResourceAttributes);
+        var metadataJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(metric.Metadata);
+        var scopeAttributesJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(metric.ScopeAttributes);
 
         return new MetricStorageRow
         {
@@ -142,35 +144,69 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, projectId);
                 AppendIdentityPart(builder, metric.MetricName);
                 AppendIdentityPart(builder, metric.MetricType);
+                AppendIdentityPart(builder, metric.AggregationTemporality);
+                AppendIdentityPart(builder,
+                    metric.IsMonotonic.HasValue ? (int?)(metric.IsMonotonic.Value ? 1 : 0) : null);
                 AppendIdentityPart(builder, metric.Unit);
+                AppendIdentityPart(builder, metric.ResourceSchemaUrl);
+                AppendIdentityPart(builder, metric.ResourceDroppedAttributesCount.ToString(CultureInfo.InvariantCulture));
+                AppendIdentityPart(builder, metric.HasInstrumentationScope ? 1 : 0);
                 AppendIdentityPart(builder, metric.ScopeName);
+                AppendIdentityPart(builder, metric.ScopeVersion);
+                AppendIdentityPart(builder, metric.ScopeDroppedAttributesCount.ToString(CultureInfo.InvariantCulture));
+                AppendIdentityPart(builder, metric.ScopeSchemaUrl);
                 AppendIdentityPart(builder, metric.TimeUnixNano);
-                AppendIdentityPart(builder, metric.StartTimeUnixNano);
+                AppendIdentityPart(
+                    builder,
+                    metric.MetricType is MetricStorageTypes.Gauge ? (ulong?)null : metric.StartTimeUnixNano);
                 AppendIdentityPart(builder, metric.ServiceName);
                 // Identity uses the raw dimensions, not the persisted allow-list projection, so
                 // data points differing only in a non-persisted dimension stay distinct rows.
-                AppendIdentityPart(builder, metric.Attributes.Count);
-                foreach (var (key, value) in metric.Attributes.OrderBy(static item => item.Key, StringComparer.Ordinal))
-                {
-                    AppendIdentityPart(builder, key);
-                    AppendIdentityPart(builder, value.ToStableString());
-                }
-
-                AppendIdentityPart(builder, resourceJson);
+                AppendIdentityAttributes(builder, metric.Attributes);
+                AppendIdentityAttributes(builder, metric.ResourceAttributes);
+                AppendIdentityAttributes(builder, metric.ScopeAttributes);
             }),
+            ContractProjectionVersion = MetricStorageRow.CurrentContractProjectionVersion,
             MetricName = metric.MetricName,
             MetricType = (byte)Math.Clamp(metric.MetricType, 0, 5),
             Unit = metric.Unit,
             Description = metric.Description,
+            MetadataJson = metadataJson,
+            ResourceSchemaUrl = metric.ResourceSchemaUrl,
+            ResourceDroppedAttributesCount = metric.ResourceDroppedAttributesCount,
+            HasInstrumentationScope = (byte)(metric.HasInstrumentationScope ? 1 : 0),
             ScopeName = metric.ScopeName,
+            ScopeVersion = metric.ScopeVersion,
+            ScopeAttributesJson = scopeAttributesJson,
+            ScopeDroppedAttributesCount = metric.ScopeDroppedAttributesCount,
+            ScopeSchemaUrl = metric.ScopeSchemaUrl,
             TimeUnixNano = metric.TimeUnixNano,
             StartTimeUnixNano = metric.StartTimeUnixNano,
-            Value = metric.Value,
+            Value = null,
+            IntValue = metric.IntValue,
+            DoubleValue = metric.DoubleValue,
+            Flags = metric.Flags,
+            ExemplarsJson = SerializeMetricExemplars(metric.Exemplars),
             Count = metric.Count,
             Sum = metric.Sum,
             Min = metric.Min,
             Max = metric.Max,
-            BucketsJson = SerializeHistogramBuckets(metric.HistogramBounds, metric.HistogramCounts),
+            BucketsJson = metric.MetricType is MetricStorageTypes.Histogram
+                ? SerializeHistogramBuckets(metric.HistogramBounds ?? [], metric.HistogramCounts ?? [])
+                : null,
+            ExponentialHistogramScale = metric.ExponentialHistogramScale,
+            ExponentialHistogramZeroCount = metric.ExponentialHistogramZeroCount,
+            ExponentialHistogramZeroThreshold = metric.ExponentialHistogramZeroThreshold,
+            ExponentialHistogramBucketsJson = metric.MetricType is MetricStorageTypes.ExponentialHistogram
+                ? SerializeExponentialHistogramBuckets(
+                    metric.ExponentialHistogramPositive ??
+                    new MetricExponentialHistogramBucketsIngestionRecord(0, []),
+                    metric.ExponentialHistogramNegative ??
+                    new MetricExponentialHistogramBucketsIngestionRecord(0, []))
+                : null,
+            SummaryQuantilesJson = metric.MetricType is MetricStorageTypes.Summary
+                ? SerializeSummaryQuantiles(metric.SummaryQuantiles ?? [])
+                : null,
             IsMonotonic = metric.IsMonotonic is { } monotonic ? (byte)(monotonic ? 1 : 0) : null,
             AggregationTemporality = metric.AggregationTemporality is { } temporality
                 ? (byte)Math.Clamp(temporality, 0, 2)
@@ -424,6 +460,18 @@ internal static class IngestionStorageMapper
             AppendIdentityPart(builder, value);
     }
 
+    private static void AppendIdentityAttributes(
+        StringBuilder builder,
+        IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
+    {
+        AppendIdentityPart(builder, attributes.Count);
+        foreach (var (key, value) in attributes.OrderBy(static item => item.Key, StringComparer.Ordinal))
+        {
+            AppendIdentityPart(builder, key);
+            AppendIdentityPart(builder, value.ToIdentityString());
+        }
+    }
+
     private static string? ToSafeLogBody(string? raw)
     {
         if (string.IsNullOrEmpty(raw))
@@ -463,28 +511,55 @@ internal static class IngestionStorageMapper
         _ => "UNSPECIFIED"
     };
 
-    private static string? SerializeHistogramBuckets(
-        IReadOnlyList<double>? explicitBounds,
-        IReadOnlyList<ulong>? bucketCounts)
+    private static string SerializeHistogramBuckets(
+        IReadOnlyList<double> explicitBounds,
+        IReadOnlyList<ulong> bucketCounts) =>
+        JsonSerializer.Serialize(
+            new MetricHistogramBucketsJson
+            {
+                ExplicitBounds = [.. explicitBounds],
+                BucketCounts = [.. bucketCounts]
+            },
+            StorageJsonSerializerContext.Default.MetricHistogramBucketsJson);
+
+    private static string SerializeExponentialHistogramBuckets(
+        MetricExponentialHistogramBucketsIngestionRecord positive,
+        MetricExponentialHistogramBucketsIngestionRecord negative) =>
+        JsonSerializer.Serialize(
+            new MetricExponentialHistogramBucketsJson
+            {
+                PositiveOffset = positive.Offset,
+                PositiveBucketCounts = [.. positive.BucketCounts],
+                NegativeOffset = negative.Offset,
+                NegativeBucketCounts = [.. negative.BucketCounts]
+            },
+            StorageJsonSerializerContext.Default.MetricExponentialHistogramBucketsJson);
+
+    private static string? SerializeMetricExemplars(IReadOnlyList<MetricExemplarIngestionRecord> exemplars)
     {
-        if (bucketCounts is not { Count: > 0 })
-            return null;
+        if (exemplars.Count is 0) return null;
 
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
+        var stored = exemplars.Select(static exemplar => new MetricExemplarJson
         {
-            writer.WriteStartObject();
-            writer.WriteStartArray("bounds");
-            foreach (var bound in explicitBounds ?? [])
-                writer.WriteNumberValue(bound);
-            writer.WriteEndArray();
-            writer.WriteStartArray("counts");
-            foreach (var count in bucketCounts)
-                writer.WriteNumberValue(count);
-            writer.WriteEndArray();
-            writer.WriteEndObject();
-        }
+            TimeUnixNano = exemplar.TimeUnixNano,
+            IntValue = exemplar.IntValue,
+            DoubleValue = exemplar.DoubleValue,
+            SpanId = exemplar.SpanId,
+            TraceId = exemplar.TraceId,
+            FilteredAttributesJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(
+                exemplar.FilteredAttributes)
+        }).ToList();
+        return JsonSerializer.Serialize(stored, StorageJsonSerializerContext.Default.MetricExemplarJsonList);
+    }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    private static string SerializeSummaryQuantiles(
+        IReadOnlyList<MetricSummaryQuantileIngestionRecord> quantiles)
+    {
+        var stored = quantiles.Select(static value => new MetricSummaryQuantileJson
+        {
+            Quantile = value.Quantile,
+            Value = value.Value
+        }).ToList();
+        return JsonSerializer.Serialize(stored, StorageJsonSerializerContext.Default.MetricSummaryQuantileJsonList);
     }
 }

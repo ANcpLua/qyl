@@ -20,6 +20,11 @@ internal static class AttributeKeySets
     internal static bool IsSafeMetricAttribute(string key) =>
         !IsDeniedMetricKey(key) && CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key);
 
+    // Descriptor metadata, scope attributes, and exemplar filtered attributes are not metric
+    // dimensions and therefore are not constrained to the semantic-convention dimension catalog.
+    // They still cross the same persistence privacy boundary and honor the credential deny rules.
+    internal static bool IsSafeMetricAuxiliaryAttribute(string key) => !IsDeniedMetricKey(key);
+
     private static bool IsDeniedMetricKey(string key) =>
         CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key)
             ? CollectorSemanticAttributeCatalog.DeniedExactKeys.Contains(key) ||
