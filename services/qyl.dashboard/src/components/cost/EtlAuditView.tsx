@@ -484,7 +484,7 @@ function ClusterDatum({label, value, unavailable}: { label: string; value: strin
     );
 }
 
-export interface ScenarioValues {
+interface ScenarioValues {
     coverage: string;
     frontier: string;
     alternative: string;

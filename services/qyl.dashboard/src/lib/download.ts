@@ -6,7 +6,7 @@ function generateFilename(prefix: string, format: ExportFormat): string {
 }
 
 function convertToCSV<T extends Record<string, unknown>>(
-    data: T[],
+    data: readonly T[],
     columns?: string[]
 ): string {
     if (data.length === 0) {
@@ -61,31 +61,18 @@ function downloadFile(content: string, filename: string, mimeType: string): void
     URL.revokeObjectURL(url);
 }
 
-function downloadAsJSON<T>(data: T, filenamePrefix: string): void {
+export function downloadJson<T>(data: readonly T[], filenamePrefix: string): void {
     const content = JSON.stringify(data, null, 2);
     const filename = generateFilename(filenamePrefix, 'json');
     downloadFile(content, filename, 'application/json');
 }
 
-function downloadAsCSV<T extends Record<string, unknown>>(
-    data: T[],
+export function downloadCsv<T extends Record<string, unknown>>(
+    data: readonly T[],
     filenamePrefix: string,
     columns?: string[]
 ): void {
     const content = convertToCSV(data, columns);
     const filename = generateFilename(filenamePrefix, 'csv');
     downloadFile(content, filename, 'text/csv');
-}
-
-export function downloadData<T extends Record<string, unknown>>(
-    data: T[],
-    format: ExportFormat,
-    filenamePrefix: string,
-    columns?: string[]
-): void {
-    if (format === 'json') {
-        downloadAsJSON(data, filenamePrefix);
-    } else {
-        downloadAsCSV(data, filenamePrefix, columns);
-    }
 }

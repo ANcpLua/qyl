@@ -9,13 +9,13 @@ import {
     evaluateGenAiEtlAudit,
     fetchGenAiEtlAudit,
     parseLogSsePayload,
-    type SseEvent,
 } from './api';
 
 describe('consumeSse', () => {
     afterEach(() => vi.unstubAllGlobals());
 
     it('sends the resume cursor and preserves SSE event ids', async () => {
+        type ParsedSseFrame = Parameters<Parameters<typeof consumeSse>[3]>[0];
         const encoded = new TextEncoder().encode(
             'id: 42\nevent: log\ndata: {"type":"log"}\n\n' +
             'event: heartbeat\ndata: {"type":"heartbeat"}\n\n',
@@ -28,7 +28,7 @@ describe('consumeSse', () => {
             });
         });
         vi.stubGlobal('fetch', fetchMock);
-        const events: SseEvent[] = [];
+        const events: ParsedSseFrame[] = [];
 
         await consumeSse('/api/v1/stream/logs', new AbortController().signal, () => {},
             event => events.push(event), '41');

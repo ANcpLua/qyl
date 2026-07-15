@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -104,6 +105,17 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             if (existingCopies.Length > 0)
                 throw new InvalidOperationException(
                     $"Remove copied API contract surfaces: {string.Join(", ", existingCopies)}");
+
+            var versionDocument = XDocument.Load(RootDirectory / "Version.props");
+            var dotnetVersion = versionDocument.Descendants("QylApiContractsVersion")
+                .Select(static element => element.Value.Trim())
+                .SingleOrDefault();
+            if (string.IsNullOrWhiteSpace(dotnetVersion))
+                throw new InvalidOperationException(
+                    "Version.props must define one QylApiContractsVersion for the generated .NET contracts.");
+            if (!string.Equals(sharedVersion, dotnetVersion, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"Generated contract versions disagree: frontends use {sharedVersion}, .NET uses {dotnetVersion}.");
 
             Log.Information("First-party frontends consume {Package} {Version} directly", packageName, sharedVersion);
         });

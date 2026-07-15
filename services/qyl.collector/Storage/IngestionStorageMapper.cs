@@ -104,6 +104,7 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, projectId);
                 AppendIdentityPart(builder, log.TraceId);
                 AppendIdentityPart(builder, log.SpanId);
+                AppendIdentityPart(builder, log.EventName);
                 AppendIdentityPart(builder, sessionId);
                 AppendIdentityPart(builder, log.TimeUnixNano);
                 AppendIdentityPart(builder, log.ObservedTimeUnixNano);
@@ -116,6 +117,7 @@ internal static class IngestionStorageMapper
             }),
             TraceId = log.TraceId,
             SpanId = log.SpanId,
+            EventName = log.EventName,
             SessionId = sessionId,
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano,

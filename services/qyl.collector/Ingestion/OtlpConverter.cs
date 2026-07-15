@@ -328,6 +328,7 @@ internal static class OtlpConverter
             ProjectIdHint = projectIdHint,
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
+            EventName = NullIfEmpty(log.EventName),
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
             SeverityNumber = severityNumber,

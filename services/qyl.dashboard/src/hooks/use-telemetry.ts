@@ -5,9 +5,7 @@ import type {
 } from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
-import {parseSessionPage, parseSpanPage, parseTracePage} from '@/lib/contract-validation';
-
-type TelemetrySpan = Span;
+import {parseSessionPage, parseSessionTracePage, parseSpanPage, parseTracePage} from '@/lib/contract-validation';
 
 export const telemetryKeys = {
     all: ['telemetry'] as const,
@@ -34,9 +32,9 @@ export function useSessionSpans(sessionId: string) {
         queryKey: telemetryKeys.sessionSpans(sessionId),
         queryFn: () => fetchJson(
             `/api/v1/sessions/${sessionId}/traces`,
-            value => parseTracePage(value, `/api/v1/sessions/${sessionId}/traces`),
+            value => parseSessionTracePage(value, sessionId),
         ),
-        select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
+        select: (data): Span[] => data.items.flatMap((trace) => trace.spans),
         enabled: !!sessionId,
     });
 }
@@ -46,9 +44,9 @@ export function useTraceSpans(traceId: string) {
         queryKey: telemetryKeys.traceSpans(traceId),
         queryFn: () => fetchJson(
             `/api/v1/traces/${traceId}/spans`,
-            value => parseSpanPage(value, `/api/v1/traces/${traceId}/spans`),
+            value => parseSpanPage(value, traceId),
         ),
-        select: (data): TelemetrySpan[] => data.items,
+        select: (data): Span[] => data.items,
         enabled: !!traceId,
     });
 }
@@ -57,7 +55,7 @@ export function useTraces(enabled = true) {
     return useQuery({
         queryKey: telemetryKeys.traces(),
         queryFn: () => fetchJson('/api/v1/traces', parseTracePage),
-        select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
+        select: (data): Span[] => data.items.flatMap((trace) => trace.spans),
         enabled,
         refetchInterval: 10000,
     });
@@ -75,7 +73,7 @@ export function selectTraceViewSource(args: {
     return 'session';
 }
 
-export function getSpanColor(span: TelemetrySpan): string {
+export function getSpanColor(span: Span): string {
     const attrs = getAttributesRecord(span);
     if (attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
@@ -96,7 +94,7 @@ export function getSpanColor(span: TelemetrySpan): string {
     return 'hsl(var(--span-internal))';
 }
 
-export function getSpanTypeLabel(span: TelemetrySpan): string {
+export function getSpanTypeLabel(span: Span): string {
     const attrs = getAttributesRecord(span);
     if (attrs['gen_ai.provider.name']) {
         return 'GenAI';

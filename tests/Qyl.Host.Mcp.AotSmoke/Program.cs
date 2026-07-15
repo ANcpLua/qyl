@@ -3,13 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Qyl.Api.Contracts.Runner.Mcp;
 using Qyl.Host;
 using Qyl.Host.Mcp;
 
 // AOT smoke for Qyl.Host.Mcp: not just composition — a LIVE MCP handshake under Native AOT.
 // Two resource kinds are exercised end-to-end through the package's own machinery
-// (McpHandshakeProbe -> McpClientRegistry -> McpContractMapper -> McpRunnerJsonContext):
+// (McpHandshakeProbe -> McpClientRegistry -> official MCP SDK source-generated JSON metadata):
 //   inproc      — SDK server over an in-memory stream pair inside this process
 //   stdio-self  — this same native binary re-spawned with --server as a stdio MCP server
 // Exit code 0 = every step passed.
@@ -60,30 +59,29 @@ foreach (var resource in app.Resources)
         continue;
     }
 
-    var list = McpContractMapper.ToContract(
-        await client.ListToolsAsync(new ListToolsRequestParams(), timeout.Token));
-    Check($"{resource.Name}: tools/list maps to contract (1 tool 'echo')",
+    var list = await client.ListToolsAsync(new ListToolsRequestParams(), timeout.Token);
+    Check($"{resource.Name}: tools/list returns official protocol result (1 tool 'echo')",
         list.Tools.Count == 1 && list.Tools[0].Name == "echo");
-    Check($"{resource.Name}: contract list serializes via source-gen context",
-        JsonSerializer.SerializeToUtf8Bytes(list, McpRunnerJsonContext.Default.RunnerMcpToolsResponse).Length > 0);
+    Check($"{resource.Name}: official list serializes via SDK source-gen metadata",
+        McpSdkJson.Serialize(list).Length > 0);
 
     var callRequest = JsonSerializer.Deserialize(
         """{"name":"echo","arguments":{"value":"live"}}""",
-        McpRunnerJsonContext.Default.RunnerMcpToolCallRequest)!;
-    var call = McpContractMapper.ToContract(
-        await client.CallToolAsync(McpContractMapper.ToSdk(callRequest), timeout.Token));
+        McpSdkJson.TypeInfo<CallToolRequestParams>())!;
+    var call = await client.CallToolAsync(callRequest, timeout.Token);
     Check($"{resource.Name}: tools/call echo -> 'echo:live'",
-        call.Content is [RunnerMcpTextContent { Text: "echo:live" }]);
-    Check($"{resource.Name}: contract call serializes via source-gen context",
-        JsonSerializer.SerializeToUtf8Bytes(call, McpRunnerJsonContext.Default.RunnerMcpToolCallResponse).Length > 0);
+        call.Content is [TextContentBlock { Text: "echo:live" }]);
+    Check($"{resource.Name}: official call result serializes via SDK source-gen metadata",
+        McpSdkJson.Serialize(call).Length > 0);
 
     var readRequest = JsonSerializer.Deserialize(
         """{"uri":"qyl://resource/static"}""",
-        McpRunnerJsonContext.Default.RunnerMcpResourceReadRequest)!;
-    var read = McpContractMapper.ToContract(
-        await client.ReadResourceAsync(McpContractMapper.ToSdk(readRequest), timeout.Token));
+        McpSdkJson.TypeInfo<ReadResourceRequestParams>())!;
+    var read = await client.ReadResourceAsync(readRequest, timeout.Token);
     Check($"{resource.Name}: resources/read -> 'resource-body'",
-        read.Contents is [RunnerMcpTextResourceContent { Text: "resource-body" }]);
+        read.Contents is [TextResourceContents { Text: "resource-body" }]);
+    Check($"{resource.Name}: official resource result serializes via SDK source-gen metadata",
+        McpSdkJson.Serialize(read).Length > 0);
 }
 
 Console.WriteLine(failures == 0

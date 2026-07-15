@@ -99,6 +99,7 @@ internal sealed record SessionStatsRow
     ON CONFLICT (project_id, log_id) DO UPDATE SET
         trace_id = EXCLUDED.trace_id,
         span_id = EXCLUDED.span_id,
+        event_name = EXCLUDED.event_name,
         session_id = EXCLUDED.session_id,
         time_unix_nano = EXCLUDED.time_unix_nano,
         observed_time_unix_nano = EXCLUDED.observed_time_unix_nano,
@@ -117,6 +118,7 @@ internal sealed partial record LogStorageRow
     public required string LogId { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
+    public string? EventName { get; init; }
     public string? SessionId { get; init; }
 
     [DuckDbColumn(IsUBigInt = true)]

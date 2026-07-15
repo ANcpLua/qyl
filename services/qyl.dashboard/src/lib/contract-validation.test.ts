@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {parseHealthReport, parseTracePage} from './contract-validation';
+import {parseHealthReport, parseLogStreamEvent, parseTracePage} from './contract-validation';
 
 const span = {
     span_id: '1111111111111111',
@@ -36,8 +36,27 @@ describe('generated Collector contract validation', () => {
 
     it('rejects invalid page envelopes and generated trace items', () => {
         expect(() => parseTracePage({items: [], has_more: 'false'}))
-            .toThrow(/items\[\] and has_more:boolean/);
+            .toThrow(/Collector contract mismatch/);
         expect(() => parseTracePage({items: [{...trace, spans: [{...span, resource: {}}]}], has_more: false}))
             .toThrow(/Collector contract mismatch/);
+        expect(() => parseTracePage({items: [], has_more: false, total: 0}))
+            .toThrow(/Collector contract mismatch/);
+    });
+
+    it('retains the generated OTLP event name on streamed log records', () => {
+        const event = parseLogStreamEvent({
+            type: 'log',
+            timestamp: '2026-07-15T00:00:00Z',
+            data: {
+                time_unix_nano: 1_000_000_000,
+                observed_time_unix_nano: 1_000_000_001,
+                severity_number: 9,
+                body: {string_value: 'sha256:test;chars:4;bytes:4'},
+                event_name: 'gen_ai.evaluation.result',
+                resource: {'service.name': 'dashboard-test'},
+            },
+        });
+
+        expect(event.data.event_name).toBe('gen_ai.evaluation.result');
     });
 });

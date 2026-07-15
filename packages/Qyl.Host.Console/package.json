@@ -14,7 +14,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ancplua/qyl-api-schema": "0.5.15",
+    "@ancplua/qyl-api-schema": "0.6.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

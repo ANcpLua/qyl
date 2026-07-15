@@ -15,13 +15,13 @@ import {
     parseProblemDetails,
 } from '@/lib/contract-validation';
 
-export interface SseEvent {
+interface SseFrame {
     event: string;
     data: string;
     id?: string;
 }
 
-export function parseLogSsePayload(frame: SseEvent): LogStreamEvent | HeartbeatEvent {
+export function parseLogSsePayload(frame: SseFrame): LogStreamEvent | HeartbeatEvent {
     let value: unknown;
     try {
         value = JSON.parse(frame.data);
@@ -38,7 +38,7 @@ export async function consumeSse(
     url: string,
     signal: AbortSignal,
     onOpen: () => void,
-    onEvent: (event: SseEvent) => void,
+    onEvent: (event: SseFrame) => void,
     lastEventId?: string,
 ): Promise<void> {
     const headers: Record<string, string> = {Accept: 'text/event-stream'};

@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import type {
-  RunnerMcpTool,
-  RunnerMcpToolCallRequest,
-  RunnerMcpToolCallResponse,
-  RunnerMcpToolsResponse,
-} from "@ancplua/qyl-api-schema/types";
+import {
+  CallToolRequestParamsSchema,
+  CallToolResultSchema,
+  ListToolsResultSchema,
+  type Tool,
+} from "@modelcontextprotocol/sdk/types.js";
 
 export type ToolsState =
   | { phase: "idle" }
   | { phase: "loading" }
-  | { phase: "ready"; tools: RunnerMcpTool[] }
+  | { phase: "ready"; tools: Tool[] }
   | { phase: "error"; message: string };
 
 export function useTools(resource: string | null, isMcp: boolean): ToolsState {
@@ -31,7 +31,7 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
           setState({ phase: "error", message: `HTTP ${res.status}` });
           return;
         }
-        const body = (await res.json()) as RunnerMcpToolsResponse;
+        const body = ListToolsResultSchema.parse(await res.json());
         if (!cancelled) setState({ phase: "ready", tools: body.tools });
       })
       .catch((err: unknown) => {
@@ -47,8 +47,8 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
 }
 
 export async function callTool(resource: string, tool: string, argsJson: string): Promise<string> {
-  const args = argsJson.trim() ? (JSON.parse(argsJson) as Record<string, unknown>) : {};
-  const request: RunnerMcpToolCallRequest = { name: tool, arguments: args };
+  const args: unknown = argsJson.trim() ? JSON.parse(argsJson) : {};
+  const request = CallToolRequestParamsSchema.parse({ name: tool, arguments: args });
   const res = await fetch(`/runner/mcp/${encodeURIComponent(resource)}/tools/call`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -56,9 +56,5 @@ export async function callTool(resource: string, tool: string, argsJson: string)
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
-  try {
-    return JSON.stringify(JSON.parse(text) as RunnerMcpToolCallResponse, null, 2);
-  } catch {
-    return text;
-  }
+  return JSON.stringify(CallToolResultSchema.parse(JSON.parse(text)), null, 2);
 }

@@ -112,6 +112,7 @@ internal sealed record LogIngestionRecord
     public string? ProjectIdHint { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
+    public string? EventName { get; init; }
     public required ulong TimeUnixNano { get; init; }
     public ulong? ObservedTimeUnixNano { get; init; }
     public required int SeverityNumber { get; init; }

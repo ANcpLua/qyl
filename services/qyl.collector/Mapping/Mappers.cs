@@ -216,6 +216,7 @@ internal static class LogMapper
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             TraceId = record.TraceId,
             SpanId = record.SpanId,
+            EventName = record.EventName,
             Resource = new Resource
             {
                 ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
