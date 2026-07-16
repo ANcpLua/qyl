@@ -10,7 +10,7 @@
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
     <!-- Instrumentation packages do not share the SDK release line. -->
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
@@ -27,8 +27,11 @@
     <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
-    <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x; 2.10.0 is patched for GHSA-v5pm-xwqc-g5wc. -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.10.0"/>
+    <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x
+         (verified 2026-07-16 against 3.9.0: its XmlCommentGenerator emits `IOpenApiMediaType.Example = ...`,
+         read-only in 3.x -> CS0200). Hold on the newest 2.x, which is patched for GHSA-v5pm-xwqc-g5wc;
+         retry 3.x when AspNetCore.OpenApi ships a 3.x-compatible generator. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.11.0"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
@@ -45,7 +48,7 @@
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
     <!-- Override vulnerable Nuke.Common transitives. -->
     <PackageVersion Include="NuGet.Packaging" Version="7.6.0"/>
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9"/>
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.10"/>
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
     <!-- Core avoids the reflection-based server hosting in the full MCP package. -->
     <PackageVersion Include="ModelContextProtocol.Core" Version="1.4.1"/>

@@ -7,15 +7,15 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Package Versions">
-    <DotNetRuntimeVersion>10.0.9</DotNetRuntimeVersion>
-    <MicrosoftExtensionsVersion>10.7.0</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsAiVersion>10.7.0</MicrosoftExtensionsAiVersion>
+    <DotNetRuntimeVersion>10.0.10</DotNetRuntimeVersion>
+    <MicrosoftExtensionsVersion>10.8.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsAiVersion>10.8.0</MicrosoftExtensionsAiVersion>
     <OpenTelemetryVersion>1.16.0</OpenTelemetryVersion>
-    <OpenTelemetryAspNetCoreInstrumentationVersion>1.15.1</OpenTelemetryAspNetCoreInstrumentationVersion>
+    <OpenTelemetryAspNetCoreInstrumentationVersion>1.16.0</OpenTelemetryAspNetCoreInstrumentationVersion>
     <DuckDBVersion>1.5.3</DuckDBVersion>
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
-    <GrpcToolsVersion>2.81.1</GrpcToolsVersion>
+    <GrpcToolsVersion>2.82.0</GrpcToolsVersion>
     <ANcpLuaRoslynUtilitiesVersion>2.2.38</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAgentsVersion>1.13.5</ANcpLuaAgentsVersion>
     <QylApiContractsVersion>1.0.2</QylApiContractsVersion>
@@ -26,7 +26,7 @@
     <MicrosoftAgentsAIHostingVersion>1.13.0-preview.260703.1</MicrosoftAgentsAIHostingVersion>
 
     <NukeVersion>10.1.0</NukeVersion>
-    <SpectreConsoleVersion>0.57.0</SpectreConsoleVersion>
+    <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
   </PropertyGroup>
 </Project>
