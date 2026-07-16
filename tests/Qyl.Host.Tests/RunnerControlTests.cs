@@ -17,6 +17,20 @@ public sealed class RunnerControlTests
         var python = FindExecutable("python3");
         Assert.NotNull(python);
 
+        // The first python3 exec on a fresh macOS CI runner can take tens of seconds
+        // (Gatekeeper/XProtect scan). Pay that cost here so the readiness window below
+        // measures orchestration, not the AV scan.
+        using (var warmup = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(python!)
+               {
+                   ArgumentList = { "-c", "pass" },
+                   RedirectStandardOutput = true,
+                   RedirectStandardError = true
+               }))
+        {
+            Assert.NotNull(warmup);
+            await warmup.WaitForExitAsync(TestContext.Current.CancellationToken);
+        }
+
         var processResource = new QylResource
         {
             Name = "worker",
@@ -68,7 +82,9 @@ public sealed class RunnerControlTests
             NullLogger<QylRunnerApi>.Instance);
 
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        lifetime.CancelAfter(TimeSpan.FromSeconds(20));
+        // 60s, not 20: must exceed the 30s readiness window above, and CI macOS runners
+        // are slow enough that the restart/stop round-trips need real headroom.
+        lifetime.CancelAfter(TimeSpan.FromSeconds(60));
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
 
         await orchestrator.StartAsync(lifetime.Token);
