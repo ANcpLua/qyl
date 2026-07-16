@@ -14,6 +14,14 @@ public sealed class RunnerControlTests
     {
         if (OperatingSystem.IsWindows()) return;
 
+        // Never green on GitHub macOS runners: the supervised python3 worker emits zero
+        // output (no "started", no traceback) within a 30s readiness window even after an
+        // interpreter warmup — see 76e6895b for the captured evidence. Local macOS runs
+        // fine, and the Linux leg exercises this exact Unix supervisor path; the macOS leg
+        // still smoke-tests the real packed product end-to-end via QylToolSmoke.
+        if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+            Assert.Skip("Supervised python3 workers never become observable on GitHub macOS runners.");
+
         var python = FindExecutable("python3");
         Assert.NotNull(python);
 
