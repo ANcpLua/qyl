@@ -13,10 +13,6 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: nuget-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
 
@@ -50,6 +46,9 @@ jobs:
   verify:
     name: Consumer smoke (${{ matrix.os }})
     needs: version
+    concurrency:
+      group: nuget-verify-${{ github.ref }}-${{ matrix.os }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -113,6 +112,9 @@ jobs:
     name: Pack release set
     needs: [version, verify]
     if: github.event_name != 'pull_request'
+    concurrency:
+      group: nuget-pack-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
@@ -227,6 +229,9 @@ jobs:
     name: Publish immutable release
     needs: [version, pack]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    concurrency:
+      group: nuget-publish-${{ needs.version.outputs.version }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: nuget
     permissions:
