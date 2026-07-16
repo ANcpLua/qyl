@@ -17,7 +17,7 @@
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.81.1</GrpcToolsVersion>
     <ANcpLuaRoslynUtilitiesVersion>2.2.38</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAgentsVersion>1.13.4</ANcpLuaAgentsVersion>
+    <ANcpLuaAgentsVersion>1.13.5</ANcpLuaAgentsVersion>
     <QylApiContractsVersion>1.0.2</QylApiContractsVersion>
 
     <!-- Mirrors the SDK values so standalone checkouts resolve the same MAF graph.
