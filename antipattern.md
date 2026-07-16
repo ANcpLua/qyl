@@ -1,142 +1,245 @@
 # TypeScript type-check escape audit
 
-Audit snapshot: `4e03b6f9a25f119ff50a0e96fd565bb78ae12660` plus the then-current
-working tree on 2026-07-15.
+- Audited source commit: `55de5b0f8bf7090fb63ac368c7922b0473bd1988`
+- Audited source tree: `4b34693d44dd445294ee72d43eedbcf2335aeb4f`
+
+The audit reads tracked Git blobs from that commit. It does not inspect the
+caller's working tree, so the inventory is reproducible even when the checkout
+contains unrelated changes.
+
+## Reproduction
+
+Restore the TypeScript 5.9.3 runtime used by the auditor, then run the committed
+Git-ref scanner:
+
+```bash
+npm ci --prefix services/qyl.dashboard
+
+node eng/scripts/typescript-type-escape-audit.mjs \
+  --ref 55de5b0f8bf7090fb63ac368c7922b0473bd1988 \
+  --format json \
+  > /tmp/qyl-typescript-type-escape-audit.json
+```
+
+Human-readable summary and complete site inventory:
+
+```bash
+node eng/scripts/typescript-type-escape-audit.mjs \
+  --ref 55de5b0f8bf7090fb63ac368c7922b0473bd1988 \
+  --format summary
+
+node eng/scripts/typescript-type-escape-audit.mjs \
+  --ref 55de5b0f8bf7090fb63ac368c7922b0473bd1988 \
+  --format tsv
+```
+
+The scanner resolves the ref to a commit and tree, reads files with Git, records
+its own SHA-256, verifies that the loaded TypeScript version matches both
+frontend manifests and lockfiles, and emits no timestamp. Two JSON runs over the
+same ref are byte-identical.
+
+These lexical searches independently corroborate explicit double/`any` escapes
+and suppression directives. The compiler-API result remains authoritative:
+
+```bash
+rg -n --pcre2 \
+  '\bas\s+(?:unknown|any)\s+as\b|\bas\s+any\b|<\s*any\s*>|(?::|=|\||&|,|\()\s*any(?:\[\])?\b' \
+  services packages eng tests \
+  -g '*.{ts,tsx,mts,cts}' \
+  -g '!**/node_modules/**' \
+  -g '!**/dist/**' \
+  -g '!**/coverage/**' \
+  -g '!**/generated/**'
+
+rg -n '@ts-(ignore|expect-error|nocheck)\b' \
+  services packages eng tests \
+  -g '*.{ts,tsx,mts,cts}' \
+  -g '!**/node_modules/**' \
+  -g '!**/dist/**' \
+  -g '!**/coverage/**' \
+  -g '!**/generated/**'
+```
 
 ## Scope and method
 
-The audit scanned 64 first-party `.ts`, `.tsx`, `.mts`, and `.cts` files under
-`services`, `packages`, `eng`, and `tests`. Dependency, build, coverage, and
-generated directories were excluded. The TypeScript 5.9.3 compiler API was used
-to enumerate type assertions, non-null assertions, and TypeScript suppression
-directives; targeted searches covered explicit `any` escapes and compiler
-configuration.
+The audit scanned all 64 tracked first-party `.ts`, `.tsx`, `.mts`, and `.cts`
+files, including the two `.d.ts` files, under `eng`, `packages`, `services`, and
+`tests`. Dependency, generated, build, coverage, Playwright-report, and test-result
+directories were excluded. TypeScript's compiler API enumerated:
 
-Both first-party TypeScript projects enable `strict`. The scan found:
+- `AsExpression` and angle-bracket type-assertion nodes;
+- nested `as unknown as ...` chains;
+- non-null assertions;
+- every explicit `any` keyword;
+- `@ts-ignore`, `@ts-expect-error`, and `@ts-nocheck` in comment trivia.
 
-- 53 type-assertion syntax nodes: 36 in product code and 17 in tests;
-- 5 `as unknown as ...` chains: 1 in product code and 4 in tests;
+Both frontend projects declare and lock TypeScript 5.9.3. Their tracked
+`tsconfig.json` files enable `strict` and set `skipLibCheck: true`. Qyl usage
+sites remain checked against dependency declarations, but declaration-file
+internals are not checked. An internally inconsistent dependency `.d.ts` can
+therefore propagate an unsound declared type without a diagnostic; this is an
+accepted build-time trade-off and a residual risk.
+
+Severity rubric:
+
+- **high** — unvalidated external input enters generated-contract or data-plane
+  state;
+- **medium** — production code bridges unrelated types, erases a generated
+  union, or admits an unvalidated runtime string into a closed union;
+- **low** — test-only, a library/DOM boundary with a local failure radius, or an
+  immediate and loud startup failure.
+
+No current finding is high severity. The earlier Host Console SSE issue is
+resolved at this snapshot: `useLogs.ts:23` and `useResources.ts:30` pass parsed
+JSON to `parseLogLine` and `parseResourceState`; generated-schema AJV validation
+and rejection live at `packages/Qyl.Host.Console/src/contract-validation.ts:8-32`.
+
+## Inventory and disposition
+
+The scanner found:
+
+- 49 type-assertion syntax nodes: 32 in product code and 17 in tests;
+- 5 `as unknown as ...` chains, represented by 10 nested assertion nodes;
 - 9 non-null assertions;
-- no `as any`, explicit `any`, `@ts-ignore`, `@ts-nocheck`, or
-  `@ts-expect-error` escape;
-- `skipLibCheck: true` in both projects. This skips consistency checking inside
-  dependency declaration files, but does not disable strict checking of Qyl
-  source or the types Qyl consumes from those declarations.
+- 0 explicit `any` keywords;
+- 0 `@ts-ignore`, `@ts-expect-error`, or `@ts-nocheck` directives.
 
-An assertion is not automatically defective. Findings below are limited to
-places where the assertion invents compatibility, trusts unvalidated data, or
-unnecessarily discards a generated contract. Controlled assertions and
-invariant-backed non-null operations are listed separately.
+Every one of the 58 assertion and non-null nodes was reviewed exactly once:
+
+| Disposition | Type assertions | Non-null | Combined |
+| --- | ---: | ---: | ---: |
+| Findings AP-01–AP-06 | 27 | 1 | 28 |
+| Controlled or justified | 22 | 8 | 30 |
+| Unreviewed remainder | 0 | 0 | 0 |
+| **Total** | **49** | **9** | **58** |
+
+Finding allocation:
+
+| Finding | Type assertions | Non-null |
+| --- | ---: | ---: |
+| AP-01 | 2 | 0 |
+| AP-02 | 12 | 0 |
+| AP-03 | 6 | 0 |
+| AP-04 | 2 | 0 |
+| AP-05 | 1 | 1 |
+| AP-06 | 4 | 0 |
 
 ## Actionable findings
 
-### AP-01 — Unvalidated SSE payloads enter generated contract state
-
-Severity: high
-
-Locations:
-
-- `packages/Qyl.Host.Console/src/useLogs.ts:22`
-- `packages/Qyl.Host.Console/src/useResources.ts:29`
-
-Both handlers apply a generated contract type directly to `JSON.parse`:
-
-```ts
-const line = JSON.parse(event.data) as LogLine;
-const state = JSON.parse(event.data) as ResourceState;
-```
-
-`try/catch` proves only that the frame is syntactically valid JSON. It does not
-prove required fields, discriminants, or value types. A valid JSON object with a
-missing `name`, for example, reaches typed React state and can fail later outside
-the parse boundary.
-
-Replacement: parse to `unknown`, validate against the generated Qyl schema, and
-only then return `LogLine` or `ResourceState`. The dashboard's
-`src/lib/contract-validation.ts` demonstrates the required boundary pattern.
-
-### AP-02 — A keyboard event is asserted to be a mouse event
+### AP-01 — A keyboard event is asserted to be a mouse event
 
 Severity: medium
 
-Location: `services/qyl.dashboard/src/pages/TracesPage.tsx:125`
+Location: `services/qyl.dashboard/src/pages/TracesPage.tsx:103-127`
 
 ```ts
+const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
+};
+
 handleClick(e as unknown as React.MouseEvent);
 ```
 
-The types are unrelated; the double assertion suppresses that fact. The current
-handler happens to call only `stopPropagation`, but its signature falsely allows
-future mouse-specific access.
+The two unrelated event types are bridged through `unknown`. The only event
+member consumed by `handleClick` is `stopPropagation`; `onSelect` does not depend
+on the event. The signature therefore creates a latent path for future
+mouse-specific access without representing the keyboard call truthfully.
 
 Replacement: extract a parameterless selection action and stop propagation in
 the mouse and keyboard handlers independently, or accept the minimal structural
 contract `{ stopPropagation(): void }`.
 
-### AP-03 — The generated `AttributeValue` union is erased and rebuilt loosely
+### AP-02 — The generated `AttributeValue` union is erased and rebuilt loosely
 
 Severity: medium
 
 Locations:
 
-- `services/qyl.dashboard/src/lib/attribute-value.ts:15,32,56`
+- `services/qyl.dashboard/src/lib/attribute-value.ts:3-32,56`
 - `services/qyl.dashboard/src/lib/attribute-value.test.ts:12-36,51`
 
-The product code turns the generated discriminated union into a local object
-whose fields are all `unknown`, then asserts nested values back to
-`AttributeValue`. The tests contain seven direct contract assertions and this
-double assertion:
+Product code replaces the generated discriminated union with optional `unknown`
+fields, then asserts nested values back to the generated type:
+
+```ts
+type TaggedAttributeValue = {
+    type?: unknown;
+    value?: unknown;
+    base64?: unknown;
+    values?: unknown;
+};
+
+const tagged = value as TaggedAttributeValue;
+decodeAttributeValue(nested as AttributeValue);
+```
+
+The tests contain seven direct contract assertions and one double assertion:
 
 ```ts
 } as unknown as AttributeValue;
 ```
 
-The installed generated contract already defines `int`, `double`, `bytes`, and
-`kvlist` variants recursively. These assertions prevent test fixtures from
-detecting a future generated-contract change.
+The locked `@ancplua/qyl-api-schema` 1.0.2 declaration at
+`generated/ts-runtime/api.d.ts:580-615` already owns the recursive union:
 
-Replacement: narrow the generated union by its `type` discriminant. Declare test
-fixtures as `const value: AttributeValue = ...` or use
-`... satisfies AttributeValue`; neither requires a double assertion.
+```ts
+export type AttributeValue =
+    null | string | boolean |
+    AttributeIntValue | AttributeDoubleValue | AttributeBytesValue |
+    AttributeValue[] | AttributeKeyValueListValue;
+```
 
-### AP-04 — Vitest call tuples are fabricated after creating zero-argument mocks
+Its `int`, `double`, `bytes`, and `kvlist` variants are discriminated by `type`.
+The local erased shape prevents both product code and fixtures from detecting
+generated-contract drift.
 
-Severity: medium, test-only
+Replacement: narrow the generated union directly by `type`. Declare fixtures as
+`const value: AttributeValue = ...` or use `... satisfies AttributeValue`.
+
+### AP-03 — Vitest call tuples are fabricated after zero-argument mocks
+
+Severity: low, test-only
 
 Locations:
 
-- `services/qyl.dashboard/src/lib/api.test.ts:92`
-- `services/qyl.dashboard/src/lib/api.test.ts:125`
-- `services/qyl.dashboard/src/lib/api.test.ts:157`
+- `services/qyl.dashboard/src/lib/api.test.ts:82,92`
+- `services/qyl.dashboard/src/lib/api.test.ts:119,125`
+- `services/qyl.dashboard/src/lib/api.test.ts:139,157`
 
-Each test creates `vi.fn(async () => ...)`, so Vitest correctly infers an empty
-argument tuple. The recorded call is then retyped with
-`as unknown as [string, RequestInit]`.
+Each affected mock is created as `vi.fn(async () => ...)`, so Vitest infers an
+empty argument tuple. The recorded call is then changed into a fetch tuple:
 
-Replacement: give the mock the real `fetch` signature, for example by typing the
-mock as `typeof fetch` or declaring `(_input: RequestInfo | URL, _init?:
-RequestInit)`. Its recorded calls will then be typed without an assertion.
+```ts
+const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+```
 
-### AP-05 — Persisted or component-provided strings are trusted as closed unions
+Replacement: type the mock as `typeof fetch`, or declare
+`(_input: RequestInfo | URL, _init?: RequestInit)`. The call record then has the
+real signature without six nested assertion nodes.
+
+### AP-04 — Runtime strings are trusted as closed unions
 
 Severity: medium
 
 Locations:
 
 - `services/qyl.dashboard/src/hooks/use-theme.ts:17`
-- `services/qyl.dashboard/src/pages/LogsPage.tsx:535`
-- `services/qyl.dashboard/src/components/ui/error-boundary.tsx:39`
+- `services/qyl.dashboard/src/pages/LogsPage.tsx:537`
 
-`localStorage`, `sessionStorage`, and UI callback values are runtime inputs. The
-current assertions allow arbitrary strings or objects to enter `Theme`,
-`LogLevel`, and recovery-state code.
+```ts
+return (localStorage.getItem('theme') as Theme) ?? 'dark';
 
-Replacement: use small membership/type guards and fall back or reject on an
-invalid value. `LogsPage.tsx:88` already performs a runtime membership check;
-turning that check into an `isLogLevel` predicate also removes its two local
-assertions.
+<Select value={minLevel} onValueChange={(v) => setMinLevel(v as LogLevel)}>
+```
 
-### AP-06 — DOM availability and event targets are asserted rather than checked
+`localStorage` and the local Select's string callback are runtime inputs. Neither
+site proves membership before admitting the value to a closed union.
+
+Replacement: add `isTheme` and `isLogLevel` membership predicates and fall back
+or reject when the input is outside the supported values.
+
+### AP-05 — DOM availability and event targets are asserted rather than checked
 
 Severity: low
 
@@ -145,56 +248,79 @@ Locations:
 - `services/qyl.dashboard/src/hooks/use-keyboard-shortcuts.ts:68`
 - `services/qyl.dashboard/src/main.tsx:6`
 
-`Event.target` is not guaranteed to be an `HTMLElement`, and the root element is
-nullable according to the DOM API. Use `target instanceof HTMLElement` and an
-explicit bootstrap failure when `#root` is absent. The latter produces a useful
-diagnostic instead of moving the failure into React.
+```ts
+const target = e.target as HTMLElement;
 
-### AP-07 — React component generics are widened through record assertions
+createRoot(document.getElementById('root')!).render(
+```
+
+`Event.target` is not guaranteed to be an `HTMLElement`, and
+`document.getElementById` is nullable. Use `target instanceof HTMLElement` and
+throw an explicit bootstrap error when `#root` is missing. The Host Console
+already uses that explicit root check at `packages/Qyl.Host.Console/src/main.tsx:6-9`.
+
+### AP-06 — React component generics are widened through record assertions
 
 Severity: low
 
 Locations:
 
-- `services/qyl.dashboard/src/components/ui/button.tsx:46-50`
+- `services/qyl.dashboard/src/components/ui/button.tsx:38,46-50`
 - `services/qyl.dashboard/src/components/ui/sonner.tsx:11`
+- `services/qyl.dashboard/src/hooks/use-theme.ts:44-46`
 
-The polymorphic button converts element props and the cloned prop bag to
-`Record<string, unknown>`, including an assertion that `className` is a string.
-The toaster separately asserts its theme even though Qyl resolves the theme to
-`light | dark`.
+```ts
+className: cn(
+    classes,
+    (render.props as Record<string, unknown>).className as string | undefined,
+),
+} as Record<string, unknown>
 
-Replacement: preserve the rendered element's prop generic in the button and give
-`useTheme` an explicit return type. These changes let React and Sonner validate
-the values rather than relying on local assertions.
+theme={resolvedTheme as ToasterProps['theme']}
+```
+
+The button discards the rendered element's prop type before cloning it. The
+Sonner assertion is redundant: TypeScript 5.9.3 infers `resolvedTheme` as
+`'light' | 'dark'`, which is already within Sonner's accepted theme union.
+
+Replacement: preserve the rendered element's prop generic in the button and
+delete the Sonner assertion.
 
 ## Controlled or justified assertions
 
-The following are not classified as current defects:
+The 22 controlled type-assertion nodes are fully accounted for:
 
-- `await response.json() as unknown` in `src/lib/api.ts`,
-  `HealthIndicator.tsx`, and related calls deliberately widens untrusted JSON
-  before generated AJV validation. No contract type is invented.
-- `as const` fixes literal or tuple inference and does not bypass compatibility
-  checking.
-- `text-visualizer.tsx` checks `typeof value === "object"` before its two
-  `as object` uses. A reusable record guard would be cleaner but would not change
-  the runtime guarantee.
-- Its `React.CSSProperties` assertion exists only to admit the custom CSS
-  property `--collapsed-height`; the value is locally constructed.
-- Seven `RingBuffer` non-null assertions are guarded by loop indices strictly
-  below the buffer's logical length. `TracesPage.tsx:450` similarly calls
-  `stack.pop()!` only while `stack.length > 0`.
-- `e2e/smoke.spec.ts:41` asserts a page shape immediately after a runtime test
-  assertion. A true type guard would improve readability, but the test does not
-  consume the value without a preceding runtime check.
+- Twelve `as const` nodes only preserve literal or tuple inference:
+  `e2e/smoke.spec.ts:164`, `EtlAuditView.tsx:521,542`,
+  `theme-toggle.tsx:7`, `use-cost-audit.ts:6,8`, and
+  `use-telemetry.ts:11-16`.
+- Three `as unknown` nodes deliberately widen JSON before generated AJV
+  validation: `HealthIndicator.tsx:26` and `src/lib/api.ts:104,112`.
+- `e2e/smoke.spec.ts:41` follows an immediate runtime shape assertion before
+  reading `items`.
+- The two `LogsPage.tsx:90` assertions follow a runtime `LOG_LEVELS` membership
+  check. An `isLogLevel` predicate would remove them mechanically, but they do
+  not admit an unchecked value.
+- `error-boundary.tsx:39` parses app-owned recovery metadata; its only consumers
+  compare `signature` and independently check `typeof previous.at === 'number'`
+  at lines 43-46. It does not enter generated-contract or closed-union state.
+- `text-visualizer.tsx:84,104` first checks that the value is an object. Its
+  `React.CSSProperties` assertion at line 396 only admits the locally constructed
+  custom property `--collapsed-height`.
+
+Eight non-null assertions are guarded by local invariants:
+
+- `RingBuffer.ts:98,106,113,119,126,136,146` iterates only over indices below
+  the buffer's logical length;
+- `TracesPage.tsx:452` calls `stack.pop()!` only inside
+  `while (stack.length > 0)`.
 
 ## Recommended order
 
-1. Add generated runtime validation to both Host Console SSE boundaries.
-2. Remove the production double assertion in `TracesPage`.
-3. Refactor `AttributeValue` decoding and fixtures to consume the generated
-   discriminated union directly.
-4. Correct the Vitest mock signatures.
-5. Replace persisted-value, DOM, and UI-library assertions with narrow guards or
-   accurate return/generic types.
+1. Remove the production event double assertion in `TracesPage` (AP-01).
+2. Consume the generated `AttributeValue` union directly in product code and
+   fixtures (AP-02).
+3. Guard persisted and component-provided union values (AP-04).
+4. Replace DOM and React-library assertions with real narrowing or preserved
+   generics (AP-05 and AP-06).
+5. Correct the Vitest mock signatures (AP-03).
