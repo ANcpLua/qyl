@@ -36,9 +36,6 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeAssignment(OperationAnalysisContext context)
     {
-        if (IsExempt(context.Operation.Syntax.SyntaxTree.FilePath))
-            return;
-
         var assignment = (ISimpleAssignmentOperation)context.Operation;
         if (assignment.Target is not IPropertyReferenceOperation propertyRef)
             return;
@@ -52,9 +49,6 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeArgument(OperationAnalysisContext context)
     {
-        if (IsExempt(context.Operation.Syntax.SyntaxTree.FilePath))
-            return;
-
         var argument = (IArgumentOperation)context.Operation;
         if (argument.Parameter?.Name != InstructionsParameter)
             return;
@@ -75,12 +69,5 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
             return;
 
         context.ReportDiagnostic(Diagnostic.Create(s_rule, value.Syntax.GetLocation()));
-    }
-
-    private static bool IsExempt(string path)
-    {
-        var normalized = "/" + path.Replace('\\', '/');
-        return normalized.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Contains("/samples/", StringComparison.OrdinalIgnoreCase);
     }
 }

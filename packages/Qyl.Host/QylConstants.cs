@@ -1,6 +1,3 @@
-
-using System.Reflection;
-
 namespace Qyl.Host;
 
 internal static class QylConstants
@@ -8,19 +5,8 @@ internal static class QylConstants
     public static class Product
     {
         public const string Banner = "qyl";
-        public static readonly string Version = GetVersion();
+        public const string Version = BuildVersion.ProductVersion;
         public const string Tagline = "qyl distributed-app runner";
-
-        private static string GetVersion()
-        {
-            var informational = typeof(QylConstants).Assembly
-                                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                                    ?.InformationalVersion
-                                ?? typeof(QylConstants).Assembly.GetName().Version?.ToString()
-                                ?? "unknown";
-            var metadata = informational.IndexOf('+', StringComparison.Ordinal);
-            return metadata < 0 ? informational : informational[..metadata];
-        }
     }
 
     public static class Ports

@@ -3,7 +3,7 @@ import {useLocation} from 'react-router-dom';
 import {Clock, RefreshCw, Zap} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {ThemeToggle} from '@/components/ui/theme-toggle';
-import {HealthIndicator} from '@/components/health';
+import {HealthIndicator} from '@/components/health/HealthIndicator';
 
 interface TopBarProps {
     onRefresh: () => void;

@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
-using Qyl.Instrumentation.Generators.CallSites;
 using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators;
@@ -42,21 +41,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var runtimeAvailable = context.CompilationProvider
-            .Select(GeneratorPipelineHelpers.IsQylRuntimeReferenced)
-            .WithTrackingName(PipelineStage.QylRuntimeCheck);
-
         var builderCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(CouldBeBuildInvocation, ExtractBuilderCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered);
 
-        var builderInput = builderCallSites.CollectAsEquatableArray()
-            .Combine(runtimeAvailable)
-            .Select(static (input, _) =>
-                new BuilderInterceptorInput(input.Left, input.Right));
-
-        context.RegisterSourceOutput(builderInput, EmitBuilderInterceptors);
+        context.RegisterSourceOutput(builderCallSites.CollectAsEquatableArray(), EmitBuilderInterceptors);
     }
 
 
@@ -82,7 +72,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             ? null
             : new BuilderCallSite(
                 IncrementalPipelineHelpers.FormatSortKey(context.Node),
-                BuilderCallKind.Build,
                 location);
     }
 
@@ -92,12 +81,11 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             "Build");
 
 
-    private static void EmitBuilderInterceptors(SourceProductionContext context, BuilderInterceptorInput input)
+    private static void EmitBuilderInterceptors(
+        SourceProductionContext context,
+        EquatableArray<BuilderCallSite> input)
     {
-        if (!input.QylRuntimeAvailable)
-            return;
-
-        var callSites = input.CallSites.AsImmutableArray();
+        var callSites = input.AsImmutableArray();
         if (callSites.IsEmpty)
             return;
 
@@ -118,8 +106,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var index = 0;
         foreach (var callSite in callSites.OrderBy(static c => c.SortKey, StringComparer.Ordinal))
         {
-            if (callSite.Kind is BuilderCallKind.Build)
-                AppendBuildInterceptorMethod(sb, callSite, index);
+            AppendBuildInterceptorMethod(sb, callSite, index);
             index++;
         }
 
@@ -144,7 +131,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                     this global::{{GeneratorPipelineHelpers.WebApplicationBuilderTypeName}} builder)
                                 {
                                     builder.TryUseQylConventions();
-                                    global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHealthChecks(builder.Services);
                                     var app = builder.Build();
                                     app.MapQylDefaultEndpoints();
                                     return app;
@@ -154,11 +140,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     private static class PipelineStage
     {
-        public const string QylRuntimeCheck = nameof(QylRuntimeCheck);
         public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
     }
-
-    private readonly record struct BuilderInterceptorInput(
-        EquatableArray<BuilderCallSite> CallSites,
-        bool QylRuntimeAvailable);
 }

@@ -14,8 +14,6 @@ export const telemetryKeys = {
     sessionSpans: (id: string) => [...telemetryKeys.session(id), 'traces'] as const,
     traces: () => [...telemetryKeys.all, 'traces'] as const,
     traceSpans: (id: string) => [...telemetryKeys.all, 'trace', id, 'spans'] as const,
-    logs: () => [...telemetryKeys.all, 'logs'] as const,
-    metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
 
 export function useSessions() {
@@ -78,7 +76,7 @@ export function getSpanColor(span: Span): string {
     if (attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
     }
-    if (attrs['http.method'] || attrs['http.request.method']) {
+    if (attrs['http.request.method']) {
         return 'hsl(var(--span-http))';
     }
     if (hasDatabaseSystem(attrs)) {
@@ -87,8 +85,7 @@ export function getSpanColor(span: Span): string {
     if (attrs['messaging.system']) {
         return 'hsl(var(--span-message))';
     }
-    // Shipping instrumentations still emit the pre-1.43 rpc.system key.
-    if (attrs['rpc.system.name'] || attrs['rpc.system']) {
+    if (attrs['rpc.system.name']) {
         return 'hsl(var(--span-rpc))';
     }
     return 'hsl(var(--span-internal))';
@@ -99,7 +96,7 @@ export function getSpanTypeLabel(span: Span): string {
     if (attrs['gen_ai.provider.name']) {
         return 'GenAI';
     }
-    if (attrs['http.method'] || attrs['http.request.method']) {
+    if (attrs['http.request.method']) {
         return 'HTTP';
     }
     if (hasDatabaseSystem(attrs)) {
@@ -108,14 +105,14 @@ export function getSpanTypeLabel(span: Span): string {
     if (attrs['messaging.system']) {
         return 'Message';
     }
-    if (attrs['rpc.system.name'] || attrs['rpc.system']) {
+    if (attrs['rpc.system.name']) {
         return 'RPC';
     }
     return 'Internal';
 }
 
 export function hasDatabaseSystem(attributes: Record<string, unknown>): boolean {
-    return Boolean(attributes['db.system.name'] ?? attributes['db.system']);
+    return Boolean(attributes['db.system.name']);
 }
 
 export function formatDuration(ms: number): string {

@@ -22,11 +22,9 @@ internal sealed record CollectorPortOptions
         var options = new CollectorPortOptions
         {
             BindAddress = bindAddress,
-            Http = config.GetValue<int?>("QYL_PORT")
-                   ?? config.GetValue<int?>("PORT")
-                   ?? 5100,
-            OtlpHttp = config.GetValue("QYL_OTLP_PORT", 4318),
-            Grpc = config.GetValue("QYL_GRPC_PORT", 4317)
+            Http = int.Parse(config["QYL_PORT"] ?? config["PORT"] ?? "5100", CultureInfo.InvariantCulture),
+            OtlpHttp = int.Parse(config["QYL_OTLP_PORT"] ?? "4318", CultureInfo.InvariantCulture),
+            Grpc = int.Parse(config["QYL_GRPC_PORT"] ?? "4317", CultureInfo.InvariantCulture)
         };
 
         ValidatePort(options.Http, nameof(Http), allowDisabled: false);

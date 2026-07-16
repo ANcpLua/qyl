@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
@@ -161,8 +160,6 @@ public static class QylServiceDefaultsExtensions
         var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] is { Length: > 0 } configuredName
             ? configuredName
             : builder.Environment.ApplicationName;
-        var serviceVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "0.0.0";
-
         var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         if (string.IsNullOrWhiteSpace(otlpEndpoint) && options.EnableAutoDiscovery)
         {
@@ -190,7 +187,7 @@ public static class QylServiceDefaultsExtensions
             .ConfigureResource(resource =>
             {
                 resource
-                    .AddService(serviceName, serviceVersion: serviceVersion)
+                    .AddService(serviceName, serviceVersion: BuildVersion.ProductVersion)
                     .AddAttributes([
                         new KeyValuePair<string, object>("telemetry.schema_url",
                             OtelSchemaUrl.Current)
@@ -270,9 +267,8 @@ public static class QylServiceDefaultsExtensions
             http.ConfigureHttpClient(static (sp, client) =>
             {
                 var env = sp.GetRequiredService<IHostEnvironment>();
-                var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
                 client.DefaultRequestHeaders.UserAgent.Add(
-                    new ProductInfoHeaderValue(env.ApplicationName, version));
+                    new ProductInfoHeaderValue(env.ApplicationName, BuildVersion.ProductVersion));
             });
         });
     }

@@ -58,23 +58,9 @@ public sealed class MetricsEndpointTests
     }
 
     [Fact]
-    public async Task Metrics_query_filters_match_the_schema_and_legacy_rows_stay_private()
+    public async Task Metrics_query_filters_match_the_schema()
     {
         await using var store = await BuildStoreAsync();
-        await store.InsertMetricsAsync(
-        [
-            new MetricStorageRow
-            {
-                ProjectId = "default",
-                MetricId = "metric_00000000000000000000000000000000",
-                MetricName = "legacy.gauge",
-                MetricType = MetricStorageTypes.Gauge,
-                TimeUnixNano = SumTime,
-                Value = 42,
-                ServiceName = "legacy-service"
-            }
-        ], TestContext.Current.CancellationToken);
-
         var filter = QueryString.Create(
         [
             new KeyValuePair<string, string?>("name", "sum.metric"),
@@ -107,17 +93,6 @@ public sealed class MetricsEndpointTests
         Assert.Equal("tools/call", Assert.IsType<JsonElement>(exemplarAttribute.Value).GetString());
         Assert.False(page.HasMore);
         Assert.Null(page.NextCursor);
-
-        var legacyContext = CreateContext("?name=legacy.gauge");
-        var legacyResult = await CollectorEndpointExtensions.GetMetricsAsync(
-            legacyContext,
-            store,
-            TestContext.Current.CancellationToken);
-        await legacyResult.ExecuteAsync(legacyContext);
-        var legacyPage = JsonSerializer.Deserialize(
-            await ReadBodyAsync(legacyContext),
-            QylSerializerContext.Default.CursorPageMetricPoint);
-        Assert.Empty(Assert.IsType<CursorPageMetricPoint>(legacyPage).Items);
     }
 
     private static async Task<DuckDbStore> BuildStoreAsync()

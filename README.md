@@ -45,7 +45,7 @@ The main components are:
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
 | `packages/Qyl.Host` | Published distributed-app runner library with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
 | `packages/Qyl.Host.Console` | Host console frontend consuming the generated TypeScript contracts (build/typecheck-gated) |
-| `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner (stdio/HTTP/in-process resources, OTLP export of the MCP SDK ActivitySource) |
+| `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner (stdio/HTTP resources, OTLP export of the MCP SDK ActivitySource) |
 | `packages/Qyl.Run.Host` | The `qyl` dotnet tool; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
 | `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |

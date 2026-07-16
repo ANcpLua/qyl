@@ -15,7 +15,7 @@ internal static class DuckDbAttributeSource
                                  /// Marks a partial type for DuckDB helper generation.
                                  /// Generator will create AddParameters, MapFromReader, and column constants.
                                  /// </summary>
-                                 [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, AllowMultiple = false)]
+                                 [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false)]
                                  internal sealed class DuckDbTableAttribute : System.Attribute
                                  {
                                      /// <summary>Table name in DuckDB.</summary>
@@ -34,22 +34,13 @@ internal static class DuckDbAttributeSource
 
                                  /// <summary>
                                  /// Marks a property for DuckDB column mapping.
-                                 /// If not specified, property name is converted to snake_case.
+                                 /// Property names are converted to snake_case.
                                  /// </summary>
                                  [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple = false)]
                                  internal sealed class DuckDbColumnAttribute : System.Attribute
                                  {
-                                     /// <summary>Column name in DuckDB (defaults to snake_case of property name).</summary>
-                                     public string? ColumnName { get; }
-
-                                     /// <summary>Set true for UBIGINT columns that need decimal conversion.</summary>
-                                     public bool IsUBigInt { get; set; }
-
                                      /// <summary>Set true to exclude from INSERT (e.g., auto-generated columns).</summary>
                                      public bool ExcludeFromInsert { get; set; }
-
-                                     /// <summary>Column ordinal for SELECT mapping (auto-assigned if not specified).</summary>
-                                     public int Ordinal { get; set; } = -1;
 
                                      /// <summary>Optional DuckDB SQL type override for generated CREATE TABLE DDL.</summary>
                                      public string? SqlType { get; set; }
@@ -60,14 +51,6 @@ internal static class DuckDbAttributeSource
                                      /// <summary>Primary-key order for generated CREATE TABLE DDL. Leave -1 for non-key columns.</summary>
                                      public int PrimaryKeyOrdinal { get; set; } = -1;
 
-                                     public DuckDbColumnAttribute() { }
-                                     public DuckDbColumnAttribute(string columnName) => ColumnName = columnName;
                                  }
-
-                                 /// <summary>
-                                 /// Marks a property to be excluded from DuckDB mapping entirely.
-                                 /// </summary>
-                                 [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple = false)]
-                                 internal sealed class DuckDbIgnoreAttribute : System.Attribute { }
                                  """;
 }

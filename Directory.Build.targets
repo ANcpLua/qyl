@@ -9,4 +9,21 @@
           Visible="false"/>
   </ItemGroup>
 
+  <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_QylInformationalVersion>$(InformationalVersion)</_QylInformationalVersion>
+      <_QylInformationalVersion Condition="'$(_QylInformationalVersion)' == ''">$(Version)</_QylInformationalVersion>
+      <_QylInformationalVersion Condition="'$(_QylInformationalVersion)' == ''">0.0.0</_QylInformationalVersion>
+      <_QylProductVersion>$(Version)</_QylProductVersion>
+      <_QylProductVersion Condition="'$(_QylProductVersion)' == ''">0.0.0</_QylProductVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)BuildVersion.g.cs"/>
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)BuildVersion.g.cs"
+      Lines="namespace $(RootNamespace)%3B&#10;&#10;internal static class BuildVersion&#10;{&#10;    internal const string InformationalVersion = &quot;$(_QylInformationalVersion)&quot;%3B&#10;    internal const string ProductVersion = &quot;$(_QylProductVersion)&quot;%3B&#10;}"
+      Overwrite="true"/>
+  </Target>
+
 </Project>

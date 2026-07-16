@@ -1,5 +1,4 @@
 using System.Text.Json;
-using DuckDB.NET.Data;
 using Google.Protobuf;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
@@ -33,7 +32,6 @@ public sealed class MetricContractProjectionTests
         Assert.Equal(5, rows.Count);
         Assert.All(rows, static row =>
         {
-            Assert.Equal(MetricStorageRow.CurrentContractProjectionVersion, row.ContractProjectionVersion);
             Assert.NotNull(row.StartTimeUnixNano);
             Assert.NotNull(row.Flags);
             Assert.NotNull(row.ResourceDroppedAttributesCount);
@@ -43,7 +41,8 @@ public sealed class MetricContractProjectionTests
 
         await using var store = new DuckDbStore(":memory:");
         await store.InsertMetricsAsync(rows, TestContext.Current.CancellationToken);
-        var stored = await store.GetMetricsAsync("default", ct: TestContext.Current.CancellationToken);
+        var stored = (await store.GetMetricPageAsync(
+            "default", null, null, null, null, null, null, 10, TestContext.Current.CancellationToken)).Items;
         var contracts = stored.ToDictionary(
             static row => row.MetricName,
             static row => MetricMapper.ToContract(row),
@@ -225,12 +224,12 @@ public sealed class MetricContractProjectionTests
             .Single(static metric => metric.Name == "test.gauge").Gauge.DataPoints[0];
         point.Attributes.Add(new KeyValue
         {
-            Key = "db.cassandra.page_size",
+            Key = "db.operation.batch.size",
             Value = new AnyValue { IntValue = long.MaxValue }
         });
         point.Attributes.Add(new KeyValue
         {
-            Key = "db.client.connections.state",
+            Key = "db.response.status_code",
             Value = new AnyValue { DoubleValue = double.PositiveInfinity }
         });
         point.Attributes.Add(new KeyValue
@@ -272,9 +271,9 @@ public sealed class MetricContractProjectionTests
         var gauge = Assert.IsType<GaugeMetricPoint>(MetricMapper.ToContract(row));
         var attributes = gauge.Attributes!.ToDictionary(static item => item.Key, static item => item.Value);
         Assert.Equal(long.MaxValue, Assert.IsType<Qyl.Api.Contracts.Common.AttributeIntValue>(
-            attributes["db.cassandra.page_size"]).Value);
+            attributes["db.operation.batch.size"]).Value);
         Assert.Equal(double.PositiveInfinity, Assert.IsType<Qyl.Api.Contracts.Common.AttributeDoubleValue>(
-            attributes["db.client.connections.state"]).Value);
+            attributes["db.response.status_code"]).Value);
         Assert.Equal(
             new byte[] { 0, 127, 255 },
             Assert.IsType<Qyl.Api.Contracts.Common.AttributeBytesValue>(attributes["db.collection.name"]).Base64.ToArray());
@@ -330,86 +329,6 @@ public sealed class MetricContractProjectionTests
                 SummaryQuantilesJson = """[{"quantile":0.5,"value":0}]"""
             },
             out _));
-    }
-
-    [Fact]
-    public void Legacy_lossy_metric_rows_are_not_fabricated_as_public_contracts()
-    {
-        var legacy = new MetricStorageRow
-        {
-            ProjectId = "default",
-            MetricId = "metric_00000000000000000000000000000000",
-            MetricName = "legacy.gauge",
-            MetricType = MetricStorageTypes.Gauge,
-            TimeUnixNano = 1,
-            Value = 42,
-            ServiceName = "legacy-service"
-        };
-
-        Assert.False(MetricMapper.TryToContract(legacy, out _));
-    }
-
-    [Fact]
-    public async Task Existing_metric_tables_gain_entity_references_and_round_trip_projection_v2()
-    {
-        var databasePath = Path.Combine(
-            Path.GetTempPath(),
-            $"qyl-metric-entity-ref-migration-{Guid.NewGuid():N}.duckdb");
-        try
-        {
-            await using (var initialized = new DuckDbStore(databasePath, maxConcurrentReads: 1))
-            {
-            }
-
-            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
-            {
-                await connection.OpenAsync(TestContext.Current.CancellationToken);
-                var indexNames = new List<string>();
-                await using (var listIndexes = connection.CreateCommand())
-                {
-                    listIndexes.CommandText =
-                        "SELECT index_name FROM duckdb_indexes() WHERE table_name = 'metrics'";
-                    await using var reader = await listIndexes.ExecuteReaderAsync(
-                        TestContext.Current.CancellationToken);
-                    while (await reader.ReadAsync(TestContext.Current.CancellationToken))
-                        indexNames.Add(reader.GetString(0));
-                }
-
-                foreach (var indexName in indexNames)
-                {
-                    await using var dropIndex = connection.CreateCommand();
-                    dropIndex.CommandText = $"DROP INDEX \"{indexName.Replace("\"", "\"\"")}\"";
-                    await dropIndex.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-                }
-
-                await using var dropColumn = connection.CreateCommand();
-                dropColumn.CommandText = "ALTER TABLE metrics DROP COLUMN resource_entity_refs_json";
-                await dropColumn.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-            }
-
-            var request = BuildCompleteRequest();
-            request.ResourceMetrics[0].Resource.EntityRefs.Add(new EntityRef
-            {
-                Type = "service",
-                IdKeys = { "service.name" },
-                DescriptionKeys = { "service.namespace" }
-            });
-            var row = RowsByName(request)["test.gauge"];
-            Assert.Equal<byte?>((byte)2, row.ContractProjectionVersion);
-
-            await using var migrated = new DuckDbStore(databasePath, maxConcurrentReads: 1);
-            await migrated.InsertMetricsAsync([row], TestContext.Current.CancellationToken);
-            var stored = Assert.Single(await migrated.GetMetricsAsync(
-                "default",
-                ct: TestContext.Current.CancellationToken));
-            var contract = Assert.IsType<GaugeMetricPoint>(MetricMapper.ToContract(stored));
-            Assert.Equal("service", Assert.Single(contract.Resource.EntityRefs!).Type);
-        }
-        finally
-        {
-            File.Delete(databasePath);
-            File.Delete($"{databasePath}.wal");
-        }
     }
 
     [Fact]

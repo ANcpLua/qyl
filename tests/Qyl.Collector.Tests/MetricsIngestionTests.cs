@@ -53,7 +53,8 @@ public sealed class MetricsIngestionTests
         var rows = IngestionStorageMapper.ToMetricStorageRows(OtlpConverter.ConvertMetrics(request));
         await store.InsertMetricsAsync(rows, TestContext.Current.CancellationToken);
 
-        var stored = await store.GetMetricsAsync("default", ct: TestContext.Current.CancellationToken);
+        var stored = (await store.GetMetricPageAsync(
+            "default", null, null, null, null, null, null, 500, TestContext.Current.CancellationToken)).Items;
         Assert.Equal(3, stored.Count);
 
         var tokenPoints = stored.Where(m => m.MetricName == "gen_ai.client.token.usage").ToArray();
@@ -124,8 +125,9 @@ public sealed class MetricsIngestionTests
         var rows = IngestionStorageMapper.ToMetricStorageRows(OtlpConverter.ConvertMetrics(request));
         await store.InsertMetricsAsync(rows, TestContext.Current.CancellationToken);
 
-        var stored = await store.GetMetricsAsync(
-            "default", metricName: "http.server.request.duration", ct: TestContext.Current.CancellationToken);
+        var stored = (await store.GetMetricPageAsync(
+            "default", null, null, "http.server.request.duration", null, null, null, 500,
+            TestContext.Current.CancellationToken)).Items;
         var histogram = Assert.Single(stored);
         Assert.Equal(3, histogram.MetricType);
         Assert.Equal(4ul, histogram.Count);
@@ -163,7 +165,8 @@ public sealed class MetricsIngestionTests
         await store.InsertMetricsAsync([.. rows, .. rows], TestContext.Current.CancellationToken);
         await store.InsertMetricsAsync(rows, TestContext.Current.CancellationToken);
 
-        var stored = await store.GetMetricsAsync("default", ct: TestContext.Current.CancellationToken);
+        var stored = (await store.GetMetricPageAsync(
+            "default", null, null, null, null, null, null, 500, TestContext.Current.CancellationToken)).Items;
         Assert.Single(stored);
     }
 

@@ -1,5 +1,5 @@
 import type {LucideIcon} from 'lucide-react';
-import {CopyButton} from '@/components/ui';
+import {CopyButton} from '@/components/ui/copy-button';
 
 const OTLP_ENDPOINT = 'http://localhost:4318';
 

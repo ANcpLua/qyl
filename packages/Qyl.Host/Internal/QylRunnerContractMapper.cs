@@ -29,7 +29,6 @@ internal static class QylRunnerContractMapper
             QylResourceKind.Command => ContractResourceKind.Command,
             QylResourceKind.McpStdio => ContractResourceKind.Stdio,
             QylResourceKind.McpHttp => ContractResourceKind.Http,
-            QylResourceKind.McpInProcess => ContractResourceKind.Inproc,
             null => null,
             _ => throw new ArgumentOutOfRangeException(nameof(state), state.Kind, "Unknown resource kind")
         },

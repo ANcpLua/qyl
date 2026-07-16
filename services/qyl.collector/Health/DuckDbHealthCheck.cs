@@ -2,7 +2,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Qyl.Collector.Health;
 
-[QylHealthCheck("duckdb", "db", "storage", QylEndpoints.ReadyTag)]
 internal sealed class DuckDbHealthCheck(IQylStore store) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(

@@ -8,13 +8,10 @@ namespace Qyl.Collector.Hosting;
 /// Boot-time assertion that the collector's health surface is actually wired.
 /// </summary>
 /// <remarks>
-/// The <c>/health</c> and <c>/alive</c> endpoints (and the generated health-check registration)
-/// are wired by the qyl.instrumentation source generator's <c>Build()</c> interceptor. Interceptor
-/// wiring can go silently inert — another generator claiming the same call site, a refactor of the
-/// <c>Build()</c> expression — and a collector without a real health endpoint lets the SPA
-/// fallback answer 200 for <c>/health</c>, fooling Railway's <c>healthcheckPath</c> and
-/// Qyl.Run's readiness probe into deploying/announcing a broken instance. Fail the boot loudly
-/// instead.
+/// The <c>/health</c> and <c>/alive</c> endpoints are wired by the qyl.instrumentation source
+/// generator's <c>Build()</c> interceptor. Interceptor wiring can go silently inert, and a collector
+/// without a real health endpoint lets the SPA fallback answer 200 for <c>/health</c>. Fail boot
+/// loudly instead.
 /// </remarks>
 internal static class CollectorHealthGuard
 {
@@ -36,14 +33,12 @@ internal static class CollectorHealthGuard
                 "wiring or map the health endpoints explicitly.");
         }
 
-        // "duckdb" is the name declared by [QylHealthCheck] on DuckDbHealthCheck; the generated
-        // registry registers it under exactly that name.
         var registrations = app.Services.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations;
         if (!registrations.Any(static registration => registration.Name is "duckdb"))
         {
             throw new InvalidOperationException(
                 "The collector booted without the 'duckdb' health check registered; /health would report healthy " +
-                "without ever touching storage. The generated RegisterQylHealthChecks call did not run.");
+                "without ever touching storage. AddQylCollectorStorage did not run.");
         }
     }
 }

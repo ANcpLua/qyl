@@ -189,9 +189,8 @@ internal static class IngestionStorageMapper
                     AppendIdentityPart(builder, resourceEntityRefsIdentity);
                 AppendIdentityAttributes(builder, metric.ScopeAttributes);
             }),
-            ContractProjectionVersion = MetricStorageRow.CurrentContractProjectionVersion,
             MetricName = metric.MetricName,
-            MetricType = (byte)Math.Clamp(metric.MetricType, 0, 5),
+            MetricType = (byte)metric.MetricType,
             Unit = metric.Unit,
             Description = metric.Description,
             MetadataJson = metadataJson,
@@ -205,7 +204,6 @@ internal static class IngestionStorageMapper
             ScopeSchemaUrl = metric.ScopeSchemaUrl,
             TimeUnixNano = metric.TimeUnixNano,
             StartTimeUnixNano = metric.StartTimeUnixNano,
-            Value = null,
             IntValue = metric.IntValue,
             DoubleValue = metric.DoubleValue,
             Flags = metric.Flags,
@@ -232,7 +230,7 @@ internal static class IngestionStorageMapper
                 : null,
             IsMonotonic = metric.IsMonotonic is { } monotonic ? (byte)(monotonic ? 1 : 0) : null,
             AggregationTemporality = metric.AggregationTemporality is { } temporality
-                ? (byte)Math.Clamp(temporality, 0, 2)
+                ? (byte)temporality
                 : null,
             ServiceName = metric.ServiceName,
             AttributesJson = attributesJson,

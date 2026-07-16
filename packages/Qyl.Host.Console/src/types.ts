@@ -12,5 +12,4 @@ export type {
 export const MCP_KINDS: ReadonlySet<RunnerResourceKind> = new Set([
   RunnerResourceKindValues.stdio,
   RunnerResourceKindValues.http,
-  RunnerResourceKindValues.inproc,
 ]);

@@ -23,6 +23,7 @@
 
   <Folder Name="/tests/">
     <Project Path="tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj" />
+    <Project Path="tests/Qyl.Host.Mcp.AotSmoke/Qyl.Host.Mcp.AotSmoke.csproj" />
     <Project Path="tests/Qyl.Host.Tests/Qyl.Host.Tests.csproj" />
   </Folder>
 

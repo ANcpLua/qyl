@@ -33,8 +33,6 @@ internal static class DuckDbEmitter
         sb.AppendLine();
 
         EmitCreateTableDdl(sb, table);
-        EmitMigrateTableDdl(sb, table);
-        EmitPrimaryKeyColumns(sb, table);
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -140,51 +138,6 @@ internal static class DuckDbEmitter
         sb.AppendLine();
     }
 
-    // One ALTER TABLE ... ADD COLUMN IF NOT EXISTS per column: run at startup after CREATE TABLE
-    // IF NOT EXISTS (and before index DDL) so a database persisted by an older schema gains any
-    // columns added since. Migration-added columns are always nullable — NOT NULL cannot hold for
-    // pre-existing rows — and readers already map SQL NULL to CLR defaults for non-nullable
-    // properties. New databases get the full constrained schema from CreateTableDdl; every ALTER
-    // then no-ops.
-    private static void EmitMigrateTableDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
-    {
-        sb.AppendLine("public const string MigrateTableDdl = \"\"\"");
-
-        foreach (var column in table.Columns)
-        {
-            var line = new StringBuilder("        ALTER TABLE ");
-            line.Append(SqlIdentifier.Quote(table.TableName))
-                .Append(" ADD COLUMN IF NOT EXISTS ")
-                .Append(SqlIdentifier.Quote(column.ColumnName))
-                .Append(' ')
-                .Append(ResolveSqlType(column));
-
-            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
-                line.Append(" DEFAULT ").Append(column.DefaultSql);
-
-            line.Append(';');
-            sb.AppendLineNoIndent(line.ToString());
-        }
-
-        sb.AppendLineNoIndent("        \"\"\";");
-        sb.AppendLine();
-    }
-
-    // The declared primary-key columns, in ordinal order, as a comma-separated list. Startup
-    // schema verification compares this against the persisted table's actual key: ALTER can add
-    // missing columns, but it cannot rewrite a primary key, and a drifted key silently breaks the
-    // ON CONFLICT upsert target — better to refuse the database loudly at boot.
-    private static void EmitPrimaryKeyColumns(IndentedStringBuilder sb, DuckDbTableInfo table)
-    {
-        var primaryKeyColumns = table.Columns
-            .Where(static c => c.PrimaryKeyOrdinal >= 0)
-            .OrderBy(static c => c.PrimaryKeyOrdinal)
-            .Select(static c => c.ColumnName);
-
-        sb.AppendLine($"public const string PrimaryKeyColumnsCsv = \"{string.Join(",", primaryKeyColumns)}\";");
-        sb.AppendLine();
-    }
-
     private static void EmitIndexesDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
     {
         if (table.Indexes.Length is 0)
@@ -226,9 +179,6 @@ internal static class DuckDbEmitter
             return column.SqlType!;
 
         var type = column.PropertyType.TrimEnd('?');
-        if (column.IsUBigInt)
-            return "UBIGINT";
-
         return type switch
         {
             "string" or "System.String" => "VARCHAR",
@@ -238,7 +188,6 @@ internal static class DuckDbEmitter
             "ulong" or "System.UInt64" => "UBIGINT",
             "double" or "System.Double" => "DOUBLE",
             "decimal" or "System.Decimal" => "DECIMAL",
-            "bool" or "System.Boolean" => "BOOLEAN",
             "System.DateTimeOffset" or "DateTimeOffset" => "TIMESTAMP",
             _ => throw new InvalidOperationException(
                 $"No DuckDB SQL type mapping for {column.PropertyType} on {column.PropertyName}. Set SqlType explicitly.")
@@ -268,7 +217,7 @@ internal static class DuckDbEmitter
     {
         var value = $"row.{col.PropertyName}";
 
-        if (col.IsUBigInt)
+        if (col.PropertyType.TrimEnd('?') is "ulong" or "System.UInt64")
             return col.IsNullable
                 ? $"{value}.HasValue ? (object)(decimal){value}.Value : DBNull.Value"
                 : $"(decimal){value}";
@@ -324,18 +273,15 @@ internal static class DuckDbEmitter
 
         return baseType switch
         {
-            "string" => $"DuckDbValueReader.ReadString(reader, {ordinal}, \"\")",
-            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal}, 0UL)",
-            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal}, 0L)",
-            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}, 0d)",
-            // DBNull-guarded like every other non-nullable arm: migration-added columns hold SQL
-            // NULL for pre-migration rows, and the MigrateTableDdl rationale depends on readers
-            // defaulting them.
-            "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? 0m : reader.GetDecimal({ordinal})",
-            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}, 0)",
-            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}, 0)",
-            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
-            _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
+            "string" => $"reader.GetString({ordinal})",
+            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal})!.Value",
+            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal})!.Value",
+            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal})!.Value",
+            "decimal" or "System.Decimal" => $"reader.GetDecimal({ordinal})",
+            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal})!.Value",
+            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal})!.Value",
+            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal})!.Value",
+            _ => $"reader.GetValue({ordinal})"
         };
     }
 

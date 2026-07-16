@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using Qyl.Host;
 
 namespace Qyl.Run.Host;
@@ -153,16 +152,7 @@ internal static class QylCli
         return app;
     }
 
-    internal static string GetVersion()
-    {
-        var informational = typeof(QylCli).Assembly
-                                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                                ?.InformationalVersion
-                            ?? typeof(QylCli).Assembly.GetName().Version?.ToString()
-                            ?? "unknown";
-        var metadata = informational.IndexOf('+', StringComparison.Ordinal);
-        return metadata < 0 ? informational : informational[..metadata];
-    }
+    internal static string GetVersion() => BuildVersion.ProductVersion;
 
     private static string QuoteIfNeeded(string value) =>
         value.Contains(' ') ? $"\"{value}\"" : value;

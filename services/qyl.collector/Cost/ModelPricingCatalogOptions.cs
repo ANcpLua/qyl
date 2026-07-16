@@ -14,39 +14,41 @@ internal sealed record ModelPricingCatalogOptions
 
     public static ModelPricingCatalogOptions FromConfiguration(IConfiguration configuration)
     {
-        var intervalMinutes = configuration.GetValue("QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES", 60);
+        var intervalMinutes = int.Parse(configuration["QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES"] ?? "60",
+            CultureInfo.InvariantCulture);
         if (intervalMinutes is < 1 or > 1440)
         {
             throw new InvalidOperationException(
                 "QYL_MODEL_PRICING_SYNC_INTERVAL_MINUTES must be between 1 and 1440.");
         }
 
-        var timeoutSeconds = configuration.GetValue("QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS", 30);
+        var timeoutSeconds = int.Parse(configuration["QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS"] ?? "30",
+            CultureInfo.InvariantCulture);
         if (timeoutSeconds is < 1 or > 300)
         {
             throw new InvalidOperationException(
                 "QYL_MODEL_PRICING_HTTP_TIMEOUT_SECONDS must be between 1 and 300.");
         }
 
-        var maximumResponseMib = configuration.GetValue("QYL_MODEL_PRICING_MAX_RESPONSE_MIB", 16);
+        var maximumResponseMib = int.Parse(configuration["QYL_MODEL_PRICING_MAX_RESPONSE_MIB"] ?? "16",
+            CultureInfo.InvariantCulture);
         if (maximumResponseMib is < 1 or > 64)
         {
             throw new InvalidOperationException(
                 "QYL_MODEL_PRICING_MAX_RESPONSE_MIB must be between 1 and 64.");
         }
 
-        var maximumStaleMinutes = configuration.GetValue(
-            "QYL_MODEL_PRICING_MAX_STALENESS_MINUTES",
-            Math.Max(intervalMinutes * 3, 60));
+        var maximumStaleMinutes = int.Parse(
+            configuration["QYL_MODEL_PRICING_MAX_STALENESS_MINUTES"] ??
+            Math.Max(intervalMinutes * 3, 60).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
         if (maximumStaleMinutes < intervalMinutes || maximumStaleMinutes > 43_200)
         {
             throw new InvalidOperationException(
                 "QYL_MODEL_PRICING_MAX_STALENESS_MINUTES must be at least the sync interval and at most 43200.");
         }
 
-        var retainedSnapshots = configuration.GetValue(
-            "QYL_MODEL_PRICING_RETAINED_SNAPSHOTS",
-            32);
+        var retainedSnapshots = int.Parse(configuration["QYL_MODEL_PRICING_RETAINED_SNAPSHOTS"] ?? "32",
+            CultureInfo.InvariantCulture);
         if (retainedSnapshots is < 1 or > 1024)
         {
             throw new InvalidOperationException(

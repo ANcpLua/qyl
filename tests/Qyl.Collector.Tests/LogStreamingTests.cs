@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using DuckDB.NET.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Qyl.Api.Contracts.Common.Errors;
@@ -11,51 +10,6 @@ namespace Qyl.Collector.Tests;
 
 public sealed class LogStreamingTests
 {
-    [Fact]
-    public async Task Existing_log_rows_receive_distinct_stream_sequences_during_schema_migration()
-    {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"qyl-log-migration-{Guid.NewGuid():N}.duckdb");
-        try
-        {
-            await using (var connection = new DuckDBConnection($"Data Source={databasePath}"))
-            {
-                await connection.OpenAsync(TestContext.Current.CancellationToken);
-                await using var command = connection.CreateCommand();
-                command.CommandText = """
-                                      CREATE TABLE logs (
-                                          project_id VARCHAR NOT NULL,
-                                          log_id VARCHAR NOT NULL,
-                                          PRIMARY KEY (project_id, log_id)
-                                      );
-                                      INSERT INTO logs VALUES ('default', 'existing-a'), ('default', 'existing-b');
-                                      """;
-                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-            }
-
-            await using var store = new DuckDbStore(databasePath);
-            var migrated = await store.GetLogStreamPageAsync(
-                "default",
-                limit: 10,
-                ct: TestContext.Current.CancellationToken);
-
-            Assert.Equal(2, migrated.Count);
-            Assert.All(migrated, row => Assert.True(row.IngestSequence > 0));
-            Assert.Equal(2, migrated.Select(row => row.IngestSequence).Distinct().Count());
-            Assert.True(migrated[0].IngestSequence < migrated[1].IngestSequence);
-        }
-        finally
-        {
-            try
-            {
-                File.Delete(databasePath);
-            }
-            catch (IOException)
-            {
-                // A failed assertion should remain the primary test failure on platforms that delay file release.
-            }
-        }
-    }
-
     [Fact]
     public async Task Later_ingested_older_event_is_delivered_after_the_live_cursor()
     {

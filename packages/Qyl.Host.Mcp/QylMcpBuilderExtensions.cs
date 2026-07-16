@@ -1,10 +1,7 @@
-using System.IO.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
 using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Trace;
 using Qyl.Host;
@@ -65,19 +62,13 @@ public static class QylMcpBuilderExtensions
             app,
             name,
             QylResourceKind.McpStdio,
-            async (_, cancellationToken) =>
-            {
-                var client = await McpClient.CreateAsync(
-                        new StdioClientTransport(transportOptions),
-                        cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                return new McpConnection(client);
-            });
+            (_, cancellationToken) => McpClient.CreateAsync(
+                new StdioClientTransport(transportOptions),
+                cancellationToken: cancellationToken));
     }
 
     /// <summary>
-    /// Adds an MCP client connected to an existing server over Streamable HTTP or SSE.
+    /// Adds an MCP client connected to an existing server over HTTP.
     /// </summary>
     public static IQylResourceBuilder AddMcpHttp(
         this QylAppBuilder app,
@@ -91,57 +82,24 @@ public static class QylMcpBuilderExtensions
         var transportOptions = new HttpClientTransportOptions
         {
             Name = name,
-            Endpoint = endpoint
+            Endpoint = endpoint,
+            TransportMode = HttpTransportMode.StreamableHttp
         };
 
         return AddMcpResource(
             app,
             name,
             QylResourceKind.McpHttp,
-            async (_, cancellationToken) =>
-            {
-                var client = await McpClient.CreateAsync(
-                        new HttpClientTransport(transportOptions),
-                        cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                return new McpConnection(client);
-            });
-    }
-
-    /// <summary>
-    /// Adds an MCP server and client connected through linked in-memory transports.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="McpServer.Create"/> binds a server to its transport. The supplied
-    /// factory therefore receives the server-side transport. The Qyl runner owns the
-    /// returned server and all associated transport resources for the composition
-    /// lifetime.
-    /// </remarks>
-    public static IQylResourceBuilder AddMcpInProcess(
-        this QylAppBuilder app,
-        string name,
-        Func<ITransport, McpServer> serverFactory)
-    {
-        QylGuard.NotNull(app);
-        QylGuard.NotNullOrWhiteSpace(name);
-        QylGuard.NotNull(serverFactory);
-
-        return AddMcpResource(
-            app,
-            name,
-            QylResourceKind.McpInProcess,
-            (_, cancellationToken) => CreateInProcessConnectionAsync(
-                name,
-                serverFactory,
-                cancellationToken));
+            (_, cancellationToken) => McpClient.CreateAsync(
+                new HttpClientTransport(transportOptions),
+                cancellationToken: cancellationToken));
     }
 
     private static IQylResourceBuilder AddMcpResource(
         QylAppBuilder app,
         string name,
         QylResourceKind kind,
-        Func<QylResourceState, CancellationToken, Task<McpConnection>> connectionFactory)
+        Func<QylResourceState, CancellationToken, Task<McpClient>> connectionFactory)
     {
         var registry = EnsureMcpServices(app);
         var startupTimeout = TimeSpan.FromSeconds(
@@ -294,140 +252,4 @@ public static class QylMcpBuilderExtensions
 
         return endpoint!;
     }
-
-    private static async Task<McpConnection> CreateInProcessConnectionAsync(
-        string name,
-        Func<ITransport, McpServer> serverFactory,
-        CancellationToken cancellationToken)
-    {
-        var clientToServer = new Pipe();
-        var serverToClient = new Pipe();
-        var serverLifetime = new CancellationTokenSource();
-
-        McpClient? client = null;
-        McpServer? server = null;
-        Task? serverLoop = null;
-        ITransport? serverTransport = null;
-
-        try
-        {
-#pragma warning disable CA2000 // Ownership transfers to McpConnection and the SDK server session.
-            var createdServerTransport = new StreamServerTransport(
-                clientToServer.Reader.AsStream(),
-                serverToClient.Writer.AsStream(),
-                name);
-#pragma warning restore CA2000
-
-            serverTransport = createdServerTransport;
-
-            var createdServer = serverFactory(createdServerTransport)
-                ?? throw new InvalidOperationException(
-                    $"The MCP server factory for resource '{name}' returned null.");
-
-            server = createdServer;
-
-            var createdServerLoop = Task.Run(
-                () => createdServer.RunAsync(serverLifetime.Token),
-                serverLifetime.Token);
-
-            serverLoop = createdServerLoop;
-
-            var createdClient = await McpClient.CreateAsync(
-                    new StreamClientTransport(
-                        clientToServer.Writer.AsStream(),
-                        serverToClient.Reader.AsStream()),
-                    cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
-
-            client = createdClient;
-
-            return new McpConnection(
-                createdClient,
-                createdServer,
-                createdServerLoop,
-                serverLifetime,
-                createdServerTransport);
-        }
-        catch
-        {
-            await CleanupFailedInProcessConnectionAsync(
-                    client,
-                    server,
-                    serverLoop,
-                    serverLifetime,
-                    serverTransport)
-                .ConfigureAwait(false);
-
-            throw;
-        }
-    }
-
-#pragma warning disable CA1031 // Cleanup failures must not replace the connection-startup exception.
-    private static async Task CleanupFailedInProcessConnectionAsync(
-        McpClient? client,
-        McpServer? server,
-        Task? serverLoop,
-        CancellationTokenSource serverLifetime,
-        ITransport? serverTransport)
-    {
-        if (client is not null)
-        {
-            try
-            {
-                await client.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                // Preserve the original connection-startup exception.
-            }
-        }
-
-        try
-        {
-            await serverLifetime.CancelAsync().ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            // Continue releasing the remaining resources.
-        }
-
-        if (serverLoop is not null)
-        {
-            try
-            {
-                await serverLoop.ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                // Observe the server task without replacing the startup exception.
-            }
-        }
-
-        if (server is not null)
-        {
-            try
-            {
-                await server.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                // Continue releasing the remaining resources.
-            }
-        }
-
-        if (serverTransport is not null)
-        {
-            try
-            {
-                await serverTransport.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                // Preserve the original connection-startup exception.
-            }
-        }
-
-        serverLifetime.Dispose();
-    }
-#pragma warning restore CA1031
 }

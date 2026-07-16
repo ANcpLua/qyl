@@ -8,7 +8,9 @@ import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Separator} from '@/components/ui/separator';
-import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from '@/components/ui';
+import {CopyableText} from '@/components/ui/copyable-text';
+import {DownloadButton} from '@/components/ui/download-button';
+import {isStructuredContent, TextVisualizer} from '@/components/ui/text-visualizer';
 import {OnboardingHint} from '@/components/OnboardingHint';
 import {
     formatDuration,

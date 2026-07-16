@@ -1,3 +1,5 @@
+using Qyl.Collector.Health;
+
 namespace Qyl.Collector.Hosting;
 
 internal static class CollectorStorageExtensions
@@ -8,6 +10,8 @@ internal static class CollectorStorageExtensions
     {
         services.AddSingleton<IQylStore>(CreateStore);
         services.ActivateSingleton<IQylStore>();
+        services.AddHealthChecks()
+            .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", QylEndpoints.ReadyTag]);
 
         return services;
     }
@@ -23,7 +27,7 @@ internal static class CollectorStorageExtensions
         return new DuckDbStore(
             dataPath,
             memoryLimit: config["QYL_DB_MEMORY_LIMIT"],
-            threads: config.GetValue<int?>("QYL_DB_THREADS"),
+            threads: config["QYL_DB_THREADS"] is { } threads ? int.Parse(threads, CultureInfo.InvariantCulture) : null,
             tempDirectory: config["QYL_DB_TEMP_DIR"]);
     }
 }

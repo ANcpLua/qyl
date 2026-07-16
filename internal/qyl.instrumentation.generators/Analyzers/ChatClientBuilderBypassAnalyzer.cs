@@ -66,10 +66,6 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
     private static bool IsAllowed(string path)
     {
         var normalized = "/" + path.Replace('\\', '/');
-        if (normalized.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("/samples/", StringComparison.OrdinalIgnoreCase))
-            return true;
-
         return (normalized.ContainsIgnoreCase("/Clients/") &&
                 normalized.EndsWithIgnoreCase("ChatClientBuilder.cs")) ||
                (normalized.ContainsIgnoreCase("/Factories/") &&

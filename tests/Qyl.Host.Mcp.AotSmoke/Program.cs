@@ -1,40 +1,34 @@
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Host;
 using Qyl.Host.Mcp;
 
-// AOT smoke for Qyl.Host.Mcp: not just composition — a LIVE MCP handshake under Native AOT.
-// Two resource kinds are exercised end-to-end through the package's own machinery
-// (McpHandshakeProbe -> McpClientRegistry -> official MCP SDK source-generated JSON metadata):
-//   inproc      — SDK server over an in-memory stream pair inside this process
-//   stdio-self  — this same native binary re-spawned with --server as a stdio MCP server
-// Exit code 0 = every step passed.
+// Live NativeAOT smoke for the public stdio MCP resource path:
+// McpHandshakeProbe -> McpClientRegistry -> official MCP SDK source-generated JSON metadata.
+// This binary respawns itself with --server and exercises list, call, and resource read.
 
 if (args is ["--server"])
 {
-    // Stdio server half. Nothing may write to stdout except the transport.
-    await using var serverServices = new ServiceCollection().BuildServiceProvider();
-#pragma warning disable CA2000 // ownership transfers to the McpServer (same pattern as QylMcpBuilderExtensions)
+    // Nothing may write to stdout except the stdio transport in server mode.
+    await using var transport = new StdioServerTransport("aot-smoke");
     await using var stdioServer = McpServer.Create(
-        new StdioServerTransport("aot-smoke"), SmokeServer.Options(), NullLoggerFactory.Instance, serverServices);
-#pragma warning restore CA2000
+        transport,
+        SmokeServer.Options(),
+        NullLoggerFactory.Instance);
     await stdioServer.RunAsync();
     return 0;
 }
 
 var failures = 0;
-
-await using var services = new ServiceCollection().BuildServiceProvider();
 var app = QylAppBuilder.Create(args);
-app.AddMcpInProcess("inproc", transport =>
-    McpServer.Create(transport, SmokeServer.Options(), NullLoggerFactory.Instance, services));
 app.AddMcpStdio("stdio-self", Environment.ProcessPath!, ["--server"]);
 
 var registry = (McpClientRegistry)app.Host.Services
-    .Single(static d => d.ServiceType == typeof(McpClientRegistry) && d.ImplementationInstance is not null)
+    .Single(static descriptor =>
+        descriptor.ServiceType == typeof(McpClientRegistry) &&
+        descriptor.ImplementationInstance is not null)
     .ImplementationInstance!;
 await using var registryLifetime = registry;
 
@@ -60,27 +54,27 @@ foreach (var resource in app.Resources)
     }
 
     var list = await client.ListToolsAsync(new ListToolsRequestParams(), timeout.Token);
-    Check($"{resource.Name}: tools/list returns official protocol result (1 tool 'echo')",
+    Check($"{resource.Name}: tools/list returns one echo tool",
         list.Tools.Count == 1 && list.Tools[0].Name == "echo");
-    Check($"{resource.Name}: official list serializes via SDK source-gen metadata",
+    Check($"{resource.Name}: tool list uses SDK JSON metadata",
         McpSdkJson.Serialize(list).Length > 0);
 
     var callRequest = JsonSerializer.Deserialize(
         """{"name":"echo","arguments":{"value":"live"}}""",
         McpSdkJson.TypeInfo<CallToolRequestParams>())!;
     var call = await client.CallToolAsync(callRequest, timeout.Token);
-    Check($"{resource.Name}: tools/call echo -> 'echo:live'",
+    Check($"{resource.Name}: tools/call returns echo:live",
         call.Content is [TextContentBlock { Text: "echo:live" }]);
-    Check($"{resource.Name}: official call result serializes via SDK source-gen metadata",
+    Check($"{resource.Name}: tool result uses SDK JSON metadata",
         McpSdkJson.Serialize(call).Length > 0);
 
     var readRequest = JsonSerializer.Deserialize(
         """{"uri":"qyl://resource/static"}""",
         McpSdkJson.TypeInfo<ReadResourceRequestParams>())!;
     var read = await client.ReadResourceAsync(readRequest, timeout.Token);
-    Check($"{resource.Name}: resources/read -> 'resource-body'",
+    Check($"{resource.Name}: resources/read returns resource-body",
         read.Contents is [TextResourceContents { Text: "resource-body" }]);
-    Check($"{resource.Name}: official resource result serializes via SDK source-gen metadata",
+    Check($"{resource.Name}: resource result uses SDK JSON metadata",
         McpSdkJson.Serialize(read).Length > 0);
 }
 

@@ -528,8 +528,7 @@ internal static class MetricMapper
     public static bool TryToContract(MetricStorageRow record, out MetricPoint contract)
     {
         contract = null!;
-        if (record.ContractProjectionVersion is not MetricStorageRow.CurrentContractProjectionVersion ||
-            string.IsNullOrWhiteSpace(record.MetricName) ||
+        if (string.IsNullOrWhiteSpace(record.MetricName) ||
             record.TimeUnixNano is 0 ||
             record.StartTimeUnixNano is not { } startTimeUnixNano ||
             record.Flags is not { } storedFlags || storedFlags is < 0 or > uint.MaxValue ||

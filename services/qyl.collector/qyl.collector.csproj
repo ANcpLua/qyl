@@ -14,7 +14,6 @@
     <PublishTrimmed Condition="'$(QylAot)' == 'true'">true</PublishTrimmed>
     <SuppressTrimAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressTrimAnalysisWarnings>
     <SuppressAotAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressAotAnalysisWarnings>
-    <NoWarn Condition="'$(QylAot)' == 'true'">$(NoWarn);RS0030</NoWarn>
     <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
     <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
   </PropertyGroup>
@@ -88,20 +87,5 @@
     <Protobuf Include="Protos/opentelemetry/proto/collector/metrics/v1/metrics_service.proto" ProtoRoot="Protos" GrpcServices="Server"/>
     <Protobuf Include="Protos/opentelemetry/proto/collector/profiles/v1development/profiles_service.proto" ProtoRoot="Protos" GrpcServices="Server"/>
   </ItemGroup>
-
-  <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
-    <PropertyGroup>
-      <_VersionString>$(InformationalVersion)</_VersionString>
-      <_VersionString Condition="'$(_VersionString)' == ''">$(Version)</_VersionString>
-      <_VersionString Condition="'$(_VersionString)' == ''">0.0.0</_VersionString>
-    </PropertyGroup>
-    <ItemGroup>
-      <Compile Include="$(IntermediateOutputPath)BuildVersion.g.cs"/>
-    </ItemGroup>
-    <WriteLinesToFile
-      File="$(IntermediateOutputPath)BuildVersion.g.cs"
-      Lines="namespace Qyl.Collector%3B&#10;&#10;internal static partial class BuildVersion&#10;{&#10;    public const string InformationalVersion = &quot;$(_VersionString)&quot;%3B&#10;}"
-      Overwrite="true"/>
-  </Target>
 
 </Project>

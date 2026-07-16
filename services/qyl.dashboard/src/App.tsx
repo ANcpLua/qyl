@@ -3,7 +3,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {Toaster} from '@/components/ui/sonner';
 import {ErrorBoundary} from '@/components/ui/error-boundary';
-import {DashboardLayout} from '@/components/layout';
+import {DashboardLayout} from '@/components/layout/DashboardLayout';
 
 const TracesPage = lazy(() => import('@/pages/TracesPage').then(m => ({default: m.TracesPage})));
 const LogsPage = lazy(() => import('@/pages/LogsPage').then(m => ({default: m.LogsPage})));

@@ -89,7 +89,7 @@ internal sealed partial class QylOrchestrator(
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
 
             // A connection-only resource has no runner-owned listener. Its SDK transport may be
-            // stdio, remote HTTP, or in-process, so publishing an allocated localhost endpoint
+            // stdio or remote HTTP, so publishing an allocated localhost endpoint
             // would be fabricated client-visible data.
             if (resource.Launch is null)
             {

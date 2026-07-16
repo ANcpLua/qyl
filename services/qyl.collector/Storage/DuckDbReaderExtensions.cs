@@ -41,9 +41,9 @@ internal sealed partial record SpanStorageRow
 
     public required string Name { get; init; }
     public required byte Kind { get; init; }
-    [DuckDbColumn(IsUBigInt = true)] public required ulong StartTimeUnixNano { get; init; }
-    [DuckDbColumn(IsUBigInt = true)] public required ulong EndTimeUnixNano { get; init; }
-    [DuckDbColumn(IsUBigInt = true)] public required ulong DurationNs { get; init; }
+    public required ulong StartTimeUnixNano { get; init; }
+    public required ulong EndTimeUnixNano { get; init; }
+    public required ulong DurationNs { get; init; }
     public required byte StatusCode { get; init; }
 
     public string? ServiceName { get; init; }
@@ -75,9 +75,6 @@ internal sealed partial record SpanStorageRow
     public string? EventsJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? LinksJson { get; init; }
-
-    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
-    public DateTimeOffset? CreatedAt { get; init; }
 }
 
 internal sealed record StorageStats
@@ -125,9 +122,7 @@ internal sealed partial record LogStorageRow
     public string? EventName { get; init; }
     public string? SessionId { get; init; }
 
-    [DuckDbColumn(IsUBigInt = true)]
     public required ulong TimeUnixNano { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? ObservedTimeUnixNano { get; init; }
 
     public required byte SeverityNumber { get; init; }
@@ -142,9 +137,6 @@ internal sealed partial record LogStorageRow
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceEntityRefsJson { get; init; }
 
-    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
-    public DateTimeOffset? CreatedAt { get; init; }
-
     // Monotonic collector arrival order. Event timestamps are supplied by producers and may arrive
     // late or out of order, so they cannot be used as a lossless live-stream cursor.
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "nextval('logs_ingest_sequence')")]
@@ -152,10 +144,9 @@ internal sealed partial record LogStorageRow
 }
 
 [DuckDbTable("metrics",
-    Indexes = "ProjectId,TimeUnixNano;ProjectId,MetricName;ProjectId,ServiceName;ProjectId,ContractProjectionVersion,TimeUnixNano",
+    Indexes = "ProjectId,TimeUnixNano;ProjectId,MetricName;ProjectId,ServiceName",
     OnConflict = """
     ON CONFLICT (project_id, metric_id) DO UPDATE SET
-        contract_projection_version = EXCLUDED.contract_projection_version,
         metric_name = EXCLUDED.metric_name,
         metric_type = EXCLUDED.metric_type,
         unit = EXCLUDED.unit,
@@ -171,7 +162,6 @@ internal sealed partial record LogStorageRow
         scope_schema_url = EXCLUDED.scope_schema_url,
         time_unix_nano = EXCLUDED.time_unix_nano,
         start_time_unix_nano = EXCLUDED.start_time_unix_nano,
-        value = EXCLUDED.value,
         int_value = EXCLUDED.int_value,
         double_value = EXCLUDED.double_value,
         flags = EXCLUDED.flags,
@@ -195,17 +185,11 @@ internal sealed partial record LogStorageRow
     """)]
 internal sealed partial record MetricStorageRow
 {
-    public const byte CurrentContractProjectionVersion = 2;
-
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
     public required string MetricId { get; init; }
 
-    // NULL marks rows written before the lossless MetricPoint projection existed. Those rows may
-    // remain queryable for internal diagnostics, but the product API must not fabricate fields that
-    // were never persisted.
-    public byte? ContractProjectionVersion { get; init; }
     public required string MetricName { get; init; }
     public required byte MetricType { get; init; }
     public string? Unit { get; init; }
@@ -222,20 +206,14 @@ internal sealed partial record MetricStorageRow
     public long? ScopeDroppedAttributesCount { get; init; }
     public string? ScopeSchemaUrl { get; init; }
 
-    [DuckDbColumn(IsUBigInt = true)]
     public required ulong TimeUnixNano { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? StartTimeUnixNano { get; init; }
 
-    // Legacy lossy number column retained only so schema migration can read/upsert older databases.
-    // New rows use exactly one of IntValue or DoubleValue and leave Value NULL.
-    public double? Value { get; init; }
     public long? IntValue { get; init; }
     public double? DoubleValue { get; init; }
     public long? Flags { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ExemplarsJson { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? Count { get; init; }
     public double? Sum { get; init; }
     public double? Min { get; init; }
@@ -243,7 +221,6 @@ internal sealed partial record MetricStorageRow
     [DuckDbColumn(SqlType = "JSON")]
     public string? BucketsJson { get; init; }
     public int? ExponentialHistogramScale { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? ExponentialHistogramZeroCount { get; init; }
     public double? ExponentialHistogramZeroThreshold { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
@@ -261,9 +238,6 @@ internal sealed partial record MetricStorageRow
     public string? ResourceJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceEntityRefsJson { get; init; }
-
-    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
-    public DateTimeOffset? CreatedAt { get; init; }
 }
 
 [DuckDbTable("profiles",
@@ -313,9 +287,6 @@ internal sealed partial record ProfileStorageRow
     public string? ResourceEntityRefsJson { get; init; }
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
     public string? SchemaUrl { get; init; }
-
-    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
-    public DateTimeOffset? CreatedAt { get; init; }
 }
 
 [DuckDbTable("profile_functions",
@@ -356,7 +327,6 @@ internal sealed partial record ProfileLocationRow
     [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public int? MappingOrdinal { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? Address { get; init; }
     public string? LinesJson { get; init; }
 }
@@ -378,11 +348,8 @@ internal sealed partial record ProfileMappingRow
     [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public string? Filename { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? MemoryStart { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? MemoryLimit { get; init; }
-    [DuckDbColumn(IsUBigInt = true)]
     public ulong? FileOffset { get; init; }
 }
 

@@ -10,7 +10,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 {
     private const string DuckDbTableAttribute = "Qyl.Collector.Storage.DuckDbTableAttribute";
     private const string DuckDbColumnAttribute = "Qyl.Collector.Storage.DuckDbColumnAttribute";
-    private const string DuckDbIgnoreAttribute = "Qyl.Collector.Storage.DuckDbIgnoreAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -73,14 +72,12 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         if (tableName is not { Length: > 0 })
             return null;
 
-        var compilation = ctx.SemanticModel.Compilation;
-        var columnAttributeType = compilation.GetTypeByMetadataName(DuckDbColumnAttribute);
-        var ignoreAttributeType = compilation.GetTypeByMetadataName(DuckDbIgnoreAttribute);
+        var columnAttributeType = ctx.SemanticModel.Compilation.GetTypeByMetadataName(DuckDbColumnAttribute);
 
         var columns = new List<DuckDbColumnInfo>();
         var ordinal = 0;
 
-        foreach (var prop in GetPublicMappedProperties(typeSymbol, ignoreAttributeType))
+        foreach (var prop in GetPublicMappedProperties(typeSymbol))
         {
             var columnInfo = ExtractColumnInfo(prop, ordinal, columnAttributeType);
             if (columnInfo is not null)
@@ -112,7 +109,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             yield break;
 
         var columnsByProperty = columns.ToDictionary(static column => column.PropertyName, StringComparer.Ordinal);
-        var columnsByColumn = columns.ToDictionary(static column => column.ColumnName, StringComparer.Ordinal);
 
         foreach (var indexSpec in indexes.Split(';'))
         {
@@ -120,7 +116,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 .Split(',')
                 .Select(static column => column.Trim())
                 .Where(static column => column.Length > 0)
-                .Select(column => ResolveIndexColumn(tableName, column, columnsByProperty, columnsByColumn))
+                .Select(column => ResolveIndexColumn(tableName, column, columnsByProperty))
                 .ToArray();
 
             if (columnNames.Length is 0)
@@ -135,17 +131,13 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
     private static string ResolveIndexColumn(
         string tableName,
         string configuredColumn,
-        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByProperty,
-        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByColumn)
+        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByProperty)
     {
         if (columnsByProperty.TryGetValue(configuredColumn, out var propertyColumn))
             return propertyColumn.ColumnName;
 
-        if (columnsByColumn.TryGetValue(configuredColumn, out var physicalColumn))
-            return physicalColumn.ColumnName;
-
         throw new InvalidOperationException(
-            $"DuckDB index on '{tableName}' references unknown column or property '{configuredColumn}'.");
+            $"DuckDB index on '{tableName}' references unknown property '{configuredColumn}'.");
     }
 
     private static string BuildIndexName(string tableName, IReadOnlyList<string> columnNames)
@@ -168,9 +160,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             sb.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '_');
     }
 
-    private static List<IPropertySymbol> GetPublicMappedProperties(
-        INamedTypeSymbol typeSymbol,
-        INamedTypeSymbol? ignoreAttributeType)
+    private static List<IPropertySymbol> GetPublicMappedProperties(INamedTypeSymbol typeSymbol)
     {
         var properties = new List<IPropertySymbol>();
         foreach (var member in typeSymbol.GetMembers())
@@ -182,9 +172,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 continue;
 
             if (prop.GetMethod is null)
-                continue;
-
-            if (FindAttribute(prop, ignoreAttributeType) is not null)
                 continue;
 
             properties.Add(prop);
@@ -218,10 +205,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         int defaultOrdinal,
         INamedTypeSymbol? columnAttributeType)
     {
-        string? columnName = null;
-        var isUBigInt = false;
+        var columnName = ToSnakeCase(prop.Name);
         var excludeFromInsert = false;
-        var ordinal = defaultOrdinal;
         string? sqlType = null;
         string? defaultSql = null;
         var primaryKeyOrdinal = -1;
@@ -229,22 +214,12 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var colAttr = FindAttribute(prop, columnAttributeType);
         if (colAttr is not null)
         {
-            if (colAttr.ConstructorArguments.Length > 0)
-                columnName = colAttr.ConstructorArguments[0].Value as string;
-
             foreach (var named in colAttr.NamedArguments)
             {
                 switch (named.Key)
                 {
-                    case "IsUBigInt":
-                        isUBigInt = named.Value.Value is true;
-                        break;
                     case "ExcludeFromInsert":
                         excludeFromInsert = named.Value.Value is true;
-                        break;
-                    case "Ordinal":
-                        if (named.Value.Value is int o)
-                            ordinal = o;
                         break;
                     case "SqlType":
                         sqlType = named.Value.Value as string;
@@ -260,23 +235,17 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             }
         }
 
-        columnName ??= ToSnakeCase(prop.Name);
-
         var propType = prop.Type.ToDisplayString();
         var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated ||
                          propType.EndsWithOrdinal("?");
-
-        if (!isUBigInt && propType is "ulong" or "System.UInt64")
-            isUBigInt = true;
 
         return new DuckDbColumnInfo(
             prop.Name,
             columnName,
             propType,
             isNullable,
-            isUBigInt,
             excludeFromInsert,
-            ordinal,
+            defaultOrdinal,
             sqlType,
             defaultSql,
             primaryKeyOrdinal);
@@ -336,7 +305,6 @@ internal readonly record struct DuckDbColumnInfo(
     string ColumnName,
     string PropertyType,
     bool IsNullable,
-    bool IsUBigInt,
     bool ExcludeFromInsert,
     int Ordinal,
     string? SqlType,

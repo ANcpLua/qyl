@@ -75,8 +75,7 @@ internal enum QylResourceKind
     Project,
     Command,
     McpStdio,
-    McpHttp,
-    McpInProcess
+    McpHttp
 }
 
 internal static class QylResourceKindExtensions
@@ -88,7 +87,6 @@ internal static class QylResourceKindExtensions
         QylResourceKind.Command => "command",
         QylResourceKind.McpStdio => "stdio",
         QylResourceKind.McpHttp => "http",
-        QylResourceKind.McpInProcess => "inproc",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown resource kind")
     };
 }

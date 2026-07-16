@@ -26,7 +26,6 @@ internal sealed partial class DuckDbStore : IQylStore
     private readonly Task _writerTask;
 
     private int _disposed;
-    private long _queuedWriteJobs;
 
 
     public DuckDbStore(
@@ -197,17 +196,8 @@ internal sealed partial class DuckDbStore : IQylStore
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation);
-        Interlocked.Increment(ref _queuedWriteJobs);
-        try
-        {
-            if (!_jobs.Writer.TryWrite(job))
-                throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
-        }
-        catch
-        {
-            Interlocked.Decrement(ref _queuedWriteJobs);
-            throw;
-        }
+        if (!_jobs.Writer.TryWrite(job))
+            throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
 
         return await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
@@ -222,17 +212,8 @@ internal sealed partial class DuckDbStore : IQylStore
             await operation(con, token).ConfigureAwait(false);
             return 0;
         });
-        Interlocked.Increment(ref _queuedWriteJobs);
-        try
-        {
-            if (!_jobs.Writer.TryWrite(job))
-                throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
-        }
-        catch
-        {
-            Interlocked.Decrement(ref _queuedWriteJobs);
-            throw;
-        }
+        if (!_jobs.Writer.TryWrite(job))
+            throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
 
         await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
@@ -513,48 +494,6 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct).ConfigureAwait(false);
     }
 
-    public Task<IReadOnlyList<MetricStorageRow>> GetMetricsAsync(
-        string projectId,
-        string? metricName = null,
-        string? serviceName = null,
-        ulong? start = null,
-        ulong? before = null,
-        int limit = 500,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<MetricStorageRow>>(con =>
-        {
-            var metrics = new List<MetricStorageRow>();
-            var qb = new QueryBuilder();
-
-            qb.Add("project_id = $N", projectId);
-            if (!string.IsNullOrEmpty(metricName))
-                qb.Add("metric_name = $N", metricName);
-            if (!string.IsNullOrEmpty(serviceName))
-                qb.Add("service_name = $N", serviceName);
-            if (start.HasValue)
-                qb.Add("time_unix_nano >= $N", (decimal)start.Value);
-            if (before.HasValue)
-                qb.Add("time_unix_nano <= $N", (decimal)before.Value);
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + MetricStorageRow.SelectColumnList
-                              + " FROM metrics " + qb.WhereClause
-                              + " ORDER BY time_unix_nano DESC, metric_id DESC LIMIT "
-                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                metrics.Add(MetricStorageRow.MapFromReader(reader));
-
-            return metrics;
-        }, ct);
-    }
-
     public Task<MetricStoragePage> GetMetricPageAsync(
         string projectId,
         MetricPageCursor? cursor,
@@ -575,7 +514,6 @@ internal sealed partial class DuckDbStore : IQylStore
             var metrics = new List<MetricStorageRow>(limit + 1);
             var qb = new QueryBuilder();
             qb.Add("project_id = $N", projectId);
-            qb.Add("contract_projection_version = $N", MetricStorageRow.CurrentContractProjectionVersion);
             if (metricType.HasValue)
                 qb.Add("metric_type = $N", metricType.Value);
             if (!string.IsNullOrEmpty(metricName))
@@ -898,7 +836,6 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             await foreach (var job in _jobs.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
             {
-                Interlocked.Decrement(ref _queuedWriteJobs);
                 try
                 {
                     if (_beforeWrite is not null)
@@ -919,7 +856,6 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             while (_jobs.Reader.TryRead(out var leftover))
             {
-                Interlocked.Decrement(ref _queuedWriteJobs);
                 leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
             }
         }
@@ -1016,10 +952,6 @@ internal sealed partial class DuckDbStore : IQylStore
     // the statement.
     private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
 
-    // Per table: CREATE TABLE IF NOT EXISTS (full schema for new databases), then the generated
-    // ALTER TABLE ... ADD COLUMN IF NOT EXISTS migration (existing databases persisted by an older
-    // schema gain missing columns), then CREATE INDEX IF NOT EXISTS — indexes last, because an
-    // index may target a column the migration just added.
     private static void InitializeSchema(DuckDBConnection con)
     {
         // The live log stream needs a collector-owned monotonic cursor. Producer event timestamps
@@ -1031,14 +963,12 @@ internal sealed partial class DuckDbStore : IQylStore
         using var logsCmd = con.CreateCommand();
         logsCmd.CommandText = string.Concat(
             LogStorageRow.CreateTableDdl, "\n",
-            LogStorageRow.MigrateTableDdl, "\n",
             LogStorageRow.IndexesDdl);
         logsCmd.ExecuteNonQuery();
 
         using var metricsCmd = con.CreateCommand();
         metricsCmd.CommandText = string.Concat(
             MetricStorageRow.CreateTableDdl, "\n",
-            MetricStorageRow.MigrateTableDdl, "\n",
             MetricStorageRow.IndexesDdl);
         metricsCmd.ExecuteNonQuery();
 
@@ -1050,12 +980,6 @@ internal sealed partial class DuckDbStore : IQylStore
             ProfileMappingRow.CreateTableDdl, "\n",
             ProfileSampleRow.CreateTableDdl, "\n",
             ProfileStackRow.CreateTableDdl, "\n",
-            ProfileStorageRow.MigrateTableDdl, "\n",
-            ProfileFunctionRow.MigrateTableDdl, "\n",
-            ProfileLocationRow.MigrateTableDdl, "\n",
-            ProfileMappingRow.MigrateTableDdl, "\n",
-            ProfileSampleRow.MigrateTableDdl, "\n",
-            ProfileStackRow.MigrateTableDdl, "\n",
             ProfileStorageRow.IndexesDdl, "\n",
             ProfileSampleRow.IndexesDdl);
         profilesCmd.ExecuteNonQuery();
@@ -1063,7 +987,6 @@ internal sealed partial class DuckDbStore : IQylStore
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
             SpanStorageRow.CreateTableDdl, "\n",
-            SpanStorageRow.MigrateTableDdl, "\n",
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
@@ -1071,8 +994,6 @@ internal sealed partial class DuckDbStore : IQylStore
         providerCostCmd.CommandText = string.Concat(
             ProviderCostBucketRow.CreateTableDdl, "\n",
             ProviderCostSyncRow.CreateTableDdl, "\n",
-            ProviderCostBucketRow.MigrateTableDdl, "\n",
-            ProviderCostSyncRow.MigrateTableDdl, "\n",
             ProviderCostBucketRow.IndexesDdl, "\n",
             ProviderCostSyncRow.IndexesDdl);
         providerCostCmd.ExecuteNonQuery();
@@ -1084,73 +1005,11 @@ internal sealed partial class DuckDbStore : IQylStore
             ModelPricingCatalogModelRow.CreateTableDdl, "\n",
             ModelPricingCatalogOverrideRow.CreateTableDdl, "\n",
             ModelPricingCatalogRateRow.CreateTableDdl, "\n",
-            ModelPricingCatalogSourceRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogSnapshotRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogModelRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogOverrideRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogRateRow.MigrateTableDdl, "\n",
             ModelPricingCatalogModelRow.IndexesDdl, "\n",
             ModelPricingCatalogSnapshotRow.IndexesDdl, "\n",
             ModelPricingCatalogOverrideRow.IndexesDdl, "\n",
             ModelPricingCatalogRateRow.IndexesDdl);
         modelPricingCatalogCmd.ExecuteNonQuery();
-
-        VerifyPersistedPrimaryKeys(con);
-    }
-
-    // ALTER can add missing columns, but it cannot rewrite a primary key — and the generated
-    // inserts hard-depend on the current key via ON CONFLICT. A database persisted before a key
-    // change would boot green and then fail every insert with a binder error the fire-and-forget
-    // writer swallows: silent total data loss behind a healthy /health. Refuse such a database
-    // loudly at boot instead.
-    private static void VerifyPersistedPrimaryKeys(DuckDBConnection con)
-    {
-        VerifyPersistedPrimaryKey(con, SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, MetricStorageRow.TableName, MetricStorageRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProfileStorageRow.TableName, ProfileStorageRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProfileFunctionRow.TableName, ProfileFunctionRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProfileLocationRow.TableName, ProfileLocationRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProviderCostBucketRow.TableName, ProviderCostBucketRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ProviderCostSyncRow.TableName, ProviderCostSyncRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ModelPricingCatalogSourceRow.TableName, ModelPricingCatalogSourceRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ModelPricingCatalogSnapshotRow.TableName, ModelPricingCatalogSnapshotRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ModelPricingCatalogModelRow.TableName, ModelPricingCatalogModelRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ModelPricingCatalogOverrideRow.TableName, ModelPricingCatalogOverrideRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ModelPricingCatalogRateRow.TableName, ModelPricingCatalogRateRow.PrimaryKeyColumnsCsv);
-    }
-
-    private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string tableName, string expectedCsv)
-    {
-        if (expectedCsv.Length is 0)
-            return;
-
-        var expected = expectedCsv.Split(',').ToHashSet(StringComparer.Ordinal);
-        var actual = new HashSet<string>(StringComparer.Ordinal);
-
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = """
-                          SELECT unnest(constraint_column_names)
-                          FROM duckdb_constraints()
-                          WHERE table_name = $1 AND constraint_type = 'PRIMARY KEY'
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = tableName });
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-            actual.Add(reader.GetString(0));
-
-        if (!expected.SetEquals(actual))
-        {
-            throw new InvalidOperationException(
-                $"The persisted database's '{tableName}' table declares primary key " +
-                $"({string.Join(", ", actual.Order(StringComparer.Ordinal))}) but this build requires " +
-                $"({string.Join(", ", expected.Order(StringComparer.Ordinal))}). Startup migration adds columns but never " +
-                "rewrites keys, and a drifted key breaks the ON CONFLICT upsert target silently. " +
-                "Move the database file aside (dev data) or re-ingest into a fresh one.");
-        }
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);

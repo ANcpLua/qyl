@@ -1,6 +1,4 @@
 
-using System.Reflection;
-
 namespace Qyl.Instrumentation.Instrumentation;
 
 public static class ActivitySources
@@ -11,24 +9,13 @@ public static class ActivitySources
 
     public const string ErrorCapture = "Qyl.Instrumentation.ErrorCapture";
 
-    internal static readonly Assembly s_assembly = typeof(ActivitySources).Assembly;
+    private const string Version = BuildVersion.ProductVersion;
 
-    internal static readonly string s_version = GetVersion(s_assembly);
+    private static readonly ActivitySource s_genAiSource = new(GenAi, Version);
 
-    private static readonly ActivitySource s_genAiSource = new(GenAi, s_version);
-
-    private static readonly Meter s_genAiMeter = new(GenAi, s_version);
+    private static readonly Meter s_genAiMeter = new(GenAi, Version);
 
     public static ActivitySource GenAiSource => s_genAiSource;
 
     public static Meter GenAiMeter => s_genAiMeter;
-
-    private static string GetVersion(Assembly assembly)
-    {
-        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-                            ?? assembly.GetName().Version?.ToString()
-                            ?? "0.0.0";
-        var plus = informational.IndexOfOrdinal('+');
-        return plus > 0 ? informational[..plus] : informational;
-    }
 }

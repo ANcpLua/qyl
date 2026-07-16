@@ -1,10 +1,15 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -18,44 +23,16 @@ namespace Qyl.Host.Tests;
 public sealed class McpVerticalTests
 {
     [Fact]
-    public async Task Real_sdk_server_crosses_the_loopback_runner_contract_for_list_call_and_read()
+    public async Task Streamable_http_server_crosses_the_runner_contract_for_list_call_and_read()
     {
-        await using var services = new ServiceCollection().BuildServiceProvider();
+        using var timeout = CreateTimeout(TimeSpan.FromSeconds(20));
+        await using var server = await LiveMcpHttpServer.StartAsync("echo", timeout.Token);
+
         var builder = QylAppBuilder.Create();
-        builder.AddMcpInProcess("vertical", transport =>
-        {
-            var options = new McpServerOptions
-            {
-                ServerInfo = new Implementation { Name = "vertical-server", Version = "1.0.0" },
-                ToolCollection = new McpServerPrimitiveCollection<McpServerTool>
-                {
-                    McpServerTool.Create(
-                        (Func<string, string>)(static value => $"echo:{value}"),
-                        new McpServerToolCreateOptions
-                        {
-                            Name = "echo",
-                            Description = "Echoes a value.",
-                            ReadOnly = true
-                        })
-                },
-                ResourceCollection = new McpServerResourceCollection
-                {
-                    McpServerResource.Create(
-                        options: new McpServerResourceCreateOptions
-                        {
-                            UriTemplate = "qyl://resource/static",
-                            Name = "static"
-                        },
-                        method: (Func<string>)(static () => "resource-body"))
-                }
-            };
-            return McpServer.Create(transport, options, NullLoggerFactory.Instance, services);
-        });
+        builder.AddMcpHttp("vertical", server.Endpoint);
 
         var resource = Assert.Single(builder.Resources);
-        var clients = Assert.IsType<McpClientRegistry>(builder.Host.Services.Single(static descriptor =>
-            descriptor.ServiceType == typeof(McpClientRegistry) && descriptor.ImplementationInstance is not null)
-            .ImplementationInstance);
+        var clients = GetRegistry(builder);
         await using var clientLifetime = clients;
         var port = ClaimLoopbackPort();
         var registry = new QylResourceRegistry([resource], TimeProvider.System);
@@ -66,8 +43,6 @@ public sealed class McpVerticalTests
             new QylAppOptions { RunnerPort = port },
             [new McpPassthroughHandler(clients, [resource])],
             NullLogger<QylRunnerApi>.Instance);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(15));
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
 
         await api.StartAsync(timeout.Token);
@@ -81,15 +56,13 @@ public sealed class McpVerticalTests
                 Assert.Equal("Conflict", Assert.IsType<ConflictError>(conflict).Title);
             }
 
-            var state = new QylResourceState
-            {
-                Name = resource.Name,
-                Lifecycle = ResourceLifecycle.Starting,
-                Timestamp = DateTimeOffset.UtcNow
-            };
-            Assert.True(await resource.ReadinessProbe!.IsReadyAsync(state, timeout.Token));
+            Assert.True(await resource.ReadinessProbe!.IsReadyAsync(
+                StartingState(resource.Name),
+                timeout.Token));
             Assert.True(clients.TryGet(resource.Name, out var connectedClient));
-            var directList = await connectedClient.ListToolsAsync(new ListToolsRequestParams(), timeout.Token);
+            var directList = await connectedClient.ListToolsAsync(
+                new ListToolsRequestParams(),
+                timeout.Token);
             Assert.Single(directList.Tools);
             Assert.NotEmpty(McpSdkJson.Serialize(directList));
 
@@ -165,11 +138,110 @@ public sealed class McpVerticalTests
         }
         finally
         {
-            timeout.Cancel();
             using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await api.StopAsync(stopTimeout.Token);
             api.Dispose();
         }
+    }
+
+    [Fact]
+    public async Task Official_sdk_correlates_streamable_http_tool_calls()
+    {
+        var completed = new ConcurrentQueue<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = static source =>
+                source.Name == QylMcpBuilderExtensions.OfficialDiagnosticsName,
+            Sample = static (ref ActivityCreationOptions<ActivityContext> _) =>
+                ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = completed.Enqueue
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        using var timeout = CreateTimeout(TimeSpan.FromSeconds(20));
+        var toolName = $"echo_{Guid.NewGuid():N}";
+        await using var server = await LiveMcpHttpServer.StartAsync(toolName, timeout.Token);
+        var builder = QylAppBuilder.Create();
+        builder.AddMcpHttp("telemetry-server", server.Endpoint);
+
+        var resource = Assert.Single(builder.Resources);
+        var registry = GetRegistry(builder);
+        await using var registryLifetime = registry;
+
+        Assert.True(await resource.ReadinessProbe!.IsReadyAsync(
+            StartingState(resource.Name),
+            timeout.Token));
+        Assert.True(registry.TryGet(resource.Name, out var client));
+        while (completed.TryDequeue(out _))
+        {
+        }
+
+        var first = await client.CallToolAsync(
+            toolName,
+            new Dictionary<string, object?> { ["value"] = "first" },
+            cancellationToken: timeout.Token);
+        var second = await client.CallToolAsync(
+            toolName,
+            new Dictionary<string, object?> { ["value"] = "second" },
+            cancellationToken: timeout.Token);
+
+        Assert.NotEqual(true, first.IsError);
+        Assert.NotEqual(true, second.IsError);
+
+        var callSpans = completed
+            .Where(activity =>
+                Equals(activity.GetTagItem("mcp.method.name"), "tools/call") &&
+                Equals(activity.GetTagItem("gen_ai.tool.name"), toolName))
+            .ToArray();
+        var clientSpans = callSpans.Where(static activity => activity.Kind == ActivityKind.Client).ToArray();
+        var serverSpans = callSpans.Where(static activity => activity.Kind == ActivityKind.Server).ToArray();
+        Assert.Equal(2, clientSpans.Length);
+        Assert.Equal(2, serverSpans.Length);
+
+        Assert.All(clientSpans, activity =>
+        {
+            Assert.Equal(toolName, activity.GetTagItem("gen_ai.tool.name"));
+            Assert.Equal("execute_tool", activity.GetTagItem("gen_ai.operation.name"));
+            Assert.False(string.IsNullOrWhiteSpace(activity.GetTagItem("network.transport") as string));
+            Assert.False(string.IsNullOrWhiteSpace(activity.GetTagItem("mcp.protocol.version") as string));
+            Assert.False(string.IsNullOrWhiteSpace(activity.GetTagItem("jsonrpc.request.id") as string));
+        });
+
+        Assert.Equal(2, clientSpans
+            .Select(static activity => activity.GetTagItem("jsonrpc.request.id") as string)
+            .Distinct()
+            .Count());
+        Assert.All(clientSpans, clientActivity =>
+        {
+            var serverActivity = Assert.Single(
+                serverSpans,
+                candidate => candidate.ParentSpanId == clientActivity.SpanId);
+            Assert.Equal(clientActivity.TraceId, serverActivity.TraceId);
+            Assert.Equal(
+                clientActivity.GetTagItem("jsonrpc.request.id"),
+                serverActivity.GetTagItem("jsonrpc.request.id"));
+        });
+    }
+
+    private static McpClientRegistry GetRegistry(QylAppBuilder builder) =>
+        Assert.IsType<McpClientRegistry>(builder.Host.Services.Single(static descriptor =>
+                descriptor.ServiceType == typeof(McpClientRegistry) &&
+                descriptor.ImplementationInstance is not null)
+            .ImplementationInstance);
+
+    private static QylResourceState StartingState(string name) => new()
+    {
+        Name = name,
+        Lifecycle = ResourceLifecycle.Starting,
+        Timestamp = DateTimeOffset.UtcNow
+    };
+
+    private static CancellationTokenSource CreateTimeout(TimeSpan timeout)
+    {
+        var source = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+        source.CancelAfter(timeout);
+        return source;
     }
 
     private static async Task<HttpResponseMessage> PostJsonAsync(
@@ -218,5 +290,62 @@ public sealed class McpVerticalTests
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
+    }
+
+    private sealed class LiveMcpHttpServer(WebApplication application, Uri endpoint) : IAsyncDisposable
+    {
+        public Uri Endpoint { get; } = endpoint;
+
+        public static async Task<LiveMcpHttpServer> StartAsync(
+            string toolName,
+            CancellationToken cancellationToken)
+        {
+            var port = ClaimLoopbackPort();
+            var builder = WebApplication.CreateSlimBuilder();
+            builder.WebHost.UseUrls($"http://127.0.0.1:{port}");
+            builder.Logging.ClearProviders();
+            builder.Services
+                .AddMcpServer(options =>
+                {
+                    options.ServerInfo = new Implementation
+                    {
+                        Name = "qyl-test-server",
+                        Version = "1.0.0"
+                    };
+                    options.ToolCollection = new McpServerPrimitiveCollection<McpServerTool>
+                    {
+                        McpServerTool.Create(
+                            (Func<string, string>)(static value => $"echo:{value}"),
+                            new McpServerToolCreateOptions
+                            {
+                                Name = toolName,
+                                Description = "Echoes a value.",
+                                ReadOnly = true
+                            })
+                    };
+                    options.ResourceCollection = new McpServerResourceCollection
+                    {
+                        McpServerResource.Create(
+                            options: new McpServerResourceCreateOptions
+                            {
+                                UriTemplate = "qyl://resource/static",
+                                Name = "static"
+                            },
+                            method: (Func<string>)(static () => "resource-body"))
+                    };
+                })
+                .WithHttpTransport(options => options.Stateless = false);
+
+            var app = builder.Build();
+            app.MapMcp("/mcp");
+            await app.StartAsync(cancellationToken);
+            return new LiveMcpHttpServer(app, new Uri($"http://127.0.0.1:{port}/mcp"));
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await application.StopAsync();
+            await application.DisposeAsync();
+        }
     }
 }

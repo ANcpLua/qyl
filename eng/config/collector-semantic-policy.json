@@ -122,10 +122,6 @@
     "host.name",
     "mcp.resource.uri",
     "mcp.session.id",
-    "rpc.connect_rpc.request.metadata",
-    "rpc.connect_rpc.response.metadata",
-    "rpc.grpc.request.metadata",
-    "rpc.grpc.response.metadata",
     "rpc.request.metadata",
     "rpc.response.metadata",
     "service.instance.id",
@@ -180,7 +176,6 @@
     "gen_ai.tool.name"
   ],
   "projectionConstants": {
-    "DbSystemDeprecated": "db.system",
     "DbSystemName": "db.system.name",
     "GenAiToolCallId": "gen_ai.tool.call.id",
     "GenAiProviderName": "gen_ai.provider.name",

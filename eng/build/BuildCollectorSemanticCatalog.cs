@@ -711,7 +711,8 @@ internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, strin
         type
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
             .Where(static field => field is { IsLiteral: true, IsInitOnly: false } &&
-                                   field.FieldType == typeof(string))
+                                   field.FieldType == typeof(string) &&
+                                   field.GetCustomAttribute<ObsoleteAttribute>() is null)
             .Select(static field => (string)field.GetRawConstantValue()!);
 
     private Assembly ResolveAssembly(string packageId)

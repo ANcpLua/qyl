@@ -117,21 +117,20 @@ internal static class OtlpConverter
             if (!sourceKeys.Add(attr.Key))
                 throw new InvalidDataException($"OTLP resource contains duplicate attribute key '{attr.Key}'.");
 
-            DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.IsSafeResourceAttribute(key) &&
+            if (!AttributeKeySets.IsSafeResourceAttribute(attr.Key) &&
                 (!entityReferencedKeys.Contains(attr.Key) ||
-                 !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
+                 !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(attr.Key)))
             {
                 continue;
             }
 
-            if (!attrs.TryAdd(key, ConvertProtoAnyValue(attr.Value)))
+            if (!attrs.TryAdd(attr.Key, ConvertProtoAnyValue(attr.Value)))
             {
                 throw new InvalidDataException(
-                    $"OTLP resource contains attribute keys that normalize to duplicate key '{key}'.");
+                    $"OTLP resource contains duplicate attribute key '{attr.Key}'.");
             }
 
-            projectedKeys.Add(attr.Key, new ResourceAttributeProjectionKey(key));
+            projectedKeys.Add(attr.Key, new ResourceAttributeProjectionKey(attr.Key));
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
@@ -247,12 +246,9 @@ internal static class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key)) continue;
 
-            var value = ConvertProtoAnyValue(attr.Value);
-            if (renamed) attributes.TryAdd(key, value);
-            else attributes[key] = value;
+            attributes[attr.Key] = ConvertProtoAnyValue(attr.Value);
         }
 
         return attributes;
@@ -265,12 +261,9 @@ internal static class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key)) continue;
 
-            var value = ConvertProtoAnyValue(attr.Value);
-            if (renamed) attributes.TryAdd(key, value);
-            else attributes[key] = value;
+            attributes[attr.Key] = ConvertProtoAnyValue(attr.Value);
         }
 
         return attributes;
@@ -468,16 +461,13 @@ internal static class OtlpConverter
         foreach (var attr in attributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.IsSafeLogAttribute(key) &&
-                !key.IsAny(AttributeKeySets.SessionCorrelation))
+            if (!AttributeKeySets.IsSafeLogAttribute(attr.Key) &&
+                !attr.Key.IsAny(AttributeKeySets.SessionCorrelation))
             {
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attr.Value);
-            if (renamed) dict.TryAdd(key, value);
-            else dict[key] = value;
+            dict[attr.Key] = ConvertProtoAnyValue(attr.Value);
         }
 
         return dict;
@@ -1029,12 +1019,11 @@ internal static class OtlpConverter
             if (!sourceKeys.Add(attr.Key))
                 throw new InvalidDataException($"OTLP metric contains duplicate attribute key '{attr.Key}'.");
 
-            DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
             var value = ConvertProtoAnyValue(attr.Value);
-            if (!dict.TryAdd(key, value))
+            if (!dict.TryAdd(attr.Key, value))
             {
                 throw new InvalidDataException(
-                    $"OTLP metric contains attribute keys that normalize to duplicate key '{key}'.");
+                    $"OTLP metric contains duplicate attribute key '{attr.Key}'.");
             }
         }
 

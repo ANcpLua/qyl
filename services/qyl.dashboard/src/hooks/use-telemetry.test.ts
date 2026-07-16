@@ -30,8 +30,4 @@ describe('hasDatabaseSystem', () => {
     it('recognizes the canonical database semantic-convention key', () => {
         expect(hasDatabaseSystem({'db.system.name': 'sqlite'})).toBe(true);
     });
-
-    it('keeps recognizing the deprecated key before collector normalization', () => {
-        expect(hasDatabaseSystem({'db.system': 'sqlite'})).toBe(true);
-    });
 });

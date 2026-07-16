@@ -31,11 +31,11 @@ internal sealed record ProviderCostSyncOptions
         if (projectId.Length > 128)
             throw new InvalidOperationException("QYL_COST_PROJECT_ID must be at most 128 characters.");
 
-        var intervalMinutes = configuration.GetValue("QYL_COST_SYNC_INTERVAL_MINUTES", 15);
+        var intervalMinutes = int.Parse(configuration["QYL_COST_SYNC_INTERVAL_MINUTES"] ?? "15", CultureInfo.InvariantCulture);
         if (intervalMinutes is < 1 or > 1440)
             throw new InvalidOperationException("QYL_COST_SYNC_INTERVAL_MINUTES must be between 1 and 1440.");
 
-        var lookbackDays = configuration.GetValue("QYL_COST_LOOKBACK_DAYS", 31);
+        var lookbackDays = int.Parse(configuration["QYL_COST_LOOKBACK_DAYS"] ?? "31", CultureInfo.InvariantCulture);
         if (lookbackDays is < 1 or > 180)
             throw new InvalidOperationException("QYL_COST_LOOKBACK_DAYS must be between 1 and 180.");
 
