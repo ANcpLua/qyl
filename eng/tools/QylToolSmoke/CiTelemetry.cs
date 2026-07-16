@@ -34,6 +34,9 @@ internal static class CiTelemetry
         ?? System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
 
     private static readonly string TraceId = RandomHex(16);
+
+    private static readonly JsonSerializerOptions ExportOptions =
+        new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
     private static readonly List<(string Name, long StartNano, long EndNano, bool Ok, string? Message)> Phases = [];
     private static string? _openPhase;
     private static long _openPhaseStart;
@@ -105,7 +108,7 @@ internal static class CiTelemetry
                     scopeSpans = new[] { new { scope = new { name = "qyl-ci-smoke" }, spans } }
                 }
             }
-        }, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
+        }, ExportOptions);
 
         try
         {
