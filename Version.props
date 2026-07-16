@@ -16,7 +16,7 @@
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.81.1</GrpcToolsVersion>
-    <ANcpLuaRoslynUtilitiesVersion>2.2.36</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.38</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAgentsVersion>1.11.0</ANcpLuaAgentsVersion>
     <QylApiContractsVersion>1.0.2</QylApiContractsVersion>
 
