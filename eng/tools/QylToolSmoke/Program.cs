@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using QylToolSmoke;
 
 var installedMode = args is ["--installed", _, "--version", _];
 var packageMode = args is [_];
@@ -88,7 +89,13 @@ try
 
     var source = implementation is null ? tool : implementation.Path;
     Console.WriteLine($"qyl {expectedVersion} installed-tool smoke passed for {rid} ({source}).");
+    await CiTelemetry.FlushAsync(success: true, failure: null);
     return 0;
+}
+catch (Exception exception)
+{
+    await CiTelemetry.FlushAsync(success: false, failure: exception.Message);
+    throw;
 }
 finally
 {
@@ -96,9 +103,13 @@ finally
 }
 
 // Timestamped phase markers: the CI leg has hung without any output before, so make it
-// obvious from a cancelled step's log which phase never returned.
-static void Progress(string message) =>
+// obvious from a cancelled step's log which phase never returned. Each marker also
+// opens a CI telemetry phase span (inert unless QYL_CI_OTLP_ENDPOINT is set).
+static void Progress(string message)
+{
     Console.WriteLine($"[{DateTimeOffset.UtcNow:HH:mm:ss}] {message}");
+    CiTelemetry.Mark(message);
+}
 
 static string ResolveInstalledTool(string toolDirectory)
 {

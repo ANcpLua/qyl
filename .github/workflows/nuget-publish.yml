@@ -106,6 +106,13 @@ jobs:
         # exists so a wedged run fails fast with logs instead of idling to the job timeout
         # (a macOS leg once sat 48 minutes with the step stuck in_progress and no log blob).
         timeout-minutes: 12
+        env:
+          # CI dogfooding: phase markers double as OTLP spans that qyl.mcp's ci_log
+          # tool reads. Inert until the QYL_CI_OTLP_ENDPOINT repo variable points at
+          # a reachable qyl collector ingest.
+          QYL_CI_OTLP_ENDPOINT: ${{ vars.QYL_CI_OTLP_ENDPOINT }}
+          QYL_CI_RUN_ID: nuget-publish-${{ github.run_id }}
+          QYL_CI_LEG: ${{ matrix.os }}
         run: dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- "$PACKAGES"
 
   pack:
