@@ -111,6 +111,7 @@ jobs:
           # tool reads. Inert until the QYL_CI_OTLP_ENDPOINT repo variable points at
           # a reachable qyl collector ingest.
           QYL_CI_OTLP_ENDPOINT: ${{ vars.QYL_CI_OTLP_ENDPOINT }}
+          QYL_CI_API_KEY: ${{ secrets.QYL_CI_API_KEY }}
           QYL_CI_RUN_ID: nuget-publish-${{ github.run_id }}
           QYL_CI_LEG: ${{ matrix.os }}
         run: dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- "$PACKAGES"
