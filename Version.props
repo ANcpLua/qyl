@@ -17,11 +17,11 @@
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.82.0</GrpcToolsVersion>
     <ANcpLuaRoslynUtilitiesVersion>2.2.39</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAgentsVersion>1.13.5</ANcpLuaAgentsVersion>
+    <ANcpLuaAgentsVersion>1.13.6</ANcpLuaAgentsVersion>
     <QylApiContractsVersion>1.0.2</QylApiContractsVersion>
 
     <!-- Mirrors the SDK values so standalone checkouts resolve the same MAF graph.
-         ANcpLua.Agents 1.13.4 depends on Microsoft.Agents.AI(.Abstractions) 1.13.0 — keep in lockstep. -->
+         ANcpLua.Agents 1.13.6 depends on Microsoft.Agents.AI(.Abstractions) 1.13.0 — keep in lockstep. -->
     <MicrosoftAgentsAIVersion>1.13.0</MicrosoftAgentsAIVersion>
     <MicrosoftAgentsAIHostingVersion>1.13.0-preview.260703.1</MicrosoftAgentsAIHostingVersion>
 
