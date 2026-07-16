@@ -337,7 +337,7 @@ public sealed class GenAiEtlCatalogEstimatorTests
             "minimum_available_rate",
             s_now,
             [new ModelPricingCatalogModel(modelId, canonical, "USD", rates, overrides ?? [])]);
-        return new ModelPricingCatalogVersion($"snapshot-{sourceId}", s_now, catalog);
+        return new ModelPricingCatalogVersion($"snapshot-{sourceId}", catalog);
     }
 
     private static ModelPricingRate Rate(

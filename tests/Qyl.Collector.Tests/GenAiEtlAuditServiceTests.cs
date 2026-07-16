@@ -84,8 +84,9 @@ public sealed class GenAiEtlAuditServiceTests
         await using var store = new DuckDbStore(":memory:");
         await InsertCallsAsync(store, "workload", "claude-test", 2);
         await InsertCostAsync(store, "anthropic", "claude-test", 10m);
-        var storedBucket = Assert.Single(await store.GetProviderCostBucketsAsync(
-            "default", s_periodStart, s_periodEnd, TestContext.Current.CancellationToken));
+        var snapshot = await store.GetGenAiEtlAuditSnapshotAsync(
+            "default", s_periodStart, s_periodEnd, TestContext.Current.CancellationToken);
+        var storedBucket = Assert.Single(snapshot.CostBuckets);
         Assert.Equal(s_periodStart, storedBucket.PeriodStart);
         Assert.Equal(s_periodEnd, storedBucket.PeriodEnd);
         Assert.Equal("USD", storedBucket.CurrencyCode);
@@ -93,8 +94,7 @@ public sealed class GenAiEtlAuditServiceTests
         Assert.Equal(
             ProviderCostScope.ForIdentifier("workspace-qyl").CreateStableKey("anthropic"),
             storedBucket.ProviderScopeKey);
-        var storedSync = Assert.Single(await store.GetProviderCostSyncAsync(
-            "default", TestContext.Current.CancellationToken));
+        var storedSync = Assert.Single(snapshot.CostSyncRows);
         Assert.Equal(s_periodStart, storedSync.PeriodStart);
         Assert.Equal(s_periodEnd, storedSync.PeriodEnd);
         var service = CreateService(

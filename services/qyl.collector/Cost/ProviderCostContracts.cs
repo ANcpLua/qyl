@@ -80,13 +80,9 @@ internal sealed record ProviderCostRecord(
     DateTimeOffset RetrievedAt,
     Uri SourceEndpoint,
     ProviderCostAttribution Attribution,
-    string? ProviderProjectId = null,
-    string? LineItem = null,
     string? ModelName = null);
 
-internal sealed record ProviderCostFailure(
-    ProviderCostFailureCategory Category,
-    HttpStatusCode? StatusCode = null);
+internal sealed record ProviderCostFailure(ProviderCostFailureCategory Category);
 
 internal sealed record ProviderCostPeriod(
     DateTimeOffset PeriodStart,
@@ -111,9 +107,8 @@ internal sealed record ProviderCostFetchResult(
     public static ProviderCostFetchResult Failed(
         DateTimeOffset periodStart,
         DateTimeOffset periodEnd,
-        ProviderCostFailureCategory category,
-        HttpStatusCode? statusCode = null) =>
-        new(periodStart, periodEnd, [], [], new ProviderCostFailure(category, statusCode));
+        ProviderCostFailureCategory category) =>
+        new(periodStart, periodEnd, [], [], new ProviderCostFailure(category));
 }
 
 internal static class ProviderCostCoverage

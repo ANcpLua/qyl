@@ -94,16 +94,6 @@ internal interface IQylStore : IAsyncDisposable
 
     Task UpsertProviderCostSyncAsync(ProviderCostSyncRow sync, CancellationToken ct = default);
 
-    Task<IReadOnlyList<ProviderCostBucketRow>> GetProviderCostBucketsAsync(
-        string projectId,
-        DateTimeOffset periodStart,
-        DateTimeOffset periodEnd,
-        CancellationToken ct = default);
-
-    Task<IReadOnlyList<ProviderCostSyncRow>> GetProviderCostSyncAsync(
-        string projectId,
-        CancellationToken ct = default);
-
     Task<bool> ActivateModelPricingCatalogSnapshotAsync(
         ModelPricingCatalogSourceRow source,
         ModelPricingCatalogSnapshotRow snapshot,
@@ -123,12 +113,6 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<ModelPricingCatalogSourceState?> GetModelPricingCatalogSourceAsync(
         string sourceId,
-        CancellationToken ct = default);
-
-    Task<IReadOnlyList<GenAiEtlAuditStorageRow>> GetGenAiEtlAuditRowsAsync(
-        string projectId,
-        DateTimeOffset periodStart,
-        DateTimeOffset periodEnd,
         CancellationToken ct = default);
 
     Task<GenAiEtlAuditStorageSnapshot> GetGenAiEtlAuditSnapshotAsync(

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DuckDB.NET.Data;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Primitives;
 using Qyl.Collector.Storage;
@@ -7,6 +8,75 @@ namespace Qyl.Collector.Tests;
 
 public sealed class GenAiEtlAuditStorageTests
 {
+    [Fact]
+    public async Task Audit_snapshot_rejects_usage_above_the_bucket_limit()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"qyl-etl-bucket-limit-{Guid.NewGuid():N}.duckdb");
+        var periodStart = new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
+        var startNano = TimeConversions.ToUnixNanoUnsigned(periodStart);
+        try
+        {
+            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
+            await using (var connection = new DuckDBConnection($"Data Source={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await using var command = connection.CreateCommand();
+                command.CommandText = """
+                                      INSERT INTO spans (
+                                          project_id,
+                                          span_id,
+                                          trace_id,
+                                          name,
+                                          kind,
+                                          start_time_unix_nano,
+                                          end_time_unix_nano,
+                                          duration_ns,
+                                          status_code,
+                                          service_name,
+                                          gen_ai_operation_name,
+                                          gen_ai_provider_name,
+                                          gen_ai_request_model,
+                                          gen_ai_input_tokens,
+                                          gen_ai_output_tokens
+                                      )
+                                      SELECT
+                                          'default',
+                                          'span-' || CAST(row_number AS VARCHAR),
+                                          'trace-' || CAST(row_number AS VARCHAR),
+                                          'gen-ai',
+                                          3,
+                                          CAST($1 AS UBIGINT) + CAST(row_number AS UBIGINT),
+                                          CAST($1 AS UBIGINT) + CAST(row_number AS UBIGINT) + 1,
+                                          1,
+                                          0,
+                                          'workload',
+                                          'chat',
+                                          'openai',
+                                          'gpt-test',
+                                          CAST(row_number AS BIGINT),
+                                          1
+                                      FROM range(100001) generated(row_number)
+                                      """;
+                command.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            }
+
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                store.GetGenAiEtlAuditSnapshotAsync(
+                    "default",
+                    periodStart,
+                    periodStart.AddDays(1),
+                    TestContext.Current.CancellationToken));
+
+            Assert.Equal("GenAI ETL audit usage exceeds the 100,000-bucket limit.", error.Message);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+            File.Delete($"{databasePath}.wal");
+        }
+    }
+
     [Fact]
     public async Task Audit_rows_aggregate_leaf_calls_and_exclude_only_proven_agent_rollups()
     {
@@ -30,11 +100,12 @@ public sealed class GenAiEtlAuditStorageTests
             Row("http", "trace-d", "http", startNano + 5)
         ]), TestContext.Current.CancellationToken);
 
-        var rows = await store.GetGenAiEtlAuditRowsAsync(
-            "default",
-            periodStart,
-            periodStart.AddDays(1),
-            TestContext.Current.CancellationToken);
+        var rows = (await store.GetGenAiEtlAuditSnapshotAsync(
+                "default",
+                periodStart,
+                periodStart.AddDays(1),
+                TestContext.Current.CancellationToken))
+            .AuditRows;
 
         Assert.Equal(2, rows.Count);
         var chat = Assert.Single(rows, row => row.OperationName == "chat");
@@ -192,11 +263,12 @@ public sealed class GenAiEtlAuditStorageTests
                 operation: "chat", provider: "openai")
         ]), TestContext.Current.CancellationToken);
 
-        var rows = await store.GetGenAiEtlAuditRowsAsync(
-            "default",
-            periodStart,
-            periodStart.AddDays(1),
-            TestContext.Current.CancellationToken);
+        var rows = (await store.GetGenAiEtlAuditSnapshotAsync(
+                "default",
+                periodStart,
+                periodStart.AddDays(1),
+                TestContext.Current.CancellationToken))
+            .AuditRows;
 
         var row = Assert.Single(rows);
         Assert.Equal(1, row.CallCount);
@@ -224,11 +296,12 @@ public sealed class GenAiEtlAuditStorageTests
                 output: 4)
         ]), TestContext.Current.CancellationToken);
 
-        var rows = await store.GetGenAiEtlAuditRowsAsync(
-            "default",
-            periodStart,
-            periodStart.AddDays(1),
-            TestContext.Current.CancellationToken);
+        var rows = (await store.GetGenAiEtlAuditSnapshotAsync(
+                "default",
+                periodStart,
+                periodStart.AddDays(1),
+                TestContext.Current.CancellationToken))
+            .AuditRows;
 
         var row = Assert.Single(rows);
         Assert.Equal("gpt-Actual-2026-07-01", row.ModelName);
@@ -255,11 +328,12 @@ public sealed class GenAiEtlAuditStorageTests
                 reasoning: 5)
         ]), TestContext.Current.CancellationToken);
 
-        var rows = await store.GetGenAiEtlAuditRowsAsync(
-            "default",
-            periodStart,
-            periodStart.AddDays(1),
-            TestContext.Current.CancellationToken);
+        var rows = (await store.GetGenAiEtlAuditSnapshotAsync(
+                "default",
+                periodStart,
+                periodStart.AddDays(1),
+                TestContext.Current.CancellationToken))
+            .AuditRows;
 
         var row = Assert.Single(rows);
         Assert.Equal(4, row.CallCount);
@@ -365,11 +439,12 @@ public sealed class GenAiEtlAuditStorageTests
                 model: "gpt-test")
         ]), TestContext.Current.CancellationToken);
 
-        var rows = await store.GetGenAiEtlAuditRowsAsync(
-            "default",
-            periodStart,
-            periodStart.AddDays(1),
-            TestContext.Current.CancellationToken);
+        var rows = (await store.GetGenAiEtlAuditSnapshotAsync(
+                "default",
+                periodStart,
+                periodStart.AddDays(1),
+                TestContext.Current.CancellationToken))
+            .AuditRows;
 
         Assert.Equal(2, rows.Count);
         var standard = Assert.Single(rows, row => row.OperationName == "chat");

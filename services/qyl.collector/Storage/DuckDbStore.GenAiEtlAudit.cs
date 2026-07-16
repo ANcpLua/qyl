@@ -65,14 +65,6 @@ internal sealed partial class DuckDbStore
         )
         """;
 
-    public Task<IReadOnlyList<GenAiEtlAuditStorageRow>> GetGenAiEtlAuditRowsAsync(
-        string projectId,
-        DateTimeOffset periodStart,
-        DateTimeOffset periodEnd,
-        CancellationToken ct = default) =>
-        ExecuteReadAsync<IReadOnlyList<GenAiEtlAuditStorageRow>>(con =>
-            ReadGenAiEtlAuditRows(con, transaction: null, projectId, periodStart, periodEnd), ct);
-
     public Task<GenAiEtlAuditStorageSnapshot> GetGenAiEtlAuditSnapshotAsync(
         string projectId,
         DateTimeOffset periodStart,
@@ -246,7 +238,7 @@ internal sealed partial class DuckDbStore
         }
 
         if (buckets.Count > MaximumGenAiEtlAuditUsageBuckets)
-            buckets.RemoveAt(buckets.Count - 1);
+            throw new InvalidOperationException("GenAI ETL audit usage exceeds the 100,000-bucket limit.");
 
         return buckets;
     }

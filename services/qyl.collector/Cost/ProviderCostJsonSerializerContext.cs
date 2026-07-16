@@ -28,8 +28,6 @@ internal sealed class OpenAiCostItem
     public OpenAiCostAmount? Amount { get; init; }
 
     public string? ProjectId { get; init; }
-
-    public string? LineItem { get; init; }
 }
 
 internal sealed class OpenAiCostAmount
@@ -62,8 +60,6 @@ internal sealed class AnthropicCostItem
     public string? Amount { get; init; }
 
     public string? Currency { get; init; }
-
-    public string? Description { get; init; }
 
     public string? WorkspaceId { get; init; }
 

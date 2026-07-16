@@ -13,6 +13,7 @@ BINARY="$PUBLISH_DIR/qyl.collector"
 PORT="${QYL_SMOKE_PORT:-5199}"
 BASE="http://localhost:$PORT"
 DB_DIR="$(mktemp -d)"
+PUBLISH_LOG="$DB_DIR/publish.log"
 COLLECTOR_PID=""
 trap '[[ -n "$COLLECTOR_PID" ]] && kill "$COLLECTOR_PID" 2>/dev/null || true; rm -rf "$DB_DIR"' EXIT
 
@@ -25,7 +26,21 @@ fi
 if [[ "${SKIP_PUBLISH:-0}" != "1" || ! -x "$BINARY" ]]; then
   echo "[smoke] Publishing collector with QylAot=true..."
   dotnet publish "$REPO_ROOT/services/qyl.collector/qyl.collector.csproj" \
-    -c Release -p:QylAot=true -p:QylEmbedDashboard=false
+    -c Release -p:QylAot=true -p:QylEmbedDashboard=false 2>&1 | tee "$PUBLISH_LOG"
+
+  IL_WARNING_COUNT="$(grep -Ec 'warning IL[0-9]{4}:' "$PUBLISH_LOG" || true)"
+  EXPECTED_DUCKDB_IL2104="duckdb\.net\.data\.full[/\\\\]1\.5\.3[/\\\\]lib[/\\\\]net10\.0[/\\\\]DuckDB\.NET\.Data\.dll : warning IL2104: Assembly 'DuckDB\.NET\.Data' produced trim warnings"
+  EXPECTED_DUCKDB_IL3053="duckdb\.net\.data\.full[/\\\\]1\.5\.3[/\\\\]lib[/\\\\]net10\.0[/\\\\]DuckDB\.NET\.Data\.dll : warning IL3053: Assembly 'DuckDB\.NET\.Data' produced AOT analysis warnings"
+  UNEXPECTED_IL_WARNINGS="$(grep -E 'warning IL[0-9]{4}:' "$PUBLISH_LOG" | grep -Ev "(${EXPECTED_DUCKDB_IL2104}|${EXPECTED_DUCKDB_IL3053})" || true)"
+  if [[ "$IL_WARNING_COUNT" != "2" ]] ||
+     ! grep -Eq "$EXPECTED_DUCKDB_IL2104" "$PUBLISH_LOG" ||
+     ! grep -Eq "$EXPECTED_DUCKDB_IL3053" "$PUBLISH_LOG" ||
+     [[ -n "$UNEXPECTED_IL_WARNINGS" ]]; then
+    echo "[smoke] FAIL: NativeAOT diagnostics changed; only the reviewed DuckDB.NET.Data 1.5.3 IL2104/IL3053 rollups are allowed"
+    [[ -z "$UNEXPECTED_IL_WARNINGS" ]] || echo "$UNEXPECTED_IL_WARNINGS"
+    exit 1
+  fi
+  echo "[smoke] NativeAOT diagnostics limited to reviewed DuckDB.NET.Data 1.5.3 rollups"
 fi
 
 file "$BINARY" | grep -qE "Mach-O|ELF" || { echo "[smoke] FAIL: $BINARY is not a native executable"; exit 1; }
@@ -43,7 +58,7 @@ QYL_PORT="$PORT" QYL_OTLP_PORT=0 QYL_GRPC_PORT=0 QYL_DATA_PATH="$DB_DIR/smoke.du
   "$BINARY" >"$DB_DIR/collector.log" 2>&1 &
 COLLECTOR_PID=$!
 
-for i in $(seq 1 60); do
+for ((attempt = 0; attempt < 60; attempt++)); do
   curl -sf "$BASE/health" >/dev/null 2>&1 && break
   kill -0 "$COLLECTOR_PID" 2>/dev/null || { echo "[smoke] FAIL: collector exited during startup"; tail -40 "$DB_DIR/collector.log"; exit 1; }
   sleep 0.5

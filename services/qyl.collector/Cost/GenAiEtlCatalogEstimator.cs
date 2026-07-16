@@ -14,8 +14,7 @@ internal sealed record GenAiEtlCatalogPriceProvenance(
     string ObservedModelId,
     GenAiEtlObservedModelIdentityBasis ObservedModelIdentityBasis,
     ModelPricingMatchKind ModelMatchKind,
-    DateTimeOffset RetrievedAt,
-    string PriceSemantics);
+    DateTimeOffset RetrievedAt);
 
 internal sealed record GenAiEtlCatalogEstimateResult(
     ModelPricingEstimateStatus Status,
@@ -180,8 +179,7 @@ internal sealed class GenAiEtlCatalogEstimator(ModelPricingCatalogRepository rep
                     observedModel,
                     identityBasis,
                     modelMatchKind.Value,
-                    version.Catalog.RetrievedAt,
-                    version.Catalog.PriceSemantics),
+                    version.Catalog.RetrievedAt),
                 components,
                 orderedExclusions);
         }
@@ -216,9 +214,6 @@ internal sealed class GenAiEtlCatalogEstimator(ModelPricingCatalogRepository rep
             ModelPricingEstimateStatus.UnsupportedPricing,
             null,
             null,
-            version.Catalog.SourceId,
-            version.SnapshotId,
-            version.Catalog.PriceSemantics,
             estimate.MatchedModelId,
             estimate.MatchKind,
             [],

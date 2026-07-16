@@ -127,8 +127,6 @@ public sealed class ModelPricingCatalogTests
         Assert.Equal(ModelPricingEstimateStatus.Calculated, result.Status);
         Assert.Equal(4.39m, result.TokenCostUsd);
         Assert.Equal(ModelPricingMatchKind.ExactModelId, result.MatchKind);
-        Assert.Equal("snapshot-test", result.SnapshotId);
-        Assert.Equal("minimum_available_rate", result.PriceSemantics);
         Assert.Contains(result.Exclusions,
             static exclusion => exclusion is
                 { SourceMeter: "audio", Reason: "outside_token_estimate_scope" });
@@ -484,7 +482,7 @@ public sealed class ModelPricingCatalogTests
             "minimum_available_rate",
             s_now,
             [model]);
-        return new ModelPricingCatalogVersion("snapshot-test", s_now, catalog);
+        return new ModelPricingCatalogVersion("snapshot-test", catalog);
     }
 
     private static void AssertRate(

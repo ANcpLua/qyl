@@ -25,7 +25,7 @@ COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentati
 COPY internal/qyl.collector.storage.generators/*.csproj internal/qyl.collector.storage.generators/
 
 WORKDIR /src/services/qyl.collector
-RUN dotnet restore -p:QylAot=true -p:TreatWarningsAsErrors=false
+RUN dotnet restore -p:QylAot=true
 
 WORKDIR /src
 COPY services/qyl.collector/ services/qyl.collector/
@@ -41,9 +41,6 @@ WORKDIR /src/services/qyl.collector
 RUN dotnet publish -c Release -o /app --no-restore \
     -p:QylAot=true \
     -p:QylEmbedDashboard=true \
-    -p:TreatWarningsAsErrors=false \
-    -p:RunAnalyzers=false \
-    -p:RunAnalyzersDuringBuild=false \
     && test -x /app/qyl.collector \
     && test ! -e /app/qyl.collector.dll \
     && test -f /app/libduckdb.so \

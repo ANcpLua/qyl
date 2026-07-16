@@ -7,7 +7,7 @@ namespace Qyl.Collector.Tests;
 
 public sealed class ProviderCostSourceTests
 {
-    private static readonly string[] s_openAiGroupBy = ["project_id", "line_item"];
+    private static readonly string[] s_openAiGroupBy = ["project_id"];
     private static readonly DateTimeOffset s_periodStart =
         new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset s_periodEnd =
@@ -78,15 +78,11 @@ public sealed class ProviderCostSourceTests
         Assert.Equal(s_retrievedAt, first.RetrievedAt);
         Assert.Equal(source.SourceEndpoint, first.SourceEndpoint);
         Assert.Equal(ProviderCostAttribution.ProviderAggregate, first.Attribution);
-        Assert.Equal("proj_alpha", first.ProviderProjectId);
-        Assert.Equal("api_usage", first.LineItem);
         Assert.Null(first.ModelName);
 
         var second = result.Records[1];
         Assert.Equal(0.75m, second.Amount);
         Assert.Equal("eur", second.CurrencyCode);
-        Assert.Null(second.ProviderProjectId);
-        Assert.Equal("storage", second.LineItem);
         Assert.Null(second.ModelName);
 
         Assert.Equal(2, handler.Requests.Count);
@@ -173,14 +169,11 @@ public sealed class ProviderCostSourceTests
         Assert.Equal(s_retrievedAt, modelCost.RetrievedAt);
         Assert.Equal(source.SourceEndpoint, modelCost.SourceEndpoint);
         Assert.Equal(ProviderCostAttribution.ProviderReportedModel, modelCost.Attribution);
-        Assert.Equal("Claude Sonnet token usage", modelCost.LineItem);
         Assert.Equal("claude-sonnet-4-20250514", modelCost.ModelName);
-        Assert.Null(modelCost.ProviderProjectId);
 
         var unmodeledCost = result.Records[1];
         Assert.Equal(0.5m, unmodeledCost.Amount);
         Assert.Equal(ProviderCostAttribution.ProviderAggregate, unmodeledCost.Attribution);
-        Assert.Equal("Claude Opus web search usage", unmodeledCost.LineItem);
         Assert.Null(unmodeledCost.ModelName);
 
         Assert.Equal(2, handler.Requests.Count);
@@ -246,7 +239,6 @@ public sealed class ProviderCostSourceTests
         Assert.True(result.IsSuccess);
         var record = Assert.Single(result.Records);
         Assert.Equal(1.25m, record.Amount);
-        Assert.Equal("proj_qyl / exact", record.ProviderProjectId);
         var query = QueryHelpers.ParseQuery(Assert.Single(handler.Requests).Uri.Query);
         Assert.Equal("proj_qyl / exact", query["project_ids"].ToString());
     }
@@ -296,7 +288,6 @@ public sealed class ProviderCostSourceTests
 
         var record = Assert.Single(result.Records);
         Assert.Equal(1m, record.Amount);
-        Assert.Equal("wrk_qyl", record.ProviderProjectId);
     }
 
     [Fact]
@@ -342,7 +333,6 @@ public sealed class ProviderCostSourceTests
 
         var record = Assert.Single(result.Records);
         Assert.Equal(1.25m, record.Amount);
-        Assert.Null(record.ProviderProjectId);
     }
 
     [Fact]
@@ -403,7 +393,6 @@ public sealed class ProviderCostSourceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal((ProviderCostFailureCategory)expectedCategory, result.Failure?.Category);
-        Assert.Equal(statusCode, result.Failure?.StatusCode);
         Assert.Empty(result.Records);
     }
 
@@ -511,7 +500,6 @@ public sealed class ProviderCostSourceTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ProviderCostFailureCategory.Transport, result.Failure?.Category);
-        Assert.Null(result.Failure?.StatusCode);
         Assert.Empty(result.Records);
     }
 

@@ -105,30 +105,6 @@ public sealed class GenAiEtlAuditAnalyzerTests
     }
 
     [Fact]
-    public void Value_inputs_reject_negative_non_finite_and_out_of_range_values()
-    {
-        var invalid = new GenAiEtlAuditValueInput[]
-        {
-            new(-1, 1, 1, 0, 0, 0),
-            new(1, -0.01, 1, 0, 0, 0),
-            new(1, 1.01, 1, 0, 0, 0),
-            new(1, double.NaN, 1, 0, 0, 0),
-            new(1, double.PositiveInfinity, 1, 0, 0, 0),
-            new(1, 1, -1, 0, 0, 0),
-            new(1, 1, double.NaN, 0, 0, 0),
-            new(1, 1, 1, -1, 0, 0),
-            new(1, 1, 1, double.PositiveInfinity, 0, 0),
-            new(1, 1, 1, 0, -1, 0),
-            new(1, 1, 1, 0, double.NaN, 0),
-            new(1, 1, 1, 0, 0, -1),
-            new(1, 1, 1, 0, 0, double.NegativeInfinity)
-        };
-
-        Assert.All(invalid, input =>
-            Assert.Throws<ArgumentOutOfRangeException>(() => GenAiEtlAuditAnalyzer.Evaluate(input)));
-    }
-
-    [Fact]
     public void Json_output_is_a_structured_extraction_hypothesis_with_task_specific_validation()
     {
         var cluster = AnalyzeSingle(Operation: "chat", OutputType: "application/json");

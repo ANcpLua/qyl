@@ -52,8 +52,7 @@ internal sealed class OpenRouterModelPricingCatalogSource(
             if (!response.IsSuccessStatusCode)
             {
                 return ModelPricingCatalogFetchResult.Failed(
-                    ModelPricingCatalogFailureMapper.FromStatusCode(response.StatusCode),
-                    response.StatusCode);
+                    ModelPricingCatalogFailureMapper.FromStatusCode(response.StatusCode));
             }
 
             try

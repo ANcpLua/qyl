@@ -82,8 +82,7 @@ internal sealed class AnthropicCostReportSource(
                     return ProviderCostFetchResult.Failed(
                         periodStart,
                         periodEnd,
-                        ProviderCostFailureMapper.FromStatusCode(response.StatusCode),
-                        response.StatusCode);
+                        ProviderCostFailureMapper.FromStatusCode(response.StatusCode));
                 }
 
                 AnthropicCostReportPage? responsePage;
@@ -235,8 +234,6 @@ internal sealed class AnthropicCostReportSource(
                     model is null
                         ? ProviderCostAttribution.ProviderAggregate
                         : ProviderCostAttribution.ProviderReportedModel,
-                    ProviderProjectId: result.WorkspaceId,
-                    LineItem: result.Description,
                     ModelName: model));
             }
         }

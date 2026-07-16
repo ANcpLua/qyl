@@ -79,20 +79,6 @@ internal sealed partial class DuckDbStore
             await tx.CommitAsync(wct).ConfigureAwait(false);
         }, ct);
 
-    public Task<IReadOnlyList<ProviderCostBucketRow>> GetProviderCostBucketsAsync(
-        string projectId,
-        DateTimeOffset periodStart,
-        DateTimeOffset periodEnd,
-        CancellationToken ct = default) =>
-        ExecuteReadAsync<IReadOnlyList<ProviderCostBucketRow>>(con =>
-            ReadProviderCostBuckets(con, transaction: null, projectId, periodStart, periodEnd), ct);
-
-    public Task<IReadOnlyList<ProviderCostSyncRow>> GetProviderCostSyncAsync(
-        string projectId,
-        CancellationToken ct = default) =>
-        ExecuteReadAsync<IReadOnlyList<ProviderCostSyncRow>>(con =>
-            ReadProviderCostSync(con, transaction: null, projectId), ct);
-
     private static IReadOnlyList<ProviderCostBucketRow> ReadProviderCostBuckets(
         DuckDBConnection con,
         DbTransaction? transaction,

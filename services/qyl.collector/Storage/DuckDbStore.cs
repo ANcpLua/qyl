@@ -41,10 +41,20 @@ internal sealed partial class DuckDbStore : IQylStore
         _isInMemory = databasePath == ":memory:";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
-        Connection = new DuckDBConnection($"DataSource={databasePath}");
-        Connection.Open();
-        ConfigureDatabase(Connection, memoryLimit, threads, tempDirectory);
-        InitializeSchema(Connection);
+        var connection = new DuckDBConnection($"DataSource={databasePath}");
+        try
+        {
+            connection.Open();
+            ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
+            InitializeSchema(connection);
+        }
+        catch
+        {
+            connection.Dispose();
+            throw;
+        }
+
+        Connection = connection;
 
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(_jobQueueCapacity)
         {
@@ -963,12 +973,14 @@ internal sealed partial class DuckDbStore : IQylStore
         using var logsCmd = con.CreateCommand();
         logsCmd.CommandText = string.Concat(
             LogStorageRow.CreateTableDdl, "\n",
+            LogStorageRow.MigrateTableDdl, "\n",
             LogStorageRow.IndexesDdl);
         logsCmd.ExecuteNonQuery();
 
         using var metricsCmd = con.CreateCommand();
         metricsCmd.CommandText = string.Concat(
             MetricStorageRow.CreateTableDdl, "\n",
+            MetricStorageRow.MigrateTableDdl, "\n",
             MetricStorageRow.IndexesDdl);
         metricsCmd.ExecuteNonQuery();
 
@@ -980,6 +992,12 @@ internal sealed partial class DuckDbStore : IQylStore
             ProfileMappingRow.CreateTableDdl, "\n",
             ProfileSampleRow.CreateTableDdl, "\n",
             ProfileStackRow.CreateTableDdl, "\n",
+            ProfileStorageRow.MigrateTableDdl, "\n",
+            ProfileFunctionRow.MigrateTableDdl, "\n",
+            ProfileLocationRow.MigrateTableDdl, "\n",
+            ProfileMappingRow.MigrateTableDdl, "\n",
+            ProfileSampleRow.MigrateTableDdl, "\n",
+            ProfileStackRow.MigrateTableDdl, "\n",
             ProfileStorageRow.IndexesDdl, "\n",
             ProfileSampleRow.IndexesDdl);
         profilesCmd.ExecuteNonQuery();
@@ -987,6 +1005,7 @@ internal sealed partial class DuckDbStore : IQylStore
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
             SpanStorageRow.CreateTableDdl, "\n",
+            SpanStorageRow.MigrateTableDdl, "\n",
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
@@ -994,6 +1013,8 @@ internal sealed partial class DuckDbStore : IQylStore
         providerCostCmd.CommandText = string.Concat(
             ProviderCostBucketRow.CreateTableDdl, "\n",
             ProviderCostSyncRow.CreateTableDdl, "\n",
+            ProviderCostBucketRow.MigrateTableDdl, "\n",
+            ProviderCostSyncRow.MigrateTableDdl, "\n",
             ProviderCostBucketRow.IndexesDdl, "\n",
             ProviderCostSyncRow.IndexesDdl);
         providerCostCmd.ExecuteNonQuery();
@@ -1005,11 +1026,70 @@ internal sealed partial class DuckDbStore : IQylStore
             ModelPricingCatalogModelRow.CreateTableDdl, "\n",
             ModelPricingCatalogOverrideRow.CreateTableDdl, "\n",
             ModelPricingCatalogRateRow.CreateTableDdl, "\n",
+            ModelPricingCatalogSourceRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogSnapshotRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogModelRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogOverrideRow.MigrateTableDdl, "\n",
+            ModelPricingCatalogRateRow.MigrateTableDdl, "\n",
             ModelPricingCatalogModelRow.IndexesDdl, "\n",
             ModelPricingCatalogSnapshotRow.IndexesDdl, "\n",
             ModelPricingCatalogOverrideRow.IndexesDdl, "\n",
             ModelPricingCatalogRateRow.IndexesDdl);
         modelPricingCatalogCmd.ExecuteNonQuery();
+
+        VerifyPersistedPrimaryKeys(con);
+    }
+
+    private static void VerifyPersistedPrimaryKeys(DuckDBConnection con)
+    {
+        (string Table, string Columns)[] expected =
+        [
+            (SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv),
+            (LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv),
+            (MetricStorageRow.TableName, MetricStorageRow.PrimaryKeyColumnsCsv),
+            (ProfileStorageRow.TableName, ProfileStorageRow.PrimaryKeyColumnsCsv),
+            (ProfileFunctionRow.TableName, ProfileFunctionRow.PrimaryKeyColumnsCsv),
+            (ProfileLocationRow.TableName, ProfileLocationRow.PrimaryKeyColumnsCsv),
+            (ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv),
+            (ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv),
+            (ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv),
+            (ProviderCostBucketRow.TableName, ProviderCostBucketRow.PrimaryKeyColumnsCsv),
+            (ProviderCostSyncRow.TableName, ProviderCostSyncRow.PrimaryKeyColumnsCsv),
+            (ModelPricingCatalogSourceRow.TableName, ModelPricingCatalogSourceRow.PrimaryKeyColumnsCsv),
+            (ModelPricingCatalogSnapshotRow.TableName, ModelPricingCatalogSnapshotRow.PrimaryKeyColumnsCsv),
+            (ModelPricingCatalogModelRow.TableName, ModelPricingCatalogModelRow.PrimaryKeyColumnsCsv),
+            (ModelPricingCatalogOverrideRow.TableName, ModelPricingCatalogOverrideRow.PrimaryKeyColumnsCsv),
+            (ModelPricingCatalogRateRow.TableName, ModelPricingCatalogRateRow.PrimaryKeyColumnsCsv)
+        ];
+
+        foreach (var (table, columns) in expected)
+            VerifyPersistedPrimaryKey(con, table, columns);
+    }
+
+    private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string table, string expectedCsv)
+    {
+        if (expectedCsv.Length is 0)
+            return;
+
+        var expected = expectedCsv.Split(',').ToHashSet(StringComparer.Ordinal);
+        var actual = new HashSet<string>(StringComparer.Ordinal);
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = """
+                          SELECT unnest(constraint_column_names)
+                          FROM duckdb_constraints()
+                          WHERE table_name = $1 AND constraint_type = 'PRIMARY KEY'
+                          """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = table });
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            actual.Add(reader.GetString(0));
+
+        if (!expected.SetEquals(actual))
+        {
+            throw new InvalidOperationException(
+                $"Persisted table '{table}' has primary key ({string.Join(", ", actual.Order(StringComparer.Ordinal))}); " +
+                $"this build requires ({string.Join(", ", expected.Order(StringComparer.Ordinal))}).");
+        }
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);

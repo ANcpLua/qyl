@@ -80,8 +80,7 @@ internal sealed class OpenAiOrganizationCostsSource(
                     return ProviderCostFetchResult.Failed(
                         periodStart,
                         periodEnd,
-                        ProviderCostFailureMapper.FromStatusCode(response.StatusCode),
-                        response.StatusCode);
+                        ProviderCostFailureMapper.FromStatusCode(response.StatusCode));
                 }
 
                 OpenAiCostsPage? responsePage;
@@ -170,8 +169,7 @@ internal sealed class OpenAiOrganizationCostsSource(
             $"end_time={periodEnd.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)}",
             "bucket_width=1d",
             $"limit={PageSize.ToString(CultureInfo.InvariantCulture)}",
-            "group_by=project_id",
-            "group_by=line_item"
+            "group_by=project_id"
         };
         if (!string.IsNullOrWhiteSpace(options.ProjectId))
             query.Add($"project_ids={Uri.EscapeDataString(options.ProjectId)}");
@@ -228,9 +226,7 @@ internal sealed class OpenAiOrganizationCostsSource(
                     result.Amount.Currency!,
                     retrievedAt,
                     SourceEndpoint,
-                    ProviderCostAttribution.ProviderAggregate,
-                    result.ProjectId,
-                    result.LineItem));
+                    ProviderCostAttribution.ProviderAggregate));
             }
         }
 

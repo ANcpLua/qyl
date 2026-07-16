@@ -117,20 +117,18 @@ internal static class OtlpConverter
             if (!sourceKeys.Add(attr.Key))
                 throw new InvalidDataException($"OTLP resource contains duplicate attribute key '{attr.Key}'.");
 
-            if (!AttributeKeySets.IsSafeResourceAttribute(attr.Key) &&
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.IsSafeResourceAttribute(key) &&
                 (!entityReferencedKeys.Contains(attr.Key) ||
-                 !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(attr.Key)))
+                 !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
             {
                 continue;
             }
 
-            if (!attrs.TryAdd(attr.Key, ConvertProtoAnyValue(attr.Value)))
-            {
-                throw new InvalidDataException(
-                    $"OTLP resource contains duplicate attribute key '{attr.Key}'.");
-            }
+            var value = ConvertProtoAnyValue(attr.Value);
+            SetNormalizedAttribute(attrs, key, value, renamed);
 
-            projectedKeys.Add(attr.Key, new ResourceAttributeProjectionKey(attr.Key));
+            projectedKeys.Add(attr.Key, new ResourceAttributeProjectionKey(key));
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
@@ -246,9 +244,11 @@ internal static class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
 
-            attributes[attr.Key] = ConvertProtoAnyValue(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value);
+            SetNormalizedAttribute(attributes, key, value, renamed);
         }
 
         return attributes;
@@ -261,9 +261,11 @@ internal static class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
 
-            attributes[attr.Key] = ConvertProtoAnyValue(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value);
+            SetNormalizedAttribute(attributes, key, value, renamed);
         }
 
         return attributes;
@@ -461,13 +463,15 @@ internal static class OtlpConverter
         foreach (var attr in attributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            if (!AttributeKeySets.IsSafeLogAttribute(attr.Key) &&
-                !attr.Key.IsAny(AttributeKeySets.SessionCorrelation))
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.IsSafeLogAttribute(key) &&
+                !key.IsAny(AttributeKeySets.SessionCorrelation))
             {
                 continue;
             }
 
-            dict[attr.Key] = ConvertProtoAnyValue(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value);
+            SetNormalizedAttribute(dict, key, value, renamed);
         }
 
         return dict;
@@ -1019,12 +1023,9 @@ internal static class OtlpConverter
             if (!sourceKeys.Add(attr.Key))
                 throw new InvalidDataException($"OTLP metric contains duplicate attribute key '{attr.Key}'.");
 
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
             var value = ConvertProtoAnyValue(attr.Value);
-            if (!dict.TryAdd(attr.Key, value))
-            {
-                throw new InvalidDataException(
-                    $"OTLP metric contains duplicate attribute key '{attr.Key}'.");
-            }
+            SetNormalizedAttribute(dict, key, value, renamed);
         }
 
         return dict;
@@ -1035,6 +1036,16 @@ internal static class OtlpConverter
             .Append(value.Length.ToString(CultureInfo.InvariantCulture))
             .Append(':')
             .Append(value);
+
+    private static void SetNormalizedAttribute(
+        Dictionary<string, OtlpAttributeValue> attributes,
+        string key,
+        OtlpAttributeValue value,
+        bool renamed)
+    {
+        if (renamed) attributes.TryAdd(key, value);
+        else attributes[key] = value;
+    }
 
     #endregion
 
@@ -1216,14 +1227,16 @@ internal static class OtlpConverter
                 continue;
 
             var attribute = dictionary.AttributeTable[index];
-            var key = Resolve(attribute.KeyStrindex, dictionary);
-            if (string.IsNullOrEmpty(key) ||
-                !AttributeKeySets.IsSafeProfileAttribute(key))
-            {
+            var sourceKey = Resolve(attribute.KeyStrindex, dictionary);
+            if (string.IsNullOrEmpty(sourceKey))
                 continue;
-            }
 
-            attributes[key] = ConvertProtoAnyValue(attribute.Value);
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(sourceKey, out var key);
+            if (!AttributeKeySets.IsSafeProfileAttribute(key))
+                continue;
+
+            var value = ConvertProtoAnyValue(attribute.Value);
+            SetNormalizedAttribute(attributes, key, value, renamed);
         }
 
         return attributes;

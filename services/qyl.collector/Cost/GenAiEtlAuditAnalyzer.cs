@@ -299,14 +299,6 @@ internal static class GenAiEtlAuditAnalyzer
 
     internal static GenAiEtlAuditValueResult Evaluate(GenAiEtlAuditValueInput input)
     {
-        input = Require(input, nameof(input));
-        ValidateCalls(input.Calls);
-        ValidateRatio(input.Coverage, nameof(input.Coverage));
-        ValidateNonNegative(input.FrontierCostPerCall, nameof(input.FrontierCostPerCall));
-        ValidateNonNegative(input.AlternativeCostPerCall, nameof(input.AlternativeCostPerCall));
-        ValidateNonNegative(input.MaintenanceCost, nameof(input.MaintenanceCost));
-        ValidateNonNegative(input.ErrorCost, nameof(input.ErrorCost));
-
         if (!input.FrontierCostPerCall.HasValue)
         {
             return MissingValue(GenAiEtlAuditValueStatus.MissingFrontierCost);

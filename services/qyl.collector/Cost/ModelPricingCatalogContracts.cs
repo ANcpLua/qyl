@@ -51,9 +51,7 @@ internal sealed record ModelPricingCatalogSnapshot(
     DateTimeOffset RetrievedAt,
     IReadOnlyList<ModelPricingCatalogModel> Models);
 
-internal sealed record ModelPricingCatalogFailure(
-    ModelPricingCatalogFailureCategory Category,
-    HttpStatusCode? StatusCode = null);
+internal sealed record ModelPricingCatalogFailure(ModelPricingCatalogFailureCategory Category);
 
 internal sealed record ModelPricingCatalogFetchResult(
     ModelPricingCatalogSnapshot? Snapshot,
@@ -64,10 +62,8 @@ internal sealed record ModelPricingCatalogFetchResult(
     public static ModelPricingCatalogFetchResult Success(ModelPricingCatalogSnapshot snapshot) =>
         new(snapshot, null);
 
-    public static ModelPricingCatalogFetchResult Failed(
-        ModelPricingCatalogFailureCategory category,
-        HttpStatusCode? statusCode = null) =>
-        new(null, new ModelPricingCatalogFailure(category, statusCode));
+    public static ModelPricingCatalogFetchResult Failed(ModelPricingCatalogFailureCategory category) =>
+        new(null, new ModelPricingCatalogFailure(category));
 }
 
 internal static class ModelPricingCatalogValidation

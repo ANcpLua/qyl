@@ -9,7 +9,6 @@ internal enum ModelPricingCatalogAvailability
 
 internal sealed record ModelPricingCatalogVersion(
     string SnapshotId,
-    DateTimeOffset LastSuccessfulRefreshAt,
     ModelPricingCatalogSnapshot Catalog);
 
 internal sealed record ModelPricingCatalogReadResult(
@@ -89,7 +88,7 @@ internal sealed class ModelPricingCatalogRepository(
 
         return new ModelPricingCatalogReadResult(
             ModelPricingCatalogAvailability.Available,
-            new ModelPricingCatalogVersion(stored.Snapshot.SnapshotId, lastSuccessAt, snapshot));
+            new ModelPricingCatalogVersion(stored.Snapshot.SnapshotId, snapshot));
     }
 
     private static IReadOnlyList<ModelPricingRate>? MapRates(

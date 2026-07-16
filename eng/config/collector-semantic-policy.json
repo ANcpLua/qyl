@@ -176,6 +176,7 @@
     "gen_ai.tool.name"
   ],
   "projectionConstants": {
+    "DbSystemDeprecated": "db.system",
     "DbSystemName": "db.system.name",
     "GenAiToolCallId": "gen_ai.tool.call.id",
     "GenAiProviderName": "gen_ai.provider.name",

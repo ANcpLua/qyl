@@ -76,9 +76,12 @@ public sealed class ProviderCostSyncServiceTests
 
         await service.SyncAllAsync(TestContext.Current.CancellationToken);
 
-        var syncRows = await store.GetProviderCostSyncAsync(
+        var snapshot = await store.GetGenAiEtlAuditSnapshotAsync(
             "default",
+            periodStart,
+            periodEnd,
             TestContext.Current.CancellationToken);
+        var syncRows = snapshot.CostSyncRows;
         var openAi = Assert.Single(syncRows, static row => row.Provider == "openai");
         Assert.Equal("sync_failed", openAi.Status);
         Assert.Equal("invalid_response", openAi.FailureCategory);
@@ -87,11 +90,7 @@ public sealed class ProviderCostSyncServiceTests
         Assert.Equal("current", anthropic.Status);
         Assert.Equal(periodStart, anthropic.PeriodStart);
         Assert.Equal(periodEnd, anthropic.PeriodEnd);
-        Assert.Equal(1.25m, Assert.Single(await store.GetProviderCostBucketsAsync(
-            "default",
-            periodStart,
-            periodEnd,
-            TestContext.Current.CancellationToken)).Amount);
+        Assert.Equal(1.25m, Assert.Single(snapshot.CostBuckets).Amount);
     }
 
     [Fact]
@@ -139,9 +138,12 @@ public sealed class ProviderCostSyncServiceTests
 
         await service.SyncAllAsync(TestContext.Current.CancellationToken);
 
-        var sync = Assert.Single(await store.GetProviderCostSyncAsync(
+        var snapshot = await store.GetGenAiEtlAuditSnapshotAsync(
             "default",
-            TestContext.Current.CancellationToken));
+            periodStart,
+            periodEnd,
+            TestContext.Current.CancellationToken);
+        var sync = Assert.Single(snapshot.CostSyncRows);
         Assert.Equal(
             ProviderCostScope.ForIdentifier("proj-new").CreateStableKey("openai"),
             sync.ProviderScopeKey);

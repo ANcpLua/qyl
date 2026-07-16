@@ -33,6 +33,8 @@ internal static class DuckDbEmitter
         sb.AppendLine();
 
         EmitCreateTableDdl(sb, table);
+        EmitMigrateTableDdl(sb, table);
+        EmitPrimaryKeyColumns(sb, table);
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -135,6 +137,41 @@ internal static class DuckDbEmitter
 
         sb.AppendLineNoIndent("        );");
         sb.AppendLineNoIndent("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    private static void EmitMigrateTableDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
+    {
+        sb.AppendLine("public const string MigrateTableDdl = \"\"\"");
+
+        foreach (var column in table.Columns)
+        {
+            var line = new StringBuilder("        ALTER TABLE ");
+            line.Append(SqlIdentifier.Quote(table.TableName))
+                .Append(" ADD COLUMN IF NOT EXISTS ")
+                .Append(SqlIdentifier.Quote(column.ColumnName))
+                .Append(' ')
+                .Append(ResolveSqlType(column));
+
+            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
+                line.Append(" DEFAULT ").Append(column.DefaultSql);
+
+            line.Append(';');
+            sb.AppendLineNoIndent(line.ToString());
+        }
+
+        sb.AppendLineNoIndent("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    private static void EmitPrimaryKeyColumns(IndentedStringBuilder sb, DuckDbTableInfo table)
+    {
+        var columns = table.Columns
+            .Where(static column => column.PrimaryKeyOrdinal >= 0)
+            .OrderBy(static column => column.PrimaryKeyOrdinal)
+            .Select(static column => column.ColumnName);
+
+        sb.AppendLine($"public const string PrimaryKeyColumnsCsv = \"{string.Join(",", columns)}\";");
         sb.AppendLine();
     }
 
@@ -273,15 +310,15 @@ internal static class DuckDbEmitter
 
         return baseType switch
         {
-            "string" => $"reader.GetString({ordinal})",
-            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal})!.Value",
-            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal})!.Value",
-            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal})!.Value",
-            "decimal" or "System.Decimal" => $"reader.GetDecimal({ordinal})",
-            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal})!.Value",
-            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal})!.Value",
-            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal})!.Value",
-            _ => $"reader.GetValue({ordinal})"
+            "string" => $"DuckDbValueReader.ReadString(reader, {ordinal}, \"\")",
+            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal}, 0UL)",
+            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal}, 0L)",
+            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}, 0d)",
+            "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? 0m : reader.GetDecimal({ordinal})",
+            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}, 0)",
+            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}, 0)",
+            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
+            _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
         };
     }
 

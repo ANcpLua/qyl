@@ -493,7 +493,6 @@ internal sealed class GenAiEtlAuditService
                 group.Key.Model,
                 group.First().ModelKey == "*" ? null : group.First().ModelKey,
                 group.Key.SourceEndpoint,
-                group.Key.SourceKind,
                 group.Key.Attribution,
                 group.Key.Currency,
                 group.Min(static bucket => bucket.PeriodStart),
@@ -528,8 +527,6 @@ internal sealed class GenAiEtlAuditService
         return new ClusterSeed(
             clusterId,
             workflowKey,
-            dimensions[3],
-            dimensions[4],
             row);
     }
 
@@ -963,8 +960,6 @@ internal sealed class GenAiEtlAuditService
     private sealed record ClusterSeed(
         string ClusterId,
         string WorkflowKey,
-        string? Provider,
-        string? Model,
         GenAiEtlAuditStorageRow Row);
 
     private sealed record CostGroup(
@@ -972,7 +967,6 @@ internal sealed class GenAiEtlAuditService
         string? Model,
         string? ModelName,
         string SourceEndpoint,
-        string SourceKind,
         string Attribution,
         string CurrencyCode,
         DateTimeOffset PeriodStart,

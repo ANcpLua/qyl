@@ -24,6 +24,7 @@ sealed class Build : NukeBuild,
     IVersionize,
     IDocker,
     IPipeline,
+    INativeAot,
     IVerify,
     ICollectorSemanticCatalog,
     IHousekeeping,
@@ -76,7 +77,8 @@ sealed class Build : NukeBuild,
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<IPipeline>(static x => x.FrontendTest)
         .DependsOn<IPipeline>(static x => x.FrontendE2E)
-        .DependsOn<IPipeline>(static x => x.FrontendLint);
+        .DependsOn<IPipeline>(static x => x.FrontendLint)
+        .DependsOn<INativeAot>(static x => x.NativeAot);
 
     Target Test => d => d
         .Description("Run every .NET test project in the solution")

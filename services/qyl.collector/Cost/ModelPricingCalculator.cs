@@ -118,9 +118,6 @@ internal sealed record ModelPricingEstimateResult(
     ModelPricingEstimateStatus Status,
     decimal? TokenCostUsd,
     string? CurrencyCode,
-    string SourceId,
-    string? SnapshotId,
-    string? PriceSemantics,
     string? MatchedModelId,
     ModelPricingMatchKind? MatchKind,
     IReadOnlyList<ModelPricingEstimateComponent> Components,
@@ -130,19 +127,13 @@ internal static class ModelPricingCalculator
 {
     internal static ModelPricingEstimateResult Calculate(
         ModelPricingCatalogVersion version,
-        string? observedModel,
+        string observedModel,
         ModelPricingUsage usage,
         long aggregateCallCount)
     {
-        var sourceId = version.Catalog.SourceId;
-        if (!ModelPricingCatalogValidation.IsText(observedModel, 512))
-            return Failure(ModelPricingEstimateStatus.MissingModelIdentity, sourceId, version);
-        if (aggregateCallCount <= 0)
-            return Failure(ModelPricingEstimateStatus.IncompleteUsage, sourceId, version);
-
-        var resolution = ResolveModel(version.Catalog.Models, observedModel!);
+        var resolution = ResolveModel(version.Catalog.Models, observedModel);
         if (resolution.Status is not ModelPricingEstimateStatus.Calculated)
-            return Failure(resolution.Status, sourceId, version);
+            return Failure(resolution.Status);
 
         var model = resolution.Model!;
         var components = new List<ModelPricingEstimateComponent>();
@@ -158,8 +149,6 @@ internal static class ModelPricingCalculator
             {
                 return Failure(
                     ModelPricingEstimateStatus.ConditionalPricingUnresolvable,
-                    sourceId,
-                    version,
                     model.ModelId,
                     resolution.MatchKind,
                     exclusions);
@@ -170,8 +159,6 @@ internal static class ModelPricingCalculator
             {
                 return Failure(
                     ModelPricingEstimateStatus.ConditionalPricingUnresolvable,
-                    sourceId,
-                    version,
                     model.ModelId,
                     resolution.MatchKind,
                     exclusions);
@@ -215,8 +202,6 @@ internal static class ModelPricingCalculator
         {
             return Failure(
                 ModelPricingEstimateStatus.UnsupportedPricing,
-                sourceId,
-                version,
                 model.ModelId,
                 resolution.MatchKind);
         }
@@ -233,8 +218,6 @@ internal static class ModelPricingCalculator
         {
             return Failure(
                 ModelPricingEstimateStatus.ConditionalPricingUnresolvable,
-                sourceId,
-                version,
                 model.ModelId,
                 resolution.MatchKind,
                 exclusions);
@@ -255,8 +238,6 @@ internal static class ModelPricingCalculator
                         overrideEvidence.GetValueOrDefault(unsupported.SourceMeter)));
                     return Failure(
                         ModelPricingEstimateStatus.UnsupportedPricing,
-                        sourceId,
-                        version,
                         model.ModelId,
                         resolution.MatchKind,
                         exclusions);
@@ -285,8 +266,6 @@ internal static class ModelPricingCalculator
                     {
                         return Failure(
                             ModelPricingEstimateStatus.IncompleteUsage,
-                            sourceId,
-                            version,
                             model.ModelId,
                             resolution.MatchKind,
                             exclusions);
@@ -323,8 +302,6 @@ internal static class ModelPricingCalculator
                 {
                     return Failure(
                         ModelPricingEstimateStatus.IncompleteUsage,
-                        sourceId,
-                        version,
                         model.ModelId,
                         resolution.MatchKind,
                         exclusions);
@@ -349,8 +326,6 @@ internal static class ModelPricingCalculator
             {
                 return Failure(
                     ModelPricingEstimateStatus.UnsupportedPricing,
-                    sourceId,
-                    version,
                     model.ModelId,
                     resolution.MatchKind,
                     exclusions);
@@ -380,8 +355,6 @@ internal static class ModelPricingCalculator
                 {
                     return Failure(
                         ModelPricingEstimateStatus.IncompleteUsage,
-                        sourceId,
-                        version,
                         model.ModelId,
                         resolution.MatchKind,
                         exclusions);
@@ -395,8 +368,6 @@ internal static class ModelPricingCalculator
                         overrideEvidence.GetValueOrDefault(surcharge.SourceMeter)));
                     return Failure(
                         ModelPricingEstimateStatus.UnsupportedPricing,
-                        sourceId,
-                        version,
                         model.ModelId,
                         resolution.MatchKind,
                         exclusions);
@@ -410,8 +381,6 @@ internal static class ModelPricingCalculator
                         overrideEvidence.GetValueOrDefault(surcharge.SourceMeter)));
                     return Failure(
                         ModelPricingEstimateStatus.UnsupportedPricing,
-                        sourceId,
-                        version,
                         model.ModelId,
                         resolution.MatchKind,
                         exclusions);
@@ -427,8 +396,6 @@ internal static class ModelPricingCalculator
         {
             return Failure(
                 ModelPricingEstimateStatus.UnsupportedPricing,
-                sourceId,
-                version,
                 model.ModelId,
                 resolution.MatchKind,
                 exclusions);
@@ -438,9 +405,6 @@ internal static class ModelPricingCalculator
             ModelPricingEstimateStatus.Calculated,
             total,
             model.CurrencyCode,
-            sourceId,
-            version.SnapshotId,
-            version.Catalog.PriceSemantics,
             model.ModelId,
             resolution.MatchKind,
             components,
@@ -560,8 +524,6 @@ internal static class ModelPricingCalculator
 
     private static ModelPricingEstimateResult Failure(
         ModelPricingEstimateStatus status,
-        string sourceId,
-        ModelPricingCatalogVersion? version = null,
         string? matchedModelId = null,
         ModelPricingMatchKind? matchKind = null,
         IReadOnlyList<ModelPricingEstimateExclusion>? exclusions = null) =>
@@ -569,9 +531,6 @@ internal static class ModelPricingCalculator
             status,
             null,
             null,
-            sourceId,
-            version?.SnapshotId,
-            version?.Catalog.PriceSemantics,
             matchedModelId,
             matchKind,
             [],

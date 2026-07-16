@@ -12,8 +12,7 @@
     <QylAot Condition="'$(QylAot)' == ''">true</QylAot>
     <PublishAot Condition="'$(QylAot)' == 'true'">true</PublishAot>
     <PublishTrimmed Condition="'$(QylAot)' == 'true'">true</PublishTrimmed>
-    <SuppressTrimAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressTrimAnalysisWarnings>
-    <SuppressAotAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressAotAnalysisWarnings>
+    <WarningsNotAsErrors Condition="'$(QylAot)' == 'true'">$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
     <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
     <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
   </PropertyGroup>
