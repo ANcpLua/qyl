@@ -92,7 +92,7 @@ try
 }
 finally
 {
-    if (Directory.Exists(scratch)) Directory.Delete(scratch, recursive: true);
+    await DeleteDirectoryAsync(scratch, TimeSpan.FromSeconds(30));
 }
 
 // Timestamped phase markers: the CI leg has hung without any output before, so make it
@@ -118,6 +118,28 @@ static string ResolveInstalledTool(string toolDirectory)
     throw new FileNotFoundException(
         $"The qyl tool installation did not create a supported command shim in '{toolDirectory}'. " +
         $"Top-level contents: {contents}.");
+}
+
+static async Task DeleteDirectoryAsync(string path, TimeSpan timeout)
+{
+    var elapsed = Stopwatch.StartNew();
+    while (true)
+    {
+        try
+        {
+            Directory.Delete(path, recursive: true);
+            return;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return;
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException && elapsed.Elapsed < timeout)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+    }
 }
 
 static async Task RunLiveAsync(string tool, string workingDirectory)
