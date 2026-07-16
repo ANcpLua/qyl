@@ -132,18 +132,7 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
                 throw new InvalidOperationException($"qyl exited {process.ExitCode} before becoming ready.");
             if (!await IsHealthyAsync(client, "http://127.0.0.1:5100/health")) return false;
             if (!await IsHealthyAsync(client, "http://127.0.0.1:5200/health")) return false;
-
-            using var response = await client.GetAsync("http://127.0.0.1:18888/runner/resources");
-            if (!response.IsSuccessStatusCode) return false;
-            await using var body = await response.Content.ReadAsStreamAsync();
-            using var resources = await JsonDocument.ParseAsync(body);
-            var ready = resources.RootElement.EnumerateArray()
-                .Where(static resource =>
-                    resource.TryGetProperty("lifecycle", out var lifecycle) &&
-                    string.Equals(lifecycle.GetString(), "ready", StringComparison.OrdinalIgnoreCase))
-                .Select(static resource => resource.GetProperty("name").GetString())
-                .ToHashSet(StringComparer.Ordinal);
-            return ready.SetEquals(["collector", "diagnostics"]);
+            return await AreRunnerResourcesReadyAsync(client);
         }, TimeSpan.FromSeconds(90), "qyl collectors and runner API did not become ready");
 
         Progress("live: collectors and runner API ready");
@@ -267,6 +256,32 @@ static async Task<bool> IsHealthyAsync(HttpClient client, string uri)
     {
         using var response = await client.GetAsync(uri);
         return response.IsSuccessStatusCode;
+    }
+    catch (HttpRequestException)
+    {
+        return false;
+    }
+    catch (TaskCanceledException)
+    {
+        return false;
+    }
+}
+
+static async Task<bool> AreRunnerResourcesReadyAsync(HttpClient client)
+{
+    try
+    {
+        using var response = await client.GetAsync("http://127.0.0.1:18888/runner/resources");
+        if (!response.IsSuccessStatusCode) return false;
+        await using var body = await response.Content.ReadAsStreamAsync();
+        using var resources = await JsonDocument.ParseAsync(body);
+        var ready = resources.RootElement.EnumerateArray()
+            .Where(static resource =>
+                resource.TryGetProperty("lifecycle", out var lifecycle) &&
+                string.Equals(lifecycle.GetString(), "ready", StringComparison.OrdinalIgnoreCase))
+            .Select(static resource => resource.GetProperty("name").GetString())
+            .ToHashSet(StringComparer.Ordinal);
+        return ready.SetEquals(["collector", "diagnostics"]);
     }
     catch (HttpRequestException)
     {
