@@ -387,7 +387,7 @@ internal sealed class GenAiEtlAuditService
             var provider = NormalizeKey(source.Provider);
             syncByProvider.TryGetValue(provider, out var sync);
             var providerGroups = groups.Where(group => group.Provider == provider).ToArray();
-            if (providerGroups.Length == 0)
+            if (providerGroups.Length is 0)
             {
                 result.Add(new CostContracts.ProviderBillingSource
                 {
@@ -567,7 +567,7 @@ internal sealed class GenAiEtlAuditService
             State = gate.Status is GenAiEtlAuditGateEvidenceStatus.EvidenceAvailable
                 ? CostContracts.GenAiEtlPromotionGateState.NotEvaluated
                 : CostContracts.GenAiEtlPromotionGateState.BlockedMissingEvidence,
-            Reason = gate.MissingEvidence.Count == 0
+            Reason = gate.MissingEvidence.Count is 0
                 ? "evidence_available_not_evaluated"
                 : $"missing_{string.Join('_', gate.MissingEvidence.Select(static evidence => ToSnakeCase(evidence.ToString())))}"
         })];

@@ -767,7 +767,7 @@ internal static class GenAiEtlAuditAnalyzer
             var missing = definition.RequiredEvidence.Where(evidence => !present.Contains(evidence)).ToArray();
             return new GenAiEtlAuditGateAssessment(
                 definition.Gate,
-                missing.Length == 0
+                missing.Length is 0
                     ? GenAiEtlAuditGateEvidenceStatus.EvidenceAvailable
                     : GenAiEtlAuditGateEvidenceStatus.EvidenceMissing,
                 definition.RequiredEvidence,
@@ -782,7 +782,7 @@ internal static class GenAiEtlAuditAnalyzer
         if (observations.Any(observation => !selector(observation).HasValue)) return null;
 
         var calls = SumCalls(observations.Select(static observation => observation.Calls));
-        if (calls == 0) return null;
+        if (calls is 0) return null;
 
         var numerator = SumFinite(observations.Select(observation =>
             MultiplyFinite(observation.Calls, selector(observation)!.Value, nameof(selector))),
@@ -793,7 +793,7 @@ internal static class GenAiEtlAuditAnalyzer
     private static double? SumOnlyWhenComplete(IEnumerable<double?> values)
     {
         var materialized = values.ToArray();
-        return materialized.Length == 0 || materialized.Any(static value => !value.HasValue)
+        return materialized.Length is 0 || materialized.Any(static value => !value.HasValue)
             ? null
             : SumFinite(materialized.Select(static value => value!.Value), nameof(values));
     }

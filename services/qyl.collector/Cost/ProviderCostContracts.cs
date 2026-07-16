@@ -120,7 +120,7 @@ internal static class ProviderCostCoverage
 {
     public static ProviderCostPeriod? GetContiguousRange(IReadOnlyList<ProviderCostPeriod> periods)
     {
-        if (periods.Count == 0) return null;
+        if (periods.Count is 0) return null;
 
         var ordered = periods
             .Where(static period => period.PeriodEnd > period.PeriodStart)

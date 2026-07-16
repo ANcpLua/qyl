@@ -21,7 +21,7 @@ internal static class SpanChildStorage
 {
     public static string? SerializeEvents(IReadOnlyList<SpanEventIngest> events)
     {
-        if (events.Count == 0)
+        if (events.Count is 0)
             return null;
 
         var list = new List<SpanEventJson>(events.Count);
@@ -40,7 +40,7 @@ internal static class SpanChildStorage
 
     public static string? SerializeLinks(IReadOnlyList<SpanLinkIngest> links)
     {
-        if (links.Count == 0)
+        if (links.Count is 0)
             return null;
 
         var list = new List<SpanLinkJson>(links.Count);
