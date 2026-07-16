@@ -43,7 +43,8 @@ public sealed class RunnerControlTests
         QylResource[] resources = [processResource];
 
         var port = ClaimLoopbackPort();
-        var options = new QylAppOptions { RunnerPort = port, StartupTimeoutSeconds = 5 };
+        // 30s, not 5: python3 cold-start on CI macOS runners regularly blew a 5s readiness window.
+        var options = new QylAppOptions { RunnerPort = port, StartupTimeoutSeconds = 30 };
         var registry = new QylResourceRegistry(resources, TimeProvider.System);
         var logs = new QylLogStore();
         var actions = new QylResourceActions();

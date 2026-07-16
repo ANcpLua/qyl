@@ -125,7 +125,8 @@ finally
 
 static string ResolveInstalledTool(string toolDirectory)
 {
-    string[] commandNames = OperatingSystem.IsWindows() ? ["qyl.exe", "qyl"] : ["qyl", "qyl.exe"];
+    // .NET 10 SDK tool-path installs shim Windows tools as qyl.cmd (no .exe shim).
+    string[] commandNames = OperatingSystem.IsWindows() ? ["qyl.exe", "qyl.cmd", "qyl"] : ["qyl", "qyl.exe"];
     foreach (var commandName in commandNames)
     {
         var candidate = Path.Combine(toolDirectory, commandName);
@@ -338,7 +339,15 @@ static Process Start(
     ConcurrentQueue<string> stdout,
     ConcurrentQueue<string> stderr)
 {
-    var startInfo = new ProcessStartInfo(fileName)
+    // CreateProcess cannot exec a .cmd shim directly (and .NET refuses since the BatBadBut
+    // mitigation), so route shims through cmd.exe. Arguments here are fixed tokens and
+    // space-free paths; cmd metacharacter quoting is deliberately not handled.
+    var isCmdShim = OperatingSystem.IsWindows() &&
+                    (fileName.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) ||
+                     fileName.EndsWith(".bat", StringComparison.OrdinalIgnoreCase));
+    var startInfo = new ProcessStartInfo(isCmdShim
+        ? Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"
+        : fileName)
     {
         WorkingDirectory = workingDirectory,
         RedirectStandardOutput = true,
@@ -346,6 +355,13 @@ static Process Start(
         UseShellExecute = false,
         CreateNoWindow = true
     };
+    if (isCmdShim)
+    {
+        startInfo.ArgumentList.Add("/d");
+        startInfo.ArgumentList.Add("/c");
+        startInfo.ArgumentList.Add(fileName);
+    }
+
     foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
 
     var process = new Process { StartInfo = startInfo };
