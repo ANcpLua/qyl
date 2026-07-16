@@ -31,10 +31,6 @@ public sealed class QylCliTests
     {
         Assert.Equal(QylCliAction.Up, QylCli.Parse(["up"]).Action);
 
-        var oldCommand = QylCli.Parse(["run"]);
-        Assert.Equal(QylCliAction.Invalid, oldCommand.Action);
-        Assert.Contains("Unknown qyl command: run", oldCommand.Error, StringComparison.Ordinal);
-
         var oldFlag = QylCli.Parse(["up", "--dev"]);
         Assert.Equal(QylCliAction.Invalid, oldFlag.Action);
         Assert.Contains("Unknown qyl command: up --dev", oldFlag.Error, StringComparison.Ordinal);

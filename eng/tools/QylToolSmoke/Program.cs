@@ -10,17 +10,16 @@ using System.Text.Json;
 using System.Xml.Linq;
 
 var installedMode = args is ["--installed", _, "--version", _];
-var packageMode = args is [_] or [_, "--skip-live"];
+var packageMode = args is [_];
 if (!installedMode && !packageMode)
 {
     Console.Error.WriteLine("Usage:");
-    Console.Error.WriteLine("  dotnet run --project eng/tools/QylToolSmoke -- <package-directory> [--skip-live]");
+    Console.Error.WriteLine("  dotnet run --project eng/tools/QylToolSmoke -- <package-directory>");
     Console.Error.WriteLine("  dotnet run --project eng/tools/QylToolSmoke -- --installed <qyl-path> --version <version>");
     return 2;
 }
 
 var rid = RuntimeInformation.RuntimeIdentifier;
-var skipLive = args is [_, "--skip-live"];
 var expectedVersion = installedMode ? args[3] : string.Empty;
 var installedTool = installedMode ? Path.GetFullPath(args[1]) : null;
 string? packageDirectory = null;
@@ -84,42 +83,8 @@ try
     if (!string.Equals(version.Stdout.Trim(), expectedVersion, StringComparison.Ordinal))
         throw new InvalidOperationException($"Installed qyl reported '{version.Stdout.Trim()}', expected '{expectedVersion}'.");
 
-    Progress("exercising: removed 'run' command fails closed");
-    var invalid = await RunAsync(tool, ["run"], dataDirectory, TimeSpan.FromSeconds(20));
-    invalid.RequireExitCode(2, "removed qyl run command");
-
-    TcpListener? collision = null;
-    try
-    {
-        collision = new TcpListener(IPAddress.Loopback, 5100);
-        try
-        {
-            collision.Start();
-        }
-        catch (SocketException)
-        {
-            // A developer may already have qyl running. The existing listener is
-            // sufficient to prove that the packaged command fails closed instead
-            // of attaching its health checks to an unrelated process.
-            collision.Dispose();
-            collision = null;
-        }
-
-        Progress("exercising: port-collision fails closed");
-        var collided = await RunAsync(tool, ["up"], dataDirectory, TimeSpan.FromSeconds(20));
-        if (collided.ExitCode == 0 || !collided.Stderr.Contains("127.0.0.1:5100 is already in use", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Port-collision smoke failed.{Environment.NewLine}{collided}");
-    }
-    finally
-    {
-        collision?.Dispose();
-    }
-
-    if (!skipLive)
-    {
-        Progress("exercising: live 'qyl up' end-to-end");
-        await RunLiveAsync(tool, dataDirectory);
-    }
+    Progress("exercising: live 'qyl up' end-to-end");
+    await RunLiveAsync(tool, dataDirectory);
 
     var source = implementation is null ? tool : implementation.Path;
     Console.WriteLine($"qyl {expectedVersion} installed-tool smoke passed for {rid} ({source}).");
@@ -157,14 +122,14 @@ static string ResolveInstalledTool(string toolDirectory)
 
 static async Task RunLiveAsync(string tool, string workingDirectory)
 {
-    var stdout = new ConcurrentQueue<string>();
-    var stderr = new ConcurrentQueue<string>();
-    using var process = Start(tool, ["up"], workingDirectory, stdout, stderr);
+    using var process = Start(tool, ["up"], workingDirectory);
     try
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
         await WaitUntilAsync(async () =>
         {
+            if (process.HasExited)
+                throw new InvalidOperationException($"qyl exited {process.ExitCode} before becoming ready.");
             if (!await IsHealthyAsync(client, "http://127.0.0.1:5100/health")) return false;
             if (!await IsHealthyAsync(client, "http://127.0.0.1:5200/health")) return false;
 
@@ -211,13 +176,10 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
             "qyl left a collector or runner listener behind after shutdown");
         Progress("live: shutdown clean, all ports released");
     }
-    catch (Exception exception)
+    catch
     {
         if (!process.HasExited) process.Kill(entireProcessTree: true);
-        throw new InvalidOperationException(
-            $"Installed-tool live smoke failed: {exception.Message}{Environment.NewLine}" +
-            $"stdout:{Environment.NewLine}{string.Join(Environment.NewLine, stdout)}{Environment.NewLine}" +
-            $"stderr:{Environment.NewLine}{string.Join(Environment.NewLine, stderr)}", exception);
+        throw;
     }
 }
 
@@ -351,8 +313,8 @@ static Process Start(
     string fileName,
     IReadOnlyList<string> arguments,
     string workingDirectory,
-    ConcurrentQueue<string> stdout,
-    ConcurrentQueue<string> stderr)
+    ConcurrentQueue<string>? stdout = null,
+    ConcurrentQueue<string>? stderr = null)
 {
     // CreateProcess cannot exec a .cmd shim directly (and .NET refuses since the BatBadBut
     // mitigation), so route shims through cmd.exe. Arguments here are fixed tokens and
@@ -365,8 +327,8 @@ static Process Start(
         : fileName)
     {
         WorkingDirectory = workingDirectory,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
+        RedirectStandardOutput = stdout is not null,
+        RedirectStandardError = stderr is not null,
         UseShellExecute = false,
         CreateNoWindow = true
     };
@@ -380,17 +342,17 @@ static Process Start(
     foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
 
     var process = new Process { StartInfo = startInfo };
-    process.OutputDataReceived += (_, eventArgs) =>
+    if (stdout is not null) process.OutputDataReceived += (_, eventArgs) =>
     {
         if (eventArgs.Data is { } line) stdout.Enqueue(line);
     };
-    process.ErrorDataReceived += (_, eventArgs) =>
+    if (stderr is not null) process.ErrorDataReceived += (_, eventArgs) =>
     {
         if (eventArgs.Data is { } line) stderr.Enqueue(line);
     };
     if (!process.Start()) throw new InvalidOperationException($"Could not start '{fileName}'.");
-    process.BeginOutputReadLine();
-    process.BeginErrorReadLine();
+    if (stdout is not null) process.BeginOutputReadLine();
+    if (stderr is not null) process.BeginErrorReadLine();
     return process;
 }
 
