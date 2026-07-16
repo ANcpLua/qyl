@@ -91,7 +91,7 @@ public sealed class RunnerControlTests
         await api.StartAsync(lifetime.Token);
         try
         {
-            await WaitForStateAsync(registry, "worker", ResourceLifecycle.Ready, lifetime.Token);
+            await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Ready, lifetime.Token);
             await WaitForLogCountAsync(logs, "worker", 1, lifetime.Token);
 
             using var restart = await PostBodylessAsync(
@@ -101,7 +101,7 @@ public sealed class RunnerControlTests
             Assert.Equal(HttpStatusCode.Accepted, restart.StatusCode);
 
             await WaitForLogCountAsync(logs, "worker", 2, lifetime.Token);
-            await WaitForStateAsync(registry, "worker", ResourceLifecycle.Ready, lifetime.Token);
+            await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Ready, lifetime.Token);
 
             using var unknown = await PostBodylessAsync(
                 client,
@@ -114,7 +114,7 @@ public sealed class RunnerControlTests
                 $"http://127.0.0.1:{port}/runner/resources/worker/stop",
                 lifetime.Token);
             Assert.Equal(HttpStatusCode.Accepted, stop.StatusCode);
-            await WaitForStateAsync(registry, "worker", ResourceLifecycle.Stopped, lifetime.Token);
+            await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Stopped, lifetime.Token);
 
             var startsAfterStop = logs.Snapshot("worker").Count(static line => line.Line == "started");
             await Task.Delay(250, lifetime.Token);
@@ -179,6 +179,7 @@ public sealed class RunnerControlTests
 
     private static async Task WaitForStateAsync(
         QylResourceRegistry registry,
+        QylLogStore logs,
         string resource,
         ResourceLifecycle expected,
         CancellationToken cancellationToken)
@@ -189,8 +190,14 @@ public sealed class RunnerControlTests
             {
                 if (state.Lifecycle == expected) return;
                 if (state.Lifecycle == ResourceLifecycle.Failed)
+                {
+                    var output = string.Join(
+                        Environment.NewLine,
+                        logs.Snapshot(resource).Select(static line => line.Line));
                     throw new InvalidOperationException(
-                        $"Resource '{resource}' failed while waiting for {expected}: {state.LastError}");
+                        $"Resource '{resource}' failed while waiting for {expected}: {state.LastError}" +
+                        $"{Environment.NewLine}process output:{Environment.NewLine}{output}");
+                }
             }
 
             await Task.Delay(20, cancellationToken);
