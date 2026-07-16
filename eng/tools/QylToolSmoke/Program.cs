@@ -153,33 +153,47 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
 
         await VerifyIngestAndReadbackAsync(client);
         Progress("live: ingest and readback verified, shutting down");
-
-        if (OperatingSystem.IsWindows())
-        {
-            process.Kill(entireProcessTree: true);
-        }
-        else
-        {
-            var signal = await RunAsync("/bin/kill", ["-INT", process.Id.ToString(CultureInfo.InvariantCulture)],
-                workingDirectory, TimeSpan.FromSeconds(10));
-            signal.RequireExitCode(0, "send Ctrl-C to qyl");
-        }
-
-        using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await process.WaitForExitAsync(shutdown.Token);
-        if (!OperatingSystem.IsWindows() && process.ExitCode != 0)
-            throw new InvalidOperationException($"qyl exited {process.ExitCode} after Ctrl-C.");
-
-        await WaitUntilAsync(
-            () => Task.FromResult(ArePortsFree([5100, 5200, 4317, 4318, 18888])),
-            TimeSpan.FromSeconds(30),
-            "qyl left a collector or runner listener behind after shutdown");
-        Progress("live: shutdown clean, all ports released");
     }
-    catch
+    finally
     {
-        if (!process.HasExited) process.Kill(entireProcessTree: true);
-        throw;
+        await StopLiveAsync(process, workingDirectory);
+    }
+
+    if (!OperatingSystem.IsWindows() && process.ExitCode != 0)
+        throw new InvalidOperationException($"qyl exited {process.ExitCode} after Ctrl-C.");
+
+    await WaitUntilAsync(
+        () => Task.FromResult(ArePortsFree([5100, 5200, 4317, 4318, 18888])),
+        TimeSpan.FromSeconds(30),
+        "qyl left a collector or runner listener behind after shutdown");
+    Progress("live: shutdown clean, all ports released");
+}
+
+static async Task StopLiveAsync(Process process, string workingDirectory)
+{
+    if (process.HasExited) return;
+
+    if (OperatingSystem.IsWindows())
+    {
+        process.Kill(entireProcessTree: true);
+    }
+    else
+    {
+        var signal = await RunAsync("/bin/kill", ["-INT", process.Id.ToString(CultureInfo.InvariantCulture)],
+            workingDirectory, TimeSpan.FromSeconds(10));
+        signal.RequireExitCode(0, "send Ctrl-C to qyl");
+    }
+
+    using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+    try
+    {
+        await process.WaitForExitAsync(shutdown.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        if (!process.HasExited) process.Kill();
+        using var forced = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await process.WaitForExitAsync(forced.Token);
     }
 }
 
