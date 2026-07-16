@@ -62,6 +62,7 @@ try
     var tool = installedTool;
     if (tool is null)
     {
+        Progress($"installing qyl {expectedVersion} from {packageDirectory}");
         var install = await RunAsync(
             "dotnet",
             [
@@ -77,11 +78,13 @@ try
 
     if (!File.Exists(tool)) throw new FileNotFoundException("Installed qyl command was not created.", tool);
 
+    Progress($"exercising {tool}: --version");
     var version = await RunAsync(tool, ["--version"], dataDirectory, TimeSpan.FromSeconds(20));
     version.RequireExitCode(0, "qyl --version");
     if (!string.Equals(version.Stdout.Trim(), expectedVersion, StringComparison.Ordinal))
         throw new InvalidOperationException($"Installed qyl reported '{version.Stdout.Trim()}', expected '{expectedVersion}'.");
 
+    Progress("exercising: removed 'run' command fails closed");
     var invalid = await RunAsync(tool, ["run"], dataDirectory, TimeSpan.FromSeconds(20));
     invalid.RequireExitCode(2, "removed qyl run command");
 
@@ -102,6 +105,7 @@ try
             collision = null;
         }
 
+        Progress("exercising: port-collision fails closed");
         var collided = await RunAsync(tool, ["up"], dataDirectory, TimeSpan.FromSeconds(20));
         if (collided.ExitCode == 0 || !collided.Stderr.Contains("127.0.0.1:5100 is already in use", StringComparison.Ordinal))
             throw new InvalidOperationException($"Port-collision smoke failed.{Environment.NewLine}{collided}");
@@ -112,7 +116,10 @@ try
     }
 
     if (!skipLive)
+    {
+        Progress("exercising: live 'qyl up' end-to-end");
         await RunLiveAsync(tool, dataDirectory);
+    }
 
     var source = implementation is null ? tool : implementation.Path;
     Console.WriteLine($"qyl {expectedVersion} installed-tool smoke passed for {rid} ({source}).");
@@ -122,6 +129,11 @@ finally
 {
     if (Directory.Exists(scratch)) Directory.Delete(scratch, recursive: true);
 }
+
+// Timestamped phase markers: the CI leg has hung without any output before, so make it
+// obvious from a cancelled step's log which phase never returned.
+static void Progress(string message) =>
+    Console.WriteLine($"[{DateTimeOffset.UtcNow:HH:mm:ss}] {message}");
 
 static string ResolveInstalledTool(string toolDirectory)
 {
@@ -169,11 +181,13 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
             return ready.SetEquals(["collector", "diagnostics"]);
         }, TimeSpan.FromSeconds(90), "qyl collectors and runner API did not become ready");
 
+        Progress("live: collectors and runner API ready");
         var dashboard = await client.GetStringAsync("http://127.0.0.1:5100/");
         if (!dashboard.Contains("id=\"root\"", StringComparison.Ordinal))
             throw new InvalidOperationException("The packaged collector did not serve the embedded dashboard.");
 
         await VerifyIngestAndReadbackAsync(client);
+        Progress("live: ingest and readback verified, shutting down");
 
         if (OperatingSystem.IsWindows())
         {
@@ -195,6 +209,7 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
             () => Task.FromResult(ArePortsFree([5100, 5200, 4317, 4318, 18888])),
             TimeSpan.FromSeconds(30),
             "qyl left a collector or runner listener behind after shutdown");
+        Progress("live: shutdown clean, all ports released");
     }
     catch (Exception exception)
     {

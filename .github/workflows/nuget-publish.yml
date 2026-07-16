@@ -103,6 +103,10 @@ jobs:
             -p:ToolPackageRuntimeIdentifiers="$RID"
 
       - name: Install and exercise the packed tool
+        # The smoke's internal phase timeouts cap it well under 5 minutes; the step limit
+        # exists so a wedged run fails fast with logs instead of idling to the job timeout
+        # (a macOS leg once sat 48 minutes with the step stuck in_progress and no log blob).
+        timeout-minutes: 12
         run: dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- "$PACKAGES"
 
   pack:
