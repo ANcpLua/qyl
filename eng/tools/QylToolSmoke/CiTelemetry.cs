@@ -101,7 +101,10 @@ internal static class CiTelemetry
                     {
                         attributes = new[]
                         {
-                            new { key = "service.name", value = new { stringValue = "qyl-ci-smoke" } },
+                            // The leg lives in service.name too: the collector does not yet
+                            // persist span attributes on readback, and per-leg grouping must
+                            // survive that (ci.leg stays for when it does).
+                            new { key = "service.name", value = new { stringValue = $"qyl-ci-smoke-{Leg}" } },
                             new { key = "session.id", value = new { stringValue = RunId } }
                         }
                     },
