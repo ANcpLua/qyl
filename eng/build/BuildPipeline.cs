@@ -60,7 +60,8 @@ interface IPipeline : IHazSourcePaths
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => NpmTasks.NpmRun(s => s
             .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
-            .SetCommand("e2e")));
+            .SetCommand("e2e")
+            .RemoveProcessEnvironmentVariable("NO_COLOR")));
 
     Target FrontendLint => d => d
         .Unlisted()

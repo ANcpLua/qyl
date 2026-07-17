@@ -33,8 +33,17 @@ body {
 .conn-open { color: #16a34a; }
 .conn-connecting { color: #d97706; }
 .conn-closed { color: #dc2626; }
+.conn-failed { color: #dc2626; }
 
 .empty { color: var(--muted); }
+.stream-error {
+  background: #2a1216;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 0.82rem;
+  padding: 0.65rem 0.8rem;
+}
 
 .grid {
   width: 100%;

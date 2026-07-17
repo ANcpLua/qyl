@@ -15,9 +15,9 @@ const DOT: Record<ResourceLifecycle, string> = {
 };
 
 export default function App() {
-  const { resources, connection } = useResources();
+  const { resources, connection, error: resourcesError } = useResources();
   const [selected, setSelected] = useState<string | null>(null);
-  const logs = useLogs(selected);
+  const { lines: logs, error: logsError } = useLogs(selected);
   const selectedResource = resources.find((r) => r.name === selected) ?? null;
   const isMcp = selectedResource?.kind != null && MCP_KINDS.has(selectedResource.kind);
   const tools = useTools(selected, isMcp);
@@ -31,9 +31,13 @@ export default function App() {
         <span className={`conn conn-${connection}`}>● {connection}</span>
       </header>
 
-      {resources.length === 0 ? (
+      {resourcesError ? (
+        <p className="stream-error" role="alert">{resourcesError}</p>
+      ) : null}
+
+      {resources.length === 0 && !resourcesError ? (
         <p className="empty">Waiting for resources…</p>
-      ) : (
+      ) : resources.length > 0 ? (
         <table className="grid">
           <thead>
             <tr>
@@ -82,7 +86,7 @@ export default function App() {
             ))}
           </tbody>
         </table>
-      )}
+      ) : null}
 
       {selected && isMcp ? <ToolsPanel resource={selected} tools={tools} /> : null}
 
@@ -97,7 +101,9 @@ export default function App() {
             </button>
           </div>
           <div className="logs-body">
-            {logs.length === 0
+            {logsError ? (
+              <div className="logline err-line" role="alert">{logsError}</div>
+            ) : logs.length === 0
               ? "— no output yet —"
               : logs.map((l, i) => (
                   <div key={i} className={l.stream === "err" ? "logline err-line" : "logline"}>

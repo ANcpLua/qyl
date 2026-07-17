@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import {
-  CallToolRequestParamsSchema,
-  CallToolResultSchema,
-  ListToolsResultSchema,
-  type Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+
+const loadMcpTypes = () => import("@modelcontextprotocol/sdk/types.js");
 
 export type ToolsState =
   | { phase: "idle" }
@@ -31,6 +28,7 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
           setState({ phase: "error", message: `HTTP ${res.status}` });
           return;
         }
+        const { ListToolsResultSchema } = await loadMcpTypes();
         const body = ListToolsResultSchema.parse(await res.json());
         if (!cancelled) setState({ phase: "ready", tools: body.tools });
       })
@@ -47,6 +45,7 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
 }
 
 export async function callTool(resource: string, tool: string, argsJson: string): Promise<string> {
+  const { CallToolRequestParamsSchema, CallToolResultSchema } = await loadMcpTypes();
   const args: unknown = argsJson.trim() ? JSON.parse(argsJson) : {};
   const request = CallToolRequestParamsSchema.parse({ name: tool, arguments: args });
   const res = await fetch(`/runner/mcp/${encodeURIComponent(resource)}/tools/call`, {

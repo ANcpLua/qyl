@@ -1,70 +1,141 @@
 #!/usr/bin/env bash
-# Native AOT runtime smoke for the collector: the executable owner of the QylAot publish lane.
-#
-# Publishes with -p:QylAot=true (unless SKIP_PUBLISH=1 and a binary exists), boots the native
-# binary, ingests a real OTLP/JSON span, and reads it back through the product API — including
-# the sessions surface, whose MIN(DISTINCT …) aggregates exercise DuckDB LIST(VARCHAR)
-# materialization, the provider's most reflection-dependent read path under Native AOT.
+# Native AOT deployment-image smoke for the collector.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PUBLISH_DIR="$REPO_ROOT/artifacts/publish/qyl.collector/release"
-BINARY="$PUBLISH_DIR/qyl.collector"
-PORT="${QYL_SMOKE_PORT:-5199}"
-BASE="http://localhost:$PORT"
-DB_DIR="$(mktemp -d)"
-PUBLISH_LOG="$DB_DIR/publish.log"
-COLLECTOR_PID=""
-trap '[[ -n "$COLLECTOR_PID" ]] && kill "$COLLECTOR_PID" 2>/dev/null || true; rm -rf "$DB_DIR"' EXIT
+HOST_PORT="${QYL_SMOKE_PORT:-5199}"
+CONTAINER_PORT="${QYL_SMOKE_CONTAINER_PORT:-5119}"
+BASE="http://localhost:$HOST_PORT"
+SMOKE_PLATFORM="${QYL_SMOKE_PLATFORM:-linux/amd64}"
+SMOKE_ID="$$-${RANDOM}"
+IMAGE_NAME="qyl-collector-aot-smoke:$SMOKE_ID"
+CONTAINER_NAME="qyl-collector-aot-smoke-$SMOKE_ID"
+VOLUME_NAME="qyl-collector-aot-smoke-$SMOKE_ID"
 
-# A stale listener on the port would answer the readiness probe and turn the whole smoke
-# into a false PASS for a binary that never even started — refuse to run against one.
-if curl -sf --max-time 2 "$BASE/health" >/dev/null 2>&1; then
-  echo "[smoke] FAIL: something already listens on $BASE — pick another QYL_SMOKE_PORT or kill it"; exit 1
-fi
+cleanup() {
+  local status=$?
+  set +e
 
-if [[ "${SKIP_PUBLISH:-0}" != "1" || ! -x "$BINARY" ]]; then
-  echo "[smoke] Publishing collector with QylAot=true..."
-  dotnet publish "$REPO_ROOT/services/qyl.collector/qyl.collector.csproj" \
-    -c Release -p:QylAot=true -p:QylEmbedDashboard=false 2>&1 | tee "$PUBLISH_LOG"
-
-  IL_WARNING_COUNT="$(grep -Ec 'warning IL[0-9]{4}:' "$PUBLISH_LOG" || true)"
-  EXPECTED_DUCKDB_IL2104="duckdb\.net\.data\.full[/\\\\]1\.5\.3[/\\\\]lib[/\\\\]net10\.0[/\\\\]DuckDB\.NET\.Data\.dll : warning IL2104: Assembly 'DuckDB\.NET\.Data' produced trim warnings"
-  EXPECTED_DUCKDB_IL3053="duckdb\.net\.data\.full[/\\\\]1\.5\.3[/\\\\]lib[/\\\\]net10\.0[/\\\\]DuckDB\.NET\.Data\.dll : warning IL3053: Assembly 'DuckDB\.NET\.Data' produced AOT analysis warnings"
-  UNEXPECTED_IL_WARNINGS="$(grep -E 'warning IL[0-9]{4}:' "$PUBLISH_LOG" | grep -Ev "(${EXPECTED_DUCKDB_IL2104}|${EXPECTED_DUCKDB_IL3053})" || true)"
-  if [[ "$IL_WARNING_COUNT" != "2" ]] ||
-     ! grep -Eq "$EXPECTED_DUCKDB_IL2104" "$PUBLISH_LOG" ||
-     ! grep -Eq "$EXPECTED_DUCKDB_IL3053" "$PUBLISH_LOG" ||
-     [[ -n "$UNEXPECTED_IL_WARNINGS" ]]; then
-    echo "[smoke] FAIL: NativeAOT diagnostics changed; only the reviewed DuckDB.NET.Data 1.5.3 IL2104/IL3053 rollups are allowed"
-    [[ -z "$UNEXPECTED_IL_WARNINGS" ]] || echo "$UNEXPECTED_IL_WARNINGS"
-    exit 1
+  if ((status != 0)) && docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+    echo "[smoke] Docker container state:"
+    docker container inspect --format '{{json .State}}' "$CONTAINER_NAME" 2>&1
+    echo "[smoke] Collector container logs:"
+    docker logs "$CONTAINER_NAME" 2>&1
   fi
-  echo "[smoke] NativeAOT diagnostics limited to reviewed DuckDB.NET.Data 1.5.3 rollups"
+
+  docker container rm --force "$CONTAINER_NAME" >/dev/null 2>&1
+  docker image rm --force "$IMAGE_NAME" >/dev/null 2>&1
+  docker volume rm --force "$VOLUME_NAME" >/dev/null 2>&1
+  exit "$status"
+}
+trap cleanup EXIT
+
+fail() {
+  echo "[smoke] FAIL: $*" >&2
+  exit 1
+}
+
+wait_for_ready() {
+  local health_status="starting"
+  local running
+
+  for ((attempt = 0; attempt < 120; attempt++)); do
+    running="$(docker container inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null)" \
+      || fail "collector container disappeared during startup"
+    [[ "$running" == "true" ]] || fail "collector container exited during startup"
+
+    health_status="$(docker container inspect --format '{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null)" \
+      || fail "collector Docker health state is unavailable"
+    if [[ "$health_status" == "healthy" ]] \
+      && curl -fsS --max-time 2 "$BASE/health" >/dev/null 2>&1; then
+      echo "[smoke] Docker HEALTHCHECK + HTTP health OK"
+      return
+    fi
+
+    sleep 0.5
+  done
+
+  fail "/health never became ready (Docker health: $health_status)"
+}
+
+assert_runtime_identity() {
+  local data_owner_uid
+  local pid_gid
+  local pid_uid
+  local qyl_gid
+  local qyl_uid
+
+  pid_uid="$(docker exec "$CONTAINER_NAME" awk '/^Uid:/ { print $2; exit }' /proc/1/status)"
+  pid_gid="$(docker exec "$CONTAINER_NAME" awk '/^Gid:/ { print $2; exit }' /proc/1/status)"
+  qyl_uid="$(docker exec "$CONTAINER_NAME" id -u qyl)"
+  qyl_gid="$(docker exec "$CONTAINER_NAME" id -g qyl)"
+  [[ "$pid_uid" != "0" && "$pid_uid" == "$qyl_uid" ]] \
+    || fail "collector PID 1 UID is $pid_uid, expected qyl UID $qyl_uid"
+  [[ "$pid_gid" == "$qyl_gid" ]] \
+    || fail "collector PID 1 GID is $pid_gid, expected qyl GID $qyl_gid"
+
+  data_owner_uid="$(docker exec "$CONTAINER_NAME" stat -c '%u' /data)"
+  [[ "$data_owner_uid" == "$qyl_uid" ]] \
+    || fail "/data owner UID is $data_owner_uid, expected qyl UID $qyl_uid"
+  echo "[smoke] PID 1 runs as qyl and owns /data"
+}
+
+stop_cleanly() {
+  local phase="$1"
+  local exit_code
+  local running
+
+  docker stop --time 60 "$CONTAINER_NAME" >/dev/null \
+    || fail "$phase docker stop failed"
+  running="$(docker container inspect --format '{{.State.Running}}' "$CONTAINER_NAME")"
+  exit_code="$(docker container inspect --format '{{.State.ExitCode}}' "$CONTAINER_NAME")"
+  [[ "$running" == "false" ]] || fail "$phase left the collector running"
+  [[ "$exit_code" == "0" ]] || fail "$phase exited with status $exit_code"
+  echo "[smoke] $phase completed with exit status 0"
+}
+
+# A stale listener would answer the readiness probe and turn the smoke into a false pass.
+if curl -fsS --max-time 2 "$BASE/health" >/dev/null 2>&1; then
+  fail "something already listens on $BASE; pick another QYL_SMOKE_PORT or stop it"
 fi
 
-file "$BINARY" | grep -qE "Mach-O|ELF" || { echo "[smoke] FAIL: $BINARY is not a native executable"; exit 1; }
-! ls "$PUBLISH_DIR"/qyl.collector.dll 2>/dev/null || { echo "[smoke] FAIL: managed qyl.collector.dll beside the binary — JIT publish snuck in"; exit 1; }
-# A self-contained single-file JIT bundle is also Mach-O/ELF with no .dll beside it, but its
-# apphost loads hostfxr; an ILC-compiled binary never references it. Heuristic, but it
-# distinguishes exactly the two publish shapes this gate can produce.
-if strings "$BINARY" | grep -qE "hostfxr|DOTNET_ROOT_"; then
-  echo "[smoke] FAIL: binary references hostfxr — this is a single-file JIT bundle, not Native AOT"; exit 1
-fi
-echo "[smoke] Native binary confirmed: $(file "$BINARY" | cut -d: -f2 | xargs)"
+echo "[smoke] Building collector deployment image..."
+docker build \
+  --progress=plain \
+  --no-cache-filter build \
+  --platform "$SMOKE_PLATFORM" \
+  --file "$REPO_ROOT/services/qyl.collector/Dockerfile" \
+  --tag "$IMAGE_NAME" \
+  "$REPO_ROOT"
 
-echo "[smoke] Starting native collector on :$PORT (db in $DB_DIR)..."
-QYL_PORT="$PORT" QYL_OTLP_PORT=0 QYL_GRPC_PORT=0 QYL_DATA_PATH="$DB_DIR/smoke.duckdb" ASPNETCORE_ENVIRONMENT=Development \
-  "$BINARY" >"$DB_DIR/collector.log" 2>&1 &
-COLLECTOR_PID=$!
+docker volume create "$VOLUME_NAME" >/dev/null
+docker run --rm \
+  --platform "$SMOKE_PLATFORM" \
+  --entrypoint /bin/sh \
+  --mount "type=volume,source=$VOLUME_NAME,target=/data" \
+  "$IMAGE_NAME" \
+  -c 'chown 0:0 /data && chmod 0755 /data && test "$(stat -c "%u:%g:%a" /data)" = "0:0:755"'
+echo "[smoke] Root-owned 0755 deployment volume initialized"
 
-for ((attempt = 0; attempt < 60; attempt++)); do
-  curl -sf "$BASE/health" >/dev/null 2>&1 && break
-  kill -0 "$COLLECTOR_PID" 2>/dev/null || { echo "[smoke] FAIL: collector exited during startup"; tail -40 "$DB_DIR/collector.log"; exit 1; }
-  sleep 0.5
-done
-curl -sf "$BASE/health" >/dev/null || { echo "[smoke] FAIL: /health never became ready"; tail -40 "$DB_DIR/collector.log"; exit 1; }
-echo "[smoke] Health OK"
+echo "[smoke] Starting collector image on host :$HOST_PORT, container :$CONTAINER_PORT..."
+docker run --detach \
+  --platform "$SMOKE_PLATFORM" \
+  --name "$CONTAINER_NAME" \
+  --publish "127.0.0.1:$HOST_PORT:$CONTAINER_PORT" \
+  --mount "type=volume,source=$VOLUME_NAME,target=/data" \
+  --env "PORT=$CONTAINER_PORT" \
+  --env QYL_OTLP_AUTH_MODE=Unsecured \
+  --env QYL_GRPC_PORT=0 \
+  --env QYL_OTLP_PORT=0 \
+  "$IMAGE_NAME" >/dev/null
+
+wait_for_ready
+assert_runtime_identity
+
+DASHBOARD="$(curl -fsS --max-time 5 "$BASE/")" || fail "embedded dashboard request failed"
+grep -q '<title>QYL Dashboard</title>' <<<"$DASHBOARD" \
+  || fail "/ did not serve the embedded dashboard"
+echo "[smoke] Embedded dashboard OK"
 
 TRACE_ID="0af7651916cd43dd8448eb211c80319c"
 SPAN_ID="b7ad6b7169203331"
@@ -82,23 +153,46 @@ OTLP_PAYLOAD=$(cat <<JSON
    "status":{"code":1}}]}]}]}
 JSON
 )
-curl -sf -X POST "$BASE/v1/traces" -H "Content-Type: application/json" -d "$OTLP_PAYLOAD" >/dev/null \
-  || { echo "[smoke] FAIL: OTLP ingest rejected"; tail -20 "$DB_DIR/collector.log"; exit 1; }
+curl -fsS --max-time 5 -X POST "$BASE/v1/traces" \
+  -H "Content-Type: application/json" \
+  -d "$OTLP_PAYLOAD" >/dev/null \
+  || fail "OTLP ingest rejected"
 echo "[smoke] OTLP span ingested"
 
 sleep 1
-TRACES=$(curl -sf "$BASE/api/v1/traces")
-echo "$TRACES" | grep -q "$TRACE_ID" || { echo "[smoke] FAIL: ingested trace not in /api/v1/traces: $TRACES"; exit 1; }
+TRACES="$(curl -fsS --max-time 5 "$BASE/api/v1/traces")" || fail "trace list request failed"
+grep -q "$TRACE_ID" <<<"$TRACES" \
+  || fail "ingested trace not in /api/v1/traces: $TRACES"
 echo "[smoke] Trace readback OK"
 
-curl -sf "$BASE/api/v1/traces/$TRACE_ID" | grep -q "$SPAN_ID" || { echo "[smoke] FAIL: span not in trace detail"; exit 1; }
+TRACE_DETAIL="$(curl -fsS --max-time 5 "$BASE/api/v1/traces/$TRACE_ID")" \
+  || fail "trace detail request failed"
+grep -q "$SPAN_ID" <<<"$TRACE_DETAIL" || fail "span not in trace detail"
 echo "[smoke] Span detail OK"
 
-# Sessions aggregate → DuckDB LIST(VARCHAR) columns → the provider's generic list
-# materialization under Native AOT. This is the most reflection-dependent DuckDB read shape qyl uses.
-SESSIONS=$(curl -sf "$BASE/api/v1/sessions")
-echo "$SESSIONS" | grep -q '"services":\["aot-smoke"\]' || { echo "[smoke] FAIL: services LIST aggregate missing: $SESSIONS"; exit 1; }
-echo "$SESSIONS" | grep -q '"models_used":\["claude-fable-5"\]' || { echo "[smoke] FAIL: models_used LIST aggregate missing: $SESSIONS"; exit 1; }
-echo "[smoke] Sessions (LIST materialization) OK"
+# This aggregate exercises DuckDB LIST(VARCHAR) materialization under Native AOT.
+SESSIONS="$(curl -fsS --max-time 5 "$BASE/api/v1/sessions")" || fail "sessions request failed"
+grep -q '"services":\["aot-smoke"\]' <<<"$SESSIONS" \
+  || fail "services LIST aggregate missing: $SESSIONS"
+grep -q '"models_used":\["claude-fable-5"\]' <<<"$SESSIONS" \
+  || fail "models_used LIST aggregate missing: $SESSIONS"
+docker exec "$CONTAINER_NAME" test -s /data/qyl.duckdb \
+  || fail "collector did not persist its DuckDB file on /data"
+echo "[smoke] Sessions (LIST materialization) + volume persistence OK"
 
-echo "[smoke] PASS: native collector serves OTLP ingest + product API end to end"
+stop_cleanly "Initial graceful stop"
+
+docker start "$CONTAINER_NAME" >/dev/null
+wait_for_ready
+assert_runtime_identity
+
+TRACES="$(curl -fsS --max-time 5 "$BASE/api/v1/traces")" || fail "trace list after restart failed"
+grep -q "$TRACE_ID" <<<"$TRACES" \
+  || fail "persisted trace missing after restart: $TRACES"
+TRACE_DETAIL="$(curl -fsS --max-time 5 "$BASE/api/v1/traces/$TRACE_ID")" \
+  || fail "trace detail after restart failed"
+grep -q "$SPAN_ID" <<<"$TRACE_DETAIL" || fail "persisted span missing after restart"
+echo "[smoke] Existing trace persisted across container restart"
+
+stop_cleanly "Final graceful stop"
+echo "[smoke] PASS: non-root deployment image persists data and shuts down cleanly"

@@ -16,35 +16,25 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-aot@sha256:977c117b98abe301eeb4c2ed3f8dee
 
 WORKDIR /src
 
-COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Version.props global.json nuget.config ./
-COPY eng/ eng/
-
-COPY services/qyl.collector/*.csproj services/qyl.collector/
-COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
-COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
-COPY internal/qyl.collector.storage.generators/*.csproj internal/qyl.collector.storage.generators/
-
-WORKDIR /src/services/qyl.collector
-RUN dotnet restore -p:QylAot=true
-
-WORKDIR /src
-COPY services/qyl.collector/ services/qyl.collector/
-COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
-COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
-COPY internal/qyl.collector.storage.generators/ internal/qyl.collector.storage.generators/
+COPY . .
 
 # The dashboard build lands where the csproj embed gate expects it: a Release publish embeds
 # dist/** into the assembly (QylEmbedDashboard), and the publish fails loudly if dist is missing.
 COPY --from=dashboard /dashboard/dist services/qyl.dashboard/dist/
 
-WORKDIR /src/services/qyl.collector
-RUN dotnet publish -c Release -o /app --no-restore \
-    -p:QylAot=true \
-    -p:QylEmbedDashboard=true \
-    && test -x /app/qyl.collector \
+RUN eng/scripts/publish-collector-aot.sh /app
+
+RUN test -x /app/qyl.collector \
     && test ! -e /app/qyl.collector.dll \
     && test -f /app/libduckdb.so \
     || (echo "ERROR: Native AOT publish did not produce the expected collector artifacts" && exit 1)
+
+RUN set -e; \
+    command -v strings >/dev/null; \
+    if strings /app/qyl.collector | grep -Eq 'hostfxr|DOTNET_ROOT_'; then \
+        echo "ERROR: Collector binary references the .NET host and is not Native AOT"; \
+        exit 1; \
+    fi
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:894098eafc82e5fa02ba9f2b71d426dc78252876b9e914caae77ed95cfce185a AS runtime
 
@@ -53,16 +43,16 @@ LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
 LABEL org.opencontainers.image.source="https://github.com/ANcpLua/qyl"
 LABEL org.opencontainers.image.licenses="MIT"
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+RUN apt-get update && apt-get install -y --no-install-recommends curl util-linux && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --system qyl && useradd --system --gid qyl qyl && \
-    mkdir -p /app /data && chown -R qyl:qyl /app /data
+    mkdir -p /app /data && chown qyl:qyl /app /data && \
+    command -v setpriv >/dev/null
 
 WORKDIR /app
 
 COPY --from=build --chown=qyl:qyl /app .
-
-USER qyl
+COPY --chmod=0555 services/qyl.collector/container-entrypoint.sh /usr/local/bin/qyl-entrypoint
 
 EXPOSE 5100 4317 4318
 
@@ -76,4 +66,4 @@ ENV QYL_BIND_ADDRESS=0.0.0.0 \
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
     CMD curl -sf "http://localhost:${PORT:-5100}/health" || exit 1
 
-ENTRYPOINT ["/app/qyl.collector"]
+ENTRYPOINT ["/usr/local/bin/qyl-entrypoint"]
