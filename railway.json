@@ -32,6 +32,7 @@
         "restartPolicyMaxRetries": 10,
         "overlapSeconds": 0,
         "drainingSeconds": 60,
+        "requiredMountPath": "/data",
         "useLegacyStacker": false,
         "ipv6EgressEnabled": false
       }
