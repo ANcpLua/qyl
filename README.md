@@ -265,6 +265,25 @@ fixed ports is already occupied; it never attaches to an unrelated process.
 | `5200` | Isolated diagnostics collector API |
 | `18888` | Loopback runner resource API |
 
+### Attaching an MCP server
+
+`qyl up` can supervise one MCP server alongside the stack and project it onto the
+runner API (`/runner/mcp/mcp/tools`, `/tools/call`, `/resources/read`):
+
+```bash
+qyl up --mcp-stdio <command> [args...]   # launch a child over stdio
+qyl up --mcp-http <url>                  # attach over Streamable HTTP
+```
+
+Everything after `--mcp-stdio` is the child command line. The child inherits this
+process's environment plus `QYL_COLLECTOR_URL=http://127.0.0.1:5100` and
+`QYL_OTLP_ENDPOINT=http://127.0.0.1:4318`, so a qyl-aware MCP server — such as
+[qyl.mcp](https://github.com/ANcpLua/qyl.mcp) — reads from and exports telemetry to
+this stack with no configuration. The attachment waits for the collector, then
+readiness is a completed MCP handshake (initialize plus `tools/list`); a failed
+attachment marks only the `mcp` resource failed and never blocks the collector
+or dashboard.
+
 ### Native AOT publish
 
 Native AOT is the collector's publish contract: `QylAot` defaults on, so

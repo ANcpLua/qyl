@@ -37,14 +37,17 @@ public static class QylMcpBuilderExtensions
     /// and standard output.
     /// </summary>
     /// <remarks>
-    /// The MCP SDK transport owns the child process and manages its lifetime.
+    /// The MCP SDK transport owns the child process and manages its lifetime. The child
+    /// inherits this process's environment; <paramref name="environment"/> entries are
+    /// applied on top, and a <see langword="null"/> value removes the inherited variable.
     /// </remarks>
     public static IQylResourceBuilder AddMcpStdio(
         this QylAppBuilder app,
         string name,
         string command,
         IEnumerable<string>? arguments = null,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        IReadOnlyDictionary<string, string?>? environment = null)
     {
         QylGuard.NotNull(app);
         QylGuard.NotNullOrWhiteSpace(name);
@@ -55,7 +58,10 @@ public static class QylMcpBuilderExtensions
             Name = name,
             Command = command,
             Arguments = arguments?.ToArray() ?? [],
-            WorkingDirectory = workingDirectory
+            WorkingDirectory = workingDirectory,
+            EnvironmentVariables = environment is null
+                ? null
+                : new Dictionary<string, string?>(environment, StringComparer.Ordinal)
         };
 
         return AddMcpResource(
