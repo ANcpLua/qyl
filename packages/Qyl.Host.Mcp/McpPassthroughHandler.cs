@@ -43,7 +43,11 @@ internal sealed class McpPassthroughHandler(
 
         if (route is McpRoute.Unknown)
         {
-            await RespondNotFoundAsync(context, "runner_mcp_route", path).ConfigureAwait(false);
+            await RespondNotFoundAsync(context, "runner_mcp_route", path,
+                    $"No runner_mcp_route named '{path}' exists. The runner projects an attached " +
+                    "MCP server as: GET /runner/mcp/{name}/tools, POST /runner/mcp/{name}/tools/call, " +
+                    "POST /runner/mcp/{name}/resources/read.")
+                .ConfigureAwait(false);
             return true;
         }
 
@@ -213,7 +217,8 @@ internal sealed class McpPassthroughHandler(
         }
     }
 
-    private static Task RespondNotFoundAsync(HttpListenerContext context, string resourceType, string resourceId) =>
+    private static Task RespondNotFoundAsync(
+        HttpListenerContext context, string resourceType, string resourceId, string? detail = null) =>
         RespondProblemAsync(
             context,
             HttpStatusCode.NotFound,
@@ -222,7 +227,7 @@ internal sealed class McpPassthroughHandler(
                 ProblemType = new Uri("about:blank"),
                 Title = "Not Found",
                 Status = (int)HttpStatusCode.NotFound,
-                Detail = $"No {resourceType} named '{resourceId}' exists.",
+                Detail = detail ?? $"No {resourceType} named '{resourceId}' exists.",
                 ResourceType = resourceType,
                 ResourceId = resourceId
             },

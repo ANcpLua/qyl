@@ -109,7 +109,12 @@ public sealed class CompositionTests
         Assert.Equal("127.0.0.1", diagnostics.Launch?.Env[QylConstants.Env.QylBindAddress]);
         Assert.Equal(string.Empty, diagnostics.Launch?.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
         Assert.Equal("Unsecured", diagnostics.Launch?.Env[QylConstants.Env.QylOtlpAuthMode]);
-        Assert.Equal("qyl.diagnostics.duckdb", diagnostics.Launch?.Env[QylConstants.Env.QylDataPath]);
+        Assert.Equal(
+            Path.Combine(QylConstants.Collector.DefaultDataHome, "qyl.diagnostics.duckdb"),
+            diagnostics.Launch?.Env[QylConstants.Env.QylDataPath]);
+        Assert.Equal(
+            Path.Combine(QylConstants.Collector.DefaultDataHome, "qyl.collector.duckdb"),
+            owner.Launch?.Env[QylConstants.Env.QylDataPath]);
         Assert.Equal([diagnostics.Name], owner.WaitsFor);
         Assert.Equal(
             $"http://127.0.0.1:{diagnostics.OtlpHttpPort}",

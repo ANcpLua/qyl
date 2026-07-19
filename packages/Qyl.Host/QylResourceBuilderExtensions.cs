@@ -69,15 +69,19 @@ public static class QylResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Gives a collector resource its own DuckDB file (<c>qyl.&lt;name&gt;.duckdb</c>) so two
-    /// instances of the same collector project never contend for one storage file.
+    /// Gives a collector resource its own DuckDB file (<c>~/.qyl/qyl.&lt;name&gt;.duckdb</c>) so two
+    /// instances of the same collector project never contend for one storage file, and so the
+    /// files never land in the operator's working directory. A later
+    /// <see cref="WithEnvironment"/> call for <c>QYL_DATA_PATH</c> overrides this default.
     /// </summary>
     internal static IQylResourceBuilder WithIsolatedStorage(this IQylResourceBuilder builder)
     {
         QylGuard.NotNull(builder);
+        var dataHome = QylConstants.Collector.DefaultDataHome;
+        Directory.CreateDirectory(dataHome);
         return builder.WithEnvironment(QylConstants.Env.QylDataPath,
-            string.Format(CultureInfo.InvariantCulture, QylConstants.Collector.DataPathTemplate,
-                builder.Name));
+            Path.Combine(dataHome, string.Format(CultureInfo.InvariantCulture,
+                QylConstants.Collector.DataPathTemplate, builder.Name)));
     }
 
     /// <summary>

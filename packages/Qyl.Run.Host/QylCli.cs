@@ -22,11 +22,14 @@ internal static class QylCli
         qyl - local OpenTelemetry investigation stack
 
         Usage:
-          qyl up        Start the collector, embedded dashboard, and diagnostics collector
+          qyl up        Start the collector, embedded dashboard, and diagnostics collector.
+                        Telemetry is stored under ~/.qyl/, never in the working directory.
           qyl up --mcp-stdio <command> [args...]
                         Also launch an MCP server as a supervised child over stdio and
-                        expose it at /runner/mcp/mcp on the runner API. The child inherits
-                        QYL_COLLECTOR_URL and QYL_OTLP_ENDPOINT pointed at this stack.
+                        project it on the runner API: GET /runner/mcp/mcp/tools,
+                        POST /runner/mcp/mcp/tools/call, POST /runner/mcp/mcp/resources/read.
+                        The child inherits QYL_COLLECTOR_URL and QYL_OTLP_ENDPOINT
+                        pointed at this stack.
           qyl up --mcp-http <url>
                         Also attach to an already-running MCP server over Streamable HTTP
           qyl --version Show the installed qyl version

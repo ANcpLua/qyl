@@ -98,7 +98,7 @@ public sealed class QylAppBuilder
             OtlpHttpPort = otlpHttpPort,
             GrpcPort = grpcPort,
             Launch = BuildLaunchSpec(command, name, env)
-        });
+        }).WithIsolatedStorage();
 
         if (selfTelemetry is not null)
         {

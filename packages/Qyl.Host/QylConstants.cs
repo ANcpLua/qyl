@@ -54,6 +54,14 @@ internal static class QylConstants
         public const string OtlpHttpProtobuf = "http/protobuf";
         public const string UnsecuredAuthMode = "Unsecured";
         public const string DataPathTemplate = "qyl.{0}.duckdb";
+
+        /// <summary>
+        /// Where collector children keep their DuckDB files. A fixed per-user home keeps
+        /// telemetry out of whatever directory the operator happened to run `qyl up` from —
+        /// a relative default would litter git repositories with growing database files.
+        /// </summary>
+        public static string DefaultDataHome =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".qyl");
     }
 
     public static class Routes
