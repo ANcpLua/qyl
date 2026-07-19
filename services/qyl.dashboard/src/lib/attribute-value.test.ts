@@ -25,7 +25,7 @@ describe('AttributeValue presentation', () => {
     });
 
     it('formats empty, bytes, arrays, and recursive key-value lists', () => {
-        const value = {
+        const value: AttributeValue = {
             type: 'kvlist',
             values: {
                 empty: null,
@@ -33,7 +33,7 @@ describe('AttributeValue presentation', () => {
                 nested: [true, {type: 'double', value: 'Infinity'}],
                 payload: {type: 'bytes', base64: '/w=='},
             },
-        } as unknown as AttributeValue;
+        };
 
         expect(decodeAttributeValue(value)).toEqual({
             empty: null,

@@ -99,7 +99,7 @@ function SpanRow({
     const color = getSpanColor(span);
     const typeLabel = getSpanTypeLabel(span);
 
-    const handleClick = (e: React.MouseEvent) => {
+    const handleClick = (e: React.SyntheticEvent) => {
         e.stopPropagation();
         onSelect();
     };
@@ -123,7 +123,7 @@ function SpanRow({
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleClick(e as unknown as React.MouseEvent);
+                    handleClick(e);
                 }
             }}
         >
