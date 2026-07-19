@@ -1009,34 +1009,6 @@ internal sealed partial class DuckDbStore : IQylStore
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
-        using var providerCostCmd = con.CreateCommand();
-        providerCostCmd.CommandText = string.Concat(
-            ProviderCostBucketRow.CreateTableDdl, "\n",
-            ProviderCostSyncRow.CreateTableDdl, "\n",
-            ProviderCostBucketRow.MigrateTableDdl, "\n",
-            ProviderCostSyncRow.MigrateTableDdl, "\n",
-            ProviderCostBucketRow.IndexesDdl, "\n",
-            ProviderCostSyncRow.IndexesDdl);
-        providerCostCmd.ExecuteNonQuery();
-
-        using var modelPricingCatalogCmd = con.CreateCommand();
-        modelPricingCatalogCmd.CommandText = string.Concat(
-            ModelPricingCatalogSourceRow.CreateTableDdl, "\n",
-            ModelPricingCatalogSnapshotRow.CreateTableDdl, "\n",
-            ModelPricingCatalogModelRow.CreateTableDdl, "\n",
-            ModelPricingCatalogOverrideRow.CreateTableDdl, "\n",
-            ModelPricingCatalogRateRow.CreateTableDdl, "\n",
-            ModelPricingCatalogSourceRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogSnapshotRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogModelRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogOverrideRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogRateRow.MigrateTableDdl, "\n",
-            ModelPricingCatalogModelRow.IndexesDdl, "\n",
-            ModelPricingCatalogSnapshotRow.IndexesDdl, "\n",
-            ModelPricingCatalogOverrideRow.IndexesDdl, "\n",
-            ModelPricingCatalogRateRow.IndexesDdl);
-        modelPricingCatalogCmd.ExecuteNonQuery();
-
         VerifyPersistedPrimaryKeys(con);
     }
 
@@ -1052,14 +1024,7 @@ internal sealed partial class DuckDbStore : IQylStore
             (ProfileLocationRow.TableName, ProfileLocationRow.PrimaryKeyColumnsCsv),
             (ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv),
             (ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv),
-            (ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv),
-            (ProviderCostBucketRow.TableName, ProviderCostBucketRow.PrimaryKeyColumnsCsv),
-            (ProviderCostSyncRow.TableName, ProviderCostSyncRow.PrimaryKeyColumnsCsv),
-            (ModelPricingCatalogSourceRow.TableName, ModelPricingCatalogSourceRow.PrimaryKeyColumnsCsv),
-            (ModelPricingCatalogSnapshotRow.TableName, ModelPricingCatalogSnapshotRow.PrimaryKeyColumnsCsv),
-            (ModelPricingCatalogModelRow.TableName, ModelPricingCatalogModelRow.PrimaryKeyColumnsCsv),
-            (ModelPricingCatalogOverrideRow.TableName, ModelPricingCatalogOverrideRow.PrimaryKeyColumnsCsv),
-            (ModelPricingCatalogRateRow.TableName, ModelPricingCatalogRateRow.PrimaryKeyColumnsCsv)
+            (ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv)
         ];
 
         foreach (var (table, columns) in expected)

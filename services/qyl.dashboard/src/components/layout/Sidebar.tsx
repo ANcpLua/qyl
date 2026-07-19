@@ -3,7 +3,6 @@ import type {LucideIcon} from 'lucide-react';
 import {
     ChevronLeft,
     ChevronRight,
-    CircleDollarSign,
     FileText,
     GitBranch,
     Terminal,
@@ -22,7 +21,6 @@ interface NavItem {
 const navItems: NavItem[] = [
     {to: '/traces', icon: GitBranch, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
-    {to: '/cost', icon: CircleDollarSign, label: 'COST', shortcut: '$'},
 ];
 
 interface SidebarProps {

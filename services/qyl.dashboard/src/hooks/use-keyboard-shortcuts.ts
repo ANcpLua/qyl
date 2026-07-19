@@ -119,11 +119,6 @@ export function useNavigationShortcuts(
                 handler: () => navigate('/logs'),
             }),
             registerShortcut({
-                key: '$',
-                description: 'Go to GenAI Cost',
-                handler: () => navigate('/cost'),
-            }),
-            registerShortcut({
                 key: 'escape',
                 description: 'Close panel / Clear selection',
                 handler: () => {

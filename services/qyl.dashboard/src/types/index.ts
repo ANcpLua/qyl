@@ -6,18 +6,6 @@ import {
 } from '@ancplua/qyl-api-schema/types';
 
 export type {
-    GenAiEtlAuditCluster,
-    GenAiEtlAuditEvaluationRequest,
-    GenAiEtlAuditEvaluationResponse,
-    GenAiEtlAuditReport,
-    GenAiEtlCatalogTokenCostEstimate,
-    GenAiEtlClusterEvaluation,
-    GenAiEtlClusterScenario,
-    GenAiEtlPromotionGateKind,
-    GenAiEtlPromotionGateState,
-    ModelCatalogSource,
-    ProviderBillingAttribution,
-    ProviderBillingSource,
     SessionEntity,
     Span,
 } from '@ancplua/qyl-api-schema/types';

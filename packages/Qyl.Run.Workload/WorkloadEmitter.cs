@@ -14,10 +14,8 @@ internal sealed partial class WorkloadEmitter(
 
     private const int ErrorPercent = 7;
 
-    // Model ids must byte-equal a live OpenRouter catalog `id` (or canonical_slug): the
-    // catalog estimator matches observed span models by exact ordinal comparison, so a
-    // fabricated or retired id makes every demo cluster report model_not_found instead
-    // of a priced estimate. Verified against GET /api/v1/models on 2026-07-15.
+    // Real provider model ids, so demo spans carry a plausible gen_ai.request.model.
+    // Nothing resolves these against a catalog any more; they only need to look real.
     private static readonly ModelProfile[] Profiles =
     [
         new("anthropic", "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),

@@ -1,15 +1,9 @@
 /** Shared HTTP helpers for the local, unsecured development dashboard. */
 
 import type {
-    GenAiEtlAuditEvaluationRequest,
-    GenAiEtlAuditEvaluationResponse,
-    GenAiEtlAuditReport,
 } from '@/types';
 import type {HeartbeatEvent, LogStreamEvent} from '@ancplua/qyl-api-schema/types';
 import {
-    parseGenAiEtlAuditEvaluationRequest,
-    parseGenAiEtlAuditEvaluationResponse,
-    parseGenAiEtlAuditReport,
     parseHeartbeatEvent,
     parseLogStreamEvent,
     parseProblemDetails,
@@ -123,45 +117,4 @@ export async function postJson<T>(
         headers: {...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json'},
         body: JSON.stringify(body),
     });
-}
-
-function costAuditUrl(path: string, startTime?: string, endTime?: string, limit?: number): string {
-    const query = new URLSearchParams();
-    if (startTime) query.set('startTime', startTime);
-    if (endTime) query.set('endTime', endTime);
-    if (limit !== undefined) query.set('limit', String(limit));
-    const suffix = query.toString();
-    return suffix ? `${path}?${suffix}` : path;
-}
-
-function projectScopeHeaders(projectScope?: string): HeadersInit | undefined {
-    const normalized = projectScope?.trim();
-    return normalized ? {'X-Qyl-Project': normalized} : undefined;
-}
-
-export function fetchGenAiEtlAudit(
-    startTime?: string,
-    endTime?: string,
-    limit = 25,
-    projectScope?: string,
-): Promise<GenAiEtlAuditReport> {
-    return fetchJson(
-        costAuditUrl('/api/v1/cost/etl-audit', startTime, endTime, limit),
-        parseGenAiEtlAuditReport,
-        {headers: projectScopeHeaders(projectScope)},
-    );
-}
-
-export function evaluateGenAiEtlAudit(
-    request: GenAiEtlAuditEvaluationRequest,
-    startTime?: string,
-    endTime?: string,
-    projectScope?: string,
-): Promise<GenAiEtlAuditEvaluationResponse> {
-    return postJson(
-        costAuditUrl('/api/v1/cost/etl-audit/evaluate', startTime, endTime),
-        parseGenAiEtlAuditEvaluationRequest(request),
-        parseGenAiEtlAuditEvaluationResponse,
-        projectScopeHeaders(projectScope),
-    );
 }

@@ -8,7 +8,6 @@ using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Profiles;
 using Qyl.Api.Contracts.OTel.Traces;
 using Qyl.Api.Contracts.Streaming;
-using Qyl.Api.Contracts.Cost;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
@@ -76,15 +75,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ServiceUnavailableError))]
 [JsonSerializable(typeof(LogStreamEvent))]
 [JsonSerializable(typeof(HeartbeatEvent))]
-[JsonSerializable(typeof(ProviderBillingSource))]
-[JsonSerializable(typeof(GenAiEtlAuditReport))]
-[JsonSerializable(typeof(GenAiEtlAuditSummary))]
-[JsonSerializable(typeof(GenAiEtlAuditCluster))]
-[JsonSerializable(typeof(GenAiEtlPromotionGate))]
-[JsonSerializable(typeof(GenAiEtlAuditEvaluationRequest))]
-[JsonSerializable(typeof(GenAiEtlClusterScenario))]
-[JsonSerializable(typeof(GenAiEtlAuditEvaluationResponse))]
-[JsonSerializable(typeof(GenAiEtlClusterEvaluation))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(object[]))]

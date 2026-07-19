@@ -71,7 +71,6 @@ test.describe('qyl executable product surface', () => {
 
         await expect(page.getByRole('link', {name: /traces/i})).toBeVisible();
         await expect(page.getByRole('link', {name: /logs/i})).toBeVisible();
-        await expect(page.getByRole('link', {name: /cost/i})).toBeVisible();
         await expect(page.getByRole('link', {name: /agents/i})).toHaveCount(0);
         await expect(page.getByRole('link', {name: /search/i})).toHaveCount(0);
     });

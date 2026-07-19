@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Qyl.Collector;
-using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Api.Contracts;
@@ -19,7 +18,6 @@ using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.Streaming;
-using Qyl.Api.Contracts.Cost;
 using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
 using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
 using ExportMetricsServiceRequest = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
@@ -61,9 +59,6 @@ internal static class CollectorEndpointExtensions
         api.MapGet("/stream/logs", StreamLogsAsync);
 
         api.MapGet("/metrics", GetMetricsAsync);
-
-        api.MapGet("/cost/etl-audit", GetGenAiEtlAuditAsync);
-        api.MapPost("/cost/etl-audit/evaluate", EvaluateGenAiEtlAuditAsync);
 
         api.MapGet("/profiles", GetProfilesAsync);
         api.MapGet("/profiles/{profileId}", GetProfileByIdAsync);
@@ -761,152 +756,6 @@ internal static class CollectorEndpointExtensions
             ? sequence
             : null;
 
-    internal static async Task<IResult> GetGenAiEtlAuditAsync(
-        HttpContext httpContext,
-        GenAiEtlAuditService auditService,
-        TimeProvider timeProvider,
-        CancellationToken ct)
-    {
-        if (ContractQueryParser.ParseGenAiEtlAudit(httpContext.Request, out var query) is { } queryError)
-            return queryError;
-        if (!ContractLimits.TryResolve(
-                query.Limit,
-                ContractLimits.GenAiEtlAuditDefaultLimit,
-                ContractLimits.GenAiEtlAuditMaxLimit,
-                out var limit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.GenAiEtlAuditMaxLimit);
-        }
-        if (!TryResolveAuditPeriod(
-                query.StartTime,
-                query.EndTime,
-                timeProvider,
-                out var periodStart,
-                out var periodEnd,
-                out var periodError))
-        {
-            return periodError!;
-        }
-
-        var report = await auditService.GetReportAsync(
-                ResolveProjectScope(httpContext),
-                periodStart,
-                periodEnd,
-                limit,
-                ct)
-            .ConfigureAwait(false);
-        return Results.Ok(report);
-    }
-
-    internal static async Task<IResult> EvaluateGenAiEtlAuditAsync(
-        HttpContext httpContext,
-        GenAiEtlAuditService auditService,
-        TimeProvider timeProvider,
-        CancellationToken ct)
-    {
-        if (ContractQueryParser.ParseGenAiEtlAuditPeriod(httpContext.Request, out var query) is { } queryError)
-            return queryError;
-        if (!TryResolveAuditPeriod(
-                query.StartTime,
-                query.EndTime,
-                timeProvider,
-                out var periodStart,
-                out var periodEnd,
-                out var periodError))
-        {
-            return periodError!;
-        }
-
-        if (!httpContext.Request.HasJsonContentType())
-        {
-            return ContractErrorResults.Validation(
-                "body",
-                "Content-Type must be application/json.",
-                "body.unsupported_content_type",
-                httpContext.Request.ContentType);
-        }
-
-        GenAiEtlAuditEvaluationRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync(
-                    httpContext.Request.Body,
-                    QylSerializerContext.Default.GenAiEtlAuditEvaluationRequest,
-                    ct)
-                .ConfigureAwait(false);
-        }
-        catch (JsonException)
-        {
-            return ContractErrorResults.Validation(
-                "body",
-                "Request body must be a valid ETL audit evaluation document.",
-                "body.invalid_json");
-        }
-
-        if (request is null)
-        {
-            return ContractErrorResults.Validation(
-                "body",
-                "Request body is required.",
-                "body.required");
-        }
-
-        var outcome = await auditService.EvaluateAsync(
-                ResolveProjectScope(httpContext),
-                periodStart,
-                periodEnd,
-                request,
-                ct)
-            .ConfigureAwait(false);
-        if (outcome.Failure is { } failure)
-        {
-            return ContractErrorResults.Validation(
-                failure.Field,
-                failure.Message,
-                failure.Code,
-                failure.RejectedValue);
-        }
-
-        return Results.Ok(outcome.Response);
-    }
-
-    private static bool TryResolveAuditPeriod(
-        DateTimeOffset? requestedStart,
-        DateTimeOffset? requestedEnd,
-        TimeProvider timeProvider,
-        out DateTimeOffset periodStart,
-        out DateTimeOffset periodEnd,
-        out IResult? error)
-    {
-        var now = timeProvider.GetUtcNow();
-        var defaultEnd = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
-        periodEnd = (requestedEnd ?? defaultEnd).ToUniversalTime();
-        periodStart = (requestedStart ?? periodEnd.AddDays(-30)).ToUniversalTime();
-        if (periodStart < periodEnd &&
-            periodEnd - periodStart <= TimeSpan.FromDays(ContractLimits.GenAiEtlAuditMaxPeriodDays))
-        {
-            error = null;
-            return true;
-        }
-
-        if (periodStart < periodEnd)
-        {
-            error = ContractErrorResults.Validation(
-                "startTime",
-                $"The ETL audit period must not exceed {ContractLimits.GenAiEtlAuditMaxPeriodDays} days.",
-                "period.too_large",
-                periodStart.ToString("O", CultureInfo.InvariantCulture));
-            return false;
-        }
-
-        error = ContractErrorResults.Validation(
-            "startTime",
-            "startTime must be earlier than endTime.",
-            "period.invalid",
-            requestedStart?.ToString("O", CultureInfo.InvariantCulture));
-        return false;
-    }
-
     private static async Task WriteSseEventAsync<T>(
         HttpResponse response,
         string eventType,
@@ -1159,9 +1008,6 @@ internal static class CollectorEndpointExtensions
         public const int LogMaxLimit = 10_000;
         public const int MetricMaxLimit = 1_000;
         public const int ProfileMaxLimit = 1_000;
-        public const int GenAiEtlAuditDefaultLimit = 25;
-        public const int GenAiEtlAuditMaxLimit = 100;
-        public const int GenAiEtlAuditMaxPeriodDays = 180;
         public const int MinimumLogSeverity = 0;
         public const int MinimumStreamSeverity = 1;
         public const int MaximumLogSeverity = 24;

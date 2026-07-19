@@ -30,11 +30,6 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.Metrics, "startTime", "9999-12-31T23:59:59Z", "query.invalid_date_time" },
             { QueryEndpoint.Metrics, "limit", "many", "query.invalid_integer" },
             { QueryEndpoint.Metrics, "cursor", "not-a-qyl-cursor", "cursor.invalid" },
-            { QueryEndpoint.GenAiEtlAudit, "startTime", "last-month", "query.invalid_date_time" },
-            { QueryEndpoint.GenAiEtlAudit, "endTime", "next-month", "query.invalid_date_time" },
-            { QueryEndpoint.GenAiEtlAudit, "limit", "all", "query.invalid_integer" },
-            { QueryEndpoint.GenAiEtlAuditEvaluation, "startTime", "last-month", "query.invalid_date_time" },
-            { QueryEndpoint.GenAiEtlAuditEvaluation, "endTime", "next-month", "query.invalid_date_time" },
             { QueryEndpoint.LogStream, "minSeverity", "warning", "query.invalid_integer" },
             { QueryEndpoint.Profiles, "limit", "unbounded", "query.invalid_integer" },
             { QueryEndpoint.TraceProfiles, "limit", "unbounded", "query.invalid_integer" },
@@ -49,7 +44,6 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.Logs, "severityMin", "25", "severity.out_of_range" },
             { QueryEndpoint.Logs, "limit", "10001", "limit.out_of_range" },
             { QueryEndpoint.Metrics, "limit", "1001", "limit.out_of_range" },
-            { QueryEndpoint.GenAiEtlAudit, "limit", "101", "limit.out_of_range" },
             { QueryEndpoint.LogStream, "minSeverity", "0", "severity.out_of_range" },
             { QueryEndpoint.Profiles, "limit", "0", "limit.out_of_range" },
             { QueryEndpoint.TraceProfiles, "limit", "1001", "limit.out_of_range" },
@@ -130,33 +124,6 @@ public sealed class ContractQueryParserTests
             QylTimeConversions.ToUnixNanoUnsigned(parsed.StartTime!.Value) % 1_000_000_000UL);
     }
 
-    [Fact]
-    public async Task Etl_audit_rejects_a_period_longer_than_the_bounded_provider_window()
-    {
-        var context = CreateContext();
-        context.Request.QueryString = QueryString.Create(
-        [
-            new KeyValuePair<string, string?>("startTime", "2026-01-01T00:00:00Z"),
-            new KeyValuePair<string, string?>("endTime", "2026-07-01T00:00:00Z")
-        ]);
-
-        var result = await CollectorEndpointExtensions.GetGenAiEtlAuditAsync(
-            context,
-            null!,
-            TimeProvider.System,
-            TestContext.Current.CancellationToken);
-        await result.ExecuteAsync(context);
-
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-        context.Response.Body.Position = 0;
-        var problem = await JsonSerializer.DeserializeAsync(
-            context.Response.Body,
-            QylSerializerContext.Default.ValidationError,
-            TestContext.Current.CancellationToken);
-        var detail = Assert.Single(Assert.IsType<ValidationError>(problem).Errors);
-        Assert.Equal("period.too_large", detail.Code);
-    }
-
     private static async Task InvokeEndpointAsync(QueryEndpoint endpoint, DefaultHttpContext context)
     {
         IResult? result = endpoint switch
@@ -171,10 +138,6 @@ public sealed class ContractQueryParserTests
                 context, null!, null, null, null, null, null, TestContext.Current.CancellationToken),
             QueryEndpoint.Metrics => await CollectorEndpointExtensions.GetMetricsAsync(
                 context, null!, TestContext.Current.CancellationToken),
-            QueryEndpoint.GenAiEtlAudit => await CollectorEndpointExtensions.GetGenAiEtlAuditAsync(
-                context, null!, TimeProvider.System, TestContext.Current.CancellationToken),
-            QueryEndpoint.GenAiEtlAuditEvaluation => await CollectorEndpointExtensions.EvaluateGenAiEtlAuditAsync(
-                context, null!, TimeProvider.System, TestContext.Current.CancellationToken),
             QueryEndpoint.Profiles => await CollectorEndpointExtensions.GetProfilesAsync(
                 context, null!, null, null, null, null, TestContext.Current.CancellationToken),
             QueryEndpoint.TraceProfiles => await CollectorEndpointExtensions.GetTraceProfilesAsync(
@@ -221,8 +184,6 @@ public sealed class ContractQueryParserTests
         Traces,
         Logs,
         Metrics,
-        GenAiEtlAudit,
-        GenAiEtlAuditEvaluation,
         LogStream,
         Profiles,
         TraceProfiles,

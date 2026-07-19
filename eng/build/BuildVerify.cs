@@ -306,8 +306,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             static bool IsStorageOrIngestionInternal(string path) =>
                 path.Contains("/Storage/", StringComparison.Ordinal) ||
-                path.Contains("/Ingestion/", StringComparison.Ordinal) ||
-                path.Contains("/Cost/", StringComparison.Ordinal);
+                path.Contains("/Ingestion/", StringComparison.Ordinal);
 
             static bool IsInfrastructureType(string name) =>
                 name.EndsWith("Middleware", StringComparison.Ordinal) ||
@@ -490,12 +489,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/metrics", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/profiles", expectedDefault);
-            var expectedGenAiEtlAuditDefault = ReadOpenApiIntegerSchemaValue(
-                document,
-                "/api/v1/cost/etl-audit",
-                "limit",
-                "default");
-
             var expected = new Dictionary<string, int>(StringComparer.Ordinal)
             {
                 ["DefaultPageLimit"] = expectedDefault,
@@ -503,13 +496,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
                 ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
                 ["MetricMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "maximum"),
-                ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum"),
-                ["GenAiEtlAuditDefaultLimit"] = expectedGenAiEtlAuditDefault,
-                ["GenAiEtlAuditMaxLimit"] = ReadOpenApiIntegerSchemaValue(
-                    document,
-                    "/api/v1/cost/etl-audit",
-                    "limit",
-                    "maximum")
+                ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum")
             };
 
             var mismatches = expected
@@ -2228,6 +2215,23 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "GenAiCostUsd",
                 "ModelPricingDdl",
                 "ModelPricingTiersDdl",
+                // GenAI cost / model-pricing / ETL-audit subsystem, removed wholesale.
+                // Cost estimation stays out of the collector until ingest is stable.
+                "GenAiEtlAuditService",
+                "GenAiEtlAuditAnalyzer",
+                "GenAiEtlCatalogEstimator",
+                "ModelPricingCalculator",
+                "ModelPricingCatalogRefreshService",
+                "ModelPricingCatalogRepository",
+                "OpenRouterModelPricingCatalogSource",
+                "OpenAiOrganizationCostsSource",
+                "AnthropicCostReportSource",
+                "ProviderCostSyncService",
+                "IProviderCostSource",
+                "provider_cost_buckets",
+                "model_pricing_catalog_sources",
+                "/api/v1/cost/etl-audit",
+                "QYL_OPENROUTER_API_KEY",
                 "CostByModelHourlyViewDdl",
                 "model_pricing_tiers",
                 "cost_by_model_hourly",
@@ -2621,70 +2625,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
         });
 
-    Target VerifyModelPricingRatesAreProviderSupplied => d => d
-        .Unlisted()
-        .Description("Verify model-pricing rates are parsed from provider catalogs, not embedded in collector code")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            var offenders = CollectorSourceFiles()
-                .SelectMany(file =>
-                {
-                    var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString());
-                    return tree.GetCompilationUnitRoot()
-                        .DescendantNodes()
-                        .OfType<ObjectCreationExpressionSyntax>()
-                        .Where(static creation =>
-                            creation.Type.ToString().EndsWith("ModelPricingRate", StringComparison.Ordinal))
-                        .SelectMany(creation => creation.ArgumentList?.Arguments ?? [])
-                        .Where(static argument => IsNonZeroNumericLiteral(argument.Expression))
-                        .Select(argument => (
-                            File: RootDirectory.GetRelativePathTo(file).ToString(),
-                            Line: argument.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
-                            Text: argument.Expression.ToString()));
-                })
-                .ToList();
-
-            if (offenders.Count is 0)
-            {
-                Log.Information("Collector model-pricing rates come from provider catalog values");
-                return;
-            }
-
-            foreach (var offender in offenders)
-                Log.Error("  Embedded model-pricing rate at {File}:{Line}: {Text}",
-                    offender.File, offender.Line, offender.Text);
-
-            throw new InvalidOperationException(
-                "Do not embed model prices in collector code. Parse rates from configured provider catalog APIs.");
-
-            static bool IsNonZeroNumericLiteral(ExpressionSyntax expression)
-            {
-                if (expression is LiteralExpressionSyntax literal &&
-                    literal.Token.Value is IConvertible convertible)
-                {
-                    try
-                    {
-                        return convertible.ToDecimal(CultureInfo.InvariantCulture) is not 0;
-                    }
-                    catch (FormatException)
-                    {
-                        return false;
-                    }
-                    catch (InvalidCastException)
-                    {
-                        return false;
-                    }
-                }
-
-                return expression is PrefixUnaryExpressionSyntax
-                {
-                    OperatorToken.RawKind: (int)SyntaxKind.MinusToken,
-                    Operand: LiteralExpressionSyntax
-                };
-            }
-        });
-
     Target Verify => d => d
         .Description("Run collector and frontend verification checks")
         .DependsOn(VerifyFrontendApiTypes)
@@ -2724,7 +2664,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
-        .DependsOn(VerifyModelPricingRatesAreProviderSupplied)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
         {

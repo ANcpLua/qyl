@@ -12,7 +12,6 @@ interface TopBarProps {
 const pageTitle: Record<string, string> = {
     '/traces': 'TRACES',
     '/logs': 'STRUCTURED LOGS',
-    '/cost': 'GENAI COST',
 };
 
 export function TopBar({

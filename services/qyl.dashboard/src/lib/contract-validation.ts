@@ -2,9 +2,6 @@ import type {
     CursorPageSessionEntity,
     CursorPageSpan,
     CursorPageTrace,
-    GenAiEtlAuditEvaluationRequest,
-    GenAiEtlAuditEvaluationResponse,
-    GenAiEtlAuditReport,
     HealthReport,
     HeartbeatEvent,
     LogStreamEvent,
@@ -25,13 +22,6 @@ const validateSessionPage = compile<CursorPageSessionEntity>('Operations.Session
 const validateTracePage = compile<CursorPageTrace>('Operations.TracesApi_list.Response.200');
 const validateSessionTracePage = compile<CursorPageTrace>('Operations.SessionsApi_getTraces.Response.200');
 const validateSpanPage = compile<CursorPageSpan>('Operations.TracesApi_getSpans.Response.200');
-const validateAuditReport = compile<GenAiEtlAuditReport>('Operations.GenAiEtlAuditApi_report.Response.200');
-const validateAuditRequest = compile<GenAiEtlAuditEvaluationRequest>(
-    'Operations.GenAiEtlAuditApi_evaluate.Request',
-);
-const validateAuditResponse = compile<GenAiEtlAuditEvaluationResponse>(
-    'Operations.GenAiEtlAuditApi_evaluate.Response.200',
-);
 const validateLogStreamEvent = compile<LogStreamEvent>('Streaming.LogStreamEvent');
 const validateHeartbeatEvent = compile<HeartbeatEvent>('Streaming.HeartbeatEvent');
 const validateProblemDetails = compile<ProblemDetails>('Common.Errors.ProblemDetails');
@@ -69,15 +59,6 @@ export const parseSessionTracePage = (value: unknown, sessionId: string): Cursor
 
 export const parseSpanPage = (value: unknown, traceId: string): CursorPageSpan =>
     parseContract(validateSpanPage, value, `/api/v1/traces/${traceId}/spans`);
-
-export const parseGenAiEtlAuditReport = (value: unknown): GenAiEtlAuditReport =>
-    parseContract(validateAuditReport, value, '/api/v1/cost/etl-audit');
-
-export const parseGenAiEtlAuditEvaluationRequest = (value: unknown): GenAiEtlAuditEvaluationRequest =>
-    parseContract(validateAuditRequest, value, '/api/v1/cost/etl-audit/evaluate request');
-
-export const parseGenAiEtlAuditEvaluationResponse = (value: unknown): GenAiEtlAuditEvaluationResponse =>
-    parseContract(validateAuditResponse, value, '/api/v1/cost/etl-audit/evaluate response');
 
 export const parseLogStreamEvent = (value: unknown): LogStreamEvent =>
     parseContract(validateLogStreamEvent, value, '/api/v1/stream/logs log event');

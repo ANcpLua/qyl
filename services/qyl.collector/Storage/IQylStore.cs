@@ -83,44 +83,6 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<StorageStats> GetStorageStatsAsync(string projectId, CancellationToken ct = default);
 
-    Task ReplaceProviderCostBucketsAsync(
-        string projectId,
-        string provider,
-        DateTimeOffset periodStart,
-        DateTimeOffset periodEnd,
-        IReadOnlyList<ProviderCostBucketRow> buckets,
-        ProviderCostSyncRow sync,
-        CancellationToken ct = default);
-
-    Task UpsertProviderCostSyncAsync(ProviderCostSyncRow sync, CancellationToken ct = default);
-
-    Task<bool> ActivateModelPricingCatalogSnapshotAsync(
-        ModelPricingCatalogSourceRow source,
-        ModelPricingCatalogSnapshotRow snapshot,
-        IReadOnlyList<ModelPricingCatalogModelRow> models,
-        IReadOnlyList<ModelPricingCatalogOverrideRow> overrides,
-        IReadOnlyList<ModelPricingCatalogRateRow> rates,
-        int retainedSnapshots,
-        CancellationToken ct = default);
-
-    Task UpsertModelPricingCatalogSourceAsync(
-        ModelPricingCatalogSourceRow source,
-        CancellationToken ct = default);
-
-    Task<ModelPricingCatalogStorageSnapshot?> GetModelPricingCatalogAsync(
-        string sourceId,
-        CancellationToken ct = default);
-
-    Task<ModelPricingCatalogSourceState?> GetModelPricingCatalogSourceAsync(
-        string sourceId,
-        CancellationToken ct = default);
-
-    Task<GenAiEtlAuditStorageSnapshot> GetGenAiEtlAuditSnapshotAsync(
-        string projectId,
-        DateTimeOffset periodStart,
-        DateTimeOffset periodEnd,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
         string projectId,
         string? sessionId = null,
