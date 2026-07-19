@@ -2232,6 +2232,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "model_pricing_catalog_sources",
                 "/api/v1/cost/etl-audit",
                 "QYL_OPENROUTER_API_KEY",
+                // Not an OpenTelemetry semantic convention — a qyl-invented attribute the
+                // trace view read. Cost is not derived from telemetry any more.
+                "gen_ai.response.cost_usd",
                 "CostByModelHourlyViewDdl",
                 "model_pricing_tiers",
                 "cost_by_model_hourly",

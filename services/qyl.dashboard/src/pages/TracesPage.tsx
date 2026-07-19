@@ -46,7 +46,6 @@ function getGenAiAttrs(span: Span) {
         requestModel: attributeString(attrs['gen_ai.request.model']),
         inputTokens: attributeNumber(attrs['gen_ai.usage.input_tokens']),
         outputTokens: attributeNumber(attrs['gen_ai.usage.output_tokens']),
-        costUsd: attributeNumber(attrs['gen_ai.response.cost_usd']),
     };
 }
 
@@ -337,14 +336,6 @@ function SpanDetails({span}: { span: Span }) {
                                 <div>
                                     <span className="text-brutal-slate">Total Tokens:</span>
                                     <span className="ml-2 font-mono">{totalTokens.toLocaleString()}</span>
-                                </div>
-                            )}
-                            {genai.costUsd && (
-                                <div>
-                                    <span className="text-brutal-slate">Cost:</span>
-                                    <span className="ml-2 font-mono text-signal-green">
-                    ${genai.costUsd.toFixed(6)}
-                  </span>
                                 </div>
                             )}
                         </div>
