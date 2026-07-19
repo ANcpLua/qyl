@@ -175,7 +175,11 @@ public sealed class QylAppBuilder
         Host.Services.AddSingleton<IReadOnlyList<QylResource>>(new ReadOnlyCollection<QylResource>([.. _resources]));
 #pragma warning disable AL1105 // health probing IS the retry loop; a resilience pipeline here would double-retry and drags non-AOT config binding back in
         Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe, static client =>
-            client.Timeout = TimeSpan.FromSeconds(QylConstants.Orchestrator.HealthProbeAttemptTimeoutSeconds));
+                client.Timeout = TimeSpan.FromSeconds(QylConstants.Orchestrator.HealthProbeAttemptTimeoutSeconds))
+            // Per-attempt HTTP logging is noise by the same argument: connection-refused during
+            // startup is the probe working, not an error, and the recurring poll chatter shreds
+            // the interactive console table. The orchestrator reports the state transitions.
+            .RemoveAllLoggers();
 #pragma warning restore AL1105
         Host.Services.AddSingleton<QylResourceRegistry>();
         Host.Services.AddSingleton<QylResourceActions>();
