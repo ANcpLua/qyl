@@ -288,14 +288,13 @@ delete the Sonner assertion.
 
 ## Controlled or justified assertions
 
-The 22 controlled type-assertion nodes are fully accounted for:
+The 18 controlled type-assertion nodes are fully accounted for:
 
-- Twelve `as const` nodes only preserve literal or tuple inference:
-  `e2e/smoke.spec.ts:164`, `EtlAuditView.tsx:521,542`,
-  `theme-toggle.tsx:7`, `use-cost-audit.ts:6,8`, and
+- Eight `as const` nodes only preserve literal or tuple inference:
+  `e2e/smoke.spec.ts:167`, `theme-toggle.tsx:11`, and
   `use-telemetry.ts:11-16`.
 - Three `as unknown` nodes deliberately widen JSON before generated AJV
-  validation: `HealthIndicator.tsx:26` and `src/lib/api.ts:104,112`.
+  validation: `HealthIndicator.tsx:26` and `src/lib/api.ts:98,106`.
 - `e2e/smoke.spec.ts:41` follows an immediate runtime shape assertion before
   reading `items`.
 - The two `LogsPage.tsx:90` assertions follow a runtime `LOG_LEVELS` membership
@@ -312,7 +311,7 @@ Eight non-null assertions are guarded by local invariants:
 
 - `RingBuffer.ts:98,106,113,119,126,136,146` iterates only over indices below
   the buffer's logical length;
-- `TracesPage.tsx:452` calls `stack.pop()!` only inside
+- `TracesPage.tsx:443` calls `stack.pop()!` only inside
   `while (stack.length > 0)`.
 
 ## Recommended order
