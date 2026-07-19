@@ -53,7 +53,7 @@ anything serialized across a boundary is a contract.
 - `Version.props` owns the Qyl product version and the shared package-version
   properties; `Directory.Packages.props` owns the central `PackageVersion` entries
   that consume them. Do not hardcode package or banner versions elsewhere.
-- The toolchain is the `global.json` SDK (`10.0.301`, `latestFeature`) and C# 14.
+- The toolchain is the `global.json` SDK (`10.0.302`, `latestFeature`) and C# 14.
   Interceptors are supported on this SDK; use the current Roslyn APIs.
 - Native AOT is the collector's publish contract (`QylAot` defaults on; the
   Dockerfile publishes the native lane). `eng/scripts/collector-aot-smoke.sh` is
