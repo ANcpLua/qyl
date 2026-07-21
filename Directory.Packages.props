@@ -36,7 +36,9 @@
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
     <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
     <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
+    <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcAspNetCoreVersion)"/>
     <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
+    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>

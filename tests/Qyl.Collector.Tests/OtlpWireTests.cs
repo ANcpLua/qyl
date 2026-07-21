@@ -1,6 +1,9 @@
 using Google.Protobuf;
+using Grpc.AspNetCore.Server;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -39,6 +42,17 @@ public sealed class OtlpWireTests
         string expected)
     {
         Assert.Equal(expected, OtlpPayloadParser.GetEncoding(contentType).ToString());
+    }
+
+    [Fact]
+    public void Collector_service_graph_registers_the_grpc_api_key_interceptor()
+    {
+        var services = new ServiceCollection();
+        services.AddQylCollectorCore(new ConfigurationBuilder().Build());
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptions<GrpcServiceOptions>>().Value;
+        Assert.Contains(options.Interceptors, registration => registration.Type == typeof(OtlpApiKeyInterceptor));
     }
 
     [Theory]

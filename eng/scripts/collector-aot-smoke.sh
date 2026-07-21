@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# Native AOT deployment-image smoke for the collector.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-HOST_PORT="${QYL_SMOKE_PORT:-5199}"
-CONTAINER_PORT="${QYL_SMOKE_CONTAINER_PORT:-5119}"
-BASE="http://localhost:$HOST_PORT"
+API_HOST_PORT="${QYL_SMOKE_API_PORT:-5199}"
+API_CONTAINER_PORT=5119
+OTLP_HTTP_HOST_PORT="${QYL_SMOKE_OTLP_HTTP_PORT:-4318}"
+GRPC_HOST_PORT="${QYL_SMOKE_GRPC_PORT:-4317}"
+API_BASE="http://127.0.0.1:$API_HOST_PORT/"
+OTLP_HTTP_BASE="http://127.0.0.1:$OTLP_HTTP_HOST_PORT/"
+GRPC_BASE="http://127.0.0.1:$GRPC_HOST_PORT/"
 SMOKE_PLATFORM="${QYL_SMOKE_PLATFORM:-linux/amd64}"
 SMOKE_ID="$$-${RANDOM}"
 IMAGE_NAME="qyl-collector-aot-smoke:$SMOKE_ID"
 CONTAINER_NAME="qyl-collector-aot-smoke-$SMOKE_ID"
 VOLUME_NAME="qyl-collector-aot-smoke-$SMOKE_ID"
+DRIVER_PROJECT="$REPO_ROOT/eng/tools/CollectorAotSmoke/CollectorAotSmoke.csproj"
+AUTH_KEY="aot-smoke-api-key-$SMOKE_ID"
 
 cleanup() {
   local status=$?
@@ -35,6 +40,19 @@ fail() {
   exit 1
 }
 
+phase() {
+  echo
+  echo "[smoke] === $* ==="
+}
+
+run_driver() {
+  dotnet run \
+    --project "$DRIVER_PROJECT" \
+    --configuration Release \
+    --no-build \
+    -- "$@"
+}
+
 wait_for_ready() {
   local health_status="starting"
   local running
@@ -47,8 +65,9 @@ wait_for_ready() {
     health_status="$(docker container inspect --format '{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null)" \
       || fail "collector Docker health state is unavailable"
     if [[ "$health_status" == "healthy" ]] \
-      && curl -fsS --max-time 2 "$BASE/health" >/dev/null 2>&1; then
-      echo "[smoke] Docker HEALTHCHECK + HTTP health OK"
+      && curl -fsS --max-time 2 "${API_BASE}health" >/dev/null 2>&1 \
+      && curl -fsS --max-time 2 "${OTLP_HTTP_BASE}health" >/dev/null 2>&1; then
+      echo "[smoke] Docker HEALTHCHECK, product HTTP, and OTLP HTTP listeners are ready"
       return
     fi
 
@@ -80,26 +99,52 @@ assert_runtime_identity() {
   echo "[smoke] PID 1 runs as qyl and owns /data"
 }
 
+start_container() {
+  local auth_mode="$1"
+  local -a docker_args=(
+    run --detach
+    --platform "$SMOKE_PLATFORM"
+    --name "$CONTAINER_NAME"
+    --publish "127.0.0.1:$API_HOST_PORT:$API_CONTAINER_PORT"
+    --publish "127.0.0.1:$OTLP_HTTP_HOST_PORT:4318"
+    --publish "127.0.0.1:$GRPC_HOST_PORT:4317"
+    --mount "type=volume,source=$VOLUME_NAME,target=/data"
+    --env "PORT=$API_CONTAINER_PORT"
+    --env "QYL_OTLP_AUTH_MODE=$auth_mode"
+  )
+
+  if [[ "$auth_mode" == "ApiKey" ]]; then
+    docker_args+=(--env "QYL_OTLP_PRIMARY_API_KEY=$AUTH_KEY")
+  fi
+
+  docker_args+=("$IMAGE_NAME")
+  docker "${docker_args[@]}" >/dev/null
+}
+
 stop_cleanly() {
-  local phase="$1"
+  local phase_name="$1"
   local exit_code
   local running
 
   docker stop --time 60 "$CONTAINER_NAME" >/dev/null \
-    || fail "$phase docker stop failed"
+    || fail "$phase_name docker stop failed"
   running="$(docker container inspect --format '{{.State.Running}}' "$CONTAINER_NAME")"
   exit_code="$(docker container inspect --format '{{.State.ExitCode}}' "$CONTAINER_NAME")"
-  [[ "$running" == "false" ]] || fail "$phase left the collector running"
-  [[ "$exit_code" == "0" ]] || fail "$phase exited with status $exit_code"
-  echo "[smoke] $phase completed with exit status 0"
+  [[ "$running" == "false" ]] || fail "$phase_name left the collector running"
+  [[ "$exit_code" == "0" ]] || fail "$phase_name exited with status $exit_code"
+  echo "[smoke] $phase_name completed with exit status 0"
 }
 
-# A stale listener would answer the readiness probe and turn the smoke into a false pass.
-if curl -fsS --max-time 2 "$BASE/health" >/dev/null 2>&1; then
-  fail "something already listens on $BASE; pick another QYL_SMOKE_PORT or stop it"
-fi
+for endpoint in "${API_BASE}health" "${OTLP_HTTP_BASE}health"; do
+  if curl -sS --max-time 2 "$endpoint" >/dev/null 2>&1; then
+    fail "something already listens at $endpoint; stop it or choose another smoke host port"
+  fi
+done
 
-echo "[smoke] Building collector deployment image..."
+phase "Build the checked-in OTLP wire driver"
+dotnet build "$DRIVER_PROJECT" --configuration Release --nologo
+
+phase "Build the collector deployment image"
 docker build \
   --progress=plain \
   --no-cache-filter build \
@@ -117,82 +162,49 @@ docker run --rm \
   -c 'chown 0:0 /data && chmod 0755 /data && test "$(stat -c "%u:%g:%a" /data)" = "0:0:755"'
 echo "[smoke] Root-owned 0755 deployment volume initialized"
 
-echo "[smoke] Starting collector image on host :$HOST_PORT, container :$CONTAINER_PORT..."
-docker run --detach \
-  --platform "$SMOKE_PLATFORM" \
-  --name "$CONTAINER_NAME" \
-  --publish "127.0.0.1:$HOST_PORT:$CONTAINER_PORT" \
-  --mount "type=volume,source=$VOLUME_NAME,target=/data" \
-  --env "PORT=$CONTAINER_PORT" \
-  --env QYL_OTLP_AUTH_MODE=Unsecured \
-  --env QYL_GRPC_PORT=0 \
-  --env QYL_OTLP_PORT=0 \
-  "$IMAGE_NAME" >/dev/null
-
+phase "Start the unsecured image with OTLP HTTP :4318 and gRPC :4317 enabled"
+start_container Unsecured
 wait_for_ready
 assert_runtime_identity
 
-DASHBOARD="$(curl -fsS --max-time 5 "$BASE/")" || fail "embedded dashboard request failed"
+DASHBOARD="$(curl -fsS --max-time 5 "$API_BASE")" || fail "embedded dashboard request failed"
 grep -q '<title>QYL Dashboard</title>' <<<"$DASHBOARD" \
   || fail "/ did not serve the embedded dashboard"
-echo "[smoke] Embedded dashboard OK"
+echo "[smoke] Embedded dashboard verified"
 
-TRACE_ID="0af7651916cd43dd8448eb211c80319c"
-SPAN_ID="b7ad6b7169203331"
-NOW_NS="$(($(date +%s) * 1000000000))"
-OTLP_PAYLOAD=$(cat <<JSON
-{"resourceSpans":[{"resource":{"attributes":[
-  {"key":"service.name","value":{"stringValue":"aot-smoke"}},
-  {"key":"session.id","value":{"stringValue":"aot-smoke-session"}},
-  {"key":"gen_ai.provider.name","value":{"stringValue":"anthropic"}}]},
- "scopeSpans":[{"scope":{"name":"aot-smoke"},"spans":[{
-   "traceId":"$TRACE_ID","spanId":"$SPAN_ID",
-   "name":"aot-smoke-span","kind":1,
-   "startTimeUnixNano":"$NOW_NS","endTimeUnixNano":"$((NOW_NS + 1000000))",
-   "attributes":[{"key":"gen_ai.request.model","value":{"stringValue":"claude-fable-5"}}],
-   "status":{"code":1}}]}]}]}
-JSON
-)
-curl -fsS --max-time 5 -X POST "$BASE/v1/traces" \
-  -H "Content-Type: application/json" \
-  -d "$OTLP_PAYLOAD" >/dev/null \
-  || fail "OTLP ingest rejected"
-echo "[smoke] OTLP span ingested"
-
-sleep 1
-TRACES="$(curl -fsS --max-time 5 "$BASE/api/v1/traces")" || fail "trace list request failed"
-grep -q "$TRACE_ID" <<<"$TRACES" \
-  || fail "ingested trace not in /api/v1/traces: $TRACES"
-echo "[smoke] Trace readback OK"
-
-TRACE_DETAIL="$(curl -fsS --max-time 5 "$BASE/api/v1/traces/$TRACE_ID")" \
-  || fail "trace detail request failed"
-grep -q "$SPAN_ID" <<<"$TRACE_DETAIL" || fail "span not in trace detail"
-echo "[smoke] Span detail OK"
-
-# This aggregate exercises DuckDB LIST(VARCHAR) materialization under Native AOT.
-SESSIONS="$(curl -fsS --max-time 5 "$BASE/api/v1/sessions")" || fail "sessions request failed"
-grep -q '"services":\["aot-smoke"\]' <<<"$SESSIONS" \
-  || fail "services LIST aggregate missing: $SESSIONS"
-grep -q '"models_used":\["claude-fable-5"\]' <<<"$SESSIONS" \
-  || fail "models_used LIST aggregate missing: $SESSIONS"
+phase "Lanes 1-5: HTTP JSON/protobuf, gRPC traces/logs, and metrics discard"
+run_driver wire "$API_BASE" "$OTLP_HTTP_BASE" "$GRPC_BASE"
 docker exec "$CONTAINER_NAME" test -s /data/qyl.duckdb \
   || fail "collector did not persist its DuckDB file on /data"
-echo "[smoke] Sessions (LIST materialization) + volume persistence OK"
+echo "[smoke] Native storage file verified"
 
+phase "Stock OTel SDK default export with only OTEL_EXPORTER_OTLP_ENDPOINT"
+(
+  while IFS='=' read -r variable _; do
+    case "$variable" in
+      OTEL_EXPORTER_OTLP_*) unset "$variable" ;;
+    esac
+  done < <(env)
+  export OTEL_EXPORTER_OTLP_ENDPOINT="$GRPC_BASE"
+  run_driver stock-sdk "$API_BASE"
+)
+
+phase "Lane 7: persistent trace survives a container restart"
 stop_cleanly "Initial graceful stop"
-
 docker start "$CONTAINER_NAME" >/dev/null
 wait_for_ready
 assert_runtime_identity
+run_driver persistence "$API_BASE"
+echo "[smoke] Trace persisted across container restart"
+stop_cleanly "Persistent-container graceful stop"
 
-TRACES="$(curl -fsS --max-time 5 "$BASE/api/v1/traces")" || fail "trace list after restart failed"
-grep -q "$TRACE_ID" <<<"$TRACES" \
-  || fail "persisted trace missing after restart: $TRACES"
-TRACE_DETAIL="$(curl -fsS --max-time 5 "$BASE/api/v1/traces/$TRACE_ID")" \
-  || fail "trace detail after restart failed"
-grep -q "$SPAN_ID" <<<"$TRACE_DETAIL" || fail "persisted span missing after restart"
-echo "[smoke] Existing trace persisted across container restart"
+phase "Lane 6: ApiKey-mode gRPC rejects missing metadata"
+docker container rm "$CONTAINER_NAME" >/dev/null
+start_container ApiKey
+wait_for_ready
+assert_runtime_identity
+run_driver grpc-auth "$GRPC_BASE"
+stop_cleanly "ApiKey-container graceful stop"
 
-stop_cleanly "Final graceful stop"
-echo "[smoke] PASS: non-root deployment image persists data and shuts down cleanly"
+echo
+echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes"

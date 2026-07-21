@@ -43,6 +43,7 @@
   </Folder>
 
   <Folder Name="/eng/tools/">
+    <Project Path="eng/tools/CollectorAotSmoke/CollectorAotSmoke.csproj" />
     <Project Path="eng/tools/GacInstallTool/GacInstallTool.csproj" />
     <Project Path="eng/tools/LibraryVersionsGenerator/LibraryVersionsGenerator.csproj" />
     <Project Path="eng/tools/QylToolSmoke/QylToolSmoke.csproj" />
