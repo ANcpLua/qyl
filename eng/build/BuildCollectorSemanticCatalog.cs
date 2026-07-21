@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -273,9 +274,9 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
                 CollectorSemanticPolicyFile.ToString());
         }
 
-        var config = JsonSerializer.Deserialize<CollectorSemanticPolicyConfig>(
+        var config = JsonSerializer.Deserialize(
             File.ReadAllText(CollectorSemanticPolicyFile),
-            CollectorSemanticPolicyJson.Options);
+            CollectorSemanticPolicyJsonContext.Default.CollectorSemanticPolicyConfig);
 
         if (config is null)
             throw new InvalidOperationException($"Collector semantic policy config '{CollectorSemanticPolicyFile}' is empty.");
@@ -595,13 +596,12 @@ internal sealed class CollectorSemanticPrefixPolicy
     }
 }
 
-internal static class CollectorSemanticPolicyJson
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    ReadCommentHandling = JsonCommentHandling.Skip)]
+[JsonSerializable(typeof(CollectorSemanticPolicyConfig))]
+internal sealed partial class CollectorSemanticPolicyJsonContext : JsonSerializerContext
 {
-    public static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        ReadCommentHandling = JsonCommentHandling.Skip
-    };
 }
 
 internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, string> packageAssemblyPaths)

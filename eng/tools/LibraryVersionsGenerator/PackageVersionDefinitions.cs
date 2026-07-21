@@ -4,8 +4,6 @@
 // OpenTelemetry .NET auto-instrumentation (Azure, EF Core, GraphQL, NLog, ...).
 // qyl's matrix starts from the packages its collector and instrumentation actually
 // consume; "*" resolves to the version pinned in Directory.Packages.props.
-// For versions that need companion packages, subclass PackageVersion and annotate
-// properties with [PackageDependency] — see Models/GraphQLVersion.cs for the pattern.
 
 using LibraryVersionsGenerator.Models;
 

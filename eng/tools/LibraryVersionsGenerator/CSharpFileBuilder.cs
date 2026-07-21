@@ -67,8 +67,6 @@ internal abstract class CSharpFileBuilder
 
     public abstract CSharpFileBuilder AddVersion(string version, string[] supportedFrameworks, string[] supportedPlatforms);
 
-    public abstract CSharpFileBuilder AddVersionWithDependencies(string version, Dictionary<string, string> dependencies, string[] supportedFrameworks, string[] supportedPlatforms);
-
     public abstract CSharpFileBuilder EndTestPackage();
 
     public override string ToString()

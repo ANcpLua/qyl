@@ -21,7 +21,7 @@ using Serilog;
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IVerify))]
-interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
+interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKnobs
 {
     [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
@@ -2453,10 +2453,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
         });
 
-    Target Verify => d => d
-        .Description("Run collector and frontend verification checks")
-        .DependsOn(VerifyFrontendApiTypes)
-        .DependsOn(VerifyFrontendTypes)
+    Target VerifyBackend => d => d
+        .Unlisted()
+        .Description("Run backend and repository contract verification checks")
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .DependsOn(VerifyCollectorHasNoUnexpectedPublicTypes)
         .DependsOn(VerifyCollectorHasNoPublicLocalModels)
@@ -2491,7 +2490,14 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
-        .DependsOn(VerifyNoRemovedBuildSurface)
+        .DependsOn<IConfigurationKnobs>(static x => x.VerifyConfigurationKnobs)
+        .DependsOn(VerifyNoRemovedBuildSurface);
+
+    Target Verify => d => d
+        .Description("Run collector and frontend verification checks")
+        .DependsOn(VerifyBackend)
+        .DependsOn(VerifyFrontendApiTypes)
+        .DependsOn(VerifyFrontendTypes)
         .Executes(() =>
         {
             Log.Information("═══════════════════════════════════════════════════════════════");
@@ -2529,6 +2535,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector OTLP ingestion is storage-schema blind");
             Log.Information("  Collector span storage identity is project- and trace-scoped");
             Log.Information("  Collector log storage writes are replay-idempotent");
+            Log.Information("  README configuration matches every QYL_* code binding");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       force_publish:
-        description: Publish even when no package-owned path changed
+        description: Force the publish lane (immutable-version guards still apply)
         required: false
         type: boolean
         default: false
@@ -24,15 +24,19 @@ env:
 
 jobs:
   version:
-    name: Read product version
+    name: Decide whether to publish
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 1
+          fetch-tags: true
 
-      - name: Read Version.props
+      - name: Read version and inspect its immutable tag
         id: version
         shell: bash
         run: |
@@ -43,9 +47,37 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Pull requests validate consumers but never publish."
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_publish }}" = "true" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Forced publish requested for v$VERSION."
+            exit 0
+          fi
+
+          TAG="v$VERSION"
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            TAG_COMMIT="$(git rev-list -n 1 "$TAG")"
+            if [ "$TAG_COMMIT" = "$GITHUB_SHA" ]; then
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+              echo "$TAG already belongs to this commit; the publish lane will verify the immutable release."
+            else
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              echo "::notice title=Nothing to publish::$TAG already belongs to $TAG_COMMIT; skipping consumer smokes and packaging."
+            fi
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "$TAG is new; the publish lane will run."
+          fi
+
   verify:
     name: Consumer smoke (${{ matrix.os }})
     needs: version
+    if: github.event_name == 'pull_request' || needs.version.outputs.publish == 'true'
     concurrency:
       group: nuget-verify-${{ github.ref }}-${{ matrix.os }}
       cancel-in-progress: true
@@ -119,7 +151,7 @@ jobs:
   pack:
     name: Pack release set
     needs: [version, verify]
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.version.outputs.publish == 'true'
     concurrency:
       group: nuget-pack-${{ github.ref }}
       cancel-in-progress: true
@@ -236,7 +268,7 @@ jobs:
   publish:
     name: Publish immutable release
     needs: [version, pack]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.version.outputs.publish == 'true'
     concurrency:
       group: nuget-publish-${{ needs.version.outputs.version }}
       cancel-in-progress: false
@@ -254,43 +286,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Must publish packages
-        id: gate
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_publish }}" = "true" ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          BASE=""
-          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            BASE="${{ github.event.before }}"
-          else
-            BASE="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
-          fi
-          if [ -z "$BASE" ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if git diff --quiet "$BASE" "$GITHUB_SHA" -- \
-            Version.props Directory.Build.props Directory.Build.targets Directory.Packages.props global.json nuget.config \
-            packages/Qyl.Host packages/Qyl.Host.Mcp packages/Qyl.Run.Host \
-            services/qyl.collector services/qyl.dashboard \
-            internal eng/build eng/MSBuild eng/tools/QylToolSmoke .github/workflows/nuget-publish.yml; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          else
-            git diff --name-only "$BASE" "$GITHUB_SHA" -- \
-              Version.props Directory.Build.props Directory.Build.targets Directory.Packages.props global.json nuget.config \
-              packages/Qyl.Host packages/Qyl.Host.Mcp packages/Qyl.Run.Host \
-              services/qyl.collector services/qyl.dashboard \
-              internal eng/build eng/MSBuild eng/tools/QylToolSmoke .github/workflows/nuget-publish.yml
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Guard version tag
-        if: steps.gate.outputs.publish == 'true'
         shell: bash
         run: |
           TAG="v$VERSION"
@@ -303,20 +299,17 @@ jobs:
           fi
 
       - name: Download packages
-        if: steps.gate.outputs.publish == 'true'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: packages
           path: artifacts
 
       - name: Setup .NET
-        if: steps.gate.outputs.publish == 'true'
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
 
       - name: Reject an immutable-version mismatch
-        if: steps.gate.outputs.publish == 'true'
         shell: bash
         run: |
           ids=(
@@ -355,14 +348,12 @@ jobs:
       # Keep OIDC authentication immediately before the push. The temporary key
       # is single-use and valid for one hour; no long-running build may follow it.
       - name: Authenticate to NuGet
-        if: steps.gate.outputs.publish == 'true'
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
         with:
           user: ANcpLua
 
       - name: Push in dependency order
-        if: steps.gate.outputs.publish == 'true'
         shell: bash
         run: |
           packages=(
@@ -382,7 +373,6 @@ jobs:
           done
 
       - name: Wait for the public feed
-        if: steps.gate.outputs.publish == 'true'
         shell: bash
         run: |
           ids=(
@@ -410,7 +400,6 @@ jobs:
           done
 
       - name: Install and exercise public NuGet in a clean consumer
-        if: steps.gate.outputs.publish == 'true'
         shell: bash
         run: |
           export NUGET_PACKAGES="$RUNNER_TEMP/public-packages"
@@ -430,7 +419,6 @@ jobs:
             --installed "$tool/qyl" --version "$VERSION"
 
       - name: Create GitHub release
-        if: steps.gate.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

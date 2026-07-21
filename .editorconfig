@@ -172,6 +172,9 @@ csharp_style_expression_bodied_accessors = true:warning
 # re-enable CA2007 so packable projects can promote it to an error.
 [packages/**/*.cs]
 dotnet_diagnostic.CA2007.severity = warning
+# qyl is pre-beta and converges public overloads directly; RS0016/RS0017 track the
+# surface, while RS0026's backward-compatibility policy remains advisory.
+dotnet_diagnostic.RS0026.severity = suggestion
 
 [*.json]
 indent_size = 2

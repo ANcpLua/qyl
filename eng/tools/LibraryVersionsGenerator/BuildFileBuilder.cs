@@ -41,16 +41,20 @@ internal sealed class BuildFileBuilder : CSharpFileBuilder
 
     public override CSharpFileBuilder AddVersion(string version, string[] supportedFrameworks, string[] supportedPlatforms)
     {
-        AddVersion(version, supportedFrameworks, supportedPlatforms, appendEnd: true);
+        Builder.Append(CultureInfo.InvariantCulture, $"                new(\"{version}\"");
 
-        return this;
-    }
+        if (supportedFrameworks.Length > 0)
+        {
+            Builder.Append(CultureInfo.InvariantCulture, $", supportedFrameworks: {SerializeArray(supportedFrameworks)}");
+        }
 
-    public override CSharpFileBuilder AddVersionWithDependencies(string version, Dictionary<string, string> dependencies, string[] supportedFrameworks, string[] supportedPlatforms)
-    {
-        AddVersion(version, supportedFrameworks, supportedPlatforms, appendEnd: false);
+        if (supportedPlatforms.Length > 0)
+        {
+            Builder.Append(CultureInfo.InvariantCulture, $", supportedPlatforms: {SerializeArray(supportedPlatforms)}");
+        }
 
-        Builder.AppendLine(CultureInfo.InvariantCulture, $", additionalMetaData: {SerializeDictionary(dependencies)}),");
+        Builder.AppendLine("),");
+
         return this;
     }
 
@@ -59,28 +63,6 @@ internal sealed class BuildFileBuilder : CSharpFileBuilder
         Builder.AppendLine(@"            ]
         },");
         return this;
-    }
-
-    private static string SerializeDictionary(Dictionary<string, string> dictionary)
-    {
-        var dictionarySb = new StringBuilder();
-        dictionarySb.Append("new() { ");
-
-        for (var i = 0; i < dictionary.Count; i++)
-        {
-            var dependency = dictionary.ElementAt(i);
-
-            dictionarySb.Append(CultureInfo.InvariantCulture, $"{{ \"{dependency.Key}\", \"{dependency.Value}\" }}");
-
-            if (i != dictionary.Count - 1)
-            {
-                dictionarySb.Append(", ");
-            }
-        }
-
-        dictionarySb.Append(" }");
-
-        return dictionarySb.ToString();
     }
 
     private static string SerializeArray(string[] array)
@@ -106,27 +88,5 @@ internal sealed class BuildFileBuilder : CSharpFileBuilder
         arraySb.Append(" ]");
 
         return arraySb.ToString();
-    }
-
-    private BuildFileBuilder AddVersion(string version, string[] supportedFrameworks, string[] supportedPlatforms, bool appendEnd)
-    {
-        Builder.Append(CultureInfo.InvariantCulture, $"                new(\"{version}\"");
-
-        if (supportedFrameworks.Length > 0)
-        {
-            Builder.Append(CultureInfo.InvariantCulture, $", supportedFrameworks: {SerializeArray(supportedFrameworks)}");
-        }
-
-        if (supportedPlatforms.Length > 0)
-        {
-            Builder.Append(CultureInfo.InvariantCulture, $", supportedPlatforms: {SerializeArray(supportedPlatforms)}");
-        }
-
-        if (appendEnd)
-        {
-            Builder.AppendLine("),");
-        }
-
-        return this;
     }
 }

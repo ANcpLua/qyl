@@ -27,6 +27,7 @@ sealed class Build : NukeBuild,
     INativeAot,
     IVerify,
     ICollectorSemanticCatalog,
+    IConfigurationKnobs,
     IHousekeeping,
     IPack
 {
@@ -50,7 +51,7 @@ sealed class Build : NukeBuild,
             From<IHazArtifacts>().ArtifactsDirectory.CreateOrCleanDirectory();
         });
 
-    Target Print => d => d
+    public Target Print => d => d
         .Unlisted()
         .Before<ICompile>(static x => x.Compile)
         .Executes(() =>
@@ -67,7 +68,7 @@ sealed class Build : NukeBuild,
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 
-    Target Ci => d => d
+    public Target Ci => d => d
         .Description("Local CI gate: backend, frontend, and generated artifacts")
         .DependsOn(Clean)
         .DependsOn<ICompile>(static x => x.Compile)
@@ -89,7 +90,7 @@ sealed class Build : NukeBuild,
             .EnableNoBuild()
             .EnableNoRestore()));
 
-    Target Dev => d => d
+    public Target Dev => d => d
         .Description("Start development environment (Docker + compile)")
         .DependsOn<IDocker>(static x => x.DockerUp)
         .DependsOn<ICompile>(static x => x.Compile)
@@ -110,7 +111,8 @@ sealed class Build : NukeBuild,
 
     Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
         .SetDeterministic(IsServerBuild)
-        .SetContinuousIntegrationBuild(IsServerBuild);
+        .SetContinuousIntegrationBuild(IsServerBuild)
+        .SetProperty("QylAot", false);
 
     T From<T>() where T : INukeBuild => (T)(object)this;
 

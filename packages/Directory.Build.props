@@ -2,6 +2,12 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
-    <WarningsAsErrors>$(WarningsAsErrors);CA2007</WarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);CA2007;RS0016;RS0017</WarningsAsErrors>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt"/>
+  </ItemGroup>
 </Project>

@@ -5,7 +5,6 @@
 // an output directory (default: Artifacts/generated). The repository has no
 // multi-version integration-test rig, so the generated matrix is an opt-in artifact.
 
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using LibraryVersionsGenerator.Models;
 using Microsoft.Build.Definition;
@@ -69,24 +68,15 @@ internal static class Program
                         }
                     }
 
-                    if (version.GetType() == typeof(PackageVersion))
+                    if (!isPlatformSpecific)
                     {
-                        if (!isPlatformSpecific)
-                        {
-                            xUnitFileStringBuilder.AddVersion(calculatedVersion, version.SupportedExecutionFrameworks);
-                        }
-
-                        buildFileStringBuilder.AddVersion(calculatedVersion, version.SupportedTargetFrameworks, version.SupportedPlatforms);
+                        xUnitFileStringBuilder.AddVersion(calculatedVersion, version.SupportedExecutionFrameworks);
                     }
-                    else
-                    {
-                        if (!isPlatformSpecific)
-                        {
-                            xUnitFileStringBuilder.AddVersionWithDependencies(calculatedVersion, GetDependencies(version), version.SupportedExecutionFrameworks, version.SupportedPlatforms);
-                        }
 
-                        buildFileStringBuilder.AddVersionWithDependencies(calculatedVersion, GetDependencies(version), version.SupportedTargetFrameworks, version.SupportedPlatforms);
-                    }
+                    buildFileStringBuilder.AddVersion(
+                        calculatedVersion,
+                        version.SupportedTargetFrameworks,
+                        version.SupportedPlatforms);
                 }
             }
 
@@ -136,19 +126,4 @@ internal static class Program
             ? _packageVersions[packageName]
             : version;
 
-    private static Dictionary<string, string> GetDependencies(PackageVersion version)
-    {
-        return version.GetType()
-            .GetProperties()
-            .Where(x => x.CustomAttributes.Any(x => x.AttributeType == typeof(PackageDependency)))
-            .ToDictionary(
-                k => k.GetCustomAttribute<PackageDependency>()!.VariableName,
-                v =>
-                {
-                    var packageName = v.GetCustomAttribute<PackageDependency>()!.PackageName;
-                    var packageVersion = (string)v.GetValue(version)!;
-
-                    return EvaluateVersion(packageName, packageVersion);
-                });
-    }
 }

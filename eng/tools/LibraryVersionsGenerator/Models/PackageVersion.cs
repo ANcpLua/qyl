@@ -3,7 +3,7 @@
 
 namespace LibraryVersionsGenerator.Models;
 
-internal class PackageVersion
+internal sealed class PackageVersion
 {
     public PackageVersion(string version, string[]? supportedTargetFrameworks = null, string[]? supportedExecutionFrameworks = null, string[]? supportedPlatforms = null)
     {

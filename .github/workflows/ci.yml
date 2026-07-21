@@ -25,8 +25,98 @@ env:
   NODE_VERSION: "22"
 
 jobs:
+  changes:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.paths.outputs.backend }}
+      frontend: ${{ steps.paths.outputs.frontend }}
+      product_e2e: ${{ steps.paths.outputs.product_e2e }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Select safe lanes
+        id: paths
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            mapfile -t changed < <(git diff-tree --root --no-commit-id --name-only -r "$HEAD_SHA")
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            mapfile -t changed < <(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          else
+            mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          fi
+
+          backend=false
+          frontend=false
+          product_e2e=false
+
+          if [ ${#changed[@]} -eq 0 ]; then
+            backend=true
+            frontend=true
+            product_e2e=true
+          fi
+
+          for path in "${changed[@]}"; do
+            case "$path" in
+              README.md|AGENTS.md|CLAUDE.md|docs/*)
+                ;;
+              .github/*.md)
+                if [[ "${path#.github/}" == */* ]]; then
+                  backend=true
+                  frontend=true
+                  product_e2e=true
+                fi
+                ;;
+              *.md)
+                if [[ "$path" == */* ]]; then
+                  backend=true
+                  frontend=true
+                  product_e2e=true
+                fi
+                ;;
+              services/qyl.dashboard/*)
+                frontend=true
+                product_e2e=true
+                ;;
+              packages/Qyl.Host.Console/*)
+                frontend=true
+                ;;
+              services/qyl.collector/*)
+                backend=true
+                product_e2e=true
+                ;;
+              packages/Qyl.Host/*|packages/Qyl.Host.Mcp/*|packages/Qyl.Run.Host/*|packages/Qyl.Run.Workload/*|internal/*|tests/*)
+                backend=true
+                ;;
+              *)
+                backend=true
+                frontend=true
+                product_e2e=true
+                ;;
+            esac
+          done
+
+          printf 'backend=%s\nfrontend=%s\nproduct_e2e=%s\n' \
+            "$backend" "$frontend" "$product_e2e" >> "$GITHUB_OUTPUT"
+
+          if [ "$backend" = false ] && [ "$frontend" = false ]; then
+            echo "::notice title=Docs-only change::No build, test, audit, or NativeAOT lane is needed."
+          else
+            echo "Selected lanes: backend=$backend frontend=$frontend product_e2e=$product_e2e"
+          fi
+
   backend:
     name: Backend (.NET)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -38,29 +128,22 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: |
-            services/qyl.dashboard/package-lock.json
-            packages/Qyl.Host.Console/package-lock.json
-
       - name: Restore
         run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
       - name: Build
-        run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config
+        run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config -p:QylAot=false
 
       - name: Test
         run: dotnet test qyl.slnx --configuration Release --no-build --no-restore
 
       - name: Verify
-        run: ./eng/build.sh Verify --Configuration Release
+        run: ./eng/build.sh VerifyBackend --Configuration Release
 
   native-aot:
     name: NativeAOT runtime smokes
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -78,11 +161,18 @@ jobs:
 
   frontend:
     name: Frontend (React)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
 
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -121,6 +211,9 @@ jobs:
         working-directory: packages/Qyl.Host.Console
         run: npm run build
 
+      - name: Verify generated contract consumption
+        run: ./eng/build.sh VerifyFrontendApiTypes --Configuration Release
+
       - name: Coverage
         working-directory: services/qyl.dashboard
         run: npm run test:coverage
@@ -136,7 +229,12 @@ jobs:
   product-e2e:
     name: Embedded product (Playwright)
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [changes, backend, frontend]
+    if: >-
+      always() && !cancelled() &&
+      needs.changes.outputs.product_e2e == 'true' &&
+      (needs.backend.result == 'success' || needs.backend.result == 'skipped') &&
+      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
 
     steps:
       - name: Checkout
@@ -176,6 +274,8 @@ jobs:
 
   dependency-audit:
     name: Dependency Audit
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -183,11 +283,13 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Setup .NET
+        if: needs.changes.outputs.backend == 'true'
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
 
       - name: Setup Node.js
+        if: needs.changes.outputs.frontend == 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -197,9 +299,11 @@ jobs:
             packages/Qyl.Host.Console/package-lock.json
 
       - name: Restore
+        if: needs.changes.outputs.backend == 'true'
         run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
       - name: Audit .NET packages
+        if: needs.changes.outputs.backend == 'true'
         run: |
           while IFS= read -r -d '' project; do
             dotnet list "$project" package --vulnerable --include-transitive
@@ -214,6 +318,7 @@ jobs:
           )
 
       - name: Audit frontend packages
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: services/qyl.dashboard
         run: |
           npm ci
@@ -223,6 +328,7 @@ jobs:
           npm audit --audit-level=high --omit=dev
 
       - name: Audit runner-console packages
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: packages/Qyl.Host.Console
         run: |
           npm ci
