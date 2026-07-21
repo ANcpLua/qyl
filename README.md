@@ -225,6 +225,9 @@ Run the repository gate before pushing:
 dotnet run --project eng/build/build.csproj -- Ci
 ```
 
+GitHub Actions classifies documentation-only pushes before scheduling build
+lanes; required build jobs report skipped rather than disappearing.
+
 To prove the distributable itself, build the frontends, pack every published
 library plus all RID-specific `qyl` tool packages, install the current platform's
 tool into a clean directory, ingest a real OTLP trace, read it back through the
