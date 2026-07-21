@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry.Metrics;
 
 namespace Qyl.Run.Workload;
 
 internal sealed partial class WorkloadEmitter(
     ILogger<WorkloadEmitter> logger,
-    MeterProvider meterProvider,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     private const int SessionLoops = 3;
@@ -16,7 +14,7 @@ internal sealed partial class WorkloadEmitter(
 
     // Real provider model ids, so demo spans carry a plausible gen_ai.request.model.
     // Nothing resolves these against a catalog any more; they only need to look real.
-    private static readonly ModelProfile[] Profiles =
+    private static readonly ModelSpec[] Models =
     [
         new("anthropic", "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),
         new("anthropic", "anthropic/claude-sonnet-5", 400, 4000, 150, 1500, 400, 1800),
@@ -42,11 +40,6 @@ internal sealed partial class WorkloadEmitter(
             await EmitConversationTurnAsync($"acceptance-{Guid.NewGuid():N}"[..28], stoppingToken,
                     allowFailure: false)
                 .ConfigureAwait(false);
-            if (!meterProvider.ForceFlush(10_000))
-            {
-                throw new InvalidOperationException("Timed out exporting the one-shot workload metrics.");
-            }
-
             applicationLifetime.StopApplication();
             return;
         }
@@ -86,7 +79,7 @@ internal sealed partial class WorkloadEmitter(
     private async Task EmitConversationTurnAsync(string sessionId, CancellationToken stoppingToken,
         bool allowFailure = true)
     {
-        var profile = Profiles[Random.Shared.Next(Profiles.Length)];
+        var model = Models[Random.Shared.Next(Models.Length)];
         var route = Routes[Random.Shared.Next(Routes.Length)];
         var failed = allowFailure && Random.Shared.Next(100) < ErrorPercent;
 
@@ -102,7 +95,7 @@ internal sealed partial class WorkloadEmitter(
             .SetSessionId(sessionId);
 
         await EmitDbSpanAsync(sessionId, stoppingToken).ConfigureAwait(false);
-        var latencyMs = await EmitGenAiSpanAsync(sessionId, route, profile, failed, stoppingToken)
+        var latencyMs = await EmitGenAiSpanAsync(sessionId, route, model, failed, stoppingToken)
             .ConfigureAwait(false);
 
         var statusCode = failed ? StatusCodes.Status429TooManyRequests : StatusCodes.Status200OK;
@@ -115,7 +108,7 @@ internal sealed partial class WorkloadEmitter(
 
         if (failed)
         {
-            LogTurnFailed(logger, profile.Provider, profile.Model, latencyMs);
+            LogTurnFailed(logger, model.Provider, model.Model, latencyMs);
         }
     }
 
@@ -134,64 +127,39 @@ internal sealed partial class WorkloadEmitter(
         await Task.Delay(durationMs, stoppingToken).ConfigureAwait(false);
     }
 
-    private async Task<int> EmitGenAiSpanAsync(string sessionId, string route, ModelProfile profile, bool failed,
+    private async Task<int> EmitGenAiSpanAsync(string sessionId, string route, ModelSpec model, bool failed,
         CancellationToken stoppingToken)
     {
-        var latencyMs = Random.Shared.Next(profile.LatencyMinMs, profile.LatencyMaxMs);
-        var inputTokens = Random.Shared.Next(profile.InputMin, profile.InputMax);
-        var outputTokens = Random.Shared.Next(profile.OutputMin, profile.OutputMax);
+        var latencyMs = Random.Shared.Next(model.LatencyMinMs, model.LatencyMaxMs);
+        var inputTokens = Random.Shared.Next(model.InputMin, model.InputMax);
+        var outputTokens = Random.Shared.Next(model.OutputMin, model.OutputMax);
 
-        using var span = WorkloadTelemetry.Source.StartActivity($"chat {profile.Model}", ActivityKind.Client);
+        using var span = WorkloadTelemetry.Source.StartActivity($"chat {model.Model}", ActivityKind.Client);
         span?.SetGenAiOperationName(GenAiSpans.GenAiOperationNameValues.Chat)
             .SetGenAiOutputType(route is "/api/search"
                 ? GenAiSpans.GenAiOutputTypeValues.Json
                 : GenAiSpans.GenAiOutputTypeValues.Text)
-            .SetGenAiProviderName(profile.Provider)
-            .SetGenAiRequestModel(profile.Model)
+            .SetGenAiProviderName(model.Provider)
+            .SetGenAiRequestModel(model.Model)
             .SetGenAiRequestTemperature(Math.Round(Random.Shared.NextDouble(), 2, MidpointRounding.AwayFromZero))
             .SetSessionId(sessionId);
 
         await Task.Delay(latencyMs, stoppingToken).ConfigureAwait(false);
-
-        var durationSeconds = latencyMs / 1000.0;
 
         if (failed)
         {
             span?.SetErrorType("rate_limit_exceeded");
             span?.SetStatus(ActivityStatusCode.Error, "429 from provider");
 
-            WorkloadTelemetry.RecordGenAiOperationDuration(
-                GenAiSpans.GenAiOperationNameValues.Chat,
-                profile.Provider,
-                profile.Model,
-                responseModel: null,
-                durationSeconds,
-                errorType: "rate_limit_exceeded");
         }
         else
         {
-            span?.SetGenAiResponseModel(profile.Model)
+            span?.SetGenAiResponseModel(model.Model)
                 .SetGenAiResponseFinishReasons(["stop"])
                 .SetGenAiUsageInputTokens(inputTokens)
                 .SetGenAiUsageOutputTokens(outputTokens);
 
-            WorkloadTelemetry.RecordGenAiOperationDuration(
-                GenAiSpans.GenAiOperationNameValues.Chat,
-                profile.Provider,
-                profile.Model,
-                profile.Model,
-                durationSeconds,
-                errorType: null);
-
-            WorkloadTelemetry.RecordGenAiTokenUsage(
-                GenAiSpans.GenAiOperationNameValues.Chat,
-                profile.Provider,
-                profile.Model,
-                profile.Model,
-                inputTokens,
-                outputTokens);
-
-            LogTurnCompleted(logger, profile.Provider, profile.Model, inputTokens, outputTokens, latencyMs);
+            LogTurnCompleted(logger, model.Provider, model.Model, inputTokens, outputTokens, latencyMs);
         }
 
         return latencyMs;
@@ -213,6 +181,6 @@ internal sealed partial class WorkloadEmitter(
         Message = "chat failed: {Provider}/{Model} rate limited after {LatencyMs} ms")]
     private static partial void LogTurnFailed(ILogger logger, string provider, string model, int latencyMs);
 
-    private sealed record ModelProfile(string Provider, string Model, int InputMin, int InputMax, int OutputMin,
+    private sealed record ModelSpec(string Provider, string Model, int InputMin, int InputMax, int OutputMin,
         int OutputMax, int LatencyMinMs, int LatencyMaxMs);
 }

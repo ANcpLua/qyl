@@ -16,14 +16,10 @@ using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
-using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.Streaming;
 using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
 using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
 using ExportMetricsServiceRequest = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
-using ExportMetricsServiceResponse = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
-using ExportProfilesServiceRequest = global::OpenTelemetry.Proto.Collector.Profiles.V1Development.ExportProfilesServiceRequest;
-using ExportProfilesServiceResponse = global::OpenTelemetry.Proto.Collector.Profiles.V1Development.ExportProfilesServiceResponse;
 using ExportTraceServiceRequest = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
 
@@ -36,13 +32,11 @@ internal static class CollectorEndpointExtensions
         app.MapGrpcService<TraceServiceImpl>();
         app.MapGrpcService<LogsServiceImpl>();
         app.MapGrpcService<MetricsServiceImpl>();
-        app.MapGrpcService<ProfilesServiceImpl>();
 
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
         otlp.MapPost("/metrics", IngestOtlpMetricsAsync);
-        app.MapPost("/v1development/profiles", IngestOtlpProfilesAsync);
 
         var api = app.MapGroup("/api/v1");
 
@@ -57,13 +51,6 @@ internal static class CollectorEndpointExtensions
 
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/stream/logs", StreamLogsAsync);
-
-        api.MapGet("/metrics", GetMetricsAsync);
-
-        api.MapGet("/profiles", GetProfilesAsync);
-        api.MapGet("/profiles/{profileId}", GetProfileByIdAsync);
-        api.MapGet("/profiles/by-trace/{traceId}", GetTraceProfilesAsync);
-        api.MapGet("/profiles/by-span/{spanId}", GetSpanProfilesAsync);
 
         app.MapFallback(FallbackHandler);
 
@@ -241,7 +228,6 @@ internal static class CollectorEndpointExtensions
 
     internal static async Task<IResult> IngestOtlpMetricsAsync(
         HttpContext context,
-        IQylStore store,
         CancellationToken ct)
     {
         var encoding = OtlpPayloadEncoding.Json;
@@ -276,50 +262,7 @@ internal static class CollectorEndpointExtensions
                 "The OTLP metrics payload could not be decoded.");
         }
 
-        try
-        {
-            if (otlpData.ResourceMetrics.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportMetricsServiceResponse());
-
-            var metricBatch = OtlpConverter.ConvertMetrics(otlpData);
-            var metrics = IngestionStorageMapper.ToMetricStorageRows(metricBatch);
-
-            if (metrics.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportMetricsServiceResponse());
-
-            await store.InsertMetricsAsync(metrics, ct);
-            return OtlpHttpResult.Success(
-                encoding,
-                new ExportMetricsServiceResponse());
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (InvalidDataException ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP metrics payload is invalid.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status503ServiceUnavailable,
-                encoding,
-                "The collector could not persist the OTLP metrics payload.");
-        }
+        return OtlpHttpResult.Success(encoding, OtlpMetricsDiscard.CreateResponse(otlpData));
     }
 
     internal static async Task<IResult> GetSessionsAsync(
@@ -553,77 +496,6 @@ internal static class CollectorEndpointExtensions
         return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
     }
 
-    internal static async Task<IResult> GetMetricsAsync(
-        HttpContext httpContext,
-        IQylStore store,
-        CancellationToken ct)
-    {
-        if (ContractQueryParser.ParseMetrics(httpContext.Request, out var query) is { } queryError)
-            return queryError;
-
-        if (!ContractLimits.TryResolve(
-                query.Limit,
-                ContractLimits.DefaultPageLimit,
-                ContractLimits.MetricMaxLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
-        }
-
-        if (query.StartTime.HasValue && query.EndTime.HasValue && query.StartTime > query.EndTime)
-        {
-            return ContractErrorResults.Validation(
-                "endTime",
-                "End time must be greater than or equal to start time.",
-                "range.invalid",
-                query.EndTime.Value.ToString("O", CultureInfo.InvariantCulture));
-        }
-
-        MetricPageCursor? cursor = null;
-        if (query.Cursor is { } encodedCursor)
-        {
-            if (!MetricPageCursorCodec.TryDecode(encodedCursor, out var decodedCursor))
-            {
-                return ContractErrorResults.Validation(
-                    "cursor",
-                    "Cursor is not a valid qyl metric-page cursor.",
-                    "cursor.invalid",
-                    encodedCursor);
-            }
-
-            cursor = decodedCursor;
-        }
-
-        var page = await store.GetMetricPageAsync(
-                ResolveProjectScope(httpContext),
-                cursor,
-                query.MetricType,
-                query.Name,
-                query.ServiceName,
-                query.StartTime.HasValue
-                    ? QylTimeConversions.ToUnixNanoUnsigned(query.StartTime.Value.ToUniversalTime())
-                    : null,
-                query.EndTime.HasValue
-                    ? QylTimeConversions.ToUnixNanoUnsigned(query.EndTime.Value.ToUniversalTime())
-                    : null,
-                boundedLimit,
-                ct)
-            .ConfigureAwait(false);
-        var items = page.Items.Select(MetricMapper.ToContract).ToArray();
-        var nextCursor = page.HasMore && page.Items.Count > 0
-            ? MetricPageCursorCodec.Encode(new MetricPageCursor(
-                page.Items[^1].TimeUnixNano,
-                page.Items[^1].MetricId))
-            : null;
-
-        return Results.Ok(new CursorPageMetricPoint
-        {
-            Items = items,
-            HasMore = page.HasMore,
-            NextCursor = nextCursor
-        });
-    }
-
     internal static async Task StreamLogsAsync(
         HttpContext context,
         IQylStore store,
@@ -784,169 +656,6 @@ internal static class CollectorEndpointExtensions
     }
 
 
-    private static async Task<IResult> IngestOtlpProfilesAsync(
-        HttpContext context,
-        IQylStore store,
-        CancellationToken ct)
-    {
-        var encoding = OtlpPayloadEncoding.Json;
-        ExportProfilesServiceRequest otlpData;
-        try
-        {
-            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
-            otlpData = await OtlpPayloadParser.ParseProfilesRequestAsync(context.Request, encoding, ct);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpProfilesEndpoint");
-            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status415UnsupportedMediaType,
-                encoding,
-                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpProfilesEndpoint");
-            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP profiles payload could not be decoded.");
-        }
-
-        try
-        {
-            if (otlpData.ResourceProfiles.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportProfilesServiceResponse());
-
-            var profileBatch = OtlpConverter.ConvertProfiles(otlpData);
-            var results = IngestionStorageMapper.ToProfileStorageRows(profileBatch);
-
-            if (results.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportProfilesServiceResponse());
-
-            await store.InsertProfilesAsync(results, ct);
-            return OtlpHttpResult.Success(
-                encoding,
-                new ExportProfilesServiceResponse());
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (InvalidDataException ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpProfilesEndpoint");
-            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP profiles payload is invalid.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpProfilesEndpoint");
-            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status503ServiceUnavailable,
-                encoding,
-                "The collector could not persist the OTLP profiles payload.");
-        }
-    }
-
-    internal static async Task<IResult> GetProfilesAsync(
-        HttpContext httpContext,
-        IQylStore store,
-        string? sessionId,
-        string? traceId,
-        string? serviceName,
-        string? sampleType,
-        CancellationToken ct)
-    {
-        if (ContractQueryParser.ParseProfiles(httpContext.Request, out var limit) is { } queryError)
-            return queryError;
-
-        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(limit, ContractLimits.ProfileMaxLimit);
-        }
-        var profiles = await store.GetProfilesAsync(
-            ResolveProjectScope(httpContext),
-            sessionId,
-            traceId,
-            serviceName: serviceName,
-            sampleType: sampleType,
-            limit: boundedLimit,
-            ct: ct);
-
-        return Results.Ok(ProfileMapper.ToContracts(profiles));
-    }
-
-    private static async Task<IResult> GetProfileByIdAsync(
-        HttpContext httpContext,
-        string profileId,
-        IQylStore store,
-        CancellationToken ct)
-    {
-        var detail = await store.GetProfileDetailAsync(profileId, ResolveProjectScope(httpContext), ct: ct);
-        return detail is not null
-            ? Results.Ok(ProfileMapper.ToContract(detail))
-            : ContractErrorResults.NotFound("profile", profileId);
-    }
-
-    internal static async Task<IResult> GetTraceProfilesAsync(
-        HttpContext httpContext,
-        string traceId,
-        IQylStore store,
-        CancellationToken ct)
-    {
-        if (ContractQueryParser.ParseProfiles(httpContext.Request, out var limit) is { } queryError)
-            return queryError;
-
-        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(limit, ContractLimits.ProfileMaxLimit);
-        }
-
-        var profiles = await store.GetProfilesAsync(
-            ResolveProjectScope(httpContext), traceId: traceId, limit: boundedLimit, ct: ct);
-        return Results.Ok(ProfileMapper.ToContracts(profiles));
-    }
-
-    internal static async Task<IResult> GetSpanProfilesAsync(
-        HttpContext httpContext,
-        string spanId,
-        IQylStore store,
-        CancellationToken ct)
-    {
-        if (ContractQueryParser.ParseProfiles(httpContext.Request, out var limit) is { } queryError)
-            return queryError;
-
-        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(limit, ContractLimits.ProfileMaxLimit);
-        }
-
-        var profiles = await store.GetProfilesAsync(ResolveProjectScope(httpContext), spanId: spanId, limit: boundedLimit, ct: ct);
-        return Results.Ok(ProfileMapper.ToContracts(profiles));
-    }
-
     private static IResult InvalidLimit(int? limit, int maximum) =>
         ContractErrorResults.Validation(
             "limit",
@@ -1006,8 +715,6 @@ internal static class CollectorEndpointExtensions
         public const int SessionMaxLimit = 1_000;
         public const int TraceMaxLimit = 1_000;
         public const int LogMaxLimit = 10_000;
-        public const int MetricMaxLimit = 1_000;
-        public const int ProfileMaxLimit = 1_000;
         public const int MinimumLogSeverity = 0;
         public const int MinimumStreamSeverity = 1;
         public const int MaximumLogSeverity = 24;
@@ -1029,12 +736,6 @@ internal static partial class OtlpLogsLog
 internal static partial class OtlpMetricsLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP metrics payload")]
-    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
-}
-
-internal static partial class OtlpProfilesLog
-{
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP profiles payload")]
     public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
 }
 

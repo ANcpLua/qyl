@@ -1,8 +1,8 @@
 # qyl
 
-qyl is an OpenTelemetry-compatible observability product for ingesting,
-investigating, and visualizing telemetry across all four OTLP signals — traces,
-logs, metrics, and profiles.
+qyl is an OTLP-native, DuckDB-backed observability product for ingesting,
+investigating, and visualizing traces and logs. Metrics are accepted for wire
+compatibility and discarded. Profiles are not supported.
 The product is the collector, DuckDB storage, public investigation API,
 dashboard, and local distributed-app host. OpenTelemetry supplies the ingestion
 protocol and telemetry vocabulary; it is not Qyl's product API.
@@ -25,8 +25,8 @@ qyl-api-schema                           TypeSpec product contract
         +----> generated TS contracts    dashboard and other consumers
         |
         v
-qyl.collector                            OTLP ingest (traces, logs, metrics,
-        |                                profiles) -> DuckDB -> product API
+qyl.collector                            OTLP traces + logs -> DuckDB -> product API
+        |                                OTLP metrics -> discard acknowledgement
         v
 qyl.dashboard                            investigation UI
 ```
@@ -35,7 +35,7 @@ The main components are:
 
 | Path | Responsibility |
 | --- | --- |
-| `services/qyl.collector` | Official OTLP wire ingestion (all four signals), DuckDB storage, and the generated-contract product API |
+| `services/qyl.collector` | Official OTLP trace/log ingestion and DuckDB storage, metrics discard acknowledgement, and the generated-contract product API |
 | `services/qyl.dashboard` | React investigation interface backed by generated client contracts |
 | `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
@@ -48,10 +48,10 @@ The main components are:
 
 ## Ingestion and product API
 
-OTLP ingestion speaks the official protobuf contract on gRPC (`:4317` —
-trace, logs, metrics, and profiles services) and HTTP (`POST /v1/traces`,
-`/v1/logs`, `/v1/metrics`, plus `POST /v1development/profiles` for the
-development profiles signal).
+OTLP ingestion speaks the official protobuf contract on gRPC (`:4317`) and HTTP
+(`:4318`). Trace and log exports are stored. Metric exports are counted,
+discarded, and acknowledged with an OTLP `partial_success` response. HTTP accepts
+binary protobuf or JSON, each with optional gzip compression.
 
 The generated product API is served under `/api/v1`:
 
@@ -60,7 +60,6 @@ The generated product API is served under `/api/v1`:
 | `/sessions`, `/sessions/stats`, `/sessions/{id}`, `/sessions/{id}/traces` | Session inventory, statistics, and session-scoped traces |
 | `/traces`, `/traces/{id}`, `/traces/{id}/spans` | Trace inventory and full span data |
 | `/logs`, `/stream/logs` | Log search and live log streaming |
-| `/profiles`, `/profiles/{id}`, `/profiles/by-trace/{id}`, `/profiles/by-span/{id}` | Profile inventory and correlation lookups |
 
 ## Contract boundaries
 

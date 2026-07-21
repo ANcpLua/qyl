@@ -11,9 +11,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
     private const int MaxLogsPerBatch = 150;
 
-    private const int MaxProfilesPerBatch = 50;
 
-    private const int MaxMetricsPerBatch = 150;
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
     private readonly CancellationTokenSource _cts = new();
@@ -484,83 +482,6 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct).ConfigureAwait(false);
     }
 
-    public async Task InsertMetricsAsync(IReadOnlyList<MetricStorageRow> metrics, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (metrics.Count is 0)
-            return;
-
-        var deduplicated = new Dictionary<(string ProjectId, string MetricId), MetricStorageRow>();
-        foreach (var metric in metrics)
-            deduplicated[(metric.ProjectId, metric.MetricId)] = metric;
-        var rows = deduplicated.Values.ToArray();
-
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            await InsertRowsBatchedAsync(con, tx, rows, MetricStorageRow.AddParameters,
-                MetricStorageRow.BuildMultiRowInsertSql, MaxMetricsPerBatch, token);
-            await tx.CommitAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-    }
-
-    public Task<MetricStoragePage> GetMetricPageAsync(
-        string projectId,
-        MetricPageCursor? cursor,
-        byte? metricType,
-        string? metricName,
-        string? serviceName,
-        ulong? start,
-        ulong? end,
-        int limit,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (limit < 1)
-            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Metric page limit must be positive.");
-
-        return ExecuteReadAsync(con =>
-        {
-            var metrics = new List<MetricStorageRow>(limit + 1);
-            var qb = new QueryBuilder();
-            qb.Add("project_id = $N", projectId);
-            if (metricType.HasValue)
-                qb.Add("metric_type = $N", metricType.Value);
-            if (!string.IsNullOrEmpty(metricName))
-                qb.Add("metric_name = $N", metricName);
-            if (!string.IsNullOrEmpty(serviceName))
-                qb.Add("service_name = $N", serviceName);
-            if (start.HasValue)
-                qb.Add("time_unix_nano >= $N", (decimal)start.Value);
-            if (end.HasValue)
-                qb.Add("time_unix_nano <= $N", (decimal)end.Value);
-            if (cursor is { } after)
-            {
-                qb.AddDescendingCursor(
-                    "time_unix_nano",
-                    "metric_id",
-                    (decimal)after.TimeUnixNano,
-                    after.MetricId);
-            }
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + MetricStorageRow.SelectColumnList
-                              + " FROM metrics " + qb.WhereClause
-                              + " ORDER BY time_unix_nano DESC, metric_id DESC LIMIT "
-                              + qb.NextParam;
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit + 1 });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                metrics.Add(MetricStorageRow.MapFromReader(reader));
-
-            var hasMore = metrics.Count > limit;
-            if (hasMore) metrics.RemoveRange(limit, metrics.Count - limit);
-            return new MetricStoragePage(metrics, hasMore);
-        }, ct);
-    }
-
     public Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
         string projectId,
         string? sessionId = null,
@@ -672,40 +593,6 @@ internal sealed partial class DuckDbStore : IQylStore
     }
 
 
-    public async Task InsertProfilesAsync(IReadOnlyList<ProfileDetail> results,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (results.Count is 0)
-            return;
-
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-
-            var headers = results.Select(static r => r.Profile).ToList();
-            await InsertRowsBatchedAsync(con, tx, headers, ProfileStorageRow.AddParameters,
-                ProfileStorageRow.BuildMultiRowInsertSql, MaxProfilesPerBatch, token);
-
-            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Functions).ToList(),
-                ProfileFunctionRow.AddParameters, ProfileFunctionRow.BuildMultiRowInsertSql, 200, token);
-
-            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Locations).ToList(),
-                ProfileLocationRow.AddParameters, ProfileLocationRow.BuildMultiRowInsertSql, 200, token);
-
-            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Mappings).ToList(),
-                ProfileMappingRow.AddParameters, ProfileMappingRow.BuildMultiRowInsertSql, 200, token);
-
-            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Samples).ToList(),
-                ProfileSampleRow.AddParameters, ProfileSampleRow.BuildMultiRowInsertSql, 200, token);
-
-            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Stacks).ToList(),
-                ProfileStackRow.AddParameters, ProfileStackRow.BuildMultiRowInsertSql, 200, token);
-
-            await tx.CommitAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-    }
-
     private static async Task InsertRowsBatchedAsync<T>(
         DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
         Action<DuckDBCommand, T> addParams, Func<int, string> buildSql, int maxBatch, CancellationToken ct)
@@ -722,122 +609,6 @@ internal sealed partial class DuckDbStore : IQylStore
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             offset += chunk;
         }
-    }
-
-    public Task<IReadOnlyList<ProfileStorageRow>> GetProfilesAsync(
-        string projectId,
-        string? sessionId = null,
-        string? traceId = null,
-        string? spanId = null,
-        string? serviceName = null,
-        string? sampleType = null,
-        int limit = 100,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (limit is < 1 or > 1_000)
-            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Profile limit must be between 1 and 1000.");
-
-        return ExecuteReadAsync<IReadOnlyList<ProfileStorageRow>>(con =>
-        {
-            var profiles = new List<ProfileStorageRow>();
-            var qb = new QueryBuilder();
-
-            qb.Add("project_id = $N", projectId);
-            if (!string.IsNullOrEmpty(sessionId))
-                qb.Add("session_id = $N", sessionId);
-            if (!string.IsNullOrEmpty(traceId))
-                qb.Add("trace_id = $N", traceId);
-            if (!string.IsNullOrEmpty(spanId))
-                qb.Add("span_id = $N", spanId);
-            if (!string.IsNullOrEmpty(serviceName))
-                qb.Add("service_name = $N", serviceName);
-            if (!string.IsNullOrEmpty(sampleType))
-                qb.Add("sample_type = $N", sampleType);
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + ProfileStorageRow.SelectColumnList
-                              + " FROM profiles " + qb.WhereClause
-                              + " ORDER BY time_unix_nano DESC LIMIT "
-                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                profiles.Add(ProfileStorageRow.MapFromReader(reader));
-            }
-
-            return profiles;
-        }, ct);
-    }
-
-    public Task<ProfileDetail?> GetProfileDetailAsync(
-        string profileId,
-        string projectId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<ProfileDetail?>(con =>
-        {
-            ProfileStorageRow? header = null;
-            using (var cmd = con.CreateCommand())
-            {
-                cmd.CommandText =
-                    "SELECT " + ProfileStorageRow.SelectColumnList + " FROM profiles WHERE project_id = $1 AND profile_id = $2 LIMIT 1";
-                cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-                cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
-                using var r = cmd.ExecuteReader();
-                if (r.Read()) header = ProfileStorageRow.MapFromReader(r);
-            }
-
-            if (header is null) return null;
-
-            var functions = ReadChildRows(con, header.ProjectId, profileId,
-                "SELECT " + ProfileFunctionRow.SelectColumnList + " FROM profile_functions WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
-                static r => ProfileFunctionRow.MapFromReader(r));
-
-            var locations = ReadChildRows(con, header.ProjectId, profileId,
-                "SELECT " + ProfileLocationRow.SelectColumnList + " FROM profile_locations WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
-                static r => ProfileLocationRow.MapFromReader(r));
-
-            var mappings = ReadChildRows(con, header.ProjectId, profileId,
-                "SELECT " + ProfileMappingRow.SelectColumnList + " FROM profile_mappings WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
-                static r => ProfileMappingRow.MapFromReader(r));
-
-            var samples = ReadChildRows(con, header.ProjectId, profileId,
-                "SELECT " + ProfileSampleRow.SelectColumnList + " FROM profile_samples WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
-                static r => ProfileSampleRow.MapFromReader(r));
-
-            var stacks = ReadChildRows(con, header.ProjectId, profileId,
-                "SELECT " + ProfileStackRow.SelectColumnList + " FROM profile_stacks WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
-                static r => ProfileStackRow.MapFromReader(r));
-
-            return new ProfileDetail
-            {
-                Profile = header,
-                Functions = functions,
-                Locations = locations,
-                Mappings = mappings,
-                Samples = samples,
-                Stacks = stacks
-            };
-        }, ct);
-    }
-
-    private static IReadOnlyList<T> ReadChildRows<T>(DuckDBConnection connection, string projectId, string profileId,
-        string sql, Func<DbDataReader, T> mapper)
-    {
-        var rows = new List<T>();
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
-        using var r = cmd.ExecuteReader();
-        while (r.Read()) rows.Add(mapper(r));
-        return rows;
     }
 
     private async Task WriterLoopAsync()
@@ -977,31 +748,6 @@ internal sealed partial class DuckDbStore : IQylStore
             LogStorageRow.IndexesDdl);
         logsCmd.ExecuteNonQuery();
 
-        using var metricsCmd = con.CreateCommand();
-        metricsCmd.CommandText = string.Concat(
-            MetricStorageRow.CreateTableDdl, "\n",
-            MetricStorageRow.MigrateTableDdl, "\n",
-            MetricStorageRow.IndexesDdl);
-        metricsCmd.ExecuteNonQuery();
-
-        using var profilesCmd = con.CreateCommand();
-        profilesCmd.CommandText = string.Concat(
-            ProfileStorageRow.CreateTableDdl, "\n",
-            ProfileFunctionRow.CreateTableDdl, "\n",
-            ProfileLocationRow.CreateTableDdl, "\n",
-            ProfileMappingRow.CreateTableDdl, "\n",
-            ProfileSampleRow.CreateTableDdl, "\n",
-            ProfileStackRow.CreateTableDdl, "\n",
-            ProfileStorageRow.MigrateTableDdl, "\n",
-            ProfileFunctionRow.MigrateTableDdl, "\n",
-            ProfileLocationRow.MigrateTableDdl, "\n",
-            ProfileMappingRow.MigrateTableDdl, "\n",
-            ProfileSampleRow.MigrateTableDdl, "\n",
-            ProfileStackRow.MigrateTableDdl, "\n",
-            ProfileStorageRow.IndexesDdl, "\n",
-            ProfileSampleRow.IndexesDdl);
-        profilesCmd.ExecuteNonQuery();
-
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
             SpanStorageRow.CreateTableDdl, "\n",
@@ -1017,14 +763,7 @@ internal sealed partial class DuckDbStore : IQylStore
         (string Table, string Columns)[] expected =
         [
             (SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv),
-            (LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv),
-            (MetricStorageRow.TableName, MetricStorageRow.PrimaryKeyColumnsCsv),
-            (ProfileStorageRow.TableName, ProfileStorageRow.PrimaryKeyColumnsCsv),
-            (ProfileFunctionRow.TableName, ProfileFunctionRow.PrimaryKeyColumnsCsv),
-            (ProfileLocationRow.TableName, ProfileLocationRow.PrimaryKeyColumnsCsv),
-            (ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv),
-            (ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv),
-            (ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv)
+            (LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv)
         ];
 
         foreach (var (table, columns) in expected)

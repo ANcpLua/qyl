@@ -12,7 +12,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Qyl.Instrumentation;
@@ -39,13 +38,6 @@ public static class QylServiceDefaultsExtensions
         "OpenAI.*",
         "Azure.AI.OpenAI.*",
         "Anthropic.*",
-        "Microsoft.Extensions.AI",
-        "Microsoft.Agents.AI",
-        "Experimental.Microsoft.Agents.AI"
-    ];
-
-    private static readonly string[] s_genAiExternalMeterNames =
-    [
         "Microsoft.Extensions.AI",
         "Microsoft.Agents.AI",
         "Experimental.Microsoft.Agents.AI"
@@ -198,25 +190,6 @@ public static class QylServiceDefaultsExtensions
 
                 options.ConfigureResource?.Invoke(resource);
             })
-            .WithMetrics(metrics =>
-            {
-                metrics
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
-
-                metrics.AddMeter(ActivitySources.GenAi);
-
-                foreach (var meter in s_genAiExternalMeterNames)
-                    metrics.AddMeter(meter);
-
-                metrics.AddMeter(ActivitySources.Db);
-
-                foreach (var meter in options.AdditionalMeterNames)
-                    metrics.AddMeter(meter);
-
-                options.ConfigureMetrics?.Invoke(metrics);
-            })
             .WithTracing(tracing =>
             {
                 tracing
@@ -351,8 +324,6 @@ public sealed class QylOptions
 
     public List<string> AdditionalActivitySources { get; } = [];
 
-    public List<string> AdditionalMeterNames { get; } = [];
-
     public List<KeyValuePair<string, object>> CapabilityAttributes { get; } = [];
 
     public Action<JsonSerializerOptions>? ConfigureJson { get; set; }
@@ -360,8 +331,6 @@ public sealed class QylOptions
     public Action<OpenTelemetryLoggerOptions>? ConfigureLogging { get; set; }
 
     public Action<ResourceBuilder>? ConfigureResource { get; set; }
-
-    public Action<MeterProviderBuilder>? ConfigureMetrics { get; set; }
 
     public Action<TracerProviderBuilder>? ConfigureTracing { get; set; }
 }

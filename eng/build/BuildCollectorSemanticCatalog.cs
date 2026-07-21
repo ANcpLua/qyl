@@ -150,14 +150,6 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             ValuesWithPrefixes(stableAttributeValues, policy.LogAttributeAllowList.StablePrefixes, "logAttributeAllowList.stablePrefixes"),
             ValuesWithPrefixes(incubatingAttributeValues, policy.LogAttributeAllowList.IncubatingPrefixes, "logAttributeAllowList.incubatingPrefixes"));
 
-        var profileAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, policy.ProfileAttributeAllowList.StablePrefixes, "profileAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.ProfileAttributeAllowList.IncubatingPrefixes, "profileAttributeAllowList.incubatingPrefixes"));
-
-        var metricAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, policy.MetricAttributeAllowList.StablePrefixes, "metricAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.MetricAttributeAllowList.IncubatingPrefixes, "metricAttributeAllowList.incubatingPrefixes"));
-
         var resourceAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
             ValuesWithPrefixes(incubatingAttributeValues, policy.ResourceAttributeAllowList.IncubatingPrefixes, "resourceAttributeAllowList.incubatingPrefixes"));
@@ -211,8 +203,6 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         WriteFrozenSet(builder, "QylResourceAttributeAllowList", policy.QylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "ProfileAttributeAllowList", profileAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "MetricAttributeAllowList", metricAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "DeniedExactKeys", deniedExactKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteStringArray(builder, "DeniedKeyTokens", policy.DeniedKeyTokens);
@@ -525,8 +515,6 @@ internal sealed class CollectorSemanticPolicyConfig
 {
     public CollectorSemanticPrefixPolicy SpanAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy LogAttributeAllowList { get; init; } = new();
-    public CollectorSemanticPrefixPolicy ProfileAttributeAllowList { get; init; } = new();
-    public CollectorSemanticPrefixPolicy MetricAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy ResourceAttributeAllowList { get; init; } = new();
     public string[] QylResourceAttributeAllowList { get; init; } = [];
     public string[] ProjectIdResourceKeys { get; init; } = [];
@@ -543,8 +531,6 @@ internal sealed class CollectorSemanticPolicyConfig
     {
         SpanAttributeAllowList.Validate(relativePath, "spanAttributeAllowList");
         LogAttributeAllowList.Validate(relativePath, "logAttributeAllowList");
-        ProfileAttributeAllowList.Validate(relativePath, "profileAttributeAllowList");
-        MetricAttributeAllowList.Validate(relativePath, "metricAttributeAllowList");
         ResourceAttributeAllowList.Validate(relativePath, "resourceAttributeAllowList");
 
         RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");

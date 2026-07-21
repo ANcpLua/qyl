@@ -1,8 +1,6 @@
 <Project>
-  <!-- Respect projects that disable implicit usings; netstandard2.0 lacks Metrics. -->
   <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' AND ('$(ImplicitUsings)' == 'true' OR '$(ImplicitUsings)' == 'enable')">
     <Using Include="System.Diagnostics"/>
-    <Using Include="System.Diagnostics.Metrics"/>
   </ItemGroup>
 
 </Project>

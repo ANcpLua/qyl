@@ -17,9 +17,6 @@ public static class QylMcpBuilderExtensions
 {
     // ModelContextProtocol.Core publishes ActivitySource events under this name.
     // The SDK keeps the value internal, so this constant must track the package.
-    //
-    // The SDK also uses the name for its Meter. Qyl currently exposes no MCP
-    // metrics receiver, so only tracing is configured here.
     internal const string OfficialDiagnosticsName = "Experimental.ModelContextProtocol";
 
     private const string McpTelemetryEnvironmentVariable = "QYL_MCP_TELEMETRY";

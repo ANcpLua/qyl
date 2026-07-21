@@ -22,15 +22,6 @@ internal readonly record struct ParsedLogsParameters(
     DateTimeOffset? EndTime,
     int? Limit);
 
-internal readonly record struct ParsedMetricsParameters(
-    string? Name,
-    byte? MetricType,
-    string? ServiceName,
-    DateTimeOffset? StartTime,
-    DateTimeOffset? EndTime,
-    int? Limit,
-    string? Cursor);
-
 internal static class ContractQueryParser
 {
     internal static IResult? ParseSessions(HttpRequest request, out ParsedSessionsParameters parsed)
@@ -81,45 +72,8 @@ internal static class ContractQueryParser
         return null;
     }
 
-    internal static IResult? ParseMetrics(HttpRequest request, out ParsedMetricsParameters parsed)
-    {
-        parsed = default;
-        var reader = new QueryReader(request.Query);
-        if (reader.ReadString("name", out var name) is { } nameError) return nameError;
-        if (reader.ReadString("type", out var type) is { } typeError) return typeError;
-        byte metricType = 0;
-        if (type is not null && !TryParseMetricType(type, out metricType))
-        {
-            return Invalid(
-                "type",
-                "Value must be one of: gauge, sum, histogram, exponential_histogram, summary.",
-                "query.invalid_enum",
-                type);
-        }
-
-        if (reader.ReadString("serviceName", out var serviceName) is { } serviceError) return serviceError;
-        if (reader.ReadDateTime("startTime", out var startTime) is { } startError) return startError;
-        if (reader.ReadDateTime("endTime", out var endTime) is { } endError) return endError;
-        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
-        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
-
-        parsed = new ParsedMetricsParameters(
-            name,
-            type is null ? null : metricType,
-            serviceName,
-            startTime,
-            endTime,
-            limit,
-            cursor);
-        return null;
-    }
-
-
     internal static IResult? ParseLogStream(HttpRequest request, out int? minSeverity) =>
         new QueryReader(request.Query).ReadInteger("minSeverity", out minSeverity);
-
-    internal static IResult? ParseProfiles(HttpRequest request, out int? limit) =>
-        new QueryReader(request.Query).ReadInteger("limit", out limit);
 
     private readonly struct QueryReader(IQueryCollection query)
     {
@@ -236,20 +190,6 @@ internal static class ContractQueryParser
                    DateTimeStyles.None,
                    out parsed) &&
                QylTimeConversions.TryToUnixNanoUnsigned(parsed.ToUniversalTime(), out _);
-    }
-
-    private static bool TryParseMetricType(string value, out byte metricType)
-    {
-        metricType = value switch
-        {
-            "gauge" => MetricStorageTypes.Gauge,
-            "sum" => MetricStorageTypes.Sum,
-            "histogram" => MetricStorageTypes.Histogram,
-            "exponential_histogram" => MetricStorageTypes.ExponentialHistogram,
-            "summary" => MetricStorageTypes.Summary,
-            _ => 0
-        };
-        return metricType is not 0;
     }
 
     private static IResult Invalid(string field, string message, string code, string? rejectedValue) =>

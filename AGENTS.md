@@ -9,10 +9,13 @@ rules file.
 ## Product and delivery
 
 qyl is the collector, storage, investigation API, dashboard, and local host for an
-OpenTelemetry-compatible observability product. The collector ingests all four OTLP
-signals (traces, logs, metrics, profiles). It is pre-beta. Unpublished Qyl surfaces may converge directly; published
-package versions are immutable and move through new versions rather than
-compatibility shims without a proven consumer.
+OTLP-native, DuckDB-backed traces-and-logs product. Trace and log signals have full
+ingest, storage, query, and dashboard verticals. Metrics are accepted only at the
+standard OTLP wire endpoints, counted, discarded, and acknowledged with
+`partial_success`; other OTLP signals have no endpoint or service. It is pre-beta.
+Unpublished Qyl surfaces may converge directly; published package versions are
+immutable and move through new versions rather than compatibility shims without a
+proven consumer.
 
 Work directly on `main`, preserve unrelated user changes, run the repository gates,
 make one intentional commit per coherent repository change, and push it. Generated

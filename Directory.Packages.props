@@ -12,7 +12,6 @@
     <!-- Instrumentation packages do not share the SDK release line. -->
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.Evaluation" Version="$(MicrosoftExtensionsAiVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)"/>

@@ -20,11 +20,5 @@ internal static partial class ErrorSpans;
 [SemanticConventionIncubatingActivities("gen_ai")]
 internal static partial class GenAiSpans;
 
-[SemanticConventionIncubatingMetrics("gen_ai.client")]
-internal static partial class GenAiMetrics;
-
-[SemanticConventionIncubatingMeters("gen_ai.client")]
-internal static partial class GenAiMeters;
-
 [SemanticConventionIncubatingActivities("session")]
 internal static partial class SessionSpans;

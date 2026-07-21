@@ -6,12 +6,9 @@ using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Proto.Collector.Logs.V1;
-using OpenTelemetry.Proto.Collector.Metrics.V1;
-using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
-using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Api.Contracts.Streaming;
 using Qyl.Collector.Hosting;
@@ -19,16 +16,9 @@ using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
 using OtlpEntityRef = OpenTelemetry.Proto.Common.V1.EntityRef;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
-using OtlpKeyValueAndUnit = OpenTelemetry.Proto.Profiles.V1Development.KeyValueAndUnit;
-using OtlpProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
-using OtlpProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using OtlpResource = OpenTelemetry.Proto.Resource.V1.Resource;
 using OtlpResourceLogs = OpenTelemetry.Proto.Logs.V1.ResourceLogs;
-using OtlpResourceMetrics = OpenTelemetry.Proto.Metrics.V1.ResourceMetrics;
-using OtlpResourceProfiles = OpenTelemetry.Proto.Profiles.V1Development.ResourceProfiles;
 using OtlpScopeLogs = OpenTelemetry.Proto.Logs.V1.ScopeLogs;
-using OtlpScopeMetrics = OpenTelemetry.Proto.Metrics.V1.ScopeMetrics;
-using OtlpScopeProfiles = OpenTelemetry.Proto.Profiles.V1Development.ScopeProfiles;
 using OtlpSpan = OpenTelemetry.Proto.Trace.V1.Span;
 
 namespace Qyl.Collector.Tests;
@@ -36,7 +26,7 @@ namespace Qyl.Collector.Tests;
 public sealed class PublishedContractV1Tests
 {
     [Fact]
-    public async Task Official_otlp_signals_emit_lossless_v1_rest_and_sse_json()
+    public async Task Official_otlp_traces_and_logs_emit_lossless_v1_rest_and_sse_json()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var store = new DuckDbStore(":memory:");
@@ -149,55 +139,6 @@ public sealed class PublishedContractV1Tests
             IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(logsRequest)),
             cancellationToken);
 
-        var metricsRequest = BuildMetricsRequest();
-        await store.InsertMetricsAsync(
-            IngestionStorageMapper.ToMetricStorageRows(OtlpConverter.ConvertMetrics(metricsRequest)),
-            cancellationToken);
-
-        var profileRequest = new ExportProfilesServiceRequest
-        {
-            ResourceProfiles =
-            {
-                new OtlpResourceProfiles
-                {
-                    Resource = BuildResource(),
-                    ScopeProfiles =
-                    {
-                        new OtlpScopeProfiles
-                        {
-                            Profiles =
-                            {
-                                new OtlpProfile
-                                {
-                                    ProfileId = ByteString.CopyFrom(Enumerable.Repeat((byte)3, 16).ToArray()),
-                                    TimeUnixNano = 4_000,
-                                    DurationNano = 500,
-                                    OriginalPayloadFormat = "pprof",
-                                    AttributeIndices = { 1 }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            Dictionary = new OtlpProfilesDictionary
-            {
-                StringTable = { "", "error.type" },
-                AttributeTable =
-                {
-                    new OtlpKeyValueAndUnit(),
-                    new OtlpKeyValueAndUnit
-                    {
-                        KeyStrindex = 1,
-                        Value = new AnyValue { DoubleValue = double.NaN }
-                    }
-                }
-            }
-        };
-        await store.InsertProfilesAsync(
-            IngestionStorageMapper.ToProfileStorageRows(OtlpConverter.ConvertProfiles(profileRequest)),
-            cancellationToken);
-
         var traceJson = await ExecuteAsync(
             static (context, state, ct) => CollectorEndpointExtensions.GetTracesAsync(context, state, ct),
             store,
@@ -207,34 +148,15 @@ public sealed class PublishedContractV1Tests
                 context, state, null, null, null, null, null, ct),
             store,
             cancellationToken);
-        var metricJson = await ExecuteAsync(
-            static (context, state, ct) => CollectorEndpointExtensions.GetMetricsAsync(context, state, ct),
-            store,
-            cancellationToken);
-        var profileJson = await ExecuteAsync(
-            static (context, state, ct) => CollectorEndpointExtensions.GetProfilesAsync(
-                context, state, null, null, null, null, ct),
-            store,
-            cancellationToken);
-
         Assert.NotNull(JsonSerializer.Deserialize(traceJson, QylSerializerContext.Default.CursorPageTrace));
         Assert.NotNull(JsonSerializer.Deserialize(logJson, QylSerializerContext.Default.CursorPageLogRecord));
-        Assert.NotNull(JsonSerializer.Deserialize(metricJson, QylSerializerContext.Default.CursorPageMetricPoint));
-        Assert.NotNull(JsonSerializer.Deserialize(profileJson, QylSerializerContext.Default.ProfileArray));
 
         var traceNode = JsonNode.Parse(traceJson)!;
         var logNode = JsonNode.Parse(logJson)!;
-        var metricNode = JsonNode.Parse(metricJson)!;
-        var profileNode = JsonNode.Parse(profileJson)!;
         var spanNode = traceNode["items"]![0]!["spans"]![0]!;
         var logRecordNode = logNode["items"]![0]!;
-        var regularMetricNode = Assert.Single(metricNode["items"]!.AsArray(), candidate =>
-            candidate!["name"]!.GetValue<string>() == "contract.gauge")!;
-        var profileRecordNode = profileNode[0]!;
         AssertPublishedResource(spanNode["resource"]!);
         AssertPublishedResource(logRecordNode["resource"]!);
-        AssertPublishedResource(regularMetricNode["resource"]!);
-        AssertPublishedResource(profileRecordNode["resource"]!);
 
         var spanAttributes = ReadAttributes(spanNode["attributes"]!);
         Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture),
@@ -253,25 +175,6 @@ public sealed class PublishedContractV1Tests
             logAttributes["error.type"]["value"]!["value"]!.GetValue<string>());
         AssertV1Attributes(logAttributes.Values);
 
-        var metricAttributes = ReadAttributes(regularMetricNode["attributes"]!);
-        Assert.Equal("-Infinity",
-            metricAttributes["http.request.method"]["value"]!["value"]!.GetValue<string>());
-        AssertV1Attributes(metricAttributes.Values);
-
-        var profileAttributes = ReadAttributes(profileRecordNode["attributes"]!);
-        Assert.Equal("NaN", profileAttributes["error.type"]["value"]!["value"]!.GetValue<string>());
-        AssertV1Attributes(profileAttributes.Values);
-
-        var metricItems = metricNode["items"]!.AsArray();
-        foreach (var name in new[] { "contract.gauge.no-recorded", "contract.sum.no-recorded" })
-        {
-            var item = Assert.Single(metricItems, candidate =>
-                candidate!["name"]!.GetValue<string>() == name)!.AsObject();
-            Assert.Equal(1U, item["flags"]!.GetValue<uint>());
-            Assert.False(item.ContainsKey("value"));
-            Assert.False(item.ContainsKey("exemplars"));
-        }
-
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(5));
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
@@ -288,77 +191,6 @@ public sealed class PublishedContractV1Tests
         var streamJson = JsonSerializer.Serialize(streamEvent, QylSerializerContext.Default.LogStreamEvent);
         Assert.NotNull(JsonSerializer.Deserialize(streamJson, QylSerializerContext.Default.LogStreamEvent));
         AssertPublishedResource(JsonNode.Parse(streamJson)!["data"]!["resource"]!);
-    }
-
-    private static ExportMetricsServiceRequest BuildMetricsRequest()
-    {
-        var scope = new OtlpScopeMetrics
-        {
-            Metrics =
-            {
-                new Metric
-                {
-                    Name = "contract.gauge",
-                    Gauge = new Gauge
-                    {
-                        DataPoints =
-                        {
-                            new NumberDataPoint
-                            {
-                                TimeUnixNano = 5_000,
-                                AsInt = long.MaxValue,
-                                Attributes =
-                                {
-                                    Attribute(
-                                        "http.request.method",
-                                        new AnyValue { DoubleValue = double.NegativeInfinity })
-                                }
-                            }
-                        }
-                    }
-                },
-                new Metric
-                {
-                    Name = "contract.gauge.no-recorded",
-                    Gauge = new Gauge
-                    {
-                        DataPoints =
-                        {
-                            new NumberDataPoint
-                            {
-                                TimeUnixNano = 5_001,
-                                Flags = 1,
-                                AsDouble = double.NaN,
-                                Exemplars = { new Exemplar { TimeUnixNano = 5_000, AsInt = 1 } }
-                            }
-                        }
-                    }
-                },
-                new Metric
-                {
-                    Name = "contract.sum.no-recorded",
-                    Sum = new Sum
-                    {
-                        AggregationTemporality = AggregationTemporality.Delta,
-                        DataPoints =
-                        {
-                            new NumberDataPoint
-                            {
-                                TimeUnixNano = 5_002,
-                                Flags = 1,
-                                AsDouble = double.PositiveInfinity,
-                                Exemplars = { new Exemplar { TimeUnixNano = 5_001, AsDouble = double.NaN } }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-
-        return new ExportMetricsServiceRequest
-        {
-            ResourceMetrics = { new OtlpResourceMetrics { Resource = BuildResource(), ScopeMetrics = { scope } } }
-        };
     }
 
     private static OtlpResource BuildResource()

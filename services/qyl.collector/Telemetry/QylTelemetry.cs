@@ -10,13 +10,6 @@ internal static class QylTelemetry
         Version = BuildVersion.InformationalVersion,
         TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
-
-
-    public static readonly Meter Meter = new(new MeterOptions(ServiceName)
-    {
-        Version = BuildVersion.InformationalVersion,
-        TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
-    });
 }
 
 internal static class QylLatencyNames

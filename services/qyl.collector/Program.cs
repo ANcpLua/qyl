@@ -14,10 +14,6 @@ builder.AddQylServiceDefaults(options =>
     options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
     options.AdditionalActivitySources.Add(QylTelemetry.ServiceName);
-    options.ConfigureMetrics = static metrics =>
-    {
-        metrics.AddMeter(QylTelemetry.ServiceName);
-    };
 });
 
 var ports = builder.Services.AddQylCollectorCore(builder.Configuration);

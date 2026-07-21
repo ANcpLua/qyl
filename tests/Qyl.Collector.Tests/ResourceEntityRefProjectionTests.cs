@@ -1,6 +1,5 @@
 using Google.Protobuf;
 using OpenTelemetry.Proto.Collector.Logs.V1;
-using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Resource.V1;
@@ -8,12 +7,8 @@ using Qyl.Collector.Ingestion;
 using Qyl.Collector.Mapping;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
-using OtlpProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
-using OtlpProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using OtlpResourceLogs = OpenTelemetry.Proto.Logs.V1.ResourceLogs;
-using OtlpResourceProfiles = OpenTelemetry.Proto.Profiles.V1Development.ResourceProfiles;
 using OtlpScopeLogs = OpenTelemetry.Proto.Logs.V1.ScopeLogs;
-using OtlpScopeProfiles = OpenTelemetry.Proto.Profiles.V1Development.ScopeProfiles;
 using OtlpSpan = OpenTelemetry.Proto.Trace.V1.Span;
 using OtlpResourceSpans = OpenTelemetry.Proto.Trace.V1.ResourceSpans;
 using OtlpScopeSpans = OpenTelemetry.Proto.Trace.V1.ScopeSpans;
@@ -23,7 +18,7 @@ namespace Qyl.Collector.Tests;
 public sealed class ResourceEntityRefProjectionTests
 {
     [Fact]
-    public async Task Entity_references_survive_trace_log_and_profile_storage_projection_in_canonical_order()
+    public async Task Entity_references_survive_trace_and_log_storage_projection_in_canonical_order()
     {
         var traceRequest = new ExportTraceServiceRequest
         {
@@ -89,40 +84,9 @@ public sealed class ResourceEntityRefProjectionTests
         Assert.Equal(eventName, log.EventName);
         AssertCanonicalRefs(log.Resource.EntityRefs);
 
-        var profileRequest = new ExportProfilesServiceRequest
-        {
-            ResourceProfiles =
-            {
-                new OtlpResourceProfiles
-                {
-                    Resource = BuildResource(),
-                    ScopeProfiles =
-                    {
-                        new OtlpScopeProfiles
-                        {
-                            Profiles =
-                            {
-                                new OtlpProfile
-                                {
-                                    ProfileId = ByteString.CopyFrom(new byte[16]),
-                                    TimeUnixNano = 4
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            Dictionary = new OtlpProfilesDictionary()
-        };
-        var profileDetail = Assert.Single(IngestionStorageMapper.ToProfileStorageRows(
-            OtlpConverter.ConvertProfiles(profileRequest)));
-        Assert.NotNull(profileDetail.Profile.ResourceEntityRefsJson);
-        AssertCanonicalRefs(ProfileMapper.ToContract(profileDetail).Resource.EntityRefs);
-
         await using var store = new DuckDbStore(":memory:");
         await store.EnqueueAsync(new SpanBatch([spanRow]), TestContext.Current.CancellationToken);
         await store.InsertLogsAsync([logRow], TestContext.Current.CancellationToken);
-        await store.InsertProfilesAsync([profileDetail], TestContext.Current.CancellationToken);
 
         AssertCanonicalRefs(Assert.Single(SpanMapper.ToContracts(await store.GetSpansAsync(
             "default",
@@ -132,9 +96,6 @@ public sealed class ResourceEntityRefProjectionTests
             ct: TestContext.Current.CancellationToken));
         Assert.Equal(eventName, storedLog.EventName);
         AssertCanonicalRefs(LogMapper.ToContract(storedLog).Resource.EntityRefs);
-        AssertCanonicalRefs(ProfileMapper.ToContract(Assert.Single(await store.GetProfilesAsync(
-            "default",
-            ct: TestContext.Current.CancellationToken))).Resource.EntityRefs);
     }
 
     [Fact]
@@ -176,68 +137,6 @@ public sealed class ResourceEntityRefProjectionTests
 
         Assert.Equal(original.LogId, updated.LogId);
         Assert.NotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
-    }
-
-    [Fact]
-    public void Empty_entity_references_preserve_pre_feature_stable_storage_ids()
-    {
-        var log = Assert.Single(IngestionStorageMapper.ToLogStorageRows(new LogIngestionBatch(
-        [
-            new LogIngestionRecord
-            {
-                TimeUnixNano = 1,
-                SeverityNumber = 0,
-                ServiceName = "unknown",
-                Attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceEntityRefs = []
-            }
-        ])));
-        Assert.Equal("log_61ff352f12dd8bf7c6aa5b159489ef27", log.LogId);
-
-        var metric = Assert.Single(IngestionStorageMapper.ToMetricStorageRows(new MetricIngestionBatch(
-        [
-            new MetricIngestionRecord
-            {
-                MetricName = "legacy.metric",
-                MetricType = MetricStorageTypes.Gauge,
-                Metadata = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceDroppedAttributesCount = 0,
-                HasInstrumentationScope = false,
-                ScopeAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ScopeDroppedAttributesCount = 0,
-                TimeUnixNano = 1,
-                StartTimeUnixNano = 0,
-                Flags = 0,
-                Exemplars = [],
-                ServiceName = "unknown",
-                Attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceEntityRefs = []
-            }
-        ])));
-        Assert.Equal("metric_7675ae3b4f9225873b3e27c0cfeedf16", metric.MetricId);
-
-        var profile = Assert.Single(IngestionStorageMapper.ToProfileStorageRows(new ProfileIngestionBatch(
-        [
-            new ProfileIngestionRecord
-            {
-                ProfileId = "",
-                TimeUnixNano = 1,
-                DurationNano = 0,
-                SampleCount = 0,
-                ServiceName = "unknown",
-                Attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal),
-                ResourceEntityRefs = [],
-                Functions = [],
-                Locations = [],
-                Mappings = [],
-                Samples = [],
-                Stacks = []
-            }
-        ])));
-        Assert.Equal("profile_5cf620f9c11a610c7e173457e29c2112", profile.Profile.ProfileId);
     }
 
     [Fact]

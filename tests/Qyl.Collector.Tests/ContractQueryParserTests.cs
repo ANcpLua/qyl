@@ -24,16 +24,7 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.Logs, "startTime", "13/07/2026", "query.invalid_date_time" },
             { QueryEndpoint.Logs, "endTime", "2026-07-13T10:00:00", "query.invalid_date_time" },
             { QueryEndpoint.Logs, "limit", "0x10", "query.invalid_integer" },
-            { QueryEndpoint.Metrics, "type", "counter", "query.invalid_enum" },
-            { QueryEndpoint.Metrics, "startTime", "yesterday", "query.invalid_date_time" },
-            { QueryEndpoint.Metrics, "endTime", "tomorrow", "query.invalid_date_time" },
-            { QueryEndpoint.Metrics, "startTime", "9999-12-31T23:59:59Z", "query.invalid_date_time" },
-            { QueryEndpoint.Metrics, "limit", "many", "query.invalid_integer" },
-            { QueryEndpoint.Metrics, "cursor", "not-a-qyl-cursor", "cursor.invalid" },
-            { QueryEndpoint.LogStream, "minSeverity", "warning", "query.invalid_integer" },
-            { QueryEndpoint.Profiles, "limit", "unbounded", "query.invalid_integer" },
-            { QueryEndpoint.TraceProfiles, "limit", "unbounded", "query.invalid_integer" },
-            { QueryEndpoint.SpanProfiles, "limit", "unbounded", "query.invalid_integer" }
+            { QueryEndpoint.LogStream, "minSeverity", "warning", "query.invalid_integer" }
         };
 
     public static TheoryData<QueryEndpoint, string, string, string> OutOfRangeQueries =>
@@ -43,11 +34,7 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.Traces, "limit", "1001", "limit.out_of_range" },
             { QueryEndpoint.Logs, "severityMin", "25", "severity.out_of_range" },
             { QueryEndpoint.Logs, "limit", "10001", "limit.out_of_range" },
-            { QueryEndpoint.Metrics, "limit", "1001", "limit.out_of_range" },
-            { QueryEndpoint.LogStream, "minSeverity", "0", "severity.out_of_range" },
-            { QueryEndpoint.Profiles, "limit", "0", "limit.out_of_range" },
-            { QueryEndpoint.TraceProfiles, "limit", "1001", "limit.out_of_range" },
-            { QueryEndpoint.SpanProfiles, "limit", "1001", "limit.out_of_range" }
+            { QueryEndpoint.LogStream, "minSeverity", "0", "severity.out_of_range" }
         };
 
     [Theory]
@@ -136,14 +123,6 @@ public sealed class ContractQueryParserTests
                 context, null!, TestContext.Current.CancellationToken),
             QueryEndpoint.Logs => await CollectorEndpointExtensions.GetLogsAsync(
                 context, null!, null, null, null, null, null, TestContext.Current.CancellationToken),
-            QueryEndpoint.Metrics => await CollectorEndpointExtensions.GetMetricsAsync(
-                context, null!, TestContext.Current.CancellationToken),
-            QueryEndpoint.Profiles => await CollectorEndpointExtensions.GetProfilesAsync(
-                context, null!, null, null, null, null, TestContext.Current.CancellationToken),
-            QueryEndpoint.TraceProfiles => await CollectorEndpointExtensions.GetTraceProfilesAsync(
-                context, "trace-id", null!, TestContext.Current.CancellationToken),
-            QueryEndpoint.SpanProfiles => await CollectorEndpointExtensions.GetSpanProfilesAsync(
-                context, "span-id", null!, TestContext.Current.CancellationToken),
             QueryEndpoint.LogStream => null,
             _ => throw new ArgumentOutOfRangeException(nameof(endpoint), endpoint, null)
         };
@@ -183,10 +162,6 @@ public sealed class ContractQueryParserTests
         SessionStats,
         Traces,
         Logs,
-        Metrics,
-        LogStream,
-        Profiles,
-        TraceProfiles,
-        SpanProfiles
+        LogStream
     }
 }

@@ -13,32 +13,11 @@ internal sealed record TraceStoragePageItem(
     ulong ActivityUnixNano,
     IReadOnlyList<SpanStorageRow> Spans);
 
-internal readonly record struct MetricPageCursor(ulong TimeUnixNano, string MetricId);
-
-internal sealed record MetricStoragePage(
-    IReadOnlyList<MetricStorageRow> Items,
-    bool HasMore);
-
 internal interface IQylStore : IAsyncDisposable
 {
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
 
     Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default);
-
-    Task InsertProfilesAsync(IReadOnlyList<ProfileDetail> results, CancellationToken ct = default);
-
-    Task InsertMetricsAsync(IReadOnlyList<MetricStorageRow> metrics, CancellationToken ct = default);
-
-    Task<MetricStoragePage> GetMetricPageAsync(
-        string projectId,
-        MetricPageCursor? cursor,
-        byte? metricType,
-        string? metricName,
-        string? serviceName,
-        ulong? start,
-        ulong? end,
-        int limit,
-        CancellationToken ct = default);
 
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,
@@ -105,18 +84,4 @@ internal interface IQylStore : IAsyncDisposable
         int limit = 250,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<ProfileStorageRow>> GetProfilesAsync(
-        string projectId,
-        string? sessionId = null,
-        string? traceId = null,
-        string? spanId = null,
-        string? serviceName = null,
-        string? sampleType = null,
-        int limit = 100,
-        CancellationToken ct = default);
-
-    Task<ProfileDetail?> GetProfileDetailAsync(
-        string profileId,
-        string projectId,
-        CancellationToken ct = default);
 }

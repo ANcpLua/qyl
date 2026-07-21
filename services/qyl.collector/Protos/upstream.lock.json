@@ -5,13 +5,11 @@
       "revision": "c0a98a1847d3124ac5f9ecd02d0e2d2732bbb590",
       "files": [
         { "path": "opentelemetry/proto/collector/logs/v1/logs_service.proto", "sha256": "0252687fc8f59d139ced709d383e83678e9bd4957bdbe76077242f1c32363fa5" },
-        { "path": "opentelemetry/proto/collector/profiles/v1development/profiles_service.proto", "sha256": "934161a0a59b8031cf96b3d2950f0c28ef72f064c3d505fab9aa52969bc6512c" },
         { "path": "opentelemetry/proto/collector/trace/v1/trace_service.proto", "sha256": "03c8cc4e3e101087d884392d6eda32152ad5cd696e6344f50deaa59804a75c7a" },
-        { "path": "opentelemetry/proto/common/v1/common.proto", "sha256": "9b8c2677d2d2bc6d806c090d772876bd4c6e2dd55180d9b2b5760576c1168c3b" },
+        { "path": "opentelemetry/proto/common/v1/common.proto", "sha256": "834024b91719782e52b5d09f8aae692489552352e133f267ec4aefbfe981203a" },
         { "path": "opentelemetry/proto/collector/metrics/v1/metrics_service.proto", "sha256": "2bb3c6adee5f7609c8a32c5e4b1ec57057320015e298e9cf136699a42abc24d7" },
         { "path": "opentelemetry/proto/logs/v1/logs.proto", "sha256": "91e42ca14a09f7de338a7870583319445fcf5b9d9e7090effa4a52958f603ca8" },
         { "path": "opentelemetry/proto/metrics/v1/metrics.proto", "sha256": "a85af48c114554504e7df1524821bb1a3a9bd341b9fc9b3743663998cb2b6318" },
-        { "path": "opentelemetry/proto/profiles/v1development/profiles.proto", "sha256": "fe90b2a4038e8521fe2d253f81ad8ab9b63c347ca7de34d6ca1439fb13d6aa9c" },
         { "path": "opentelemetry/proto/resource/v1/resource.proto", "sha256": "db731e855e7af150259639f3a1288ebd74c7e621f4a0f13e4d11734d7ce6ca58" },
         { "path": "opentelemetry/proto/trace/v1/trace.proto", "sha256": "be3014cf9a3aedc61d045621106a1643f2c9df5d4d13e2ba8c274ccc9d59ee36" }
       ]

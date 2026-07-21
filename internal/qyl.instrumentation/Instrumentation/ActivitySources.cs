@@ -13,9 +13,5 @@ public static class ActivitySources
 
     private static readonly ActivitySource s_genAiSource = new(GenAi, Version);
 
-    private static readonly Meter s_genAiMeter = new(GenAi, Version);
-
     public static ActivitySource GenAiSource => s_genAiSource;
-
-    public static Meter GenAiMeter => s_genAiMeter;
 }

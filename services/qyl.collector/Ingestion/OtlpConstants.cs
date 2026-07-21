@@ -2,14 +2,9 @@ namespace Qyl.Collector.Ingestion;
 
 internal static class OtlpConstants
 {
-    public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1/metrics", "/v1development/profiles"];
+    public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1/metrics"];
 
-    private static readonly string[] s_namespacePaths = Paths
-        .Select(static path => path.IndexOf('/', 1) is var separator && separator >= 0
-            ? path[..separator]
-            : path)
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray();
+    private static readonly string[] s_namespacePaths = ["/v1", "/v1development"];
 
     public static bool IsOtlpPath(string path) =>
         Paths.Any(candidate => IsExactPathOrTrailingSlash(path, candidate));

@@ -288,9 +288,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     return false;
 
                 if (declaration.Namespace.StartsWith("Qyl.Collector.Observe", StringComparison.Ordinal) ||
-                    declaration.Namespace.StartsWith("Qyl.Collector.Metrics", StringComparison.Ordinal) ||
-                    declaration.Path.Contains("/Observe/", StringComparison.Ordinal) ||
-                    declaration.Path.Contains("/Metrics/", StringComparison.Ordinal))
+                    declaration.Path.Contains("/Observe/", StringComparison.Ordinal))
                 {
                     return true;
                 }
@@ -487,16 +485,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             var expectedDefault = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "default");
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/traces", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/metrics", expectedDefault);
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/profiles", expectedDefault);
             var expected = new Dictionary<string, int>(StringComparer.Ordinal)
             {
                 ["DefaultPageLimit"] = expectedDefault,
                 ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
                 ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
-                ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
-                ["MetricMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "maximum"),
-                ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum")
+                ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum")
             };
 
             var mismatches = expected
@@ -644,10 +638,10 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             }
 
             if (!hasBuildVersion)
-                Log.Error("  QylTelemetry.cs must set ActivitySource and Meter versions from BuildVersion.InformationalVersion");
+                Log.Error("  QylTelemetry.cs must set the ActivitySource version from BuildVersion.InformationalVersion");
 
             if (hasHardcodedVersion)
-                Log.Error("  QylTelemetry.cs must not hardcode telemetry source or meter versions");
+                Log.Error("  QylTelemetry.cs must not hardcode telemetry source versions");
 
             throw new InvalidOperationException(
                 "Collector telemetry version has one source of truth: the generated BuildVersion.InformationalVersion constant.");
@@ -713,9 +707,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Do not carry ANcpLua.Roslyn.Utilities in the collector runtime for basic string operations. Use BCL string APIs with explicit StringComparison.");
         });
 
-    Target VerifyCollectorMetricTagsAreBounded => d => d
+    Target VerifyCollectorLatencyTagsAreBounded => d => d
         .Unlisted()
-        .Description("Verify collector metric tag names stay bounded")
+        .Description("Verify collector latency tag names stay bounded")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -734,7 +728,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                         .OfType<InvocationExpressionSyntax>()
                         .Where(static invocation => InvocationName(invocation.Expression) is "RegisterTagNames")
                         .SelectMany(invocation => invocation.ArgumentList.Arguments
-                            .Where(static argument => !IsAllowedMetricTagArgument(argument.Expression))
+                            .Where(static argument => !IsAllowedLatencyTagArgument(argument.Expression))
                             .Select(argument => (
                                 File: relativePath,
                                 Line: NodeLine(argument),
@@ -744,21 +738,21 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             if (offenders.Count is 0)
             {
-                Log.Information("Collector metric tag names are bounded");
+                Log.Information("Collector latency tag names are bounded");
                 return;
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Non-canonical metric tag registration at {File}:{Line}: {Text}",
+                Log.Error("  Non-canonical latency tag registration at {File}:{Line}: {Text}",
                     offender.File,
                     offender.Line,
                     offender.Text);
 
             throw new InvalidOperationException(
-                "Do not register metric tag names from semantic attributes, locals, or request-derived variables. " +
+                "Do not register latency tag names from semantic attributes, locals, or request-derived variables. " +
                 "Declare bounded collector tag names in QylLatencyNames.Tags and register only those constants.");
 
-            static bool IsAllowedMetricTagArgument(ExpressionSyntax expression) =>
+            static bool IsAllowedLatencyTagArgument(ExpressionSyntax expression) =>
                 expression.ToString().StartsWith("QylLatencyNames.Tags.", StringComparison.Ordinal);
         });
 
@@ -913,8 +907,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "tenant.id",
                 "TenantId",
                 "SpanStorageRow",
-                "LogStorageRow",
-                "ProfileStorageRow"
+                "LogStorageRow"
             ];
 
             var instrumentationRoots = new[]
@@ -1009,7 +1002,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             throw new InvalidOperationException(
                 "Do not record exception messages, stack traces, raw tool names in span names, or caller-provided " +
-                "operation names as span/metric names by default. Normalize operation names and keep sensitive content gated.");
+                "operation names as span names or attributes by default. Normalize operation names and keep sensitive content gated.");
         });
 
     Target VerifyCollectorStorageReadsAreProjectScoped => d => d
@@ -1040,9 +1033,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "FROM spans WHERE project_id = $1 AND trace_id = $2",
                 "qb.Add(\"project_id = $N\", projectId);",
                 "(SELECT COUNT(*) FROM spans WHERE project_id = $1)",
-                "SELECT COUNT(*) FROM spans WHERE project_id = $1",
-                "FROM profiles WHERE project_id = $1 AND profile_id = $2",
-                "ReadChildRows(con, header.ProjectId, profileId"
+                "SELECT COUNT(*) FROM spans WHERE project_id = $1"
             ];
 
             string[] requiredSessionTokens =
@@ -1092,7 +1083,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 Log.Error("  {Forbidden}", item);
 
             throw new InvalidOperationException(
-                "Storage reads over spans, logs, profiles, and session summaries must include explicit project_id scope. " +
+                "Storage reads over spans, logs, and session summaries must include explicit project_id scope. " +
                 "Do not default or normalize project scope inside read query APIs; pass the request edge scope in explicitly.");
         });
 
@@ -1257,13 +1248,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             string[] requiredGeneratedInsertHelpers =
             [
                 "InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters",
-                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters",
-                "ProfileStorageRow.AddParameters",
-                "ProfileFunctionRow.AddParameters",
-                "ProfileLocationRow.AddParameters",
-                "ProfileMappingRow.AddParameters",
-                "ProfileSampleRow.AddParameters",
-                "ProfileStackRow.AddParameters"
+                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters"
             ];
 
             string[] forbiddenManualInsertLoopTokens =
@@ -1365,19 +1350,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "OtlpResourceLogsProto",
                 "OtlpScopeLogsProto",
                 "OtlpLogRecordProto",
-                "ExportLogsServiceRequestProto",
-                "OtlpExportProfilesServiceRequest",
-                "OtlpResourceProfiles",
-                "OtlpScopeProfiles",
-                "OtlpProfile",
-                "OtlpValueType",
-                "OtlpProfileSample",
-                "OtlpProfileFunction",
-                "OtlpProfileLocation",
-                "OtlpProfileLine",
-                "OtlpProfileMapping",
-                "OtlpProfileLink",
-                "OtlpProfileStack"
+                "ExportLogsServiceRequestProto"
             ];
 
             static bool ContainsRemovedToken(string text, string token)
@@ -1474,60 +1447,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             throw new InvalidOperationException(
                 "Do not reintroduce LINQ duplicate conversion, ByteString.ToByteArray, or extra session-correlation scans " +
                 "in OtlpConverter hot paths.");
-        });
-
-    Target VerifyOtlpProfileSymbolsAreResolved => d => d
-        .Unlisted()
-        .Description("Verify OTLP profile function and mapping symbols are resolved from the profile string table")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
-            if (!converterFile.FileExists())
-                throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
-
-            var converterText = File.ReadAllText(converterFile);
-            var mapperFile = CollectorDirectory / "Mapping" / "Mappers.cs";
-            if (!mapperFile.FileExists())
-                throw new FileNotFoundException("Missing collector mapper", mapperFile.ToString());
-
-            var mapperText = File.ReadAllText(mapperFile);
-            string[] required =
-            [
-                "Name = Resolve(f.NameStrindex, dictionary)",
-                "SystemName = Resolve(f.SystemNameStrindex, dictionary)",
-                "Filename = Resolve(f.FilenameStrindex, dictionary)",
-                "Filename = Resolve(m.FilenameStrindex, dictionary)"
-            ];
-
-            var missing = required
-                .Where(token => !converterText.Contains(token, StringComparison.Ordinal))
-                .ToList();
-
-            string[] mapperRequired =
-            [
-                "FilenameStrindex = AddString(row.Filename)",
-                "SampleType = AddValueType(detail.Profile.SampleType, detail.Profile.SampleUnit)"
-            ];
-
-            var mapperMissing = mapperRequired
-                .Where(token => !mapperText.Contains(token, StringComparison.Ordinal))
-                .ToList();
-
-            if (missing.Count is 0 && mapperMissing.Count is 0)
-            {
-                Log.Information("OTLP profile symbols round-trip through storage and contract mapping");
-                return;
-            }
-
-            foreach (var token in missing)
-                Log.Error("  Missing profile symbol resolver: {Token}", token);
-
-            foreach (var token in mapperMissing)
-                Log.Error("  Missing profile contract symbol mapper: {Token}", token);
-
-            throw new InvalidOperationException(
-                "Do not drop OTLP profile function, mapping, or sample type symbols. Resolve *_strindex fields through ProfilesDictionary.string_table and map stored symbols back into contract string_table entries.");
         });
 
     Target VerifyOtlpAttributesPreserveAnyValueTypes => d => d
@@ -1657,16 +1576,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 (ingestionModelsFile, "public required ulong EndTimeUnixNano"),
                 (ingestionModelsFile, "public required ulong TimeUnixNano"),
                 (ingestionModelsFile, "public ulong? ObservedTimeUnixNano"),
-                (ingestionModelsFile, "public required ulong DurationNano"),
-                (ingestionModelsFile, "public ulong[]? TimestampsUnixNano"),
                 (storageRowsFile, "public required ulong StartTimeUnixNano"),
                 (storageRowsFile, "public required ulong EndTimeUnixNano"),
                 (storageRowsFile, "public required ulong DurationNs"),
                 (storageRowsFile, "public required ulong TimeUnixNano"),
                 (storageRowsFile, "public ulong? ObservedTimeUnixNano"),
-                (storageRowsFile, "public required ulong DurationNano"),
-                (mappersFile, "ulong startTimeUnixNano, ulong endTimeUnixNano,"),
-                (mappersFile, "TimestampsUnixNano = ParseUlongList(row.TimestampsJson)")
+                (mappersFile, "ulong startTimeUnixNano, ulong endTimeUnixNano,")
             };
 
             var textByFile = new Dictionary<AbsolutePath, string>
@@ -1686,9 +1601,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "public required long EndTimeUnixNano",
                 "public required long TimeUnixNano",
                 "public long? ObservedTimeUnixNano",
-                "public required long DurationNano",
-                "public long[]? TimestampsUnixNano",
-                "TimestampsUnixNano = ParseLongList",
                 "(long)startTimeUnixNano",
                 "(long)endTimeUnixNano",
                 "(long)durationNs",
@@ -1754,8 +1666,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "ProjectScope",
                 "SpanStorageRow",
                 "LogStorageRow",
-                "ProfileStorageRow",
-                "ProfileConversionResult",
                 "SpanBatch",
                 "PersistedAttributePolicy",
                 "ShouldPersist",
@@ -1783,7 +1693,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "StorageAttributeProjection.ExtractSpanHotAttributes",
                 "PersistedAttributePolicy.SerializeSpanAttributes",
                 "PersistedAttributePolicy.SerializeLogAttributes",
-                "PersistedAttributePolicy.SerializeProfileAttributes",
                 "PersistedAttributePolicy.SerializeResourceAttributes",
                 "SHA256.HashData"
             ];
@@ -1831,7 +1740,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "StorageRow",
                 "SpanStorage",
                 "LogStorage",
-                "ProfileStorage",
                 "ProjectScope",
                 "PersistedAttributePolicy",
                 "ShouldPersist",
@@ -1943,7 +1851,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
     Target VerifyCollectorStorageWritesAreReplayIdempotent => d => d
         .Unlisted()
-        .Description("Verify collector log/profile storage writes are replay-idempotent")
+        .Description("Verify collector log storage writes are replay-idempotent")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -1968,37 +1876,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     ["LogId"] = 1
                 },
                 "on conflict (project_id, log_id)");
-            EnsureStorageIdentity(
-                "ProfileStorageRow",
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    ["ProjectId"] = 0,
-                    ["ProfileId"] = 1
-                },
-                "on conflict (project_id, profile_id)");
-
-            ReadOnlySpan<string> profileChildRecordNames =
-            [
-                "ProfileFunctionRow",
-                "ProfileLocationRow",
-                "ProfileMappingRow",
-                "ProfileSampleRow",
-                "ProfileStackRow"
-            ];
-
-            foreach (var recordName in profileChildRecordNames)
-            {
-                EnsureStorageIdentity(
-                    recordName,
-                    new Dictionary<string, int>(StringComparer.Ordinal)
-                    {
-                        ["ProjectId"] = 0,
-                        ["ProfileId"] = 1,
-                        ["Ordinal"] = 2
-                    },
-                    "on conflict (project_id, profile_id, ordinal)");
-            }
-
             var storageMapperText = File.ReadAllText(storageMapperFile);
             var converterText = File.ReadAllText(converterFile);
             var persistedPolicyText = File.ReadAllText(persistedPolicyFile);
@@ -2012,25 +1889,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             .Where(item => File.ReadAllText(item.File).Contains(item.Token, StringComparison.Ordinal))
             .ToList();
 
-            string[] storageMapperRequired =
-            [
-                "StableStorageId(\"log\"",
-                "StableStorageId(\"profile\"",
-                "ResolveProfileId("
-            ];
+            string[] storageMapperRequired = ["StableStorageId(\"log\""];
 
             foreach (var token in storageMapperRequired)
             {
                 if (!storageMapperText.Contains(token, StringComparison.Ordinal))
                     missingRequired.Add(RootDirectory.GetRelativePathTo(storageMapperFile) + $" must contain deterministic storage identity token '{token}'");
-            }
-
-            if (!converterText.Contains("var profileId = RequireIdOrAbsent(profile.ProfileId, 16, \"profile_id\") ?? \"\";",
-                    StringComparison.Ordinal))
-            {
-                missingRequired.Add(
-                    RootDirectory.GetRelativePathTo(converterFile)
-                    + " must leave missing OTLP profile ids empty (RequireIdOrAbsent -> null -> \"\") so storage materialization derives the deterministic fallback id");
             }
 
             if (!persistedPolicyText.Contains("OrderBy(static item => item.Key, StringComparer.Ordinal)", StringComparison.Ordinal))
@@ -2049,7 +1913,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             if (missingRequired.Count is 0 && forbiddenRandomIdTokens.Count is 0)
             {
-                Log.Information("Collector log/profile storage writes are replay-idempotent");
+                Log.Information("Collector log storage writes are replay-idempotent");
                 return;
             }
 
@@ -2062,8 +1926,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     RootDirectory.GetRelativePathTo(offender.File));
 
             throw new InvalidOperationException(
-                "Collector storage writes must be deterministic under OTLP replay. Logs and profiles require " +
-                "project-scoped primary keys, ON CONFLICT upserts, deterministic fallback ids, and canonical persisted JSON.");
+                "Collector log storage writes must use project-scoped primary keys, ON CONFLICT upserts, " +
+                "deterministic ids, and canonical persisted JSON.");
 
             void EnsureStorageIdentity(
                 string recordName,
@@ -2142,7 +2006,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Qyl.OpenTelemetry.Extensions",
                 "Qyl.Telemetry",
                 "QylTraced",
-                "QylMeter",
                 "./eng/build.sh Generate",
                 "./eng/build.sh OtelConventions",
                 "nuke Generate",
@@ -2180,9 +2043,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "SchemaVersionNegotiator",
                 "SubscriptionManager",
                 "DomainContracts",
-                "DerivedMetricCatalog",
-                "DerivedMetricQueries",
-                "MetricsEndpoints",
                 "SemanticAttributeKeys",
                 "EmbeddingClusterWorker",
                 "IEmbeddingGenerator",
@@ -2201,10 +2061,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "AttributeKeyPrefix",
                 "StartsWithOrdinal(QylCapabilityPrefix)",
                 "Paths.Any(path.StartsWithIgnoreCase)",
-                "ProfileDataJson",
-                "profile_data_json",
-                "ProfileFrameType",
-                "profile_frame_type",
                 "DropTelemetryTablesWhenSpanIdentityIsLegacy",
                 "ShouldDropTelemetryTablesForSpanIdentity",
                 "s_legacyTelemetry",
@@ -2247,7 +2103,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "StartsWithIgnoreCase(\"mistral\")",
                 "StartsWithIgnoreCase(\"command\")",
                 "ExtractBaggageJson",
-                "JsonFormatter.Default.Format(profile)",
                 ".Select(ConvertProtoAnyValueToString)",
                 // Generic ToDictionary use is valid outside the OTLP conversion hot path. The
                 // allocation regression remains enforced against OtlpConverter.cs by the scoped
@@ -2263,7 +2118,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "UpsertServiceInstanceAsync",
                 "InsightsMaterializerService",
                 "TopologyMaterializer",
-                "ProfileMaterializer",
                 "AlertsMaterializer",
                 "MaterializedInsightsDdl",
                 "materialized_insights",
@@ -2276,7 +2130,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "ProjectService",
                 "WorkspaceService",
                 "GenerationJobService",
-                "GenerationProfileService",
                 "WorkflowRunService",
                 "SchemaPlanner",
                 "SchemaExecutor",
@@ -2358,9 +2211,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "after = ordered[^1].TimeUnixNano",
                 "OrderBy(static l => l.TimeUnixNano).ToArray()",
                 "SpanRowMapper",
-                "ClearTableAsync(\"profiles\"",
                 "thread.Join(TimeSpan.FromSeconds(2))",
-                "DELETE FROM profile_functions;",
                 "/api/v1/ingest",
                 "StartsWithIgnoreCase(\"mcp/\")",
                 "qyl native protocol",
@@ -2402,10 +2253,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "ClearAllTelemetryAsync",
                 "ClearAllSpansAsync",
                 "ClearAllLogsAsync",
-                "ClearAllProfilesAsync",
-                "MetricCount",
                 "DroppedLogCount",
-                "DroppedMetricCount",
                 "SpanColumnCount",
                 "SpanColumnList",
                 "SpanOnConflictClause",
@@ -2419,14 +2267,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "AddLogParameters",
                 "MapLog(",
                 "BuildMultiRowInsertSql(string table",
-                "ProfileStorageRow.ColumnList",
-                "InsertRowsBatchedAsync(con, tx, \"profile_",
-                "static (cmd, f)",
-                "static (cmd, l)",
-                "static (cmd, m)",
-                "static (cmd, s)",
-                "static (cmd, st)",
-                "MapProfile(",
                 "TRY_CAST(status_code",
                 "kind VARCHAR NOT NULL",
                 "status_code VARCHAR NOT NULL",
@@ -2451,12 +2291,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             [
                 "/observe",
                 "/qyl.js",
-                // "/metrics" left this list when OTLP metrics ingestion (POST /v1/metrics + gRPC)
-                // became a product surface again in 4d562455; the literal token cannot tell the
-                // OTLP route apart from the old scrape-style surface.
                 "/logs/live",
                 "/sessions/{sessionId}/spans",
-                "/traces/{traceId}/profiles",
                 "/genai",
                 "/telemetry",
                 "/meta"
@@ -2467,7 +2303,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "services" / "qyl.collector" / "Contracts",
                 RootDirectory / "services" / "qyl.collector" / "Query",
                 RootDirectory / "services" / "qyl.collector" / "Observe",
-                RootDirectory / "services" / "qyl.collector" / "Metrics",
                 RootDirectory / "services" / "qyl.collector" / "Alerts",
                 RootDirectory / "services" / "qyl.collector" / "Auth",
                 RootDirectory / "services" / "qyl.collector" / "Analytics",
@@ -2501,24 +2336,14 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "eng" / "build" / "BuildCoverage.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "DevLogs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "GeneratedTelemetryRegistrationAttributes.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "CounterAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "GaugeAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "HistogramAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "MeterAttribute.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "NoTraceAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "ObservableCounterAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "ObservableGaugeAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "ObservableUpDownCounterAttribute.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "OTelAttribute.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TagAttribute.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TracedAttribute.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TracedReturnAttribute.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TracedTagAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "UpDownCounterAttribute.cs",
-                RootDirectory / "internal" / "qyl.instrumentation.generators" / "CallSites" / "MeterAnalyzer.cs",
                 RootDirectory / "internal" / "qyl.instrumentation.generators" / "CallSites" / "TelemetryTagNameResolver.cs",
                 RootDirectory / "internal" / "qyl.instrumentation.generators" / "CallSites" / "TracedCallSiteAnalyzer.cs",
-                RootDirectory / "internal" / "qyl.instrumentation.generators" / "Emitters" / "MeterEmitter.cs",
                 RootDirectory / "internal" / "qyl.instrumentation.generators" / "Emitters" / "TracedInterceptorEmitter.cs",
                 RootDirectory / "packages" / "Qyl.Client",
                 RootDirectory / "packages" / "Qyl.OpenTelemetry.Extensions",
@@ -2646,7 +2471,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorHasNoRuntimeRoslynUtilityReference)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
-        .DependsOn(VerifyCollectorMetricTagsAreBounded)
+        .DependsOn(VerifyCollectorLatencyTagsAreBounded)
         .DependsOn(VerifyCollectorExceptionTelemetryIsBounded)
         .DependsOn(VerifyCollectorLogStreamingUsesStorageOrdering)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
@@ -2660,7 +2485,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyOtlpProtoSourcesPinned)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
-        .DependsOn(VerifyOtlpProfileSymbolsAreResolved)
         .DependsOn(VerifyOtlpAttributesPreserveAnyValueTypes)
         .DependsOn(VerifyOtlpUnixNanoValuesStayUnsigned)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
@@ -2687,7 +2511,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector runtime code avoids ANcpLua.Roslyn.Utilities dependency");
             Log.Information("  Collector semantic attribute catalog matches package references");
             Log.Information("  Collector semantic policy is backed by the generated catalog");
-            Log.Information("  Collector metric tags are bounded");
+            Log.Information("  Collector latency tags are bounded");
             Log.Information("  Collector exception telemetry uses bounded categories");
             Log.Information("  Collector log streaming uses storage ordering");
             Log.Information("  Collector session facets are bounded");
@@ -2704,7 +2528,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  OTLP decoding is storage-independent and storage projection is centralized");
             Log.Information("  Collector OTLP ingestion is storage-schema blind");
             Log.Information("  Collector span storage identity is project- and trace-scoped");
-            Log.Information("  Collector log/profile storage writes are replay-idempotent");
+            Log.Information("  Collector log storage writes are replay-idempotent");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });

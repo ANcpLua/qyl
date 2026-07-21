@@ -7,7 +7,7 @@ namespace Qyl.Collector.Ingestion;
 /// yields the bytes the sender meant.
 /// </summary>
 /// <remarks>
-/// The OTLP spec special-cases trace/span/profile ids in JSON to hex, while proto3's JSON mapping
+/// The OTLP spec special-cases trace and span ids in JSON to hex, while proto3's JSON mapping
 /// (which <c>Google.Protobuf.JsonParser</c> implements) decodes every <c>bytes</c> field as base64.
 /// Without this rewrite a spec-compliant hex id happens to also be valid base64 and silently
 /// decodes to the wrong bytes — mangled, unjoinable ids. The contract is strict spec-hex: a
@@ -18,7 +18,6 @@ internal static class OtlpJsonIdNormalizer
 {
     private const int TraceIdBytes = 16;
     private const int SpanIdBytes = 8;
-    private const int ProfileIdBytes = 16;
 
     public static string NormalizeIdsToProtoJson(ReadOnlySpan<byte> utf8Json)
     {
@@ -35,7 +34,7 @@ internal static class OtlpJsonIdNormalizer
         using var writer = new Utf8JsonWriter(buffer);
 
         // Protojson must ignore unknown fields, including future objects that happen to contain
-        // properties named traceId/spanId/profileId. Track the containing OTLP message path so
+        // properties named traceId or spanId. Track the containing OTLP message path so
         // only ids owned by known signal shapes are validated and rewritten.
         var path = new List<string>(8);
         var containerSegments = new Stack<bool>();
@@ -135,15 +134,13 @@ internal static class OtlpJsonIdNormalizer
                 return SpanIdBytes;
         }
 
-        if (IsTraceLinkPath(path) || IsLogRecordPath(path) || IsMetricExemplarPath(path) || IsProfileLinkPath(path))
+        if (IsTraceLinkPath(path) || IsLogRecordPath(path) || IsMetricExemplarPath(path))
         {
             if (IsName(propertyName, "traceId", "trace_id")) return TraceIdBytes;
             if (IsName(propertyName, "spanId", "span_id")) return SpanIdBytes;
         }
 
-        return IsProfilePath(path) && IsName(propertyName, "profileId", "profile_id")
-            ? ProfileIdBytes
-            : 0;
+        return 0;
     }
 
     private static bool IsTraceSpanPath(IReadOnlyList<string> path) =>
@@ -182,17 +179,6 @@ internal static class OtlpJsonIdNormalizer
         IsName(name, "sum", "sum") ||
         IsName(name, "histogram", "histogram") ||
         IsName(name, "exponentialHistogram", "exponential_histogram");
-
-    private static bool IsProfilePath(IReadOnlyList<string> path) =>
-        path.Count is 3 &&
-        IsName(path[0], "resourceProfiles", "resource_profiles") &&
-        IsName(path[1], "scopeProfiles", "scope_profiles") &&
-        IsName(path[2], "profiles", "profiles");
-
-    private static bool IsProfileLinkPath(IReadOnlyList<string> path) =>
-        path.Count is 2 &&
-        IsName(path[0], "dictionary", "dictionary") &&
-        IsName(path[1], "linkTable", "link_table");
 
     private static bool IsName(string actual, string jsonName, string protoName) =>
         string.Equals(actual, jsonName, StringComparison.Ordinal) ||

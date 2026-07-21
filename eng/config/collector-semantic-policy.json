@@ -13,7 +13,6 @@
       "gen_ai.",
       "mcp.",
       "messaging.",
-      "profile.",
       "rpc.",
       "service."
     ]
@@ -30,35 +29,6 @@
       "gen_ai.",
       "messaging.",
       "rpc."
-    ]
-  },
-  "profileAttributeAllowList": {
-    "stablePrefixes": [
-      "error.",
-      "otel."
-    ],
-    "incubatingPrefixes": [
-      "gen_ai.",
-      "profile."
-    ]
-  },
-  "metricAttributeAllowList": {
-    "stablePrefixes": [
-      "db.",
-      "error.",
-      "http.",
-      "network.",
-      "otel.",
-      "server."
-    ],
-    "incubatingPrefixes": [
-      "aspnetcore.",
-      "dotnet.",
-      "gen_ai.",
-      "mcp.",
-      "messaging.",
-      "rpc.",
-      "signalr."
     ]
   },
   "resourceAttributeAllowList": {

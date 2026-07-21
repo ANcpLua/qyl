@@ -3,7 +3,6 @@ using System.IO.Compression;
 using System.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
-using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Qyl.Collector.Ingestion;
@@ -54,14 +53,6 @@ internal static class OtlpPayloadParser
             ? ParseProtobufAsync(request, ExportMetricsServiceRequest.Parser, ct)
             : ParseJsonAsync<ExportMetricsServiceRequest>(request, ct);
 
-    public static Task<ExportProfilesServiceRequest> ParseProfilesRequestAsync(
-        HttpRequest request,
-        OtlpPayloadEncoding encoding,
-        CancellationToken ct = default) =>
-        encoding is OtlpPayloadEncoding.Protobuf
-            ? ParseProtobufAsync(request, ExportProfilesServiceRequest.Parser, ct)
-            : ParseJsonAsync<ExportProfilesServiceRequest>(request, ct);
-
     private static async Task<T> ParseProtobufAsync<T>(
         HttpRequest request,
         MessageParser<T> parser,
@@ -77,7 +68,7 @@ internal static class OtlpPayloadParser
     {
         await using var payload = await ReadBoundedPayloadAsync(request, ct).ConfigureAwait(false);
 
-        // The OTLP spec mandates hex for trace/span/profile ids in JSON, but protojson decodes
+        // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
         var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(payload.GetBuffer().AsSpan(0, (int)payload.Length));
         return OtlpJsonParser.Parse<T>(json);

@@ -10,8 +10,6 @@
   <ItemGroup>
     <Reference Include="System.EnterpriseServices" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
-    <!-- eng/MSBuild/Shared.props adds this repo-wide; net462 has no System.Diagnostics.Metrics. -->
-    <Using Remove="System.Diagnostics.Metrics" />
   </ItemGroup>
 
 </Project>

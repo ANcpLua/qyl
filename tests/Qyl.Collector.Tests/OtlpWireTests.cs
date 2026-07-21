@@ -7,28 +7,22 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
-using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.Ingestion;
+using Qyl.Collector.Grpc;
 using Qyl.Collector.Mapping;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
-using OtlpExemplar = OpenTelemetry.Proto.Metrics.V1.Exemplar;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 using OtlpResourceMetrics = OpenTelemetry.Proto.Metrics.V1.ResourceMetrics;
 using OtlpScopeMetrics = OpenTelemetry.Proto.Metrics.V1.ScopeMetrics;
-using OtlpProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
-using OtlpProfileLink = OpenTelemetry.Proto.Profiles.V1Development.Link;
-using OtlpProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using OtlpResourceLogs = OpenTelemetry.Proto.Logs.V1.ResourceLogs;
-using OtlpResourceProfiles = OpenTelemetry.Proto.Profiles.V1Development.ResourceProfiles;
 using OtlpScopeLogs = OpenTelemetry.Proto.Logs.V1.ScopeLogs;
-using OtlpScopeProfiles = OpenTelemetry.Proto.Profiles.V1Development.ScopeProfiles;
 using RpcStatus = Google.Rpc.Status;
 
 namespace Qyl.Collector.Tests;
@@ -184,7 +178,7 @@ public sealed class OtlpWireTests
             ["nested"] = new JsonObject
             {
                 ["spanId"] = "future-span-id-is-not-an-otlp-id",
-                ["profileId"] = "future-profile-id-is-not-an-otlp-id"
+                ["futureId"] = "future-id-is-not-an-otlp-id"
             }
         };
         var payload = Encoding.UTF8.GetBytes(json.ToJsonString());
@@ -272,7 +266,7 @@ public sealed class OtlpWireTests
     }
 
     [Fact]
-    public async Task Otlp_json_normalizes_known_log_and_profile_ids()
+    public async Task Otlp_json_normalizes_known_log_ids()
     {
         var logTraceId = SequentialBytes(64, 16);
         var logSpanId = SequentialBytes(80, 8);
@@ -311,67 +305,17 @@ public sealed class OtlpWireTests
         var log = Assert.Single(Assert.Single(Assert.Single(logs.ResourceLogs).ScopeLogs).LogRecords);
         Assert.Equal(logTraceId, log.TraceId.ToByteArray());
         Assert.Equal(logSpanId, log.SpanId.ToByteArray());
-
-        var profileId = SequentialBytes(88, 16);
-        var linkedTraceId = SequentialBytes(104, 16);
-        var linkedSpanId = SequentialBytes(120, 8);
-        var profileRequest = new ExportProfilesServiceRequest
-        {
-            ResourceProfiles =
-            {
-                new OtlpResourceProfiles
-                {
-                    ScopeProfiles =
-                    {
-                        new OtlpScopeProfiles
-                        {
-                            Profiles =
-                            {
-                                new OtlpProfile
-                                {
-                                    ProfileId = ByteString.CopyFrom(profileId)
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            Dictionary = new OtlpProfilesDictionary
-            {
-                LinkTable =
-                {
-                    new OtlpProfileLink
-                    {
-                        TraceId = ByteString.CopyFrom(linkedTraceId),
-                        SpanId = ByteString.CopyFrom(linkedSpanId)
-                    }
-                }
-            }
-        };
-        var profileJson = OfficialJson(profileRequest);
-        var profileJsonValue = profileJson["resourceProfiles"]![0]!["scopeProfiles"]![0]!["profiles"]![0]!;
-        profileJsonValue["profileId"] = Convert.ToHexStringLower(profileId);
-        var profileJsonLink = profileJson["dictionary"]!["linkTable"]![0]!;
-        profileJsonLink["traceId"] = Convert.ToHexStringLower(linkedTraceId);
-        profileJsonLink["spanId"] = Convert.ToHexStringLower(linkedSpanId);
-
-        var profiles = await OtlpPayloadParser.ParseProfilesRequestAsync(
-            NewJsonRequest(profileJson),
-            OtlpPayloadEncoding.Json,
-            TestContext.Current.CancellationToken);
-        var profile = Assert.Single(
-            Assert.Single(Assert.Single(profiles.ResourceProfiles).ScopeProfiles).Profiles);
-        Assert.Equal(profileId, profile.ProfileId.ToByteArray());
-        var profileLink = Assert.Single(profiles.Dictionary.LinkTable);
-        Assert.Equal(linkedTraceId, profileLink.TraceId.ToByteArray());
-        Assert.Equal(linkedSpanId, profileLink.SpanId.ToByteArray());
     }
 
-    [Fact]
-    public async Task Otlp_json_normalizes_metric_exemplar_ids_without_touching_unrelated_fields()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Metrics_are_counted_discarded_and_acknowledged_in_both_transports(
+        bool json,
+        bool gzip)
     {
-        var traceId = SequentialBytes(128, 16);
-        var spanId = SequentialBytes(144, 8);
         var request = new ExportMetricsServiceRequest
         {
             ResourceMetrics =
@@ -386,30 +330,46 @@ public sealed class OtlpWireTests
                             {
                                 new OtlpMetric
                                 {
-                                    Name = "gen_ai.client.token.usage",
-                                    Unit = "{token}",
+                                    Name = "discard.gauge",
+                                    Gauge = new Gauge
+                                    {
+                                        DataPoints = { new NumberDataPoint(), new NumberDataPoint() }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = "discard.sum",
+                                    Sum = new Sum
+                                    {
+                                        DataPoints = { new NumberDataPoint() }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = "discard.histogram",
                                     Histogram = new Histogram
                                     {
-                                        AggregationTemporality = AggregationTemporality.Cumulative,
+                                        DataPoints = { new HistogramDataPoint(), new HistogramDataPoint() }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = "discard.exponential-histogram",
+                                    ExponentialHistogram = new ExponentialHistogram
+                                    {
+                                        DataPoints = { new ExponentialHistogramDataPoint() }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = "discard.summary",
+                                    Summary = new Summary
+                                    {
                                         DataPoints =
                                         {
-                                            new HistogramDataPoint
-                                            {
-                                                TimeUnixNano = 1_000,
-                                                Count = 1,
-                                                Sum = 1,
-                                                BucketCounts = { 1UL },
-                                                Exemplars =
-                                                {
-                                                    new OtlpExemplar
-                                                    {
-                                                        TimeUnixNano = 999,
-                                                        AsInt = 1,
-                                                        TraceId = ByteString.CopyFrom(traceId),
-                                                        SpanId = ByteString.CopyFrom(spanId)
-                                                    }
-                                                }
-                                            }
+                                            new SummaryDataPoint(),
+                                            new SummaryDataPoint(),
+                                            new SummaryDataPoint()
                                         }
                                     }
                                 }
@@ -419,32 +379,35 @@ public sealed class OtlpWireTests
                 }
             }
         };
-        var json = OfficialJson(request);
-        var point = json["resourceMetrics"]![0]!["scopeMetrics"]![0]!["metrics"]![0]!["histogram"]!["dataPoints"]![0]!;
-        var exemplar = point["exemplars"]![0]!;
-        exemplar["traceId"] = Convert.ToHexStringLower(traceId);
-        exemplar["spanId"] = Convert.ToHexStringLower(spanId);
-        point["future"] = new JsonObject
-        {
-            ["traceId"] = "unrelated-not-an-id",
-            ["spanId"] = "also-unrelated"
-        };
+        var payload = json
+            ? Encoding.UTF8.GetBytes(JsonFormatter.Default.Format(request))
+            : request.ToByteArray();
+        if (gzip)
+            payload = Gzip(payload);
 
-        var parsed = await OtlpPayloadParser.ParseMetricsRequestAsync(
-            NewJsonRequest(json),
-            OtlpPayloadEncoding.Json,
+        var context = NewOtlpEndpointContext(
+            json ? OtlpPayloadParser.JsonContentType : OtlpPayloadParser.ProtobufContentType,
+            payload);
+        if (gzip)
+            context.Request.Headers.ContentEncoding = "gzip";
+
+        var result = await CollectorEndpointExtensions.IngestOtlpMetricsAsync(
+            context,
             TestContext.Current.CancellationToken);
+        await result.ExecuteAsync(context);
 
-        var parsedExemplar = Assert.Single(Assert.Single(Assert.Single(
-            Assert.Single(Assert.Single(parsed.ResourceMetrics).ScopeMetrics).Metrics).Histogram.DataPoints).Exemplars);
-        Assert.Equal(traceId, parsedExemplar.TraceId.ToByteArray());
-        Assert.Equal(spanId, parsedExemplar.SpanId.ToByteArray());
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.Equal(
+            json ? OtlpPayloadParser.JsonContentType : OtlpPayloadParser.ProtobufContentType,
+            context.Response.ContentType);
+        var response = json
+            ? JsonParser.Default.Parse<ExportMetricsServiceResponse>(
+                Encoding.UTF8.GetString(ResponseBytes(context)))
+            : ExportMetricsServiceResponse.Parser.ParseFrom(ResponseBytes(context));
+        AssertDiscardResponse(response);
 
-        exemplar["traceId"] = "not-hex";
-        await Assert.ThrowsAsync<InvalidDataException>(() => OtlpPayloadParser.ParseMetricsRequestAsync(
-            NewJsonRequest(json),
-            OtlpPayloadEncoding.Json,
-            TestContext.Current.CancellationToken));
+        var grpcResponse = await new MetricsServiceImpl().Export(request, null!);
+        AssertDiscardResponse(grpcResponse);
     }
 
     [Fact]
@@ -511,6 +474,21 @@ public sealed class OtlpWireTests
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
         return context;
+    }
+
+    private static void AssertDiscardResponse(ExportMetricsServiceResponse response)
+    {
+        Assert.NotNull(response.PartialSuccess);
+        Assert.Equal(9, response.PartialSuccess.RejectedDataPoints);
+        Assert.Equal(OtlpMetricsDiscard.ErrorMessage, response.PartialSuccess.ErrorMessage);
+    }
+
+    private static byte[] Gzip(byte[] payload)
+    {
+        using var compressed = new MemoryStream();
+        using (var gzip = new GZipStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
+            gzip.Write(payload);
+        return compressed.ToArray();
     }
 
     private static DefaultHttpContext NewOtlpEndpointContext(string contentType, byte[] payload)

@@ -7,9 +7,6 @@ internal static class GenAiConstants
 {
     public const string SourceName = "qyl.genai";
 
-    public const string TokenUsageMetricName = "gen_ai.client.token.usage";
-    public const string OperationDurationMetricName = "gen_ai.client.operation.duration";
-
     public const string UnknownOperation = "unknown";
 
     public static string NormalizeOperationName(string? operation) =>
