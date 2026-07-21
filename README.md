@@ -104,6 +104,14 @@ identifiers are `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`, a
 
 Open `http://127.0.0.1:5100` for the dashboard.
 
+### Data retention
+
+The collector retains traces and logs for 30 days by default. Set `QYL_RETENTION_DAYS`
+to change the age bound (`0` disables retention),
+`QYL_RETENTION_INTERVAL_MINUTES` to change the hourly cleanup interval, and
+`QYL_STORAGE_MIN_FREE_MB` to change the 2048 MB threshold below which `/health`
+reports degraded storage.
+
 Instrument a .NET application with the first-party SDK:
 
 ```bash

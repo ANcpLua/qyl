@@ -3,7 +3,7 @@ namespace Qyl.Collector.Storage;
 internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
 [DuckDbTable("spans",
-    Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName",
+    Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,TraceId,ParentSpanId;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;EndTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName",
     OnConflict = """
     ON CONFLICT (project_id, trace_id, span_id) DO UPDATE SET
         end_time_unix_nano = EXCLUDED.end_time_unix_nano,
@@ -94,7 +94,7 @@ internal sealed record SessionStatsRow
 }
 
 [DuckDbTable("logs",
-    Indexes = "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId",
+    Indexes = "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId;TimeUnixNano",
     OnConflict = """
     ON CONFLICT (project_id, log_id) DO UPDATE SET
         trace_id = EXCLUDED.trace_id,

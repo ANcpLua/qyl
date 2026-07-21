@@ -16,6 +16,8 @@ internal sealed partial class DuckDbStore : IQylStore
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
+    private readonly string _connectionString;
+    private readonly string _databasePath;
     private readonly bool _isInMemory;
     private readonly int _jobQueueCapacity;
     private readonly Channel<WriteJob> _jobs;
@@ -37,9 +39,11 @@ internal sealed partial class DuckDbStore : IQylStore
         Func<CancellationToken, ValueTask>? beforeWrite = null)
     {
         _isInMemory = databasePath == ":memory:";
+        _databasePath = _isInMemory ? databasePath : Path.GetFullPath(databasePath);
+        _connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
-        var connection = new DuckDBConnection($"DataSource={databasePath}");
+        var connection = new DuckDBConnection(_connectionString);
         try
         {
             connection.Open();
@@ -89,7 +93,7 @@ internal sealed partial class DuckDbStore : IQylStore
             var connections = new DuckDBConnection[concurrency];
             for (var i = 0; i < concurrency; i++)
             {
-                var con = new DuckDBConnection($"DataSource={databasePath}");
+                var con = new DuckDBConnection(_connectionString);
                 con.Open();
                 connections[i] = con;
             }
@@ -203,7 +207,7 @@ internal sealed partial class DuckDbStore : IQylStore
     {
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
-        var job = new WriteJob<T>(operation);
+        var job = new WriteJob<T>(operation, ct);
         if (!_jobs.Writer.TryWrite(job))
             throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
 
@@ -219,11 +223,22 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             await operation(con, token).ConfigureAwait(false);
             return 0;
-        });
+        }, ct);
         if (!_jobs.Writer.TryWrite(job))
             throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
 
         await job.Task.WaitAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task<T> ExecuteMaintenanceWriteAsync<T>(
+        Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
+        CancellationToken ct)
+    {
+        ThrowIfDisposed();
+        ct.ThrowIfCancellationRequested();
+        var job = new WriteJob<T>(operation, ct);
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
 
 
@@ -807,7 +822,9 @@ internal sealed partial class DuckDbStore : IQylStore
         }
     }
 
-    private sealed class WriteJob<TResult>(Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action)
+    private sealed class WriteJob<TResult>(
+        Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action,
+        CancellationToken cancellationToken)
         : WriteJob
     {
         private readonly TaskCompletionSource<TResult> _tcs =
@@ -819,7 +836,8 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             try
             {
-                var result = await action(con, ct).ConfigureAwait(false);
+                using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct, cancellationToken);
+                var result = await action(con, linkedTokenSource.Token).ConfigureAwait(false);
                 _tcs.TrySetResult(result);
             }
             catch (OperationCanceledException oce)

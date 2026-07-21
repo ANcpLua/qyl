@@ -13,11 +13,27 @@ internal sealed record TraceStoragePageItem(
     ulong ActivityUnixNano,
     IReadOnlyList<SpanStorageRow> Spans);
 
+internal readonly record struct StorageFileMetrics(long DatabaseFileSizeBytes, long StorageFreeBytes);
+
 internal interface IQylStore : IAsyncDisposable
 {
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
 
     Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default);
+
+    Task<int> DeleteExpiredLogsBatchAsync(
+        ulong cutoffUnixNano,
+        int batchSize,
+        CancellationToken ct = default);
+
+    Task<int> DeleteExpiredSpansBatchAsync(
+        ulong cutoffUnixNano,
+        int batchSize,
+        CancellationToken ct = default);
+
+    Task CheckpointAsync(CancellationToken ct = default);
+
+    StorageFileMetrics GetStorageFileMetrics();
 
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,

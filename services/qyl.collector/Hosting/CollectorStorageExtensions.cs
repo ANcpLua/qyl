@@ -1,4 +1,5 @@
 using Qyl.Collector.Health;
+using Qyl.Collector.Retention;
 
 namespace Qyl.Collector.Hosting;
 
@@ -6,10 +7,14 @@ internal static class CollectorStorageExtensions
 {
     private const string DefaultDataPath = "qyl.duckdb";
 
-    public static IServiceCollection AddQylCollectorStorage(this IServiceCollection services)
+    public static IServiceCollection AddQylCollectorStorage(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
         services.AddSingleton<IQylStore>(CreateStore);
         services.ActivateSingleton<IQylStore>();
+        services.AddHostedService<RetentionService>();
         services.AddHealthChecks()
             .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", QylEndpoints.ReadyTag]);
 
