@@ -3,4 +3,81 @@ version = 1
 name = "qyl"
 
 [setup]
-script = ""
+script = '''
+set -euo pipefail
+cd "${CODEX_WORKTREE_PATH:?CODEX_WORKTREE_PATH is required}"
+
+dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
+npm --prefix services/qyl.dashboard ci
+npm --prefix packages/Qyl.Host.Console ci
+'''
+
+[[actions]]
+name = "Build"
+icon = "tool"
+command = "dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config"
+
+[[actions]]
+name = "Verify"
+icon = "test"
+command = "dotnet run --project eng/build/build.csproj -- Ci"
+
+[[actions]]
+name = "Pack smoke"
+icon = "test"
+command = "dotnet run --project eng/build/build.csproj -- PackSmoke"
+
+[[actions]]
+name = "Run qyl"
+icon = "run"
+command = "qyl up"
+
+[[actions]]
+name = "Dashboard dev"
+icon = "run"
+command = "npm --prefix services/qyl.dashboard run dev"
+
+[[actions]]
+name = "Check hosted MCP"
+icon = "test"
+command = '''
+set -euo pipefail
+
+curl -fsS https://mcp.qyl.at/ | grep -Fq 'https://mcp.qyl.at/mcp'
+curl -fsS https://mcp.qyl.at/healthz | jq -e '.status == "ok"' >/dev/null
+curl -fsS https://mcp.qyl.at/.well-known/oauth-protected-resource/mcp |
+  jq -e '.resource == "https://mcp.qyl.at/mcp" and .authorization_servers == ["https://qyl-eu.eu.auth0.com/"] and .scopes_supported == ["qyl:read"]' >/dev/null
+curl -fsS https://qyl-eu.eu.auth0.com/.well-known/oauth-authorization-server |
+  jq -e '.issuer == "https://qyl-eu.eu.auth0.com/" and .registration_endpoint == "https://qyl-eu.eu.auth0.com/oidc/register" and (.code_challenge_methods_supported | index("S256") != null)' >/dev/null
+curl -fsSI https://mcp.qyl.at/ | tr -d '\r' | grep -qi '^server: cloudflare$'
+
+headers="$(mktemp)"
+trap 'rm -f "$headers"' EXIT
+status="$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' \
+  -X POST \
+  -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}' \
+  https://mcp.qyl.at/mcp)"
+test "$status" = "401"
+tr -d '\r' < "$headers" | grep -Fqi 'resource_metadata="https://mcp.qyl.at/.well-known/oauth-protected-resource/mcp"'
+tr -d '\r' < "$headers" | grep -Fqi 'scope="qyl:read"'
+'''
+
+[[actions]]
+name = "Railway production"
+icon = "tool"
+command = '''
+set -euo pipefail
+
+status="$(railway status \
+  --project 5eaa4020-71d9-4828-89d3-316cb188529e \
+  --environment 616ff7bf-ef19-4e34-bb22-d3eb002b74e9 \
+  --json)"
+jq -e '
+  .environments.edges[0].node.serviceInstances.edges as $services
+  | ($services | length == 2)
+    and ($services | all(.node.latestDeployment.status == "SUCCESS"))
+    and ($services | all(any(.node.latestDeployment.instances[]; .status == "RUNNING")))
+' <<< "$status" >/dev/null
+jq -r '.environments.edges[0].node.serviceInstances.edges[] | "\(.node.serviceName): \(.node.latestDeployment.status)"' <<< "$status"
+'''

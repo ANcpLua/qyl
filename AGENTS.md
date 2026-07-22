@@ -12,7 +12,7 @@ qyl is the collector, storage, investigation API, dashboard, and local host for 
 OTLP-native, DuckDB-backed traces-and-logs product. Trace and log signals have full
 ingest, storage, query, and dashboard verticals. Metrics are accepted only at the
 standard OTLP wire endpoints, counted, discarded, and acknowledged with
-`partial_success`; other OTLP signals have no endpoint or service. It is pre-beta.
+`partial_success`; other OTLP signals have no endpoint or service. It is beta.
 Unpublished Qyl surfaces may converge directly; published package versions are
 immutable and move through new versions rather than compatibility shims without a
 proven consumer.

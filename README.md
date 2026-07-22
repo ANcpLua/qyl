@@ -7,7 +7,7 @@ The product is the collector, DuckDB storage, public investigation API,
 dashboard, and local distributed-app host. OpenTelemetry supplies the ingestion
 protocol and telemetry vocabulary; it is not Qyl's product API.
 
-qyl is pre-beta. Unpublished surfaces converge directly on a small, executable
+qyl is beta. Unpublished surfaces converge directly on a small, executable
 product; compatibility requires a proven consumer.
 
 ## Architecture
