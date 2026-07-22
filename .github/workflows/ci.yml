@@ -86,9 +86,6 @@ jobs:
                 frontend=true
                 product_e2e=true
                 ;;
-              packages/Qyl.Host.Console/*)
-                frontend=true
-                ;;
               services/qyl.collector/*)
                 backend=true
                 product_e2e=true
@@ -179,9 +176,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: |
-            services/qyl.dashboard/package-lock.json
-            packages/Qyl.Host.Console/package-lock.json
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
       - name: Install
         working-directory: services/qyl.dashboard
@@ -197,18 +192,6 @@ jobs:
 
       - name: Build
         working-directory: services/qyl.dashboard
-        run: npm run build
-
-      - name: Install runner console
-        working-directory: packages/Qyl.Host.Console
-        run: npm ci
-
-      - name: Typecheck runner console
-        working-directory: packages/Qyl.Host.Console
-        run: npm run typecheck
-
-      - name: Build runner console
-        working-directory: packages/Qyl.Host.Console
         run: npm run build
 
       - name: Verify generated contract consumption
@@ -294,9 +277,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: |
-            services/qyl.dashboard/package-lock.json
-            packages/Qyl.Host.Console/package-lock.json
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
       - name: Restore
         if: needs.changes.outputs.backend == 'true'
@@ -322,14 +303,4 @@ jobs:
         working-directory: services/qyl.dashboard
         run: |
           npm ci
-          # Audit production dependencies only. Dev tooling (vite, @babel/core, eslint, shadcn) is
-          # never shipped to users, and its advisories — mostly Windows dev-server issues — should
-          # not gate CI. Production deps currently audit clean at --audit-level=high.
-          npm audit --audit-level=high --omit=dev
-
-      - name: Audit runner-console packages
-        if: needs.changes.outputs.frontend == 'true'
-        working-directory: packages/Qyl.Host.Console
-        run: |
-          npm ci
-          npm audit --audit-level=high --omit=dev
+          npm audit --audit-level=moderate

@@ -40,7 +40,6 @@ The main components are:
 | `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
 | `packages/Qyl.Host` | Published distributed-app runner library with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
-| `packages/Qyl.Host.Console` | Host console frontend consuming the generated TypeScript contracts (build/typecheck-gated) |
 | `packages/Qyl.Run.Host` | The `qyl` dotnet tool; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
 | `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |
@@ -195,7 +194,6 @@ settings retain their upstream semantics and are not duplicated here.
 | `QYL_PORT` | Collector | Product API/dashboard listener; falls back to `PORT`, then `5100`. |
 | `QYL_RETENTION_DAYS` | Collector | Trace/log age bound in days; defaults to `30`, and `0` disables retention. |
 | `QYL_RETENTION_INTERVAL_MINUTES` | Collector | Retention and disk-pressure check interval; defaults to `60`. |
-| `QYL_RUNNER_ORIGIN` | Host console Vite server | Host resource API proxy target; defaults to `http://127.0.0.1:18889`. |
 | `QYL_SMOKE_API_PORT` | NativeAOT smoke | Host product-API port; defaults to `5199`. |
 | `QYL_SMOKE_GRPC_PORT` | NativeAOT smoke | Host OTLP/gRPC port; defaults to `4317`. |
 | `QYL_SMOKE_OTLP_HTTP_PORT` | NativeAOT smoke | Host OTLP/HTTP port; defaults to `4318`. |

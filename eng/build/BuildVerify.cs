@@ -33,68 +33,55 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            foreach (var directory in FrontendDirectories)
-            {
-                Log.Information("Verifying TypeScript types in {Directory}...", directory);
-                NpmTasks.NpmRun(s => s
-                    .SetProcessWorkingDirectory<NpmRunSettings>(directory)
-                    .SetCommand("typecheck"));
-            }
-
-            Log.Information("First-party frontend TypeScript types: VALID");
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("typecheck"));
+            Log.Information("Product dashboard TypeScript types: VALID");
         });
 
     Target VerifyFrontendApiTypes => d => d
         .Unlisted()
-        .Description("Verify first-party frontends consume one exact generated API-contract package")
+        .Description("Verify the product dashboard consumes the exact generated API-contract package")
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
             const string packageName = "@ancplua/qyl-api-schema";
-            string? sharedVersion = null;
-            foreach (var directory in FrontendDirectories)
+            var packageFile = DashboardDirectory / "package.json";
+            using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageFile));
+            if (!packageDocument.RootElement.TryGetProperty("dependencies", out var dependencies) ||
+                !dependencies.TryGetProperty(packageName, out var dependency))
             {
-                var packageFile = directory / "package.json";
-                using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageFile));
-                if (!packageDocument.RootElement.TryGetProperty("dependencies", out var dependencies) ||
-                    !dependencies.TryGetProperty(packageName, out var dependency))
-                {
-                    throw new InvalidOperationException($"{directory} must depend on {packageName}.");
-                }
-
-                var version = dependency.GetString();
-                if (version is null || !Version.TryParse(version, out _))
-                    throw new InvalidOperationException(
-                        $"{directory} must pin {packageName} to one exact stable version; found '{version}'.");
-
-                if (sharedVersion is not null && !string.Equals(sharedVersion, version, StringComparison.Ordinal))
-                    throw new InvalidOperationException(
-                        $"First-party frontends disagree on {packageName}: {sharedVersion} versus {version}.");
-                sharedVersion = version;
-
-                var lockFile = directory / "package-lock.json";
-                using var lockDocument = JsonDocument.Parse(File.ReadAllText(lockFile));
-                var lockedVersion = lockDocument.RootElement.GetProperty("packages")
-                    .GetProperty($"node_modules/{packageName}")
-                    .GetProperty("version")
-                    .GetString();
-                if (!string.Equals(version, lockedVersion, StringComparison.Ordinal))
-                    throw new InvalidOperationException(
-                        $"{directory} lock file resolves {packageName} {lockedVersion}, expected {version}.");
-
-                var installedPackageFile = directory / "node_modules" / "@ancplua" / "qyl-api-schema" / "package.json";
-                using var installedDocument = JsonDocument.Parse(File.ReadAllText(installedPackageFile));
-                var installedVersion = installedDocument.RootElement.GetProperty("version").GetString();
-                if (!string.Equals(version, installedVersion, StringComparison.Ordinal))
-                    throw new InvalidOperationException(
-                        $"{directory} installed {packageName} {installedVersion}, expected {version}.");
-
-                var importsGeneratedContracts = directory.GlobFiles("src/**/*.ts", "src/**/*.tsx")
-                    .Any(file => File.ReadAllText(file).Contains(packageName, StringComparison.Ordinal));
-                if (!importsGeneratedContracts)
-                    throw new InvalidOperationException($"{directory} does not import generated {packageName} contracts.");
+                throw new InvalidOperationException($"{DashboardDirectory} must depend on {packageName}.");
             }
+
+            var version = dependency.GetString();
+            if (version is null || !Version.TryParse(version, out _))
+                throw new InvalidOperationException(
+                    $"{DashboardDirectory} must pin {packageName} to one exact stable version; found '{version}'.");
+
+            var lockFile = DashboardDirectory / "package-lock.json";
+            using var lockDocument = JsonDocument.Parse(File.ReadAllText(lockFile));
+            var lockedVersion = lockDocument.RootElement.GetProperty("packages")
+                .GetProperty($"node_modules/{packageName}")
+                .GetProperty("version")
+                .GetString();
+            if (!string.Equals(version, lockedVersion, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"{DashboardDirectory} lock file resolves {packageName} {lockedVersion}, expected {version}.");
+
+            var installedPackageFile = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema" / "package.json";
+            using var installedDocument = JsonDocument.Parse(File.ReadAllText(installedPackageFile));
+            var installedVersion = installedDocument.RootElement.GetProperty("version").GetString();
+            if (!string.Equals(version, installedVersion, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"{DashboardDirectory} installed {packageName} {installedVersion}, expected {version}.");
+
+            var importsGeneratedContracts = DashboardDirectory.GlobFiles("src/**/*.ts", "src/**/*.tsx")
+                .Any(file => File.ReadAllText(file).Contains(packageName, StringComparison.Ordinal));
+            if (!importsGeneratedContracts)
+                throw new InvalidOperationException(
+                    $"{DashboardDirectory} does not import generated {packageName} contracts.");
 
             AbsolutePath[] forbiddenCopies =
             [
@@ -113,11 +100,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             if (string.IsNullOrWhiteSpace(dotnetVersion))
                 throw new InvalidOperationException(
                     "Version.props must define one QylApiContractsVersion for the generated .NET contracts.");
-            if (!string.Equals(sharedVersion, dotnetVersion, StringComparison.Ordinal))
+            if (!string.Equals(version, dotnetVersion, StringComparison.Ordinal))
                 throw new InvalidOperationException(
-                    $"Generated contract versions disagree: frontends use {sharedVersion}, .NET uses {dotnetVersion}.");
+                    $"Generated contract versions disagree: dashboard uses {version}, .NET uses {dotnetVersion}.");
 
-            Log.Information("First-party frontends consume {Package} {Version} directly", packageName, sharedVersion);
+            Log.Information("Product dashboard consumes {Package} {Version} directly", packageName, version);
         });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
@@ -2332,6 +2319,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "services" / "qyl.collector" / "railway.toml",
                 RootDirectory / "services" / "qyl.dashboard" / "railway.toml",
                 RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
+                RootDirectory / "packages" / "Qyl.Host.Console",
                 RootDirectory / "eng" / "build" / "BuildTest.cs",
                 RootDirectory / "eng" / "build" / "BuildCoverage.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "DevLogs",

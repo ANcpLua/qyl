@@ -6,7 +6,7 @@ namespace Qyl.Host.Internal;
 // Bounded, per-resource log buffer with lossy bounded broadcast fan-out. A slow live subscriber can
 // reconnect and replay the latest MaxLinesPerResource snapshot if older live frames were dropped.
 // Producers (the process launcher; the container `docker logs -f` follower) Append lines; consumers take a
-// Snapshot of recent lines and Subscribe for subsequent ones (the /runner API, and through it the runner console).
+// Snapshot of recent lines and Subscribe for subsequent ones through the /runner API.
 internal sealed class QylLogStore
 {
     private const int MaxLinesPerResource = 500;

@@ -16,9 +16,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath InternalDirectory => RootDirectory / "internal";
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
-    AbsolutePath HostConsoleDirectory => PackagesDirectory / "Qyl.Host.Console";
     AbsolutePath QylToolSmokeProject => RootDirectory / "eng" / "tools" / "QylToolSmoke" / "QylToolSmoke.csproj";
-    AbsolutePath[] FrontendDirectories => [DashboardDirectory, HostConsoleDirectory];
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
 
     /// <summary>Projects with IsPackable=true — the packages qyl actually ships.</summary>

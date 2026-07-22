@@ -15,13 +15,9 @@ interface IPipeline : IHazSourcePaths
 
     Target FrontendInstall => d => d
         .Unlisted()
-        .Description("Install every first-party frontend from its lock file")
-        .Executes(() =>
-        {
-            foreach (var directory in FrontendDirectories)
-                ProcessTasks.StartProcess("npm", "ci", directory, logOutput: true)
-                    .AssertZeroExitCode();
-        });
+        .Description("Install the product dashboard from its lock file")
+        .Executes(() => ProcessTasks.StartProcess("npm", "ci", DashboardDirectory, logOutput: true)
+            .AssertZeroExitCode());
 
     Target FrontendDev => d => d
         .Description("Run the Vite dev server (hot reload at http://localhost:5173)")
@@ -35,24 +31,16 @@ interface IPipeline : IHazSourcePaths
         .DependsOn(FrontendInstall)
         .Before<ICompile>(static x => x.Compile)
         .Produces(DashboardDistDirectory / "**/*")
-        .Executes(() =>
-        {
-            foreach (var directory in FrontendDirectories)
-                NpmTasks.NpmRun(s => s
-                    .SetProcessWorkingDirectory<NpmRunSettings>(directory)
-                    .SetCommand("build"));
-        });
+        .Executes(() => NpmTasks.NpmRun(s => s
+            .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+            .SetCommand("build")));
 
     Target FrontendTest => d => d
         .Unlisted()
         .Description("Run frontend tests (Vitest)")
         .DependsOn(FrontendInstall)
-        .Executes(() =>
-        {
-            foreach (var directory in FrontendDirectories)
-                ProcessTasks.StartProcess("npm", "test -- --run", directory, logOutput: true)
-                    .AssertZeroExitCode();
-        });
+        .Executes(() => ProcessTasks.StartProcess("npm", "test -- --run", DashboardDirectory, logOutput: true)
+            .AssertZeroExitCode());
 
     Target FrontendE2E => d => d
         .Description("Exercise the embedded Release collector, dashboard, product API, and OTLP routes")
@@ -76,11 +64,7 @@ interface IPipeline : IHazSourcePaths
         .Description("Clean frontend build artifacts")
         .Executes(() =>
         {
-            foreach (var directory in FrontendDirectories)
-            {
-                var dist = directory / "dist";
-                dist.DeleteDirectory();
-                Log.Information("Cleaned: {Directory}", dist);
-            }
+            DashboardDistDirectory.DeleteDirectory();
+            Log.Information("Cleaned: {Directory}", DashboardDistDirectory);
         });
 }

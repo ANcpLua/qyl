@@ -74,13 +74,12 @@ Run the narrow tests for the changed component and finish repository-wide work w
 dotnet run --project eng/build/build.csproj -- Ci
 ```
 
-The `Ci` target builds and tests the backend, builds both first-party frontends,
-runs Vitest and the embedded Release-product Playwright smoke for the dashboard
-(the host console is build/typecheck only), checks that both
-frontends consume one exact generated contract package, and verifies the collector
-semantic catalog. For schema-boundary changes, also compile and test the owning
-`qyl-api-schema` repository and restore the resulting `Qyl.Api.Contracts` package
-into a clean Qyl consumer.
+The `Ci` target builds and tests the backend, builds and tests the product
+dashboard, runs its embedded Release-product Playwright smoke, verifies the exact
+generated contract package, and checks the collector semantic catalog. For
+schema-boundary changes, also compile and test the owning `qyl-api-schema`
+repository and restore the resulting `Qyl.Api.Contracts` package into a clean Qyl
+consumer.
 
 ## Durable references
 

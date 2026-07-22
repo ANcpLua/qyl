@@ -9,7 +9,6 @@ cd "${CODEX_WORKTREE_PATH:?CODEX_WORKTREE_PATH is required}"
 
 dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 npm --prefix services/qyl.dashboard ci
-npm --prefix packages/Qyl.Host.Console ci
 '''
 
 [[actions]]

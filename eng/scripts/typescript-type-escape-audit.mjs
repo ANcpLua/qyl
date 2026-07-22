@@ -25,10 +25,7 @@ const excludedDirectories = new Set([
     'playwright-report',
     'test-results',
 ]);
-const frontendPackages = [
-    'packages/Qyl.Host.Console',
-    'services/qyl.dashboard',
-];
+const frontendPackage = 'services/qyl.dashboard';
 const relevantCompilerOptions = [
     'strict',
     'noCheck',
@@ -221,23 +218,20 @@ function readJson(commit, file) {
 }
 
 function verifyTypeScriptVersions(commit) {
-    const versions = frontendPackages.map(packageDirectory => {
-        const manifest = readJson(commit, `${packageDirectory}/package.json`);
-        const lock = readJson(commit, `${packageDirectory}/package-lock.json`);
-        const declared = manifest.devDependencies?.typescript;
-        const locked = lock.packages?.['node_modules/typescript']?.version;
-        if (typeof declared !== 'string' || typeof locked !== 'string') {
-            throw new Error(`TypeScript is not pinned in ${packageDirectory}`);
-        }
-        if (declared !== ts.version || locked !== ts.version) {
-            throw new Error(
-                `TypeScript version mismatch in ${packageDirectory}: ` +
-                `loaded=${ts.version}, declared=${declared}, locked=${locked}`,
-            );
-        }
-        return {package: packageDirectory, declared, locked};
-    });
-    return versions;
+    const manifest = readJson(commit, `${frontendPackage}/package.json`);
+    const lock = readJson(commit, `${frontendPackage}/package-lock.json`);
+    const declared = manifest.devDependencies?.typescript;
+    const locked = lock.packages?.['node_modules/typescript']?.version;
+    if (typeof declared !== 'string' || typeof locked !== 'string') {
+        throw new Error(`TypeScript is not pinned in ${frontendPackage}`);
+    }
+    if (declared !== ts.version || locked !== ts.version) {
+        throw new Error(
+            `TypeScript version mismatch in ${frontendPackage}: ` +
+            `loaded=${ts.version}, declared=${declared}, locked=${locked}`,
+        );
+    }
+    return [{package: frontendPackage, declared, locked}];
 }
 
 function compilerConfigs(commit, trackedFiles) {
