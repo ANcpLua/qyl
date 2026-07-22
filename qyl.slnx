@@ -25,6 +25,7 @@
     <Project Path="tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj" />
     <Project Path="tests/Qyl.Host.Mcp.AotSmoke/Qyl.Host.Mcp.AotSmoke.csproj" />
     <Project Path="tests/Qyl.Host.Tests/Qyl.Host.Tests.csproj" />
+    <Project Path="tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj" />
   </Folder>
 
   <Folder Name="/services/">
@@ -47,6 +48,7 @@
     <Project Path="eng/tools/GacInstallTool/GacInstallTool.csproj" />
     <Project Path="eng/tools/LibraryVersionsGenerator/LibraryVersionsGenerator.csproj" />
     <Project Path="eng/tools/QylToolSmoke/QylToolSmoke.csproj" />
+    <Project Path="eng/tools/QylSdkConformance/QylSdkConformance.csproj" />
     <Project Path="eng/tools/SdkVersionAnalyzer/SdkVersionAnalyzer.csproj" />
   </Folder>
 

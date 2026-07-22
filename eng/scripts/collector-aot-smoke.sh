@@ -9,12 +9,17 @@ GRPC_HOST_PORT="${QYL_SMOKE_GRPC_PORT:-4317}"
 API_BASE="http://127.0.0.1:$API_HOST_PORT/"
 OTLP_HTTP_BASE="http://127.0.0.1:$OTLP_HTTP_HOST_PORT/"
 GRPC_BASE="http://127.0.0.1:$GRPC_HOST_PORT/"
+SDK_CONFORMANCE_APP_PORT=5299
+SDK_CONFORMANCE_APP_BASE="http://127.0.0.1:$SDK_CONFORMANCE_APP_PORT/"
 SMOKE_PLATFORM="${QYL_SMOKE_PLATFORM:-linux/amd64}"
 SMOKE_ID="$$-${RANDOM}"
 IMAGE_NAME="qyl-collector-aot-smoke:$SMOKE_ID"
 CONTAINER_NAME="qyl-collector-aot-smoke-$SMOKE_ID"
 VOLUME_NAME="qyl-collector-aot-smoke-$SMOKE_ID"
 DRIVER_PROJECT="$REPO_ROOT/eng/tools/CollectorAotSmoke/CollectorAotSmoke.csproj"
+SDK_CONFORMANCE_PROJECT="$REPO_ROOT/tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"
+SDK_CONFORMANCE_DRIVER_PROJECT="$REPO_ROOT/eng/tools/QylSdkConformance/QylSdkConformance.csproj"
+SDK_CONFORMANCE_PUBLISH_DIRECTORY="$REPO_ROOT/artifacts/publish/Qyl.Sdk.Conformance/release"
 AUTH_KEY="aot-smoke-api-key-$SMOKE_ID"
 
 cleanup() {
@@ -51,6 +56,25 @@ run_driver() {
     --configuration Release \
     --no-build \
     -- "$@"
+}
+
+run_sdk_conformance() {
+  local executable="$SDK_CONFORMANCE_PUBLISH_DIRECTORY/Qyl.Sdk.Conformance"
+  local service_name="qyl-sdk-conformance-$SMOKE_ID"
+
+  [[ -x "$executable" ]] \
+    || fail "Native AOT Qyl.Sdk conformance executable is missing: $executable"
+
+  dotnet run \
+    --project "$SDK_CONFORMANCE_DRIVER_PROJECT" \
+    --configuration Release \
+    --no-build \
+    -- \
+    "$executable" \
+    "$SDK_CONFORMANCE_APP_BASE" \
+    "$API_BASE" \
+    "$OTLP_HTTP_BASE" \
+    "$service_name"
 }
 
 wait_for_ready() {
@@ -135,7 +159,7 @@ stop_cleanly() {
   echo "[smoke] $phase_name completed with exit status 0"
 }
 
-for endpoint in "${API_BASE}health" "${OTLP_HTTP_BASE}health"; do
+for endpoint in "${API_BASE}health" "${OTLP_HTTP_BASE}health" "${SDK_CONFORMANCE_APP_BASE}conformance"; do
   if curl -sS --max-time 2 "$endpoint" >/dev/null 2>&1; then
     fail "something already listens at $endpoint; stop it or choose another smoke host port"
   fi
@@ -143,6 +167,18 @@ done
 
 phase "Build the checked-in OTLP wire driver"
 dotnet build "$DRIVER_PROJECT" --configuration Release --nologo
+dotnet build "$SDK_CONFORMANCE_DRIVER_PROJECT" --configuration Release --nologo
+
+phase "Publish the released-Qyl.Sdk conformance app with Native AOT"
+rm -rf "$SDK_CONFORMANCE_PUBLISH_DIRECTORY"
+dotnet publish \
+  "$SDK_CONFORMANCE_PROJECT" \
+  --configuration Release \
+  --output "$SDK_CONFORMANCE_PUBLISH_DIRECTORY" \
+  --self-contained true \
+  --nologo \
+  --verbosity minimal \
+  -warnaserror
 
 phase "Build the collector deployment image"
 docker build \
@@ -189,6 +225,9 @@ phase "Stock OTel SDK default export with only OTEL_EXPORTER_OTLP_ENDPOINT"
   run_driver stock-sdk "$API_BASE"
 )
 
+phase "Released Qyl.Sdk builder.AddQyl Native AOT conformance"
+run_sdk_conformance
+
 phase "Lane 7: persistent trace survives a container restart"
 stop_cleanly "Initial graceful stop"
 docker start "$CONTAINER_NAME" >/dev/null
@@ -207,4 +246,4 @@ run_driver grpc-auth "$GRPC_BASE"
 stop_cleanly "ApiKey-container graceful stop"
 
 echo
-echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes"
+echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes and released-Qyl.Sdk conformance"

@@ -62,11 +62,12 @@
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"/>
     <PackageVersion Include="Valleysoft.DockerfileModel" Version="2.0.0"/>
     <PackageVersion Include="YamlDotNet" Version="18.1.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="8.0.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="$(QylSdkVersion)"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.5.1"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.5.1"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.5.1"/>
     <PackageVersion Include="Qyl.Api.Contracts" Version="$(QylApiContractsVersion)"/>
+    <PackageVersion Include="Qyl.Sdk" Version="$(QylSdkVersion)"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>

@@ -87,6 +87,14 @@ Applications onboard through the `Qyl.Sdk` package published from that repositor
 `builder.AddQyl()` activates the instrumentation, wires the OpenTelemetry SDK, and
 exports to a qyl collector in one call.
 
+### Tested SDK pairing
+
+The compatibility claim is the one exact `<QylVersion>` ↔ `<QylSdkVersion>` pair
+owned by [`Version.props`](./Version.props), not a version range. The Native AOT
+conformance lane restores that released `Qyl.Sdk` package, executes `builder.AddQyl()`,
+and proves trace and log readback through the product API on every push. No other
+qyl ↔ `Qyl.Sdk` pairing is claimed.
+
 ## Run qyl locally
 
 Install the prerelease dotnet tool and start the complete local product:

@@ -14,7 +14,7 @@ interface INativeAot : IHazSourcePaths
         RootDirectory / "artifacts" / "publish" / "Qyl.Host.Mcp.AotSmoke" / "release";
 
     Target NativeAot => d => d
-        .Description("Publish and execute the collector and MCP NativeAOT runtime smokes")
+        .Description("Publish and execute the collector, released SDK, and MCP NativeAOT runtime smokes")
         .Executes(() =>
         {
             var collectorSmoke = RootDirectory / "eng" / "scripts" / "collector-aot-smoke.sh";
