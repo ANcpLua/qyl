@@ -86,7 +86,6 @@ public sealed class RunnerControlTests
             logs,
             actions,
             options,
-            [],
             NullLogger<QylRunnerApi>.Instance);
 
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);

@@ -18,7 +18,7 @@
     <GrpcToolsVersion>2.82.0</GrpcToolsVersion>
     <ANcpLuaRoslynUtilitiesVersion>2.2.41</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAgentsVersion>1.13.7</ANcpLuaAgentsVersion>
-    <QylApiContractsVersion>1.0.4</QylApiContractsVersion>
+    <QylApiContractsVersion>1.0.5</QylApiContractsVersion>
     <QylSdkVersion>8.0.1</QylSdkVersion>
 
     <!-- Mirrors the SDK values so standalone checkouts resolve the same MAF graph.

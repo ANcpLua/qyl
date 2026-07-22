@@ -90,19 +90,6 @@ internal sealed partial class QylOrchestrator(
 
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
 
-            // A connection-only resource has no runner-owned listener. Its SDK transport may be
-            // stdio or remote HTTP, so publishing an allocated localhost endpoint
-            // would be fabricated client-visible data.
-            if (resource.Launch is null)
-            {
-                var connected = await ProbeReadinessAsync(resource, null, null, stoppingToken).ConfigureAwait(false);
-                registry.Publish(resource.Name,
-                    connected ? ResourceLifecycle.Ready : ResourceLifecycle.Failed,
-                    lastError: connected ? null : "Readiness probe timed out");
-                if (connected) LogConnectionReady(logger, resource.Name);
-                return;
-            }
-
             var port = resource.Port == QylConstants.Ports.DynamicAllocation
                 ? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback)
                 : resource.Port;
@@ -358,11 +345,6 @@ internal sealed partial class QylOrchestrator(
         if (resource is null)
             return new QylResourceActionResult(QylResourceActionStatus.NotFound, "Resource does not exist.");
 
-        if (resource.Launch is null)
-            return new QylResourceActionResult(
-                QylResourceActionStatus.Conflict,
-                "Connection-only resources are controlled by their transport.");
-
         if (!registry.Snapshot.TryGetValue(resource.Name, out var state) ||
             state.Lifecycle != ResourceLifecycle.Ready ||
             !_processes.TryGetValue(resource.Name, out var process))
@@ -416,17 +398,12 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
-    // Readiness is a per-resource strategy (IReadinessProbe); HTTP health polling is the default.
-    // The probe receives a snapshot state carrying the endpoint it
-    // must judge — deliberately not the registry's published state, which may lag the launch.
     private Task<bool> ProbeReadinessAsync(QylResource resource, int? port, Uri? endpoint,
         CancellationToken stoppingToken)
     {
-        // Launch-less resources always carry an explicit probe (Build() enforces it); the default
-        // HTTP probe exists only for launched processes with a health path.
-        var probe = resource.ReadinessProbe ?? new HttpHealthProbe(
+        var probe = new HttpHealthProbe(
             httpClientFactory,
-            resource.Launch!.HealthPath,
+            resource.Launch.HealthPath,
             TimeSpan.FromSeconds(options.StartupTimeoutSeconds),
             time);
 

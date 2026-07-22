@@ -11,7 +11,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-    <NoWarn>$(NoWarn);CA1707;CA2007;CS1591;MCPEXP001</NoWarn>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,13 +20,11 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
-    <PackageReference Include="ModelContextProtocol.AspNetCore"/>
     <PackageReference Include="xunit.v3.mtp-v2"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../packages/Qyl.Host/Qyl.Host.csproj"/>
-    <ProjectReference Include="../../packages/Qyl.Host.Mcp/Qyl.Host.Mcp.csproj"/>
     <ProjectReference Include="../../packages/Qyl.Run.Host/Qyl.Run.Host.csproj"/>
   </ItemGroup>
 

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Qyl.Host.Internal;
 
@@ -6,55 +5,6 @@ namespace Qyl.Host.Tests;
 
 public sealed class CompositionTests
 {
-    [Fact]
-    public async Task Connection_only_readiness_does_not_invent_a_listener_endpoint()
-    {
-        var resource = new QylResource
-        {
-            Name = "remote-mcp",
-            Kind = QylResourceKind.McpHttp,
-            Port = QylConstants.Ports.DynamicAllocation,
-            Launch = null,
-            ReadinessProbe = new AlwaysReadyProbe()
-        };
-        QylResource[] resources = [resource];
-        var registry = new QylResourceRegistry(resources, TimeProvider.System);
-        var logs = new QylLogStore();
-        var launcher = new QylProcessLauncher(logs, NullLogger<QylProcessLauncher>.Instance);
-        await using var services = new ServiceCollection().AddHttpClient().BuildServiceProvider();
-        var orchestrator = new QylOrchestrator(
-            resources,
-            registry,
-            new QylAppOptions { StartupTimeoutSeconds = 2 },
-            services.GetRequiredService<IHttpClientFactory>(),
-            launcher,
-            new QylResourceActions(),
-            TimeProvider.System,
-            NullLogger<QylOrchestrator>.Instance);
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        lifetime.CancelAfter(TimeSpan.FromSeconds(5));
-
-        await orchestrator.StartAsync(lifetime.Token);
-        try
-        {
-            while (!registry.Snapshot.TryGetValue(resource.Name, out var state) ||
-                   state.Lifecycle is not ResourceLifecycle.Ready)
-            {
-                await Task.Delay(10, lifetime.Token);
-            }
-
-            var ready = registry.Snapshot[resource.Name];
-            Assert.Null(ready.AllocatedPort);
-            Assert.Null(ready.Endpoint);
-        }
-        finally
-        {
-            lifetime.Cancel();
-            await orchestrator.StopAsync(TestContext.Current.CancellationToken);
-            orchestrator.Dispose();
-        }
-    }
-
     [Fact]
     public async Task Command_arguments_reach_a_real_process_without_shell_parsing()
     {
@@ -67,8 +17,8 @@ public sealed class CompositionTests
         builder.AddCommand("echo", executable, 54321, ["hello world"]);
 
         var resource = Assert.Single(builder.Resources);
-        Assert.Equal(executable, resource.Launch?.Executable);
-        Assert.Equal(["hello world"], resource.Launch?.Args);
+        Assert.Equal(executable, resource.Launch.Executable);
+        Assert.Equal(["hello world"], resource.Launch.Args);
 
         var logs = new QylLogStore();
         var launcher = new QylProcessLauncher(logs, NullLogger<QylProcessLauncher>.Instance);
@@ -105,21 +55,21 @@ public sealed class CompositionTests
 
         Assert.Equal(QylResourceKind.Collector, owner.Kind);
         Assert.Equal(QylResourceKind.Collector, diagnostics.Kind);
-        Assert.Equal("127.0.0.1", owner.Launch?.Env[QylConstants.Env.QylBindAddress]);
-        Assert.Equal("127.0.0.1", diagnostics.Launch?.Env[QylConstants.Env.QylBindAddress]);
-        Assert.Equal(string.Empty, diagnostics.Launch?.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
-        Assert.Equal("Unsecured", diagnostics.Launch?.Env[QylConstants.Env.QylOtlpAuthMode]);
+        Assert.Equal("127.0.0.1", owner.Launch.Env[QylConstants.Env.QylBindAddress]);
+        Assert.Equal("127.0.0.1", diagnostics.Launch.Env[QylConstants.Env.QylBindAddress]);
+        Assert.Equal(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+        Assert.Equal("Unsecured", diagnostics.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
         Assert.Equal(
             Path.Combine(QylConstants.Collector.DefaultDataHome, "qyl.diagnostics.duckdb"),
-            diagnostics.Launch?.Env[QylConstants.Env.QylDataPath]);
+            diagnostics.Launch.Env[QylConstants.Env.QylDataPath]);
         Assert.Equal(
             Path.Combine(QylConstants.Collector.DefaultDataHome, "qyl.collector.duckdb"),
-            owner.Launch?.Env[QylConstants.Env.QylDataPath]);
+            owner.Launch.Env[QylConstants.Env.QylDataPath]);
         Assert.Equal([diagnostics.Name], owner.WaitsFor);
         Assert.Equal(
             $"http://127.0.0.1:{diagnostics.OtlpHttpPort}",
-            owner.Launch?.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
-        Assert.Equal("http/protobuf", owner.Launch?.Env[QylConstants.Env.OtelExporterOtlpProtocol]);
+            owner.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+        Assert.Equal("http/protobuf", owner.Launch.Env[QylConstants.Env.OtelExporterOtlpProtocol]);
     }
 
     [Fact]
@@ -140,13 +90,4 @@ public sealed class CompositionTests
         Assert.Contains("every api/otlp/grpc port must be unique", error.Message, StringComparison.Ordinal);
     }
 
-    private sealed class AlwaysReadyProbe : IReadinessProbe
-    {
-        public Task<bool> IsReadyAsync(QylResourceState state, CancellationToken cancellationToken)
-        {
-            Assert.Null(state.AllocatedPort);
-            Assert.Null(state.Endpoint);
-            return Task.FromResult(true);
-        }
-    }
 }

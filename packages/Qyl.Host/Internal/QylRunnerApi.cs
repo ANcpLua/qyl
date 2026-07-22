@@ -21,7 +21,6 @@ internal sealed partial class QylRunnerApi(
     QylLogStore logStore,
     QylResourceActions resourceActions,
     QylAppOptions options,
-    IEnumerable<IQylRunnerRequestHandler> requestHandlers,
     ILogger<QylRunnerApi> logger) : BackgroundService
 {
     internal const int MaxConcurrentRequests = 32;
@@ -144,9 +143,6 @@ internal sealed partial class QylRunnerApi(
     {
         try
         {
-            // The runner includes opt-in mutable handlers (MCP tool calls), so local binding alone is
-            // insufficient: reject non-loopback peers and untrusted Host values before dispatch. The
-            // console uses a same-origin Vite proxy and does not need CORS.
             if (!IsTrustedLocalRequest(context.Request))
             {
                 await RespondForbiddenAsync(context,
@@ -160,13 +156,6 @@ internal sealed partial class QylRunnerApi(
                     "Mutable runner requests must be same-origin and either bodyless or application/json.")
                     .ConfigureAwait(false);
                 return;
-            }
-
-            // Registered extension handlers get first claim on the request (they may accept verbs the
-            // core routes never will). A handler that returns true has written and closed the response.
-            foreach (var handler in requestHandlers)
-            {
-                if (await handler.TryHandleAsync(context, stoppingToken).ConfigureAwait(false)) return;
             }
 
             var path = (context.Request.Url?.AbsolutePath ?? string.Empty).TrimEnd('/');

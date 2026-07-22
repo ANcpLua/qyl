@@ -27,9 +27,7 @@
   <ItemGroup>
     <!-- Only owned assemblies may compose against internal runner shapes. -->
     <InternalsVisibleTo Include="Qyl.Run.Host"/>
-    <InternalsVisibleTo Include="Qyl.Host.Mcp"/>
     <InternalsVisibleTo Include="Qyl.Host.Tests"/>
-    <InternalsVisibleTo Include="Qyl.Host.Mcp.AotSmoke"/>
   </ItemGroup>
 
 </Project>

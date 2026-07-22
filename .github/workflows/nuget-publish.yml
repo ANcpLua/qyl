@@ -127,8 +127,6 @@ jobs:
           mkdir -p "$PACKAGES"
           dotnet pack packages/Qyl.Host/Qyl.Host.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
-          dotnet pack packages/Qyl.Host.Mcp/Qyl.Host.Mcp.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
           dotnet pack packages/Qyl.Run.Host/Qyl.Run.Host.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA" \
             -p:ToolPackageRuntimeIdentifiers="$RID"
@@ -188,8 +186,6 @@ jobs:
           mkdir -p "$PACKAGES"
           dotnet pack packages/Qyl.Host/Qyl.Host.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
-          dotnet pack packages/Qyl.Host.Mcp/Qyl.Host.Mcp.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
           dotnet pack packages/Qyl.Run.Host/Qyl.Run.Host.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
 
@@ -204,7 +200,7 @@ jobs:
           import xml.etree.ElementTree as ET
 
           expected = {
-              "Qyl.Host", "Qyl.Host.Mcp", "qyl",
+              "Qyl.Host", "qyl",
               "qyl.linux-x64", "qyl.linux-arm64",
               "qyl.osx-x64", "qyl.osx-arm64",
               "qyl.win-x64", "qyl.win-arm64",
@@ -314,7 +310,7 @@ jobs:
         run: |
           ids=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            Qyl.Host Qyl.Host.Mcp qyl
+            Qyl.Host qyl
           )
           for id in "${ids[@]}"; do
             lower_id="${id,,}"
@@ -358,7 +354,7 @@ jobs:
         run: |
           packages=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            Qyl.Host Qyl.Host.Mcp qyl
+            Qyl.Host qyl
           )
           for id in "${packages[@]}"; do
             package="artifacts/${id}.${VERSION}.nupkg"
@@ -377,7 +373,7 @@ jobs:
         run: |
           ids=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            qyl.host qyl.host.mcp qyl
+            qyl.host qyl
           )
           deadline=$((SECONDS + 900))
           while true; do

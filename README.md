@@ -41,7 +41,6 @@ The main components are:
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
 | `packages/Qyl.Host` | Published distributed-app runner library with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
 | `packages/Qyl.Host.Console` | Host console frontend consuming the generated TypeScript contracts (build/typecheck-gated) |
-| `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner (stdio/HTTP resources, OTLP export of the MCP SDK ActivitySource) |
 | `packages/Qyl.Run.Host` | The `qyl` dotnet tool; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
 | `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |
@@ -152,30 +151,12 @@ fixed ports is already occupied; it never attaches to an unrelated process.
 | `4317` | OTLP/gRPC receiver |
 | `4318` | Dedicated OTLP/HTTP receiver |
 | `5200` | Isolated diagnostics collector API |
-| `18888` | Loopback runner resource API |
+| `18889` | Loopback host resource API |
 
-### Attaching an MCP server
-
-`qyl up` can supervise one MCP server alongside the stack and project it onto the
-runner API (`/runner/mcp/mcp/tools`, `/tools/call`, `/resources/read`):
-
-```bash
-qyl up --mcp-stdio <command> [args...]   # launch a child over stdio
-qyl up --mcp-http <url>                  # attach over Streamable HTTP
-```
-
-Everything after `--mcp-stdio` is the child command line. The child inherits this
-process's environment plus `QYL_COLLECTOR_URL=http://127.0.0.1:5100` and
-`QYL_OTLP_ENDPOINT=http://127.0.0.1:4318`, so a qyl-aware MCP server reads from
-and exports telemetry to this stack with no configuration —
-[qyl.mcp](https://github.com/ANcpLua/qyl.mcp)'s published server composes as:
-
-```bash
-qyl up --mcp-stdio npx -y qyl-mcp-server --stdio
-``` The attachment waits for the collector, then
-readiness is a completed MCP handshake (initialize plus `tools/list`); a failed
-attachment marks only the `mcp` resource failed and never blocks the collector
-or dashboard.
+MCP connection management, local MCP process supervision, and the `/runner` MCP
+workbench are owned by the sibling
+[`qyl.mcp`](https://github.com/ANcpLua/qyl.mcp) product. It is the sole default
+listener on `18888`; `qyl up` no longer accepts MCP attachment flags.
 
 ### Native AOT publish
 
@@ -199,25 +180,22 @@ settings retain their upstream semantics and are not duplicated here.
 | `QYL_CI_LEG` | NuGet consumer smoke | CI telemetry leg name; defaults to the current runtime identifier. |
 | `QYL_CI_OTLP_ENDPOINT` | NuGet consumer smoke | OTLP/HTTP base URL for smoke telemetry; unset makes the emitter inert. |
 | `QYL_CI_RUN_ID` | NuGet consumer smoke | CI telemetry session id; defaults to `local-<machine>`. |
-| `QYL_COLLECTOR_URL` | Supervised MCP child | Product read-API base URL supplied by `qyl up`. |
 | `QYL_DATA_PATH` | Collector | DuckDB path; defaults to `qyl.duckdb` (`qyl up` assigns per-collector files under `~/.qyl`). |
 | `QYL_DB_MEMORY_LIMIT` | Collector | Optional DuckDB `memory_limit` value; unset leaves the engine default. |
 | `QYL_DB_TEMP_DIR` | Collector | Optional DuckDB `temp_directory`; unset leaves the engine default. |
 | `QYL_DB_THREADS` | Collector | Optional positive DuckDB worker count; unset leaves the engine default. |
 | `QYL_ENDPOINT` | Automatic instrumentation | Qyl-specific OTLP discovery fallback after `OTEL_EXPORTER_OTLP_ENDPOINT`; unset probes the standard local endpoints. |
 | `QYL_GRPC_PORT` | Collector | OTLP/gRPC listener; defaults to `4317`, and `0` disables it. |
-| `QYL_MCP_TELEMETRY` | Host MCP package | `0` disables official MCP SDK tracing; every other value keeps export enabled. |
 | `QYL_OTLP_AUTH_MODE` | Collector | `Unsecured` or `ApiKey`; defaults to `Unsecured` only in Development and to `ApiKey` otherwise. |
 | `QYL_OTLP_CORS_ALLOWED_HEADERS` | Collector | Optional comma-separated additions to `content-type` and `x-otlp-api-key`. |
 | `QYL_OTLP_CORS_ALLOWED_ORIGINS` | Collector | Comma-separated OTLP/HTTP browser origins (`*` allowed); unset disables OTLP CORS. |
-| `QYL_OTLP_ENDPOINT` | Host MCP package / supervised MCP child | OTLP base URL; MCP tracing falls back to `OTEL_EXPORTER_OTLP_ENDPOINT`, then `http://127.0.0.1:4318`. |
 | `QYL_OTLP_PORT` | Collector | OTLP/HTTP listener; defaults to `4318`, and `0` disables it. |
 | `QYL_OTLP_PRIMARY_API_KEY` | Collector | Primary `x-otlp-api-key`; at least one key is required in `ApiKey` mode. |
 | `QYL_OTLP_SECONDARY_API_KEY` | Collector | Optional rotation key accepted alongside the primary key. |
 | `QYL_PORT` | Collector | Product API/dashboard listener; falls back to `PORT`, then `5100`. |
 | `QYL_RETENTION_DAYS` | Collector | Trace/log age bound in days; defaults to `30`, and `0` disables retention. |
 | `QYL_RETENTION_INTERVAL_MINUTES` | Collector | Retention and disk-pressure check interval; defaults to `60`. |
-| `QYL_RUNNER_ORIGIN` | Host console Vite server | Runner proxy target; defaults to `http://127.0.0.1:18888`. |
+| `QYL_RUNNER_ORIGIN` | Host console Vite server | Host resource API proxy target; defaults to `http://127.0.0.1:18889`. |
 | `QYL_SMOKE_API_PORT` | NativeAOT smoke | Host product-API port; defaults to `5199`. |
 | `QYL_SMOKE_GRPC_PORT` | NativeAOT smoke | Host OTLP/gRPC port; defaults to `4317`. |
 | `QYL_SMOKE_OTLP_HTTP_PORT` | NativeAOT smoke | Host OTLP/HTTP port; defaults to `4318`. |

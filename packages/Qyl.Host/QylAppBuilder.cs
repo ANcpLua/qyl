@@ -151,21 +151,9 @@ public sealed class QylAppBuilder
         });
     }
 
-    /// <summary>
-    /// Registers a fully-composed resource. This is the raw door extension packages build on
-    /// (e.g. Qyl.Host.Mcp's connection-only MCP resources); the Add* conveniences above compose
-    /// through it implicitly. Name and port uniqueness are enforced like every other resource.
-    /// </summary>
-    internal IQylResourceBuilder AddResource(QylResource resource)
-    {
-        ArgumentNullException.ThrowIfNull(resource);
-        return Register(resource);
-    }
-
     public QylApp Build()
     {
         ValidateWaitForGraph();
-        ValidateConnectionOnlyResources();
         // Bound here so configuration sources added after Create() are included. FromConfiguration
         // validates eagerly without reflection-based binding. The orchestrator's poll loop owns
         // health-probe retries; the client timeout bounds one attempt so a hung connect cannot eat
@@ -202,18 +190,6 @@ public sealed class QylAppBuilder
             Port = port,
             Launch = BuildLaunchSpec(CreateDotNetProjectCommand(project), name)
         });
-    }
-
-    // A connection-only resource (Launch = null) has no process whose health path a default probe
-    // could poll — without an explicit probe it could never become Ready. Composition bug; fail loudly.
-    private void ValidateConnectionOnlyResources()
-    {
-        foreach (var resource in _resources.Where(static r => r.Launch is null && r.ReadinessProbe is null))
-        {
-            throw new InvalidOperationException(
-                $"Resource '{resource.Name}' has no launch spec and no readiness probe; a connection-only " +
-                "resource must declare how it becomes ready (WithReadinessProbe).");
-        }
     }
 
     // A WaitFor edge naming an unknown resource would wait forever; a cycle would deadlock the whole

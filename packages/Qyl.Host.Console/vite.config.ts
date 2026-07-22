@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const runnerOrigin = process.env.QYL_RUNNER_ORIGIN ?? "http://127.0.0.1:18888";
+const runnerOrigin = process.env.QYL_RUNNER_ORIGIN ?? "http://127.0.0.1:18889";
 
 function isTrustedDevOrigin(origin: string, host: string | undefined): boolean {
   try {

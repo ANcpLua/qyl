@@ -13,47 +13,6 @@ namespace Qyl.Host.Tests;
 public sealed class RunnerApiTests
 {
     [Fact]
-    public async Task Unexpected_failure_before_response_returns_the_generated_internal_server_error()
-    {
-        var port = ClaimLoopbackPort();
-        var api = new QylRunnerApi(
-            new QylResourceRegistry([], TimeProvider.System),
-            new QylLogStore(),
-            new QylResourceActions(),
-            new QylAppOptions { RunnerPort = port },
-            [new ThrowingRunnerRequestHandler()],
-            NullLogger<QylRunnerApi>.Instance);
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        lifetime.CancelAfter(TimeSpan.FromSeconds(15));
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-
-        await api.StartAsync(lifetime.Token);
-        try
-        {
-            using var response = await WaitForResponseAsync(
-                client,
-                new Uri($"http://127.0.0.1:{port}/runner/resources"),
-                lifetime.Token);
-
-            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-            Assert.Equal(ProblemDetailsMediaType.Value, response.Content.Headers.ContentType?.MediaType);
-            var problem = await response.Content.ReadFromJsonAsync<InternalServerError>(lifetime.Token);
-            var error = Assert.IsType<InternalServerError>(problem);
-            Assert.Equal("Internal Server Error", error.Title);
-            Assert.Equal("runner.unhandled_exception", error.ErrorCode);
-            Assert.Equal((int)HttpStatusCode.InternalServerError, error.Status);
-        }
-        finally
-        {
-            lifetime.Cancel();
-            using var stopTimeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-            stopTimeout.CancelAfter(TimeSpan.FromSeconds(5));
-            await api.StopAsync(stopTimeout.Token);
-            api.Dispose();
-        }
-    }
-
-    [Fact]
     public async Task Runner_is_loopback_only_has_no_wildcard_cors_and_rejects_an_untrusted_host()
     {
         var port = ClaimLoopbackPort();
@@ -61,7 +20,8 @@ public sealed class RunnerApiTests
         {
             Name = "demo",
             Kind = QylResourceKind.Command,
-            Port = 54321
+            Port = 54321,
+            Launch = new QylLaunchSpec { Executable = "test" }
         };
         var registry = new QylResourceRegistry([resource], TimeProvider.System);
         registry.Publish(
@@ -77,7 +37,6 @@ public sealed class RunnerApiTests
             logs,
             actions,
             new QylAppOptions { RunnerPort = port },
-            [],
             NullLogger<QylRunnerApi>.Instance);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         lifetime.CancelAfter(TimeSpan.FromSeconds(15));
@@ -218,11 +177,4 @@ public sealed class RunnerApiTests
         }
     }
 
-    private sealed class ThrowingRunnerRequestHandler : IQylRunnerRequestHandler
-    {
-        public Task<bool> TryHandleAsync(
-            HttpListenerContext context,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Programmatic pre-response failure.");
-    }
 }

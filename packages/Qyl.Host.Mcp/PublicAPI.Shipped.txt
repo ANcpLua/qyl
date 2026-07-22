@@ -1,4 +1,0 @@
-#nullable enable
-Qyl.Host.Mcp.QylMcpBuilderExtensions
-static Qyl.Host.Mcp.QylMcpBuilderExtensions.AddMcpHttp(this Qyl.Host.QylAppBuilder! app, string! name, System.Uri! endpoint) -> Qyl.Host.IQylResourceBuilder!
-static Qyl.Host.Mcp.QylMcpBuilderExtensions.AddMcpStdio(this Qyl.Host.QylAppBuilder! app, string! name, string! command, System.Collections.Generic.IEnumerable<string!>? arguments = null, string? workingDirectory = null, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? environment = null) -> Qyl.Host.IQylResourceBuilder!

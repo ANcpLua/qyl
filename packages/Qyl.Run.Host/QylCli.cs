@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
 using Qyl.Host;
-using Qyl.Host.Mcp;
 
 namespace Qyl.Run.Host;
 
@@ -11,7 +10,6 @@ internal static class QylCli
     private const string CollectorAssemblyName = "qyl.collector.dll";
     private const int ProductPort = 5100;
     private const int DiagnosticsPort = 5200;
-    internal const string McpResourceName = "mcp";
     private static readonly int[] s_requiredPorts =
     [
         ProductPort, DiagnosticsPort, QylConstants.Collector.DefaultGrpcPort,
@@ -24,14 +22,6 @@ internal static class QylCli
         Usage:
           qyl up        Start the collector, embedded dashboard, and diagnostics collector.
                         Telemetry is stored under ~/.qyl/, never in the working directory.
-          qyl up --mcp-stdio <command> [args...]
-                        Also launch an MCP server as a supervised child over stdio and
-                        project it on the runner API: GET /runner/mcp/mcp/tools,
-                        POST /runner/mcp/mcp/tools/call, POST /runner/mcp/mcp/resources/read.
-                        The child inherits QYL_COLLECTOR_URL and QYL_OTLP_ENDPOINT
-                        pointed at this stack.
-          qyl up --mcp-http <url>
-                        Also attach to an already-running MCP server over Streamable HTTP
           qyl --version Show the installed qyl version
           qyl --help    Show this help
         """;
@@ -76,7 +66,7 @@ internal static class QylCli
             return 1;
         }
 
-        await CreateApp(collectorAssembly, invocation.Mcp).Build().RunAsync().ConfigureAwait(false);
+        await CreateApp(collectorAssembly).Build().RunAsync().ConfigureAwait(false);
         return 0;
     }
 
@@ -90,32 +80,6 @@ internal static class QylCli
 
         if (args is ["up"])
             return new QylCliInvocation(QylCliAction.Up);
-
-        // Slice patterns below need a sliceable receiver, which IReadOnlyList<string> is not.
-        var argv = args as string[] ?? [.. args];
-
-        // --mcp-stdio consumes the remainder of the command line as the child command,
-        // so it admits arbitrary server arguments without an escaping convention.
-        if (argv is ["up", "--mcp-stdio", .. var stdio])
-        {
-            return stdio is [var command, .. var commandArguments]
-                ? new QylCliInvocation(QylCliAction.Up, Mcp: QylMcpAttachment.Stdio(command, [.. commandArguments]))
-                : new QylCliInvocation(
-                    QylCliAction.Invalid,
-                    "--mcp-stdio requires the MCP server command to launch, e.g. `qyl up --mcp-stdio node server.js --stdio`.");
-        }
-
-        if (argv is ["up", "--mcp-http", .. var http])
-        {
-            return http is [var url]
-                   && Uri.TryCreate(url, UriKind.Absolute, out var endpoint)
-                   && (string.Equals(endpoint.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
-                       || string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
-                ? new QylCliInvocation(QylCliAction.Up, Mcp: QylMcpAttachment.Http(endpoint))
-                : new QylCliInvocation(
-                    QylCliAction.Invalid,
-                    "--mcp-http requires exactly one absolute http(s) URL of a running MCP server.");
-        }
 
         return new QylCliInvocation(
             QylCliAction.Invalid,
@@ -171,7 +135,7 @@ internal static class QylCli
         }
     }
 
-    internal static QylAppBuilder CreateApp(string collectorAssembly, QylMcpAttachment? mcp = null)
+    internal static QylAppBuilder CreateApp(string collectorAssembly)
     {
         var app = QylAppBuilder.Create();
         // qyl up is a fixed zero-configuration product command. Library callers may move the
@@ -180,44 +144,15 @@ internal static class QylCli
         app.Host.Configuration[$"{QylAppOptions.SectionName}:{nameof(QylAppOptions.RunnerPort)}"] =
             QylConstants.Ports.RunnerApi.ToString(CultureInfo.InvariantCulture);
 
-        var collector = app
-            .AddCollector("collector", QylConstants.Orchestrator.DotnetExecutable, [collectorAssembly], port: ProductPort,
+        app.AddCollector("collector", QylConstants.Orchestrator.DotnetExecutable, [collectorAssembly], port: ProductPort,
                 selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", port: DiagnosticsPort))
             // The packaged command is intentionally a loopback-only local product. Do not inherit
             // a deployment's ApiKey mode and turn the advertised one-command launch into a missing-
             // key startup failure. QylAppBuilder itself continues to honor ambient operator policy.
             .WithEnvironment(QylConstants.Env.QylOtlpAuthMode, QylConstants.Collector.UnsecuredAuthMode);
 
-        // The attachment exists to serve this stack's telemetry, so its handshake (and for
-        // stdio, the child spawn) waits for the collector: a tool call in the collector's
-        // startup window would answer "collector unreachable" for a stack that is coming up.
-        if (mcp?.Endpoint is { } endpoint)
-        {
-            app.AddMcpHttp(McpResourceName, endpoint).WaitFor(collector);
-        }
-        else if (mcp?.Command is { } command)
-        {
-            app.AddMcpStdio(McpResourceName, command, mcp.Arguments,
-                environment: BuildMcpChildEnvironment()).WaitFor(collector);
-        }
-
         return app;
     }
-
-    /// <summary>
-    /// The fixed local stack a stdio MCP child should target: telemetry reads on the
-    /// product port and OTLP export on the collector's OTLP HTTP port. Without the
-    /// explicit OTLP entry, qyl-aware servers fall back to the read-API base for export.
-    /// </summary>
-    internal static Dictionary<string, string?> BuildMcpChildEnvironment() => new(StringComparer.Ordinal)
-    {
-        [QylConstants.Env.QylCollectorUrl] = string.Format(
-            CultureInfo.InvariantCulture, QylConstants.Network.LocalhostUrlTemplate,
-            QylConstants.Network.Loopback, ProductPort),
-        [QylConstants.Env.QylOtlpEndpoint] = string.Format(
-            CultureInfo.InvariantCulture, QylConstants.Network.LocalhostUrlTemplate,
-            QylConstants.Network.Loopback, QylConstants.Collector.DefaultOtlpHttpPort)
-    };
 
     internal static string GetVersion() => BuildVersion.ProductVersion;
 
@@ -227,21 +162,7 @@ internal static class QylCli
 
 internal readonly record struct QylCliInvocation(
     QylCliAction Action,
-    string? Error = null,
-    QylMcpAttachment? Mcp = null);
-
-/// <summary>An optional MCP server attachment for <c>qyl up</c>: launched over stdio or joined over HTTP.</summary>
-internal sealed record QylMcpAttachment
-{
-    public string? Command { get; private init; }
-    public IReadOnlyList<string> Arguments { get; private init; } = [];
-    public Uri? Endpoint { get; private init; }
-
-    public static QylMcpAttachment Stdio(string command, IReadOnlyList<string> arguments) =>
-        new() { Command = command, Arguments = arguments };
-
-    public static QylMcpAttachment Http(Uri endpoint) => new() { Endpoint = endpoint };
-}
+    string? Error = null);
 
 internal enum QylCliAction
 {

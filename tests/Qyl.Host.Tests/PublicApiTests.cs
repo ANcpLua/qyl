@@ -1,5 +1,4 @@
 using System.Reflection;
-using Qyl.Host.Mcp;
 
 namespace Qyl.Host.Tests;
 
@@ -29,19 +28,6 @@ public sealed class PublicApiTests
         Assert.DoesNotContain("Qyl.Host.QylLaunchSpec", exportedNames);
         Assert.DoesNotContain("Qyl.Host.QylResourceState", exportedNames);
         Assert.DoesNotContain("Qyl.Host.QylConstants", exportedNames);
-        Assert.DoesNotContain("Qyl.Host.IReadinessProbe", exportedNames);
-        Assert.DoesNotContain("Qyl.Host.IQylRunnerRequestHandler", exportedNames);
-    }
-
-    [Fact]
-    public void Mcp_package_exports_only_its_composition_extensions()
-    {
-        var exported = typeof(QylMcpBuilderExtensions).Assembly.ExportedTypes
-            .Select(static type => type.FullName!)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
-        Assert.Equal(["Qyl.Host.Mcp.QylMcpBuilderExtensions"], exported);
     }
 
     [Fact]

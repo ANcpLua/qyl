@@ -25,14 +25,12 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath[] ShippablePackProjects =>
     [
         PackagesDirectory / "Qyl.Host" / "Qyl.Host.csproj",
-        PackagesDirectory / "Qyl.Host.Mcp" / "Qyl.Host.Mcp.csproj",
         PackagesDirectory / "Qyl.Run.Host" / "Qyl.Run.Host.csproj"
     ];
 
     string[] ShippablePackageIds =>
     [
         "qyl.host",
-        "qyl.host.mcp",
         "qyl",
         "qyl.linux-x64",
         "qyl.linux-arm64",

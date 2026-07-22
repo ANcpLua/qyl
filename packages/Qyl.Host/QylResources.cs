@@ -20,14 +20,7 @@ internal sealed record QylResource
     // Names of resources that must report Ready before this resource's process is launched.
     public IReadOnlyList<string> WaitsFor { get; init; } = [];
 
-    // Null = a connection-only resource: the runner launches no child process, and readiness is
-    // decided entirely by ReadinessProbe (required in that case — Build() enforces it). The MCP
-    // kinds use this: the SDK transport owns the connection (and for stdio, the process).
-    public QylLaunchSpec? Launch { get; init; }
-
-    // Optional per-resource readiness override; null means the default HTTP health probe against
-    // Launch.HealthPath. Set via QylResourceBuilderExtensions.WithReadinessProbe.
-    public IReadinessProbe? ReadinessProbe { get; init; }
+    public required QylLaunchSpec Launch { get; init; }
 }
 
 internal sealed record QylLaunchSpec
@@ -73,9 +66,7 @@ internal enum QylResourceKind
 {
     Collector,
     Project,
-    Command,
-    McpStdio,
-    McpHttp
+    Command
 }
 
 internal static class QylResourceKindExtensions
@@ -85,8 +76,6 @@ internal static class QylResourceKindExtensions
         QylResourceKind.Collector => "collector",
         QylResourceKind.Project => "project",
         QylResourceKind.Command => "command",
-        QylResourceKind.McpStdio => "stdio",
-        QylResourceKind.McpHttp => "http",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown resource kind")
     };
 }

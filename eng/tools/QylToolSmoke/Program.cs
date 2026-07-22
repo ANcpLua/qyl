@@ -185,7 +185,7 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
         throw new InvalidOperationException($"qyl exited {process.ExitCode} after Ctrl-C.");
 
     await WaitUntilAsync(
-        () => Task.FromResult(ArePortsFree([5100, 5200, 4317, 4318, 18888])),
+        () => Task.FromResult(ArePortsFree([5100, 5200, 4317, 4318, SmokeEndpoints.RunnerApiPort])),
         TimeSpan.FromSeconds(30),
         "qyl left a collector or runner listener behind after shutdown");
     Progress("live: shutdown clean, all ports released");
@@ -304,7 +304,7 @@ static async Task<bool> AreRunnerResourcesReadyAsync(HttpClient client)
 {
     try
     {
-        using var response = await client.GetAsync("http://127.0.0.1:18888/runner/resources");
+        using var response = await client.GetAsync($"http://127.0.0.1:{SmokeEndpoints.RunnerApiPort}/runner/resources");
         if (!response.IsSuccessStatusCode) return false;
         await using var body = await response.Content.ReadAsStreamAsync();
         using var resources = await JsonDocument.ParseAsync(body);
@@ -480,6 +480,11 @@ internal sealed record PackageInfo(string Path, string Id, string Version, HashS
         if (!text.Contains(expected, StringComparison.Ordinal))
             throw new InvalidDataException($"Package entry '{path}' does not contain '{expected}'.");
     }
+}
+
+internal static class SmokeEndpoints
+{
+    internal const int RunnerApiPort = 18889;
 }
 
 internal sealed record ProcessResult(int ExitCode, string Stdout, string Stderr)

@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../Qyl.Host/Qyl.Host.csproj"/>
-    <ProjectReference Include="../Qyl.Host.Mcp/Qyl.Host.Mcp.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

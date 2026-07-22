@@ -52,9 +52,6 @@
     <PackageVersion Include="NuGet.Packaging" Version="7.6.0"/>
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.10"/>
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
-    <!-- Core avoids the reflection-based server hosting in the full MCP package. -->
-    <PackageVersion Include="ModelContextProtocol.Core" Version="1.4.1"/>
-    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="1.4.1"/>
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2"/>
     <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0"/>
     <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->

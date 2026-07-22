@@ -1,15 +1,10 @@
 namespace Qyl.Host;
 
-/// <summary>
-/// The default <see cref="IReadinessProbe"/>: GET the resource's health path until it answers
-/// 2xx or the startup deadline passes. Each attempt is bounded by the named health-probe
-/// client's own timeout; this loop is the retry policy.
-/// </summary>
 internal sealed class HttpHealthProbe(
     IHttpClientFactory httpClientFactory,
     string healthPath,
     TimeSpan startupTimeout,
-    TimeProvider time) : IReadinessProbe
+    TimeProvider time)
 {
     public async Task<bool> IsReadyAsync(QylResourceState state, CancellationToken cancellationToken)
     {

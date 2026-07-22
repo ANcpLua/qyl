@@ -1,6 +1,5 @@
 using System.Globalization;
 using Qyl.Host.Internal;
-using Qyl.Host.Mcp;
 
 namespace Qyl.Host.Tests;
 
@@ -14,7 +13,8 @@ public sealed class BoundedStreamTests
             {
                 Name = $"resource-{index}",
                 Kind = QylResourceKind.Command,
-                Port = index + 1000
+                Port = index + 1000,
+                Launch = new QylLaunchSpec { Executable = "test" }
             })
             .ToArray();
         var registry = new QylResourceRegistry(resources, TimeProvider.System);
@@ -44,22 +44,5 @@ public sealed class BoundedStreamTests
         Assert.Equal(QylLogStore.SubscriberCapacity, retained.Count);
         Assert.Equal("100", retained[0].Line);
         Assert.Equal((QylLogStore.SubscriberCapacity + 99).ToString(CultureInfo.InvariantCulture), retained[^1].Line);
-    }
-
-    [Fact]
-    public async Task Mcp_request_body_limit_covers_declared_and_chunked_inputs()
-    {
-        var oversized = new byte[McpPassthroughHandler.MaxRequestBodyBytes + 1];
-
-        await Assert.ThrowsAsync<InvalidDataException>(() =>
-            McpPassthroughHandler.ReadBoundedBodyAsync(
-                new MemoryStream([]),
-                oversized.Length,
-                TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<InvalidDataException>(() =>
-            McpPassthroughHandler.ReadBoundedBodyAsync(
-                new MemoryStream(oversized),
-                declaredLength: -1,
-                TestContext.Current.CancellationToken));
     }
 }

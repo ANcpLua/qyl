@@ -11,7 +11,7 @@ internal static class QylConstants
 
     public static class Ports
     {
-        public const int RunnerApi = 18888;
+        public const int RunnerApi = 18889;
         public const int DynamicAllocation = 0;
     }
 
@@ -41,10 +41,6 @@ internal static class QylConstants
         public const string QylBindAddress = "QYL_BIND_ADDRESS";
         public const string QylDataPath = "QYL_DATA_PATH";
         public const string QylOtlpAuthMode = "QYL_OTLP_AUTH_MODE";
-        // Environment contract of qyl.mcp (the qyl telemetry MCP server): read-API base
-        // and OTLP export base for a child launched via `qyl up --mcp-stdio`.
-        public const string QylCollectorUrl = "QYL_COLLECTOR_URL";
-        public const string QylOtlpEndpoint = "QYL_OTLP_ENDPOINT";
     }
 
     public static class Collector

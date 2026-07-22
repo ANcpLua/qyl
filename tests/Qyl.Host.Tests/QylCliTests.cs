@@ -31,112 +31,30 @@ public sealed class QylCliTests
     {
         var bare = QylCli.Parse(["up"]);
         Assert.Equal(QylCliAction.Up, bare.Action);
-        Assert.Null(bare.Mcp);
 
         var oldFlag = QylCli.Parse(["up", "--dev"]);
         Assert.Equal(QylCliAction.Invalid, oldFlag.Action);
         Assert.Contains("Unknown qyl command: up --dev", oldFlag.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Mcp_stdio_consumes_the_rest_of_the_command_line_as_the_child_command()
+    [Theory]
+    [InlineData("--mcp-stdio", "node", "server.js")]
+    [InlineData("--mcp-http", "http://127.0.0.1:3001/mcp")]
+    public void Removed_mcp_attachment_flags_are_rejected(params string[] flags)
     {
-        var invocation = QylCli.Parse(["up", "--mcp-stdio", "node", "dist/main.js", "--stdio"]);
-
-        Assert.Equal(QylCliAction.Up, invocation.Action);
-        Assert.Equal("node", invocation.Mcp?.Command);
-        Assert.Equal(["dist/main.js", "--stdio"], invocation.Mcp?.Arguments);
-        Assert.Null(invocation.Mcp?.Endpoint);
-    }
-
-    [Fact]
-    public void Mcp_stdio_without_a_command_explains_the_expected_shape()
-    {
-        var invocation = QylCli.Parse(["up", "--mcp-stdio"]);
+        var invocation = QylCli.Parse(["up", .. flags]);
 
         Assert.Equal(QylCliAction.Invalid, invocation.Action);
-        Assert.Contains("--mcp-stdio requires the MCP server command", invocation.Error, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("http://127.0.0.1:3001/mcp")]
-    [InlineData("https://mcp.qyl.at/mcp")]
-    public void Mcp_http_accepts_one_absolute_http_url(string url)
-    {
-        var invocation = QylCli.Parse(["up", "--mcp-http", url]);
-
-        Assert.Equal(QylCliAction.Up, invocation.Action);
-        Assert.Equal(new Uri(url), invocation.Mcp?.Endpoint);
-        Assert.Null(invocation.Mcp?.Command);
-    }
-
-    [Theory]
-    [InlineData("up", "--mcp-http")]
-    [InlineData("up", "--mcp-http", "not-a-url")]
-    [InlineData("up", "--mcp-http", "ftp://host/mcp")]
-    [InlineData("up", "--mcp-http", "http://a/mcp", "http://b/mcp")]
-    public void Mcp_http_rejects_missing_relative_non_http_and_multiple_urls(params string[] args)
-    {
-        var invocation = QylCli.Parse(args);
-
-        Assert.Equal(QylCliAction.Invalid, invocation.Action);
-        Assert.Contains("--mcp-http requires exactly one absolute http(s) URL", invocation.Error, StringComparison.Ordinal);
+        Assert.Contains("Unknown qyl command", invocation.Error, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Help_documents_both_mcp_attachment_forms()
-    {
-        Assert.Contains("--mcp-stdio", QylCli.HelpText, StringComparison.Ordinal);
-        Assert.Contains("--mcp-http", QylCli.HelpText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Mcp_child_environment_targets_the_fixed_local_stack()
-    {
-        var environment = QylCli.BuildMcpChildEnvironment();
-
-        // Literal names: this is qyl.mcp's env contract, so a renamed constant must fail here.
-        Assert.Equal("http://127.0.0.1:5100", environment["QYL_COLLECTOR_URL"]);
-        Assert.Equal("http://127.0.0.1:4318", environment["QYL_OTLP_ENDPOINT"]);
-        Assert.Equal(2, environment.Count);
-    }
-
-    [Fact]
-    public void Up_with_mcp_stdio_composes_a_probed_launchless_mcp_resource()
-    {
-        var builder = QylCli.CreateApp(
-            Path.Combine(Path.GetTempPath(), "qyl.collector.dll"),
-            QylMcpAttachment.Stdio("node", ["dist/main.js", "--stdio"]));
-
-        var mcp = builder.Resources.Single(static resource => resource.Name == QylCli.McpResourceName);
-
-        Assert.Equal(QylResourceKind.McpStdio, mcp.Kind);
-        Assert.Null(mcp.Launch);
-        Assert.NotNull(mcp.ReadinessProbe);
-        Assert.Equal(["collector"], mcp.WaitsFor);
-    }
-
-    [Fact]
-    public void Up_with_mcp_http_composes_a_probed_connection_resource()
-    {
-        var builder = QylCli.CreateApp(
-            Path.Combine(Path.GetTempPath(), "qyl.collector.dll"),
-            QylMcpAttachment.Http(new Uri("http://127.0.0.1:3001/mcp")));
-
-        var mcp = builder.Resources.Single(static resource => resource.Name == QylCli.McpResourceName);
-
-        Assert.Equal(QylResourceKind.McpHttp, mcp.Kind);
-        Assert.Null(mcp.Launch);
-        Assert.NotNull(mcp.ReadinessProbe);
-        Assert.Equal(["collector"], mcp.WaitsFor);
-    }
-
-    [Fact]
-    public void Up_without_mcp_keeps_the_two_collector_composition()
+    public void Up_keeps_the_two_collector_composition()
     {
         var builder = QylCli.CreateApp(Path.Combine(Path.GetTempPath(), "qyl.collector.dll"));
 
-        Assert.DoesNotContain(builder.Resources, static resource => resource.Name == QylCli.McpResourceName);
+        Assert.Equal(["collector", "diagnostics"],
+            builder.Resources.Select(static resource => resource.Name).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -191,15 +109,15 @@ public sealed class QylCliTests
 
         Assert.Equal(QylResourceKind.Collector, collector.Kind);
         Assert.Equal(5100, collector.Port);
-        Assert.Equal("dotnet", collector.Launch?.Executable);
-        Assert.Equal([collectorAssembly], collector.Launch?.Args);
+        Assert.Equal("dotnet", collector.Launch.Executable);
+        Assert.Equal([collectorAssembly], collector.Launch.Args);
         Assert.Equal([diagnostics.Name], collector.WaitsFor);
 
         Assert.Equal(QylResourceKind.Collector, diagnostics.Kind);
         Assert.Equal(5200, diagnostics.Port);
-        Assert.Equal("dotnet", diagnostics.Launch?.Executable);
-        Assert.Equal([collectorAssembly], diagnostics.Launch?.Args);
-        Assert.Equal(string.Empty, diagnostics.Launch?.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+        Assert.Equal("dotnet", diagnostics.Launch.Executable);
+        Assert.Equal([collectorAssembly], diagnostics.Launch.Args);
+        Assert.Equal(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
     }
 
     [Fact]
@@ -220,9 +138,9 @@ public sealed class QylCliTests
 
             Assert.Equal(QylConstants.Ports.RunnerApi, options.RunnerPort);
             Assert.Equal(QylConstants.Collector.UnsecuredAuthMode,
-                collector.Launch?.Env[QylConstants.Env.QylOtlpAuthMode]);
+                collector.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
             Assert.Equal(QylConstants.Collector.UnsecuredAuthMode,
-                diagnostics.Launch?.Env[QylConstants.Env.QylOtlpAuthMode]);
+                diagnostics.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
         }
         finally
         {
