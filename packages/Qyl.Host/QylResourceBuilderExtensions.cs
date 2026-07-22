@@ -14,8 +14,8 @@ public static class QylResourceBuilderExtensions
     public static IQylResourceBuilder WaitFor(this IQylResourceBuilder builder,
         params IQylResourceBuilder[] dependencies)
     {
-        QylGuard.NotNull(builder);
-        QylGuard.NotNull(dependencies);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependencies);
 
         var owned = GetOwned(builder);
         var names = dependencies.Select(static d => d.Name).ToArray();
@@ -38,16 +38,16 @@ public static class QylResourceBuilderExtensions
     /// </summary>
     internal static IQylResourceBuilder WithReadinessProbe(this IQylResourceBuilder builder, IReadinessProbe probe)
     {
-        QylGuard.NotNull(builder);
-        QylGuard.NotNull(probe);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(probe);
         return GetOwned(builder).Update(r => r with { ReadinessProbe = probe });
     }
 
     /// <summary>Sets (or overrides) one environment variable in the resource's launch spec.</summary>
     public static IQylResourceBuilder WithEnvironment(this IQylResourceBuilder builder, string name, string value)
     {
-        QylGuard.NotNull(builder);
-        QylGuard.NotNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var owned = GetOwned(builder);
         if (owned.Resource.Launch is null)
         {
@@ -76,7 +76,7 @@ public static class QylResourceBuilderExtensions
     /// </summary>
     internal static IQylResourceBuilder WithIsolatedStorage(this IQylResourceBuilder builder)
     {
-        QylGuard.NotNull(builder);
+        ArgumentNullException.ThrowIfNull(builder);
         var dataHome = QylConstants.Collector.DefaultDataHome;
         Directory.CreateDirectory(dataHome);
         return builder.WithEnvironment(QylConstants.Env.QylDataPath,
@@ -92,7 +92,7 @@ public static class QylResourceBuilderExtensions
     /// </summary>
     internal static IQylResourceBuilder DisableSelfTelemetryExport(this IQylResourceBuilder builder)
     {
-        QylGuard.NotNull(builder);
+        ArgumentNullException.ThrowIfNull(builder);
         return builder.WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint, string.Empty);
     }
 
@@ -104,8 +104,8 @@ public static class QylResourceBuilderExtensions
         this IQylResourceBuilder builder,
         IQylResourceBuilder collector)
     {
-        QylGuard.NotNull(builder);
-        QylGuard.NotNull(collector);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(collector);
         return builder
             .WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint,
                 collector.GetOtlpHttpEndpoint().ToString().TrimEnd('/'))
@@ -129,7 +129,7 @@ public static class QylResourceBuilderExtensions
         Func<QylResource, int> selectPort,
         string endpointName)
     {
-        QylGuard.NotNull(builder);
+        ArgumentNullException.ThrowIfNull(builder);
         var resource = GetOwned(builder).Resource;
         var port = selectPort(resource);
 

@@ -36,7 +36,7 @@ public sealed class QylSelfTelemetryBuilder
     /// </summary>
     public QylSelfTelemetryBuilder ExportTo(IQylResourceBuilder collector)
     {
-        QylGuard.NotNull(collector);
+        ArgumentNullException.ThrowIfNull(collector);
         if (_target is not null)
         {
             throw new InvalidOperationException(
@@ -58,7 +58,7 @@ public sealed class QylSelfTelemetryBuilder
     /// </summary>
     public QylSelfTelemetryBuilder ExportToDedicatedCollector(string name, int? port = null)
     {
-        QylGuard.NotNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (_target is not null)
         {
             throw new InvalidOperationException(

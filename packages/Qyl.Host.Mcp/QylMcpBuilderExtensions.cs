@@ -46,9 +46,9 @@ public static class QylMcpBuilderExtensions
         string? workingDirectory = null,
         IReadOnlyDictionary<string, string?>? environment = null)
     {
-        QylGuard.NotNull(app);
-        QylGuard.NotNullOrWhiteSpace(name);
-        QylGuard.NotNullOrWhiteSpace(command);
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
 
         var transportOptions = new StdioClientTransportOptions
         {
@@ -78,9 +78,9 @@ public static class QylMcpBuilderExtensions
         string name,
         Uri endpoint)
     {
-        QylGuard.NotNull(app);
-        QylGuard.NotNullOrWhiteSpace(name);
-        QylGuard.NotNull(endpoint);
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(endpoint);
 
         var transportOptions = new HttpClientTransportOptions
         {

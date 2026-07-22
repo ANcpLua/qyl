@@ -26,7 +26,7 @@ public sealed class QylAppBuilder
     public IQylResourceBuilder AddCollector(string name, string project, int? port = null,
         Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
     {
-        QylGuard.NotNullOrWhiteSpace(project);
+        ArgumentException.ThrowIfNullOrWhiteSpace(project);
         return AddCollectorCore(name, CreateDotNetProjectCommand(project), port, selfTelemetry);
     }
 
@@ -39,8 +39,8 @@ public sealed class QylAppBuilder
         int? port = null, string? workingDirectory = null,
         Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
     {
-        QylGuard.NotNullOrWhiteSpace(executable);
-        QylGuard.NotNull(arguments);
+        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
+        ArgumentNullException.ThrowIfNull(arguments);
         if (arguments.Any(static argument => argument is null))
             throw new ArgumentException("Arguments cannot contain null values.", nameof(arguments));
 
@@ -55,7 +55,7 @@ public sealed class QylAppBuilder
     internal IQylResourceBuilder AddCollectorCore(string name, QylProcessCommand command, int? port,
         Action<QylSelfTelemetryBuilder>? selfTelemetry)
     {
-        QylGuard.NotNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (port is < 1 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(port), port, "Collector port must be in the range 1..65535.");
 
@@ -126,9 +126,9 @@ public sealed class QylAppBuilder
     public IQylResourceBuilder AddCommand(string name, string executable, int port,
         IReadOnlyList<string>? arguments = null, string? workingDirectory = null, string healthPath = "/")
     {
-        QylGuard.NotNullOrWhiteSpace(name);
-        QylGuard.NotNullOrWhiteSpace(executable);
-        QylGuard.NotNullOrWhiteSpace(healthPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
+        ArgumentException.ThrowIfNullOrWhiteSpace(healthPath);
         if (port is < 1 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(port), port, "Command port must be in the range 1..65535.");
 
@@ -158,7 +158,7 @@ public sealed class QylAppBuilder
     /// </summary>
     internal IQylResourceBuilder AddResource(QylResource resource)
     {
-        QylGuard.NotNull(resource);
+        ArgumentNullException.ThrowIfNull(resource);
         return Register(resource);
     }
 
@@ -193,8 +193,8 @@ public sealed class QylAppBuilder
 
     private QylResourceBuilder AddCore(string name, QylResourceKind kind, int port, string? project)
     {
-        QylGuard.NotNullOrWhiteSpace(name);
-        QylGuard.NotNullOrWhiteSpace(project);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(project);
         return Register(new QylResource
         {
             Name = name,
