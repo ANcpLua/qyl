@@ -29,7 +29,7 @@ There is one owner for each boundary:
 - **Qyl product API:** every client-visible request, response, stream event, and
   error is defined in the sibling `qyl-api-schema` TypeSpec repository and consumed
   through `Qyl.Api.Contracts` or a generated client. Do not declare parallel public
-  DTOs in `qyl.collector`, `Qyl.Host`, the dashboard, or MCP code.
+  DTOs in `qyl.collector`, the qyl CLI runtime, the dashboard, or MCP code.
 - **OTLP ingestion:** the wire contract is the official OpenTelemetry protobuf
   schema. Vendoring a pinned upstream `.proto` input is allowed; redefining it as a
   Qyl-owned DTO hierarchy is not.

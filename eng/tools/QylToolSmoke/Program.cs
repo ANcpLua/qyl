@@ -155,7 +155,17 @@ static async Task DeleteDirectoryAsync(string path, TimeSpan timeout)
 
 static async Task RunLiveAsync(string tool, string workingDirectory)
 {
-    using var process = Start(tool, ["up"], workingDirectory);
+    var isolatedHome = Path.Combine(workingDirectory, "home");
+    Directory.CreateDirectory(isolatedHome);
+    using var process = Start(
+        tool,
+        ["up"],
+        workingDirectory,
+        environment: new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["HOME"] = isolatedHome,
+            ["USERPROFILE"] = isolatedHome
+        });
     try
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
@@ -376,7 +386,8 @@ static Process Start(
     IReadOnlyList<string> arguments,
     string workingDirectory,
     ConcurrentQueue<string>? stdout = null,
-    ConcurrentQueue<string>? stderr = null)
+    ConcurrentQueue<string>? stderr = null,
+    IReadOnlyDictionary<string, string>? environment = null)
 {
     // CreateProcess cannot exec a .cmd shim directly (and .NET refuses since the BatBadBut
     // mitigation), so route shims through cmd.exe. Arguments here are fixed tokens and
@@ -402,6 +413,11 @@ static Process Start(
     }
 
     foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
+    if (environment is not null)
+    {
+        foreach (var (name, value) in environment)
+            startInfo.Environment[name] = value;
+    }
 
     var process = new Process { StartInfo = startInfo };
     if (stdout is not null) process.OutputDataReceived += (_, eventArgs) =>

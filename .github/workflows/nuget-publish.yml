@@ -115,7 +115,7 @@ jobs:
           npm run build
 
       - name: Test runner contracts
-        run: dotnet test tests/Qyl.Host.Tests/Qyl.Host.Tests.csproj --configuration Release -p:Version="$VERSION"
+        run: dotnet test tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj --configuration Release -p:Version="$VERSION"
 
       - name: Pack current platform
         run: |
@@ -125,9 +125,7 @@ jobs:
             exit 1
           fi
           mkdir -p "$PACKAGES"
-          dotnet pack packages/Qyl.Host/Qyl.Host.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
-          dotnet pack packages/Qyl.Run.Host/Qyl.Run.Host.csproj --configuration Release --output "$PACKAGES" \
+          dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA" \
             -p:ToolPackageRuntimeIdentifiers="$RID"
 
@@ -184,9 +182,7 @@ jobs:
         run: |
           rm -rf "$PACKAGES"
           mkdir -p "$PACKAGES"
-          dotnet pack packages/Qyl.Host/Qyl.Host.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
-          dotnet pack packages/Qyl.Run.Host/Qyl.Run.Host.csproj --configuration Release --output "$PACKAGES" \
+          dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
 
       - name: Validate package identity and provenance
@@ -200,7 +196,7 @@ jobs:
           import xml.etree.ElementTree as ET
 
           expected = {
-              "Qyl.Host", "qyl",
+              "qyl",
               "qyl.linux-x64", "qyl.linux-arm64",
               "qyl.osx-x64", "qyl.osx-arm64",
               "qyl.win-x64", "qyl.win-arm64",
@@ -310,7 +306,7 @@ jobs:
         run: |
           ids=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            Qyl.Host qyl
+            qyl
           )
           for id in "${ids[@]}"; do
             lower_id="${id,,}"
@@ -354,7 +350,7 @@ jobs:
         run: |
           packages=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            Qyl.Host qyl
+            qyl
           )
           for id in "${packages[@]}"; do
             package="artifacts/${id}.${VERSION}.nupkg"
@@ -373,7 +369,7 @@ jobs:
         run: |
           ids=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            qyl.host qyl
+            qyl
           )
           deadline=$((SECONDS + 900))
           while true; do

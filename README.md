@@ -39,8 +39,7 @@ The main components are:
 | `services/qyl.dashboard` | React investigation interface backed by generated client contracts |
 | `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
 | `internal/qyl.instrumentation.generators`, `internal/qyl.collector.storage.generators` | Compile-time source generators for instrumentation and storage |
-| `packages/Qyl.Host` | Published distributed-app runner library with subprocess orchestration and deferred endpoint resolution, no Aspire dependencies |
-| `packages/Qyl.Run.Host` | The `qyl` dotnet tool; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
+| `packages/Qyl.Cli` | The `qyl` dotnet tool and its internal runtime supervisor; packages the collector, embedded dashboard, and isolated diagnostics collector used by `qyl up` |
 | `packages/Qyl.Run.Workload` | Synthetic GenAI workload emitter for local end-to-end exercise |
 | `eng/build` | Build, generation, verification, and packaging gates |
 

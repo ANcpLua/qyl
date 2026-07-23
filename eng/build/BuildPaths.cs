@@ -22,13 +22,11 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     /// <summary>Projects with IsPackable=true — the packages qyl actually ships.</summary>
     AbsolutePath[] ShippablePackProjects =>
     [
-        PackagesDirectory / "Qyl.Host" / "Qyl.Host.csproj",
-        PackagesDirectory / "Qyl.Run.Host" / "Qyl.Run.Host.csproj"
+        PackagesDirectory / "Qyl.Cli" / "Qyl.Cli.csproj"
     ];
 
     string[] ShippablePackageIds =>
     [
-        "qyl.host",
         "qyl",
         "qyl.linux-x64",
         "qyl.linux-arm64",

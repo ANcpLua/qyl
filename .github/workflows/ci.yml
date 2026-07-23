@@ -90,7 +90,7 @@ jobs:
                 backend=true
                 product_e2e=true
                 ;;
-              packages/Qyl.Host/*|packages/Qyl.Run.Host/*|packages/Qyl.Run.Workload/*|internal/*|tests/*)
+              packages/Qyl.Cli/*|packages/Qyl.Run.Workload/*|internal/*|tests/*)
                 backend=true
                 ;;
               *)

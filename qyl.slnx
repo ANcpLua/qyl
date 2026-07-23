@@ -15,14 +15,13 @@
   </Folder>
 
   <Folder Name="/packages/">
-    <Project Path="packages/Qyl.Host/Qyl.Host.csproj" />
-    <Project Path="packages/Qyl.Run.Host/Qyl.Run.Host.csproj" />
+    <Project Path="packages/Qyl.Cli/Qyl.Cli.csproj" />
     <Project Path="packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj" />
   </Folder>
 
   <Folder Name="/tests/">
     <Project Path="tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj" />
-    <Project Path="tests/Qyl.Host.Tests/Qyl.Host.Tests.csproj" />
+    <Project Path="tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj" />
     <Project Path="tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj" />
   </Folder>
 
