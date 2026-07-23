@@ -50,10 +50,20 @@
       "mcp.tool.name"
     ],
     "log": [
+      "browser.device_memory",
+      "browser.language",
+      "browser.viewport.height",
+      "browser.viewport.width",
       "mcp.flow.id",
       "mcp.protocol.era",
       "mcp.sdk.tier",
-      "mcp.tool.name"
+      "mcp.tool.name",
+      "navigation.type",
+      "page.route",
+      "web.vital.name",
+      "web.vital.rating",
+      "web.vital.unit",
+      "web.vital.value"
     ]
   },
   "qylResourceAttributeAllowList": [

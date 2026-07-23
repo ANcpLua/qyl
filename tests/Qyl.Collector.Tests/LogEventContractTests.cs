@@ -55,7 +55,19 @@ public sealed class LogEventContractTests
                                     EventName = eventName,
                                     TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(traceId)),
                                     SpanId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(spanId)),
-                                    Body = new AnyValue { StringValue = logBody }
+                                    Body = new AnyValue { StringValue = logBody },
+                                    Attributes =
+                                    {
+                                        StringAttribute("browser.language", "en-US"),
+                                        IntAttribute("browser.viewport.height", 844),
+                                        IntAttribute("browser.viewport.width", 390),
+                                        StringAttribute("navigation.type", "navigate"),
+                                        StringAttribute("page.route", "/docs/mcp/"),
+                                        StringAttribute("web.vital.name", "LCP"),
+                                        StringAttribute("web.vital.rating", "good"),
+                                        StringAttribute("web.vital.unit", "ms"),
+                                        IntAttribute("web.vital.value", 778)
+                                    }
                                 }
                             }
                         }
@@ -70,6 +82,10 @@ public sealed class LogEventContractTests
         Assert.Equal(traceId, converted.TraceId);
         Assert.Equal(spanId, converted.SpanId);
         Assert.Equal(logBody, converted.Body);
+        Assert.Contains(
+            "\"web.vital.value\":{\"type\":\"int\",\"value\":\"778\"}",
+            converted.AttributesJson,
+            StringComparison.Ordinal);
 
         await using var store = new DuckDbStore(":memory:");
         await store.InsertLogsAsync(rows, TestContext.Current.CancellationToken);
@@ -92,6 +108,10 @@ public sealed class LogEventContractTests
         Assert.Contains($"\"trace_id\":\"{traceId}\"", restJson, StringComparison.Ordinal);
         Assert.Contains($"\"span_id\":\"{spanId}\"", restJson, StringComparison.Ordinal);
         Assert.Contains(logBody, restJson, StringComparison.Ordinal);
+        Assert.Contains("\"key\":\"page.route\"", restJson, StringComparison.Ordinal);
+        Assert.Contains("\"value\":\"/docs/mcp/\"", restJson, StringComparison.Ordinal);
+        Assert.Contains("\"key\":\"web.vital.value\"", restJson, StringComparison.Ordinal);
+        Assert.Contains("778", restJson, StringComparison.Ordinal);
         var page = JsonSerializer.Deserialize(restJson, QylSerializerContext.Default.CursorPageLogRecord);
         Assert.Equal(eventName, Assert.Single(Assert.IsType<CursorPageLogRecord>(page).Items).EventName);
 
@@ -116,7 +136,17 @@ public sealed class LogEventContractTests
         Assert.Contains($"\"trace_id\":\"{traceId}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains($"\"span_id\":\"{spanId}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains(logBody, streamJson, StringComparison.Ordinal);
+        Assert.Contains("\"key\":\"page.route\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains("\"value\":\"/docs/mcp/\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains("\"key\":\"web.vital.value\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains("778", streamJson, StringComparison.Ordinal);
     }
+
+    private static KeyValue StringAttribute(string key, string value) =>
+        new() { Key = key, Value = new AnyValue { StringValue = value } };
+
+    private static KeyValue IntAttribute(string key, long value) =>
+        new() { Key = key, Value = new AnyValue { IntValue = value } };
 
     private static DefaultHttpContext CreateContext()
     {

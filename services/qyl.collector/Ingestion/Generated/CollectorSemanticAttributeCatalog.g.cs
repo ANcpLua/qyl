@@ -273,6 +273,10 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> LogAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "browser.device_memory", // incubating
+        "browser.language", // incubating
+        "browser.viewport.height", // incubating
+        "browser.viewport.width", // incubating
         "error.message",
         "error.type",
         "exception.escaped",
@@ -414,6 +418,7 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.servicebus.message.delivery_count", // incubating
         "messaging.servicebus.message.enqueued_time", // incubating
         "messaging.system", // incubating
+        "navigation.type", // incubating
         "otel.event.name",
         "otel.library.name",
         "otel.library.version",
@@ -421,6 +426,7 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.scope.version",
         "otel.status_code",
         "otel.status_description",
+        "page.route", // incubating
         "rpc.connect_rpc.error_code",
         "rpc.connect_rpc.request.metadata",
         "rpc.connect_rpc.response.metadata",
@@ -444,7 +450,11 @@ internal static class CollectorSemanticAttributeCatalog
         "rpc.system",
         "rpc.system.name", // incubating
         "server.address",
-        "server.port"
+        "server.port",
+        "web.vital.name", // incubating
+        "web.vital.rating", // incubating
+        "web.vital.unit", // incubating
+        "web.vital.value" // incubating
     );
 
     internal static readonly FrozenSet<string> ResourceAttributeAllowList = FrozenSet.Create(
