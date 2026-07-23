@@ -45,7 +45,7 @@ public static class QylServiceDefaultsExtensions
 
     public static WebApplication MapQylEndpoints(this WebApplication app)
     {
-        Guard.NotNull(app);
+        ArgumentNullException.ThrowIfNull(app);
 
         var options = app.Services.GetService<QylOptions>() ?? new QylOptions();
 
@@ -250,7 +250,7 @@ public static class QylServiceDefaultsExtensions
     {
         public TBuilder UseQyl(Action<QylOptions>? configure = null)
         {
-            Guard.NotNull(builder);
+            ArgumentNullException.ThrowIfNull(builder);
 
             if (builder.Services.Any(static d => d.ServiceType == typeof(QylServiceDefaultsMarker)))
                 return builder;
