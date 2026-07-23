@@ -169,10 +169,14 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
+        "mcp.flow.id", // incubating
         "mcp.method.name", // incubating
+        "mcp.protocol.era", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
+        "mcp.sdk.tier", // incubating
         "mcp.session.id", // incubating
+        "mcp.tool.name", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -356,6 +360,14 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
+        "mcp.flow.id", // incubating
+        "mcp.method.name", // incubating
+        "mcp.protocol.era", // incubating
+        "mcp.protocol.version", // incubating
+        "mcp.resource.uri", // incubating
+        "mcp.sdk.tier", // incubating
+        "mcp.session.id", // incubating
+        "mcp.tool.name", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
