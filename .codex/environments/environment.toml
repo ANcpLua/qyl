@@ -80,3 +80,45 @@ jq -e '
 ' <<< "$railway_state" >/dev/null
 jq -r '.environments.edges[0].node.serviceInstances.edges[] | "\(.node.serviceName): \(.node.latestDeployment.status)"' <<< "$railway_state"
 '''
+
+[[actions]]
+name = "qyl.mcp release gate"
+icon = "test"
+command = '''
+set -euo pipefail
+
+mcp_repo="$(dirname "${CODEX_WORKTREE_PATH:?CODEX_WORKTREE_PATH is required}")/qyl.mcp"
+test -f "$mcp_repo/package.json"
+npm --prefix "$mcp_repo" ci
+npm --prefix "$mcp_repo" run build
+npm --prefix "$mcp_repo" test
+npm --prefix "$mcp_repo" run smoke
+npm --prefix "$mcp_repo" run smoke:otlp
+'''
+
+[[actions]]
+name = "Cloudflare qyl.at"
+icon = "tool"
+command = '''
+set -euo pipefail
+
+site_repo="$(dirname "${CODEX_WORKTREE_PATH:?CODEX_WORKTREE_PATH is required}")/qyl.at"
+test -f "$site_repo/wrangler.jsonc"
+npm --prefix "$site_repo" exec wrangler -- deploy --dry-run
+curl -fsSI https://qyl.at/ | tr -d '\r' | grep -Fqi 'server: cloudflare'
+curl -fsS https://qyl.at/docs/ >/dev/null
+'''
+
+[[actions]]
+name = "Auth0 discovery"
+icon = "tool"
+command = '''
+set -euo pipefail
+
+curl -fsS https://qyl-eu.eu.auth0.com/.well-known/oauth-authorization-server |
+  jq -e '
+    .issuer == "https://qyl-eu.eu.auth0.com/"
+    and .registration_endpoint == "https://qyl-eu.eu.auth0.com/oidc/register"
+    and (.code_challenge_methods_supported | index("S256") != null)
+  ' >/dev/null
+'''
