@@ -62,6 +62,10 @@ anything serialized across a boundary is a contract.
   Dockerfile publishes the native lane). `eng/scripts/collector-aot-smoke.sh` is
   that lane's executable owner; `-p:QylAot=false` is the JIT diagnostic build with
   full analyzer enforcement.
+- HTTP header attributes are denied at the collector persistence boundary unless
+  the exact span key is in the small generated safe-header allowlist. Never persist
+  `Authorization`, cookies, `Mcp-Param-*`, or arbitrary tool-defined header names
+  in spans, logs, resources, entities, fixtures, or exception evidence.
 - Never hand-edit generated C#, protobuf output, TypeScript contracts, or generated
   reports. Analyzer release manifests are maintained inputs and change with their
   analyzer rules.
