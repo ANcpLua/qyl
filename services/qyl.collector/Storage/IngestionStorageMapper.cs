@@ -4,6 +4,9 @@ namespace Qyl.Collector.Storage;
 
 internal static class IngestionStorageMapper
 {
+    private const int MaxPersistedLogBodyUtf8Bytes = 64 * 1024;
+    private const string TruncatedLogBodySuffix = "...[truncated]";
+
     public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch)
     {
         var rows = new List<SpanStorageRow>(batch.Spans.Count);
@@ -76,7 +79,7 @@ internal static class IngestionStorageMapper
             : log.SeverityText;
         var severityNumber = (byte)Math.Clamp(log.SeverityNumber, 0, 24);
         var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation);
-        var body = ToSafeLogBody(log.BodyText);
+        var body = ToPersistedLogBody(log.BodyText);
         var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
             log.ResourceAttributes,
@@ -160,15 +163,26 @@ internal static class IngestionStorageMapper
     private static void AppendIdentityPart(StringBuilder builder, ulong? value) =>
         AppendIdentityPart(builder, value?.ToString(CultureInfo.InvariantCulture));
 
-    private static string? ToSafeLogBody(string? raw)
+    private static string? ToPersistedLogBody(string? raw)
     {
         if (string.IsNullOrEmpty(raw))
             return raw;
 
-        var bytes = Encoding.UTF8.GetBytes(raw);
-        var hash = SHA256.HashData(bytes);
-        var fingerprint = Convert.ToHexString(hash.AsSpan(0, 8)).ToLowerInvariant();
-        return $"sha256:{fingerprint};chars:{raw.Length};bytes:{bytes.Length}";
+        if (Encoding.UTF8.GetByteCount(raw) <= MaxPersistedLogBodyUtf8Bytes)
+            return raw;
+
+        var remainingBytes = MaxPersistedLogBodyUtf8Bytes - Encoding.UTF8.GetByteCount(TruncatedLogBodySuffix);
+        var builder = new StringBuilder(Math.Min(raw.Length, MaxPersistedLogBodyUtf8Bytes));
+        foreach (var rune in raw.EnumerateRunes())
+        {
+            if (rune.Utf8SequenceLength > remainingBytes)
+                break;
+
+            builder.Append(rune.ToString());
+            remainingBytes -= rune.Utf8SequenceLength;
+        }
+
+        return builder.Append(TruncatedLogBodySuffix).ToString();
     }
 
     private static byte ConvertSpanKindToByte(int? kind) => kind switch

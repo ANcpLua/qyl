@@ -27,6 +27,7 @@
     ],
     "incubatingPrefixes": [
       "gen_ai.",
+      "mcp.",
       "messaging.",
       "rpc."
     ]
@@ -39,6 +40,20 @@
     "incubatingPrefixes": [
       "host.",
       "os."
+    ]
+  },
+  "developmentAttributeAllowList": {
+    "span": [
+      "mcp.flow.id",
+      "mcp.protocol.era",
+      "mcp.sdk.tier",
+      "mcp.tool.name"
+    ],
+    "log": [
+      "mcp.flow.id",
+      "mcp.protocol.era",
+      "mcp.sdk.tier",
+      "mcp.tool.name"
     ]
   },
   "qylResourceAttributeAllowList": [

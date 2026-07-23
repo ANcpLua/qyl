@@ -122,7 +122,7 @@ test.describe('qyl executable product surface', () => {
             expect(response.status()).toBe(200);
             const logs = generatedPageItems(validateLog, await response.json());
             return logs.find(log => log.resource['service.name'] === serviceName)?.body.string_value;
-        }, {timeout: 20_000}).toMatch(/^sha256:[0-9a-f]{16};chars:\d+;bytes:\d+$/);
+        }, {timeout: 20_000}).toMatch(/^(?!sha256:).+\S.*$/);
     });
 
     test('deleted speculative API is not silently served by the SPA', async ({request}) => {

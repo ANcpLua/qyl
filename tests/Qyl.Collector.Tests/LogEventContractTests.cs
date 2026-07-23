@@ -17,10 +17,12 @@ namespace Qyl.Collector.Tests;
 public sealed class LogEventContractTests
 {
     [Fact]
-    public async Task Otlp_event_name_survives_storage_rest_and_sse_while_body_stays_redacted()
+    public async Task Otlp_event_name_and_body_survive_storage_rest_and_sse()
     {
-        const string eventName = "gen_ai.evaluation.result";
-        const string sensitiveBody = "customer-secret-evaluation-payload";
+        const string eventName = "mcp.request";
+        const string logBody = "MCP JSON-RPC request completed";
+        const string traceId = "11111111111111111111111111111111";
+        const string spanId = "2222222222222222";
         var request = new ExportLogsServiceRequest
         {
             ResourceLogs =
@@ -51,7 +53,9 @@ public sealed class LogEventContractTests
                                     SeverityNumber = SeverityNumber.Info,
                                     SeverityText = "INFO",
                                     EventName = eventName,
-                                    Body = new AnyValue { StringValue = sensitiveBody }
+                                    TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(traceId)),
+                                    SpanId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(spanId)),
+                                    Body = new AnyValue { StringValue = logBody }
                                 }
                             }
                         }
@@ -63,8 +67,9 @@ public sealed class LogEventContractTests
         var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request));
         var converted = Assert.Single(rows);
         Assert.Equal(eventName, converted.EventName);
-        Assert.StartsWith("sha256:", converted.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain(sensitiveBody, converted.Body, StringComparison.Ordinal);
+        Assert.Equal(traceId, converted.TraceId);
+        Assert.Equal(spanId, converted.SpanId);
+        Assert.Equal(logBody, converted.Body);
 
         await using var store = new DuckDbStore(":memory:");
         await store.InsertLogsAsync(rows, TestContext.Current.CancellationToken);
@@ -84,7 +89,9 @@ public sealed class LogEventContractTests
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
         var restJson = await ReadBodyAsync(context);
         Assert.Contains($"\"event_name\":\"{eventName}\"", restJson, StringComparison.Ordinal);
-        Assert.DoesNotContain(sensitiveBody, restJson, StringComparison.Ordinal);
+        Assert.Contains($"\"trace_id\":\"{traceId}\"", restJson, StringComparison.Ordinal);
+        Assert.Contains($"\"span_id\":\"{spanId}\"", restJson, StringComparison.Ordinal);
+        Assert.Contains(logBody, restJson, StringComparison.Ordinal);
         var page = JsonSerializer.Deserialize(restJson, QylSerializerContext.Default.CursorPageLogRecord);
         Assert.Equal(eventName, Assert.Single(Assert.IsType<CursorPageLogRecord>(page).Items).EventName);
 
@@ -106,7 +113,9 @@ public sealed class LogEventContractTests
         Assert.Equal(eventName, streamEvent.Data.EventName);
         var streamJson = JsonSerializer.Serialize(streamEvent, QylSerializerContext.Default.LogStreamEvent);
         Assert.Contains($"\"event_name\":\"{eventName}\"", streamJson, StringComparison.Ordinal);
-        Assert.DoesNotContain(sensitiveBody, streamJson, StringComparison.Ordinal);
+        Assert.Contains($"\"trace_id\":\"{traceId}\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains($"\"span_id\":\"{spanId}\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains(logBody, streamJson, StringComparison.Ordinal);
     }
 
     private static DefaultHttpContext CreateContext()

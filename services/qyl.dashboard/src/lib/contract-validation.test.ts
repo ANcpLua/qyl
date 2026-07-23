@@ -43,7 +43,7 @@ describe('generated Collector contract validation', () => {
             .toThrow(/Collector contract mismatch/);
     });
 
-    it('retains the generated OTLP event name on streamed log records', () => {
+    it('retains correlated MCP log fields on streamed log records', () => {
         const event = parseLogStreamEvent({
             type: 'log',
             timestamp: '2026-07-15T00:00:00Z',
@@ -51,12 +51,19 @@ describe('generated Collector contract validation', () => {
                 time_unix_nano: 1_000_000_000,
                 observed_time_unix_nano: 1_000_000_001,
                 severity_number: 9,
-                body: {string_value: 'sha256:test;chars:4;bytes:4'},
-                event_name: 'gen_ai.evaluation.result',
+                body: {string_value: 'MCP JSON-RPC request completed'},
+                event_name: 'mcp.request',
+                trace_id: '22222222222222222222222222222222',
+                span_id: '1111111111111111',
                 resource: {'service.name': 'dashboard-test'},
             },
         });
 
-        expect(event.data.event_name).toBe('gen_ai.evaluation.result');
+        expect(event.data).toMatchObject({
+            event_name: 'mcp.request',
+            body: {string_value: 'MCP JSON-RPC request completed'},
+            trace_id: '22222222222222222222222222222222',
+            span_id: '1111111111111111',
+        });
     });
 });

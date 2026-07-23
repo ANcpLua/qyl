@@ -142,14 +142,18 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         var incubatingKeys = new HashSet<string>(
             incubatingAttributeValues.Except(stableAttributeValues, StringComparer.Ordinal),
             StringComparer.Ordinal);
+        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Span);
+        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Log);
 
         var spanAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.SpanAttributeAllowList.StablePrefixes, "spanAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.SpanAttributeAllowList.IncubatingPrefixes, "spanAttributeAllowList.incubatingPrefixes"));
+            ValuesWithPrefixes(incubatingAttributeValues, policy.SpanAttributeAllowList.IncubatingPrefixes, "spanAttributeAllowList.incubatingPrefixes"),
+            policy.DevelopmentAttributeAllowList.Span);
 
         var logAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.LogAttributeAllowList.StablePrefixes, "logAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.LogAttributeAllowList.IncubatingPrefixes, "logAttributeAllowList.incubatingPrefixes"));
+            ValuesWithPrefixes(incubatingAttributeValues, policy.LogAttributeAllowList.IncubatingPrefixes, "logAttributeAllowList.incubatingPrefixes"),
+            policy.DevelopmentAttributeAllowList.Log);
 
         var resourceAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
@@ -517,6 +521,7 @@ internal sealed class CollectorSemanticPolicyConfig
     public CollectorSemanticPrefixPolicy SpanAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy LogAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy ResourceAttributeAllowList { get; init; } = new();
+    public CollectorDevelopmentAttributePolicy DevelopmentAttributeAllowList { get; init; } = new();
     public string[] QylResourceAttributeAllowList { get; init; } = [];
     public string[] ProjectIdResourceKeys { get; init; } = [];
     public string[] SessionCorrelation { get; init; } = [];
@@ -533,6 +538,8 @@ internal sealed class CollectorSemanticPolicyConfig
         SpanAttributeAllowList.Validate(relativePath, "spanAttributeAllowList");
         LogAttributeAllowList.Validate(relativePath, "logAttributeAllowList");
         ResourceAttributeAllowList.Validate(relativePath, "resourceAttributeAllowList");
+        RequireNonEmpty(DevelopmentAttributeAllowList.Span, relativePath, "developmentAttributeAllowList.span");
+        RequireNonEmpty(DevelopmentAttributeAllowList.Log, relativePath, "developmentAttributeAllowList.log");
 
         RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");
         RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
@@ -594,6 +601,12 @@ internal sealed class CollectorSemanticPrefixPolicy
         CollectorSemanticPolicyConfig.ValidatePrefixSet(StablePrefixes, relativePath, $"{section}.stablePrefixes");
         CollectorSemanticPolicyConfig.ValidatePrefixSet(IncubatingPrefixes, relativePath, $"{section}.incubatingPrefixes");
     }
+}
+
+internal sealed class CollectorDevelopmentAttributePolicy
+{
+    public string[] Span { get; init; } = [];
+    public string[] Log { get; init; } = [];
 }
 
 [JsonSourceGenerationOptions(
