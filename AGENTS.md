@@ -70,6 +70,32 @@ anything serialized across a boundary is a contract.
   reports. Analyzer release manifests are maintained inputs and change with their
   analyzer rules.
 
+## MCP telemetry and protocol-era discipline
+
+qyl classifies and stores MCP telemetry, owns the collector semantic catalog, and
+hosts MCP code of its own. The 2026-07-28 revision changes what several MCP fields
+mean; these rules bind the ingest and enrichment path and qyl's MCP host.
+
+- Protocol era is the negotiated protocol version, never the presence of a `_meta`
+  envelope: the legacy-fallback probe also carries one. Classify and tag era from
+  the negotiated version alone.
+- MCP client and server identity is per-request and self-reported. Do not derive it
+  from a session-scoped accessor, and never promote `clientInfo` / `serverInfo` to a
+  telemetry resource attribute, a routing dimension, or a behavior or security
+  decision — they are display, logging, and debugging values only.
+- A multi-round tool call is N linked requests correlated by an opaque, untrusted
+  `requestState`. Render and correlate the rounds as linked spans, never a
+  synthesized parent-child tree, and trust `requestState` only after verification.
+- Span and RPC status come from the JSON-RPC and tool outcome, never the HTTP
+  status: a modern-path JSON-RPC error rides HTTP 400, and an error can arrive
+  in-band on a committed 200. Map from the tool `isError` result and the protocol
+  error-code family.
+- Wire concepts OpenTelemetry semconv has not defined — `requestState`, round index,
+  `resultType`, `subscriptions/listen` lifetime, cache hints — enter the collector
+  semantic catalog under an experimental `qyl.mcp.*` staging namespace,
+  deletion-targeted on every semconv bump that lands an upstream equivalent. Never
+  mint an `mcp.*` alias for an unratified concept.
+
 ## Verification
 
 Run the narrow tests for the changed component and finish repository-wide work with:
