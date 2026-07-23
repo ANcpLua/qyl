@@ -209,6 +209,8 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
+        WriteStringArray(builder, "HttpHeaderAttributePrefixes", policy.HttpHeaderAttributePrefixes);
+        WriteFrozenSet(builder, "SafeHttpSpanHeaderAttributeKeys", policy.SafeHttpSpanHeaderAttributeKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteFrozenSet(builder, "DeniedExactKeys", deniedExactKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteStringArray(builder, "DeniedKeyTokens", policy.DeniedKeyTokens);
         WriteFrozenSet(builder, "DeniedTokenExemptKeys", deniedTokenExemptKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
@@ -525,6 +527,8 @@ internal sealed class CollectorSemanticPolicyConfig
     public string[] QylResourceAttributeAllowList { get; init; } = [];
     public string[] ProjectIdResourceKeys { get; init; } = [];
     public string[] SessionCorrelation { get; init; } = [];
+    public string[] HttpHeaderAttributePrefixes { get; init; } = [];
+    public string[] SafeHttpSpanHeaderAttributeKeys { get; init; } = [];
     public string[] DeniedExactPrefixes { get; init; } = [];
     public string[] DeniedExactKeys { get; init; } = [];
     public string[] DeniedKeyTokens { get; init; } = [];
@@ -544,6 +548,8 @@ internal sealed class CollectorSemanticPolicyConfig
         RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");
         RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
         RequireNonEmpty(SessionCorrelation, relativePath, "sessionCorrelation");
+        RequireNonEmpty(HttpHeaderAttributePrefixes, relativePath, "httpHeaderAttributePrefixes");
+        RequireNonEmpty(SafeHttpSpanHeaderAttributeKeys, relativePath, "safeHttpSpanHeaderAttributeKeys");
         RequireNonEmpty(DeniedExactPrefixes, relativePath, "deniedExactPrefixes");
         RequireNonEmpty(DeniedExactKeys, relativePath, "deniedExactKeys");
         RequireNonEmpty(DeniedKeyTokens, relativePath, "deniedKeyTokens");

@@ -9,6 +9,7 @@ internal static class AttributeKeySets
     internal static FrozenSet<string> ProjectIdResourceKeys => CollectorSemanticAttributeCatalog.ProjectIdResourceKeys;
 
     internal static bool IsSafeSpanAttribute(string key) =>
+        CollectorSemanticAttributeCatalog.SafeHttpSpanHeaderAttributeKeys.Contains(key) ||
         !IsDenied(key) && CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key);
 
     internal static bool IsSafeLogAttribute(string key) =>
@@ -31,6 +32,12 @@ internal static class AttributeKeySets
 
     private static bool IsDenied(string key)
     {
+        foreach (var prefix in CollectorSemanticAttributeCatalog.HttpHeaderAttributePrefixes)
+        {
+            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
         if (CollectorSemanticAttributeCatalog.DeniedExactKeys.Contains(key) ||
             key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase))
         {

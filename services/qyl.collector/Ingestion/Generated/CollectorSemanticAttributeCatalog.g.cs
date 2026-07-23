@@ -487,6 +487,22 @@ internal static class CollectorSemanticAttributeCatalog
         "service.version"
     );
 
+    internal static readonly string[] HttpHeaderAttributePrefixes =
+    [
+        "http.request.header.",
+        "http.response.header.",
+    ];
+
+    internal static readonly FrozenSet<string> SafeHttpSpanHeaderAttributeKeys = FrozenSet.Create(
+        StringComparer.OrdinalIgnoreCase,
+        "http.request.header.accept",
+        "http.request.header.content_type",
+        "http.request.header.mcp_method",
+        "http.request.header.mcp_name",
+        "http.request.header.mcp_protocol_version",
+        "http.response.header.content_type"
+    );
+
     internal static readonly FrozenSet<string> DeniedExactKeys = FrozenSet.Create(
         StringComparer.OrdinalIgnoreCase,
         "code.file.path",
