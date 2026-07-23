@@ -20,7 +20,7 @@ env:
   CI: true
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
 
 jobs:
   version:

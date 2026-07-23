@@ -22,7 +22,7 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   GITHUB_ACTOR: ${{ github.actor }}
   GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
 
 jobs:
   changes:
