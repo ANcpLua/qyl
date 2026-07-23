@@ -52,12 +52,12 @@ curl -fsSI https://mcp.qyl.at/ | tr -d '\r' | grep -qi '^server: cloudflare$'
 
 headers="$(mktemp)"
 trap 'rm -f "$headers"' EXIT
-status="$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' \
+http_code="$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' \
   -X POST \
   -H 'content-type: application/json' \
   --data '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}' \
   https://mcp.qyl.at/mcp)"
-test "$status" = "401"
+test "$http_code" = "401"
 tr -d '\r' < "$headers" | grep -Fqi 'resource_metadata="https://mcp.qyl.at/.well-known/oauth-protected-resource/mcp"'
 tr -d '\r' < "$headers" | grep -Fqi 'scope="qyl:read"'
 '''
@@ -68,7 +68,7 @@ icon = "tool"
 command = '''
 set -euo pipefail
 
-status="$(railway status \
+railway_state="$(railway status \
   --project 5eaa4020-71d9-4828-89d3-316cb188529e \
   --environment 616ff7bf-ef19-4e34-bb22-d3eb002b74e9 \
   --json)"
@@ -77,6 +77,6 @@ jq -e '
   | ($services | length == 2)
     and ($services | all(.node.latestDeployment.status == "SUCCESS"))
     and ($services | all(any(.node.latestDeployment.instances[]; .status == "RUNNING")))
-' <<< "$status" >/dev/null
-jq -r '.environments.edges[0].node.serviceInstances.edges[] | "\(.node.serviceName): \(.node.latestDeployment.status)"' <<< "$status"
+' <<< "$railway_state" >/dev/null
+jq -r '.environments.edges[0].node.serviceInstances.edges[] | "\(.node.serviceName): \(.node.latestDeployment.status)"' <<< "$railway_state"
 '''
