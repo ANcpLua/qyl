@@ -44,7 +44,7 @@ describe('consumeSse', () => {
                 severity_number: 9,
                 severity_text: 'INFO',
                 body: {string_value: 'ready'},
-                resource: {'service.name': 'dashboard-test'},
+                resource: {service_name: 'dashboard-test'},
             },
             timestamp: '2026-07-15T00:00:00Z',
         };

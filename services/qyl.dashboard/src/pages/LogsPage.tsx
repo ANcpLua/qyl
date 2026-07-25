@@ -79,8 +79,8 @@ function normalizeLogRecord(log: LogRecord): LogViewRecord {
         severityText: normalizeSeverity(log.severity_text, severityNumber),
         body: normalizeBody(log.body),
         attributes: normalizeAttributes(log.attributes),
-        serviceName: log.resource['service.name'],
-        serviceVersion: log.resource['service.version'],
+        serviceName: log.resource.service_name,
+        serviceVersion: log.resource.service_version,
     };
 }
 

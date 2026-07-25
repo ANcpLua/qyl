@@ -32,7 +32,7 @@ import {getStatusLabel} from '@/types';
 import {attributeNumber, attributeString, formatAttributeValue} from '@/lib/attribute-value';
 
 function getServiceName(span: Span): string {
-    return span.resource['service.name'];
+    return span.resource.service_name;
 }
 
 function getDurationNs(span: Span): number {
@@ -360,7 +360,7 @@ export function TracesPage() {
     const {data: sessions = []} = useSessions();
 
     const sessionSpanQuery = useSessionSpans(
-        traceId ? '' : (sessionId || sessions[0]?.['session.id'] || '')
+        traceId ? '' : (sessionId || sessions[0]?.session_id || '')
     );
     const traceSpanQuery = useTraceSpans(traceId);
 

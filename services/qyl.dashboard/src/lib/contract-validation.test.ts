@@ -9,7 +9,7 @@ const span = {
     start_time_unix_nano: 1_000_000_000,
     end_time_unix_nano: 2_000_000_000,
     status: {code: 1},
-    resource: {'service.name': 'dashboard-test'},
+    resource: {service_name: 'dashboard-test'},
 };
 
 const trace = {
@@ -27,10 +27,10 @@ describe('generated Collector contract validation', () => {
     it('accepts generated health and trace-page contracts', () => {
         expect(parseHealthReport({
             status: 'healthy',
-            totalDurationMs: 1,
-            entries: {duckdb: {status: 'healthy', durationMs: 1}},
+            total_duration_ms: 1,
+            entries: {duckdb: {status: 'healthy', duration_ms: 1}},
         }).status).toBe('healthy');
-        expect(parseTracePage({items: [trace], has_more: false}).items[0].spans[0].resource['service.name'])
+        expect(parseTracePage({items: [trace], has_more: false}).items[0].spans[0].resource.service_name)
             .toBe('dashboard-test');
     });
 
@@ -55,7 +55,7 @@ describe('generated Collector contract validation', () => {
                 event_name: 'mcp.request',
                 trace_id: '22222222222222222222222222222222',
                 span_id: '1111111111111111',
-                resource: {'service.name': 'dashboard-test'},
+                resource: {service_name: 'dashboard-test'},
             },
         });
 
