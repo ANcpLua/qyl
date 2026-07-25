@@ -19,7 +19,7 @@
     <ANcpLuaRoslynUtilitiesVersion>2.2.41</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAgentsVersion>1.13.7</ANcpLuaAgentsVersion>
     <QylApiContractsVersion>2.0.0</QylApiContractsVersion>
-    <QylSdkVersion>8.0.1</QylSdkVersion>
+    <QylSdkVersion>8.3.0</QylSdkVersion>
 
     <!-- Mirrors the SDK values so standalone checkouts resolve the same MAF graph.
          ANcpLua.Agents 1.13.6 depends on Microsoft.Agents.AI(.Abstractions) 1.13.0 — keep in lockstep. -->
