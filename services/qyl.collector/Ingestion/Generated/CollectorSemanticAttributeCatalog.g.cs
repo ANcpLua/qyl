@@ -119,6 +119,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.request.max_tokens", // incubating
         "gen_ai.request.model", // incubating
         "gen_ai.request.presence_penalty", // incubating
+        "gen_ai.request.previous_response.id", // incubating
         "gen_ai.request.reasoning.level", // incubating
         "gen_ai.request.seed", // incubating
         "gen_ai.request.stop_sequences", // incubating
@@ -314,6 +315,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.request.max_tokens", // incubating
         "gen_ai.request.model", // incubating
         "gen_ai.request.presence_penalty", // incubating
+        "gen_ai.request.previous_response.id", // incubating
         "gen_ai.request.reasoning.level", // incubating
         "gen_ai.request.seed", // incubating
         "gen_ai.request.stop_sequences", // incubating
