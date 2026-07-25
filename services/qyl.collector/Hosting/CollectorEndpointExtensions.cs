@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Qyl.Collector;
@@ -42,12 +43,12 @@ internal static class CollectorEndpointExtensions
 
         api.MapGet("/sessions", GetSessionsAsync);
         api.MapGet("/sessions/stats", GetSessionStatsAsync);
-        api.MapGet("/sessions/{sessionId}", GetSessionByIdAsync);
-        api.MapGet("/sessions/{sessionId}/traces", GetSessionTracesAsync);
+        api.MapGet("/sessions/{session_id}", GetSessionByIdAsync);
+        api.MapGet("/sessions/{session_id}/traces", GetSessionTracesAsync);
 
         api.MapGet("/traces", GetTracesAsync);
-        api.MapGet("/traces/{traceId}", GetTraceAsync);
-        api.MapGet("/traces/{traceId}/spans", GetTraceSpansAsync);
+        api.MapGet("/traces/{trace_id}", GetTraceAsync);
+        api.MapGet("/traces/{trace_id}/spans", GetTraceSpansAsync);
 
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/stream/logs", StreamLogsAsync);
@@ -316,7 +317,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSessionByIdAsync(
         HttpContext httpContext,
-        string sessionId,
+        [FromRoute(Name = "session_id")] string sessionId,
         IQylStore store,
         CancellationToken ct) =>
         await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is not { } session
@@ -347,7 +348,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSessionTracesAsync(
         HttpContext httpContext,
-        string sessionId,
+        [FromRoute(Name = "session_id")] string sessionId,
         IQylStore store,
         CancellationToken ct)
     {
@@ -424,7 +425,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetTraceSpansAsync(
         HttpContext httpContext,
-        string traceId,
+        [FromRoute(Name = "trace_id")] string traceId,
         IQylStore store,
         CancellationToken ct)
     {
@@ -437,7 +438,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetTraceAsync(
         HttpContext httpContext,
-        string traceId,
+        [FromRoute(Name = "trace_id")] string traceId,
         IQylStore store,
         CancellationToken ct)
     {
