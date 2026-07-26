@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>qyl — component taxonomy · 1.0.0 target</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1a1d23; --muted:#5b636e; --line:#e4e7ec;
+    --mcp:#7c5cff; --mcp-tint:#efeaff; --prod:#0d9488; --prod-tint:#e3f6f3;
+    --warn:#c2410c; --accent:#2563eb; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0f1216; --panel:#161a20; --ink:#e6e9ee; --muted:#98a2b3; --line:#262c35;
+      --mcp:#a78bff; --mcp-tint:#221c3a; --prod:#2dd4bf; --prod-tint:#0e2a27; --warn:#fb923c; --accent:#60a5fa;
+      --shadow:0 1px 2px rgba(0,0,0,.4);}
+  }
+  :root[data-theme="light"]{ --bg:#f7f8fa; --panel:#fff; --ink:#1a1d23; --muted:#5b636e; --line:#e4e7ec; --mcp:#7c5cff; --mcp-tint:#efeaff; --prod:#0d9488; --prod-tint:#e3f6f3; --warn:#c2410c; --accent:#2563eb;}
+  :root[data-theme="dark"]{ --bg:#0f1216; --panel:#161a20; --ink:#e6e9ee; --muted:#98a2b3; --line:#262c35; --mcp:#a78bff; --mcp-tint:#221c3a; --prod:#2dd4bf; --prod-tint:#0e2a27; --warn:#fb923c; --accent:#60a5fa;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+  header.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;margin:0}
+  .thesis{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:20px 0;box-shadow:var(--shadow)}
+  .thesis b{color:var(--mcp)}
+  .norm{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:11px 15px;margin:14px 0;font-size:13.5px;color:var(--muted);box-shadow:var(--shadow)}
+  .norm b{color:var(--ink)}
+  .theme-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+  h2{font-size:16px;margin:34px 0 12px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  h2 .n{color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600}
+  .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:8px 0 14px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+  .seg button{border:0;background:transparent;color:var(--muted);padding:7px 12px;font-size:13px;cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--accent);color:#fff}
+  .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);background:var(--panel)}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:13.5px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
+  th .hint{opacity:.5;font-weight:400;text-transform:none;letter-spacing:0}
+  tr.row{cursor:pointer}
+  tr.row:hover td{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+  td.comp{font-weight:600;white-space:nowrap}
+  td.comp code{font-size:12.5px}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .badge.mcp{background:var(--mcp-tint);color:var(--mcp)}
+  .badge.prod{background:var(--prod-tint);color:var(--prod)}
+  tr.mcp td.comp{box-shadow:inset 3px 0 0 var(--mcp)}
+  tr.prod td.comp{box-shadow:inset 3px 0 0 var(--prod)}
+  .dimmable.dim{opacity:.32}
+  tr.detail td{background:color-mix(in srgb,var(--accent) 4%,transparent);color:var(--muted);font-size:13px}
+  tr.detail code{color:var(--ink)}
+  tr.detail.hidden{display:none}
+  .flag{color:var(--warn);font-weight:600}
+  code{background:color-mix(in srgb,var(--muted) 16%,transparent);padding:1px 5px;border-radius:5px;font:12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 4px;font-size:14px}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .card .maps{margin-top:8px;font-size:12.5px;color:var(--ink);border-top:1px dashed var(--line);padding-top:8px}
+  .card .maps b{color:var(--accent)}
+  ul.find{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+  ul.find li{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:9px;padding:10px 14px;font-size:13.5px;box-shadow:var(--shadow)}
+  ul.find li.ok{border-left-color:var(--prod)}
+  .procon{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .procon .col{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow)}
+  .procon h3{margin:0 0 8px;font-size:14px}
+  .procon .pro{color:var(--prod);font-weight:600}
+  .procon .con{color:var(--warn);font-weight:600}
+  .procon ul{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+  .rec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);font-size:14px}
+  .rec b{color:var(--mcp)}
+  footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
+  @media(max-width:640px){.procon{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>qyl — component taxonomy · 1.0.0 target</h1>
+      <p class="sub">Three orthogonal axes · two planes · canonical 1.0.0 names — theory until the rename lands (§2 maps target ↔ today)</p>
+    </div>
+    <button class="theme-btn" id="theme">◐ theme</button>
+  </header>
+
+  <div class="norm">
+    <b>This page is a view, not a source.</b> The normative document is <code>ARCHITECTURE-1.0.0.md</code>
+    in the repo root — on any conflict, the Markdown wins. A second source of architectural truth would be
+    exactly the duplicate-contract failure the architecture itself forbids.
+  </div>
+
+  <div class="thesis">
+    qyl is <b>one schema-owned modular platform</b>: one dependency graph, one verification pipeline, and multiple
+    independently shipped artifacts. MCP, CLI, instrumentation, conventions, collector, Workbench, and Runner each keep
+    <b>one clear responsibility</b> without owning duplicate contracts.
+    The matrix keeps <b>protocol role</b>, <b>logical responsibility</b>, and <b>deployment packaging</b> as separate axes,
+    because flattening them buried the load-bearing fact: <b>only 2 of 9 components are on the MCP plane at all</b> —
+    everything else is a conventional telemetry pipeline (instrument → export → collect → API → UI) speaking OTLP/HTTP/CLI,
+    and the whole closed/open asymmetry lives on <em>one axis, at two nodes.</em>
+    <b>One graph, one truth, many artifacts.</b>
+  </div>
+
+  <h2><span class="n">1</span> The matrix</h2>
+  <div class="controls">
+    <span class="lab">Plane</span>
+    <div class="seg" id="plane">
+      <button data-plane="all" class="on">All</button>
+      <button data-plane="mcp">MCP plane</button>
+      <button data-plane="prod">Product plane</button>
+    </div>
+    <span class="lab">View</span>
+    <div class="seg" id="view">
+      <button data-view="split" class="on">3 axes</button>
+      <button data-view="flat">Flat “Role”</button>
+    </div>
+    <span class="lab">Focus axis</span>
+    <div class="seg" id="focus">
+      <button data-axis="none" class="on">None</button>
+      <button data-axis="protocol">Protocol</button>
+      <button data-axis="resp">Responsibility</button>
+      <button data-axis="pkg">Packaging</button>
+    </div>
+  </div>
+
+  <div class="tablewrap">
+    <table id="matrix">
+      <thead>
+        <tr id="head-split">
+          <th>Component</th>
+          <th>Plane</th>
+          <th class="ax-protocol">Protocol role <span class="hint">(wire + role)</span></th>
+          <th class="ax-resp">Logical responsibility <span class="hint">(the job)</span></th>
+          <th class="ax-pkg">Deployment packaging <span class="hint">(how it ships)</span></th>
+        </tr>
+        <tr id="head-flat" style="display:none">
+          <th>Component</th>
+          <th>Plane</th>
+          <th>Role <span class="hint">(the original single column — everything fused)</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:8px">Click a row for the grounded detail (real path · endpoint · caveat). Click an axis header to focus it.</p>
+
+  <h2><span class="n">2</span> Naming ledger <span class="sub" style="font-weight:400">— 1.0.0 target ↔ what exists today</span></h2>
+  <ul class="find" id="findings"></ul>
+
+  <h2><span class="n">3</span> Industry precedent <span class="sub" style="font-weight:400">— each validates one boundary</span></h2>
+  <div class="cards" id="cards"></div>
+
+  <h2><span class="n">4</span> Pro / contra</h2>
+  <div class="procon">
+    <div class="col">
+      <h3>Single “Role” column</h3>
+      <div class="pro">Pro</div>
+      <ul><li>Minimal, one-glance; fine as a README intro.</li><li>Low maintenance.</li></ul>
+      <div class="con" style="margin-top:8px">Contra</div>
+      <ul>
+        <li>Fuses three axes → ambiguous cells.</li>
+        <li>Can’t express a multi-role component (the collector is OTLP receiver <em>and</em> HTTP API).</li>
+        <li>Hides the plane split, the 3-dashboard overlap, the missing collector-ingest + instrumentation.</li>
+        <li>Buries the load-bearing fact: only 2 components are MCP.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>3-axis matrix</h3>
+      <div class="pro">Pro</div>
+      <ul>
+        <li>Orthogonal → unambiguous cells; multi-role representable.</li>
+        <li>Surfaces the plane cut, redundancy, and gaps.</li>
+        <li>Pins the closed/open asymmetry to one axis + two nodes.</li>
+        <li>Each axis answers a real question (packaging → “can it run in a browser?”; protocol → closed vs open type discipline).</li>
+      </ul>
+      <div class="con" style="margin-top:8px">Contra</div>
+      <ul><li>Heavier to keep current.</li><li>Tempts over-decomposition of genuinely atomic components.</li><li>Less scannable for a newcomer than a one-liner.</li></ul>
+    </div>
+  </div>
+
+  <h2><span class="n">5</span> Recommendation</h2>
+  <div class="rec">
+    Keep a one-line-per-component table as the README front door — <b>using exactly these canonical names</b> — and back it
+    with this 3-axis matrix for architecture decisions, with the <b>MCP-plane / product-plane</b> split as the top-level cut.
+    The boundary law: <code>Qyl.Telemetry.Hosting</code> composes the producer pipeline and <b>ends at the OTLP exporter</b>;
+    <code>Qyl.Collector.*</code> <b>begins where the exporter ends</b>; <code>Qyl.Cli</code> and <code>qyl.mcp/server</code> are
+    <em>clients and projections</em> of the collector API, never second owners of its contract; the only shared artifact across
+    planes is the generated vocabulary. <b>One graph, one truth, many artifacts.</b>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = [
+ {c:"Qyl.Telemetry.SemanticConventions", code:"+ .Incubating", plane:"prod", protocol:"none (generated vocabulary)", resp:"Define the vocabulary qyl emits — single weaver registry", pkg:"NuGet · generated code, <code>const string</code> only",
+  flat:"Semantic-conventions packages (attribute names & prescribed values)",
+  note:"Target of today’s <code>Qyl.OpenTelemetry.SemanticConventions(.Incubating)</code>. The <b>only artifact both planes share</b> — producer constants and the collector’s <code>CollectorSemanticAttributeCatalog.g.cs</code> are generated from the <em>same registry</em>, so qyl structurally cannot emit a name its own collector doesn’t know. Knows nothing about <code>Activity</code>, DI, or OTLP."},
+ {c:"Qyl.Telemetry.*", code:"builder.AddQyl()", plane:"prod", protocol:"none in-proc → <b>ends at the OTLP exporter</b>", resp:"Instrument user code & compose the producer pipeline", pkg:"NuGet family — runs <em>inside the customer’s app</em>",
+  flat:"Instrumentation + one-line onboarding (the Sentry-SDK equivalent)",
+  note:"Family: <code>Qyl.Telemetry</code> (primitives, explicit API) · <code>.AutoInstrumentation(+integrations)</code> (automatic capture) · <code>.Hosting</code> (<code>AddQyl()</code>, OTel wiring, OTLP export, collector discovery). Replaces <code>Qyl.Sdk</code> (retired) and <code>qyl/internal/qyl.instrumentation(.generators)</code>. Head of the pipeline — everything downstream is its output. Never stores, queries, or validates."},
+ {c:"Qyl.Collector.*", code:"", plane:"prod", protocol:"OTLP receiver <b>+</b> HTTP read-API", resp:"Ingest + validate against the registry + store + serve", pkg:".NET NativeAOT service · Railway <code>qyl-collector</code> · <code>api.qyl.at</code> · local <code>:5100</code>",
+  flat:"The collector service (ingest was invisible in the old “qyl API” row)",
+  note:"Family: <code>Qyl.Collector</code> (ingest, catalog) · <code>.Storage</code> (DuckDB) · <code>.Auth</code> · <code>.Hosting</code> (bootstrap, guards). <b>Begins where the exporter ends.</b> Central data-plane node. Consumes <code>Qyl.Telemetry.Hosting</code> for <em>self-telemetry only</em>, fail-closed via <code>CollectorSelfExportGuard</code> (must never export to its own ingest ports)."},
+ {c:"Qyl.Cli", code:"qyl up", plane:"prod", protocol:"CLI — <em>client</em> of the collector API", resp:"Orchestrate the local stack lifecycle", pkg:"NuGet global tool <code>qyl</code> · <code>qyl/packages/Qyl.Cli</code>",
+  flat:"CLI command & local product orchestrator",
+  note:"A client of the collector API — <b>not the API itself</b>. Brings up the local stack: collector <code>:5100</code>, diagnostics <code>:5200</code>, OTLP ingest <code>:4318</code>. The kubectl of the platform: speaks to the API, owns none of it."},
+ {c:"Qyl.Run.Workload", code:"Runner", plane:"prod", protocol:"none (in-proc supervisor)", resp:"Supervise runtime processes", pkg:".NET process inside <code>qyl up</code> · <code>qyl/packages/Qyl.Run.Workload</code>",
+  flat:"Process supervising the qyl runtime",
+  note:"Canonical name settled: <code>Qyl.Run.Workload</code>; “Runner” is the role name, <code>Qyl.Run.Host</code> was a stale label. The daemon in the kubectl/kubelet analogy."},
+ {c:"qyl.dashboard", code:"", plane:"prod", protocol:"HTTP UI (browser)", resp:"Present product telemetry", pkg:"Web bundle served by a qyl service · <code>qyl/services/qyl.dashboard</code>",
+  flat:"Web UI for telemetry & product operations",
+  note:"Legitimately distinct from the MCP dashboard: different subject (product telemetry vs MCP runtime). The <code>qyl.collector/Dashboard</code> surface still overlaps → consolidation question stays open (see §2)."},
+ {c:"qyl.mcp / server", code:"projection", plane:"mcp", protocol:"MCP <b>server</b> (closed world)", resp:"Project the known qyl model as MCP tools", pkg:"Node service <code>qyl-mcp</code> · Railway · <code>mcp.qyl.at</code>",
+  flat:"MCP server exposing qyl capabilities to remote MCP clients",
+  note:"<code>qyl.mcp/server</code> (npm <code>qyl-mcp-server</code>). <b>MCP plane, closed world:</b> a projection of the collector API, never a second contract source. <b>G10 rule:</b> tool <em>shapes</em> are generated from the TypeSpec contract (<code>qyl-api-schema</code>); tool <em>curation</em> (selection, naming, descriptions) is authored. 1:1 endpoint→tool mirroring is explicitly a non-goal."},
+ {c:"qyl.mcp / workbench", code:"client runtime", plane:"mcp", protocol:"MCP <b>client</b> (open world)", resp:"Connect to / inspect / test arbitrary external MCP servers", pkg:"Node loopback process · local <code>:18888</code>",
+  flat:"Actual MCP client connecting to external servers",
+  note:"<code>qyl.mcp/workbench</code> (connection-manager). <b>MCP plane, open world:</b> talks to servers it didn’t write → runtime schema validation, no shared static contract. The closed/open asymmetry of the whole platform lives at these two nodes."},
+ {c:"qyl.mcp / dashboard", code:"Workbench UI", plane:"prod", protocol:"HTTP UI (browser)", resp:"Present the workbench inspector", pkg:"Vite bundle + MCP-App HTML served by the server",
+  flat:"Web UI for inspecting & interacting with MCP servers",
+  note:"<code>qyl.mcp/dashboard</code>. Product plane, <em>not</em> an MCP endpoint — a browser can’t be an MCP stdio client. Its <b>subject</b> is MCP; its <b>protocol</b> is HTTP. (Same split the MCP Inspector makes.)"},
+];
+
+const CARDS = [
+ {h:"MCP Inspector", p:"React UI + a Node proxy that is the actual MCP client. A browser can’t be an MCP stdio client, so UI and client are separate deployables.", m:"→ your <b>qyl.mcp/dashboard vs workbench</b> split. The table got that one right."},
+ {h:"Language Server Protocol", p:"Protocol role (editor=client, server=language server) is orthogonal to packaging (ships as an extension).", m:"→ protocol role earns <b>its own axis</b>; MCP inherits this asymmetry."},
+ {h:"OpenTelemetry Collector", p:"receiver→processor→exporter (responsibility) shipped as one binary in agent or gateway <em>mode</em> (packaging).", m:"→ <b>qyl up’s local collector vs Railway qyl-collector</b> is exactly agent-vs-gateway."},
+ {h:"Jaeger / Tempo + Grafana", p:"agent / collector / query / UI as four separate units.", m:"→ validates keeping <b>ingest, read-API, and dashboard distinct</b> rather than one “API + dashboard” blob."},
+ {h:"kubectl / kube-apiserver / kubelet · docker / dockerd", p:"CLI vs API vs daemon.", m:"→ <b>Qyl.Cli</b> (<code>qyl up</code>) is a client of the collector API, not the API; <b>Qyl.Run.Workload</b> is the daemon."},
+ {h:"Sentry (you mirror its URL structure)", p:"SDK → relay → API → web UI.", m:"→ the <b>Qyl.Telemetry.*</b> family is the SDK-equivalent; <b>Qyl.Collector.*</b> is relay+API in one deployable."},
+];
+
+const FINDINGS = [
+ {t:"<code>Qyl.Sdk</code> (8.x) → <span class='flag'>retired</span>. Its composition job moves to <code>Qyl.Telemetry.Hosting</code>; the consumer contract (<code>builder.AddQyl()</code>) is unchanged. Hard rename, no backcompat shim (solo-dev corollary).", ok:true},
+ {t:"<code>Qyl.OpenTelemetry.SemanticConventions(.Incubating)</code> → <code>Qyl.Telemetry.SemanticConventions(.Incubating)</code>. Same generated content, new family prefix.", ok:true},
+ {t:"<code>Qyl.OpenTelemetry.AutoInstrumentation(.Hosting/.DiagnosticListeners)</code> + <code>qyl/internal/qyl.instrumentation(.generators)</code> → fold into the <code>Qyl.Telemetry.*</code> family: primitives in <code>Qyl.Telemetry</code>, capture in <code>.AutoInstrumentation</code>, composition in <code>.Hosting</code>. <code>InternalsVisibleTo</code> count after the move: <b>0</b>.", ok:true},
+ {t:"<code>qyl.collector</code> service → <code>Qyl.Collector.*</code> package family (<code>Core/Storage/Auth/Hosting</code>); the deployable stays <code>qyl-collector</code> on Railway. Ingest, registry validation, and read-API are now all named — the old “qyl API” row was only the read face.", ok:true},
+ {t:"<code>Qyl.Run.Host</code> → never existed; canonical name is <code>Qyl.Run.Workload</code>, role name “Runner”. Ledger closed.", ok:true},
+ {t:"<b>Done 2026-07-26:</b> the collector stopped forking the producer stack — <code>qyl/internal/qyl.instrumentation</code> no longer composes an OTel pipeline, duplicates collector discovery, or hand-maintains an ActivitySource list; it consumes <code>AddQyl()</code> like any customer. Remaining work on that row is the rename, not architecture.", ok:true},
+ {t:"<span class='flag'>Still open:</span> three UI surfaces (<code>qyl.dashboard</code>, <code>qyl.collector/Dashboard</code>, <code>qyl.mcp/dashboard</code>) share packaging + “present”. Planes and subjects differ, but the collector-embedded dashboard vs <code>qyl.dashboard</code> overlap is a real consolidation candidate — not resolved by naming."},
+ {t:"<span class='flag'>Guard invariants ride along:</span> collector self-export → startup throw (<code>CollectorSelfExportGuard</code>, plus <code>RequireConfiguredEndpoint</code> so an unset endpoint cannot fall back to the exporter’s localhost default); unwired health surface → startup throw; contract-revision mismatch between <code>qyl.mcp/server</code> and the collector → startup throw (G10c). Renames must not touch any of them."},
+ {t:"<span class='flag'>Open defect in G1:</span> the gate’s grep (<code>\"qyl.</code> over <code>*.cs</code>) measured <b>78 hits</b> on 2026-07-26, but they are package IDs, directory names, and executable names — not telemetry vocabulary. As written G1 can never pass; it must be narrowed to telemetry-name positions before 1.0.0, or G4’s analyzer is carrying the rule alone."},
+];
+
+const rows=document.getElementById('rows');
+function render(){
+  const view=document.querySelector('#view .on').dataset.view;
+  const plane=document.querySelector('#plane .on').dataset.plane;
+  document.getElementById('head-split').style.display = view==='split'?'':'none';
+  document.getElementById('head-flat').style.display  = view==='flat'?'':'none';
+  rows.innerHTML='';
+  DATA.forEach((d,i)=>{
+    if(plane!=='all' && d.plane!==plane) return;
+    const tr=document.createElement('tr');
+    tr.className='row '+d.plane;
+    const badge=`<span class="badge ${d.plane}">${d.plane==='mcp'?'MCP':'product'}</span>`;
+    const comp=`<td class="comp">${d.c}${d.code?` <code>${d.code}</code>`:''}</td>`;
+    if(view==='split'){
+      tr.innerHTML=comp+`<td>${badge}</td>`+
+        `<td class="dimmable ax-protocol"><b>${d.protocol}</b></td>`+
+        `<td class="dimmable ax-resp">${d.resp}</td>`+
+        `<td class="dimmable ax-pkg">${d.pkg}</td>`;
+    }else{
+      tr.innerHTML=comp+`<td>${badge}</td><td>${d.flat}</td>`;
+    }
+    tr.addEventListener('click',()=>{det.classList.toggle('hidden')});
+    const det=document.createElement('tr');
+    det.className='detail hidden';
+    det.innerHTML=`<td colspan="${view==='split'?5:3}">${d.note}</td>`;
+    rows.appendChild(tr); rows.appendChild(det);
+  });
+  applyFocus();
+}
+function applyFocus(){
+  const ax=document.querySelector('#focus .on').dataset.axis;
+  ['protocol','resp','pkg'].forEach(a=>{
+    document.querySelectorAll('.ax-'+a).forEach(el=>{
+      el.classList.toggle('dim', ax!=='none' && a!==ax);
+    });
+  });
+}
+function seg(id,cb){
+  document.querySelectorAll('#'+id+' button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#'+id+' button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on'); cb();
+    });
+  });
+}
+document.querySelectorAll('#head-split th').forEach(th=>{
+  const cls=[...th.classList].find(c=>c.startsWith('ax-'));
+  if(cls){th.addEventListener('click',()=>{const a=cls.replace('ax-','');
+    const btn=document.querySelector(`#focus button[data-axis="${a==='resp'?'resp':a}"]`);btn&&btn.click();});}
+});
+seg('plane',render); seg('view',render); seg('focus',applyFocus);
+
+document.getElementById('cards').innerHTML=CARDS.map(c=>`<div class="card"><h3>${c.h}</h3><p>${c.p}</p><div class="maps">${c.m}</div></div>`).join('');
+document.getElementById('findings').innerHTML=FINDINGS.map(f=>`<li class="${f.ok?'ok':''}">${f.t}</li>`).join('');
+document.getElementById('foot').innerHTML='1.0.0 <b>target</b> taxonomy, adopted 2026-07-26 — package names are canon-by-decree and remain theory until the rename lands; §2 is the target↔today ledger and is migration scaffolding: delete it once the rename is done, keeping only the genuinely open items. '+
+ 'Normative source: <code>ARCHITECTURE-1.0.0.md</code> — on conflict, the MD wins; this page is a view, never a second source. '+
+ 'Grounded against a live review of the qyl-workspace repos (qyl/, qyl.mcp/). '+
+ 'Marketing (<code>qyl.at</code>, Cloudflare Worker) is intentionally out of scope — it isn’t a telemetry/MCP runtime component. '+
+ 'Deployment details for <code>qyl.dashboard</code> are inferred; the Railway canon names only <code>qyl-mcp</code> + <code>qyl-collector</code>.';
+
+const t=document.getElementById('theme');
+t.addEventListener('click',()=>{const r=document.documentElement;
+  const cur=r.getAttribute('data-theme')|| (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  r.setAttribute('data-theme', cur==='dark'?'light':'dark');});
+render();
+</script>
+</body>
+</html>

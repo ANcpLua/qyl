@@ -6,18 +6,19 @@ history in release notes, and executable truth in code, schemas, generators, and
 tests. Do not add progress diaries, repair prompts, handoff documents, or a second
 rules file.
 
-## 1.0.0 target names
+## Architecture
 
-| Target | Today | Note |
-| --- | --- | --- |
-| `Qyl.Collector` (+ `.Storage`, `.Auth`, `.Hosting`) | `services/qyl.collector` | Deployable stays `qyl-collector` on Railway |
-| `Qyl.Cli` | `packages/Qyl.Cli` | Unchanged |
-| `Qyl.Run.Workload` | — | `Qyl.Run.Host` never existed; "Runner" is the role name. Ledger closed |
-| `qyl.dashboard` | `services/qyl.dashboard` | Unchanged |
-| → `Qyl.Telemetry.*` | `internal/qyl.instrumentation(.generators)` | Leaves this repo, folds into the producer family |
+`ARCHITECTURE-1.0.0.md` in this repository is the **normative** architecture:
+component taxonomy, the boundary law, the exhaustive dependency-edge list, the
+two generated loops, and release gates G1–G11. It is the law this repository is
+implemented against, and every other qyl repository points at it.
 
-The full ledger and the boundary law live in `qyl-workspace/AGENTS.md` — that
-file is binding and this one does not restate it.
+`docs/component-taxonomy.html` is a **view** of that document for humans — the
+same taxonomy as a filterable matrix, plus the target ↔ today naming ledger. On
+any conflict the Markdown wins; the page is never a second source.
+
+This contract does not restate either. It covers what is specific to working in
+this repository.
 
 **Where the collector starts.** It **begins where the OTLP exporter ends**:
 receive, validate against the shared registry, store, serve. It does not
