@@ -182,7 +182,6 @@ settings retain their upstream semantics and are not duplicated here.
 | `QYL_DB_MEMORY_LIMIT` | Collector | Optional DuckDB `memory_limit` value; unset leaves the engine default. |
 | `QYL_DB_TEMP_DIR` | Collector | Optional DuckDB `temp_directory`; unset leaves the engine default. |
 | `QYL_DB_THREADS` | Collector | Optional positive DuckDB worker count; unset leaves the engine default. |
-| `QYL_ENDPOINT` | Automatic instrumentation | Qyl-specific OTLP discovery fallback after `OTEL_EXPORTER_OTLP_ENDPOINT`; unset probes the standard local endpoints. |
 | `QYL_GRPC_PORT` | Collector | OTLP/gRPC listener; defaults to `4317`, and `0` disables it. |
 | `QYL_OTLP_AUTH_MODE` | Collector | `Unsecured` or `ApiKey`; defaults to `Unsecured` only in Development and to `ApiKey` otherwise. |
 | `QYL_OTLP_CORS_ALLOWED_HEADERS` | Collector | Optional comma-separated additions to `content-type` and `x-otlp-api-key`. |
