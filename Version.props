@@ -9,15 +9,25 @@
   <PropertyGroup Label="Package Versions">
     <DotNetRuntimeVersion>10.0.10</DotNetRuntimeVersion>
     <MicrosoftExtensionsVersion>10.8.0</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsAiVersion>10.8.0</MicrosoftExtensionsAiVersion>
-    <OpenTelemetryVersion>1.16.0</OpenTelemetryVersion>
-    <OpenTelemetryAspNetCoreInstrumentationVersion>1.16.0</OpenTelemetryAspNetCoreInstrumentationVersion>
+    <MicrosoftExtensionsAiVersion>10.8.1</MicrosoftExtensionsAiVersion>
+    <!-- Microsoft.Extensions.AI.Evaluation does not share the Microsoft.Extensions.AI release
+         line and lags it. Transitive pinning is on, so a single shared property pins
+         .Evaluation to whatever .AI is bumped to, and restore fails with NU1102 the moment
+         that version has not shipped for .Evaluation. Bump these two independently. -->
+    <MicrosoftExtensionsAiEvaluationVersion>10.8.0</MicrosoftExtensionsAiEvaluationVersion>
+    <OpenTelemetryVersion>1.17.0</OpenTelemetryVersion>
+    <OpenTelemetryAspNetCoreInstrumentationVersion>1.17.0</OpenTelemetryAspNetCoreInstrumentationVersion>
+    <!-- Held at 1.5.3: 1.5.4 and 1.5.5 stop reusing freed blocks after a
+         checkpointed delete, so a replacement ingest grows the file from 41.5 MiB
+         to 77 MiB instead of capping at the pre-deletion peak. Caught by
+         RetentionTests.Checkpointed_retention_reuses_space_without_exceeding_the_pre_deletion_peak;
+         bisected to 1.5.4. Retention would not bound collector disk use on 1.5.4+. -->
     <DuckDBVersion>1.5.3</DuckDBVersion>
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
-    <GrpcToolsVersion>2.82.0</GrpcToolsVersion>
-    <ANcpLuaRoslynUtilitiesVersion>2.2.41</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAgentsVersion>1.13.7</ANcpLuaAgentsVersion>
+    <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaAgentsVersion>1.13.8</ANcpLuaAgentsVersion>
     <QylApiContractsVersion>2.1.0</QylApiContractsVersion>
     <QylSdkVersion>8.3.0</QylSdkVersion>
 
