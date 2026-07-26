@@ -30,13 +30,35 @@ a claim of completion without the corresponding gate output is not evidence.
 Two classes of action are human-gated; everything else is autonomous:
 
 - **Registry-irreversible steps** — publishing to nuget.org/npm and unlisting package IDs. Prepare, verify, and stop
-  with the exact command ready.
+  with the exact command ready. This gate is structural, not conventional: in any repo whose CI would publish on a push
+  to `main`, converting that trigger to a version tag **precedes every other push** to that repo — the tag is the human
+  act, and after the conversion a rename can land on `main` with zero registry effect.
 - **Amending the decree** — changing what a gate *means* in
   `ARCHITECTURE-1.0.0.md`. If a gate is defective, annotate the defect in place with measured evidence and stop; rewrite
   only with explicit authorization in the goal. (Implementing a gate is normal work; redefining it is not.)
 
 When you deviate from an instruction, say so and say why — a reasoned deviation report is worth more than silent
 compliance and far more than silent deviation.
+
+## When code contradicts the law
+
+You will find code that contradicts `ARCHITECTURE-1.0.0.md` — that is what a migration looks like from the inside, and
+your measured evidence is not a misreading. The document states the target; the code states today; the ledger reconciles
+the two. The protocol:
+
+1. Verify the contradiction with one command and keep the output.
+2. Check the ledger — most contradictions are already registered as fold or rename rows. A registered gap needs no
+   further investigation.
+3. A genuinely new gap gets a ledger row in the same commit as the evidence.
+4. Close the gap if it's in the active work order; otherwise proceed past it.
+
+A contradiction never justifies stalling, a workspace-wide re-audit, or a silent edit to the law. **The ledger is the
+audit** — extend it, don't re-derive it; discovering the full rename scope is not a prerequisite for starting the first
+item of it.
+
+Scope words in goals mean this: code-level work — renames, folds, deletions, generator and test changes — is always
+*execute* scope. Only the two registry-irreversible actions above are *prepare-and-stop* scope. "Prepare the rename" is
+not an instruction to audit instead of act.
 
 ## Fail-closed invariants (placement and reasoning)
 
@@ -54,11 +76,19 @@ must move them intact:
 - `CollectorHealthGuard.ThrowIfHealthSurfaceUnwired` — separate concern, same fail-closed pattern.
 
 The collector consumes the producer stack for self-telemetry only, through the published hosting package like any other
-application — it does not carry its own copy of the composition logic. What stays on this side of the wire is the part
-the hosting package cannot know: health checks and endpoints, exception capture, Kestrel and JSON conventions, and which
-of this application's own endpoints are span noise (`HealthProbeSpanFilter`). Re-deriving OTel wiring, an ActivitySource
-inventory, or collector discovery here is how the original fork started — the testable consequence is gate G6: the
-collector fully exercisable with a plain OTLP client and no qyl producer packages.
+application — never a private copy of the composition logic. Today it *does* carry one:
+`qyl/internal/qyl.instrumentation`
+(`AddQylServiceDefaults`) is a drifted fork — a hardcoded activity-source list beside the generated inventory, a
+copy-pasted second `CollectorDiscovery`, and agent-framework packages (`ANcpLua.Agents`, `Microsoft.Extensions.AI`,
+`Microsoft.Agents.AI.Hosting`) dragged into a telemetry sink. The ledger's fold row deletes the fork. Until it lands:
+never extend it — new self-telemetry needs route through the published path, and anything that only works because of the
+fork was leaning on a delete target.
+
+What stays on this side of the wire after the fold is the part the hosting package cannot know: health checks and
+endpoints, exception capture, Kestrel and JSON conventions, and which of this application's own endpoints are span noise
+(`HealthProbeSpanFilter`) — a thin collector-defaults layer that *calls* the published composition. Re-deriving OTel
+wiring, an ActivitySource inventory, or collector discovery here is how the fork started — the testable consequence is
+gate G6: the collector fully exercisable with a plain OTLP client and no qyl producer packages.
 
 ## Delivery
 
@@ -66,18 +96,6 @@ qyl is beta. Work directly on `main`, preserve unrelated user changes, run the r
 commit per coherent repository change, and push it. Generated files are changed through their schema or generator and
 regenerated in the same commit. Unpublished surfaces may converge directly; published package versions are immutable and
 move through new versions (architecture §6.1 owns the rename-versioning policy).
-
-Release mechanics (each learned the hard way on 2026-07-26):
-
-- The NuGet publish workflow **skips silently** while `QylVersion` names an already-published version — its run concludes
-  "success" without packaging anything, so a green publish run is not evidence anything shipped. A package-affecting
-  commit bumps `QylVersion` in the same commit, or published `qyl` drifts behind `main` with no red signal anywhere.
-- Producer before consumer: `QylTelemetryVersion` (and any producer-family bump) may only reference a version that the
-  producer repository has **published and NuGet has indexed** — check the flat-container index, not the workflow
-  conclusion — or every restore here fails with NU1102 until it indexes.
-- Known flake: `RunnerControlTests.Loopback_actions_restart_and_stop_a_real_supervised_process` dies occasionally on a
-  socket error during restart (3× on unrelated commits, 2026-07-26). Rerun once before diagnosing; twice in a row on
-  the same commit is evidence, not flake.
 
 On the wire, metrics are counted, discarded, and acknowledged with
 `partial_success` — implement that behavior exactly; the product scope behind it is stated in the architecture (§1, §6).
