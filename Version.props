@@ -17,11 +17,19 @@
     <MicrosoftExtensionsAiEvaluationVersion>10.8.0</MicrosoftExtensionsAiEvaluationVersion>
     <OpenTelemetryVersion>1.17.0</OpenTelemetryVersion>
     <OpenTelemetryAspNetCoreInstrumentationVersion>1.17.0</OpenTelemetryAspNetCoreInstrumentationVersion>
-    <!-- Held at 1.5.3: 1.5.4 and 1.5.5 stop reusing freed blocks after a
-         checkpointed delete, so a replacement ingest grows the file from 41.5 MiB
-         to 77 MiB instead of capping at the pre-deletion peak. Caught by
-         RetentionTests.Checkpointed_retention_reuses_space_without_exceeding_the_pre_deletion_peak;
-         bisected to 1.5.4. Retention would not bound collector disk use on 1.5.4+. -->
+    <!-- Last known good: 1.5.3. Confirmed bad: 1.5.4 (bisected), 1.5.5 (re-verified
+         2026-07-26). Both stop reusing freed blocks after a checkpointed delete, so a
+         replacement ingest that should cap the file at the pre-deletion peak of
+         41.5 MiB instead grows it to 75-77 MiB. Retention is what bounds collector
+         disk, so on an affected version a delete/ingest cycle grows the database
+         without limit.
+
+         To adopt any release above 1.5.3, set the version here and run the collector
+         tests filtered to "*Checkpointed_retention*". The test
+         RetentionTests.Checkpointed_retention_reuses_space_without_exceeding_the_pre_deletion_peak
+         must pass. It reports the actual file size on failure, so a partial fix shows
+         up as a smaller number rather than a pass. Do not raise the cap to make it
+         pass: the cap is the retention guarantee. -->
     <DuckDBVersion>1.5.3</DuckDBVersion>
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
