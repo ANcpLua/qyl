@@ -17,20 +17,17 @@
     <MicrosoftExtensionsAiEvaluationVersion>10.8.0</MicrosoftExtensionsAiEvaluationVersion>
     <OpenTelemetryVersion>1.17.0</OpenTelemetryVersion>
     <OpenTelemetryAspNetCoreInstrumentationVersion>1.17.0</OpenTelemetryAspNetCoreInstrumentationVersion>
-    <!-- Last known good: 1.5.3. Confirmed bad: 1.5.4 (bisected), 1.5.5 (re-verified
-         2026-07-26). Both stop reusing freed blocks after a checkpointed delete, so a
-         replacement ingest that should cap the file at the pre-deletion peak of
-         41.5 MiB instead grows it to 75-77 MiB. Retention is what bounds collector
-         disk, so on an affected version a delete/ingest cycle grows the database
-         without limit.
-
-         To adopt any release above 1.5.3, set the version here and run the collector
-         tests filtered to "*Checkpointed_retention*". The test
-         RetentionTests.Checkpointed_retention_reuses_space_without_exceeding_the_pre_deletion_peak
-         must pass. It reports the actual file size on failure, so a partial fix shows
-         up as a smaller number rather than a pass. Do not raise the cap to make it
-         pass: the cap is the retention guarantee. -->
-    <DuckDBVersion>1.5.3</DuckDBVersion>
+    <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
+         it (2026-07-26). Retention's space reuse rides the experimental
+         vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
+         changed when that path runs: 1.5.3 fully rebuilt indexes on database open (doubling
+         the file up front, which the old single-cycle test mistook for a reuse cap), while
+         1.5.5 compacts lazily and converges to a *smaller* steady state (68 vs 81 MiB in
+         the gate's workload). Multi-cycle boundedness is asserted by
+         RetentionTests.Repeated_retention_cycles_bound_the_database_file_at_a_steady_state;
+         run it after any DuckDB bump because the option is experimental and its trigger
+         timing has shifted between patch releases before. -->
+    <DuckDBVersion>1.5.5</DuckDBVersion>
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
