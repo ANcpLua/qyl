@@ -6,6 +6,46 @@ history in release notes, and executable truth in code, schemas, generators, and
 tests. Do not add progress diaries, repair prompts, handoff documents, or a second
 rules file.
 
+## 1.0.0 target names
+
+| Target | Today | Note |
+| --- | --- | --- |
+| `Qyl.Collector` (+ `.Storage`, `.Auth`, `.Hosting`) | `services/qyl.collector` | Deployable stays `qyl-collector` on Railway |
+| `Qyl.Cli` | `packages/Qyl.Cli` | Unchanged |
+| `Qyl.Run.Workload` | — | `Qyl.Run.Host` never existed; "Runner" is the role name. Ledger closed |
+| `qyl.dashboard` | `services/qyl.dashboard` | Unchanged |
+| → `Qyl.Telemetry.*` | `internal/qyl.instrumentation(.generators)` | Leaves this repo, folds into the producer family |
+
+The full ledger and the boundary law live in `qyl-workspace/AGENTS.md` — that
+file is binding and this one does not restate it.
+
+**Where the collector starts.** It **begins where the OTLP exporter ends**:
+receive, validate against the shared registry, store, serve. It does not
+instrument anyone's application. Ingest, registry validation and the read-API
+are three named responsibilities, not one "qyl API" — the old single row hid
+ingest entirely.
+
+`Qyl.Cli` is a **client** of the collector API, never a second owner of its
+contract. `qyl up` brings up collector `:5100`, diagnostics `:5200`, OTLP
+ingest `:4318`. kubectl speaks to the API and owns none of it.
+
+**Invariants a rename must not break.** These are fail-closed startup throws,
+not lint rules:
+
+- `CollectorSelfExportGuard.ThrowIfSelfExporting` — the collector must never
+  export to its own ingest ports. It sits directly after
+  `AddQylCollectorCore` because that is where the ports become known and
+  nothing is bound yet.
+- `CollectorHealthGuard.ThrowIfHealthSurfaceUnwired`.
+- `EnableAutoDiscovery = false` in the collector's own `AddQylServiceDefaults`
+  — a second, independent guard against the same feedback loop.
+
+The collector consumes `Qyl.Telemetry.*` **for self-telemetry only**. That is
+dogfooding, not layering: it may be a customer of the producer stack, but never
+its own destination. Any other use is a smell. The testable consequence: the
+collector must be fully exercisable with a **plain OTLP client and no qyl
+SDK**.
+
 ## Product and delivery
 
 qyl is the collector, storage, investigation API, dashboard, and local host for an
