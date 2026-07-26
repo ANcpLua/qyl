@@ -16,6 +16,7 @@
         ],
         "typescript/no-explicit-any": "warn",
         "unicorn/no-new-array": "off",
+        "unicorn/no-array-sort": "error",
         "no-restricted-imports": [
             "error",
             {

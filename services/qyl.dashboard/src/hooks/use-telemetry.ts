@@ -3,7 +3,7 @@ import type {
     SessionEntity,
     Span,
 } from '@/types';
-import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
+import {getAttributesRecord, nanoToIso, compareNs, nsDelta, nsToEpochMs, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
 import {parseSessionPage, parseSessionTracePage, parseSpanPage, parseTracePage} from '@/lib/contract-validation';
 
@@ -133,4 +133,4 @@ export function formatTimestamp(iso: string): string {
     });
 }
 
-export {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR};
+export {getAttributesRecord, nanoToIso, compareNs, nsDelta, nsToEpochMs, nsToMs, STATUS_ERROR};
