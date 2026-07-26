@@ -39,12 +39,25 @@ not lint rules:
 - `CollectorHealthGuard.ThrowIfHealthSurfaceUnwired`.
 - `EnableAutoDiscovery = false` in the collector's own `AddQylServiceDefaults`
   — a second, independent guard against the same feedback loop.
+- `RequireConfiguredEndpoint = true` on the `AddQyl()` options — a third, and
+  the one that closes the case the other two miss. The first guard reads
+  `OTEL_EXPORTER_OTLP_ENDPOINT`, so it is silent when nothing set it; discovery
+  being off only stops us *probing* for a collector. Neither prevents the OTLP
+  exporter from falling back to its own `localhost` default, which is this
+  process's ingest port. This flag makes "no endpoint" mean "do not export".
 
-The collector consumes `Qyl.Telemetry.*` **for self-telemetry only**. That is
-dogfooding, not layering: it may be a customer of the producer stack, but never
-its own destination. Any other use is a smell. The testable consequence: the
-collector must be fully exercisable with a **plain OTLP client and no qyl
-SDK**.
+The collector consumes the producer stack **for self-telemetry only**, through
+the published `Qyl.Sdk` package like any other application — it does not carry
+its own copy of the composition logic. That is dogfooding, not layering: it may
+be a customer of the producer stack, but never its own destination. Any other
+use is a smell. The testable consequence: the collector must be fully
+exercisable with a **plain OTLP client and no qyl SDK**.
+
+What stays on this side of the wire is the part `Qyl.Sdk` cannot know: health
+checks and endpoints, exception capture, Kestrel and JSON conventions, and
+which of this application's own endpoints are span noise
+(`HealthProbeSpanFilter`). Re-deriving OTel wiring, an ActivitySource
+inventory, or collector discovery here is how the fork started.
 
 ## Product and delivery
 

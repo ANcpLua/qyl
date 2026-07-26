@@ -12,8 +12,6 @@
     <!-- Instrumentation packages do not share the SDK release line. -->
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AI.Evaluation" Version="$(MicrosoftExtensionsAiEvaluationVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
@@ -41,9 +39,6 @@
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
-    <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0"/>
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>

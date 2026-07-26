@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Instrumentation</RootNamespace>
-    <!-- Upstream instrumentation/exporter APIs are not annotated as AOT-compatible. -->
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
 
@@ -18,24 +17,14 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery"/>
-    <PackageReference Include="ANcpLua.Agents"/>
-
-    <PackageReference Include="Microsoft.Extensions.AI"/>
-
-    <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
 
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
 
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore"/>
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <CompilerVisibleProperty Include="QylGenAi"/>
-    <CompilerVisibleProperty Include="QylAgent"/>
+    <!-- Qyl.Sdk owns the producer pipeline: OTel wiring, the instrumentation inventory, OTLP
+         export, and collector discovery. This project composes service defaults around it and
+         does not re-declare those dependencies. -->
+    <PackageReference Include="Qyl.Sdk"/>
   </ItemGroup>
 
   <ItemGroup>
