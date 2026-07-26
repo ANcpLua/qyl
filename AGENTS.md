@@ -67,6 +67,18 @@ commit per coherent repository change, and push it. Generated files are changed 
 regenerated in the same commit. Unpublished surfaces may converge directly; published package versions are immutable and
 move through new versions (architecture §6.1 owns the rename-versioning policy).
 
+Release mechanics (each learned the hard way on 2026-07-26):
+
+- The NuGet publish workflow **skips silently** while `QylVersion` names an already-published version — its run concludes
+  "success" without packaging anything, so a green publish run is not evidence anything shipped. A package-affecting
+  commit bumps `QylVersion` in the same commit, or published `qyl` drifts behind `main` with no red signal anywhere.
+- Producer before consumer: `QylTelemetryVersion` (and any producer-family bump) may only reference a version that the
+  producer repository has **published and NuGet has indexed** — check the flat-container index, not the workflow
+  conclusion — or every restore here fails with NU1102 until it indexes.
+- Known flake: `RunnerControlTests.Loopback_actions_restart_and_stop_a_real_supervised_process` dies occasionally on a
+  socket error during restart (3× on unrelated commits, 2026-07-26). Rerun once before diagnosing; twice in a row on
+  the same commit is evidence, not flake.
+
 On the wire, metrics are counted, discarded, and acknowledged with
 `partial_success` — implement that behavior exactly; the product scope behind it is stated in the architecture (§1, §6).
 
