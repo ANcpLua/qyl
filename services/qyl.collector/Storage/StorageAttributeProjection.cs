@@ -32,7 +32,7 @@ internal static class StorageAttributeProjection
     internal static SpanHotAttributeProjection ExtractSpanHotAttributes(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
         new(
-            SessionId: attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation),
+            SessionId: attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelationPrecedence),
             GenAiProviderName: attributes.GetString(CollectorSemanticAttributeCatalog.GenAiProviderName),
             GenAiOperationName: Canonicalize(
                 attributes.GetString(CollectorSemanticAttributeCatalog.GenAiOperationName),

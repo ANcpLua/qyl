@@ -7,7 +7,8 @@
       "http.",
       "network.",
       "otel.",
-      "server."
+      "server.",
+      "url."
     ],
     "incubatingPrefixes": [
       "gen_ai.",
@@ -44,20 +45,30 @@
   },
   "developmentAttributeAllowList": {
     "span": [
-      "mcp.flow.id",
-      "mcp.protocol.era",
-      "mcp.sdk.tier",
-      "mcp.tool.name"
+      "qyl.exception.source",
+      "qyl.instrumentation.domain",
+      "qyl.mcp.evaluation_run.id",
+      "qyl.mcp.execution.id",
+      "qyl.mcp.flow.id",
+      "qyl.mcp.protocol.era",
+      "qyl.mcp.sdk.tier",
+      "qyl.mcp.server.id",
+      "qyl.mcp.test_case.id",
+      "qyl.mcp.tool.name"
     ],
     "log": [
       "browser.device_memory",
       "browser.language",
       "browser.viewport.height",
       "browser.viewport.width",
-      "mcp.flow.id",
-      "mcp.protocol.era",
-      "mcp.sdk.tier",
-      "mcp.tool.name",
+      "qyl.mcp.evaluation_run.id",
+      "qyl.mcp.execution.id",
+      "qyl.mcp.flow.id",
+      "qyl.mcp.protocol.era",
+      "qyl.mcp.sdk.tier",
+      "qyl.mcp.server.id",
+      "qyl.mcp.test_case.id",
+      "qyl.mcp.tool.name",
       "navigation.type",
       "page.route",
       "web.vital.name",
@@ -75,9 +86,9 @@
     "qyl.workspace.id"
   ],
   "sessionCorrelation": [
-    "gen_ai.conversation.id",
+    "session.id",
     "mcp.session.id",
-    "session.id"
+    "gen_ai.conversation.id"
   ],
   "httpHeaderAttributePrefixes": [
     "http.request.header.",
@@ -165,7 +176,11 @@
     "token"
   ],
   "deniedTokenExemptKeys": [
-    "gen_ai.token.type"
+    "db.query.summary",
+    "gen_ai.token.type",
+    "messaging.kafka.message.offset",
+    "messaging.message.body.size",
+    "messaging.message.id"
   ],
   "spanHotAttributeKeys": [
     "gen_ai.provider.name",
@@ -183,8 +198,12 @@
     "gen_ai.tool.name"
   ],
   "projectionConstants": {
+    "DbQueryText": "db.query.text",
+    "DbStatementDeprecated": "db.statement",
     "DbSystemDeprecated": "db.system",
     "DbSystemName": "db.system.name",
+    "HttpUrlDeprecated": "http.url",
+    "UrlFull": "url.full",
     "GenAiToolCallId": "gen_ai.tool.call.id",
     "GenAiProviderName": "gen_ai.provider.name",
     "GenAiOperationName": "gen_ai.operation.name",

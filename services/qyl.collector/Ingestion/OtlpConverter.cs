@@ -76,16 +76,22 @@ internal static class OtlpConverter
         if (resource is null)
             return null;
 
-        foreach (var attr in resource.Attributes)
+        // Declared precedence outer, wire order inner: a resource carrying both qyl.project.id
+        // and qyl.workspace.id must land in the same partition regardless of the order the SDK
+        // happened to serialize its resource attributes in.
+        foreach (var key in AttributeKeySets.ProjectIdResourceKeyPrecedence)
         {
-            if (!attr.Key.IsAny(AttributeKeySets.ProjectIdResourceKeys) ||
-                attr.Value.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue ||
-                string.IsNullOrWhiteSpace(attr.Value.StringValue))
+            foreach (var attr in resource.Attributes)
             {
-                continue;
-            }
+                if (!string.Equals(attr.Key, key, StringComparison.Ordinal) ||
+                    attr.Value.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue ||
+                    string.IsNullOrWhiteSpace(attr.Value.StringValue))
+                {
+                    continue;
+                }
 
-            return attr.Value.StringValue;
+                return attr.Value.StringValue;
+            }
         }
 
         return null;

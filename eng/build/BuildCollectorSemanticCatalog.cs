@@ -205,11 +205,21 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
 
         WriteFrozenSet(builder, "SessionCorrelation", sessionCorrelation, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ProjectIdResourceKeys", policy.ProjectIdResourceKeys, "StringComparer.Ordinal", incubatingKeys);
+
+        // Precedence arrays preserve the order declared in collector-semantic-policy.json. The
+        // FrozenSets above answer membership only; first-match lookups (session id, project-id
+        // partition key) must read these, because FrozenSet enumeration order is unspecified.
+        WriteOrderedStringArray(builder, "SessionCorrelationPrecedence", sessionCorrelation, incubatingKeys);
+        WriteOrderedStringArray(builder, "ProjectIdResourceKeyPrecedence", policy.ProjectIdResourceKeys, incubatingKeys);
         WriteFrozenSet(builder, "QylResourceAttributeAllowList", policy.QylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteStringArray(builder, "HttpHeaderAttributePrefixes", policy.HttpHeaderAttributePrefixes);
+        // Raw prefixes, not their registry expansion: DeniedExactKeys below only carries the keys
+        // that exist in the pinned semconv packages, so an application-defined key under one of
+        // these namespaces (user.email_address, enduser.tenant) would otherwise pass the denial.
+        WriteStringArray(builder, "DeniedKeyPrefixes", policy.DeniedExactPrefixes);
         WriteFrozenSet(builder, "SafeHttpSpanHeaderAttributeKeys", policy.SafeHttpSpanHeaderAttributeKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteFrozenSet(builder, "DeniedExactKeys", deniedExactKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteStringArray(builder, "DeniedKeyTokens", policy.DeniedKeyTokens);
@@ -501,6 +511,26 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         }
 
         builder.AppendLine("    );");
+        builder.AppendLine();
+    }
+
+    private static void WriteOrderedStringArray(
+        StringBuilder builder,
+        string name,
+        IEnumerable<string> values,
+        IReadOnlySet<string> incubating)
+    {
+        builder.Append("    internal static readonly string[] ").Append(name).AppendLine(" =");
+        builder.AppendLine("    [");
+        foreach (var value in values.Distinct(StringComparer.Ordinal))
+        {
+            builder.Append("        ").Append(StringLiteral(value)).Append(',');
+            if (incubating.Contains(value))
+                builder.Append(" // incubating");
+            builder.AppendLine();
+        }
+
+        builder.AppendLine("    ];");
         builder.AppendLine();
     }
 
