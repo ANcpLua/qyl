@@ -3,10 +3,27 @@
     "categories": {
         "correctness": "error"
     },
-    "ignorePatterns": ["dist", "node_modules"],
+    "ignorePatterns": [
+        "dist",
+        "node_modules"
+    ],
     "rules": {
-        "typescript/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+        "typescript/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_"
+            }
+        ],
         "typescript/no-explicit-any": "warn",
-        "unicorn/no-new-array": "off"
+        "unicorn/no-new-array": "off",
+        "no-restricted-imports": [
+            "error",
+            {
+                "patterns": [
+                    "@radix-ui/*",
+                    "radix-ui"
+                ]
+            }
+        ]
     }
 }

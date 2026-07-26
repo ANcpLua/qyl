@@ -12,8 +12,8 @@
         "preview": "vite preview",
         "test": "vitest",
         "test:coverage": "vitest run --coverage",
-        "lint": "oxlint src",
-        "lint:fix": "oxlint src --fix",
+        "lint": "oxlint src && node scripts/check-ui-discipline.mjs",
+        "lint:fix": "oxlint src --fix && node scripts/check-ui-discipline.mjs",
         "typecheck": "tsc --noEmit",
         "e2e": "playwright test",
         "e2e:ui": "playwright test --ui",
@@ -47,9 +47,5 @@
         "typescript": "7.0.2",
         "vite": "8.1.5",
         "vitest": "4.1.10"
-    },
-    "overrides": {
-        "js-yaml": "^4.2.0",
-        "@babel/plugin-transform-runtime": "^7.29.0"
     }
 }
