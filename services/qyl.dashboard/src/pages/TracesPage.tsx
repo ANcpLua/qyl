@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import {AlertCircle, ChevronDown, ChevronRight, ExternalLink, Filter, Network, X} from 'lucide-react';
 import {cn} from '@/lib/utils';

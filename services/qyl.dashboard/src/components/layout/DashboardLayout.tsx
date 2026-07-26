@@ -1,5 +1,5 @@
 import {useCallback, useState} from 'react';
-import {Outlet, useNavigate} from 'react-router-dom';
+import {Outlet, useNavigate} from 'react-router';
 import {useQueryClient} from '@tanstack/react-query';
 import {TooltipProvider} from '@/components/ui/tooltip';
 import {Sidebar} from './Sidebar';
