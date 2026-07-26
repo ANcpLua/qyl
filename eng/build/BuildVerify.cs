@@ -2018,7 +2018,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "ReportGenerator",
                 "./eng/build.sh Test",
                 "Qyl.OpenTelemetry.Extensions",
-                "Qyl.Telemetry",
+                // "Qyl.Telemetry" was banned here as a deleted package name. ARCHITECTURE-1.0.0.md
+                // then chose it for the producer family, so the ban now forbids the target state:
+                // it would reject every Qyl.Telemetry.* reference and block the rename outright.
+                // A guard against a name that has since been re-adopted is a stale decision, not a
+                // safety net.
                 "QylTraced",
                 "./eng/build.sh Generate",
                 "./eng/build.sh OtelConventions",
