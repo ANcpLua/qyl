@@ -14,7 +14,10 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         context.RegisterPostInitializationOutput(static ctx =>
-            ctx.AddSource("DuckDbAttributes.g.cs", SourceText.From(DuckDbAttributeSource.Source, Encoding.UTF8)));
+        {
+            ctx.AddSource("DuckDbAttributes.g.cs", SourceText.From(DuckDbAttributeSource.Source, Encoding.UTF8));
+            ctx.AddSource("StorageDefaults.g.cs", SourceText.From(StorageDefaultsSource.Source, Encoding.UTF8));
+        });
 
         var tableTypes = context.SyntaxProvider
             .ForAttributeWithMetadataName(
