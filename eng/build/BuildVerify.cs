@@ -2518,6 +2518,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .Description("Run collector and frontend verification checks")
         .DependsOn(VerifyBackend)
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
+        .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
         .DependsOn(VerifyFrontendApiTypes)
         .DependsOn(VerifyFrontendTypes)
         .Executes(() =>
