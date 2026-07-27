@@ -29,7 +29,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
 
     public DuckDbStore(
-        string databasePath = "qyl.duckdb",
+        string databasePath,
         int jobQueueCapacity = 1000,
         int maxConcurrentReads = 8,
         int readQueueCapacity = 1000,
