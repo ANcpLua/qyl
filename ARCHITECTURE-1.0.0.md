@@ -257,20 +257,27 @@ registry*. The old IDs are already published as stable on nuget.org —
 download counts. NuGet IDs are permanent: they can be unlisted, never deleted.
 The `qyl` CLI versions honestly (`0.1.0-beta.N`); the libraries do not.
 
-The migration therefore:
+The migration's versioning rule, as amended by Alex at the launch review
+(in chat, 2026-07-27, replacing the skipped `1.0.0-beta.N` staging band and
+the earlier "every repo releases 1.0.0" phrasing that the registries
+disproved):
 
-- ships the new `Qyl.Telemetry.*` family directly at **`1.0.0` stable** — the
-  planned `1.0.0-beta.N` staging band was skipped by Alex's launch decree
-  (in chat, 2026-07-27): this refactor *is* the launch, and every repo
-  (qyl, qyl.mcp, AutoInstrumentation, SemanticConventions, qyl.at,
-  qyl-api-schema) releases 1.0.0 stable from it;
-- **unlists** the old IDs at launch rather than shimming — a compat shim would
-  create exactly the second contract owner the boundary law forbids; for the
-  package IDs that survive (`Qyl.Api.Contracts`, `@ancplua/qyl-api-schema`),
-  the old 2.x/3.x *versions* are unlisted/deprecated so 1.0.0 is the visible
-  latest;
-- is `1.0.0` at launch, at which point every item in this document is
-  frozen and changes need backwards compatibility, a shim, or a PR.
+> Launch is the event, not the number. Identity is per-package lineage: the
+> product surfaces ship 1.0.0; the producer family carries its ABI lineage
+> (package major == QylGeneratedCodeAbi major, enforced by
+> verify-version-sync); the API contract carries its own (4.x,
+> revision-hash-pinned). Superseded IDs are unlisted after indexing, never
+> shimmed. The next breaking bundle (#12+#13) ships as one major.
+
+Consequences that stand from the earlier text:
+
+- no compat shims — a shim would create exactly the second contract owner the
+  boundary law forbids; for the package IDs that survive
+  (`Qyl.Api.Contracts`, `@ancplua/qyl-api-schema`), the superseded *versions*
+  are unlisted/deprecated after the launch versions index, so the launch
+  version is the visible latest;
+- at launch every item in this document is frozen and changes need backwards
+  compatibility, a shim, or a PR.
 
 ### 6.2 ABI reality the rename must respect
 
@@ -331,7 +338,7 @@ Emitting constants and `CollectorSemanticAttributeCatalog.g.cs` provably derive 
 Deliberately introducing a hardcoded telemetry string in a name position fails the build via `QYL0200` — asserted by a compile-should-fail test, not by inspection. The corresponding prose rule is deleted from the instructions; the analyzer owns it.
 
 **G5 — Boundary isolation, producer.**
-The conformance app (`AddQyl()` + inbound span assertion on `Qyl.Telemetry.AutoInstrumentation` source + loopback outbound call) passes **with no collector running** and with zero `Qyl.Collector.*` references.
+The conformance app (`AddQyl()` + inbound span assertion on the qyl-owned source + loopback outbound call) passes **with no collector running** and with zero `Qyl.Collector.*` references. As amended by Alex at the launch review (in chat, 2026-07-27): G5 asserts the qyl-owned inbound source by its canonical name; the canonical scope name is a ledgered surface — the published name (`Qyl.OpenTelemetry.AutoInstrumentation`) until the first post-launch major (#12), the family name (`Qyl.Telemetry.AutoInstrumentation`) thereafter. Readers accept both from launch.
 
 **G6 — Boundary isolation, collector.**
 The collector's ingest/storage/query tests pass driven by a **plain OTLP client**, with zero producer-family references in the test project. If G5 or G6 ever requires the other side's packages, the boundary has leaked — release blocker.

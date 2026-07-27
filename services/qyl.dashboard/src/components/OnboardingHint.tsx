@@ -3,7 +3,7 @@ import {CopyButton} from '@/components/ui/copy-button';
 
 const OTLP_ENDPOINT = 'http://localhost:4318';
 
-const DOTNET_SNIPPET = `dotnet add package Qyl.OpenTelemetry.AutoInstrumentation.Hosting
+const DOTNET_SNIPPET = `dotnet add package Qyl.Telemetry.Hosting
 
 export OTEL_EXPORTER_OTLP_ENDPOINT=${OTLP_ENDPOINT}
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

@@ -157,7 +157,7 @@ internal static class QylCli
     internal static string GetVersion() => BuildVersion.ProductVersion;
 
     private static string QuoteIfNeeded(string value) =>
-        value.Contains(' ') ? $"\"{value}\"" : value;
+        value.Contains(' ', StringComparison.Ordinal) ? $"\"{value}\"" : value;
 }
 
 internal readonly record struct QylCliInvocation(
