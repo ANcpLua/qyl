@@ -28,8 +28,8 @@
     <PackageReference Include="Nuke.Common"/>
     <PackageReference Include="Nuke.Components"/>
     <!-- BuildCollectorSemanticCatalog reflects these assemblies. -->
-    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions" PrivateAssets="all"/>
-    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions" PrivateAssets="all"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
     <!-- Override vulnerable Nuke.Common transitives. -->
     <PackageReference Include="NuGet.Packaging"/>
     <PackageReference Include="System.Security.Cryptography.Xml"/>

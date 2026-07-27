@@ -1,5 +1,6 @@
-using ErrorAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
-using ExceptionAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception.ExceptionAttributes;
+using ErrorAttributes = Qyl.Telemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
+using ExceptionAttributes = Qyl.Telemetry.SemanticConventions.Attributes.Exception.ExceptionAttributes;
+using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation;
 
@@ -8,7 +9,7 @@ public static class ActivityExceptionTelemetry
     private const string ErrorType = ErrorAttributes.Type;
     private const string ExceptionType = ExceptionAttributes.Type;
 
-    public const string ExceptionSource = "qyl.exception.source";
+    public const string ExceptionSource = QylAttributes.ExceptionSource;
 
     public static void Record(
         Activity? activity,

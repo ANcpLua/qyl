@@ -29,8 +29,8 @@
 
   <ItemGroup>
     <PackageReference Include="Qyl.Api.Contracts"/>
-    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
-    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating"/>
 
     <ProjectReference Include="../../internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"

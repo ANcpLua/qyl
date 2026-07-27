@@ -137,6 +137,9 @@ jobs:
       - name: Verify
         run: ./eng/build.sh VerifyBackend --Configuration Release
 
+      - name: G1 vocabulary smoke
+        run: bash eng/scripts/g1-vocabulary-smoke.sh
+
   native-aot:
     name: NativeAOT runtime smokes
     needs: changes

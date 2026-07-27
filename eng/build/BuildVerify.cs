@@ -599,7 +599,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             throw new InvalidOperationException(
                 "Do not hardcode semantic attribute keys or consume SemConv attribute types directly in the collector. " +
-                "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.OpenTelemetry.SemanticConventions and consume it there.");
+                "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.Telemetry.SemanticConventions and consume it there.");
         });
 
     Target VerifyCollectorTelemetryUsesBuildVersion => d => d
@@ -1669,7 +1669,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             string[] forbidden =
             [
-                "Qyl.OpenTelemetry.SemanticConventions",
+                "Qyl.Telemetry.SemanticConventions",
                 "using GenAiAttributes",
                 "QylGenAiCostProcessor",
                 "GenAiAttributes.",
@@ -3371,8 +3371,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     private static bool IsForbiddenSemConvAttributeNamespace(string? name) =>
         NormalizeQualifiedName(name) is { } normalized &&
-        (normalized.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Attributes", StringComparison.Ordinal) ||
-         normalized.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes", StringComparison.Ordinal));
+        (normalized.StartsWith("Qyl.Telemetry.SemanticConventions.Attributes", StringComparison.Ordinal) ||
+         normalized.StartsWith("Qyl.Telemetry.SemanticConventions.Incubating.Attributes", StringComparison.Ordinal));
 
     private static string? NormalizeQualifiedName(string? name)
     {

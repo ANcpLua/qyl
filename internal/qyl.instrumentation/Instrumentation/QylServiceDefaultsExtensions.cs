@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry.Trace;
 using Qyl.Instrumentation;
 using Qyl.Instrumentation.ErrorCapture;
-using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
+using OtelSchemaUrl = Qyl.Telemetry.SemanticConventions.SchemaUrl;
 using ContractHealthCheckEntry = Qyl.Api.Contracts.Health.HealthCheckEntry;
 using ContractHealthReport = Qyl.Api.Contracts.Health.HealthReport;
 using ContractHealthStatus = Qyl.Api.Contracts.Health.HealthStatus;

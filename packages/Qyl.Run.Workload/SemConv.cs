@@ -1,4 +1,4 @@
-using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+using Qyl.Telemetry.SemanticConventions.SourceGeneration;
 
 namespace Qyl.Run.Workload;
 

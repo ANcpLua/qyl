@@ -13,8 +13,8 @@ namespace Qyl.Build;
 /// G7/G11: the actual qyl package graph equals the architecture's §2 edge list exactly,
 /// for every project in the repository, <c>internal/</c> included. Anything not listed is
 /// forbidden — a new edge is a deliberate table change reviewed against the architecture,
-/// never a quiet csproj addition. The table speaks today-names; the post-publish pin bump
-/// rewrites it to the Qyl.Telemetry.* target ids in the same commit as the pins.
+/// never a quiet csproj addition. The table speaks the published Qyl.Telemetry.* identities,
+/// rewritten in the same commits as the pin bumps that consumed them.
 /// </summary>
 interface IDependencyEdges : IHazSourcePaths
 {
@@ -24,7 +24,7 @@ interface IDependencyEdges : IHazSourcePaths
         // Catalog generation input only (loop 1): the build reflects over the pinned
         // semconv packages to generate the collector ingest catalog.
         ["eng/build/build.csproj"] =
-            ["Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating"],
+            ["Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating"],
         // Conformance/smoke tooling exercises the published contracts and producer stack.
         ["eng/tools/QylSdkConformance/QylSdkConformance.csproj"] = ["Qyl.Api.Contracts"],
         // Collector-defaults layer: consumes the published composition (self-telemetry via
@@ -32,12 +32,12 @@ interface IDependencyEdges : IHazSourcePaths
         ["internal/qyl.instrumentation/qyl.instrumentation.csproj"] =
         [
             "Qyl.Telemetry.Hosting", "Qyl.Api.Contracts",
-            "Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating",
+            "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
         ],
         // G11: the CLI is a client of the collector API — generated contracts only.
         ["packages/Qyl.Cli/Qyl.Cli.csproj"] = ["Qyl.Api.Contracts"],
         ["packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj"] =
-            ["Qyl.OpenTelemetry.SemanticConventions.SourceGeneration"],
+            ["Qyl.Telemetry.SemanticConventions.SourceGeneration"],
         // Collector product function: generated contracts it serves. The producer stack
         // arrives only transitively through the collector-defaults layer (self-telemetry);
         // a direct producer-family reference here is the forbidden edge G7 exists to catch.
