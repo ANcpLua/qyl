@@ -64,10 +64,10 @@ internal static class QylCli
             return 1;
         }
 
-        if (!TryFindUnavailablePort(s_requiredPorts, out var unavailablePort))
+        if (!TryValidatePortsAvailable(s_requiredPorts, out var unavailablePort))
         {
             Console.Error.WriteLine(
-                $"Cannot start qyl: 127.0.0.1:{unavailablePort} is already in use. Stop the process using that port and run `qyl up` again.");
+                $"Cannot start qyl: 127.0.0.1:{unavailablePort} is unavailable. Free the port or grant permission to bind it, then run `qyl up` again.");
             return 1;
         }
 
@@ -77,18 +77,16 @@ internal static class QylCli
 
     internal static QylCliInvocation Parse(IReadOnlyList<string> args)
     {
-        if (args.Count == 0 || args is ["--help"] or ["-h"] or ["help"] or ["help", "up"] or ["up", "--help"] or ["up", "-h"])
+        if (args.Count is 0 || args is ["--help"] or ["-h"] or ["help"] or ["help", "up"] or ["up", "--help"] or ["up", "-h"])
             return new QylCliInvocation(QylCliAction.Help);
 
-        if (args is ["--version"] or ["-v"])
-            return new QylCliInvocation(QylCliAction.Version);
-
-        if (args is ["up"])
-            return new QylCliInvocation(QylCliAction.Up);
-
-        return new QylCliInvocation(
-            QylCliAction.Invalid,
-            $"Unknown qyl command: {string.Join(' ', args.Select(QuoteIfNeeded))}");
+        return args switch
+        {
+            ["--version"] or ["-v"] => new QylCliInvocation(QylCliAction.Version),
+            ["up"] => new QylCliInvocation(QylCliAction.Up),
+            _ => new QylCliInvocation(QylCliAction.Invalid,
+                $"Unknown qyl command: {string.Join(' ', args.Select(QuoteIfNeeded))}")
+        };
     }
 
     internal static string ResolveCollectorAssembly(string baseDirectory)
@@ -104,7 +102,7 @@ internal static class QylCli
         return path;
     }
 
-    internal static bool TryFindUnavailablePort(IEnumerable<int> ports, out int unavailablePort)
+    internal static bool TryValidatePortsAvailable(IEnumerable<int> ports, out int unavailablePort)
     {
         var listeners = new List<TcpListener>();
         try
@@ -114,12 +112,16 @@ internal static class QylCli
                 TcpListener? listener = null;
                 try
                 {
-                    listener = new TcpListener(IPAddress.Loopback, port);
+                    listener = new TcpListener(IPAddress.Loopback, port)
+                    {
+                        ExclusiveAddressUse = true
+                    };
                     listener.Start();
                     listeners.Add(listener);
                     listener = null;
                 }
-                catch (SocketException)
+                catch (SocketException exception) when (
+                    exception.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
                 {
                     unavailablePort = port;
                     return false;

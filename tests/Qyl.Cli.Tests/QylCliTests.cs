@@ -94,7 +94,7 @@ public sealed class QylCliTests
         occupied.Start();
         var port = ((IPEndPoint)occupied.LocalEndpoint).Port;
 
-        Assert.False(QylCli.TryFindUnavailablePort([port], out var unavailable));
+        Assert.False(QylCli.TryValidatePortsAvailable([port], out var unavailable));
         Assert.Equal(port, unavailable);
     }
 
