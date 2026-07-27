@@ -27,6 +27,7 @@ describe('generated Collector contract validation', () => {
     it('accepts generated health and trace-page contracts', () => {
         expect(parseHealthReport({
             status: 'healthy',
+            contract_revision: 'sha256:9ba787d0bd3269a9',
             total_duration_ms: 1,
             entries: {duckdb: {status: 'healthy', duration_ms: 1}},
         }).status).toBe('healthy');
