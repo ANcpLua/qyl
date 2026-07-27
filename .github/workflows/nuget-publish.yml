@@ -1,8 +1,12 @@
 name: NuGet trusted publishing
 
+# Publishing requires a human act (architecture §5): the publish lane triggers on
+# version tags only. A push to main builds and verifies through ci.yml, never
+# publishes. The v<version> tag must name the commit whose Version.props carries
+# that exact version.
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -36,7 +40,7 @@ jobs:
           fetch-depth: 1
           fetch-tags: true
 
-      - name: Read version and inspect its immutable tag
+      - name: Read version and validate the trigger
         id: version
         shell: bash
         run: |
@@ -53,26 +57,25 @@ jobs:
             exit 0
           fi
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_publish }}" = "true" ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            echo "Forced publish requested for v$VERSION."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.force_publish }}" = "true" ]; then
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+              echo "Forced publish requested for v$VERSION."
+            else
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              echo "Manual run without force_publish verifies only."
+            fi
             exit 0
           fi
 
-          TAG="v$VERSION"
-          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
-            TAG_COMMIT="$(git rev-list -n 1 "$TAG")"
-            if [ "$TAG_COMMIT" = "$GITHUB_SHA" ]; then
-              echo "publish=true" >> "$GITHUB_OUTPUT"
-              echo "$TAG already belongs to this commit; the publish lane will verify the immutable release."
-            else
-              echo "publish=false" >> "$GITHUB_OUTPUT"
-              echo "::notice title=Nothing to publish::$TAG already belongs to $TAG_COMMIT; skipping consumer smokes and packaging."
-            fi
-          else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            echo "$TAG is new; the publish lane will run."
+          # Version-tag push: the tag is the human act that authorizes the
+          # publish lane, and it must name the committed version exactly.
+          if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match Version.props v$VERSION." >&2
+            exit 1
           fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "Version tag $GITHUB_REF_NAME authorizes the publish lane."
 
   verify:
     name: Consumer smoke (${{ matrix.os }})
@@ -260,7 +263,7 @@ jobs:
   publish:
     name: Publish immutable release
     needs: [version, pack]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.version.outputs.publish == 'true'
+    if: github.event_name != 'pull_request' && needs.version.outputs.publish == 'true'
     concurrency:
       group: nuget-publish-${{ needs.version.outputs.version }}
       cancel-in-progress: false
