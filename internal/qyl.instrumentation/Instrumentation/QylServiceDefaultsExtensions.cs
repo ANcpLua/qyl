@@ -11,11 +11,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Qyl.Instrumentation;
-using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
 using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
 using ContractHealthCheckEntry = Qyl.Api.Contracts.Health.HealthCheckEntry;
@@ -26,23 +23,6 @@ namespace Qyl.Instrumentation.Instrumentation;
 
 public static class QylServiceDefaultsExtensions
 {
-    private static readonly string[] s_qylActivitySources =
-    [
-        "qyl.genai",
-        "qyl.db",
-        "Qyl.Instrumentation.ErrorCapture"
-    ];
-
-    private static readonly string[] s_genAiExternalActivitySources =
-    [
-        "OpenAI.*",
-        "Azure.AI.OpenAI.*",
-        "Anthropic.*",
-        "Microsoft.Extensions.AI",
-        "Microsoft.Agents.AI",
-        "Experimental.Microsoft.Agents.AI"
-    ];
-
     public static WebApplication MapQylEndpoints(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
@@ -144,6 +124,10 @@ public static class QylServiceDefaultsExtensions
         services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => Json(opt.SerializerOptions));
     }
 
+    // Composition of the producer pipeline belongs to Qyl.Sdk, which owns the OTel wiring, the
+    // instrumentation inventory, the version-pinned external GenAI sources, and collector
+    // discovery. This process is a customer of that package like any other application; the only
+    // things it adds are the facts Qyl.Sdk cannot know about it.
     internal static void ConfigureQylTelemetry<TBuilder>(TBuilder builder, QylOptions options)
         where TBuilder : IHostApplicationBuilder
     {
@@ -152,75 +136,36 @@ public static class QylServiceDefaultsExtensions
         var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] is { Length: > 0 } configuredName
             ? configuredName
             : builder.Environment.ApplicationName;
-        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (string.IsNullOrWhiteSpace(otlpEndpoint) && options.EnableAutoDiscovery)
+
+        builder.AddQyl(qyl =>
         {
-            var discovered = CollectorDiscovery.DiscoverEndpoint();
-            if (discovered is not null)
-            {
-                Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", discovered.ToString());
-                otlpEndpoint = discovered.ToString();
-            }
-        }
+            qyl.ServiceName = serviceName;
+            qyl.ServiceVersion = BuildVersion.ProductVersion;
+            qyl.EnableCollectorDiscovery = options.EnableAutoDiscovery;
 
-        var hasExporter = !string.IsNullOrWhiteSpace(otlpEndpoint);
+            // This process is itself an OTLP destination. "No endpoint configured" must mean "do
+            // not export", never the exporter's localhost default — that default is our own ingest
+            // port, and exporting there would feed our output back into our input.
+            qyl.RequireConfiguredEndpoint = true;
 
-        builder.Logging.AddOpenTelemetry(logging =>
-        {
-            logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
-            options.ConfigureLogging?.Invoke(logging);
+            qyl.ResourceAttributes.Add(
+                new KeyValuePair<string, object>("telemetry.schema_url", OtelSchemaUrl.Current));
 
-            if (hasExporter)
-                logging.AddOtlpExporter();
+            qyl.AdditionalSources.Add(serviceName);
+
+            // OTEL_SERVICE_NAME may rename the service, but apps following the assembly-name
+            // ActivitySource convention must stay subscribed.
+            if (!string.Equals(serviceName, builder.Environment.ApplicationName, StringComparison.Ordinal))
+                qyl.AdditionalSources.Add(builder.Environment.ApplicationName);
+
+            qyl.AdditionalSources.Add(ActivitySources.ErrorCapture);
+
+            foreach (var source in options.AdditionalActivitySources)
+                qyl.AdditionalSources.Add(source);
+
+            // Which endpoints are noise is this application's policy, not the producer's.
+            qyl.ConfigureTracing = static tracing => tracing.AddProcessor(new HealthProbeSpanFilter());
         });
-
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource =>
-            {
-                resource
-                    .AddService(serviceName, serviceVersion: BuildVersion.ProductVersion)
-                    .AddAttributes([
-                        new KeyValuePair<string, object>("telemetry.schema_url",
-                            OtelSchemaUrl.Current)
-                    ]);
-
-                if (options.CapabilityAttributes.Count > 0)
-                    resource.AddAttributes(options.CapabilityAttributes);
-
-                options.ConfigureResource?.Invoke(resource);
-            })
-            .WithTracing(tracing =>
-            {
-                tracing
-                    .AddSource(serviceName)
-                    .AddAspNetCoreInstrumentation(aspnet =>
-                    {
-                        aspnet.Filter = static ctx =>
-                            ctx.Request.Path != QylEndpoints.Health &&
-                            ctx.Request.Path != QylEndpoints.Alive;
-                    })
-                    .AddHttpClientInstrumentation();
-
-                // OTEL_SERVICE_NAME may rename the service, but apps following the
-                // assembly-name ActivitySource convention must stay subscribed.
-                if (!string.Equals(serviceName, builder.Environment.ApplicationName, StringComparison.Ordinal))
-                    tracing.AddSource(builder.Environment.ApplicationName);
-
-                foreach (var source in s_genAiExternalActivitySources)
-                    tracing.AddSource(source);
-
-                foreach (var source in s_qylActivitySources)
-                    tracing.AddSource(source);
-
-                foreach (var source in options.AdditionalActivitySources)
-                    tracing.AddSource(source);
-
-                options.ConfigureTracing?.Invoke(tracing);
-
-                if (hasExporter)
-                    tracing.AddOtlpExporter();
-            });
     }
 
     internal static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
@@ -271,11 +216,6 @@ public static class QylServiceDefaultsExtensions
                 ConfigureHealthChecks(builder);
             }
 
-            if (options.EnableAutoDiscovery)
-            {
-                builder.Services.AddHostedService<CollectorDiscoveryLogger>();
-            }
-
             ConfigureHttpClients(builder);
 
             // OpenAPI registers EndpointMetadataApiDescriptionProvider, which needs EndpointDataSource —
@@ -324,15 +264,7 @@ public sealed class QylOptions
 
     public List<string> AdditionalActivitySources { get; } = [];
 
-    public List<KeyValuePair<string, object>> CapabilityAttributes { get; } = [];
-
     public Action<JsonSerializerOptions>? ConfigureJson { get; set; }
-
-    public Action<OpenTelemetryLoggerOptions>? ConfigureLogging { get; set; }
-
-    public Action<ResourceBuilder>? ConfigureResource { get; set; }
-
-    public Action<TracerProviderBuilder>? ConfigureTracing { get; set; }
 }
 
 internal sealed class QylServiceDefaultsMarker;

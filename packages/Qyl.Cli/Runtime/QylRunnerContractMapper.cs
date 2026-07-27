@@ -1,3 +1,4 @@
+using System;
 using ContractLifecycle = Qyl.Api.Contracts.Runner.RunnerResourceLifecycle;
 using ContractLogLine = Qyl.Api.Contracts.Runner.RunnerLogLine;
 using ContractLogStream = Qyl.Api.Contracts.Runner.RunnerLogStream;

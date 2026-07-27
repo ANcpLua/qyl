@@ -4,11 +4,11 @@ namespace Qyl.Collector.Storage;
 
 internal static class PersistedAttributePolicy
 {
+    // Span events and links. Unlike the span row below there is no projected column to move
+    // gen_ai.operation.name / gen_ai.output.type into, so excluding them here would capture the
+    // values at ingest and then drop them with nowhere left to read them from.
     internal static string? SerializeSpanAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, static key =>
-            AttributeKeySets.IsSafeSpanAttribute(key) &&
-            key != CollectorSemanticAttributeCatalog.GenAiOperationName &&
-            key != CollectorSemanticAttributeCatalog.GenAiOutputType);
+        Serialize(attributes, AttributeKeySets.IsSafeSpanAttribute);
 
     internal static string? SerializeSpanAttributes(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes,

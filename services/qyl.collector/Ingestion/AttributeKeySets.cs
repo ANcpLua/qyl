@@ -8,6 +8,15 @@ internal static class AttributeKeySets
 
     internal static FrozenSet<string> ProjectIdResourceKeys => CollectorSemanticAttributeCatalog.ProjectIdResourceKeys;
 
+    // First-match lookups must read the precedence arrays, not the sets above: FrozenSet
+    // enumeration order is an implementation detail, so a set-driven lookup silently picks a
+    // winner by hash layout instead of by the order declared in collector-semantic-policy.json.
+    internal static string[] SessionCorrelationPrecedence =>
+        CollectorSemanticAttributeCatalog.SessionCorrelationPrecedence;
+
+    internal static string[] ProjectIdResourceKeyPrecedence =>
+        CollectorSemanticAttributeCatalog.ProjectIdResourceKeyPrecedence;
+
     internal static bool IsSafeSpanAttribute(string key) =>
         CollectorSemanticAttributeCatalog.SafeHttpSpanHeaderAttributeKeys.Contains(key) ||
         !IsDenied(key) && CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key);
@@ -38,11 +47,25 @@ internal static class AttributeKeySets
                 return true;
         }
 
+        // DeniedExactKeys only contains the keys these prefixes matched in the pinned semconv
+        // packages. Entity-referenced resource attributes are application-named, so the prefixes
+        // themselves have to be enforced here or unregistered PII keys pass the denial.
+        foreach (var prefix in CollectorSemanticAttributeCatalog.DeniedKeyPrefixes)
+        {
+            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
         if (CollectorSemanticAttributeCatalog.DeniedExactKeys.Contains(key) ||
             key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
+
+        // The substring rule is deliberately blunt, so allowlisted keys that merely contain a
+        // denied token (db.query.summary, gen_ai.token.type) opt out of it by exact name.
+        if (CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key))
+            return false;
 
         foreach (var token in CollectorSemanticAttributeCatalog.DeniedKeyTokens)
         {

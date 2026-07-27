@@ -39,12 +39,12 @@ describe('consumeSse', () => {
         const logPayload = {
             type: 'log',
             data: {
-                time_unix_nano: 1_000_000_000,
-                observed_time_unix_nano: 1_000_000_000,
+                time_unix_nano: '1000000000',
+                observed_time_unix_nano: '1000000000',
                 severity_number: 9,
                 severity_text: 'INFO',
                 body: {string_value: 'ready'},
-                resource: {'service.name': 'dashboard-test'},
+                resource: {service_name: 'dashboard-test'},
             },
             timestamp: '2026-07-15T00:00:00Z',
         };

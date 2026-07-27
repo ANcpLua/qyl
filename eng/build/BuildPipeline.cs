@@ -53,7 +53,7 @@ interface IPipeline : IHazSourcePaths
 
     Target FrontendLint => d => d
         .Unlisted()
-        .Description("Lint frontend (ESLint)")
+        .Description("Lint frontend (oxlint)")
         .DependsOn(FrontendInstall)
         .Executes(() => NpmTasks.NpmRun(s => s
             .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)

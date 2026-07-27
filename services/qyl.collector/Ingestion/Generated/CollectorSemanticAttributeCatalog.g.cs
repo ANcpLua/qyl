@@ -31,6 +31,19 @@ internal static class CollectorSemanticAttributeCatalog
         "qyl.workspace.id"
     );
 
+    internal static readonly string[] SessionCorrelationPrecedence =
+    [
+        "session.id", // incubating
+        "mcp.session.id", // incubating
+        "gen_ai.conversation.id", // incubating
+    ];
+
+    internal static readonly string[] ProjectIdResourceKeyPrecedence =
+    [
+        "qyl.project.id",
+        "qyl.workspace.id",
+    ];
+
     internal static readonly FrozenSet<string> QylResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
         "qyl.capability.id",
@@ -119,6 +132,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.request.max_tokens", // incubating
         "gen_ai.request.model", // incubating
         "gen_ai.request.presence_penalty", // incubating
+        "gen_ai.request.previous_response.id", // incubating
         "gen_ai.request.reasoning.level", // incubating
         "gen_ai.request.seed", // incubating
         "gen_ai.request.stop_sequences", // incubating
@@ -169,14 +183,10 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
-        "mcp.flow.id", // incubating
         "mcp.method.name", // incubating
-        "mcp.protocol.era", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
-        "mcp.sdk.tier", // incubating
         "mcp.session.id", // incubating
-        "mcp.tool.name", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -238,6 +248,16 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.scope.version",
         "otel.status_code",
         "otel.status_description",
+        "qyl.exception.source", // incubating
+        "qyl.instrumentation.domain", // incubating
+        "qyl.mcp.evaluation_run.id", // incubating
+        "qyl.mcp.execution.id", // incubating
+        "qyl.mcp.flow.id", // incubating
+        "qyl.mcp.protocol.era", // incubating
+        "qyl.mcp.sdk.tier", // incubating
+        "qyl.mcp.server.id", // incubating
+        "qyl.mcp.test_case.id", // incubating
+        "qyl.mcp.tool.name", // incubating
         "rpc.connect_rpc.error_code",
         "rpc.connect_rpc.request.metadata",
         "rpc.connect_rpc.response.metadata",
@@ -268,7 +288,12 @@ internal static class CollectorSemanticAttributeCatalog
         "service.namespace",
         "service.peer.name", // incubating
         "service.peer.namespace", // incubating
-        "service.version"
+        "service.version",
+        "url.fragment",
+        "url.full",
+        "url.path",
+        "url.query",
+        "url.scheme"
     );
 
     internal static readonly FrozenSet<string> LogAttributeAllowList = FrozenSet.Create(
@@ -314,6 +339,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.request.max_tokens", // incubating
         "gen_ai.request.model", // incubating
         "gen_ai.request.presence_penalty", // incubating
+        "gen_ai.request.previous_response.id", // incubating
         "gen_ai.request.reasoning.level", // incubating
         "gen_ai.request.seed", // incubating
         "gen_ai.request.stop_sequences", // incubating
@@ -364,14 +390,10 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
-        "mcp.flow.id", // incubating
         "mcp.method.name", // incubating
-        "mcp.protocol.era", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
-        "mcp.sdk.tier", // incubating
         "mcp.session.id", // incubating
-        "mcp.tool.name", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -427,6 +449,14 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.status_code",
         "otel.status_description",
         "page.route", // incubating
+        "qyl.mcp.evaluation_run.id", // incubating
+        "qyl.mcp.execution.id", // incubating
+        "qyl.mcp.flow.id", // incubating
+        "qyl.mcp.protocol.era", // incubating
+        "qyl.mcp.sdk.tier", // incubating
+        "qyl.mcp.server.id", // incubating
+        "qyl.mcp.test_case.id", // incubating
+        "qyl.mcp.tool.name", // incubating
         "rpc.connect_rpc.error_code",
         "rpc.connect_rpc.request.metadata",
         "rpc.connect_rpc.response.metadata",
@@ -491,6 +521,12 @@ internal static class CollectorSemanticAttributeCatalog
     [
         "http.request.header.",
         "http.response.header.",
+    ];
+
+    internal static readonly string[] DeniedKeyPrefixes =
+    [
+        "enduser.",
+        "user.",
     ];
 
     internal static readonly FrozenSet<string> SafeHttpSpanHeaderAttributeKeys = FrozenSet.Create(
@@ -588,7 +624,11 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> DeniedTokenExemptKeys = FrozenSet.Create(
         StringComparer.OrdinalIgnoreCase,
-        "gen_ai.token.type" // incubating
+        "db.query.summary",
+        "gen_ai.token.type", // incubating
+        "messaging.kafka.message.offset",
+        "messaging.message.body.size", // incubating
+        "messaging.message.id" // incubating
     );
 
     internal static readonly FrozenSet<string> SpanHotAttributeKeys = FrozenSet.Create(
@@ -608,6 +648,8 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.reasoning.output_tokens" // incubating
     );
 
+    internal const string DbQueryText = "db.query.text";
+    internal const string DbStatementDeprecated = "db.statement";
     internal const string DbSystemDeprecated = "db.system";
     internal const string DbSystemName = "db.system.name";
     internal const string GenAiCacheCreationInputTokens = "gen_ai.usage.cache_creation.input_tokens"; // incubating
@@ -626,8 +668,10 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiToolName = "gen_ai.tool.name"; // incubating
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
+    internal const string HttpUrlDeprecated = "http.url";
     internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.43.0";
     internal const string ServiceName = "service.name";
+    internal const string UrlFull = "url.full";
 
     internal static class GenAiOperationNameValues
     {

@@ -79,8 +79,8 @@ function normalizeLogRecord(log: LogRecord): LogViewRecord {
         severityText: normalizeSeverity(log.severity_text, severityNumber),
         body: normalizeBody(log.body),
         attributes: normalizeAttributes(log.attributes),
-        serviceName: log.resource['service.name'],
-        serviceVersion: log.resource['service.version'],
+        serviceName: log.resource.service_name,
+        serviceVersion: log.resource.service_version,
     };
 }
 
@@ -114,8 +114,10 @@ function normalizeAttributes(
     return record;
 }
 
-function unixNanoToIso(value: number): string {
-    return new Date(value / 1_000_000).toISOString();
+// Absolute nanosecond timestamps arrive as decimal strings and exceed Number.MAX_SAFE_INTEGER;
+// the millisecond floor is taken in BigInt so no precision is assumed before narrowing.
+function unixNanoToIso(value: string): string {
+    return new Date(Number(BigInt(value) / 1_000_000n)).toISOString();
 }
 
 interface LogRowProps {
@@ -392,7 +394,7 @@ export function LogsPage() {
 
     const services = useMemo(() => {
         const set = new Set(logs.map((l) => l.serviceName));
-        return Array.from(set).sort();
+        return Array.from(set).toSorted();
     }, [logs]);
 
     const filteredLogs = useMemo(() => {

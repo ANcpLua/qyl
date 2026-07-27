@@ -92,7 +92,8 @@ public sealed class RunnerControlTests
         // 60s, not 20: must exceed the 30s readiness window above, and CI macOS runners
         // are slow enough that the restart/stop round-trips need real headroom.
         lifetime.CancelAfter(TimeSpan.FromSeconds(60));
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(3);
 
         await orchestrator.StartAsync(lifetime.Token);
         await api.StartAsync(lifetime.Token);

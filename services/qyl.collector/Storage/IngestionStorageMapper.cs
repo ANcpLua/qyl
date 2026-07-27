@@ -78,7 +78,7 @@ internal static class IngestionStorageMapper
             ? SeverityNumberToText(log.SeverityNumber)
             : log.SeverityText;
         var severityNumber = (byte)Math.Clamp(log.SeverityNumber, 0, 24);
-        var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation);
+        var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelationPrecedence);
         var body = ToPersistedLogBody(log.BodyText);
         var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(

@@ -16,7 +16,7 @@ interface IConfigurationKnobs : IHazSourcePaths
 {
     Target VerifyConfigurationKnobs => d => d
         .Unlisted()
-        .Description("Verify every QYL_* code binding has exactly one README configuration row")
+        .Description("Verify every QYL_* code binding has exactly one docs/configuration.md row")
         .Executes(() => ConfigurationKnobInventory.Verify(RootDirectory));
 }
 
@@ -25,26 +25,26 @@ internal static partial class ConfigurationKnobInventory
     public static void Verify(AbsolutePath rootDirectory)
     {
         var codeBindings = ReadCodeBindings(rootDirectory);
-        var documentedBindings = ReadDocumentedBindings(rootDirectory / "README.md");
+        var documentedBindings = ReadDocumentedBindings(rootDirectory / "docs" / "configuration.md");
 
         var missingDocumentation = codeBindings.Except(documentedBindings, StringComparer.Ordinal).ToArray();
         var missingImplementation = documentedBindings.Except(codeBindings, StringComparer.Ordinal).ToArray();
 
         foreach (var variable in missingDocumentation)
-            Log.Error("{Variable} is bound in code but absent from the README configuration table: document or delete it",
+            Log.Error("{Variable} is bound in code but absent from docs/configuration.md: document or delete it",
                 variable);
 
         foreach (var variable in missingImplementation)
-            Log.Error("{Variable} is documented in the README configuration table but has no code binding: implement or remove the row",
+            Log.Error("{Variable} is documented in docs/configuration.md but has no code binding: implement or remove the row",
                 variable);
 
         if (missingDocumentation.Length > 0 || missingImplementation.Length > 0)
         {
             throw new InvalidOperationException(
-                "README configuration must have a one-to-one correspondence with QYL_* environment bindings.");
+                "docs/configuration.md must have a one-to-one correspondence with QYL_* environment bindings.");
         }
 
-        Log.Information("README documents all {Count} QYL_* environment bindings exactly once", codeBindings.Count);
+        Log.Information("docs/configuration.md documents all {Count} QYL_* environment bindings exactly once", codeBindings.Count);
     }
 
     private static SortedSet<string> ReadCodeBindings(AbsolutePath rootDirectory)
@@ -92,18 +92,15 @@ internal static partial class ConfigurationKnobInventory
         return bindings;
     }
 
-    private static SortedSet<string> ReadDocumentedBindings(AbsolutePath readme)
+    // The whole file is the configuration reference, so there is no section to bound: every
+    // QYL_* row in it counts. That is the point of giving the table its own file instead of a
+    // heading inside a document whose subject is something else.
+    private static SortedSet<string> ReadDocumentedBindings(AbsolutePath reference)
     {
-        var text = File.ReadAllText(readme);
-        const string heading = "## Configuration";
-        var headingStart = text.IndexOf(heading, StringComparison.Ordinal);
-        if (headingStart < 0)
-            throw new InvalidOperationException("README.md must contain a '## Configuration' table.");
+        if (!File.Exists(reference))
+            throw new InvalidOperationException($"{reference} is missing: it is the QYL_* environment contract.");
 
-        var sectionStart = headingStart + heading.Length;
-        var sectionEnd = text.IndexOf("\n## ", sectionStart, StringComparison.Ordinal);
-        var section = sectionEnd < 0 ? text[sectionStart..] : text[sectionStart..sectionEnd];
-        var matches = ConfigurationRow().Matches(section);
+        var matches = ConfigurationRow().Matches(File.ReadAllText(reference));
         var duplicates = matches.Cast<Match>()
             .Select(static match => match.Groups["name"].Value)
             .GroupBy(static name => name, StringComparer.Ordinal)
@@ -114,7 +111,7 @@ internal static partial class ConfigurationKnobInventory
 
         if (duplicates.Length > 0)
             throw new InvalidOperationException(
-                $"README configuration table contains duplicate rows: {string.Join(", ", duplicates)}");
+                $"docs/configuration.md contains duplicate rows: {string.Join(", ", duplicates)}");
 
         return new SortedSet<string>(
             matches.Cast<Match>().Select(static match => match.Groups["name"].Value),

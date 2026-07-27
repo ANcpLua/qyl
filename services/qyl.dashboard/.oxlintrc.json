@@ -1,0 +1,30 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "error"
+    },
+    "ignorePatterns": [
+        "dist",
+        "node_modules"
+    ],
+    "rules": {
+        "typescript/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "typescript/no-explicit-any": "warn",
+        "unicorn/no-new-array": "off",
+        "unicorn/no-array-sort": "error",
+        "no-restricted-imports": [
+            "error",
+            {
+                "patterns": [
+                    "@radix-ui/*",
+                    "radix-ui"
+                ]
+            }
+        ]
+    }
+}

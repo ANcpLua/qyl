@@ -121,7 +121,7 @@ test.describe('qyl executable product surface', () => {
             );
             expect(response.status()).toBe(200);
             const logs = generatedPageItems(validateLog, await response.json());
-            return logs.find(log => log.resource['service.name'] === serviceName)?.body.string_value;
+            return logs.find(log => log.resource.service_name === serviceName)?.body.string_value;
         }, {timeout: 20_000}).toMatch(/^(?!sha256:).+\S.*$/);
     });
 

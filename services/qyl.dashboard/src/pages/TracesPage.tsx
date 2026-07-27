@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import {AlertCircle, ChevronDown, ChevronRight, ExternalLink, Filter, Network, X} from 'lucide-react';
 import {cn} from '@/lib/utils';
@@ -18,7 +18,10 @@ import {
     getAttributesRecord,
     getSpanColor,
     getSpanTypeLabel,
+    compareNs,
     nanoToIso,
+    nsDelta,
+    nsToEpochMs,
     nsToMs,
     selectTraceViewSource,
     STATUS_ERROR,
@@ -32,11 +35,11 @@ import {getStatusLabel} from '@/types';
 import {attributeNumber, attributeString, formatAttributeValue} from '@/lib/attribute-value';
 
 function getServiceName(span: Span): string {
-    return span.resource['service.name'];
+    return span.resource.service_name;
 }
 
 function getDurationNs(span: Span): number {
-    return span.end_time_unix_nano - span.start_time_unix_nano;
+    return nsDelta(span.start_time_unix_nano, span.end_time_unix_nano);
 }
 
 function getGenAiAttrs(span: Span) {
@@ -86,8 +89,8 @@ function SpanRow({
                      onSelect,
                  }: SpanRowProps) {
     const totalDuration = timelineEnd - timelineStart;
-    const spanStart = span.start_time_unix_nano / 1_000_000;
-    const spanEnd = span.end_time_unix_nano / 1_000_000;
+    const spanStart = nsToEpochMs(span.start_time_unix_nano);
+    const spanEnd = nsToEpochMs(span.end_time_unix_nano);
 
     const leftPercent = totalDuration > 0 ? ((spanStart - timelineStart) / totalDuration) * 100 : 0;
     const widthPercent = Math.max(
@@ -360,7 +363,7 @@ export function TracesPage() {
     const {data: sessions = []} = useSessions();
 
     const sessionSpanQuery = useSessionSpans(
-        traceId ? '' : (sessionId || sessions[0]?.['session.id'] || '')
+        traceId ? '' : (sessionId || sessions[0]?.session_id || '')
     );
     const traceSpanQuery = useTraceSpans(traceId);
 
@@ -384,8 +387,8 @@ export function TracesPage() {
         let maxTime = -Infinity;
 
         for (const span of spans) {
-            const startTime = span.start_time_unix_nano / 1_000_000;
-            const endTime = span.end_time_unix_nano / 1_000_000;
+            const startTime = nsToEpochMs(span.start_time_unix_nano);
+            const endTime = nsToEpochMs(span.end_time_unix_nano);
             minTime = Math.min(minTime, startTime);
             maxTime = Math.max(maxTime, endTime);
 
@@ -396,8 +399,11 @@ export function TracesPage() {
             }
         }
 
-        for (const siblings of childrenMap.values()) {
-            siblings.sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
+        for (const [parentSpanId, siblings] of childrenMap) {
+            childrenMap.set(
+                parentSpanId,
+                siblings.toSorted((a, b) => compareNs(a.start_time_unix_nano, b.start_time_unix_nano)),
+            );
         }
 
         return {
@@ -416,7 +422,7 @@ export function TracesPage() {
         const loadedSpanIds = new Set(spans.map((s) => s.span_id));
         const rootSpans = spans
             .filter((s) => !s.parent_span_id || !loadedSpanIds.has(s.parent_span_id))
-            .sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
+            .toSorted((a, b) => compareNs(a.start_time_unix_nano, b.start_time_unix_nano));
 
         const matchesFilter = (span: Span): boolean => {
             if (!filterText) return true;

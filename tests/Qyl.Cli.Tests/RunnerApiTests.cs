@@ -40,7 +40,8 @@ public sealed class RunnerApiTests
             NullLogger<QylRunnerApi>.Instance);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         lifetime.CancelAfter(TimeSpan.FromSeconds(15));
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(2);
 
         await api.StartAsync(lifetime.Token);
         try
@@ -99,17 +100,13 @@ public sealed class RunnerApiTests
                 Assert.Equal(string.Empty, await reader.ReadLineAsync(lifetime.Token));
             }
 
-            using var securityHandler = new SocketsHttpHandler
-            {
-                AllowAutoRedirect = false,
-                UseProxy = false
-            };
-            using var securityClient = new HttpClient(securityHandler, disposeHandler: false)
-            {
-                DefaultRequestVersion = HttpVersion.Version11,
-                DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
-                Timeout = TimeSpan.FromSeconds(2)
-            };
+            using var securityHandler = new SocketsHttpHandler();
+            securityHandler.AllowAutoRedirect = false;
+            securityHandler.UseProxy = false;
+            using var securityClient = new HttpClient(securityHandler, disposeHandler: false);
+            securityClient.DefaultRequestVersion = HttpVersion.Version11;
+            securityClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+            securityClient.Timeout = TimeSpan.FromSeconds(2);
             using var badHostRequest = new HttpRequestMessage(HttpMethod.Get, resourcesUri);
             badHostRequest.Headers.Host = "attacker.example";
             using var badHostResponse = await securityClient.SendAsync(badHostRequest, lifetime.Token);

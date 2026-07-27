@@ -33,7 +33,8 @@ public sealed class ConsoleUiTests
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(
             TestContext.Current.CancellationToken);
         lifetime.CancelAfter(TimeSpan.FromSeconds(15));
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(2);
 
         var runTask = app.RunAsync(lifetime.Token);
         try
