@@ -26,7 +26,7 @@
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property. -->
     <QylTelemetryVersion>9.0.1</QylTelemetryVersion>
     <QylSemanticConventionsVersion>1.0.0</QylSemanticConventionsVersion>
-    <QylApiContractsVersion>3.0.0</QylApiContractsVersion>
+    <QylApiContractsVersion>4.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>

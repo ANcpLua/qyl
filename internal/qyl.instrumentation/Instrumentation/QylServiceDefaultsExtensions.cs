@@ -61,6 +61,7 @@ public static class QylServiceDefaultsExtensions
         var contract = new ContractHealthReport
         {
             Status = ToContractStatus(report.Status),
+            ContractRevision = Qyl.Api.Contracts.ContractRevision.Value,
             TotalDurationMs = report.TotalDuration.TotalMilliseconds,
             Entries = report.Entries.ToDictionary(
                 static pair => pair.Key,
