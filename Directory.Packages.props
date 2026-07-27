@@ -53,8 +53,7 @@
   </ItemGroup>
 
   <ItemGroup Label="qyl-owned">
-    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="$(QylTelemetryVersion)"/>
-    <PackageVersion Include="Qyl.Sdk" Version="$(QylTelemetryVersion)"/>
+    <PackageVersion Include="Qyl.Telemetry.Hosting" Version="$(QylTelemetryVersion)"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="$(QylSemanticConventionsVersion)"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="$(QylSemanticConventionsVersion)"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="$(QylSemanticConventionsVersion)"/>

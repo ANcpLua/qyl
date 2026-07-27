@@ -11,12 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Qyl.Sdk" GeneratePathProperty="true" />
+    <PackageReference Include="Qyl.Telemetry.Hosting" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="VerifyReleasedQylSdkPackage" BeforeTargets="CoreCompile">
-    <Error Condition="'$(PkgQyl_Sdk)' == ''"
-           Text="Qyl.Sdk.Conformance must compile against the centrally pinned released Qyl.Sdk NuGet package." />
+    <Error Condition="'$(PkgQyl_Telemetry_Hosting)' == ''"
+           Text="Qyl.Sdk.Conformance must compile against the centrally pinned released Qyl.Telemetry.Hosting NuGet package." />
   </Target>
 
 </Project>

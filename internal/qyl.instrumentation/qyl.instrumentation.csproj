@@ -21,10 +21,10 @@
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
 
-    <!-- Qyl.Sdk owns the producer pipeline: OTel wiring, the instrumentation inventory, OTLP
-         export, and collector discovery. This project composes service defaults around it and
-         does not re-declare those dependencies. -->
-    <PackageReference Include="Qyl.Sdk"/>
+    <!-- Qyl.Telemetry.Hosting owns the producer pipeline: OTel wiring, the instrumentation
+         inventory, OTLP export, and collector discovery. This project composes service defaults
+         around it and does not re-declare those dependencies. -->
+    <PackageReference Include="Qyl.Telemetry.Hosting"/>
   </ItemGroup>
 
   <ItemGroup>

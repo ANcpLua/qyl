@@ -124,10 +124,10 @@ public static class QylServiceDefaultsExtensions
         services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => Json(opt.SerializerOptions));
     }
 
-    // Composition of the producer pipeline belongs to Qyl.Sdk, which owns the OTel wiring, the
+    // Composition of the producer pipeline belongs to Qyl.Telemetry.Hosting, which owns the OTel wiring, the
     // instrumentation inventory, the version-pinned external GenAI sources, and collector
     // discovery. This process is a customer of that package like any other application; the only
-    // things it adds are the facts Qyl.Sdk cannot know about it.
+    // things it adds are the facts Qyl.Telemetry.Hosting cannot know about it.
     internal static void ConfigureQylTelemetry<TBuilder>(TBuilder builder, QylOptions options)
         where TBuilder : IHostApplicationBuilder
     {

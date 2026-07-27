@@ -63,7 +63,7 @@ run_sdk_conformance() {
   local service_name="qyl-sdk-conformance-$SMOKE_ID"
 
   [[ -x "$executable" ]] \
-    || fail "Native AOT Qyl.Sdk conformance executable is missing: $executable"
+    || fail "Native AOT Qyl.Telemetry.Hosting conformance executable is missing: $executable"
 
   dotnet run \
     --project "$SDK_CONFORMANCE_DRIVER_PROJECT" \
@@ -169,7 +169,7 @@ phase "Build the checked-in OTLP wire driver"
 dotnet build "$DRIVER_PROJECT" --configuration Release --nologo
 dotnet build "$SDK_CONFORMANCE_DRIVER_PROJECT" --configuration Release --nologo
 
-phase "Publish the released-Qyl.Sdk conformance app with Native AOT"
+phase "Publish the released-Qyl.Telemetry.Hosting conformance app with Native AOT"
 rm -rf "$SDK_CONFORMANCE_PUBLISH_DIRECTORY"
 dotnet publish \
   "$SDK_CONFORMANCE_PROJECT" \
@@ -225,7 +225,7 @@ phase "Stock OTel SDK default export with only OTEL_EXPORTER_OTLP_ENDPOINT"
   run_driver stock-sdk "$API_BASE"
 )
 
-phase "Released Qyl.Sdk builder.AddQyl Native AOT conformance"
+phase "Released Qyl.Telemetry.Hosting builder.AddQyl Native AOT conformance"
 run_sdk_conformance
 
 phase "Lane 7: persistent trace survives a container restart"
@@ -246,4 +246,4 @@ run_driver grpc-auth "$GRPC_BASE"
 stop_cleanly "ApiKey-container graceful stop"
 
 echo
-echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes and released-Qyl.Sdk conformance"
+echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes and released-Qyl.Telemetry.Hosting conformance"

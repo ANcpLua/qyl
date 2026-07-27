@@ -13,7 +13,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 /// in-process code reading <see cref="Activity.Current"/> still sees a live span and the health
 /// request keeps a trace context to propagate.
 /// <para>
-/// This is deliberately not a producer-side concern: <c>Qyl.Sdk</c> composes the pipeline but
+/// This is deliberately not a producer-side concern: <c>Qyl.Telemetry.Hosting</c> composes the pipeline but
 /// cannot know which of a given application's endpoints are noise.
 /// </para>
 /// </remarks>

@@ -31,7 +31,7 @@ interface IDependencyEdges : IHazSourcePaths
         // AddQyl) plus the shared vocabulary; never a private copy of the producer pipeline.
         ["internal/qyl.instrumentation/qyl.instrumentation.csproj"] =
         [
-            "Qyl.Sdk", "Qyl.Api.Contracts",
+            "Qyl.Telemetry.Hosting", "Qyl.Api.Contracts",
             "Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating",
         ],
         // G11: the CLI is a client of the collector API — generated contracts only.
@@ -42,7 +42,7 @@ interface IDependencyEdges : IHazSourcePaths
         // arrives only transitively through the collector-defaults layer (self-telemetry);
         // a direct producer-family reference here is the forbidden edge G7 exists to catch.
         ["services/qyl.collector/qyl.collector.csproj"] = ["Qyl.Api.Contracts"],
-        ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Sdk"],
+        ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Telemetry.Hosting"],
     };
 
     /// <summary>Packages forbidden anywhere in the repository, by exact name or prefix.</summary>
