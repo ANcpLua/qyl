@@ -259,11 +259,17 @@ The `qyl` CLI versions honestly (`0.1.0-beta.N`); the libraries do not.
 
 The migration therefore:
 
-- ships the new `Qyl.Telemetry.*` family at **`1.0.0-beta.N`** until launch, so
-  the version number stops promising what the taxonomy says is unsettled;
+- ships the new `Qyl.Telemetry.*` family directly at **`1.0.0` stable** — the
+  planned `1.0.0-beta.N` staging band was skipped by Alex's launch decree
+  (in chat, 2026-07-27): this refactor *is* the launch, and every repo
+  (qyl, qyl.mcp, AutoInstrumentation, SemanticConventions, qyl.at,
+  qyl-api-schema) releases 1.0.0 stable from it;
 - **unlists** the old IDs at launch rather than shimming — a compat shim would
-  create exactly the second contract owner the boundary law forbids;
-- goes `1.0.0` only at launch, at which point every item in this document is
+  create exactly the second contract owner the boundary law forbids; for the
+  package IDs that survive (`Qyl.Api.Contracts`, `@ancplua/qyl-api-schema`),
+  the old 2.x/3.x *versions* are unlisted/deprecated so 1.0.0 is the visible
+  latest;
+- is `1.0.0` at launch, at which point every item in this document is
   frozen and changes need backwards compatibility, a shim, or a PR.
 
 ### 6.2 ABI reality the rename must respect
