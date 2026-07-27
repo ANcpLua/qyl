@@ -168,7 +168,8 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
         });
     try
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(2);
         await WaitUntilAsync(async () =>
         {
             if (process.HasExited)

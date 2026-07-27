@@ -25,6 +25,11 @@ internal static class SdkConformance
     private static readonly TimeSpan ProcessExitTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ReadbackTimeout = TimeSpan.FromSeconds(30);
 
+    private static readonly HttpClient s_http = new()
+    {
+        Timeout = TimeSpan.FromSeconds(5)
+    };
+
     internal static async Task<int> RunAsync(string[] args)
     {
         if (args.Length != 5)
@@ -122,7 +127,8 @@ internal static class SdkConformance
             var ids = await DriveAppAsync(process, appBase, output).ConfigureAwait(false);
             await WaitForSuccessfulExitAsync(process, output).ConfigureAwait(false);
 
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var http = new HttpClient();
+            http.Timeout = TimeSpan.FromSeconds(5);
             var client = new QylApiContractClient(http, apiBase);
             var (trace, logs) = await WaitForReadbackAsync(client, ids.TraceId).ConfigureAwait(false);
             return AssertEvidence(trace, logs, ids, serviceName);
@@ -177,7 +183,6 @@ internal static class SdkConformance
         Uri appBase,
         ConcurrentQueue<string> output)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
         var endpoint = new Uri(appBase, "conformance");
         var deadline = DateTimeOffset.UtcNow + StartupTimeout;
 
@@ -189,7 +194,7 @@ internal static class SdkConformance
 
             try
             {
-                using var response = await http.GetAsync(endpoint).ConfigureAwait(false);
+                using var response = await s_http.GetAsync(endpoint).ConfigureAwait(false);
                 var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
