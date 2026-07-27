@@ -115,7 +115,8 @@ internal static class CiTelemetry
 
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
             if (ApiKey is not null) client.DefaultRequestHeaders.Add("x-otlp-api-key", ApiKey);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             var target = $"{Endpoint.TrimEnd('/')}/v1/traces";
