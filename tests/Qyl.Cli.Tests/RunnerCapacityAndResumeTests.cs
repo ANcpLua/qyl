@@ -18,7 +18,8 @@ public sealed class RunnerCapacityAndResumeTests
         logs.Append("worker", isError: false, "first");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(5);
 
         await api.StartAsync(timeout.Token);
         try
@@ -58,7 +59,8 @@ public sealed class RunnerCapacityAndResumeTests
         using var ownedApi = api;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(20));
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(5);
         var admitted = new List<HttpResponseMessage>();
 
         await api.StartAsync(timeout.Token);

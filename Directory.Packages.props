@@ -5,67 +5,74 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-  <ItemGroup>
+
+  <!-- Every entry resolves through a property from Version.props. A literal version here is a bug:
+       it hides the bump from the one file that owns versions, and two packages on one release line
+       drift the moment their versions are typed separately. -->
+
+  <ItemGroup Label="OpenTelemetry">
+    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
+    <!-- Transitive-only pin: nothing references it directly, but it must not float. -->
     <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
-    <!-- Instrumentation packages do not share the SDK release line. -->
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AI.Evaluation" Version="$(MicrosoftExtensionsAiEvaluationVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Platform">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
-    <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x
-         (verified 2026-07-16 against 3.9.0: its XmlCommentGenerator emits `IOpenApiMediaType.Example = ...`,
-         read-only in 3.x -> CS0200). Hold on the newest 2.x, which is patched for GHSA-v5pm-xwqc-g5wc;
-         retry 3.x when AspNetCore.OpenApi ships a 3.x-compatible generator. -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.11.0"/>
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
+    <!-- Transitive-only pin; see the hold note on MicrosoftOpenApiVersion in Version.props. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="$(MicrosoftOpenApiVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Roslyn">
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)"/>
+    <!-- Transitive-only pin. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="$(RoslynVersion)"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Storage and wire">
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
     <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
     <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
     <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcAspNetCoreVersion)"/>
     <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
-    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
-    <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0"/>
+  </ItemGroup>
+
+  <ItemGroup Label="qyl-owned">
+    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="$(QylTelemetryVersion)"/>
+    <PackageVersion Include="Qyl.Sdk" Version="$(QylTelemetryVersion)"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="$(QylSemanticConventionsVersion)"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="$(QylSemanticConventionsVersion)"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="$(QylSemanticConventionsVersion)"/>
+    <PackageVersion Include="Qyl.Api.Contracts" Version="$(QylApiContractsVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Build and test tooling">
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
-    <!-- Override vulnerable Nuke.Common transitives. -->
-    <PackageVersion Include="NuGet.Packaging" Version="7.6.0"/>
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.10"/>
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2"/>
-    <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0"/>
-    <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
-    <PackageVersion Include="Microsoft.Build" Version="18.7.1"/>
-    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"/>
-    <PackageVersion Include="Valleysoft.DockerfileModel" Version="2.0.0"/>
-    <PackageVersion Include="YamlDotNet" Version="18.1.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="$(QylSdkVersion)"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="4.0.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="4.0.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="4.0.0"/>
-    <PackageVersion Include="Qyl.Api.Contracts" Version="$(QylApiContractsVersion)"/>
-    <PackageVersion Include="Qyl.Sdk" Version="$(QylSdkVersion)"/>
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitVersion)"/>
+    <PackageVersion Include="Valleysoft.DockerfileModel" Version="$(DockerfileModelVersion)"/>
+    <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
+    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="$(NetFrameworkReferenceAssembliesVersion)"/>
+    <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)"/>
+    <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
   </ItemGroup>
+
   <ItemGroup>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>
   </ItemGroup>

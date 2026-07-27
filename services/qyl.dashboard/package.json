@@ -12,15 +12,15 @@
         "preview": "vite preview",
         "test": "vitest",
         "test:coverage": "vitest run --coverage",
-        "lint": "eslint src",
-        "lint:fix": "eslint src --fix",
+        "lint": "oxlint src && node scripts/check-ui-discipline.mjs",
+        "lint:fix": "oxlint src --fix && node scripts/check-ui-discipline.mjs",
         "typecheck": "tsc --noEmit",
         "e2e": "playwright test",
         "e2e:ui": "playwright test --ui",
         "e2e:report": "playwright show-report"
     },
     "dependencies": {
-        "@ancplua/qyl-api-schema": "2.1.0",
+        "@ancplua/qyl-api-schema": "3.0.0",
         "@base-ui/react": "^1.4.1",
         "@tanstack/react-query": "^5.99.2",
         "@tanstack/react-virtual": "^3.13.24",
@@ -35,24 +35,17 @@
         "tailwind-merge": "^3.5.0"
     },
     "devDependencies": {
-        "@eslint/js": "10.0.1",
         "@playwright/test": "1.62.0",
         "@tailwindcss/vite": "4.3.3",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
         "@vitejs/plugin-react": "6.0.4",
         "@vitest/coverage-v8": "4.1.10",
-        "eslint": "10.8.0",
-        "globals": "17.7.0",
         "jsdom": "29.1.1",
+        "oxlint": "1.75.0",
         "tailwindcss": "4.3.3",
-        "typescript": "5.9.3",
-        "typescript-eslint": "8.65.0",
+        "typescript": "7.0.2",
         "vite": "8.1.5",
         "vitest": "4.1.10"
-    },
-    "overrides": {
-        "js-yaml": "^4.2.0",
-        "@babel/plugin-transform-runtime": "^7.29.0"
     }
 }

@@ -91,7 +91,8 @@ internal static class CollectorSmoke
 
     private static async Task VerifyWireAsync(Uri apiBase, Uri otlpHttpBase, Uri grpcBase)
     {
-        using var http = new HttpClient { Timeout = s_requestTimeout };
+        using var http = new HttpClient();
+        http.Timeout = s_requestTimeout;
 
         var now = checked((ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000UL);
         var jsonTrace = BuildTrace(
@@ -232,7 +233,8 @@ internal static class CollectorSmoke
 
     private static async Task VerifyTraceReadbackAsync(Uri apiBase, string traceId, string spanId)
     {
-        using var http = new HttpClient { Timeout = s_requestTimeout };
+        using var http = new HttpClient();
+        http.Timeout = s_requestTimeout;
         await VerifyTraceReadbackAsync(http, apiBase, traceId, spanId).ConfigureAwait(false);
     }
 
@@ -361,7 +363,8 @@ internal static class CollectorSmoke
         if (!provider.ForceFlush((int)s_requestTimeout.TotalMilliseconds))
             throw new InvalidOperationException("Stock OTel SDK exporter did not flush successfully.");
 
-        using var http = new HttpClient { Timeout = s_requestTimeout };
+        using var http = new HttpClient();
+        http.Timeout = s_requestTimeout;
         await VerifyTraceReadbackAsync(http, apiBase, traceId, spanId).ConfigureAwait(false);
         Console.WriteLine($"[driver] stock OTel SDK default gRPC export read back as trace {traceId}");
     }

@@ -2,42 +2,64 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>0.1.0-beta.12</QylVersion>
+    <QylVersion>0.1.0-beta.15</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
-  <PropertyGroup Label="Package Versions">
+  <!-- Every PackageVersion in Directory.Packages.props resolves through a property declared here.
+       No version literal lives in that file, so a bump is a one-line edit in one place and the
+       shared lines (a runtime, a release train) cannot drift apart by being typed twice. -->
+
+  <PropertyGroup Label="Platform">
     <DotNetRuntimeVersion>10.0.10</DotNetRuntimeVersion>
     <MicrosoftExtensionsVersion>10.8.0</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsAiVersion>10.8.1</MicrosoftExtensionsAiVersion>
-    <!-- Microsoft.Extensions.AI.Evaluation does not share the Microsoft.Extensions.AI release
-         line and lags it. Transitive pinning is on, so a single shared property pins
-         .Evaluation to whatever .AI is bumped to, and restore fails with NU1102 the moment
-         that version has not shipped for .Evaluation. Bump these two independently. -->
-    <MicrosoftExtensionsAiEvaluationVersion>10.8.0</MicrosoftExtensionsAiEvaluationVersion>
+    <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x
+         (verified 2026-07-16 against 3.9.0: its XmlCommentGenerator emits `IOpenApiMediaType.Example = ...`,
+         read-only in 3.x -> CS0200). Hold on the newest 2.x, which is patched for GHSA-v5pm-xwqc-g5wc;
+         retry 3.x when AspNetCore.OpenApi ships a 3.x-compatible generator. Transitive-only pin. -->
+    <MicrosoftOpenApiVersion>2.11.0</MicrosoftOpenApiVersion>
+    <RoslynVersion>5.6.0</RoslynVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="qyl-owned packages">
+    <!-- The producer family ships from Qyl.OpenTelemetry.AutoInstrumentation on one release line,
+         so its packages share one property. -->
+    <QylTelemetryVersion>8.5.0</QylTelemetryVersion>
+    <QylSemanticConventionsVersion>4.0.0</QylSemanticConventionsVersion>
+    <QylApiContractsVersion>3.0.0</QylApiContractsVersion>
+    <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
+    <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Telemetry and wire">
     <OpenTelemetryVersion>1.17.0</OpenTelemetryVersion>
-    <OpenTelemetryAspNetCoreInstrumentationVersion>1.17.0</OpenTelemetryAspNetCoreInstrumentationVersion>
-    <!-- Held at 1.5.3: 1.5.4 and 1.5.5 stop reusing freed blocks after a
-         checkpointed delete, so a replacement ingest grows the file from 41.5 MiB
-         to 77 MiB instead of capping at the pre-deletion peak. Caught by
-         RetentionTests.Checkpointed_retention_reuses_space_without_exceeding_the_pre_deletion_peak;
-         bisected to 1.5.4. Retention would not bound collector disk use on 1.5.4+. -->
-    <DuckDBVersion>1.5.3</DuckDBVersion>
+    <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
+         it (2026-07-26). Retention's space reuse rides the experimental
+         vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
+         changed when that path runs: 1.5.3 fully rebuilt indexes on database open (doubling
+         the file up front, which the old single-cycle test mistook for a reuse cap), while
+         1.5.5 compacts lazily and converges to a *smaller* steady state (68 vs 81 MiB in
+         the gate's workload). Multi-cycle boundedness is asserted by
+         RetentionTests.Repeated_retention_cycles_bound_the_database_file_at_a_steady_state;
+         run it after any DuckDB bump because the option is experimental and its trigger
+         timing has shifted between patch releases before. -->
+    <DuckDBVersion>1.5.5</DuckDBVersion>
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
-    <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAgentsVersion>1.13.8</ANcpLuaAgentsVersion>
-    <QylApiContractsVersion>2.1.0</QylApiContractsVersion>
-    <QylSdkVersion>8.3.0</QylSdkVersion>
+  </PropertyGroup>
 
-    <!-- Mirrors the SDK values so standalone checkouts resolve the same MAF graph.
-         ANcpLua.Agents 1.13.6 depends on Microsoft.Agents.AI(.Abstractions) 1.13.0 — keep in lockstep. -->
-    <MicrosoftAgentsAIVersion>1.13.0</MicrosoftAgentsAIVersion>
-    <MicrosoftAgentsAIHostingVersion>1.13.0-preview.260703.1</MicrosoftAgentsAIHostingVersion>
-
+  <PropertyGroup Label="Build and test tooling">
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
+    <XunitVersion>3.2.2</XunitVersion>
+    <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
+    <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
+    <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
+    <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
+    <MicrosoftBuildVersion>18.7.1</MicrosoftBuildVersion>
+    <!-- Overrides a vulnerable Nuke.Common transitive. -->
+    <NuGetPackagingVersion>7.6.0</NuGetPackagingVersion>
   </PropertyGroup>
 </Project>

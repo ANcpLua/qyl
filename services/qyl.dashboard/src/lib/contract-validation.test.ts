@@ -6,8 +6,8 @@ const span = {
     trace_id: '22222222222222222222222222222222',
     name: 'dashboard-test',
     kind: 1,
-    start_time_unix_nano: 1_000_000_000,
-    end_time_unix_nano: 2_000_000_000,
+    start_time_unix_nano: '1000000000',
+    end_time_unix_nano: '2000000000',
     status: {code: 1},
     resource: {service_name: 'dashboard-test'},
 };
@@ -15,7 +15,7 @@ const span = {
 const trace = {
     trace_id: span.trace_id,
     span_count: 1,
-    duration_ns: 1_000_000_000,
+    duration_ns: '1000000000',
     start_time: '2026-07-15T00:00:00Z',
     end_time: '2026-07-15T00:00:01Z',
     services: ['dashboard-test'],
@@ -48,8 +48,8 @@ describe('generated Collector contract validation', () => {
             type: 'log',
             timestamp: '2026-07-15T00:00:00Z',
             data: {
-                time_unix_nano: 1_000_000_000,
-                observed_time_unix_nano: 1_000_000_001,
+                time_unix_nano: '1000000000',
+                observed_time_unix_nano: '1000000001',
                 severity_number: 9,
                 body: {string_value: 'MCP JSON-RPC request completed'},
                 event_name: 'mcp.request',
