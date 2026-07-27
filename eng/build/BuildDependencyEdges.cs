@@ -45,6 +45,19 @@ interface IDependencyEdges : IHazSourcePaths
         ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Telemetry.Hosting"],
     };
 
+    /// <summary>
+    /// G11 on the project axis: the collector is reachable only via its API, so no project
+    /// may take a compile-time <c>ProjectReference</c> on it. Only the collector's own test
+    /// project is exempt — it hosts the service in-process to drive it. Without this, a
+    /// client-ring project could reach the collector's internals while its
+    /// <c>PackageReference</c> list still equalled the §2 table exactly and the package-axis
+    /// assertion below stayed green.
+    /// </summary>
+    private static readonly string[] s_collectorProjectReferenceExemptions =
+    [
+        "tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj",
+    ];
+
     /// <summary>Packages forbidden anywhere in the repository, by exact name or prefix.</summary>
     private static readonly string[] s_forbiddenEverywhere =
     [
@@ -74,11 +87,26 @@ interface IDependencyEdges : IHazSourcePaths
             {
                 var relative = repoRoot.GetRelativePathTo(project).ToString().Replace('\\', '/');
                 seenProjects.Add(relative);
-                var references = XDocument.Load(project).Descendants("PackageReference")
+                var document = XDocument.Load(project);
+                var references = document.Descendants("PackageReference")
                     .Select(static r => (string?)r.Attribute("Include"))
                     .Where(static include => include is not null)
                     .Select(static include => include!)
                     .ToList();
+
+                if (!s_collectorProjectReferenceExemptions.Contains(relative, StringComparer.Ordinal))
+                {
+                    var collectorEdges = document.Descendants("ProjectReference")
+                        .Select(static r => (string?)r.Attribute("Include"))
+                        .Where(static include => include is not null)
+                        .Select(static include => include!.Replace('\\', '/'))
+                        .Where(static include => include.EndsWith(
+                            "services/qyl.collector/qyl.collector.csproj", StringComparison.Ordinal));
+
+                    offenders.AddRange(collectorEdges.Select(edge =>
+                        $"{relative}: ProjectReference on the collector ({edge}) — G11: the " +
+                        "collector is reachable only via its API"));
+                }
 
                 foreach (var reference in references)
                 {
