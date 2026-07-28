@@ -31,7 +31,8 @@ sealed class Build : NukeBuild,
     ICollectorSemanticCatalog,
     IConfigurationKnobs,
     IHousekeeping,
-    IPack
+    IPack,
+    ICiCoverage
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
 
@@ -81,7 +82,12 @@ sealed class Build : NukeBuild,
         .DependsOn<IPipeline>(static x => x.FrontendTest)
         .DependsOn<IPipeline>(static x => x.FrontendE2E)
         .DependsOn<IPipeline>(static x => x.FrontendLint)
-        .DependsOn<INativeAot>(static x => x.NativeAot);
+        .DependsOn<INativeAot>(static x => x.NativeAot)
+        // CI's pack lane builds with the AOT analyzers the backend lane disables, so it is the
+        // only gate that sees IL2026/IL3050. Omitting it here is what let a trim regression reach
+        // main past a green local run.
+        .DependsOn<IPack>(static x => x.PackSmoke)
+        .DependsOn<ICiCoverage>(static x => x.G1VocabularySmoke);
 
     Target Test => d => d
         .Description("Run every .NET test project in the solution")
