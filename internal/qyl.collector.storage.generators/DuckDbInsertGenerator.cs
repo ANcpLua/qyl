@@ -55,6 +55,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         string? tableName = null;
         string? onConflict = null;
         var indexes = "";
+        var uniqueIndexes = "";
 
         if (tableAttr.ConstructorArguments.Length > 0)
             tableName = tableAttr.GetConstructorArgument<string>(0);
@@ -68,6 +69,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                     break;
                 case "Indexes":
                     indexes = named.Value.Value as string ?? "";
+                    break;
+                case "UniqueIndexes":
+                    uniqueIndexes = named.Value.Value as string ?? "";
                     break;
             }
         }
@@ -100,13 +104,17 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             tableName,
             onConflict,
             columns.ToArray().ToEquatableArray(),
-            ParseIndexSpecs(tableName, indexes, columns).ToArray().ToEquatableArray());
+            ParseIndexSpecs(tableName, indexes, columns, isUnique: false)
+                .Concat(ParseIndexSpecs(tableName, uniqueIndexes, columns, isUnique: true))
+                .ToArray()
+                .ToEquatableArray());
     }
 
     private static IEnumerable<DuckDbIndexInfo> ParseIndexSpecs(
         string tableName,
         string indexes,
-        IReadOnlyCollection<DuckDbColumnInfo> columns)
+        IReadOnlyCollection<DuckDbColumnInfo> columns,
+        bool isUnique)
     {
         if (string.IsNullOrWhiteSpace(indexes))
             yield break;
@@ -126,8 +134,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 continue;
 
             yield return new DuckDbIndexInfo(
-                BuildIndexName(tableName, columnNames),
-                columnNames.ToEquatableArray());
+                BuildIndexName(tableName, columnNames, isUnique),
+                columnNames.ToEquatableArray(),
+                isUnique);
         }
     }
 
@@ -143,9 +152,12 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             $"DuckDB index on '{tableName}' references unknown property '{configuredColumn}'.");
     }
 
-    private static string BuildIndexName(string tableName, IReadOnlyList<string> columnNames)
+    private static string BuildIndexName(
+        string tableName,
+        IReadOnlyList<string> columnNames,
+        bool isUnique)
     {
-        var sb = new StringBuilder("idx_");
+        var sb = new StringBuilder(isUnique ? "uidx_" : "idx_");
         AppendIdentifierToken(sb, tableName);
 
         foreach (var columnName in columnNames)
@@ -301,7 +313,8 @@ internal readonly record struct DuckDbTableInfo(
 
 internal readonly record struct DuckDbIndexInfo(
     string Name,
-    EquatableArray<string> ColumnNames);
+    EquatableArray<string> ColumnNames,
+    bool IsUnique);
 
 internal readonly record struct DuckDbColumnInfo(
     string PropertyName,

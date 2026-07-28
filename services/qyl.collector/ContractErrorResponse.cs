@@ -24,6 +24,27 @@ internal static class ContractErrorResults
             statusCode: StatusCodes.Status400BadRequest,
             contentType: ProblemDetailsMediaType.Value);
 
+    internal static IResult Conflict(string resourceId, string detail) =>
+        Results.Json(
+            new ConflictError
+            {
+                ProblemType = new Uri("about:blank"),
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = detail,
+                ConflictingResource = resourceId
+            },
+            QylSerializerContext.Default.ConflictError,
+            statusCode: StatusCodes.Status409Conflict,
+            contentType: ProblemDetailsMediaType.Value);
+
+    internal static IResult ServiceUnavailable(string reason) =>
+        Results.Json(
+            CreateServiceUnavailable(reason),
+            QylSerializerContext.Default.ServiceUnavailableError,
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            contentType: ProblemDetailsMediaType.Value);
+
     internal static Task WriteValidationAsync(
         HttpResponse response,
         string field,
@@ -127,7 +148,7 @@ internal static class ContractErrorResults
             ProblemType = new Uri("about:blank"),
             Title = "Service Unavailable",
             Status = StatusCodes.Status503ServiceUnavailable,
-            Detail = "The collector has reached its bounded live-stream capacity. Retry after a stream closes.",
+            Detail = "The collector cannot accept this operation at present. Retry later.",
             Reason = reason
         };
 

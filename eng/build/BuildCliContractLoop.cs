@@ -22,7 +22,8 @@ namespace Qyl.Build;
 /// the assembly. Internal domain records (<c>QylResourceState</c>, <c>QylLogLine</c>) are
 /// legitimate and must never be flagged: they sit behind <c>QylRunnerContractMapper</c>, which
 /// converts them to contract types before anything is written, so they are unreachable from a
-/// serialization root.
+/// serialization root. A context marked <c>LocalJsonStateContext</c> is an at-rest implementation
+/// detail and cannot be passed to <c>JsonContent.Create</c> or <c>ReadFromJsonAsync</c>.
 ///
 /// Registered types must be *provably* contract-owned, through a <c>using</c> alias (top-level or
 /// namespace-scoped) or a fully-qualified name. A bare identifier the verifier cannot resolve is
@@ -85,9 +86,19 @@ interface ICliContractLoop : IHazSourcePaths
                     baseType.Type.ToString().EndsWith("JsonSerializerContext", StringComparison.Ordinal)) == true)
                 .Select(static type => type.Identifier.ValueText)
                 .ToHashSet(StringComparer.Ordinal);
+            var localContextNames = roots
+                .SelectMany(static entry => entry.Root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+                .Where(type => contextNames.Contains(type.Identifier.ValueText))
+                .Where(static type => type.AttributeLists
+                    .SelectMany(static list => list.Attributes)
+                    .Any(static attribute => attribute.Name.ToString()
+                        .EndsWith("LocalJsonStateContext", StringComparison.Ordinal)))
+                .Select(static type => type.Identifier.ValueText)
+                .ToHashSet(StringComparer.Ordinal);
 
             var offenders = new List<string>();
             var registeredCount = 0;
+            var localRegisteredCount = 0;
 
             foreach (var (file, root) in roots)
             {
@@ -98,11 +109,33 @@ interface ICliContractLoop : IHazSourcePaths
                 // generator will honor — base-list-bearing part or not.
                 foreach (var type in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
                 {
+                    var isLocalStateContext = localContextNames.Contains(type.Identifier.ValueText);
+                    var declaresLocalStateContext = type.AttributeLists
+                        .SelectMany(static list => list.Attributes)
+                        .Any(static attribute =>
+                            attribute.Name.ToString().EndsWith(
+                                "LocalJsonStateContext",
+                                StringComparison.Ordinal));
+                    if (declaresLocalStateContext &&
+                        !type.Modifiers.Any(static modifier =>
+                            modifier.IsKind(SyntaxKind.InternalKeyword)))
+                    {
+                        offenders.Add(
+                            $"{relative}: local JSON state context " +
+                            $"'{type.Identifier.ValueText}' must be internal");
+                    }
+
                     foreach (var attribute in type.AttributeLists.SelectMany(static list => list.Attributes)
                                  .Where(static a => a.Name.ToString().Contains("JsonSerializable", StringComparison.Ordinal)))
                     {
                         if (attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression is not TypeOfExpressionSyntax typeOf)
                             continue;
+
+                        if (isLocalStateContext)
+                        {
+                            localRegisteredCount++;
+                            continue;
+                        }
 
                         if (aliases is null)
                         {
@@ -121,6 +154,32 @@ interface ICliContractLoop : IHazSourcePaths
                         offenders.Add(resolved == written
                             ? $"{relative}:{line}: {type.Identifier.ValueText} registers '{written}'"
                             : $"{relative}:{line}: {type.Identifier.ValueText} registers '{written}' (resolves to '{resolved}')");
+                    }
+                }
+            }
+
+            foreach (var (file, root) in roots)
+            {
+                var relative = repoRoot.GetRelativePathTo(file).ToString().Replace('\\', '/');
+                foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                {
+                    var invoked = invocation.Expression.ToString();
+                    if (!invoked.EndsWith("JsonContent.Create", StringComparison.Ordinal) &&
+                        !invoked.EndsWith("ReadFromJsonAsync", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var localContext = invocation.DescendantNodes()
+                        .OfType<IdentifierNameSyntax>()
+                        .Select(static identifier => identifier.Identifier.ValueText)
+                        .FirstOrDefault(localContextNames.Contains);
+                    if (localContext is not null)
+                    {
+                        var line = invocation.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                        offenders.Add(
+                            $"{relative}:{line}: collector boundary uses local JSON state context " +
+                            $"'{localContext}'");
                     }
                 }
             }
@@ -144,8 +203,11 @@ interface ICliContractLoop : IHazSourcePaths
             }
 
             Log.Information(
-                "Qyl.Cli serializes contract types only: {Registered} registrations across {Contexts} JSON context(s)",
-                registeredCount, contextNames.Count);
+                "Qyl.Cli collector boundaries serialize contract types only: {Registered} contract and " +
+                "{LocalRegistered} local-state registrations across {Contexts} JSON context(s)",
+                registeredCount,
+                localRegisteredCount,
+                contextNames.Count);
 
             // A using alias is file-scoped for this purpose wherever it sits — after a file-scoped
             // `namespace X;` the directives attach to the namespace node, not the compilation unit.

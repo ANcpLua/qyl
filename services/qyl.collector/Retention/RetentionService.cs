@@ -62,6 +62,10 @@ internal sealed partial class RetentionService(
         var fileBefore = store.GetStorageFileMetrics();
         long deletedLogs = 0;
         long deletedSpans = 0;
+        long deletedWorkflowRuns = 0;
+        long deletedWorkflowEvents = 0;
+        long deletedWorkflowCommands = 0;
+        long deletedWorkflowContent = 0;
         var writeBatches = 0;
 
         try
@@ -94,10 +98,27 @@ internal sealed partial class RetentionService(
                 if (deleted is 0)
                     break;
             }
+
+            while (true)
+            {
+                var deleted = await store.DeleteExpiredWorkflowDataBatchAsync(
+                        timeProvider.GetUtcNow().AddDays(-options.Days),
+                        DeleteBatchSize,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                writeBatches++;
+                deletedWorkflowRuns += deleted.Runs;
+                deletedWorkflowEvents += deleted.Events;
+                deletedWorkflowCommands += deleted.Commands;
+                deletedWorkflowContent += deleted.Content;
+                if (deleted.Runs < DeleteBatchSize && deleted.Content < DeleteBatchSize)
+                    break;
+            }
         }
         finally
         {
-            if (deletedLogs + deletedSpans > 0)
+            if (deletedLogs + deletedSpans + deletedWorkflowRuns + deletedWorkflowEvents +
+                deletedWorkflowCommands + deletedWorkflowContent > 0)
                 await CheckpointAfterDeletionAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -106,6 +127,10 @@ internal sealed partial class RetentionService(
         var result = new RetentionCycleOutcome(
             deletedLogs,
             deletedSpans,
+            deletedWorkflowRuns,
+            deletedWorkflowEvents,
+            deletedWorkflowCommands,
+            deletedWorkflowContent,
             writeBatches,
             duration,
             fileBefore.DatabaseFileSizeBytes,
@@ -117,6 +142,10 @@ internal sealed partial class RetentionService(
                 logger,
                 result.DeletedLogRows,
                 result.DeletedSpanRows,
+                result.DeletedWorkflowRuns,
+                result.DeletedWorkflowEvents,
+                result.DeletedWorkflowCommands,
+                result.DeletedWorkflowContent,
                 result.Duration.TotalMilliseconds,
                 result.FileSizeBeforeBytes,
                 result.FileSizeAfterBytes);
@@ -140,11 +169,15 @@ internal sealed partial class RetentionService(
     [LoggerMessage(
         EventId = 3001,
         Level = LogLevel.Information,
-        Message = "Retention cycle deleted {DeletedLogRows} log rows and {DeletedSpanRows} span rows in {DurationMs} ms; database file size changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
+        Message = "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedWorkflowRuns} workflow runs, {DeletedWorkflowEvents} workflow events, {DeletedWorkflowCommands} workflow commands, and {DeletedWorkflowContent} content chunks in {DurationMs} ms; database file size changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
     private static partial void LogCycleCompleted(
         ILogger logger,
         long deletedLogRows,
         long deletedSpanRows,
+        long deletedWorkflowRuns,
+        long deletedWorkflowEvents,
+        long deletedWorkflowCommands,
+        long deletedWorkflowContent,
         double durationMs,
         long fileSizeBeforeBytes,
         long fileSizeAfterBytes);
@@ -156,12 +189,18 @@ internal sealed partial class RetentionService(
 internal readonly record struct RetentionCycleOutcome(
     long DeletedLogRows,
     long DeletedSpanRows,
+    long DeletedWorkflowRuns,
+    long DeletedWorkflowEvents,
+    long DeletedWorkflowCommands,
+    long DeletedWorkflowContent,
     int WriteBatches,
     TimeSpan Duration,
     long FileSizeBeforeBytes,
     long FileSizeAfterBytes)
 {
-    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, TimeSpan.Zero, 0, 0);
+    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, TimeSpan.Zero, 0, 0);
 
-    public long TotalRows => DeletedLogRows + DeletedSpanRows;
+    public long TotalRows =>
+        DeletedLogRows + DeletedSpanRows + DeletedWorkflowRuns + DeletedWorkflowEvents +
+        DeletedWorkflowCommands + DeletedWorkflowContent;
 }

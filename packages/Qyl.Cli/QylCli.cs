@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Qyl.Cli.Codex;
 using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli;
@@ -27,6 +28,8 @@ internal static class QylCli
         Usage:
           qyl up        Start the collector, embedded dashboard, and diagnostics collector.
                         Telemetry is stored under ~/.qyl/, never in the working directory.
+          qyl codex [-- <codex arguments>]
+                        Start Codex with an encrypted, replayable qyl workflow journal.
           qyl --version Show the installed qyl version
           qyl --help    Show this help
         """;
@@ -47,6 +50,25 @@ internal static class QylCli
                 Console.Error.WriteLine();
                 Console.Error.WriteLine(HelpText);
                 return 2;
+            case QylCliAction.Codex:
+                try
+                {
+                    return await CodexObserverRuntime.RunAsync(invocation.Arguments ?? [])
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return 130;
+                }
+                catch (Exception exception) when (
+                    exception is IOException or InvalidDataException or InvalidOperationException or
+                    System.ComponentModel.Win32Exception or HttpRequestException)
+                {
+                    Console.Error.WriteLine($"Cannot start qyl Codex observer: {exception.Message}");
+                    return 1;
+                }
+            case QylCliAction.ObserverBridge:
+                return await CodexObserverRuntime.RunBridgeAsync().ConfigureAwait(false);
             case QylCliAction.Up:
                 break;
             default:
@@ -77,13 +99,32 @@ internal static class QylCli
 
     internal static QylCliInvocation Parse(IReadOnlyList<string> args)
     {
-        if (args.Count is 0 || args is ["--help"] or ["-h"] or ["help"] or ["help", "up"] or ["up", "--help"] or ["up", "-h"])
+        if (args.Count is 0 ||
+            args is ["--help"] or ["-h"] or ["help"] or
+            ["help", "up"] or ["up", "--help"] or ["up", "-h"] or
+            ["help", "codex"] or ["codex", "--help"] or ["codex", "-h"])
+        {
             return new QylCliInvocation(QylCliAction.Help);
+        }
+
+        if (args[0] == "codex")
+        {
+            if (args.Count is 1)
+                return new QylCliInvocation(QylCliAction.Codex, Arguments: []);
+            if (args[1] == "--")
+                return new QylCliInvocation(
+                    QylCliAction.Codex,
+                    Arguments: args.Skip(2).ToArray());
+            return new QylCliInvocation(
+                QylCliAction.Invalid,
+                "Codex arguments must follow `qyl codex --`.");
+        }
 
         return args switch
         {
             ["--version"] or ["-v"] => new QylCliInvocation(QylCliAction.Version),
             ["up"] => new QylCliInvocation(QylCliAction.Up),
+            ["observer-bridge"] => new QylCliInvocation(QylCliAction.ObserverBridge),
             _ => new QylCliInvocation(QylCliAction.Invalid,
                 $"Unknown qyl command: {string.Join(' ', args.Select(QuoteIfNeeded))}")
         };
@@ -164,12 +205,15 @@ internal static class QylCli
 
 internal readonly record struct QylCliInvocation(
     QylCliAction Action,
-    string? Error = null);
+    string? Error = null,
+    IReadOnlyList<string>? Arguments = null);
 
 internal enum QylCliAction
 {
     Help,
     Version,
     Up,
+    Codex,
+    ObserverBridge,
     Invalid
 }

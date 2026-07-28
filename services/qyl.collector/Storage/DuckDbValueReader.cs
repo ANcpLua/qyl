@@ -69,6 +69,24 @@ internal static class DuckDbValueReader
     public static double ReadDouble(DbDataReader reader, int ordinal, double defaultValue) =>
         ReadDouble(reader, ordinal) ?? defaultValue;
 
+    public static byte[] ReadBytes(DbDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal))
+            return [];
+
+        var value = reader.GetValue(ordinal);
+        if (value is byte[] bytes)
+            return bytes;
+        if (value is not Stream stream)
+            throw new InvalidCastException($"Cannot read column {ordinal} as bytes.");
+
+        if (stream.CanSeek)
+            stream.Position = 0;
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
+    }
+
     public static DateTimeOffset? ReadDateTimeOffset(DbDataReader reader, int ordinal)
     {
         if (reader.IsDBNull(ordinal))

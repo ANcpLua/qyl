@@ -48,6 +48,11 @@ internal static class DuckDbAttributeSource
                                      /// </summary>
                                      public string Indexes { get; set; } = "";
 
+                                     /// <summary>
+                                     /// Semicolon-separated unique-index column groups. Uses the same CLR property-name syntax as Indexes.
+                                     /// </summary>
+                                     public string UniqueIndexes { get; set; } = "";
+
                                      public DuckDbTableAttribute(string tableName) => TableName = tableName;
                                  }
 

@@ -38,6 +38,22 @@ public sealed class QylCliTests
         Assert.Contains("Unknown qyl command: up --dev", oldFlag.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Codex_requires_an_explicit_argument_separator()
+    {
+        var bare = QylCli.Parse(["codex"]);
+        Assert.Equal(QylCliAction.Codex, bare.Action);
+        Assert.Empty(bare.Arguments!);
+
+        var forwarded = QylCli.Parse(["codex", "--", "--model", "gpt-5.6"]);
+        Assert.Equal(QylCliAction.Codex, forwarded.Action);
+        Assert.Equal(["--model", "gpt-5.6"], forwarded.Arguments);
+
+        var ambiguous = QylCli.Parse(["codex", "--model", "gpt-5.6"]);
+        Assert.Equal(QylCliAction.Invalid, ambiguous.Action);
+        Assert.Contains("must follow `qyl codex --`", ambiguous.Error, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("--mcp-stdio", "node", "server.js")]
     [InlineData("--mcp-http", "http://127.0.0.1:3001/mcp")]

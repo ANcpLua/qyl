@@ -1,4 +1,7 @@
 using DuckDB.NET.Data;
+using System.Security.Cryptography;
+using System.Text;
+using Qyl.Collector.Workflow;
 
 using static System.Threading.Volatile;
 
@@ -24,6 +27,7 @@ internal sealed partial class DuckDbStore : IQylStore
     private readonly Channel<IReadJob>? _reads;
     private readonly Thread[] _readerThreads;
     private readonly Task _writerTask;
+    private readonly WorkflowContentProtector _workflowContentProtector;
 
     private int _disposed;
 
@@ -36,13 +40,17 @@ internal sealed partial class DuckDbStore : IQylStore
         string? memoryLimit = null,
         int? threads = null,
         string? tempDirectory = null,
-        Func<CancellationToken, ValueTask>? beforeWrite = null)
+        Func<CancellationToken, ValueTask>? beforeWrite = null,
+        WorkflowContentProtector? workflowContentProtector = null)
     {
         _isInMemory = databasePath == ":memory:";
         _databasePath = _isInMemory ? databasePath : Path.GetFullPath(databasePath);
         _connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
+        _workflowContentProtector = workflowContentProtector ??
+            new WorkflowContentProtector(
+                SHA256.HashData(Encoding.UTF8.GetBytes("qyl-workflow-storage-tests")));
         var connection = new DuckDBConnection(_connectionString);
         try
         {
@@ -770,6 +778,27 @@ internal sealed partial class DuckDbStore : IQylStore
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
+        using var workflowSequenceCmd = con.CreateCommand();
+        workflowSequenceCmd.CommandText = """
+                                          CREATE SEQUENCE IF NOT EXISTS workflow_command_sequence START 1;
+                                          CREATE SEQUENCE IF NOT EXISTS workflow_control_event_source_sequence START 1;
+                                          """;
+        workflowSequenceCmd.ExecuteNonQuery();
+
+        using var workflowCmd = con.CreateCommand();
+        workflowCmd.CommandText = string.Concat(
+            WorkflowRunDbRow.CreateTableDdl, "\n",
+            WorkflowEventDbRow.CreateTableDdl, "\n",
+            WorkflowEventDbRow.IndexesDdl, "\n",
+            WorkflowContentDbRow.CreateTableDdl, "\n",
+            WorkflowContentReferenceDbRow.CreateTableDdl, "\n",
+            WorkflowCommandDbRow.CreateTableDdl, "\n",
+            WorkflowCommandDbRow.IndexesDdl, "\n",
+            WorkflowProjectionNodeDbRow.CreateTableDdl, "\n",
+            WorkflowProjectionEdgeDbRow.CreateTableDdl, "\n",
+            WorkflowProjectionStateDbRow.CreateTableDdl);
+        workflowCmd.ExecuteNonQuery();
+
         VerifyPersistedPrimaryKeys(con);
     }
 
@@ -778,7 +807,15 @@ internal sealed partial class DuckDbStore : IQylStore
         (string Table, string Columns)[] expected =
         [
             (SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv),
-            (LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv)
+            (LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv),
+            (WorkflowRunDbRow.TableName, WorkflowRunDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowEventDbRow.TableName, WorkflowEventDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowContentDbRow.TableName, WorkflowContentDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowContentReferenceDbRow.TableName, WorkflowContentReferenceDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowCommandDbRow.TableName, WorkflowCommandDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowProjectionNodeDbRow.TableName, WorkflowProjectionNodeDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowProjectionEdgeDbRow.TableName, WorkflowProjectionEdgeDbRow.PrimaryKeyColumnsCsv),
+            (WorkflowProjectionStateDbRow.TableName, WorkflowProjectionStateDbRow.PrimaryKeyColumnsCsv)
         ];
 
         foreach (var (table, columns) in expected)

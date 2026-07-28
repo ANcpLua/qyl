@@ -37,6 +37,122 @@ internal sealed partial class DuckDbStore
             return 0;
         }, ct);
 
+    public Task<WorkflowRetentionResult> DeleteExpiredWorkflowDataBatchAsync(
+        DateTimeOffset cutoff,
+        int batchSize,
+        CancellationToken ct = default)
+    {
+        if (batchSize < 1)
+            throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
+        return ExecuteMaintenanceWriteAsync(async (con, token) =>
+        {
+            await using var transaction = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            var expiredRuns = new List<(string ProjectId, string RunId)>();
+            await using (var select = con.CreateCommand())
+            {
+                select.Transaction = transaction;
+                select.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList + """
+                                      FROM workflow_runs
+                                      WHERE COALESCE(ended_at, started_at) < $1
+                                      ORDER BY COALESCE(ended_at, started_at), project_id, run_id
+                                      LIMIT $2
+                                      """;
+                AddParameters(select, cutoff.UtcDateTime, batchSize);
+                await using var reader = await select.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
+                {
+                    var row = WorkflowRunDbRow.MapFromReader(reader);
+                    expiredRuns.Add((row.ProjectId, row.RunId));
+                }
+            }
+
+            var eventCount = 0;
+            var commandCount = 0;
+            foreach (var run in expiredRuns)
+            {
+                var counts = CountWorkflowRows(con, transaction, run.ProjectId, run.RunId);
+                eventCount += counts.Events;
+                commandCount += counts.Commands;
+                await using var delete = con.CreateCommand();
+                delete.Transaction = transaction;
+                delete.CommandText = """
+                                     DELETE FROM workflow_projection_nodes
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     DELETE FROM workflow_projection_edges
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     DELETE FROM workflow_projection_state
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     DELETE FROM workflow_content_refs
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     DELETE FROM workflow_events
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     DELETE FROM workflow_commands
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     DELETE FROM workflow_runs
+                                     WHERE project_id = $1 AND run_id = $2;
+                                     """;
+                AddParameters(delete, run.ProjectId, run.RunId);
+                await delete.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            var contentCount = 0;
+            await using (var content = con.CreateCommand())
+            {
+                content.Transaction = transaction;
+                content.CommandText = """
+                                      DELETE FROM workflow_content
+                                      WHERE (project_id, content_ref) IN (
+                                          SELECT candidate.project_id, candidate.content_ref
+                                          FROM workflow_content AS candidate
+                                          WHERE candidate.created_at < $1
+                                            AND NOT EXISTS (
+                                                SELECT 1
+                                                FROM workflow_content_refs AS reference
+                                                WHERE reference.project_id = candidate.project_id
+                                                  AND reference.content_ref = candidate.content_ref
+                                            )
+                                          ORDER BY candidate.created_at, candidate.project_id, candidate.content_ref
+                                          LIMIT $2
+                                      )
+                                      RETURNING content_ref
+                                      """;
+                AddParameters(content, cutoff.UtcDateTime, batchSize);
+                await using var reader = await content.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
+                    contentCount++;
+            }
+
+            await transaction.CommitAsync(token).ConfigureAwait(false);
+            return new WorkflowRetentionResult(
+                expiredRuns.Count,
+                eventCount,
+                commandCount,
+                contentCount);
+        }, ct);
+    }
+
+    private static (int Events, int Commands) CountWorkflowRows(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        string projectId,
+        string runId)
+    {
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              SELECT
+                                  (SELECT count(*) FROM workflow_events
+                                   WHERE project_id = $1 AND run_id = $2),
+                                  (SELECT count(*) FROM workflow_commands
+                                   WHERE project_id = $1 AND run_id = $2)
+                              """;
+        AddParameters(command, projectId, runId);
+        using var reader = command.ExecuteReader();
+        return reader.Read()
+            ? (DuckDbValueReader.ReadInt32(reader, 0, 0), DuckDbValueReader.ReadInt32(reader, 1, 0))
+            : default;
+    }
+
     public StorageFileMetrics GetStorageFileMetrics()
     {
         ThrowIfDisposed();

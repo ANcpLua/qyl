@@ -188,7 +188,9 @@ internal static class DuckDbEmitter
 
         foreach (var index in table.Indexes)
         {
-            var line = new StringBuilder("        CREATE INDEX IF NOT EXISTS ");
+            var line = new StringBuilder(index.IsUnique
+                ? "        CREATE UNIQUE INDEX IF NOT EXISTS "
+                : "        CREATE INDEX IF NOT EXISTS ");
             line.Append(SqlIdentifier.Quote(index.Name))
                 .Append(" ON ")
                 .Append(SqlIdentifier.Quote(table.TableName))
@@ -225,6 +227,7 @@ internal static class DuckDbEmitter
             "ulong" or "System.UInt64" => "UBIGINT",
             "double" or "System.Double" => "DOUBLE",
             "decimal" or "System.Decimal" => "DECIMAL",
+            "byte[]" or "System.Byte[]" => "BLOB",
             "System.DateTimeOffset" or "DateTimeOffset" => "TIMESTAMP",
             _ => throw new InvalidOperationException(
                 $"No DuckDB SQL type mapping for {column.PropertyType} on {column.PropertyName}. Set SqlType explicitly.")
@@ -304,6 +307,7 @@ internal static class DuckDbEmitter
                 "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? null : reader.GetDecimal({ordinal})",
                 "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal})",
                 "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal})",
+                "byte[]" or "System.Byte[]" => $"reader.IsDBNull({ordinal}) ? null : DuckDbValueReader.ReadBytes(reader, {ordinal})",
                 "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal})",
                 _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
             };
@@ -317,6 +321,7 @@ internal static class DuckDbEmitter
             "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? 0m : reader.GetDecimal({ordinal})",
             "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}, 0)",
             "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}, 0)",
+            "byte[]" or "System.Byte[]" => $"DuckDbValueReader.ReadBytes(reader, {ordinal})",
             "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
             _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
         };

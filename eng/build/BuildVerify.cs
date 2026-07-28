@@ -2921,7 +2921,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 tables.Add(new DuckDbTableDdlInfo(
                     declaration.Identifier.ValueText,
                     ReadRequiredPositionalStringAttributeArgument(tableAttribute, 0),
-                    !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "Indexes"))));
+                    !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "Indexes")) ||
+                    !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "UniqueIndexes"))));
             }
         }
 

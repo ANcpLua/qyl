@@ -100,4 +100,85 @@ internal interface IQylStore : IAsyncDisposable
         int limit = 250,
         CancellationToken ct = default);
 
+    Task<WorkflowRunStorageRow> CreateWorkflowRunAsync(
+        WorkflowRunStorageRow run,
+        CancellationToken ct = default);
+
+    Task<WorkflowRunStorageRow?> GetWorkflowRunAsync(
+        string projectId,
+        string runId,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<WorkflowRunStorageRow>> ListWorkflowRunsAsync(
+        string projectId,
+        Qyl.Api.Contracts.Workflow.WorkflowRunStatus? status,
+        int limit,
+        int offset,
+        CancellationToken ct = default);
+
+    Task<WorkflowAppendResult> AppendWorkflowEventsAsync(
+        string projectId,
+        string runId,
+        string clientId,
+        IReadOnlyList<WorkflowEventWrite> events,
+        IReadOnlyList<WorkflowContentWrite> content,
+        CancellationToken ct = default);
+
+    Task<WorkflowEventStoragePage?> ReadWorkflowEventsAsync(
+        string projectId,
+        string runId,
+        ulong afterSequence,
+        int limit,
+        CancellationToken ct = default);
+
+    Task<Qyl.Api.Contracts.Workflow.WorkflowGraphSnapshot?> GetWorkflowGraphAsync(
+        string projectId,
+        string runId,
+        int nodeOffset,
+        int nodeLimit,
+        int edgeOffset,
+        int edgeLimit,
+        CancellationToken ct = default);
+
+    Task RebuildWorkflowProjectionAsync(
+        string projectId,
+        string runId,
+        CancellationToken ct = default);
+
+    Task<WorkflowContentReadRow?> GetWorkflowContentAsync(
+        string projectId,
+        string runId,
+        string contentRef,
+        CancellationToken ct = default);
+
+    Task<WorkflowControlCommandStorageRow?> SubmitWorkflowControlAsync(
+        string projectId,
+        string runId,
+        Qyl.Api.Contracts.Workflow.WorkflowControlAction action,
+        string idempotencyKey,
+        string? input,
+        DateTimeOffset requestedAt,
+        CancellationToken ct = default);
+
+    Task<WorkflowControlCommandStoragePage?> PollWorkflowControlsAsync(
+        string projectId,
+        string runId,
+        ulong afterSequence,
+        int limit,
+        CancellationToken ct = default);
+
+    Task<WorkflowControlCommandStorageRow?> UpdateWorkflowControlAsync(
+        string projectId,
+        string runId,
+        string commandId,
+        Qyl.Api.Contracts.Workflow.WorkflowControlStatus status,
+        string? error,
+        DateTimeOffset updatedAt,
+        CancellationToken ct = default);
+
+    Task<WorkflowRetentionResult> DeleteExpiredWorkflowDataBatchAsync(
+        DateTimeOffset cutoff,
+        int batchSize,
+        CancellationToken ct = default);
+
 }
