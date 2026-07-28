@@ -205,6 +205,17 @@ internal sealed partial class DuckDbStore
                     status = WorkflowRunStatus.Interrupted;
                     endedAt = workflowEvent.Timestamp;
                 }
+                else if (workflowEvent.Kind is WorkflowJournalEventKind.TurnStarted
+                         && status is WorkflowRunStatus.Interrupted)
+                {
+                    // A resume continues the same attempt, so the next turn starting is the
+                    // journal's proof the run is active again — without this, EndedAt stayed
+                    // latched from the interrupt until a new attempt, and a resumed run kept
+                    // reading as ended. Guarded on Interrupted so a late TurnStarted can never
+                    // resurrect a completed run.
+                    status = WorkflowRunStatus.Active;
+                    endedAt = null;
+                }
             }
 
             if (accepted > 0)

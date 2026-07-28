@@ -174,6 +174,66 @@ public sealed class WorkflowJournalTests
     }
 
     [Fact]
+    public async Task Interrupted_run_becomes_active_again_when_the_next_turn_starts()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [
+                Event("start", 1, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-1"),
+                Event("turn-1", 2, WorkflowJournalEventKind.TurnStarted, 1, "attempt-1", turnId: "turn-1"),
+                Event("stop", 3, WorkflowJournalEventKind.TurnInterrupted, 2, "attempt-1", turnId: "turn-1")
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var interrupted = await store.GetWorkflowGraphAsync(
+            "project-a", "run-1", null, 1000, null, 2000, TestContext.Current.CancellationToken);
+        Assert.NotNull(interrupted);
+        Assert.Equal(WorkflowRunStatus.Interrupted, interrupted.Run.Status);
+        Assert.NotNull(interrupted.Run.EndedAt);
+
+        // A resume continues the same attempt: no new AttemptStarted, just the next turn.
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [Event("turn-2", 4, WorkflowJournalEventKind.TurnStarted, 3, "attempt-1", turnId: "turn-2")],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var resumed = await store.GetWorkflowGraphAsync(
+            "project-a", "run-1", null, 1000, null, 2000, TestContext.Current.CancellationToken);
+        Assert.NotNull(resumed);
+        Assert.Equal(WorkflowRunStatus.Active, resumed.Run.Status);
+        Assert.Null(resumed.Run.EndedAt);
+
+        // A late TurnStarted after the run completed must not resurrect it.
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [
+                Event("run-end", 5, WorkflowJournalEventKind.RunCompleted, 4,
+                    data: """{"status":"completed"}"""),
+                Event("late-turn", 6, WorkflowJournalEventKind.TurnStarted, 5, "attempt-1",
+                    turnId: "turn-3")
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var completed = await store.GetWorkflowGraphAsync(
+            "project-a", "run-1", null, 1000, null, 2000, TestContext.Current.CancellationToken);
+        Assert.NotNull(completed);
+        Assert.Equal(WorkflowRunStatus.Completed, completed.Run.Status);
+        Assert.NotNull(completed.Run.EndedAt);
+    }
+
+    [Fact]
     public async Task Projection_distinguishes_recorded_edges_from_derived_conflicts_and_uses_timing()
     {
         await using var store = new DuckDbStore(":memory:");
