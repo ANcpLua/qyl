@@ -51,6 +51,11 @@ internal static class CollectorSmoke
     private static readonly TimeSpan s_requestTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan s_readbackTimeout = TimeSpan.FromSeconds(15);
 
+    private static readonly HttpClient s_http = new()
+    {
+        Timeout = s_requestTimeout
+    };
+
     public static async Task<int> RunAsync(string[] args)
     {
         try
@@ -91,8 +96,7 @@ internal static class CollectorSmoke
 
     private static async Task VerifyWireAsync(Uri apiBase, Uri otlpHttpBase, Uri grpcBase)
     {
-        using var http = new HttpClient();
-        http.Timeout = s_requestTimeout;
+        var http = s_http;
 
         var now = checked((ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000UL);
         var jsonTrace = BuildTrace(
@@ -233,9 +237,7 @@ internal static class CollectorSmoke
 
     private static async Task VerifyTraceReadbackAsync(Uri apiBase, string traceId, string spanId)
     {
-        using var http = new HttpClient();
-        http.Timeout = s_requestTimeout;
-        await VerifyTraceReadbackAsync(http, apiBase, traceId, spanId).ConfigureAwait(false);
+        await VerifyTraceReadbackAsync(s_http, apiBase, traceId, spanId).ConfigureAwait(false);
     }
 
     private static Task VerifyTraceReadbackAsync(HttpClient http, Uri apiBase, string traceId, string spanId) =>
@@ -363,9 +365,7 @@ internal static class CollectorSmoke
         if (!provider.ForceFlush((int)s_requestTimeout.TotalMilliseconds))
             throw new InvalidOperationException("Stock OTel SDK exporter did not flush successfully.");
 
-        using var http = new HttpClient();
-        http.Timeout = s_requestTimeout;
-        await VerifyTraceReadbackAsync(http, apiBase, traceId, spanId).ConfigureAwait(false);
+        await VerifyTraceReadbackAsync(s_http, apiBase, traceId, spanId).ConfigureAwait(false);
         Console.WriteLine($"[driver] stock OTel SDK default gRPC export read back as trace {traceId}");
     }
 
