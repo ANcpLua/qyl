@@ -52,9 +52,10 @@ public sealed class RunnerApiTests
             Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
             await using (var body = await response.Content.ReadAsStreamAsync(lifetime.Token))
             {
-                var states = await JsonSerializer.DeserializeAsync<RunnerResourceState[]>(
+                var states = await JsonSerializer.DeserializeAsync(
                     body,
-                    cancellationToken: lifetime.Token);
+                    QylRunnerJsonContext.Default.RunnerResourceStateArray,
+                    lifetime.Token);
                 var state = Assert.Single(Assert.IsType<RunnerResourceState[]>(states));
                 Assert.Equal(resource.Name, state.Name);
                 Assert.Equal(RunnerResourceLifecycle.Ready, state.Lifecycle);
@@ -67,9 +68,10 @@ public sealed class RunnerApiTests
             Assert.Equal(HttpStatusCode.OK, logsResponse.StatusCode);
             await using (var body = await logsResponse.Content.ReadAsStreamAsync(lifetime.Token))
             {
-                var lines = await JsonSerializer.DeserializeAsync<RunnerLogLine[]>(
+                var lines = await JsonSerializer.DeserializeAsync(
                     body,
-                    cancellationToken: lifetime.Token);
+                    QylRunnerJsonContext.Default.RunnerLogLineArray,
+                    lifetime.Token);
                 var line = Assert.Single(Assert.IsType<RunnerLogLine[]>(lines));
                 Assert.Equal("one line", line.Line);
                 Assert.Equal(RunnerLogStream.Stdout, line.Stream);
@@ -79,7 +81,7 @@ public sealed class RunnerApiTests
                 new Uri($"http://127.0.0.1:{port}/runner/resources/missing/logs"), lifetime.Token);
             Assert.Equal(HttpStatusCode.NotFound, missingLogs.StatusCode);
             Assert.Equal(ProblemDetailsMediaType.Value, missingLogs.Content.Headers.ContentType?.MediaType);
-            var problem = await missingLogs.Content.ReadFromJsonAsync<NotFoundError>(lifetime.Token);
+            var problem = await missingLogs.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.NotFoundError, lifetime.Token);
             var notFound = Assert.IsType<NotFoundError>(problem);
             Assert.Equal("Not Found", notFound.Title);
             Assert.Equal("missing", notFound.ResourceId);
@@ -95,7 +97,7 @@ public sealed class RunnerApiTests
                 Assert.Equal("event: message", await reader.ReadLineAsync(lifetime.Token));
                 var data = Assert.IsType<string>(await reader.ReadLineAsync(lifetime.Token));
                 Assert.StartsWith("data: ", data, StringComparison.Ordinal);
-                var streamed = JsonSerializer.Deserialize<RunnerResourceState>(data[6..]);
+                var streamed = JsonSerializer.Deserialize(data[6..], QylRunnerJsonContext.Default.RunnerResourceState);
                 Assert.Equal(resource.Name, Assert.IsType<RunnerResourceState>(streamed).Name);
                 Assert.Equal(string.Empty, await reader.ReadLineAsync(lifetime.Token));
             }
@@ -119,11 +121,11 @@ public sealed class RunnerApiTests
                 new Uri($"http://127.0.0.1:{port}/runner/resources/demo/stop"));
             crossOrigin.Headers.Add("Origin", "https://attacker.example");
             crossOrigin.Headers.Add("Sec-Fetch-Site", "cross-site");
-            crossOrigin.Content = JsonContent.Create(new { });
+            crossOrigin.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
             using var crossOriginResponse = await securityClient.SendAsync(crossOrigin, lifetime.Token);
             Assert.Equal(HttpStatusCode.Forbidden, crossOriginResponse.StatusCode);
             Assert.Equal(ProblemDetailsMediaType.Value, crossOriginResponse.Content.Headers.ContentType?.MediaType);
-            var forbidden = await crossOriginResponse.Content.ReadFromJsonAsync<ForbiddenError>(lifetime.Token);
+            var forbidden = await crossOriginResponse.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ForbiddenError, lifetime.Token);
             var forbiddenError = Assert.IsType<ForbiddenError>(forbidden);
             Assert.Equal("Forbidden", forbiddenError.Title);
             Assert.Equal("same-origin runner control", forbiddenError.RequiredPermission);

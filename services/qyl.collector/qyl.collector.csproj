@@ -4,7 +4,10 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
 

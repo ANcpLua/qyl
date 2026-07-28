@@ -77,7 +77,7 @@ public sealed class RunnerCapacityAndResumeTests
             using var rejected = await SendStreamAsync(client, uri, lastEventId: null, timeout.Token);
             Assert.Equal(HttpStatusCode.ServiceUnavailable, rejected.StatusCode);
             Assert.Equal(ProblemDetailsMediaType.Value, rejected.Content.Headers.ContentType?.MediaType);
-            var problem = await rejected.Content.ReadFromJsonAsync<ServiceUnavailableError>(timeout.Token);
+            var problem = await rejected.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ServiceUnavailableError, timeout.Token);
             Assert.Equal("runner.stream_capacity", Assert.IsType<ServiceUnavailableError>(problem).Reason);
         }
         finally

@@ -272,7 +272,11 @@ public sealed class PublishedContractV1Tests
     {
         var context = new DefaultHttpContext
         {
-            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider()
+            RequestServices = new ServiceCollection()
+                .AddLogging()
+                .ConfigureHttpJsonOptions(static options =>
+                    options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default))
+                .BuildServiceProvider()
         };
         context.Response.Body = new MemoryStream();
         var result = await endpoint(context, store, cancellationToken);

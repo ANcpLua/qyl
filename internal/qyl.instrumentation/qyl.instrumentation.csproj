@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Instrumentation</RootNamespace>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

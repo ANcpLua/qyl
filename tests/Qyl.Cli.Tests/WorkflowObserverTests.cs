@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Qyl.Api.Contracts.Workflow;
 using Qyl.Cli.Codex;
 
@@ -366,7 +367,7 @@ public sealed class WorkflowObserverTests
         };
         File.WriteAllText(
             Path.Combine(root, "codex_app_server_protocol.schemas.json"),
-            JsonSerializer.Serialize(required));
+            JsonSerializer.Serialize(required, WorkflowObserverTestJsonContext.Default.StringArray));
         File.WriteAllText(
             Path.Combine(root, "codex_app_server_protocol.v2.schemas.json"),
             """
@@ -466,3 +467,6 @@ public sealed class WorkflowObserverTests
         }
     }
 }
+
+[JsonSerializable(typeof(string[]))]
+internal sealed partial class WorkflowObserverTestJsonContext : JsonSerializerContext;

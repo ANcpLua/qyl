@@ -134,7 +134,11 @@ public sealed class TracePagingTests
     {
         var context = new DefaultHttpContext
         {
-            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider()
+            RequestServices = new ServiceCollection()
+                .AddLogging()
+                .ConfigureHttpJsonOptions(static options =>
+                    options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default))
+                .BuildServiceProvider()
         };
         context.Request.QueryString = new QueryString(query);
         context.Response.Body = new MemoryStream();
