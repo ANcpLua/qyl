@@ -4,9 +4,6 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
-    <EnableAotAnalyzer>true</EnableAotAnalyzer>
-    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
@@ -15,6 +12,12 @@
     <QylAot Condition="'$(QylAot)' == ''">true</QylAot>
     <PublishAot Condition="'$(QylAot)' == 'true'">true</PublishAot>
     <PublishTrimmed Condition="'$(QylAot)' == 'true'">true</PublishTrimmed>
+    <!-- Analyzers are meaningful only with the Request Delegate Generator active (QylAot=true,
+         the shipping config); without it the reflective MapGet/MapPost overloads flag IL2026/IL3050
+         that the published artifact never contains. -->
+    <EnableTrimAnalyzer Condition="'$(QylAot)' == 'true'">true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer Condition="'$(QylAot)' == 'true'">true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer Condition="'$(QylAot)' == 'true'">true</EnableSingleFileAnalyzer>
     <WarningsNotAsErrors Condition="'$(QylAot)' == 'true'">$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
     <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
     <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
