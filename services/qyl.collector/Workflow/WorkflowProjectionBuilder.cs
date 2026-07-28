@@ -20,6 +20,9 @@ internal static class WorkflowProjectionBuilder
     /// </summary>
     private const int MaxConflictWitnessesPerPath = 32;
 
+    /// <summary>The contract's <c>@maxLength(192)</c> on WorkflowNodeId.</summary>
+    private const int MaxNodeIdLength = 192;
+
     public static WorkflowGraphSnapshot Build(
         WorkflowRunStorageRow run,
         IReadOnlyList<WorkflowEventStorageRow> events,
@@ -31,7 +34,7 @@ internal static class WorkflowProjectionBuilder
         var lastNodeByOwner = new Dictionary<string, string>(StringComparer.Ordinal);
         var writesByPath = new Dictionary<string, List<(string NodeId, string EventId)>>(StringComparer.Ordinal);
 
-        var runNodeId = $"run:{run.RunId}";
+        var runNodeId = NodeId("run", run.RunId);
         nodes.Add(runNodeId, new MutableNode(
             runNodeId,
             WorkflowNodeKind.Run,
@@ -50,7 +53,7 @@ internal static class WorkflowProjectionBuilder
                 activeAttempt = workflowEvent.AttemptId ?? activeAttempt;
 
             var attemptId = workflowEvent.AttemptId ?? activeAttempt;
-            var attemptNodeId = attemptId is null ? null : $"attempt:{attemptId}";
+            var attemptNodeId = attemptId is null ? null : NodeId("attempt", attemptId);
             if (attemptNodeId is not null && !nodes.ContainsKey(attemptNodeId))
             {
                 nodes.Add(attemptNodeId, new MutableNode(
@@ -312,7 +315,7 @@ internal static class WorkflowProjectionBuilder
         string? attemptId,
         string? attemptNodeId)
     {
-        var nodeId = $"message:{workflowEvent.EventId}";
+        var nodeId = NodeId("message", workflowEvent.EventId);
         var sender = workflowEvent.AgentId is null
             ? attemptNodeId
             : AgentNodeId(attemptId, workflowEvent.AgentId);
@@ -347,7 +350,7 @@ internal static class WorkflowProjectionBuilder
             ? attemptNodeId
             : AgentNodeId(attemptId, workflowEvent.AgentId);
         var stableId = DataString(workflowEvent, "wait_id") ?? workflowEvent.ToolCallId ?? workflowEvent.EventId;
-        var nodeId = $"wait:{attemptId ?? "run"}:{stableId}";
+        var nodeId = NodeId("wait", attemptId ?? "run", stableId);
         if (!nodes.TryGetValue(nodeId, out var node))
         {
             node = new MutableNode(
@@ -387,7 +390,7 @@ internal static class WorkflowProjectionBuilder
         var stableId = DataString(workflowEvent, "command_id") ??
                        DataString(workflowEvent, "approval_id") ??
                        workflowEvent.EventId;
-        var nodeId = $"gate:{stableId}";
+        var nodeId = NodeId("gate", stableId);
         var terminal = workflowEvent.Kind is
             WorkflowJournalEventKind.ApprovalResolved or
             WorkflowJournalEventKind.ControlApplied or
@@ -485,7 +488,7 @@ internal static class WorkflowProjectionBuilder
         string? attemptId,
         string? attemptNodeId)
     {
-        var nodeId = $"item:{DataString(workflowEvent, "item_id") ?? workflowEvent.EventId}";
+        var nodeId = NodeId("item", DataString(workflowEvent, "item_id") ?? workflowEvent.EventId);
         var owner = OwnerNodeId(workflowEvent, attemptId, attemptNodeId);
         if (!nodes.TryGetValue(nodeId, out var node))
         {
@@ -798,20 +801,20 @@ internal static class WorkflowProjectionBuilder
             WorkflowJournalEventKind.TurnInterrupted when workflowEvent.TurnId is not null =>
                 TurnNodeId(attemptId, workflowEvent.TurnId),
             WorkflowJournalEventKind.MessageSent or WorkflowJournalEventKind.MessageReceived =>
-                $"message:{workflowEvent.EventId}",
+                NodeId("message", workflowEvent.EventId),
             WorkflowJournalEventKind.ItemStarted or WorkflowJournalEventKind.ItemCompleted =>
-                $"item:{DataString(workflowEvent, "item_id") ?? workflowEvent.EventId}",
+                NodeId("item", DataString(workflowEvent, "item_id") ?? workflowEvent.EventId),
             _ => null
         };
 
     private static string AgentNodeId(string? attemptId, string agentId) =>
-        $"agent:{attemptId ?? "run"}:{agentId}";
+        NodeId("agent", attemptId ?? "run", agentId);
 
     private static string ToolNodeId(string? attemptId, string toolCallId) =>
-        $"tool:{attemptId ?? "run"}:{toolCallId}";
+        NodeId("tool", attemptId ?? "run", toolCallId);
 
     private static string TurnNodeId(string? attemptId, string turnId) =>
-        $"turn:{attemptId ?? "run"}:{turnId}";
+        NodeId("turn", attemptId ?? "run", turnId);
 
     private static string EventLabel(WorkflowEventStorageRow workflowEvent, string fallback) =>
         DataString(workflowEvent, "label") ??
@@ -849,6 +852,39 @@ internal static class WorkflowProjectionBuilder
                 static property => property.Name,
                 static property => (object)property.Value.Clone(),
                 StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Node ids join untrusted components with ':'. Unescaped, an agent literally named
+    /// "run:worker" under no attempt produced exactly the same id as attempt "run" with agent
+    /// "worker" — two distinct entities silently collapsing into one node, each inheriting the
+    /// other's edges and durations. Escaping is identity for any component containing neither
+    /// ':' nor '\', so every id already in flight stays byte-identical.
+    /// </summary>
+    private static string IdPart(string value) =>
+        value.Contains(':', StringComparison.Ordinal) || value.Contains('\\', StringComparison.Ordinal)
+            ? value.Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace(":", "\\c", StringComparison.Ordinal)
+            : value;
+
+    /// <summary>
+    /// Composes a node id from a kind and untrusted components. WorkflowNodeId is
+    /// @maxLength(192) and the components are client-supplied, so an overlong id folds its tail
+    /// into a digest: plain truncation would reintroduce the collision the escaping prevents.
+    /// </summary>
+    private static string NodeId(string kind, params string[] parts)
+    {
+        var builder = new StringBuilder(kind);
+        foreach (var part in parts)
+        {
+            builder.Append(':');
+            builder.Append(IdPart(part));
+        }
+
+        var composed = builder.ToString();
+        return composed.Length <= MaxNodeIdLength
+            ? composed
+            : string.Concat(composed.AsSpan(0, MaxNodeIdLength - 17), "~", ShortHash(composed));
     }
 
     private static string ShortHash(string value) =>
