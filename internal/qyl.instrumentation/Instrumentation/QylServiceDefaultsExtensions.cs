@@ -29,22 +29,19 @@ public static class QylServiceDefaultsExtensions
 
         var options = app.Services.GetService<QylOptions>() ?? new QylOptions();
 
-        if (options.EnableDefaultHealthEndpoints)
-        {
-            app.MapHealthChecks(QylEndpoints.Health,
-                new HealthCheckOptions
-                {
-                    Predicate = static check => check.Tags.Contains(QylEndpoints.ReadyTag),
-                    ResponseWriter = WriteHealthReportJsonAsync
-                });
+        app.MapHealthChecks(QylEndpoints.Health,
+            new HealthCheckOptions
+            {
+                Predicate = static check => check.Tags.Contains(QylEndpoints.ReadyTag),
+                ResponseWriter = WriteHealthReportJsonAsync
+            });
 
-            app.MapHealthChecks(QylEndpoints.Alive,
-                new HealthCheckOptions
-                {
-                    Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag),
-                    ResponseWriter = WriteHealthReportJsonAsync
-                });
-        }
+        app.MapHealthChecks(QylEndpoints.Alive,
+            new HealthCheckOptions
+            {
+                Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag),
+                ResponseWriter = WriteHealthReportJsonAsync
+            });
 
         app.UseMiddleware<ExceptionCaptureMiddleware>();
 
@@ -90,16 +87,12 @@ public static class QylServiceDefaultsExtensions
     };
 
 
-    internal static void ConfigureServiceProvider<TBuilder>(TBuilder builder, QylOptions options)
-        where TBuilder : IHostApplicationBuilder
-    {
-        if (!options.ValidateOnBuild) return;
-
+    internal static void ConfigureServiceProvider<TBuilder>(TBuilder builder)
+        where TBuilder : IHostApplicationBuilder =>
         builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
         {
             ValidateOnBuild = true, ValidateScopes = true
         }));
-    }
 
     internal static void ConfigureKestrel(IServiceCollection services) =>
         services.Configure<KestrelServerOptions>(static options =>
@@ -107,22 +100,19 @@ public static class QylServiceDefaultsExtensions
             options.AddServerHeader = false;
         });
 
-    internal static void ConfigureJson(IServiceCollection services, QylOptions options)
+    internal static void ConfigureJson(IServiceCollection services)
     {
-        void Json(JsonSerializerOptions json)
+        static void Json(JsonSerializerOptions json)
         {
             json.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             json.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
             json.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-#if NET10_0_OR_GREATER
             json.RespectNullableAnnotations = true;
             json.RespectRequiredConstructorParameters = true;
-#endif
-            options.ConfigureJson?.Invoke(json);
         }
 
-        services.Configure<JsonOptions>(opt => Json(opt.JsonSerializerOptions));
-        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => Json(opt.SerializerOptions));
+        services.Configure<JsonOptions>(static opt => Json(opt.JsonSerializerOptions));
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(static opt => Json(opt.SerializerOptions));
     }
 
     // Composition of the producer pipeline belongs to Qyl.Telemetry.Hosting, which owns the OTel wiring, the
@@ -207,16 +197,12 @@ public static class QylServiceDefaultsExtensions
 
             builder.Services.TryAddSingleton(options);
 
-            ConfigureServiceProvider(builder, options);
+            ConfigureServiceProvider(builder);
             ConfigureKestrel(builder.Services);
-            ConfigureJson(builder.Services, options);
+            ConfigureJson(builder.Services);
 
             ConfigureQylTelemetry(builder, options);
-            if (options.EnableDefaultHealthChecks)
-            {
-                ConfigureHealthChecks(builder);
-            }
-
+            ConfigureHealthChecks(builder);
             ConfigureHttpClients(builder);
 
             // OpenAPI registers EndpointMetadataApiDescriptionProvider, which needs EndpointDataSource —
@@ -225,16 +211,7 @@ public static class QylServiceDefaultsExtensions
             if (options.EnableOpenApi && builder is WebApplicationBuilder)
                 builder.Services.AddOpenApi();
 
-            if (options.EnableAntiforgery)
-                builder.Services.AddAntiforgery();
-
-            if (options.EnableValidation)
-            {
-#if NET10_0_OR_GREATER
-                builder.Services.AddValidation();
-#endif
-            }
-
+            builder.Services.AddValidation();
             builder.Services.AddProblemDetails();
 
             builder.Services.AddHostedService<ExceptionHookRegistrar>();
@@ -246,23 +223,11 @@ public static class QylServiceDefaultsExtensions
 
 public sealed class QylOptions
 {
-    public bool ValidateOnBuild { get; set; } = true;
-
     public bool EnableOpenApi { get; set; } = true;
-
-    public bool EnableAntiforgery { get; set; }
-
-    public bool EnableValidation { get; set; } = true;
-
-    public bool EnableDefaultHealthChecks { get; set; } = true;
-
-    public bool EnableDefaultHealthEndpoints { get; set; } = true;
 
     public bool EnableAutoDiscovery { get; set; } = true;
 
     public List<string> AdditionalActivitySources { get; } = [];
-
-    public Action<JsonSerializerOptions>? ConfigureJson { get; set; }
 }
 
 internal sealed class QylServiceDefaultsMarker;
