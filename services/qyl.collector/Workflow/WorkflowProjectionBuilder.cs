@@ -21,7 +21,11 @@ internal static class WorkflowProjectionBuilder
     {
         var nodes = new Dictionary<string, MutableNode>(StringComparer.Ordinal);
         var edges = new Dictionary<string, WorkflowGraphEdge>(StringComparer.Ordinal);
-        var activeAttempt = run.ActiveAttemptId;
+        // Derived from the journal alone. Seeding this from run.ActiveAttemptId — a column the
+        // append path rewrites — made the projection depend on state outside the journal it
+        // claims to be a deterministic function of. Build always receives the complete event
+        // list, so every attempt the journal established is rediscovered from AttemptStarted.
+        string? activeAttempt = null;
         var lastNodeByOwner = new Dictionary<string, string>(StringComparer.Ordinal);
         var writesByPath = new Dictionary<string, List<(string NodeId, string EventId)>>(StringComparer.Ordinal);
 

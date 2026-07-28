@@ -159,6 +159,55 @@ public sealed class WorkflowGraphInvariantTests
         Assert.Equal(first.TInfinityMs, third.TInfinityMs);
     }
 
+    /// <summary>
+    /// "A deterministic graph projection at one journal cursor" means the projection is a
+    /// function of the journal and nothing else. The active attempt used to be seeded from
+    /// run.ActiveAttemptId — a column the append path rewrites — so the projection depended on
+    /// mutable state beside the journal rather than on the journal itself. Rebuilding from the
+    /// same events must reproduce the same graph exactly, including across an attempt that
+    /// completed and a later one that resumed.
+    /// </summary>
+    [Fact]
+    public async Task Rebuilding_from_the_same_journal_reproduces_the_same_graph()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+
+        await store.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1",
+            [
+                Event("a1", 1, WorkflowJournalEventKind.AttemptStarted, 0, "attempt-1"),
+                Event("a1-w", 2, WorkflowJournalEventKind.AgentStarted, 0, "attempt-1", "worker"),
+                Event("a1-x", 3, WorkflowJournalEventKind.AgentCompleted, 100, "attempt-1", "worker"),
+                Event("a1-end", 4, WorkflowJournalEventKind.AttemptCompleted, 110, "attempt-1"),
+                Event("a2", 5, WorkflowJournalEventKind.AttemptStarted, 120, "attempt-2"),
+                Event("a2-w", 6, WorkflowJournalEventKind.AgentStarted, 120, "attempt-2", "worker"),
+                Event("a2-x", 7, WorkflowJournalEventKind.AgentCompleted, 400, "attempt-2", "worker"),
+                Event("a2-end", 8, WorkflowJournalEventKind.AttemptCompleted, 410, "attempt-2")
+            ],
+            [], TestContext.Current.CancellationToken);
+
+        var before = await ReadGraphAsync(store);
+        await store.RebuildWorkflowProjectionAsync("project-a", "run-1", TestContext.Current.CancellationToken);
+        var after = await ReadGraphAsync(store);
+
+        Assert.Equal(
+            before.Nodes.Select(static node => node.NodeId),
+            after.Nodes.Select(static node => node.NodeId));
+        Assert.Equal(
+            before.Edges.Select(static edge => edge.EdgeId),
+            after.Edges.Select(static edge => edge.EdgeId));
+        Assert.Equal(before.Statistics.T1Ms, after.Statistics.T1Ms);
+        Assert.Equal(before.Statistics.TInfinityMs, after.Statistics.TInfinityMs);
+        Assert.Equal(before.Statistics.CriticalPathNodeIds, after.Statistics.CriticalPathNodeIds);
+        Assert.Equal(before.Statistics.WorkerCount, after.Statistics.WorkerCount);
+        Assert.Equal(before.JournalSequence, after.JournalSequence);
+
+        // Both attempts survive the rebuild: the journal established them, not the run row.
+        Assert.Contains(after.Nodes, static node => node.NodeId == "attempt:attempt-1");
+        Assert.Contains(after.Nodes, static node => node.NodeId == "attempt:attempt-2");
+    }
+
     [Fact]
     public async Task Paging_skips_nothing_when_the_projection_grows_between_pages()
     {

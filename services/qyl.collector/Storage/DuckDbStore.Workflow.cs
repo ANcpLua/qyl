@@ -307,9 +307,15 @@ internal sealed partial class DuckDbStore
         CancellationToken ct = default) =>
         ExecuteReadAsync<WorkflowGraphSnapshot?>(con =>
         {
+            // Statistics, nodes and edges are three reads of the same projection. Issued
+            // outside a transaction they could each land on a different journal position, so a
+            // snapshot could carry statistics for one graph, nodes for a second and edges for a
+            // third while journal_sequence claimed to describe all of them.
+            using var transaction = con.BeginTransaction();
             WorkflowProjectionState? state;
             using (var command = con.CreateCommand())
             {
+                command.Transaction = transaction;
                 command.CommandText = "SELECT " + WorkflowProjectionStateDbRow.SelectColumnList + """
                                        FROM workflow_projection_state
                                        WHERE project_id = $1 AND run_id = $2
@@ -328,6 +334,7 @@ internal sealed partial class DuckDbStore
             var nodes = new List<WorkflowGraphNode>(nodeLimit + 1);
             using (var command = con.CreateCommand())
             {
+                command.Transaction = transaction;
                 command.CommandText = "SELECT " + WorkflowProjectionNodeDbRow.SelectColumnList + """
                                        FROM workflow_projection_nodes
                                        WHERE project_id = $1 AND run_id = $2 AND node_id > $4
@@ -350,6 +357,7 @@ internal sealed partial class DuckDbStore
             var edges = new List<WorkflowGraphEdge>(edgeLimit + 1);
             using (var command = con.CreateCommand())
             {
+                command.Transaction = transaction;
                 command.CommandText = "SELECT " + WorkflowProjectionEdgeDbRow.SelectColumnList + """
                                        FROM workflow_projection_edges
                                        WHERE project_id = $1 AND run_id = $2 AND edge_id > $4
