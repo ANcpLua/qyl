@@ -2,7 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using DuckDB.NET.Data;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Qyl.Api.Contracts.Workflow;
+using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
@@ -171,6 +174,74 @@ public sealed class WorkflowJournalTests
             TestContext.Current.CancellationToken);
         var afterJson = JsonSerializer.Serialize(after, QylSerializerContext.Default.WorkflowGraphSnapshot);
         Assert.Equal(beforeJson, afterJson);
+    }
+
+    [Fact]
+    public async Task Control_transition_journal_events_carry_the_adapters_clock()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+
+        var submitted = await store.SubmitWorkflowControlAsync(
+            "project-a",
+            "run-1",
+            WorkflowControlAction.Interrupt,
+            "key-1",
+            null,
+            s_startedAt,
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(submitted);
+
+        // The adapter reports when the transition actually occurred; the minted
+        // journal event must carry that clock, not the collector's receipt time.
+        var occurredAt = s_startedAt.AddMilliseconds(1234);
+        var accepted = await CollectorEndpointExtensions.UpdateControlAsync(
+            EndpointContext(),
+            "run-1",
+            submitted.CommandId,
+            new WorkflowControlStatusUpdateRequest
+            {
+                Status = WorkflowControlStatus.Accepted,
+                OccurredAt = occurredAt
+            },
+            store,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(StatusCodes.Status200OK, ((IStatusCodeHttpResult)accepted).StatusCode);
+
+        var page = await store.ReadWorkflowEventsAsync(
+            "project-a", "run-1", 0, 100, TestContext.Current.CancellationToken);
+        Assert.NotNull(page);
+        var acceptedEvent = Assert.Single(
+            page.Events, static e => e.Kind == WorkflowJournalEventKind.ControlAccepted);
+        Assert.Equal(occurredAt.UtcDateTime, acceptedEvent.Timestamp.UtcDateTime);
+
+        // Omitted occurred_at falls back to the collector's clock.
+        var before = DateTimeOffset.UtcNow.AddMinutes(-1);
+        await CollectorEndpointExtensions.UpdateControlAsync(
+            EndpointContext(),
+            "run-1",
+            submitted.CommandId,
+            new WorkflowControlStatusUpdateRequest { Status = WorkflowControlStatus.Applied },
+            store,
+            TestContext.Current.CancellationToken);
+
+        page = await store.ReadWorkflowEventsAsync(
+            "project-a", "run-1", 0, 100, TestContext.Current.CancellationToken);
+        Assert.NotNull(page);
+        var appliedEvent = Assert.Single(
+            page.Events, static e => e.Kind == WorkflowJournalEventKind.ControlApplied);
+        Assert.True(appliedEvent.Timestamp >= before);
+    }
+
+    private static DefaultHttpContext EndpointContext()
+    {
+        var context = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider()
+        };
+        context.Request.Headers["X-Qyl-Project"] = "project-a";
+        context.Response.Body = new MemoryStream();
+        return context;
     }
 
     [Fact]

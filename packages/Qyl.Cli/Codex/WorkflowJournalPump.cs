@@ -7,7 +7,9 @@ internal sealed class WorkflowJournalPump(
     WorkflowCollectorClient collector)
 {
     private static readonly TimeSpan s_retryDelay = TimeSpan.FromSeconds(2);
-    private readonly HashSet<string> _appliedControls = new(StringComparer.Ordinal);
+    // Command id → the moment the control action actually executed. Held across ack
+    // retries so a delayed acknowledgement cannot re-stamp the transition later.
+    private readonly Dictionary<string, DateTimeOffset> _appliedControls = new(StringComparer.Ordinal);
     private string? _lastUploadError;
     private string? _lastControlError;
 
@@ -116,25 +118,28 @@ internal sealed class WorkflowJournalPump(
                             command.CommandId,
                             WorkflowControlStatus.Accepted,
                             null,
+                            TimeProvider.System.GetUtcNow(),
                             cancellationToken).ConfigureAwait(false);
                     }
                     if (command.Status is not (WorkflowControlStatus.Requested or WorkflowControlStatus.Accepted))
                         continue;
 
-                    if (!_appliedControls.Contains(command.CommandId))
+                    if (!_appliedControls.TryGetValue(command.CommandId, out var appliedAt))
                     {
                         await ApplyControlAsync(
                             command,
                             normalizer.ControlTarget,
                             appServer,
                             cancellationToken).ConfigureAwait(false);
-                        _appliedControls.Add(command.CommandId);
+                        appliedAt = TimeProvider.System.GetUtcNow();
+                        _appliedControls[command.CommandId] = appliedAt;
                     }
                     await collector.UpdateControlAsync(
                         runId,
                         command.CommandId,
                         WorkflowControlStatus.Applied,
                         null,
+                        appliedAt,
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (ex is CodexAppServerRequestException or InvalidOperationException)
@@ -146,6 +151,7 @@ internal sealed class WorkflowJournalPump(
                             command.CommandId,
                             WorkflowControlStatus.Failed,
                             ex.Message,
+                            TimeProvider.System.GetUtcNow(),
                             cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception updateException) when (IsTransient(updateException, cancellationToken))

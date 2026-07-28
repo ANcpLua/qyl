@@ -93,9 +93,15 @@ internal sealed class WorkflowCollectorClient(
         string commandId,
         WorkflowControlStatus status,
         string? error,
+        DateTimeOffset occurredAt,
         CancellationToken cancellationToken)
     {
-        var request = new WorkflowControlStatusUpdateRequest { Status = status, Error = error };
+        var request = new WorkflowControlStatusUpdateRequest
+        {
+            Status = status,
+            Error = error,
+            OccurredAt = occurredAt
+        };
         using var message = CreateRequest(
             HttpMethod.Post,
             $"workflow-runs/{Uri.EscapeDataString(runId)}/commands/{Uri.EscapeDataString(commandId)}/status",

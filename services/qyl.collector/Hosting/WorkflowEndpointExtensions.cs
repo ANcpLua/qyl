@@ -496,7 +496,7 @@ internal static partial class CollectorEndpointExtensions
         }
     }
 
-    private static async Task<IResult> UpdateControlAsync(
+    internal static async Task<IResult> UpdateControlAsync(
         HttpContext context,
         [FromRoute(Name = "run_id")] string runId,
         [FromRoute(Name = "command_id")] string commandId,
@@ -512,7 +512,11 @@ internal static partial class CollectorEndpointExtensions
                 commandId,
                 request.Status,
                 request.Error,
-                TimeProvider.System.GetUtcNow(),
+                // The journal event minted for this transition carries the adapter's clock
+                // when the adapter reported one — the journal is otherwise agent-clocked,
+                // and a collector receipt time here measured HTTP latency, not work. The
+                // receipt time remains the fallback for callers that omit it.
+                request.OccurredAt ?? TimeProvider.System.GetUtcNow(),
                 ct).ConfigureAwait(false);
             return command is null
                 ? ContractErrorResults.NotFound("workflow_control", commandId)
