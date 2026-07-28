@@ -29,12 +29,4 @@ interface IHousekeeping : IHazSourcePaths
             DotNetTasks.DotNet(
                 $"run --project \"{ToolsDirectory / "SdkVersionAnalyzer"}\" -- --modify \"{RootDirectory}\" - - {SdkVersion}",
                 workingDirectory: RootDirectory));
-
-    Target GenerateLibraryVersions => d => d
-        .Unlisted()
-        .Description("Generate the package version matrix sources into Artifacts/generated (opt-in scaffolding)")
-        .Executes(() =>
-            DotNetTasks.DotNet(
-                $"run --project \"{ToolsDirectory / "LibraryVersionsGenerator"}\"",
-                workingDirectory: RootDirectory));
 }
