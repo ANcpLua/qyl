@@ -115,6 +115,10 @@ internal sealed partial class DuckDbStore
             foreach (var item in content)
                 InsertWorkflowContent(con, transaction, projectId, _workflowContentProtector.Protect(item));
 
+            var capturedInThisBatch = content
+                .Select(static item => item.ContentRef)
+                .ToHashSet(StringComparer.Ordinal);
+
             var accepted = 0;
             var duplicates = 0;
             ulong? firstJournalSequence = null;
@@ -168,6 +172,8 @@ internal sealed partial class DuckDbStore
                     con,
                     transaction,
                     projectId,
+                    runId,
+                    capturedInThisBatch,
                     workflowEvent.ContentRefs);
                 latest++;
                 InsertWorkflowEvent(
@@ -757,25 +763,38 @@ internal sealed partial class DuckDbStore
         return reader.Read() ? ReadWorkflowEvent(reader) : null;
     }
 
+    /// <summary>
+    /// A run may reference content it captured in this batch, or content it has already
+    /// referenced. It may NOT reference content merely because some other run in the project
+    /// captured it: <c>workflow_content</c> is deduplicated per project by digest, so a
+    /// project-scoped existence check let run A mint a reference row for run B's payload, and
+    /// <see cref="GetWorkflowContentAsync"/> then served it — it gates on the reference row
+    /// existing for the asking run, which A had just created.
+    /// </summary>
     private static void EnsureContentReferencesExist(
         DuckDBConnection con,
         DbTransaction transaction,
         string projectId,
+        string runId,
+        IReadOnlySet<string> capturedInThisBatch,
         IReadOnlyList<string> contentRefs)
     {
         foreach (var contentRef in contentRefs)
         {
+            if (capturedInThisBatch.Contains(contentRef))
+                continue;
+
             using var command = con.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
                                   SELECT count(*)
-                                  FROM workflow_content
-                                  WHERE project_id = $1 AND content_ref = $2
+                                  FROM workflow_content_refs
+                                  WHERE project_id = $1 AND run_id = $2 AND content_ref = $3
                                   """;
-            AddParameters(command, projectId, contentRef);
+            AddParameters(command, projectId, runId, contentRef);
             if (Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) is 0)
                 throw new WorkflowEventConflictException(
-                    $"Workflow event references content '{contentRef}' that has not been captured.");
+                    $"Workflow event references content '{contentRef}' that this run has not captured.");
         }
     }
 
