@@ -21,6 +21,7 @@ SDK_CONFORMANCE_PROJECT="$REPO_ROOT/tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformanc
 SDK_CONFORMANCE_DRIVER_PROJECT="$REPO_ROOT/eng/tools/QylSdkConformance/QylSdkConformance.csproj"
 SDK_CONFORMANCE_PUBLISH_DIRECTORY="$REPO_ROOT/artifacts/publish/Qyl.Sdk.Conformance/release"
 AUTH_KEY="aot-smoke-api-key-$SMOKE_ID"
+WORKFLOW_CONTENT_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 cleanup() {
   local status=$?
@@ -135,6 +136,7 @@ start_container() {
     --mount "type=volume,source=$VOLUME_NAME,target=/data"
     --env "PORT=$API_CONTAINER_PORT"
     --env "QYL_OTLP_AUTH_MODE=$auth_mode"
+    --env "QYL_WORKFLOW_CONTENT_KEY=$WORKFLOW_CONTENT_KEY"
   )
 
   if [[ "$auth_mode" == "ApiKey" ]]; then
