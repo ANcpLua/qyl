@@ -92,7 +92,7 @@ gate G6: the collector fully exercisable with a plain OTLP client and no qyl pro
 
 ## Delivery
 
-qyl is beta. Work directly on `main`, preserve unrelated user changes, run the repository gates, make one intentional
+qyl launched 1.0.0 on 2026-07-28. Work directly on `main`, preserve unrelated user changes, run the repository gates, make one intentional
 commit per coherent repository change, and push it. Generated files are changed through their schema or generator and
 regenerated in the same commit. Unpublished surfaces may converge directly; published package versions are immutable and
 move through new versions (architecture §6.1 owns the rename-versioning policy).
