@@ -8,6 +8,18 @@ namespace Qyl.Collector.Workflow;
 
 internal static class WorkflowProjectionBuilder
 {
+    /// <summary>
+    /// Provenance is evidence pointing at the events behind an edge, not an audit log. Bounding
+    /// it keeps a hot edge from rebuilding an ever-growing array on every re-record.
+    /// </summary>
+    private const int MaxRecordedEventIds = 32;
+
+    /// <summary>
+    /// Conflict detection compares each write to a path against every earlier write to that
+    /// path. Bounding the witness set keeps a journal that hammers one file linear.
+    /// </summary>
+    private const int MaxConflictWitnessesPerPath = 32;
+
     public static WorkflowGraphSnapshot Build(
         WorkflowRunStorageRow run,
         IReadOnlyList<WorkflowEventStorageRow> events,
@@ -459,7 +471,11 @@ internal static class WorkflowProjectionBuilder
                 }
             };
         }
-        previousWrites.Add((owner, workflowEvent.EventId));
+        // Unbounded, every subsequent write to this path rescans every earlier one, so a
+        // journal that writes one file repeatedly is quadratic with no ceiling. A bounded
+        // witness set still names conflicting writers; it just stops being a DoS lever.
+        if (previousWrites.Count < MaxConflictWitnessesPerPath)
+            previousWrites.Add((owner, workflowEvent.EventId));
     }
 
     private static void ProjectItem(
@@ -508,8 +524,12 @@ internal static class WorkflowProjectionBuilder
             .Select(node => Interval(node.StartedAt!.Value, node.EndedAt ?? now))
             .ToArray();
         var peakConcurrency = PeakConcurrency(agentIntervals);
+        // Distinct agent IDS can be fewer than concurrently-running agent NODES, because one
+        // id recurs across attempts. workerCount is the P in Brent's bound below, so letting
+        // peakConcurrency exceed it published a run that observably used more workers than the
+        // bound assumed — the two numbers contradicting each other on the same screen.
         var workerCount = Math.Max(
-            1,
+            Math.Max(1, peakConcurrency),
             timed
                 .Where(static node => node.Kind is WorkflowNodeKind.Agent && node.AgentId is not null)
                 .Select(static node => node.AgentId)
@@ -856,6 +876,16 @@ internal static class WorkflowProjectionBuilder
         if (edges.TryGetValue(edgeId, out var existing) &&
             existing.Provenance is RecordedWorkflowEdgeProvenance recorded)
         {
+            // Rebuilding the whole array on every re-record made a hot edge quadratic on the
+            // ingest path. Provenance is evidence pointing at the events that produced the
+            // edge, not an audit log, so saturate it: once the sample is full the edge is
+            // already fully explained and there is nothing left to rebuild.
+            if (recorded.EventIds.Count >= MaxRecordedEventIds ||
+                recorded.EventIds.Contains(eventId, StringComparer.Ordinal))
+            {
+                return;
+            }
+
             edges[edgeId] = new WorkflowGraphEdge
             {
                 EdgeId = edgeId,
@@ -864,7 +894,7 @@ internal static class WorkflowProjectionBuilder
                 Kind = kind,
                 Provenance = new RecordedWorkflowEdgeProvenance
                 {
-                    EventIds = recorded.EventIds.Append(eventId).Distinct(StringComparer.Ordinal).ToArray()
+                    EventIds = [.. recorded.EventIds, eventId]
                 }
             };
             return;
