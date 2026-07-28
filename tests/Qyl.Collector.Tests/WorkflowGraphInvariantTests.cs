@@ -160,6 +160,82 @@ public sealed class WorkflowGraphInvariantTests
     }
 
     /// <summary>
+    /// The graph projection is rebuilt from a journal that keeps growing, so pagination has to
+    /// survive rows appearing between pages. An offset cursor could not: inserting nodes that
+    /// sort before the cursor shifted every later row right, and the reader silently skipped
+    /// exactly as many as were inserted while has_more kept reporting normally. A keyset cursor
+    /// is anchored to the last id returned, so nothing after it can be shifted past the reader.
+    /// </summary>
+    [Fact]
+    public async Task Paging_skips_nothing_when_the_projection_grows_between_pages()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+
+        var events = new List<WorkflowEventWrite>
+        {
+            Event("attempt", 1, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-1")
+        };
+        ulong sequence = 2;
+        for (var index = 0; index < 40; index++)
+        {
+            events.Add(AgentEvent($"start-{index:D3}", sequence++, WorkflowJournalEventKind.AgentStarted, $"worker-{index:D3}"));
+            events.Add(AgentEvent($"end-{index:D3}", sequence++, WorkflowJournalEventKind.AgentCompleted, $"worker-{index:D3}"));
+        }
+
+        await store.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1", events, [], TestContext.Current.CancellationToken);
+
+        var original = (await ReadPageAsync(store, null, 1000)).Nodes
+            .Select(static node => node.NodeId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        string? cursor = null;
+        for (var page = 0; page < 20; page++)
+        {
+            var snapshot = await ReadPageAsync(store, cursor, 10);
+            foreach (var node in snapshot.Nodes)
+            {
+                Assert.True(seen.Add(node.NodeId), $"node '{node.NodeId}' was returned on two pages");
+            }
+
+            if (!snapshot.HasMoreNodes)
+                break;
+            cursor = snapshot.NextNodeCursor;
+            Assert.NotNull(cursor);
+
+            // Between pages, new nodes land that sort BEFORE the cursor — the exact shift an
+            // offset reader cannot survive.
+            await store.AppendWorkflowEventsAsync(
+                "project-a", "run-1", "observer-1",
+                [AgentEvent($"insert-{page:D2}", sequence++, WorkflowJournalEventKind.AgentStarted, $"aaa-{page:D2}")],
+                [], TestContext.Current.CancellationToken);
+        }
+
+        var missed = original.Except(seen, StringComparer.Ordinal).ToArray();
+        Assert.True(
+            missed.Length is 0,
+            $"paging skipped {missed.Length} node(s) that existed before the first page: " +
+            string.Join(", ", missed.Take(5)));
+    }
+
+    private static async Task<WorkflowGraphSnapshot> ReadPageAsync(DuckDbStore store, string? cursor, int limit)
+    {
+        var snapshot = await store.GetWorkflowGraphAsync(
+            "project-a", "run-1", cursor, limit, null, 2000, TestContext.Current.CancellationToken);
+        Assert.NotNull(snapshot);
+        return snapshot;
+    }
+
+    private static WorkflowEventWrite AgentEvent(
+        string eventId,
+        ulong sourceSequence,
+        WorkflowJournalEventKind kind,
+        string agentId) =>
+        Event(eventId, sourceSequence, kind, attemptId: "attempt-1", agentId: agentId);
+
+    /// <summary>
     /// Two workers fanned out from one root. With <paramref name="messageBetweenWorkers"/> the
     /// second worker consumes the first's output, which is a genuine dependency; without it the
     /// two are independent and only share an ancestor.
@@ -197,7 +273,7 @@ public sealed class WorkflowGraphInvariantTests
     private static async Task<WorkflowGraphSnapshot> ReadGraphAsync(DuckDbStore store)
     {
         var graph = await store.GetWorkflowGraphAsync(
-            "project-a", "run-1", 0, 1000, 0, 2000, TestContext.Current.CancellationToken);
+            "project-a", "run-1", null, 1000, null, 2000, TestContext.Current.CancellationToken);
         Assert.NotNull(graph);
         return graph;
     }

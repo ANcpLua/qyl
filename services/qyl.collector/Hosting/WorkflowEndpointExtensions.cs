@@ -16,6 +16,9 @@ internal static partial class CollectorEndpointExtensions
     private const int DefaultNodeLimit = 250;
     private const int DefaultEdgeLimit = 500;
     private const int MaximumAppendItems = 500;
+
+    /// <summary>A graph cursor is an id the collector issued; nothing longer can be genuine.</summary>
+    private const int MaxCursorLength = 192;
     private const int MaximumContentCharacters = 1_398_104;
 
     private static async Task<IResult> CreateRunAsync(
@@ -224,18 +227,18 @@ internal static partial class CollectorEndpointExtensions
         IQylStore store,
         CancellationToken ct)
     {
-        if (!TryOffset(context.Request.Query["node_cursor"].FirstOrDefault(), out var nodeOffset))
+        if (!TryCursor(context.Request.Query["node_cursor"].FirstOrDefault(), out var nodeCursor))
         {
             return ContractErrorResults.Validation(
                 "node_cursor",
-                "node_cursor must be a non-negative integer offset.",
+                "node_cursor must be a cursor previously returned as next_node_cursor.",
                 "node_cursor.invalid");
         }
-        if (!TryOffset(context.Request.Query["edge_cursor"].FirstOrDefault(), out var edgeOffset))
+        if (!TryCursor(context.Request.Query["edge_cursor"].FirstOrDefault(), out var edgeCursor))
         {
             return ContractErrorResults.Validation(
                 "edge_cursor",
-                "edge_cursor must be a non-negative integer offset.",
+                "edge_cursor must be a cursor previously returned as next_edge_cursor.",
                 "edge_cursor.invalid");
         }
         if (!TryIntQuery(
@@ -264,9 +267,9 @@ internal static partial class CollectorEndpointExtensions
         var graph = await store.GetWorkflowGraphAsync(
             ResolveProjectScope(context),
             runId,
-            nodeOffset,
+            nodeCursor,
             nodeLimit,
-            edgeOffset,
+            edgeCursor,
             edgeLimit,
             ct).ConfigureAwait(false);
         return graph is null
@@ -642,6 +645,22 @@ internal static partial class CollectorEndpointExtensions
         return false;
     }
 
+    /// <summary>
+    /// Graph cursors are keyset positions the collector issued (the last id on the previous
+    /// page), so they are opaque to the client. Only the length is checked: a cursor longer
+    /// than a node id could never have been issued, and bounding it keeps an arbitrarily long
+    /// query string off the storage parameter.
+    /// </summary>
+    private static bool TryCursor(string? raw, out string? cursor)
+    {
+        cursor = string.IsNullOrEmpty(raw) ? null : raw;
+        return cursor is null || cursor.Length <= MaxCursorLength;
+    }
+
+    /// <summary>
+    /// Run listing still pages by offset over <c>workflow_runs</c>, which is append-mostly and
+    /// ordered independently of the graph projection.
+    /// </summary>
     private static bool TryOffset(string? raw, out int offset)
     {
         offset = 0;

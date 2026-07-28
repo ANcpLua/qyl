@@ -136,9 +136,9 @@ public sealed class WorkflowJournalTests
         var before = await store.GetWorkflowGraphAsync(
             "project-a",
             "run-1",
-            0,
+            null,
             1000,
-            0,
+            null,
             2000,
             TestContext.Current.CancellationToken);
         Assert.NotNull(before);
@@ -164,9 +164,9 @@ public sealed class WorkflowJournalTests
         var after = await store.GetWorkflowGraphAsync(
             "project-a",
             "run-1",
-            0,
+            null,
             1000,
-            0,
+            null,
             2000,
             TestContext.Current.CancellationToken);
         var afterJson = JsonSerializer.Serialize(after, QylSerializerContext.Default.WorkflowGraphSnapshot);
@@ -212,9 +212,9 @@ public sealed class WorkflowJournalTests
         var graph = await store.GetWorkflowGraphAsync(
             "project-a",
             "run-1",
-            0,
+            null,
             1000,
-            0,
+            null,
             2000,
             TestContext.Current.CancellationToken);
         Assert.NotNull(graph);
@@ -288,9 +288,9 @@ public sealed class WorkflowJournalTests
                 var graph = await store.GetWorkflowGraphAsync(
                     "project-a",
                     "run-1",
-                    0,
+                    null,
                     1000,
-                    0,
+                    null,
                     2000,
                     TestContext.Current.CancellationToken);
                 var graphJson = JsonSerializer.Serialize(
@@ -577,9 +577,9 @@ public sealed class WorkflowJournalTests
         var first = await store.GetWorkflowGraphAsync(
             "project-a",
             "run-1",
-            0,
+            null,
             25,
-            0,
+            null,
             30,
             TestContext.Current.CancellationToken);
         Assert.NotNull(first);
@@ -587,17 +587,19 @@ public sealed class WorkflowJournalTests
         Assert.True(first.Edges.Count <= 30);
         Assert.True(first.HasMoreNodes);
         Assert.True(first.HasMoreEdges);
-        Assert.Equal("25", first.NextNodeCursor);
-        Assert.Equal("30", first.NextEdgeCursor);
+        // Keyset, not offset: the cursor is the last id on the page, so a projection rebuilt
+        // between pages cannot shift rows out from under it.
+        Assert.Equal(first.Nodes[^1].NodeId, first.NextNodeCursor);
+        Assert.Equal(first.Edges[^1].EdgeId, first.NextEdgeCursor);
         Assert.True(first.TotalNodeCount > first.Nodes.Count);
         Assert.True(first.TotalEdgeCount > first.Edges.Count);
 
         var second = await store.GetWorkflowGraphAsync(
             "project-a",
             "run-1",
+            first.NextNodeCursor,
             25,
-            25,
-            30,
+            first.NextEdgeCursor,
             30,
             TestContext.Current.CancellationToken);
         Assert.NotNull(second);

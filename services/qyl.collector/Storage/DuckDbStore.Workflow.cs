@@ -300,9 +300,9 @@ internal sealed partial class DuckDbStore
     public Task<WorkflowGraphSnapshot?> GetWorkflowGraphAsync(
         string projectId,
         string runId,
-        int nodeOffset,
+        string? nodeCursor,
         int nodeLimit,
-        int edgeOffset,
+        string? edgeCursor,
         int edgeLimit,
         CancellationToken ct = default) =>
         ExecuteReadAsync<WorkflowGraphSnapshot?>(con =>
@@ -330,11 +330,11 @@ internal sealed partial class DuckDbStore
             {
                 command.CommandText = "SELECT " + WorkflowProjectionNodeDbRow.SelectColumnList + """
                                        FROM workflow_projection_nodes
-                                       WHERE project_id = $1 AND run_id = $2
+                                       WHERE project_id = $1 AND run_id = $2 AND node_id > $4
                                        ORDER BY node_id
-                                       LIMIT $3 OFFSET $4
+                                       LIMIT $3
                                        """;
-                AddParameters(command, projectId, runId, nodeLimit + 1, nodeOffset);
+                AddParameters(command, projectId, runId, nodeLimit + 1, nodeCursor ?? string.Empty);
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -352,11 +352,11 @@ internal sealed partial class DuckDbStore
             {
                 command.CommandText = "SELECT " + WorkflowProjectionEdgeDbRow.SelectColumnList + """
                                        FROM workflow_projection_edges
-                                       WHERE project_id = $1 AND run_id = $2
+                                       WHERE project_id = $1 AND run_id = $2 AND edge_id > $4
                                        ORDER BY edge_id
-                                       LIMIT $3 OFFSET $4
+                                       LIMIT $3
                                        """;
-                AddParameters(command, projectId, runId, edgeLimit + 1, edgeOffset);
+                AddParameters(command, projectId, runId, edgeLimit + 1, edgeCursor ?? string.Empty);
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -378,12 +378,8 @@ internal sealed partial class DuckDbStore
                 Edges = edges.Take(edgeLimit).ToArray(),
                 Statistics = state.Statistics,
                 JournalSequence = state.JournalSequence,
-                NextNodeCursor = hasMoreNodes
-                    ? (nodeOffset + nodeLimit).ToString(CultureInfo.InvariantCulture)
-                    : null,
-                NextEdgeCursor = hasMoreEdges
-                    ? (edgeOffset + edgeLimit).ToString(CultureInfo.InvariantCulture)
-                    : null,
+                NextNodeCursor = hasMoreNodes ? nodes[nodeLimit - 1].NodeId : null,
+                NextEdgeCursor = hasMoreEdges ? edges[edgeLimit - 1].EdgeId : null,
                 HasMoreNodes = hasMoreNodes,
                 HasMoreEdges = hasMoreEdges,
                 TotalNodeCount = state.TotalNodeCount,
