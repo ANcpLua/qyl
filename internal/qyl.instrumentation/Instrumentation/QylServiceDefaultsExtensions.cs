@@ -241,9 +241,6 @@ public static class QylServiceDefaultsExtensions
 
             return builder;
         }
-
-        public TBuilder AddQylServiceDefaults(Action<QylOptions>? configure = null) =>
-            builder.UseQyl(configure);
     }
 }
 

@@ -7,7 +7,7 @@ Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-builder.AddQylServiceDefaults(options =>
+builder.UseQyl(options =>
 {
     // OpenAPI is off: the product API contract lives in the external qyl-api-schema TypeSpec repo
     // and flows in via Qyl.Api.Contracts. The collector is not a contract/client-generation source.

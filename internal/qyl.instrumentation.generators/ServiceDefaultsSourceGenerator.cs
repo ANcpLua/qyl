@@ -14,7 +14,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private const string BuilderInterceptorsFile = "Intercepts.g.cs";
 
     private const string InterceptsLocationAttributeDeclaration = """
-                                                                  using Qyl.Instrumentation;
+                                                                  using Qyl.Instrumentation.Instrumentation;
 
                                                                   namespace System.Runtime.CompilerServices
                                                                   {
@@ -130,9 +130,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                 public static global::{{GeneratorPipelineHelpers.WebApplicationTypeName}} Intercept_Build{{index}}(
                                     this global::{{GeneratorPipelineHelpers.WebApplicationBuilderTypeName}} builder)
                                 {
-                                    builder.TryUseQylConventions();
+                                    builder.UseQyl();
                                     var app = builder.Build();
-                                    app.MapQylDefaultEndpoints();
+                                    app.MapQylEndpoints();
                                     return app;
                                 }
                         """);

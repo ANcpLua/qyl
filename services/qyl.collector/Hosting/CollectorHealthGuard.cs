@@ -28,7 +28,7 @@ internal static class CollectorHealthGuard
         {
             throw new InvalidOperationException(
                 $"The collector booted without a mapped '{QylEndpoints.Health}'/'{QylEndpoints.Alive}' endpoint. " +
-                "The qyl.instrumentation Build() interceptor (MapQylDefaultEndpoints) did not run — without it the " +
+                "The qyl.instrumentation Build() interceptor (MapQylEndpoints) did not run — without it the " +
                 "SPA fallback would answer 200 for /health and fake a healthy instance. Restore the interceptor " +
                 "wiring or map the health endpoints explicitly.");
         }
