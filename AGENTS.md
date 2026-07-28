@@ -76,18 +76,17 @@ must move them intact:
 - `CollectorHealthGuard.ThrowIfHealthSurfaceUnwired` — separate concern, same fail-closed pattern.
 
 The collector consumes the producer stack for self-telemetry only, through the published hosting package like any other
-application — never a private copy of the composition logic. Today it *does* carry one:
-`qyl/internal/qyl.instrumentation`
-(`AddQylServiceDefaults`) is a drifted fork — a hardcoded activity-source list beside the generated inventory, a
-copy-pasted second `CollectorDiscovery`, and agent-framework packages (`ANcpLua.Agents`, `Microsoft.Extensions.AI`,
-`Microsoft.Agents.AI.Hosting`) dragged into a telemetry sink. The ledger's fold row deletes the fork. Until it lands:
-never extend it — new self-telemetry needs route through the published path, and anything that only works because of the
-fork was leaning on a delete target.
+application — never a private copy of the composition logic. `qyl/internal/qyl.instrumentation` (`UseQyl`) once was such
+a copy; the architecture fold retired it on 2026-07-26 and the ledger carries that row as done. Re-measured 2026-07-28:
+`ActivitySources` holds one constant and no inventory, `CollectorDiscovery` has no second implementation — the file sets
+`EnableCollectorDiscovery` on the published options — and the collector's 55-library restored closure carries zero
+agent-framework packages. What remains on that row is the rename, not architecture.
 
-What stays on this side of the wire after the fold is the part the hosting package cannot know: health checks and
+What stays on this side of the wire is the part the hosting package cannot know: health checks and
 endpoints, exception capture, Kestrel and JSON conventions, and which of this application's own endpoints are span noise
 (`HealthProbeSpanFilter`) — a thin collector-defaults layer that *calls* the published composition. Re-deriving OTel
-wiring, an ActivitySource inventory, or collector discovery here is how the fork started — the testable consequence is
+wiring, an ActivitySource inventory, or collector discovery here is how the fork started, so the prohibition outlives the
+fork it describes — the testable consequence is
 gate G6: the collector fully exercisable with a plain OTLP client and no qyl producer packages.
 
 ## Delivery
