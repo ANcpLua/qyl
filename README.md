@@ -47,14 +47,15 @@ qyl stores and serves traces and logs.
 
 qyl is one dependency graph with several independently released packages. Each line
 carries its own version — the 1.0.0 launch is an event, not a number every package
-adopts.
+adopts. The versions below are the current heads, not a compatible set frozen together;
+the registries are authoritative when one has moved on.
 
 | Package | Line | Repository |
 | --- | --- | --- |
 | `qyl` (dotnet tool) | 1.0.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.0.1 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 1.0.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 4.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 5.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 1.0.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
