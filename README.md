@@ -4,9 +4,11 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces and logs back through
 the embedded dashboard, the collector API, or MCP.
 
-qyl 1.0.0 is released. The hosted surfaces are [qyl.at](https://qyl.at/) for the site and
-documentation, [api.qyl.at](https://api.qyl.at/) for the collector read API and OTLP
-ingest, and [mcp.qyl.at/mcp](https://mcp.qyl.at/mcp) for the MCP endpoint (OAuth 2.1).
+qyl 1.0.0 is released. The site and documentation are at [qyl.at](https://qyl.at/). The
+other two hosted surfaces are endpoints rather than pages: `https://api.qyl.at` serves
+the collector read API and OTLP ingest under their route prefixes, and
+`https://mcp.qyl.at/mcp` is the MCP endpoint, which answers `401` to anything without an
+OAuth 2.1 bearer token.
 
 ## Run the stack
 
