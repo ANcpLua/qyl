@@ -170,6 +170,17 @@ Playwright smoke, verifies the exact generated contract package, and checks the 
 schema-boundary changes, also compile and test the owning `qyl-api-schema`
 repository and restore the resulting `Qyl.Api.Contracts` package into a clean consumer.
 
+## Cloudflare skills
+
+`api.qyl.at` is Cloudflare-proxied, so zone behavior is part of this service's
+delivery path — the **Network → gRPC** setting in particular, since turning it
+off breaks OTLP/gRPC ingest while HTTP keeps working, which reads like a client
+bug. Load `/cloudflare:cloudflare` before changing or diagnosing anything at
+that layer; it retrieves from current Cloudflare docs rather than from memory.
+
+`/cloudflare:wrangler` and `/cloudflare:web-perf` do not apply here: this repo
+deploys no Worker and owns no browser surface. Those belong to `qyl.at`.
+
 ## Durable references
 
 - Product and local development: `README.md`
