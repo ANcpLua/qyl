@@ -21,8 +21,4 @@
     <PackageReference Include="Qyl.Telemetry.SemanticConventions.SourceGeneration" PrivateAssets="all"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
-  </ItemGroup>
-
 </Project>

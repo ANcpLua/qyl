@@ -40,7 +40,7 @@ public static class GlobalExceptionHooks
     {
         if (Interlocked.Exchange(ref s_registered, 1) is not 0) return;
 
-        var logger = loggerFactory.CreateLogger("Qyl.Instrumentation.ErrorCapture");
+        var logger = loggerFactory.CreateLogger(ActivitySources.ErrorCapture);
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {

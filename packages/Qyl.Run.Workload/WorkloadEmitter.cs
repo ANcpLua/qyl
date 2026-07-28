@@ -1,9 +1,15 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Qyl.Run.Workload;
 
+// CA1812 cannot see instantiation through AddHostedService<T>'s type argument. This was silent
+// while the project granted InternalsVisibleTo to Qyl.Collector.Tests — an accidental suppression
+// that outlived the reference it came from.
+[SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes",
+    Justification = "Instantiated by the DI container via AddHostedService<WorkloadEmitter>().")]
 internal sealed partial class WorkloadEmitter(
     ILogger<WorkloadEmitter> logger,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
