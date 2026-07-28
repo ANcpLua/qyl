@@ -4,7 +4,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces and logs back through
 the embedded dashboard, the collector API, or MCP.
 
-qyl 1.0.0 is released. The site and documentation are at [qyl.at](https://qyl.at/). The
+qyl 1.1.0 is released. The site and documentation are at [qyl.at](https://qyl.at/). The
 other two hosted surfaces are endpoints rather than pages: `https://api.qyl.at` serves
 the collector read API and OTLP ingest under their route prefixes, and
 `https://mcp.qyl.at/mcp` is the MCP endpoint, which answers `401` to anything without an
@@ -21,6 +21,23 @@ qyl up
 on `:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889`.
 Telemetry is stored under `~/.qyl/`, never in the working directory. All five ports are
 checked up front, so a conflict fails the command instead of leaving a half-bound stack.
+
+## Observe Codex workflows
+
+`qyl codex` owns the Codex app-server connection so the workflow journal is factual
+rather than inferred from generic telemetry:
+
+```bash
+export QYL_API_KEY='your-qyl-ingest-key'
+qyl codex --
+```
+
+It verifies the installed Codex app-server schema, starts an authenticated loopback
+server and the normal Codex TUI, and records immutable runs, attempts, collaboration,
+tools, content references, and controls. Uploads are idempotent. Network failures leave
+an encrypted spool under `~/.qyl/codex/` for retry instead of losing or rewriting
+events. The bundled Observe Graph plugin discovers the current run through the local
+`qyl observer-bridge`; that bridge is modern-only MCP `2026-07-28`.
 
 ## Send telemetry from an application
 
@@ -52,11 +69,11 @@ the registries are authoritative when one has moved on.
 
 | Package | Line | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 1.0.0 | this one |
+| `qyl` (dotnet tool) | 1.1.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.0.1 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 1.0.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 5.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
-| `qyl-mcp-server` | 1.0.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
+| `qyl-mcp-server` | 1.1.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their

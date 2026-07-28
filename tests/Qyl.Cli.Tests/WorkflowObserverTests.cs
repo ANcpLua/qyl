@@ -171,7 +171,7 @@ public sealed class WorkflowObserverTests
     }
 
     [Fact]
-    public async Task Local_bridge_returns_only_the_current_live_run()
+    public async Task Modern_local_bridge_returns_only_the_current_live_run()
     {
         var root = TemporaryDirectory();
         try
@@ -186,9 +186,9 @@ public sealed class WorkflowObserverTests
                 TestContext.Current.CancellationToken);
             using var input = new StringReader(
                 """
-                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}
-                {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
-                {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_active_workflow_run","arguments":{}}}
+                {"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"test","version":"1"},"io.modelcontextprotocol/clientCapabilities":{}}}}
+                {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
+                {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_active_workflow_run","arguments":{},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
                 """);
             using var output = new StringWriter(CultureInfo.InvariantCulture);
 
@@ -203,13 +203,69 @@ public sealed class WorkflowObserverTests
             var responses = output.ToString()
                 .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(3, responses.Length);
+            using var discovery = JsonDocument.Parse(responses[0]);
+            var discoveryResult = discovery.RootElement.GetProperty("result");
+            Assert.Equal(
+                "2026-07-28",
+                discoveryResult.GetProperty("supportedVersions")[0].GetString());
+            Assert.Equal("complete", discoveryResult.GetProperty("resultType").GetString());
+            Assert.Equal(
+                "qyl-observer-bridge",
+                discoveryResult
+                    .GetProperty("_meta")
+                    .GetProperty("io.modelcontextprotocol/serverInfo")
+                    .GetProperty("name")
+                    .GetString());
             using var response = JsonDocument.Parse(responses[2]);
-            var structured = response.RootElement
-                .GetProperty("result")
-                .GetProperty("structuredContent");
+            var callResult = response.RootElement.GetProperty("result");
+            Assert.Equal("complete", callResult.GetProperty("resultType").GetString());
+            var structured = callResult.GetProperty("structuredContent");
             Assert.True(structured.GetProperty("active").GetBoolean());
             Assert.True(structured.GetProperty("liveControlsAvailable").GetBoolean());
             Assert.Equal("run-live", structured.GetProperty("runId").GetString());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Local_bridge_rejects_legacy_and_incomplete_openings()
+    {
+        var root = TemporaryDirectory();
+        try
+        {
+            var store = new ActiveWorkflowRunStore(root);
+            using var input = new StringReader(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}
+                {"jsonrpc":"2.0","id":2,"method":"server/discover","params":{}}
+                {"jsonrpc":"2.0","id":3,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}
+                """);
+            using var output = new StringWriter(CultureInfo.InvariantCulture);
+
+            Assert.Equal(
+                0,
+                await ObserverBridgeServer.RunAsync(
+                    store,
+                    input,
+                    output,
+                    TestContext.Current.CancellationToken));
+
+            var responses = output.ToString()
+                .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            Assert.Equal(3, responses.Length);
+            using var legacy = JsonDocument.Parse(responses[0]);
+            Assert.Equal(-32022, legacy.RootElement.GetProperty("error").GetProperty("code").GetInt32());
+            using var missingVersion = JsonDocument.Parse(responses[1]);
+            Assert.Equal(
+                -32022,
+                missingVersion.RootElement.GetProperty("error").GetProperty("code").GetInt32());
+            using var missingCapabilities = JsonDocument.Parse(responses[2]);
+            Assert.Equal(
+                -32602,
+                missingCapabilities.RootElement.GetProperty("error").GetProperty("code").GetInt32());
         }
         finally
         {
