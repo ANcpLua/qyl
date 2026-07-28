@@ -127,9 +127,7 @@ internal static class SdkConformance
             var ids = await DriveAppAsync(process, appBase, output).ConfigureAwait(false);
             await WaitForSuccessfulExitAsync(process, output).ConfigureAwait(false);
 
-            using var http = new HttpClient();
-            http.Timeout = TimeSpan.FromSeconds(5);
-            var client = new QylApiContractClient(http, apiBase);
+            var client = new QylApiContractClient(s_http, apiBase);
             var (trace, logs) = await WaitForReadbackAsync(client, ids.TraceId).ConfigureAwait(false);
             return AssertEvidence(trace, logs, ids, serviceName);
         }

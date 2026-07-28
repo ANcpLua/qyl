@@ -1,11 +1,23 @@
+using System;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Qyl;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddQyl();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -17,6 +29,7 @@ static async Task<IResult> RunConformanceAsync(
     HttpContext context,
     ILogger<Program> logger,
     IHostApplicationLifetime lifetime,
+    IHttpClientFactory httpClientFactory,
     CancellationToken cancellationToken)
 {
     context.Response.OnCompleted(
@@ -41,7 +54,7 @@ static async Task<IResult> RunConformanceAsync(
     var stub = LoopbackHttpStub.Start();
     try
     {
-        using var http = new HttpClient();
+        var http = httpClientFactory.CreateClient();
         using var response = await http.GetAsync(stub.Uri, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
@@ -114,5 +127,3 @@ internal sealed class LoopbackHttpStub
         await stream.WriteAsync(body).ConfigureAwait(false);
     }
 }
-
-internal partial class Program;
