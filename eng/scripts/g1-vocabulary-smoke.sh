@@ -10,17 +10,32 @@
 #
 # Expected result: zero hits. A hit means hand-written vocabulary — move the name
 # into the registry (qyl-registry.json in the semconv repo) or a generator, and
-# reference the generated constant.
+# reference the generated constant. A missing scan scope is a failure, not a
+# clean result: after a rename moves these directories, the scope list must move
+# with them, or the smoke would go green over nothing.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-hits=$(grep -rn '"qyl\.' --include='*.cs' \
-    services/qyl.collector \
-    internal/qyl.instrumentation \
-    2>/dev/null \
-  | grep -v '\.g\.cs:' \
-  | grep -v '/obj/\|/bin/' \
-  || true)
+scopes=(services/qyl.collector internal/qyl.instrumentation)
+for scope in "${scopes[@]}"; do
+  if [[ ! -d "$scope" ]]; then
+    echo "G1 vocabulary smoke FAILED — scan scope missing: $scope (move this list with the rename)" >&2
+    exit 1
+  fi
+done
+
+# grep exits 1 on zero matches (the expected pass) and >1 on error; only the
+# former may be treated as success.
+set +e
+raw=$(grep -rn '"qyl\.' --include='*.cs' "${scopes[@]}")
+status=$?
+set -e
+if (( status > 1 )); then
+  echo "G1 vocabulary smoke FAILED — grep exited $status (not a zero-match result)" >&2
+  exit 1
+fi
+
+hits=$(printf '%s\n' "$raw" | grep -v '\.g\.cs:' | grep -v '/obj/\|/bin/' || true)
 
 if [[ -n "$hits" ]]; then
   echo "G1 vocabulary smoke FAILED — hand-written \"qyl.* literals in telemetry-emitting scope:" >&2

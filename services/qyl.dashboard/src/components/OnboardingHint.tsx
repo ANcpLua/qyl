@@ -5,6 +5,9 @@ const OTLP_ENDPOINT = 'http://localhost:4318';
 
 const DOTNET_SNIPPET = `dotnet add package Qyl.Telemetry.Hosting
 
+// Program.cs — nothing exports without this line
+builder.AddQyl();
+
 export OTEL_EXPORTER_OTLP_ENDPOINT=${OTLP_ENDPOINT}
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 export OTEL_SERVICE_NAME=<your-service>`;

@@ -17,19 +17,34 @@ namespace Qyl.Build;
 /// so a locally-declared record reaching a wire is the shadow-contract failure loop 2 deletes.
 ///
 /// The rule is reachability-based, and that is the whole point: it asks what the serializer
-/// generator is actually told to emit — the roots of a <see cref="System.Text.Json.Serialization.JsonSerializerContext"/> —
-/// not what types exist in the assembly. Internal domain records (<c>QylResourceState</c>,
-/// <c>QylLogLine</c>) are legitimate and must never be flagged: they sit behind
-/// <c>QylRunnerContractMapper</c>, which converts them to contract types before anything is
-/// written, so they are unreachable from a serialization root.
+/// generator is actually told to emit — every <c>[JsonSerializable]</c> registration on any type
+/// declaration, including partial context parts that omit the base list — not what types exist in
+/// the assembly. Internal domain records (<c>QylResourceState</c>, <c>QylLogLine</c>) are
+/// legitimate and must never be flagged: they sit behind <c>QylRunnerContractMapper</c>, which
+/// converts them to contract types before anything is written, so they are unreachable from a
+/// serialization root.
 ///
-/// Registered types must be *provably* contract-owned, through a <c>using</c> alias or a
-/// fully-qualified name. A bare identifier the verifier cannot resolve is reported rather than
-/// assumed innocent: a check that guesses is a check that passes when it should not.
+/// Registered types must be *provably* contract-owned, through a <c>using</c> alias (top-level or
+/// namespace-scoped) or a fully-qualified name. A bare identifier the verifier cannot resolve is
+/// reported rather than assumed innocent, only known collection wrappers are unwrapped to their
+/// element (any other generic is itself the wire shape and is judged whole), and finding nothing
+/// at all is a failure: a gate whose scope moved out from under it must say so, not report success
+/// over an empty set.
 /// </summary>
 interface ICliContractLoop : IHazSourcePaths
 {
     private const string ContractNamespacePrefix = "Qyl.Api.Contracts.";
+
+    /// <summary>
+    /// Generic wrappers that serialize their single element rather than themselves. Anything not
+    /// listed — an envelope, a pair, a dictionary — is judged whole so a CLI-owned generic around
+    /// a contract payload cannot pass on the payload's innocence.
+    /// </summary>
+    private static readonly string[] s_collectionWrappers =
+    [
+        "List", "IList", "IReadOnlyList", "IEnumerable", "ICollection", "IReadOnlyCollection",
+        "ImmutableArray", "ImmutableList", "IImmutableList", "HashSet", "ISet", "IReadOnlySet",
+    ];
 
     Target VerifyCliSerializesContractsOnly => d => d
         .Unlisted()
@@ -62,35 +77,39 @@ interface ICliContractLoop : IHazSourcePaths
                     globalAliases[alias.Alias!.Name.Identifier.ValueText] = alias.Name!.ToString();
             }
 
+            // C# lets a partial part of a JsonSerializerContext omit the base list, so context
+            // identity is collected across all files before any registration is judged.
+            var contextNames = roots
+                .SelectMany(static entry => entry.Root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+                .Where(static type => type.BaseList?.Types.Any(static baseType =>
+                    baseType.Type.ToString().EndsWith("JsonSerializerContext", StringComparison.Ordinal)) == true)
+                .Select(static type => type.Identifier.ValueText)
+                .ToHashSet(StringComparer.Ordinal);
+
             var offenders = new List<string>();
             var registeredCount = 0;
-            var contextCount = 0;
 
             foreach (var (file, root) in roots)
             {
-                var contexts = root.DescendantNodes()
-                    .OfType<TypeDeclarationSyntax>()
-                    .Where(static type => type.BaseList?.Types.Any(static baseType =>
-                        baseType.Type.ToString().EndsWith("JsonSerializerContext", StringComparison.Ordinal)) == true)
-                    .ToList();
-
-                if (contexts.Count is 0)
-                    continue;
-
-                contextCount += contexts.Count;
-                var aliases = new Dictionary<string, string>(globalAliases, StringComparer.Ordinal);
-                foreach (var alias in AliasDirectives(root))
-                    aliases[alias.Alias!.Name.Identifier.ValueText] = alias.Name!.ToString();
-
                 var relative = repoRoot.GetRelativePathTo(file).ToString().Replace('\\', '/');
+                Dictionary<string, string>? aliases = null;
 
-                foreach (var context in contexts)
+                // Every [JsonSerializable] on any type declaration is a registration the source
+                // generator will honor — base-list-bearing part or not.
+                foreach (var type in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
                 {
-                    foreach (var attribute in context.AttributeLists.SelectMany(static list => list.Attributes)
+                    foreach (var attribute in type.AttributeLists.SelectMany(static list => list.Attributes)
                                  .Where(static a => a.Name.ToString().Contains("JsonSerializable", StringComparison.Ordinal)))
                     {
                         if (attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression is not TypeOfExpressionSyntax typeOf)
                             continue;
+
+                        if (aliases is null)
+                        {
+                            aliases = new Dictionary<string, string>(globalAliases, StringComparer.Ordinal);
+                            foreach (var alias in AliasDirectives(root))
+                                aliases[alias.Alias!.Name.Identifier.ValueText] = alias.Name!.ToString();
+                        }
 
                         registeredCount++;
                         var written = UnwrapCollectionType(typeOf.Type.ToString());
@@ -100,8 +119,8 @@ interface ICliContractLoop : IHazSourcePaths
 
                         var line = attribute.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                         offenders.Add(resolved == written
-                            ? $"{relative}:{line}: {context.Identifier.ValueText} registers '{written}'"
-                            : $"{relative}:{line}: {context.Identifier.ValueText} registers '{written}' (resolves to '{resolved}')");
+                            ? $"{relative}:{line}: {type.Identifier.ValueText} registers '{written}'"
+                            : $"{relative}:{line}: {type.Identifier.ValueText} registers '{written}' (resolves to '{resolved}')");
                     }
                 }
             }
@@ -117,12 +136,22 @@ interface ICliContractLoop : IHazSourcePaths
                     "can prove it: a `using Contract... = Qyl.Api.Contracts....;` alias or a fully-qualified name.");
             }
 
+            if (contextNames.Count is 0 || registeredCount is 0)
+            {
+                throw new InvalidOperationException(
+                    "G10(a) found no JsonSerializerContext registrations under packages/Qyl.Cli, so it " +
+                    "verified nothing. If the CLI's serialization moved, move this gate's scope with it.");
+            }
+
             Log.Information(
                 "Qyl.Cli serializes contract types only: {Registered} registrations across {Contexts} JSON context(s)",
-                registeredCount, contextCount);
+                registeredCount, contextNames.Count);
 
+            // A using alias is file-scoped for this purpose wherever it sits — after a file-scoped
+            // `namespace X;` the directives attach to the namespace node, not the compilation unit.
             static IEnumerable<UsingDirectiveSyntax> AliasDirectives(CompilationUnitSyntax root) =>
-                root.Usings.Where(static u => u.Alias is not null && u.Name is not null);
+                root.DescendantNodes().OfType<UsingDirectiveSyntax>()
+                    .Where(static u => u.Alias is not null && u.Name is not null);
 
             // The alias target may itself be an alias; resolve transitively, and stop rather than
             // spin if the source ever contains a cycle.
@@ -145,10 +174,10 @@ interface ICliContractLoop : IHazSourcePaths
                 var close = typeName.LastIndexOf('>');
                 if (open > 0 && close > open)
                 {
+                    var outer = typeName[..open].Trim();
+                    var outerName = outer[(outer.LastIndexOf('.') + 1)..];
                     var arguments = typeName[(open + 1)..close].Split(',');
-                    // A single-argument collection (List<T>, IReadOnlyList<T>) serializes T; a
-                    // multi-argument generic is left whole so it is reported rather than guessed at.
-                    if (arguments.Length is 1)
+                    if (arguments.Length is 1 && s_collectionWrappers.Contains(outerName, StringComparer.Ordinal))
                         return UnwrapCollectionType(arguments[0]);
                 }
 

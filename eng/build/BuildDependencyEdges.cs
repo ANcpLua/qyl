@@ -58,16 +58,24 @@ interface IDependencyEdges : IHazSourcePaths
         "tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj",
     ];
 
-    /// <summary>Packages forbidden anywhere in the repository, by exact name or prefix.</summary>
+    /// <summary>
+    /// Packages forbidden anywhere in the repository. Every entry bans the exact ID and all of
+    /// its sub-packages: "Microsoft.Extensions.AI" also catches
+    /// Microsoft.Extensions.AI.Abstractions, the ID most consumers actually reference.
+    /// </summary>
     private static readonly string[] s_forbiddenEverywhere =
     [
         // A telemetry sink does not embed an agent runtime; self-telemetry never justifies one.
         "ANcpLua.Agents",
         "Microsoft.Extensions.AI",
-        "Microsoft.Agents.",
+        "Microsoft.Agents",
         // The collector is a process reached via its API, never a package.
-        "Qyl.Collector.",
+        "Qyl.Collector",
     ];
+
+    private static bool IsForbidden(string reference, string forbidden) =>
+        reference.Equals(forbidden, StringComparison.OrdinalIgnoreCase)
+        || reference.StartsWith(forbidden + ".", StringComparison.OrdinalIgnoreCase);
 
     Target VerifyDependencyEdges => d => d
         .Unlisted()
@@ -83,15 +91,40 @@ interface IDependencyEdges : IHazSourcePaths
                                    && !p.ToString().Contains("/Artifacts/", StringComparison.Ordinal)
                                    && !p.ToString().Contains("/artifacts/", StringComparison.Ordinal));
 
+            // PackageReference/GlobalPackageReference items in shared MSBuild files reach every
+            // project beneath them at evaluation time; reading only the csproj XML would let a
+            // forbidden edge hide in a Directory.Build.props (a live pattern in this repo —
+            // packages/Directory.Build.props already contributes one analyzer reference).
+            var sharedReferences = repoRoot
+                .GlobFiles("**/Directory.Build.props", "**/Directory.Build.targets", "**/Directory.Packages.props")
+                .Where(static p => !p.ToString().Contains("/node_modules/", StringComparison.Ordinal)
+                                   && !p.ToString().Contains("/Artifacts/", StringComparison.Ordinal)
+                                   && !p.ToString().Contains("/artifacts/", StringComparison.Ordinal))
+                .Select(static file => (
+                    Directory: file.Parent.ToString().Replace('\\', '/'),
+                    References: XDocument.Load(file).Descendants()
+                        .Where(static e => e.Name.LocalName is "PackageReference" or "GlobalPackageReference")
+                        .Select(static r => (string?)r.Attribute("Include"))
+                        .Where(static include => include is not null)
+                        .Select(static include => include!)
+                        .ToList()))
+                .Where(static entry => entry.References.Count > 0)
+                .ToList();
+
             foreach (var project in projects)
             {
                 var relative = repoRoot.GetRelativePathTo(project).ToString().Replace('\\', '/');
                 seenProjects.Add(relative);
                 var document = XDocument.Load(project);
+                var projectPath = project.ToString().Replace('\\', '/');
                 var references = document.Descendants("PackageReference")
                     .Select(static r => (string?)r.Attribute("Include"))
                     .Where(static include => include is not null)
                     .Select(static include => include!)
+                    .Concat(sharedReferences
+                        .Where(entry => projectPath.StartsWith(entry.Directory + "/", StringComparison.Ordinal))
+                        .SelectMany(static entry => entry.References))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 if (!s_collectorProjectReferenceExemptions.Contains(relative, StringComparer.Ordinal))
@@ -110,12 +143,8 @@ interface IDependencyEdges : IHazSourcePaths
 
                 foreach (var reference in references)
                 {
-                    if (s_forbiddenEverywhere.Any(forbidden => reference.Equals(
-                            forbidden.TrimEnd('.'), StringComparison.OrdinalIgnoreCase)
-                            || (forbidden.EndsWith('.') && reference.StartsWith(forbidden, StringComparison.OrdinalIgnoreCase))))
-                    {
+                    if (s_forbiddenEverywhere.Any(forbidden => IsForbidden(reference, forbidden)))
                         offenders.Add($"{relative}: forbidden package {reference}");
-                    }
                 }
 
                 var qylReferences = references

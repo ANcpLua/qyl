@@ -44,24 +44,32 @@ public sealed class CollectorGuardTests
         Assert.Contains("own port", exception.Message, StringComparison.Ordinal);
     }
 
+    // Foreign endpoints are IP literals from TEST-NET-3 (RFC 5737): never routable, never
+    // on a local interface, and — being literals — resolved without a DNS query, so the
+    // assertion cannot depend on the resolver environment of the machine running it.
     [Theory]
     [InlineData(null)]
-    [InlineData("http://localhost:9999")]
-    [InlineData("https://otlp.example.com:4318")]
+    [InlineData("http://203.0.113.9:9999")]
+    [InlineData("http://203.0.113.9:4318")]
     public void SelfExport_guard_is_silent_for_absent_or_foreign_endpoints(string? endpoint)
     {
         CollectorSelfExportGuard.ThrowIfSelfExporting(ConfigWith(endpoint), Ports);
     }
 
     [Fact]
-    public void Unwired_health_surface_fails_boot()
+    public void Missing_health_routes_fail_boot_even_when_storage_checks_are_registered()
     {
+        // The duckdb check is registered so only the route-mapping branch can throw:
+        // asserting on a substring both branches emit would prove neither.
         var builder = WebApplication.CreateSlimBuilder();
+        builder.Services.AddHealthChecks()
+            .AddCheck("duckdb", static () => HealthCheckResult.Healthy());
         var app = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app));
 
+        Assert.Contains("booted without a mapped", exception.Message, StringComparison.Ordinal);
         Assert.Contains(QylEndpoints.Health, exception.Message, StringComparison.Ordinal);
     }
 

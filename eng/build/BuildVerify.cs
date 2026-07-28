@@ -2512,7 +2512,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
         .DependsOn<IConfigurationKnobs>(static x => x.VerifyConfigurationKnobs)
-        .DependsOn(VerifyNoRemovedBuildSurface);
+        .DependsOn(VerifyNoRemovedBuildSurface)
+        // G7/G11 and G10(a) run wherever VerifyBackend runs — CI's backend lane invokes
+        // VerifyBackend, not Verify, so a gate hung only on Verify never executes in CI.
+        .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
+        .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly);
 
     Target Verify => d => d
         .Description("Run collector and frontend verification checks")

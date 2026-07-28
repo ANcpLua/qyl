@@ -303,21 +303,12 @@ rules:
   ByteIdentity snapshots, PublicAPI baselines, and the pinned verifier tokens
   regenerate in the same commit as the namespace change. G2's discipline
   applies to ABI artifacts too: one change, one regeneration, one diff.
-
-  > **Annotation (measured 2026-07-27, resolution in the ledger).** "V8 → V9"
-  > above conflicts with the owning repo's own mechanized rule, which this
-  > sentence defers to: `tools/verify-version-sync.py` derives the anchor from
-  > the *package major* (`V{major}`), and §6.1 sets the birth version to
-  > `1.0.0-beta.N` — so the rule yields **V1**, not V9. V9 was written under
-  > the assumption of an 8.x → 9.x version path that §6.1 rejects. The
-  > isolation property is unchanged: the anchor token is namespace-qualified,
-  > so old generated code pinning the retired namespace's `V8` can never bind
-  > against the new IDs, which are born at `V1` in the new namespace. The V9
-  > literal is left in place pending Alex's rewrite; the anchor follows the
-  > repo's rule.
+  (Published reality, 2026-07-28: the family shipped 9.0.x with the anchor at
+  `QylGeneratedCodeAbi.V9` — package major == anchor major per
+  `tools/verify-version-sync.py`, consistent with §6.1's per-package lineage.)
 
 With tag-triggered publishing (§5), the entire rename can land on `main` with
-zero registry effect; the first `1.0.0-beta.1` tag is the human act.
+zero registry effect; the version tag is the human act.
 
 ---
 

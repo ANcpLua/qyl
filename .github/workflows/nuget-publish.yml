@@ -59,8 +59,20 @@ jobs:
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "${{ inputs.force_publish }}" = "true" ]; then
+              # The tag stays the human act: a dispatch can only re-run the lane for a
+              # version already tagged on this exact commit (e.g. after a transient
+              # failure). It can never mint a publish for an untagged state.
+              TAG_SHA="$(git rev-list -n 1 "v$VERSION" 2>/dev/null || true)"
+              if [ -z "$TAG_SHA" ]; then
+                echo "No tag v$VERSION is reachable; the tag is the human act and a dispatch cannot replace it." >&2
+                exit 1
+              fi
+              if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+                echo "Tag v$VERSION names $TAG_SHA, not the dispatched $GITHUB_SHA; refusing to publish." >&2
+                exit 1
+              fi
               echo "publish=true" >> "$GITHUB_OUTPUT"
-              echo "Forced publish requested for v$VERSION."
+              echo "Forced publish re-runs the already-tagged v$VERSION on its own commit."
             else
               echo "publish=false" >> "$GITHUB_OUTPUT"
               echo "Manual run without force_publish verifies only."
