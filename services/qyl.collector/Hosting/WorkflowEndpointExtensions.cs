@@ -17,7 +17,6 @@ internal static partial class CollectorEndpointExtensions
     private const int DefaultEdgeLimit = 500;
     private const int MaximumAppendItems = 500;
 
-    /// <summary>A graph cursor is an id the collector issued; nothing longer can be genuine.</summary>
     private const int MaxCursorLength = 192;
     private const int MaximumContentCharacters = 1_398_104;
 
@@ -645,22 +644,12 @@ internal static partial class CollectorEndpointExtensions
         return false;
     }
 
-    /// <summary>
-    /// Graph cursors are keyset positions the collector issued (the last id on the previous
-    /// page), so they are opaque to the client. Only the length is checked: a cursor longer
-    /// than a node id could never have been issued, and bounding it keeps an arbitrarily long
-    /// query string off the storage parameter.
-    /// </summary>
     private static bool TryCursor(string? raw, out string? cursor)
     {
         cursor = string.IsNullOrEmpty(raw) ? null : raw;
         return cursor is null || cursor.Length <= MaxCursorLength;
     }
 
-    /// <summary>
-    /// Run listing still pages by offset over <c>workflow_runs</c>, which is append-mostly and
-    /// ordered independently of the graph projection.
-    /// </summary>
     private static bool TryOffset(string? raw, out int offset)
     {
         offset = 0;

@@ -159,13 +159,6 @@ public sealed class WorkflowGraphInvariantTests
         Assert.Equal(first.TInfinityMs, third.TInfinityMs);
     }
 
-    /// <summary>
-    /// The graph projection is rebuilt from a journal that keeps growing, so pagination has to
-    /// survive rows appearing between pages. An offset cursor could not: inserting nodes that
-    /// sort before the cursor shifted every later row right, and the reader silently skipped
-    /// exactly as many as were inserted while has_more kept reporting normally. A keyset cursor
-    /// is anchored to the last id returned, so nothing after it can be shifted past the reader.
-    /// </summary>
     [Fact]
     public async Task Paging_skips_nothing_when_the_projection_grows_between_pages()
     {
@@ -205,8 +198,6 @@ public sealed class WorkflowGraphInvariantTests
             cursor = snapshot.NextNodeCursor;
             Assert.NotNull(cursor);
 
-            // Between pages, new nodes land that sort BEFORE the cursor — the exact shift an
-            // offset reader cannot survive.
             await store.AppendWorkflowEventsAsync(
                 "project-a", "run-1", "observer-1",
                 [AgentEvent($"insert-{page:D2}", sequence++, WorkflowJournalEventKind.AgentStarted, $"aaa-{page:D2}")],

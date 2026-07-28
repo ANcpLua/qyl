@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>1.1.0</QylVersion>
+    <QylVersion>1.1.1</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 

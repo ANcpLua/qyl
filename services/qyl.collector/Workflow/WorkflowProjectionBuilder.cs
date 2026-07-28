@@ -8,19 +8,10 @@ namespace Qyl.Collector.Workflow;
 
 internal static class WorkflowProjectionBuilder
 {
-    /// <summary>
-    /// Provenance is evidence pointing at the events behind an edge, not an audit log. Bounding
-    /// it keeps a hot edge from rebuilding an ever-growing array on every re-record.
-    /// </summary>
     private const int MaxRecordedEventIds = 32;
 
-    /// <summary>
-    /// Conflict detection compares each write to a path against every earlier write to that
-    /// path. Bounding the witness set keeps a journal that hammers one file linear.
-    /// </summary>
     private const int MaxConflictWitnessesPerPath = 32;
 
-    /// <summary>The contract's <c>@maxLength(192)</c> on WorkflowNodeId.</summary>
     private const int MaxNodeIdLength = 192;
 
     public static WorkflowGraphSnapshot Build(
@@ -474,9 +465,6 @@ internal static class WorkflowProjectionBuilder
                 }
             };
         }
-        // Unbounded, every subsequent write to this path rescans every earlier one, so a
-        // journal that writes one file repeatedly is quadratic with no ceiling. A bounded
-        // witness set still names conflicting writers; it just stops being a DoS lever.
         if (previousWrites.Count < MaxConflictWitnessesPerPath)
             previousWrites.Add((owner, workflowEvent.EventId));
     }
@@ -527,10 +515,6 @@ internal static class WorkflowProjectionBuilder
             .Select(node => Interval(node.StartedAt!.Value, node.EndedAt ?? now))
             .ToArray();
         var peakConcurrency = PeakConcurrency(agentIntervals);
-        // Distinct agent IDS can be fewer than concurrently-running agent NODES, because one
-        // id recurs across attempts. workerCount is the P in Brent's bound below, so letting
-        // peakConcurrency exceed it published a run that observably used more workers than the
-        // bound assumed — the two numbers contradicting each other on the same screen.
         var workerCount = Math.Max(
             Math.Max(1, peakConcurrency),
             timed
@@ -854,24 +838,12 @@ internal static class WorkflowProjectionBuilder
                 StringComparer.Ordinal);
     }
 
-    /// <summary>
-    /// Node ids join untrusted components with ':'. Unescaped, an agent literally named
-    /// "run:worker" under no attempt produced exactly the same id as attempt "run" with agent
-    /// "worker" — two distinct entities silently collapsing into one node, each inheriting the
-    /// other's edges and durations. Escaping is identity for any component containing neither
-    /// ':' nor '\', so every id already in flight stays byte-identical.
-    /// </summary>
     private static string IdPart(string value) =>
         value.Contains(':', StringComparison.Ordinal) || value.Contains('\\', StringComparison.Ordinal)
             ? value.Replace("\\", "\\\\", StringComparison.Ordinal)
                 .Replace(":", "\\c", StringComparison.Ordinal)
             : value;
 
-    /// <summary>
-    /// Composes a node id from a kind and untrusted components. WorkflowNodeId is
-    /// @maxLength(192) and the components are client-supplied, so an overlong id folds its tail
-    /// into a digest: plain truncation would reintroduce the collision the escaping prevents.
-    /// </summary>
     private static string NodeId(string kind, params string[] parts)
     {
         var builder = new StringBuilder(kind);
@@ -912,10 +884,6 @@ internal static class WorkflowProjectionBuilder
         if (edges.TryGetValue(edgeId, out var existing) &&
             existing.Provenance is RecordedWorkflowEdgeProvenance recorded)
         {
-            // Rebuilding the whole array on every re-record made a hot edge quadratic on the
-            // ingest path. Provenance is evidence pointing at the events that produced the
-            // edge, not an audit log, so saturate it: once the sample is full the edge is
-            // already fully explained and there is nothing left to rebuild.
             if (recorded.EventIds.Count >= MaxRecordedEventIds ||
                 recorded.EventIds.Contains(eventId, StringComparer.Ordinal))
             {

@@ -131,11 +131,6 @@ internal interface IQylStore : IAsyncDisposable
         int limit,
         CancellationToken ct = default);
 
-    /// <summary>
-    /// Cursors are keyset positions (the last id returned), not offsets. The projection is
-    /// rebuilt from the journal, so an offset silently skipped rows whenever events landed
-    /// between two pages — under-reporting the graph while still saying has_more normally.
-    /// </summary>
     Task<Qyl.Api.Contracts.Workflow.WorkflowGraphSnapshot?> GetWorkflowGraphAsync(
         string projectId,
         string runId,

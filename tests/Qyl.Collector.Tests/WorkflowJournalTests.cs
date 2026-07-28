@@ -587,8 +587,6 @@ public sealed class WorkflowJournalTests
         Assert.True(first.Edges.Count <= 30);
         Assert.True(first.HasMoreNodes);
         Assert.True(first.HasMoreEdges);
-        // Keyset, not offset: the cursor is the last id on the page, so a projection rebuilt
-        // between pages cannot shift rows out from under it.
         Assert.Equal(first.Nodes[^1].NodeId, first.NextNodeCursor);
         Assert.Equal(first.Edges[^1].EdgeId, first.NextEdgeCursor);
         Assert.True(first.TotalNodeCount > first.Nodes.Count);
