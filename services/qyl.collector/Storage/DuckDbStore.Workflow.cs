@@ -763,14 +763,6 @@ internal sealed partial class DuckDbStore
         return reader.Read() ? ReadWorkflowEvent(reader) : null;
     }
 
-    /// <summary>
-    /// A run may reference content it captured in this batch, or content it has already
-    /// referenced. It may NOT reference content merely because some other run in the project
-    /// captured it: <c>workflow_content</c> is deduplicated per project by digest, so a
-    /// project-scoped existence check let run A mint a reference row for run B's payload, and
-    /// <see cref="GetWorkflowContentAsync"/> then served it — it gates on the reference row
-    /// existing for the asking run, which A had just created.
-    /// </summary>
     private static void EnsureContentReferencesExist(
         DuckDBConnection con,
         DbTransaction transaction,

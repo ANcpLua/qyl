@@ -165,9 +165,6 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
         {
             ["HOME"] = isolatedHome,
             ["USERPROFILE"] = isolatedHome,
-            // The collector fails closed without an explicit workflow-content key rather than
-            // deriving one from the rotatable OTLP ingest key. This smoke boots it outside
-            // Development, so it has to supply one like any other production-shaped host.
             ["QYL_WORKFLOW_CONTENT_KEY"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         });
     try

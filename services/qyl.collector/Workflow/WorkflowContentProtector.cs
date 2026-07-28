@@ -46,28 +46,13 @@ internal sealed class WorkflowContentProtector
                 SHA256.HashData(Encoding.UTF8.GetBytes("qyl-development-workflow-content-key")));
         }
 
-        // Deriving this key from QYL_OTLP_PRIMARY_API_KEY used to be the production fallback.
-        // That silently bound the lifetime of stored content to a ROTATABLE ingest credential:
-        // rotating the OTLP key left every previously captured payload undecryptable, as an
-        // AES-GCM tag mismatch at read time rather than anything that looks like a key problem.
-        // Content encryption needs a key with its own rotation story, so refuse to start rather
-        // than accept one that is guaranteed to be rotated out from under the data.
         throw new InvalidOperationException(
-            "Workflow content capture requires QYL_WORKFLOW_CONTENT_KEY (base64-encoded 32 bytes). " +
-            "It must not be derived from the OTLP ingest key: that key rotates, and rotating it " +
-            "would permanently destroy access to all previously captured workflow content.");
+            "Workflow content capture requires QYL_WORKFLOW_CONTENT_KEY (base64-encoded 32 bytes).");
     }
 
     private const string ContentRefPrefix = "sha256:";
-    private const int ContentRefLength = 71; // "sha256:" + 64 lowercase hex characters.
+    private const int ContentRefLength = 71;
 
-    /// <summary>
-    /// The <c>^sha256:[a-f0-9]{64}$</c> pattern on WorkflowContentRef is an OpenAPI constraint;
-    /// the generated contract carries no runtime validation attribute, so an untrusted observer
-    /// can post any string. Without this guard a ref shorter than the prefix threw
-    /// ArgumentOutOfRangeException out of the slice below and surfaced as a 500 from the append
-    /// endpoint instead of a rejected request.
-    /// </summary>
     internal static void RequireWellFormedContentRef(string contentRef)
     {
         if (contentRef.Length != ContentRefLength ||

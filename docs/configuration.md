@@ -38,5 +38,5 @@ cannot rot into decoration.
 | `QYL_SMOKE_OTLP_HTTP_PORT` | NativeAOT smoke | Host OTLP/HTTP port; defaults to `4318`. |
 | `QYL_SMOKE_PLATFORM` | NativeAOT smoke | Docker build/run platform; defaults to `linux/amd64`. |
 | `QYL_STORAGE_MIN_FREE_MB` | Collector | Free-space threshold for degraded `/health`; defaults to `2048`, and `0` disables the threshold. |
-| `QYL_WORKFLOW_CONTENT_KEY` | Collector | Base64-encoded 32-byte AES-GCM key for captured workflow content. Falls back to a key derived from `QYL_OTLP_PRIMARY_API_KEY`; Development and Testing use a fixed non-production key. Hosted startup fails when none is available. |
+| `QYL_WORKFLOW_CONTENT_KEY` | Collector | Base64-encoded 32-byte AES-GCM key for captured workflow content. Required outside Development and Testing; retain it for at least as long as captured content. |
 | `QYL_WORKLOAD_ONESHOT` | Synthetic workload | `1` emits one acceptance turn and exits; unset runs continuously. |
