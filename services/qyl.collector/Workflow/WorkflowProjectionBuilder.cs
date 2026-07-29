@@ -37,7 +37,6 @@ internal static class WorkflowProjectionBuilder
             RunStatus(run.Status),
             null,
             null,
-            null,
             run.StartedAt,
             run.EndedAt,
             []));
@@ -58,7 +57,6 @@ internal static class WorkflowProjectionBuilder
                     "running",
                     attemptId,
                     null,
-                    runNodeId,
                     workflowEvent.Timestamp,
                     null,
                     []));
@@ -201,7 +199,6 @@ internal static class WorkflowProjectionBuilder
                 "running",
                 attemptId,
                 null,
-                attemptNodeId,
                 workflowEvent.Timestamp,
                 null,
                 workflowEvent.ContentRefs);
@@ -246,7 +243,6 @@ internal static class WorkflowProjectionBuilder
                 workflowEvent.Kind is WorkflowJournalEventKind.AgentSpawned ? "pending" : "running",
                 attemptId,
                 workflowEvent.AgentId,
-                parentNodeId,
                 workflowEvent.Timestamp,
                 null,
                 workflowEvent.ContentRefs);
@@ -287,7 +283,6 @@ internal static class WorkflowProjectionBuilder
                 "running",
                 attemptId,
                 workflowEvent.AgentId,
-                parentNodeId,
                 workflowEvent.Timestamp,
                 null,
                 workflowEvent.ContentRefs);
@@ -324,7 +319,6 @@ internal static class WorkflowProjectionBuilder
             "completed",
             attemptId,
             workflowEvent.AgentId,
-            sender,
             workflowEvent.Timestamp,
             workflowEvent.Timestamp,
             workflowEvent.ContentRefs);
@@ -355,7 +349,6 @@ internal static class WorkflowProjectionBuilder
                 "waiting",
                 attemptId,
                 workflowEvent.AgentId,
-                owner,
                 workflowEvent.Timestamp,
                 null,
                 workflowEvent.ContentRefs);
@@ -400,7 +393,6 @@ internal static class WorkflowProjectionBuilder
                 terminal ? EventStatus(workflowEvent, "completed") : "pending",
                 attemptId,
                 workflowEvent.AgentId,
-                owner,
                 workflowEvent.Timestamp,
                 terminal ? workflowEvent.Timestamp : null,
                 workflowEvent.ContentRefs);
@@ -435,7 +427,6 @@ internal static class WorkflowProjectionBuilder
                 WorkflowNodeKind.Resource,
                 path,
                 "written",
-                null,
                 null,
                 null,
                 workflowEvent.Timestamp,
@@ -491,7 +482,6 @@ internal static class WorkflowProjectionBuilder
                 "running",
                 attemptId,
                 workflowEvent.AgentId,
-                owner,
                 workflowEvent.Timestamp,
                 null,
                 workflowEvent.ContentRefs);
@@ -935,7 +925,6 @@ internal static class WorkflowProjectionBuilder
         string status,
         string? attemptId,
         string? agentId,
-        string? parentNodeId,
         DateTimeOffset? startedAt,
         DateTimeOffset? endedAt,
         IReadOnlyList<string> contentRefs)
@@ -948,7 +937,6 @@ internal static class WorkflowProjectionBuilder
         public string Status { get; set; } = status;
         public string? AttemptId { get; } = attemptId;
         public string? AgentId { get; } = agentId;
-        public string? ParentNodeId { get; } = parentNodeId;
         public DateTimeOffset? StartedAt { get; set; } = startedAt;
         public DateTimeOffset? EndedAt { get; set; } = endedAt;
 
@@ -967,7 +955,6 @@ internal static class WorkflowProjectionBuilder
                 Status = Status,
                 AttemptId = AttemptId,
                 AgentId = AgentId,
-                ParentNodeId = ParentNodeId,
                 StartedAt = StartedAt,
                 EndedAt = EndedAt,
                 DurationMs = StartedAt.HasValue
