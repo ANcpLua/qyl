@@ -32,6 +32,4 @@ accept = ["200..=299", "429"]
 # runs). The spec URLs are stable; excluding beats a flaky red check.
 exclude = [
   '^https?://opentelemetry\.io',
-  # A repository-scoped Actions token cannot read a separate private repository.
-  '^https://github\.com/ANcpLua/dedupe-28th-july/',
 ]

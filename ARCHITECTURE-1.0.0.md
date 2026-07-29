@@ -74,7 +74,7 @@ Two process roles exist. A third is derived.
 
 **Clients and projections (product plane).** `Qyl.Cli` (`qyl up`) orchestrates the local stack — collector on `:5100`, diagnostics on `:5200`, OTLP ingest on `:4318` — and is a *client* of the collector API, never the API itself; `Qyl.Run.Workload` (Runner) is the in-proc supervisor of those local processes. `qyl.dashboard` presents product telemetry over HTTP. All of them reach the collector exclusively through its API using **generated contract clients** (loop 2); process spawning by CLI/Runner is process-level, not a package edge. The kubectl principle: CLI talks to the API, owns none of it.
 
-**MCP plane (two nodes, one asymmetry).** `qyl.mcp/server` is the *closed-world* MCP server (Node service `qyl-mcp`, Railway, `mcp.qyl.at`): it projects the known qyl model as MCP tools over stored telemetry — a projection of the collector API, with tool *shapes* generated from the contract and tool *curation* authored (§4, loop 2). `qyl.mcp/workbench` is the *open-world* MCP client runtime (local loopback `:18888`): it connects to, inspects, and tests arbitrary external MCP servers it didn't write, so it validates schemas at runtime **by design** and is deliberately outside both loops. `qyl.mcp/dashboard` is the browser Workbench UI (Vite bundle + MCP App served by the server) — its subject is MCP, its protocol is HTTP; a browser cannot be an MCP stdio client.
+**MCP plane (two nodes, one asymmetry).** `qyl.mcp/server` is the *closed-world* MCP server (Bun service `qyl-mcp`, Railway, `mcp.qyl.at`): it projects the known qyl model as MCP tools over stored telemetry — a projection of the collector API, with tool *shapes* generated from the contract and tool *curation* authored (§4, loop 2). `qyl.mcp/workbench` is the *open-world* MCP client runtime (local loopback `:18888`): it connects to, inspects, and tests arbitrary external MCP servers it didn't write, so it validates schemas at runtime **by design** and is deliberately outside both loops. `qyl.mcp/dashboard` is the browser Workbench UI (Vite bundle + MCP App served by the server) — its subject is MCP, its protocol is HTTP; a browser cannot be an MCP stdio client.
 
 The self-telemetry rule generalizes: any first-party process (CLI, Runner, MCP server host, dashboards' backends) may consume `Qyl.Telemetry.Hosting` for its **own** telemetry, under the same fail-closed guard discipline as the collector.
 
@@ -112,7 +112,7 @@ The self-telemetry rule generalizes: any first-party process (CLI, Runner, MCP s
 | `Qyl.Cli` | Local stack orchestration (`qyl up`); client of the collector API | NuGet global tool `qyl` (`qyl/packages/Qyl.Cli`) |
 | `Qyl.Run.Workload` | Runner: supervises local runtime processes under `qyl up` | .NET process (`qyl/packages/Qyl.Run.Workload`) |
 | `qyl.dashboard` | Product telemetry UI | Web bundle (`qyl/services/qyl.dashboard`) |
-| `qyl.mcp/server` | Closed-world MCP projection of the qyl model | Node service `qyl-mcp` · Railway · `mcp.qyl.at` (npm `qyl-mcp-server`) |
+| `qyl.mcp/server` | Closed-world MCP projection of the qyl model | Bun service `qyl-mcp` · Railway · `mcp.qyl.at` (npm `qyl-mcp-server`) |
 | `qyl.mcp/workbench` | Open-world MCP client runtime for arbitrary external servers | Node loopback process · `:18888` |
 | `qyl.mcp/dashboard` | Workbench UI | Vite bundle + MCP App, served by the server |
 
@@ -149,7 +149,7 @@ Qyl.Cli
 ├── Qyl.Telemetry.Hosting                    ← own self-telemetry only
 └── (zero Qyl.Collector.* references — collector is spawned as a process, reached via API)
 
-qyl.mcp/server  (Node — rule-level, verifier-enforced)
+qyl.mcp/server  (Bun — rule-level, verifier-enforced)
 ├── generated TS contract artifacts          ← all tool/request/response shapes import from here
 └── (zero hand-declared API shapes; curation manifest references generated shapes only)
 

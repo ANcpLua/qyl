@@ -4,7 +4,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces and logs back through
 the embedded dashboard, the collector API, or MCP.
 
-qyl 1.1.2 is released. The site and documentation are at [qyl.at](https://qyl.at/). The
+qyl 1.1.3 is released. The site and documentation are at [qyl.at](https://qyl.at/). The
 other two hosted surfaces are endpoints rather than pages: `https://api.qyl.at` serves
 the collector read API and OTLP ingest under their route prefixes, and
 `https://mcp.qyl.at/mcp` is the MCP endpoint, which answers `401` to anything without an
@@ -69,11 +69,11 @@ the registries are authoritative when one has moved on.
 
 | Package | Line | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 1.1.2 | this one |
+| `qyl` (dotnet tool) | 1.1.3 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.0.1 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 1.0.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 5.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
-| `qyl-mcp-server` | 1.1.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 6.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `qyl-mcp-server` | 1.1.3 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their

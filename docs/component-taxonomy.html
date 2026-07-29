@@ -214,7 +214,7 @@ const DATA = [
  {c:"qyl.dashboard", code:"", plane:"prod", protocol:"HTTP UI (browser)", resp:"Present product telemetry", pkg:"Web bundle served by a qyl service · <code>qyl/services/qyl.dashboard</code>",
   flat:"Web UI for telemetry & product operations",
   note:"Legitimately distinct from the MCP dashboard: different subject (product telemetry vs MCP runtime). The <code>qyl.collector/Dashboard</code> surface still overlaps → consolidation question stays open (see §2)."},
- {c:"qyl.mcp / server", code:"projection", plane:"mcp", protocol:"MCP <b>server</b> (closed world)", resp:"Project the known qyl model as MCP tools", pkg:"Node service <code>qyl-mcp</code> · Railway · <code>mcp.qyl.at</code>",
+ {c:"qyl.mcp / server", code:"projection", plane:"mcp", protocol:"MCP <b>server</b> (closed world)", resp:"Project the known qyl model as MCP tools", pkg:"Bun service <code>qyl-mcp</code> · Railway · <code>mcp.qyl.at</code>",
   flat:"MCP server exposing qyl capabilities to remote MCP clients",
   note:"<code>qyl.mcp/server</code> (npm <code>qyl-mcp-server</code>). <b>MCP plane, closed world:</b> a projection of the collector API, never a second contract source. <b>G10 rule:</b> tool <em>shapes</em> are generated from the TypeSpec contract (<code>qyl-api-schema</code>); tool <em>curation</em> (selection, naming, descriptions) is authored. 1:1 endpoint→tool mirroring is explicitly a non-goal."},
  {c:"qyl.mcp / workbench", code:"client runtime", plane:"mcp", protocol:"MCP <b>client</b> (open world)", resp:"Connect to / inspect / test arbitrary external MCP servers", pkg:"Node loopback process · local <code>:18888</code>",
