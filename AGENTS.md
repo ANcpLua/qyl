@@ -5,6 +5,15 @@ This is the only editable agent/contributor instruction file in this repository.
 executable truth in code, schemas, generators, and tests. Do not add progress diaries, repair prompts, handoff
 documents, or a second rules file — every duplicated statement is a future contradiction.
 
+## Verified concern status
+
+| Concern | Status | Evidence / concrete remainder |
+| --- | --- | --- |
+| [`QYL-CONTRACT-RELEASE`](https://github.com/ANcpLua/dedupe-28th-july/blob/main/concerns/01-contract-and-release-integrity.md) | `IN_PROGRESS` | The tracked CLI contract-only JSON gate and collector health revision exist; durable schema index → collector deploy → MCP repin/deploy orchestration and provenance do not. The public release matrix is stale (qyl/tool `1.1.2`, contracts `5.0.0`, MCP server `1.1.0` versus authoritative `1.1.3`, `5.1.0`, `1.1.2`) and lacks an executable manifest/tag/registry drift gate. |
+| [`QYL-TENANT-AUTHORIZATION`](https://github.com/ANcpLua/dedupe-28th-july/blob/main/concerns/02-principal-derived-tenant-authorization.md) | `NOT_STARTED (0%)` | Collector reads still trust caller `X-Qyl-Project`; no claim-derived fail-closed mapping or real two-tenant positive/negative path tests exist. |
+| [`QYL-WORKFLOW-GRAPH`](https://github.com/ANcpLua/dedupe-28th-july/blob/main/concerns/04-workflow-graph-correctness.md) | `IN_PROGRESS` | Tracked causal traversal, skew handling, journal-pure transactional projection, keyset paging, resume/control clocks, run-scoped content, and bounded witnesses/IDs exist. Remaining: overlapping own-work accounting, child clipping, root-Tool peak, explicit cycle contract/regression, rebuild budget, complete ID-boundary tests, and invalid-Base64 4xx mapping. Source/OpenAPI and qyl/MCP removals are committed and pushed (`qyl-api-schema` `7cd020b9`, `qyl` `ab1f512d`, `qyl.mcp` `39a0af4f`); the new contract/packages are not published/indexed, consumers/deployments are not repinned/released, and full coordinated release/orchestration, tests, and live evidence remain. |
+| [`QYL-TELEMETRY-RUNTIME`](https://github.com/ANcpLua/dedupe-28th-july/blob/main/concerns/06-telemetry-vocabulary-and-aot.md) | `IN_PROGRESS` | Generated contracts and AOT/non-AOT consumer gates are tracked; coordinated G5 producer scope/meter rename, semantic-convention publication, repin, and conformance evidence remain, and old runtime strings are current. |
+
 ## Where the law lives
 
 `ARCHITECTURE-1.0.0.md` in this repository is the normative architecture:
@@ -16,10 +25,6 @@ Markdown wins.
 This file does not restate the architecture. If you find yourself needing a fact about boundaries, edges, loops, or
 gates, read it there — a paraphrase here would be a second contract owner, which is the exact failure the architecture
 forbids.
-
-**Migration state.** This file and the architecture speak target names (`Qyl.Telemetry.*`, `Qyl.Collector.*`). Until the
-rename PR lands, the code uses the today-names listed in the ledger (`docs/component-taxonomy.html` §2); map through the
-ledger, don't guess. The ledger is migration scaffolding and is deleted when the rename lands (architecture §9).
 
 ## Definition of done
 
