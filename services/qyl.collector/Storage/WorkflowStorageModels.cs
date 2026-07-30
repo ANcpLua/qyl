@@ -2,7 +2,7 @@ using Qyl.Api.Contracts.Workflow;
 
 namespace Qyl.Collector.Storage;
 
-[DuckDbTable("workflow_runs")]
+[DuckDbTable("workflow_runs", Indexes = "ActiveCheckpointStorageKey")]
 internal sealed partial record WorkflowRunDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -10,6 +10,9 @@ internal sealed partial record WorkflowRunDbRow
 
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
     public required string RunId { get; init; }
+
+    [DuckDbColumn(DefaultSql = "replace(lower(uuid()::VARCHAR), '-', '')")]
+    public required string RunGeneration { get; init; }
 
     public string? ThreadId { get; init; }
 
@@ -26,7 +29,43 @@ internal sealed partial record WorkflowRunDbRow
     [DuckDbColumn(DefaultSql = "0")]
     public ulong LatestJournalSequence { get; init; }
 
+    [DuckDbColumn(DefaultSql = "0")]
+    public long EventCount { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long ProjectionInputBytes { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long ImmutableProjectionInputBytes { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long DynamicProjectionInputBytes { get; init; }
+
     public string? ActiveAttemptId { get; init; }
+
+    [DuckDbColumn(DefaultSql = "1")]
+    public ulong NextCommandSequence { get; init; }
+
+    [DuckDbColumn(DefaultSql = "1")]
+    public ulong NextControlEventSourceSequence { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public ulong ActiveCheckpointSequence { get; init; }
+
+    public string? ActiveCheckpointId { get; init; }
+
+    public string? ActiveCheckpointStorageKey { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public ulong CheckpointManifestEpoch { get; init; }
+
+    public ulong? ProjectionFailureSequence { get; init; }
+
+    public string? ProjectionFailureKind { get; init; }
+
+    public string? ProjectionFailureConfiguration { get; init; }
+
+    public string? ProjectionFailureSemantic { get; init; }
 
     [DuckDbColumn(SqlType = "JSON")]
     public string? MetadataJson { get; init; }
@@ -36,6 +75,13 @@ internal sealed partial record WorkflowRunDbRow
 
     [DuckDbColumn(ExcludeFromInsert = true, SqlType = "TIMESTAMPTZ", DefaultSql = "current_timestamp")]
     public DateTimeOffset UpdatedAt { get; init; }
+
+    [DuckDbColumn(
+        ExcludeFromInsert = true,
+        SqlType = "TIMESTAMPTZ",
+        DefaultSql = "current_timestamp",
+        OmitDefaultFromMigration = true)]
+    public DateTimeOffset LastActivityAt { get; init; }
 }
 
 [DuckDbTable(
@@ -112,7 +158,10 @@ internal sealed partial record WorkflowContentDbRow
     public DateTimeOffset CreatedAt { get; init; }
 }
 
-[DuckDbTable("workflow_content_refs", OnConflict = "ON CONFLICT DO NOTHING")]
+[DuckDbTable(
+    "workflow_content_refs",
+    OnConflict = "ON CONFLICT DO NOTHING",
+    Indexes = "ProjectId,RunId,ContentRef")]
 internal sealed partial record WorkflowContentReferenceDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -129,6 +178,42 @@ internal sealed partial record WorkflowContentReferenceDbRow
 
     [DuckDbColumn(ExcludeFromInsert = true, SqlType = "TIMESTAMPTZ", DefaultSql = "current_timestamp")]
     public DateTimeOffset CreatedAt { get; init; }
+}
+
+[DuckDbTable("workflow_client_journal")]
+internal sealed partial record WorkflowClientJournalDbRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    public required string ProjectId { get; init; }
+
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string RunId { get; init; }
+
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
+    public required string ClientId { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public ulong AcknowledgedSourceSequence { get; init; }
+}
+
+[DuckDbTable(
+    "workflow_client_journal_ranges",
+    Indexes = "ProjectId,RunId,ClientId,RangeEnd")]
+internal sealed partial record WorkflowClientJournalRangeDbRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    public required string ProjectId { get; init; }
+
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string RunId { get; init; }
+
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
+    public required string ClientId { get; init; }
+
+    [DuckDbColumn(PrimaryKeyOrdinal = 3)]
+    public ulong RangeStart { get; init; }
+
+    public ulong RangeEnd { get; init; }
 }
 
 [DuckDbTable(
@@ -164,56 +249,6 @@ internal sealed partial record WorkflowCommandDbRow
     public string? Error { get; init; }
 }
 
-[DuckDbTable("workflow_projection_nodes")]
-internal sealed partial record WorkflowProjectionNodeDbRow
-{
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProjectId { get; init; }
-
-    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
-    public required string RunId { get; init; }
-
-    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
-    public required string NodeId { get; init; }
-
-    [DuckDbColumn(SqlType = "JSON")]
-    public required string NodeJson { get; init; }
-}
-
-[DuckDbTable("workflow_projection_edges")]
-internal sealed partial record WorkflowProjectionEdgeDbRow
-{
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProjectId { get; init; }
-
-    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
-    public required string RunId { get; init; }
-
-    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
-    public required string EdgeId { get; init; }
-
-    [DuckDbColumn(SqlType = "JSON")]
-    public required string EdgeJson { get; init; }
-}
-
-[DuckDbTable("workflow_projection_state")]
-internal sealed partial record WorkflowProjectionStateDbRow
-{
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProjectId { get; init; }
-
-    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
-    public required string RunId { get; init; }
-
-    public ulong JournalSequence { get; init; }
-
-    [DuckDbColumn(SqlType = "JSON")]
-    public required string GraphJson { get; init; }
-
-    [DuckDbColumn(ExcludeFromInsert = true, SqlType = "TIMESTAMPTZ", DefaultSql = "current_timestamp")]
-    public DateTimeOffset RebuiltAt { get; init; }
-}
-
 internal sealed record WorkflowRunStorageRow(
     string ProjectId,
     string RunId,
@@ -224,7 +259,23 @@ internal sealed record WorkflowRunStorageRow(
     DateTimeOffset? EndedAt,
     ulong LatestJournalSequence,
     string? ActiveAttemptId,
-    string? MetadataJson);
+    string? MetadataJson,
+    long EventCount = 0,
+    long ProjectionInputBytes = 0,
+    long ImmutableProjectionInputBytes = 0,
+    long DynamicProjectionInputBytes = 0,
+    ulong NextCommandSequence = 1,
+    ulong NextControlEventSourceSequence = 1,
+    ulong ActiveCheckpointSequence = 0,
+    string? ActiveCheckpointId = null,
+    string? ActiveCheckpointStorageKey = null,
+    ulong CheckpointManifestEpoch = 0,
+    ulong? ProjectionFailureSequence = null,
+    string? ProjectionFailureKind = null,
+    string? ProjectionFailureConfiguration = null,
+    string RunGeneration = "",
+    string? ProjectionFailureSemantic = null,
+    DateTimeOffset LastActivityAt = default);
 
 internal sealed record WorkflowEventWrite(
     string EventId,
@@ -295,12 +346,44 @@ internal sealed record WorkflowEventStoragePage(
     ulong HighWaterMark,
     bool CursorGap);
 
-internal sealed record WorkflowProjectionState(
-    WorkflowRun Run,
-    WorkflowGraphStatistics Statistics,
+internal sealed record WorkflowProjectionNodeState(
+    string NodeId,
+    WorkflowNodeKind Kind,
+    string Label,
+    string Status,
+    string? AttemptId,
+    string? AgentId,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? EndedAt,
+    IReadOnlyList<string> ContentRefs);
+
+internal sealed record WorkflowProjectionOwnerCursor(string OwnerNodeId, string NodeId);
+
+internal sealed record WorkflowProjectionWriteWitness(string NodeId, string EventId);
+
+internal sealed record WorkflowProjectionPathWrites(
+    string PathKey,
+    IReadOnlyList<WorkflowProjectionWriteWitness> Witnesses);
+
+internal sealed record WorkflowProjectionReplayState(
+    string? ActiveAttemptId,
+    IReadOnlyList<WorkflowProjectionNodeState> Nodes,
+    IReadOnlyList<WorkflowGraphEdge> Edges,
+    IReadOnlyList<WorkflowProjectionOwnerCursor> OwnerCursors,
+    IReadOnlyList<WorkflowProjectionPathWrites> PathWrites);
+
+internal sealed record WorkflowProjectionCheckpoint(
+    int FormatVersion,
+    string ProjectId,
+    string RunId,
+    string RunGeneration,
+    string ProjectorSemanticFingerprint,
+    string ProjectionConfigurationFingerprint,
+    string RunInputHash,
     ulong JournalSequence,
-    int TotalNodeCount,
-    int TotalEdgeCount);
+    DateTimeOffset ProjectionTime,
+    WorkflowProjectionReplayState ReplayState,
+    WorkflowGraphSnapshot Graph);
 
 internal sealed record WorkflowControlCommandStorageRow(
     string ProjectId,

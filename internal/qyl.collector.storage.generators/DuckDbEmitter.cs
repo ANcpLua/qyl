@@ -153,7 +153,8 @@ internal static class DuckDbEmitter
                 .Append(' ')
                 .Append(ResolveSqlType(column));
 
-            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
+            if (!column.OmitDefaultFromMigration &&
+                !string.IsNullOrWhiteSpace(column.DefaultSql))
                 line.Append(" DEFAULT ").Append(column.DefaultSql);
 
             line.Append(';');

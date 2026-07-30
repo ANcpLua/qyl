@@ -13,7 +13,13 @@ internal sealed record TraceStoragePageItem(
     ulong ActivityUnixNano,
     IReadOnlyList<SpanStorageRow> Spans);
 
-internal readonly record struct StorageFileMetrics(long DatabaseFileSizeBytes, long StorageFreeBytes);
+internal readonly record struct StorageFileMetrics(
+    long DatabaseFileSizeBytes,
+    long WalFileSizeBytes,
+    long LiveCheckpointBytes,
+    long TemporaryOrOrphanCheckpointBytes,
+    long ManagedStorageBytes,
+    long StorageFreeBytes);
 
 internal interface IQylStore : IAsyncDisposable
 {

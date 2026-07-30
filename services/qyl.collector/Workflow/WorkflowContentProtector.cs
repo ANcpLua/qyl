@@ -124,9 +124,21 @@ internal sealed class WorkflowContentProtector
         content.Encoding switch
         {
             WorkflowContentEncoding.Utf8 => Encoding.UTF8.GetBytes(content.Content),
-            WorkflowContentEncoding.Base64 => Convert.FromBase64String(content.Content),
+            WorkflowContentEncoding.Base64 => DecodeBase64(content.Content),
             _ => throw new InvalidDataException($"Unsupported workflow content encoding '{content.Encoding}'.")
         };
+
+    private static byte[] DecodeBase64(string content)
+    {
+        try
+        {
+            return Convert.FromBase64String(content);
+        }
+        catch (FormatException ex)
+        {
+            throw new WorkflowContentValidationException("Captured content is not valid base64.", ex);
+        }
+    }
 
     private static byte[] Compress(byte[] input)
     {
@@ -145,3 +157,6 @@ internal sealed class WorkflowContentProtector
         return output.ToArray();
     }
 }
+
+internal sealed class WorkflowContentValidationException(string message, Exception innerException)
+    : Exception(message, innerException);

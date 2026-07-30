@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Mvc;
@@ -95,7 +96,7 @@ internal static partial class CollectorEndpointExtensions
             : Results.Ok(WorkflowProjectionBuilder.ToContract(row));
     }
 
-    private static async Task<IResult> AppendEventsAsync(
+    internal static async Task<IResult> AppendEventsAsync(
         HttpContext context,
         [FromRoute(Name = "run_id")] string runId,
         WorkflowEventBatchAppendRequest request,
@@ -108,6 +109,13 @@ internal static partial class CollectorEndpointExtensions
                 "client_id",
                 "client_id must contain between 1 and 128 characters.",
                 "client_id.invalid");
+        }
+        if (request.ClientId == "collector-control")
+        {
+            return ContractErrorResults.Validation(
+                "client_id",
+                "client_id is reserved for collector control events.",
+                "client_id.reserved");
         }
         if (request.Events.Count is < 1 or > MaximumAppendItems)
         {
@@ -178,6 +186,19 @@ internal static partial class CollectorEndpointExtensions
         {
             return ContractErrorResults.NotFound("workflow_run", runId);
         }
+        catch (WorkflowContentValidationException)
+        {
+            return ContractErrorResults.Validation(
+                "content",
+                "Base64 workflow content must use valid base64 encoding.",
+                "content.base64.invalid");
+        }
+        catch (WorkflowProjectionLimitExceededException)
+        {
+            return ContractErrorResults.Conflict(
+                runId,
+                "The workflow run has reached its immutable journal or projection capacity.");
+        }
         catch (Exception error) when (error is WorkflowEventConflictException or InvalidDataException)
         {
             return ContractErrorResults.Conflict(
@@ -220,7 +241,7 @@ internal static partial class CollectorEndpointExtensions
         }
     }
 
-    private static async Task<IResult> GetGraphAsync(
+    internal static async Task<IResult> GetGraphAsync(
         HttpContext context,
         [FromRoute(Name = "run_id")] string runId,
         IQylStore store,
@@ -263,17 +284,35 @@ internal static partial class CollectorEndpointExtensions
             return error!;
         }
 
-        var graph = await store.GetWorkflowGraphAsync(
-            ResolveProjectScope(context),
-            runId,
-            nodeCursor,
-            nodeLimit,
-            edgeCursor,
-            edgeLimit,
-            ct).ConfigureAwait(false);
-        return graph is null
-            ? ContractErrorResults.NotFound("workflow_run", runId)
-            : Results.Ok(graph);
+        try
+        {
+            var graph = await store.GetWorkflowGraphAsync(
+                ResolveProjectScope(context),
+                runId,
+                nodeCursor,
+                nodeLimit,
+                edgeCursor,
+                edgeLimit,
+                ct).ConfigureAwait(false);
+            return graph is null
+                ? ContractErrorResults.NotFound("workflow_run", runId)
+                : Results.Ok(graph);
+        }
+        catch (KeyNotFoundException)
+        {
+            return ContractErrorResults.NotFound("workflow_run", runId);
+        }
+        catch (WorkflowProjectionLimitExceededException)
+        {
+            return ContractErrorResults.Conflict(
+                runId,
+                "The workflow run has reached its immutable journal or projection capacity.");
+        }
+        catch (QylStoreUnavailableException)
+        {
+            return ContractErrorResults.ServiceUnavailable(
+                "workflow_projection_capacity");
+        }
     }
 
     private static async Task<IResult> GetContentAsync(
@@ -454,6 +493,12 @@ internal static partial class CollectorEndpointExtensions
                 runId,
                 "The idempotency key is already bound to a different control command.");
         }
+        catch (WorkflowProjectionLimitExceededException)
+        {
+            return ContractErrorResults.Conflict(
+                runId,
+                "The workflow run has reached its immutable journal or projection capacity.");
+        }
         catch (QylStoreUnavailableException)
         {
             return ContractErrorResults.ServiceUnavailable("workflow_control_capacity");
@@ -527,6 +572,17 @@ internal static partial class CollectorEndpointExtensions
             return ContractErrorResults.Conflict(
                 commandId,
                 "The control command status transition conflicts with the recorded command.");
+        }
+        catch (WorkflowProjectionLimitExceededException)
+        {
+            return ContractErrorResults.Conflict(
+                runId,
+                "The workflow run has reached its immutable journal or projection capacity.");
+        }
+        catch (QylStoreUnavailableException)
+        {
+            return ContractErrorResults.ServiceUnavailable(
+                "workflow_control_capacity");
         }
     }
 
@@ -651,7 +707,7 @@ internal static partial class CollectorEndpointExtensions
     private static bool TryCursor(string? raw, out string? cursor)
     {
         cursor = string.IsNullOrEmpty(raw) ? null : raw;
-        return cursor is null || cursor.Length <= MaxCursorLength;
+        return cursor is null || cursor.EnumerateRunes().Count() <= MaxCursorLength;
     }
 
     private static bool TryOffset(string? raw, out int offset)

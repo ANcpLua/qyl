@@ -19,6 +19,11 @@ internal sealed class DuckDbHealthCheck(IQylStore store, RetentionOptions retent
                 ["span_count"] = stats.SpanCount,
                 ["session_count"] = stats.SessionCount,
                 ["database_file_size_bytes"] = fileMetrics.DatabaseFileSizeBytes,
+                ["wal_file_size_bytes"] = fileMetrics.WalFileSizeBytes,
+                ["live_checkpoint_bytes"] = fileMetrics.LiveCheckpointBytes,
+                ["temporary_or_orphan_checkpoint_bytes"] =
+                    fileMetrics.TemporaryOrOrphanCheckpointBytes,
+                ["managed_storage_bytes"] = fileMetrics.ManagedStorageBytes,
                 ["storage_free_bytes"] = fileMetrics.StorageFreeBytes
             };
 
@@ -26,13 +31,13 @@ internal sealed class DuckDbHealthCheck(IQylStore store, RetentionOptions retent
             {
                 return HealthCheckResult.Degraded(
                     $"DuckDB storage free space is below the configured minimum; " +
-                    $"database_file_size_bytes={fileMetrics.DatabaseFileSizeBytes}; " +
+                    $"managed_storage_bytes={fileMetrics.ManagedStorageBytes}; " +
                     $"storage_free_bytes={fileMetrics.StorageFreeBytes}",
                     data: data);
             }
 
             return HealthCheckResult.Healthy(
-                $"DuckDB connection is healthy; database_file_size_bytes={fileMetrics.DatabaseFileSizeBytes}; " +
+                $"DuckDB connection is healthy; managed_storage_bytes={fileMetrics.ManagedStorageBytes}; " +
                 $"storage_free_bytes={fileMetrics.StorageFreeBytes}",
                 data);
         }

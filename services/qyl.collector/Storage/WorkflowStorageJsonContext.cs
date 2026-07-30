@@ -6,5 +6,5 @@ namespace Qyl.Collector.Storage;
     NumberHandling = JsonNumberHandling.AllowReadingFromString |
                      JsonNumberHandling.AllowNamedFloatingPointLiterals,
     WriteIndented = false)]
-[JsonSerializable(typeof(WorkflowProjectionState))]
+[JsonSerializable(typeof(WorkflowProjectionCheckpoint))]
 internal partial class WorkflowStorageJsonContext : JsonSerializerContext;
