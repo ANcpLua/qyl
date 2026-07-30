@@ -7,7 +7,8 @@ documents, or a second rules file — every duplicated statement is a future con
 
 ## Where the law lives
 
-`ARCHITECTURE-1.0.0.md` in this repository is the normative architecture:
+`ARCHITECTURE-1.0.0.md` in this repository is the normative architecture (last revised 2026-07-28; reality keeps moving —
+divergence is a migration item, never a reason to doubt the document):
 component taxonomy, boundary law, the exhaustive dependency-edge list, the two generated loops, and gates G1–G11. Every
 other qyl repository points at it.
 `docs/component-taxonomy.html` is a view of the same content plus the target ↔ today naming ledger; on any conflict the
@@ -20,10 +21,18 @@ forbids.
 ## Definition of done
 
 The standing goal is complete when gates G1–G11 pass, the `Ci` target below is green, and every touched repository is
-clean and pushed. Gates are the arbiter:
-a claim of completion without the corresponding gate output is not evidence.
+clean and pushed. Gates are the arbiter: a claim of completion without the corresponding gate output is not evidence.
+Gates arbitrate only what they measure — keep them aligned with the task's goal (upstream and downstream adjusted in
+the same change), and never count something impure by nature (network, registries, external state) as guaranteed merely
+because a gate went green.
 
-Two classes of action are human-gated; everything else is autonomous:
+Two classes of action are human-gated; everything else is autonomous. The uncertainty rule of thumb, and when an
+agent-performed action must be cited in the completion report:
+
+- Pushed outside ANcpLua, or irreversible / permanently traceable → **uncertain**: name the action explicitly when
+  reporting the task done.
+- Undoable, done before and known to work, or pure with no possible side effect → **not uncertain**: proceed with the
+  regular pipeline and its default checks, no extra ceremony.
 
 - **Registry-irreversible steps** — publishing to nuget.org/npm and unlisting package IDs. Prepare, verify, and stop
   with the exact command ready. This gate is structural, not conventional: in any repo whose CI would publish on a push
