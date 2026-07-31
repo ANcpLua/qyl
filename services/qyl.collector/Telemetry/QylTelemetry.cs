@@ -1,4 +1,5 @@
 
+
 namespace Qyl.Collector.Telemetry;
 
 internal static class QylTelemetry
@@ -10,6 +11,7 @@ internal static class QylTelemetry
         Version = BuildVersion.InformationalVersion,
         TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
+
 }
 
 internal static class QylLatencyNames

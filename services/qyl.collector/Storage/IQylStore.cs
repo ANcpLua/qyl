@@ -13,7 +13,13 @@ internal sealed record TraceStoragePageItem(
     ulong ActivityUnixNano,
     IReadOnlyList<SpanStorageRow> Spans);
 
-internal readonly record struct StorageFileMetrics(long DatabaseFileSizeBytes, long StorageFreeBytes);
+internal readonly record struct StorageFileMetrics(
+    long DatabaseFileSizeBytes,
+    long WalFileSizeBytes,
+    long LiveCheckpointBytes,
+    long TemporaryOrOrphanCheckpointBytes,
+    long ManagedStorageBytes,
+    long StorageFreeBytes);
 
 internal interface IQylStore : IAsyncDisposable
 {
@@ -181,4 +187,11 @@ internal interface IQylStore : IAsyncDisposable
         int batchSize,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Advances checkpoint reconciliation by one bounded step and reports
+    /// whether more work remains. The store never schedules this itself; a
+    /// single owner drives it so cursor and phase progress are never split
+    /// between a background pass and an explicit caller.
+    /// </summary>
+    Task<bool> ReconcileWorkflowCheckpointsAsync(CancellationToken ct = default);
 }

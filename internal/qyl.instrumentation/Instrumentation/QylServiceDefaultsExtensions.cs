@@ -154,6 +154,9 @@ public static class QylServiceDefaultsExtensions
             foreach (var source in options.AdditionalActivitySources)
                 qyl.AdditionalSources.Add(source);
 
+            foreach (var meter in options.AdditionalMeters)
+                qyl.AdditionalMeters.Add(meter);
+
             // Which endpoints are noise is this application's policy, not the producer's.
             qyl.ConfigureTracing = static tracing => tracing.AddProcessor(new HealthProbeSpanFilter());
         });
@@ -228,6 +231,8 @@ public sealed class QylOptions
     public bool EnableAutoDiscovery { get; set; } = true;
 
     public List<string> AdditionalActivitySources { get; } = [];
+
+    public List<string> AdditionalMeters { get; } = [];
 }
 
 internal sealed class QylServiceDefaultsMarker;
