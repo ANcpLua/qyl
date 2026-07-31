@@ -18,6 +18,7 @@ internal static class CollectorStorageExtensions
         services.AddSingleton<IQylStore>(CreateStore);
         services.ActivateSingleton<IQylStore>();
         services.AddHostedService<RetentionService>();
+        services.AddHostedService<WorkflowCheckpointReconciliationService>();
         services.AddHealthChecks()
             .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", QylEndpoints.ReadyTag]);
 
@@ -37,6 +38,7 @@ internal static class CollectorStorageExtensions
             memoryLimit: config["QYL_DB_MEMORY_LIMIT"],
             threads: config["QYL_DB_THREADS"] is { } threads ? int.Parse(threads, CultureInfo.InvariantCulture) : null,
             tempDirectory: config["QYL_DB_TEMP_DIR"],
-            workflowContentProtector: services.GetRequiredService<WorkflowContentProtector>());
+            workflowContentProtector: services.GetRequiredService<WorkflowContentProtector>(),
+            loggerFactory: services.GetRequiredService<ILoggerFactory>());
     }
 }

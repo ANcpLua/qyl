@@ -8,41 +8,95 @@ namespace Qyl.Collector.Workflow;
 
 internal static class WorkflowProjectionBuilder
 {
+    public const string SemanticFingerprint = "workflow-projector/2";
+
     private const int MaxRecordedEventIds = 32;
 
     private const int MaxConflictWitnessesPerPath = 32;
 
-    private const int MaxNodeIdLength = 192;
+    private const int MaxIdentifierLength = 192;
 
-    public static WorkflowGraphSnapshot Build(
+    public static WorkflowProjectionCheckpoint BuildCheckpoint(
         WorkflowRunStorageRow run,
+        WorkflowProjectionCheckpoint? prior,
         IReadOnlyList<WorkflowEventStorageRow> events,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        WorkflowProjectionBudget budget)
     {
-        var nodes = new Dictionary<string, MutableNode>(StringComparer.Ordinal);
-        var edges = new Dictionary<string, WorkflowGraphEdge>(StringComparer.Ordinal);
-        // Derived from the journal alone. Seeding this from run.ActiveAttemptId — a column the
-        // append path rewrites — made the projection depend on state outside the journal it
-        // claims to be a deterministic function of. Build always receives the complete event
-        // list, so every attempt the journal established is rediscovered from AttemptStarted.
-        string? activeAttempt = null;
-        var lastNodeByOwner = new Dictionary<string, string>(StringComparer.Ordinal);
-        var writesByPath = new Dictionary<string, List<(string NodeId, string EventId)>>(StringComparer.Ordinal);
-
         var runNodeId = NodeId("run", run.RunId);
-        nodes.Add(runNodeId, new MutableNode(
-            runNodeId,
-            WorkflowNodeKind.Run,
-            run.Title ?? run.RunId,
-            RunStatus(run.Status),
-            null,
-            null,
-            run.StartedAt,
-            run.EndedAt,
-            []));
+        Dictionary<string, MutableNode> nodes;
+        Dictionary<string, WorkflowGraphEdge> edges;
+        string? activeAttempt;
+        Dictionary<string, string> lastNodeByOwner;
+        Dictionary<string, List<(string NodeId, string EventId)>> writesByPath;
+        if (prior is null)
+        {
+            nodes = new Dictionary<string, MutableNode>(StringComparer.Ordinal)
+            {
+                [runNodeId] = new MutableNode(
+                    runNodeId,
+                    WorkflowNodeKind.Run,
+                    run.Title ?? run.RunId,
+                    RunStatus(run.Status),
+                    null,
+                    null,
+                    run.StartedAt,
+                    run.EndedAt,
+                    [])
+            };
+            edges = new Dictionary<string, WorkflowGraphEdge>(StringComparer.Ordinal);
+            activeAttempt = null;
+            lastNodeByOwner = new Dictionary<string, string>(StringComparer.Ordinal);
+            writesByPath =
+                new Dictionary<string, List<(string NodeId, string EventId)>>(StringComparer.Ordinal);
+        }
+        else
+        {
+            if (prior.FormatVersion is not 2 ||
+                prior.ProjectId != run.ProjectId ||
+                prior.RunId != run.RunId ||
+                prior.RunGeneration != run.RunGeneration ||
+                prior.ProjectorSemanticFingerprint != SemanticFingerprint ||
+                prior.ProjectionConfigurationFingerprint !=
+                budget.Limits.ConfigurationFingerprint ||
+                prior.RunInputHash != RunInputHash(run) ||
+                prior.JournalSequence > run.LatestJournalSequence)
+            {
+                throw new InvalidDataException("Workflow projection checkpoint identity is invalid.");
+            }
 
+            nodes = prior.ReplayState.Nodes.ToDictionary(
+                static node => node.NodeId,
+                MutableNode.FromState,
+                StringComparer.Ordinal);
+            edges = prior.ReplayState.Edges.ToDictionary(
+                static edge => edge.EdgeId,
+                StringComparer.Ordinal);
+            activeAttempt = prior.ReplayState.ActiveAttemptId;
+            lastNodeByOwner = prior.ReplayState.OwnerCursors.ToDictionary(
+                static cursor => cursor.OwnerNodeId,
+                static cursor => cursor.NodeId,
+                StringComparer.Ordinal);
+            writesByPath = prior.ReplayState.PathWrites.ToDictionary(
+                static path => path.PathKey,
+                static path => path.Witnesses
+                    .Select(static witness => (witness.NodeId, witness.EventId))
+                    .ToList(),
+                StringComparer.Ordinal);
+            if (!nodes.TryGetValue(runNodeId, out var runNode))
+                throw new InvalidDataException("Workflow projection checkpoint has no run node.");
+            runNode.Status = RunStatus(run.Status);
+            runNode.StartedAt = run.StartedAt;
+            runNode.EndedAt = run.EndedAt;
+        }
+
+        var expectedSequence = (prior?.JournalSequence ?? 0) + 1;
         foreach (var workflowEvent in events.OrderBy(static item => item.JournalSequence))
         {
+            if (workflowEvent.JournalSequence != expectedSequence)
+                throw new InvalidDataException("Workflow projection journal suffix is not contiguous.");
+            expectedSequence++;
+            budget.ChargeWork();
             if (workflowEvent.Kind is WorkflowJournalEventKind.AttemptStarted)
                 activeAttempt = workflowEvent.AttemptId ?? activeAttempt;
 
@@ -120,7 +174,7 @@ internal static class WorkflowProjectionBuilder
                     break;
 
                 case WorkflowJournalEventKind.FileWritten:
-                    ProjectFile(nodes, edges, writesByPath, workflowEvent, attemptId, attemptNodeId);
+                    ProjectFile(nodes, edges, writesByPath, workflowEvent, attemptId, attemptNodeId, budget);
                     break;
 
                 case WorkflowJournalEventKind.ItemStarted:
@@ -137,7 +191,11 @@ internal static class WorkflowProjectionBuilder
                     AddRecordedEdge(edges, previous, eventNode, WorkflowEdgeKind.Temporal, workflowEvent.EventId);
                 lastNodeByOwner[owner] = eventNode;
             }
+
+            budget.EnsureGraphSize(nodes.Count, edges.Count);
         }
+        if (expectedSequence - 1 != run.LatestJournalSequence)
+            throw new InvalidDataException("Workflow projection journal suffix does not reach the requested run head.");
 
         var projectedNodes = nodes.Values
             .Select(node => node.ToContract(now))
@@ -147,11 +205,12 @@ internal static class WorkflowProjectionBuilder
         var projectedEdges = edges.Values
             .OrderBy(static edge => edge.EdgeId, StringComparer.Ordinal)
             .ToArray();
-        var statistics = CalculateStatistics(projectedNodes, projectedEdges, run, now);
+        budget.EnsureGraphSize(projectedNodes.Length, projectedEdges.Length);
+        var statistics = CalculateStatistics(projectedNodes, projectedEdges, run, now, budget);
 
-        return new WorkflowGraphSnapshot
+        var graph = new WorkflowGraphSnapshot
         {
-            Run = ToContract(run),
+            Run = ToContract(run with { MetadataJson = null }),
             Nodes = projectedNodes,
             Edges = projectedEdges,
             Statistics = statistics,
@@ -163,7 +222,48 @@ internal static class WorkflowProjectionBuilder
             TotalNodeCount = projectedNodes.Length,
             TotalEdgeCount = projectedEdges.Length
         };
+        var replayState = new WorkflowProjectionReplayState(
+            activeAttempt,
+            nodes.Values
+                .OrderBy(static node => node.NodeId, StringComparer.Ordinal)
+                .Select(static node => node.ToState())
+                .ToArray(),
+            projectedEdges,
+            lastNodeByOwner
+                .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+                .Select(static pair => new WorkflowProjectionOwnerCursor(pair.Key, pair.Value))
+                .ToArray(),
+            writesByPath
+                .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+                .Select(static pair => new WorkflowProjectionPathWrites(
+                    pair.Key,
+                    pair.Value.Select(static witness =>
+                            new WorkflowProjectionWriteWitness(witness.NodeId, witness.EventId))
+                        .ToArray()))
+                .ToArray());
+        return new WorkflowProjectionCheckpoint(
+            2,
+            run.ProjectId,
+            run.RunId,
+            run.RunGeneration,
+            SemanticFingerprint,
+            budget.Limits.ConfigurationFingerprint,
+            prior?.RunInputHash ?? RunInputHash(run),
+            run.LatestJournalSequence,
+            now,
+            replayState,
+            graph);
     }
+
+    internal static string RunInputHash(WorkflowRunStorageRow run) =>
+        FullHash(CanonicalTuple(
+            "run-input",
+            run.ProjectId,
+            run.RunId,
+            run.ThreadId is null ? "thread:null" : $"thread:value:{run.ThreadId}",
+            run.Title is null ? "title:null" : $"title:value:{run.Title}",
+            run.StartedAt.ToString("O"),
+            run.MetadataJson is null ? "metadata:null" : $"metadata:value:{run.MetadataJson}"));
 
     internal static WorkflowRun ToContract(WorkflowRunStorageRow run) =>
         new()
@@ -339,7 +439,7 @@ internal static class WorkflowProjectionBuilder
             ? attemptNodeId
             : AgentNodeId(attemptId, workflowEvent.AgentId);
         var stableId = DataString(workflowEvent, "wait_id") ?? workflowEvent.ToolCallId ?? workflowEvent.EventId;
-        var nodeId = NodeId("wait", attemptId ?? "run", stableId);
+        var nodeId = ScopedNodeId("wait", attemptId, stableId);
         if (!nodes.TryGetValue(nodeId, out var node))
         {
             node = new MutableNode(
@@ -375,10 +475,15 @@ internal static class WorkflowProjectionBuilder
         string? attemptNodeId)
     {
         var owner = OwnerNodeId(workflowEvent, attemptId, attemptNodeId);
-        var stableId = DataString(workflowEvent, "command_id") ??
-                       DataString(workflowEvent, "approval_id") ??
-                       workflowEvent.EventId;
-        var nodeId = NodeId("gate", stableId);
+        var commandId = DataString(workflowEvent, "command_id");
+        var approvalId = DataString(workflowEvent, "approval_id");
+        var domain = commandId is not null
+            ? "command"
+            : approvalId is not null
+                ? "approval"
+                : "event";
+        var stableId = commandId ?? approvalId ?? workflowEvent.EventId;
+        var nodeId = ScopedNodeId("gate", attemptId, domain, stableId);
         var terminal = workflowEvent.Kind is
             WorkflowJournalEventKind.ApprovalResolved or
             WorkflowJournalEventKind.ControlApplied or
@@ -412,14 +517,15 @@ internal static class WorkflowProjectionBuilder
         Dictionary<string, List<(string NodeId, string EventId)>> writesByPath,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
-        string? attemptNodeId)
+        string? attemptNodeId,
+        WorkflowProjectionBudget budget)
     {
         var path = DataString(workflowEvent, "path");
         var owner = OwnerNodeId(workflowEvent, attemptId, attemptNodeId);
         if (path is null || owner is null)
             return;
 
-        var resourceId = $"resource:file:{ShortHash(path)}";
+        var resourceId = NodeId("resource", "file", FullHash(path));
         if (!nodes.ContainsKey(resourceId))
         {
             nodes.Add(resourceId, new MutableNode(
@@ -435,17 +541,22 @@ internal static class WorkflowProjectionBuilder
         }
         AddRecordedEdge(edges, owner, resourceId, WorkflowEdgeKind.Resource, workflowEvent.EventId);
 
-        var attemptPath = $"{attemptId ?? "run"}\0{path}";
+        var attemptPath = attemptId is null
+            ? CanonicalTuple("file-write", "run", path)
+            : CanonicalTuple("file-write", "attempt", attemptId, path);
         if (!writesByPath.TryGetValue(attemptPath, out var previousWrites))
         {
             previousWrites = [];
             writesByPath.Add(attemptPath, previousWrites);
         }
-        foreach (var previous in previousWrites.Where(previous => previous.NodeId != owner))
+        foreach (var previous in previousWrites)
         {
+            budget.ChargeWork();
+            if (previous.NodeId == owner)
+                continue;
             var source = string.CompareOrdinal(previous.NodeId, owner) <= 0 ? previous.NodeId : owner;
             var target = source == owner ? previous.NodeId : owner;
-            var edgeId = $"conflict:{ShortHash(path)}:{source}:{target}";
+            var edgeId = BoundedIdentifier("conflict", "file", path, source, target);
             edges[edgeId] = new WorkflowGraphEdge
             {
                 EdgeId = edgeId,
@@ -471,7 +582,10 @@ internal static class WorkflowProjectionBuilder
         string? attemptId,
         string? attemptNodeId)
     {
-        var nodeId = NodeId("item", DataString(workflowEvent, "item_id") ?? workflowEvent.EventId);
+        var nodeId = ScopedNodeId(
+            "item",
+            attemptId,
+            DataString(workflowEvent, "item_id") ?? workflowEvent.EventId);
         var owner = OwnerNodeId(workflowEvent, attemptId, attemptNodeId);
         if (!nodes.TryGetValue(nodeId, out var node))
         {
@@ -497,63 +611,75 @@ internal static class WorkflowProjectionBuilder
         IReadOnlyList<WorkflowGraphNode> nodes,
         IReadOnlyList<WorkflowGraphEdge> edges,
         WorkflowRunStorageRow run,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        WorkflowProjectionBudget budget)
     {
-        var timed = nodes.Where(static node =>
-                node.Kind is WorkflowNodeKind.Agent or WorkflowNodeKind.ToolCall or WorkflowNodeKind.Wait)
-            .Where(static node => node.StartedAt.HasValue)
-            .ToArray();
         var nodeById = nodes.ToDictionary(static node => node.NodeId, StringComparer.Ordinal);
-        var agentIntervals = timed
-            .Where(static node => node.Kind is WorkflowNodeKind.Agent)
-            .Select(node => Interval(node.StartedAt!.Value, node.EndedAt ?? now))
-            .ToArray();
-        var peakConcurrency = PeakConcurrency(agentIntervals);
-        var workerCount = Math.Max(
-            Math.Max(1, peakConcurrency),
-            timed
-                .Where(static node => node.Kind is WorkflowNodeKind.Agent && node.AgentId is not null)
-                .Select(static node => node.AgentId)
-                .Distinct(StringComparer.Ordinal)
-                .Count());
-
-        var childIntervals = edges
-            .Where(static edge => edge.Kind is WorkflowEdgeKind.Control)
-            .GroupBy(static edge => edge.SourceNodeId, StringComparer.Ordinal)
-            .ToDictionary(
-                static group => group.Key,
-                group => group
-                    .Select(edge => nodeById.GetValueOrDefault(edge.TargetNodeId))
-                    .Where(static node => node?.StartedAt is not null)
-                    .Select(node => Interval(node!.StartedAt!.Value, node.EndedAt ?? now))
-                    .ToArray(),
-                StringComparer.Ordinal);
-
-        var weights = new Dictionary<string, double>(StringComparer.Ordinal);
-        foreach (var node in nodes)
+        var outgoing = new Dictionary<string, List<WorkflowGraphEdge>>(StringComparer.Ordinal);
+        foreach (var edge in edges)
         {
-            var duration = node.DurationMs ?? 0;
-            if (node.Kind is WorkflowNodeKind.Agent &&
-                childIntervals.TryGetValue(node.NodeId, out var children))
+            budget.ChargeWork();
+            if (!outgoing.TryGetValue(edge.SourceNodeId, out var targets))
             {
-                duration = Math.Max(0, duration - UnionDurationMs(children));
+                targets = [];
+                outgoing.Add(edge.SourceNodeId, targets);
             }
-            else if (node.Kind is WorkflowNodeKind.Run or WorkflowNodeKind.Attempt
-                     or WorkflowNodeKind.Turn or WorkflowNodeKind.Resource)
-            {
-                // Container nodes span the work nested inside them. Charging their own
-                // elapsed time counts that work twice in T1.
-                duration = 0;
-            }
-            weights[node.NodeId] = duration;
+            targets.Add(edge);
         }
 
-        // T1 and T-infinity MUST be summed over the same weight function. Excluding Wait
-        // from T1 while LongestPath still traversed its weight let tInfinityMs exceed t1Ms,
-        // which is impossible in work-span analysis (the span is a path through the work)
-        // and made parallelLowerBoundMs claim a floor above the fully serial time.
+        var fragments = new List<WorkFragment>();
+        foreach (var node in nodes)
+        {
+            budget.ChargeWork();
+            if (!IsWeighted(node) || node.StartedAt is null)
+                continue;
+
+            var interval = Interval(node.StartedAt.Value, node.EndedAt ?? now);
+            if (node.Kind is not WorkflowNodeKind.Agent)
+            {
+                AddPositiveFragment(fragments, node.NodeId, interval);
+                continue;
+            }
+
+            var ownedChildren = new List<(DateTimeOffset Start, DateTimeOffset End)>();
+            if (outgoing.TryGetValue(node.NodeId, out var candidates))
+            {
+                foreach (var edge in candidates)
+                {
+                    budget.ChargeWork();
+                    if (!nodeById.TryGetValue(edge.TargetNodeId, out var child) ||
+                        child.StartedAt is null ||
+                        !IsPreciselyOwnedChild(edge.Kind, child))
+                    {
+                        continue;
+                    }
+
+                    var clipped = Clip(
+                        Interval(child.StartedAt.Value, child.EndedAt ?? now),
+                        interval);
+                    if (clipped.HasValue)
+                        ownedChildren.Add(clipped.Value);
+                }
+            }
+
+            foreach (var fragment in Subtract(interval, ownedChildren))
+                AddPositiveFragment(fragments, node.NodeId, fragment);
+        }
+
+        var peakConcurrency = PeakConcurrency(fragments);
+        var distinctAgents = nodes
+            .Where(static node => node.Kind is WorkflowNodeKind.Agent && node.AgentId is not null)
+            .Select(static node => node.AgentId!)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        var workerCount = Math.Max(
+            Math.Max(1, peakConcurrency),
+            distinctAgents);
+        var weights = nodes.ToDictionary(static node => node.NodeId, static _ => 0d, StringComparer.Ordinal);
+        foreach (var fragment in fragments)
+            weights[fragment.NodeId] += (fragment.End - fragment.Start).TotalMilliseconds;
         var t1 = weights.Sum(static pair => pair.Value);
-        var (tInfinity, criticalPath) = LongestPath(nodes, edges, weights);
+        var (tInfinity, criticalPath) = LongestPath(nodes, edges, weights, budget);
         var wallTime = Math.Max(0, ((run.EndedAt ?? now) - run.StartedAt).TotalMilliseconds);
         return new WorkflowGraphStatistics
         {
@@ -570,131 +696,233 @@ internal static class WorkflowProjectionBuilder
     private static (double Duration, IReadOnlyList<string> Path) LongestPath(
         IReadOnlyList<WorkflowGraphNode> nodes,
         IReadOnlyList<WorkflowGraphEdge> edges,
-        IReadOnlyDictionary<string, double> weights)
+        IReadOnlyDictionary<string, double> weights,
+        WorkflowProjectionBudget budget)
     {
-        // Tie-break order: deterministic, and the order cycle-broken nodes fall back to.
         var ordered = nodes
-            .OrderBy(static node => node.StartedAt ?? DateTimeOffset.MinValue)
-            .ThenBy(static node => node.NodeId, StringComparer.Ordinal)
+            .OrderBy(static node => node.NodeId, StringComparer.Ordinal)
             .Select(static node => node.NodeId)
             .ToArray();
-        var rank = ordered
-            .Select(static (id, position) => (id, position))
-            .ToDictionary(static pair => pair.id, static pair => pair.position, StringComparer.Ordinal);
-
-        // The span may only traverse REAL dependencies. A Temporal edge records that two nodes
-        // shared an owner and one followed the other (the lastNodeByOwner chain) — correlation,
-        // not causation — and counting it inflates tInfinityMs with serialization that infinite
-        // workers would remove. A Data edge is the only representation of cross-agent causality,
-        // so excluding it deflated the span at the same time. Resource and Conflict edges are
-        // contention, not dependency.
+        var known = ordered.ToHashSet(StringComparer.Ordinal);
         var dependencies = edges
             .Where(static edge => edge.Kind is
                 WorkflowEdgeKind.Data or WorkflowEdgeKind.Control or WorkflowEdgeKind.Gate)
-            .Where(edge => rank.ContainsKey(edge.SourceNodeId) && rank.ContainsKey(edge.TargetNodeId))
+            .Where(edge => known.Contains(edge.SourceNodeId) && known.Contains(edge.TargetNodeId))
             .Where(static edge => !string.Equals(edge.SourceNodeId, edge.TargetNodeId, StringComparison.Ordinal))
             .Select(static edge => (Source: edge.SourceNodeId, Target: edge.TargetNodeId))
             .Distinct()
             .ToArray();
+        var forward = BuildAdjacency(ordered, dependencies, reverse: false);
+        var reverse = BuildAdjacency(ordered, dependencies, reverse: true);
+        var finishOrder = FinishOrder(ordered, forward, budget);
+        var components = StronglyConnectedComponents(finishOrder, reverse, budget);
+        if (components.Count is 0)
+            return (0, []);
 
-        // Acyclicity used to be approximated by requiring the source to start before the target.
-        // That is not what a dependency means: a long-lived agent can receive a message it
-        // depends on well after it started, and every such edge was silently deleted. Sort for
-        // real (Kahn) so only edges that genuinely close a cycle are dropped.
-        var successors = dependencies
-            .GroupBy(static edge => edge.Source, StringComparer.Ordinal)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.Select(static edge => edge.Target).ToArray(),
-                StringComparer.Ordinal);
-        var predecessors = dependencies
-            .GroupBy(static edge => edge.Target, StringComparer.Ordinal)
-            .ToDictionary(
-                static group => group.Key,
-                group => group.Select(static edge => edge.Source).OrderBy(id => rank[id]).ToArray(),
-                StringComparer.Ordinal);
-
-        var inDegree = ordered.ToDictionary(static id => id, static _ => 0, StringComparer.Ordinal);
-        foreach (var (_, target) in dependencies)
-            inDegree[target]++;
-
-        // Ready set keyed by rank: identical input always yields an identical topological order.
-        var ready = new PriorityQueue<string, int>();
-        foreach (var id in ordered)
+        var componentByNode = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var component = 0; component < components.Count; component++)
         {
-            if (inDegree[id] is 0)
-                ready.Enqueue(id, rank[id]);
+            foreach (var nodeId in components[component])
+                componentByNode.Add(nodeId, component);
         }
 
-        var topological = new List<string>(ordered.Length);
-        var settled = new HashSet<string>(StringComparer.Ordinal);
-        while (ready.TryDequeue(out var id, out _))
+        var componentKeys = components.Select(static component => component[0]).ToArray();
+        var componentWeights = components
+            .Select(component => component.Sum(nodeId => weights.GetValueOrDefault(nodeId)))
+            .ToArray();
+        var successors = Enumerable.Range(0, components.Count)
+            .Select(static _ => new HashSet<int>())
+            .ToArray();
+        var predecessors = Enumerable.Range(0, components.Count)
+            .Select(static _ => new HashSet<int>())
+            .ToArray();
+        foreach (var (source, target) in dependencies)
         {
-            topological.Add(id);
-            settled.Add(id);
-            if (!successors.TryGetValue(id, out var next))
+            budget.ChargeWork();
+            var sourceComponent = componentByNode[source];
+            var targetComponent = componentByNode[target];
+            if (sourceComponent == targetComponent || !successors[sourceComponent].Add(targetComponent))
                 continue;
-            foreach (var target in next)
+            predecessors[targetComponent].Add(sourceComponent);
+        }
+
+        var inDegree = predecessors.Select(static items => items.Count).ToArray();
+        var componentByKey = Enumerable.Range(0, components.Count)
+            .ToDictionary(component => componentKeys[component], StringComparer.Ordinal);
+        var ready = new SortedSet<string>(StringComparer.Ordinal);
+        for (var component = 0; component < components.Count; component++)
+        {
+            if (inDegree[component] is 0)
+                ready.Add(componentKeys[component]);
+        }
+
+        var topological = new List<int>(components.Count);
+        while (ready.Count > 0)
+        {
+            var key = ready.Min!;
+            ready.Remove(key);
+            var component = componentByKey[key];
+            topological.Add(component);
+            foreach (var successor in successors[component]
+                         .OrderBy(item => componentKeys[item], StringComparer.Ordinal))
             {
-                if (--inDegree[target] is 0)
-                    ready.Enqueue(target, rank[target]);
+                budget.ChargeWork();
+                if (--inDegree[successor] is 0)
+                    ready.Add(componentKeys[successor]);
             }
         }
 
-        // Anything left sits on a cycle (an agent can message an agent that messaged it).
-        // Append it in rank order and relax it against already-settled predecessors only,
-        // which keeps the pass finite and the result deterministic.
-        foreach (var id in ordered)
-        {
-            if (settled.Add(id))
-                topological.Add(id);
-        }
-
-        var scores = new Dictionary<string, double>(StringComparer.Ordinal);
-        var previous = new Dictionary<string, string?>(StringComparer.Ordinal);
-
-        foreach (var id in topological)
+        var scores = new double[components.Count];
+        var previous = Enumerable.Repeat(-1, components.Count).ToArray();
+        foreach (var component in topological)
         {
             var bestScore = 0d;
-            string? bestPrevious = null;
-            if (predecessors.TryGetValue(id, out var candidates))
+            var bestPrevious = -1;
+            foreach (var candidate in predecessors[component]
+                         .OrderBy(item => componentKeys[item], StringComparer.Ordinal))
             {
-                foreach (var candidate in candidates)
+                budget.ChargeWork();
+                if (bestPrevious < 0 ||
+                    scores[candidate] > bestScore ||
+                    scores[candidate] == bestScore &&
+                    string.CompareOrdinal(componentKeys[candidate], componentKeys[bestPrevious]) < 0)
                 {
-                    if (!scores.TryGetValue(candidate, out var candidateScore))
-                        continue;
-                    // Track the best predecessor even when it scores zero; anchoring on 0
-                    // truncated the critical path at every zero-weight container node.
-                    if (bestPrevious is null || candidateScore > bestScore)
-                    {
-                        bestScore = candidateScore;
-                        bestPrevious = candidate;
-                    }
+                    bestScore = scores[candidate];
+                    bestPrevious = candidate;
                 }
             }
-            scores[id] = bestScore + weights.GetValueOrDefault(id);
-            previous[id] = bestPrevious;
+            scores[component] = bestScore + componentWeights[component];
+            previous[component] = bestPrevious;
         }
 
-        if (scores.Count is 0)
-            return (0, []);
-        // The snapshot contract promises a deterministic projection: break score ties on
-        // the node id rather than on dictionary enumeration order.
-        var end = scores
-            .OrderByDescending(static pair => pair.Value)
-            .ThenBy(static pair => pair.Key, StringComparer.Ordinal)
-            .First().Key;
-        var path = new List<string>();
-        for (string? cursor = end; cursor is not null; cursor = previous[cursor])
-            path.Add(cursor);
-        path.Reverse();
+        var end = Enumerable.Range(0, components.Count)
+            .OrderByDescending(component => scores[component])
+            .ThenBy(component => componentKeys[component], StringComparer.Ordinal)
+            .First();
+        var componentPath = new List<int>();
+        for (var cursor = end; cursor >= 0; cursor = previous[cursor])
+            componentPath.Add(cursor);
+        componentPath.Reverse();
+        var path = componentPath.SelectMany(component => components[component]).ToArray();
         return (scores[end], path);
     }
 
-    private static int PeakConcurrency(IReadOnlyList<(DateTimeOffset Start, DateTimeOffset End)> intervals)
+    private static Dictionary<string, string[]> BuildAdjacency(
+        IReadOnlyList<string> nodes,
+        IReadOnlyList<(string Source, string Target)> dependencies,
+        bool reverse)
     {
-        var points = intervals
-            .SelectMany(static interval => new[] { (interval.Start, 1), (interval.End, -1) })
+        var adjacency = nodes.ToDictionary(
+            static nodeId => nodeId,
+            static _ => new List<string>(),
+            StringComparer.Ordinal);
+        foreach (var (source, target) in dependencies)
+            adjacency[reverse ? target : source].Add(reverse ? source : target);
+        return adjacency.ToDictionary(
+            static pair => pair.Key,
+            static pair => pair.Value.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(),
+            StringComparer.Ordinal);
+    }
+
+    private static List<string> FinishOrder(
+        IReadOnlyList<string> ordered,
+        IReadOnlyDictionary<string, string[]> adjacency,
+        WorkflowProjectionBudget budget)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var finished = new List<string>(ordered.Count);
+        foreach (var root in ordered)
+        {
+            if (!visited.Add(root))
+                continue;
+            budget.ChargeWork();
+            var stack = new Stack<(string NodeId, int NextIndex)>();
+            stack.Push((root, 0));
+            while (stack.Count > 0)
+            {
+                var (nodeId, nextIndex) = stack.Pop();
+                var targets = adjacency[nodeId];
+                if (nextIndex >= targets.Length)
+                {
+                    finished.Add(nodeId);
+                    continue;
+                }
+
+                stack.Push((nodeId, nextIndex + 1));
+                budget.ChargeWork();
+                if (visited.Add(targets[nextIndex]))
+                {
+                    budget.ChargeWork();
+                    stack.Push((targets[nextIndex], 0));
+                }
+            }
+        }
+        return finished;
+    }
+
+    private static List<string[]> StronglyConnectedComponents(
+        IReadOnlyList<string> finishOrder,
+        IReadOnlyDictionary<string, string[]> reverse,
+        WorkflowProjectionBudget budget)
+    {
+        var assigned = new HashSet<string>(StringComparer.Ordinal);
+        var components = new List<string[]>();
+        for (var index = finishOrder.Count - 1; index >= 0; index--)
+        {
+            var root = finishOrder[index];
+            if (!assigned.Add(root))
+                continue;
+            var members = new List<string>();
+            var stack = new Stack<string>();
+            stack.Push(root);
+            while (stack.TryPop(out var nodeId))
+            {
+                budget.ChargeWork();
+                members.Add(nodeId);
+                foreach (var source in reverse[nodeId])
+                {
+                    budget.ChargeWork();
+                    if (assigned.Add(source))
+                        stack.Push(source);
+                }
+            }
+            members.Sort(StringComparer.Ordinal);
+            components.Add(members.ToArray());
+        }
+        components.Sort(static (left, right) => string.CompareOrdinal(left[0], right[0]));
+        return components;
+    }
+
+    private static bool IsWeighted(WorkflowGraphNode node) =>
+        node.Kind is WorkflowNodeKind.Agent
+            or WorkflowNodeKind.ToolCall
+            or WorkflowNodeKind.Wait
+            or WorkflowNodeKind.Gate
+            or WorkflowNodeKind.Message;
+
+    private static bool IsPreciselyOwnedChild(WorkflowEdgeKind edgeKind, WorkflowGraphNode child) =>
+        edgeKind switch
+        {
+            WorkflowEdgeKind.Control => child.Kind is WorkflowNodeKind.Agent or WorkflowNodeKind.ToolCall,
+            WorkflowEdgeKind.Temporal => child.Kind is WorkflowNodeKind.Wait,
+            WorkflowEdgeKind.Gate => child.Kind is WorkflowNodeKind.Gate,
+            WorkflowEdgeKind.Data => child.Kind is WorkflowNodeKind.Message && child.DurationMs > 0,
+            _ => false
+        };
+
+    private static void AddPositiveFragment(
+        ICollection<WorkFragment> fragments,
+        string nodeId,
+        (DateTimeOffset Start, DateTimeOffset End) interval)
+    {
+        if (interval.End > interval.Start)
+            fragments.Add(new WorkFragment(nodeId, interval.Start, interval.End));
+    }
+
+    private static int PeakConcurrency(IReadOnlyList<WorkFragment> fragments)
+    {
+        var points = fragments
+            .SelectMany(static fragment => new[] { (fragment.Start, 1), (fragment.End, -1) })
             .OrderBy(static point => point.Item1)
             .ThenBy(static point => point.Item2)
             .ToArray();
@@ -708,40 +936,55 @@ internal static class WorkflowProjectionBuilder
         return peak;
     }
 
-    /// <summary>
-    /// Each agent stamps its own clock, so an untrusted or skewed journal can report an end
-    /// before its start. Clamping at the point of construction keeps the concurrency sweep
-    /// and the union-duration merge from going negative on hostile or merely unlucky input.
-    /// </summary>
     private static (DateTimeOffset Start, DateTimeOffset End) Interval(
         DateTimeOffset start,
         DateTimeOffset end) =>
         (start, end < start ? start : end);
 
-    private static double UnionDurationMs(
-        IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> intervals)
+    private static (DateTimeOffset Start, DateTimeOffset End)? Clip(
+        (DateTimeOffset Start, DateTimeOffset End) interval,
+        (DateTimeOffset Start, DateTimeOffset End) bounds)
     {
-        var ordered = intervals.OrderBy(static interval => interval.Start).ToArray();
-        if (ordered.Length is 0)
-            return 0;
-        var start = ordered[0].Start;
-        var end = ordered[0].End;
-        var total = TimeSpan.Zero;
-        foreach (var interval in ordered.Skip(1))
+        var start = interval.Start < bounds.Start ? bounds.Start : interval.Start;
+        var end = interval.End > bounds.End ? bounds.End : interval.End;
+        return end > start ? (start, end) : null;
+    }
+
+    private static IReadOnlyList<(DateTimeOffset Start, DateTimeOffset End)> Subtract(
+        (DateTimeOffset Start, DateTimeOffset End) parent,
+        IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> children)
+    {
+        var merged = new List<(DateTimeOffset Start, DateTimeOffset End)>();
+        foreach (var child in children.OrderBy(static interval => interval.Start)
+                     .ThenBy(static interval => interval.End))
         {
-            if (interval.Start <= end)
+            if (merged.Count is 0 || child.Start > merged[^1].End)
             {
-                if (interval.End > end)
-                    end = interval.End;
+                merged.Add(child);
                 continue;
             }
-            total += end - start;
-            start = interval.Start;
-            end = interval.End;
+            if (child.End > merged[^1].End)
+                merged[^1] = (merged[^1].Start, child.End);
         }
-        total += end - start;
-        return Math.Max(0, total.TotalMilliseconds);
+
+        var fragments = new List<(DateTimeOffset Start, DateTimeOffset End)>();
+        var cursor = parent.Start;
+        foreach (var child in merged)
+        {
+            if (child.Start > cursor)
+                fragments.Add((cursor, child.Start));
+            if (child.End > cursor)
+                cursor = child.End;
+        }
+        if (cursor < parent.End)
+            fragments.Add((cursor, parent.End));
+        return fragments;
     }
+
+    private readonly record struct WorkFragment(
+        string NodeId,
+        DateTimeOffset Start,
+        DateTimeOffset End);
 
     private static void UpdateLifecycle(
         MutableNode node,
@@ -781,18 +1024,21 @@ internal static class WorkflowProjectionBuilder
             WorkflowJournalEventKind.MessageSent or WorkflowJournalEventKind.MessageReceived =>
                 NodeId("message", workflowEvent.EventId),
             WorkflowJournalEventKind.ItemStarted or WorkflowJournalEventKind.ItemCompleted =>
-                NodeId("item", DataString(workflowEvent, "item_id") ?? workflowEvent.EventId),
+                ScopedNodeId(
+                    "item",
+                    attemptId,
+                    DataString(workflowEvent, "item_id") ?? workflowEvent.EventId),
             _ => null
         };
 
     private static string AgentNodeId(string? attemptId, string agentId) =>
-        NodeId("agent", attemptId ?? "run", agentId);
+        ScopedNodeId("agent", attemptId, agentId);
 
     private static string ToolNodeId(string? attemptId, string toolCallId) =>
-        NodeId("tool", attemptId ?? "run", toolCallId);
+        ScopedNodeId("tool", attemptId, toolCallId);
 
     private static string TurnNodeId(string? attemptId, string turnId) =>
-        NodeId("turn", attemptId ?? "run", turnId);
+        ScopedNodeId("turn", attemptId, turnId);
 
     private static string EventLabel(WorkflowEventStorageRow workflowEvent, string fallback) =>
         DataString(workflowEvent, "label") ??
@@ -838,7 +1084,18 @@ internal static class WorkflowProjectionBuilder
                 .Replace(":", "\\c", StringComparison.Ordinal)
             : value;
 
-    private static string NodeId(string kind, params string[] parts)
+    private static string ScopedNodeId(string kind, string? attemptId, params string[] stableParts)
+    {
+        var scope = attemptId is null
+            ? new[] { "run" }
+            : new[] { "attempt", attemptId };
+        return NodeId(kind, [.. scope, .. stableParts]);
+    }
+
+    private static string NodeId(string kind, params string[] parts) =>
+        BoundedIdentifier(kind, parts);
+
+    private static string BoundedIdentifier(string kind, params string[] parts)
     {
         var builder = new StringBuilder(kind);
         foreach (var part in parts)
@@ -848,13 +1105,29 @@ internal static class WorkflowProjectionBuilder
         }
 
         var composed = builder.ToString();
-        return composed.Length <= MaxNodeIdLength
+        return composed.EnumerateRunes().Count() <= MaxIdentifierLength
             ? composed
-            : string.Concat(composed.AsSpan(0, MaxNodeIdLength - 17), "~", ShortHash(composed));
+            : $"{kind}~{FullHash(CanonicalTuple(kind, parts))}";
     }
 
-    private static string ShortHash(string value) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16];
+    private static string CanonicalTuple(string kind, params string[] parts)
+    {
+        var builder = new StringBuilder();
+        AppendCanonicalPart(builder, kind);
+        foreach (var part in parts)
+            AppendCanonicalPart(builder, part);
+        return builder.ToString();
+    }
+
+    private static void AppendCanonicalPart(StringBuilder builder, string value)
+    {
+        builder.Append(Encoding.UTF8.GetByteCount(value));
+        builder.Append('#');
+        builder.Append(value);
+    }
+
+    private static string FullHash(string value) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
     private static string RunStatus(WorkflowRunStatus status) => status switch
     {
@@ -874,7 +1147,7 @@ internal static class WorkflowProjectionBuilder
     {
         if (source == target)
             return;
-        var edgeId = $"{EdgeKind(kind)}:{source}:{target}";
+        var edgeId = BoundedIdentifier(EdgeKind(kind), source, target);
         if (edges.TryGetValue(edgeId, out var existing) &&
             existing.Provenance is RecordedWorkflowEdgeProvenance recorded)
         {
@@ -940,6 +1213,18 @@ internal static class WorkflowProjectionBuilder
         public DateTimeOffset? StartedAt { get; set; } = startedAt;
         public DateTimeOffset? EndedAt { get; set; } = endedAt;
 
+        public static MutableNode FromState(WorkflowProjectionNodeState state) =>
+            new(
+                state.NodeId,
+                state.Kind,
+                state.Label,
+                state.Status,
+                state.AttemptId,
+                state.AgentId,
+                state.StartedAt,
+                state.EndedAt,
+                state.ContentRefs);
+
         public void AddContent(IEnumerable<string> contentRefs)
         {
             foreach (var contentRef in contentRefs)
@@ -964,5 +1249,17 @@ internal static class WorkflowProjectionBuilder
                     ? null
                     : _contentRefs.Order(StringComparer.Ordinal).ToArray()
             };
+
+        public WorkflowProjectionNodeState ToState() =>
+            new(
+                NodeId,
+                Kind,
+                Label,
+                Status,
+                AttemptId,
+                AgentId,
+                StartedAt,
+                EndedAt,
+                _contentRefs.Order(StringComparer.Ordinal).ToArray());
     }
 }

@@ -29,6 +29,57 @@
     <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == ''">false</QylEmbedDashboard>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <QylCheckpointNativeRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</QylCheckpointNativeRid>
+    <QylCheckpointNativeRid Condition="'$(QylCheckpointNativeRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</QylCheckpointNativeRid>
+    <QylCheckpointNativeFamily Condition="'$(QylCheckpointNativeRid)' == 'linux-x64' OR '$(QylCheckpointNativeRid)' == 'linux-arm64'">linux</QylCheckpointNativeFamily>
+    <QylCheckpointNativeFamily Condition="'$(QylCheckpointNativeRid)' == 'osx-x64' OR '$(QylCheckpointNativeRid)' == 'osx-arm64'">osx</QylCheckpointNativeFamily>
+    <QylCheckpointNativeHostFamily Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</QylCheckpointNativeHostFamily>
+    <QylCheckpointNativeHostFamily Condition="$([MSBuild]::IsOSPlatform('OSX'))">osx</QylCheckpointNativeHostFamily>
+    <QylCheckpointNativeArchitecture Condition="'$(QylCheckpointNativeRid)' == 'linux-x64' OR '$(QylCheckpointNativeRid)' == 'osx-x64'">x86_64</QylCheckpointNativeArchitecture>
+    <QylCheckpointNativeArchitecture Condition="'$(QylCheckpointNativeRid)' == 'linux-arm64' OR '$(QylCheckpointNativeRid)' == 'osx-arm64'">arm64</QylCheckpointNativeArchitecture>
+    <QylCheckpointNativeHostArchitecture Condition="$(NETCoreSdkRuntimeIdentifier.EndsWith('-x64'))">x86_64</QylCheckpointNativeHostArchitecture>
+    <QylCheckpointNativeHostArchitecture Condition="$(NETCoreSdkRuntimeIdentifier.EndsWith('-arm64'))">arm64</QylCheckpointNativeHostArchitecture>
+    <QylCheckpointNativeCanBuild Condition="'$(QylCheckpointNativeHostFamily)' == '$(QylCheckpointNativeFamily)' AND ('$(QylCheckpointNativeFamily)' == 'osx' OR '$(QylCheckpointNativeArchitecture)' == '$(QylCheckpointNativeHostArchitecture)')">true</QylCheckpointNativeCanBuild>
+    <QylCheckpointNativeExtension Condition="'$(QylCheckpointNativeFamily)' == 'linux'">.so</QylCheckpointNativeExtension>
+    <QylCheckpointNativeExtension Condition="'$(QylCheckpointNativeFamily)' == 'osx'">.dylib</QylCheckpointNativeExtension>
+    <QylCheckpointNativeFileName>libqyl_checkpoint_native$(QylCheckpointNativeExtension)</QylCheckpointNativeFileName>
+    <QylCheckpointNativeSource>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', 'Native', 'qyl_checkpoint_native.c'))</QylCheckpointNativeSource>
+    <QylCheckpointNativeOutputDirectory>$([MSBuild]::NormalizeDirectory('$(BaseIntermediateOutputPath)', 'qyl-native', '$(Configuration)', '$(TargetFramework)', '$(QylCheckpointNativeRid)'))</QylCheckpointNativeOutputDirectory>
+    <QylCheckpointNativeOutput>$([MSBuild]::NormalizePath('$(QylCheckpointNativeOutputDirectory)', '$(QylCheckpointNativeFileName)'))</QylCheckpointNativeOutput>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
+    <Content Include="$(QylCheckpointNativeOutput)">
+      <TargetPath>$(QylCheckpointNativeFileName)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
+  <!-- The asset is compiled only when the host toolchain matches the target,
+       because the multi-RID tool package publishes this project for every RID
+       from a single host; failing there would make packaging impossible off the
+       target OS. The delivery contract is enforced where it is actually
+       required: the collector Dockerfile asserts libqyl_checkpoint_native.so
+       exists in the published NativeAOT output. -->
+
+  <Target Name="QylCompileCheckpointNative"
+          BeforeTargets="CoreCompile;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems"
+          Inputs="$(QylCheckpointNativeSource)"
+          Outputs="$(QylCheckpointNativeOutput)"
+          Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
+    <MakeDir Directories="$(QylCheckpointNativeOutputDirectory)"/>
+    <Exec Condition="'$(QylCheckpointNativeFamily)' == 'linux'"
+          Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -shared -Wl,-z,relro,-z,now -Wl,--no-undefined -o &quot;$(QylCheckpointNativeOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
+    <Exec Condition="'$(QylCheckpointNativeFamily)' == 'osx'"
+          Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -dynamiclib -arch $(QylCheckpointNativeArchitecture) -Wl,-install_name,@rpath/$(QylCheckpointNativeFileName) -o &quot;$(QylCheckpointNativeOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
+    <ItemGroup>
+      <FileWrites Include="$(QylCheckpointNativeOutput)"/>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup Condition="'$(QylEmbedDashboard)' == 'true' AND Exists('..\qyl.dashboard\dist\index.html')">
     <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot"/>
   </ItemGroup>

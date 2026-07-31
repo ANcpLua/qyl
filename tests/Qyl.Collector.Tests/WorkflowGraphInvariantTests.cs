@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Qyl.Api.Contracts.Workflow;
 using Qyl.Collector.Storage;
 
@@ -209,6 +212,354 @@ public sealed class WorkflowGraphInvariantTests
     }
 
     [Fact]
+    public async Task Agent_work_is_fragmented_by_the_union_of_only_precisely_owned_children()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+
+        await store.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1",
+            [
+                Event("attempt", 1, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-1"),
+                Event("root-start", 2, WorkflowJournalEventKind.AgentStarted, 0, "attempt-1", "root"),
+                Event("child-start", 3, WorkflowJournalEventKind.AgentStarted, 100, "attempt-1", "child",
+                    parentAgentId: "root"),
+                Event("tool-start", 4, WorkflowJournalEventKind.ToolStarted, 200, "attempt-1", "root",
+                    toolCallId: "tool-1"),
+                Event("child-end", 5, WorkflowJournalEventKind.AgentCompleted, 400, "attempt-1", "child",
+                    parentAgentId: "root"),
+                Event("tool-end", 6, WorkflowJournalEventKind.ToolCompleted, 500, "attempt-1", "root",
+                    toolCallId: "tool-1"),
+                Event("wait-start", 7, WorkflowJournalEventKind.WaitStarted, 600, "attempt-1", "root",
+                    receiverAgentId: "child", data: """{"wait_id":"wait-1"}"""),
+                Event("gate-start", 8, WorkflowJournalEventKind.ApprovalRequested, 750, "attempt-1", "root",
+                    data: """{"approval_id":"approval-1"}"""),
+                Event("wait-end", 9, WorkflowJournalEventKind.WaitCompleted, 800, "attempt-1", "root",
+                    receiverAgentId: "child", data: """{"wait_id":"wait-1"}"""),
+                Event("gate-end", 10, WorkflowJournalEventKind.ApprovalResolved, 900, "attempt-1", "root",
+                    data: """{"approval_id":"approval-1"}"""),
+                Event("item-start", 11, WorkflowJournalEventKind.ItemStarted, 950, "attempt-1", "root",
+                    data: """{"item_id":"item-1"}"""),
+                Event("root-end", 12, WorkflowJournalEventKind.AgentCompleted, 1000, "attempt-1", "root"),
+                Event("root-tool-start", 13, WorkflowJournalEventKind.ToolStarted, 1050, "attempt-1",
+                    toolCallId: "root-tool"),
+                Event("root-tool-end", 14, WorkflowJournalEventKind.ToolCompleted, 1150, "attempt-1",
+                    toolCallId: "root-tool"),
+                Event("item-end", 15, WorkflowJournalEventKind.ItemCompleted, 1200, "attempt-1", "root",
+                    data: """{"item_id":"item-1"}"""),
+                Event("attempt-end", 16, WorkflowJournalEventKind.AttemptCompleted, 1200, "attempt-1")
+            ],
+            [], TestContext.Current.CancellationToken);
+
+        var statistics = (await ReadGraphAsync(store)).Statistics;
+
+        Assert.Equal(1550, statistics.T1Ms);
+        Assert.Equal(2, statistics.PeakConcurrency);
+        Assert.Equal(2, statistics.WorkerCount);
+        Assert.True(statistics.TInfinityMs <= statistics.T1Ms);
+    }
+
+    [Fact]
+    public async Task Root_tool_without_an_agent_contributes_work_and_peak_concurrency()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [
+                Event("root-tool-start", 1, WorkflowJournalEventKind.ToolStarted, 10,
+                    toolCallId: "root-tool"),
+                Event("root-tool-end", 2, WorkflowJournalEventKind.ToolCompleted, 110,
+                    toolCallId: "root-tool")
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var graph = await ReadGraphAsync(store);
+
+        Assert.Contains(graph.Nodes, static node => node.NodeId == "tool:run:root-tool");
+        Assert.Equal(100, graph.Statistics.T1Ms);
+        Assert.Equal(100, graph.Statistics.TInfinityMs);
+        Assert.Equal(1, graph.Statistics.PeakConcurrency);
+        Assert.Equal(1, graph.Statistics.WorkerCount);
+    }
+
+    private static readonly string[] s_causalCycleMembers =
+        new[]
+            {
+                "agent:attempt:attempt-1:a",
+                "agent:attempt:attempt-1:b",
+                "message:a-to-b",
+                "message:b-to-a"
+            }
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    [Fact]
+    public async Task Causal_cycles_are_condensed_charged_once_and_expanded_in_ordinal_order()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+        await store.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1",
+            [
+                Event("attempt", 1, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-1"),
+                Event("a-start", 2, WorkflowJournalEventKind.AgentStarted, 0, "attempt-1", "a"),
+                Event("b-start", 3, WorkflowJournalEventKind.AgentStarted, 0, "attempt-1", "b"),
+                Event("a-to-b", 4, WorkflowJournalEventKind.MessageSent, 30, "attempt-1", "a",
+                    receiverAgentId: "b"),
+                Event("b-to-a", 5, WorkflowJournalEventKind.MessageSent, 40, "attempt-1", "b",
+                    receiverAgentId: "a"),
+                Event("tool-start", 6, WorkflowJournalEventKind.ToolStarted, 60, "attempt-1", "b",
+                    toolCallId: "downstream"),
+                Event("tool-end", 7, WorkflowJournalEventKind.ToolCompleted, 100, "attempt-1", "b",
+                    toolCallId: "downstream"),
+                Event("a-end", 8, WorkflowJournalEventKind.AgentCompleted, 100, "attempt-1", "a"),
+                Event("b-end", 9, WorkflowJournalEventKind.AgentCompleted, 100, "attempt-1", "b"),
+                Event("attempt-end", 10, WorkflowJournalEventKind.AttemptCompleted, 100, "attempt-1")
+            ],
+            [], TestContext.Current.CancellationToken);
+
+        var graph = await ReadGraphAsync(store);
+        var cycleMembers = s_causalCycleMembers;
+        var expectedPath = new[]
+        {
+            "attempt:attempt-1",
+            cycleMembers[0],
+            cycleMembers[1],
+            cycleMembers[2],
+            cycleMembers[3],
+            "tool:attempt:attempt-1:downstream"
+        };
+
+        Assert.Equal(200, graph.Statistics.T1Ms);
+        Assert.Equal(200, graph.Statistics.TInfinityMs);
+        Assert.Equal(expectedPath, graph.Statistics.CriticalPathNodeIds);
+        Assert.All(
+            expectedPath,
+            nodeId => Assert.Equal(1, graph.Statistics.CriticalPathNodeIds.Count(item => item == nodeId)));
+        Assert.Equal(4, graph.Edges.Count(static edge => edge.Kind is WorkflowEdgeKind.Data));
+        Assert.Contains(
+            graph.Edges,
+            static edge => edge.Kind is WorkflowEdgeKind.Control &&
+                           edge.SourceNodeId == "agent:attempt:attempt-1:b" &&
+                           edge.TargetNodeId == "tool:attempt:attempt-1:downstream");
+
+        await using var skewedStore = new DuckDbStore(":memory:");
+        await CreateRunAsync(skewedStore);
+        await skewedStore.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1",
+            [
+                Event("attempt", 1, WorkflowJournalEventKind.AttemptStarted, 0, "attempt-1"),
+                Event("b-start", 2, WorkflowJournalEventKind.AgentStarted, 100, "attempt-1", "b"),
+                Event("tool-start", 3, WorkflowJournalEventKind.ToolStarted, 160, "attempt-1", "b",
+                    toolCallId: "downstream"),
+                Event("a-start", 4, WorkflowJournalEventKind.AgentStarted, 500, "attempt-1", "a"),
+                Event("b-to-a", 5, WorkflowJournalEventKind.MessageSent, 110, "attempt-1", "b",
+                    receiverAgentId: "a"),
+                Event("a-to-b", 6, WorkflowJournalEventKind.MessageSent, 590, "attempt-1", "a",
+                    receiverAgentId: "b"),
+                Event("tool-end", 7, WorkflowJournalEventKind.ToolCompleted, 200, "attempt-1", "b",
+                    toolCallId: "downstream"),
+                Event("b-end", 8, WorkflowJournalEventKind.AgentCompleted, 200, "attempt-1", "b"),
+                Event("a-end", 9, WorkflowJournalEventKind.AgentCompleted, 600, "attempt-1", "a"),
+                Event("attempt-end", 10, WorkflowJournalEventKind.AttemptCompleted, 600, "attempt-1")
+            ],
+            [], TestContext.Current.CancellationToken);
+        var skewed = await ReadGraphAsync(skewedStore);
+
+        Assert.Equal(graph.Statistics.T1Ms, skewed.Statistics.T1Ms);
+        Assert.Equal(graph.Statistics.TInfinityMs, skewed.Statistics.TInfinityMs);
+        Assert.Equal(expectedPath, skewed.Statistics.CriticalPathNodeIds);
+        Assert.Equal(
+            graph.Edges
+                .Where(static edge => edge.Kind is
+                    WorkflowEdgeKind.Data or WorkflowEdgeKind.Control or WorkflowEdgeKind.Gate)
+                .Select(static edge => (edge.SourceNodeId, edge.TargetNodeId, edge.Kind))
+                .OrderBy(static edge => edge.SourceNodeId, StringComparer.Ordinal)
+                .ThenBy(static edge => edge.TargetNodeId, StringComparer.Ordinal)
+                .ThenBy(static edge => edge.Kind),
+            skewed.Edges
+                .Where(static edge => edge.Kind is
+                    WorkflowEdgeKind.Data or WorkflowEdgeKind.Control or WorkflowEdgeKind.Gate)
+                .Select(static edge => (edge.SourceNodeId, edge.TargetNodeId, edge.Kind))
+                .OrderBy(static edge => edge.SourceNodeId, StringComparer.Ordinal)
+                .ThenBy(static edge => edge.TargetNodeId, StringComparer.Ordinal)
+                .ThenBy(static edge => edge.Kind));
+    }
+
+    [Fact]
+    public async Task Generated_identifiers_are_unambiguous_bounded_and_rebuild_stable()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+        var maximumAttempt = new string('a', 128);
+        var maximumAgent = new string('g', 128);
+        var maximumRun = new string('r', 128);
+        var maximumTool = new string('t', 128);
+        var maximumEvent = new string('e', 160);
+        var exactAttempt = new string('x', 49);
+        var overAttempt = new string('x', 50);
+        var sharedPrefix = new string('p', 127);
+        var overAgentA = sharedPrefix + "a";
+        var overAgentB = sharedPrefix + "b";
+        var nonBmpAgent = string.Concat(Enumerable.Repeat("😀", 128));
+
+        await store.CreateWorkflowRunAsync(
+            new WorkflowRunStorageRow(
+                "project-a",
+                maximumRun,
+                null,
+                null,
+                WorkflowRunStatus.Active,
+                s_startedAt,
+                null,
+                0,
+                null,
+                null),
+            TestContext.Current.CancellationToken);
+        var maximumRunGraph = await store.GetWorkflowGraphAsync(
+            "project-a",
+            maximumRun,
+            null,
+            10,
+            null,
+            10,
+            TestContext.Current.CancellationToken);
+        Assert.Contains(maximumRunGraph!.Nodes, node => node.NodeId == $"run:{maximumRun}");
+
+        await store.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1",
+            [
+                Event("maximum-tool", 1, WorkflowJournalEventKind.ToolStarted,
+                    toolCallId: maximumTool),
+                Event(maximumEvent, 2, WorkflowJournalEventKind.MessageSent),
+                Event("run-scope", 3, WorkflowJournalEventKind.AgentStarted, agentId: "worker"),
+                Event("delimiter", 4, WorkflowJournalEventKind.AgentStarted, agentId: "a:b"),
+                Event("backslash", 5, WorkflowJournalEventKind.AgentStarted, agentId: @"a\cb"),
+                Event("non-bmp", 6, WorkflowJournalEventKind.AgentStarted, agentId: nonBmpAgent),
+                Event("maximum-attempt", 7, WorkflowJournalEventKind.AttemptStarted,
+                    attemptId: maximumAttempt),
+                Event("maximum-agent", 8, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: maximumAttempt, agentId: maximumAgent),
+                Event("literal-run", 9, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: "run", agentId: "worker"),
+                Event("exact-parent", 10, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: exactAttempt, agentId: "parent"),
+                Event("exact-composite", 11, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: exactAttempt, agentId: maximumAgent, parentAgentId: "parent"),
+                Event("over-a", 12, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: overAttempt, agentId: overAgentA),
+                Event("over-b", 13, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: overAttempt, agentId: overAgentB)
+            ],
+            [], TestContext.Current.CancellationToken);
+
+        var graph = await ReadGraphAsync(store);
+        var ids = graph.Nodes.Select(static node => node.NodeId).ToHashSet(StringComparer.Ordinal);
+        Assert.Contains("agent:run:worker", ids);
+        Assert.Contains("agent:attempt:run:worker", ids);
+        Assert.Contains(@"agent:run:a\cb", ids);
+        Assert.Contains(@"agent:run:a\\cb", ids);
+        Assert.Contains($"attempt:{maximumAttempt}", ids);
+        Assert.Contains($"tool:run:{maximumTool}", ids);
+        Assert.Contains($"message:{maximumEvent}", ids);
+        Assert.Contains($"agent:run:{nonBmpAgent}", ids);
+        Assert.Contains(
+            ExpectedHashedId("agent", "attempt", maximumAttempt, maximumAgent),
+            ids);
+        var exactNodeId = $"agent:attempt:{exactAttempt}:{maximumAgent}";
+        Assert.Equal(192, exactNodeId.EnumerateRunes().Count());
+        Assert.Contains(exactNodeId, ids);
+        var overNodeIdA = ExpectedHashedId("agent", "attempt", overAttempt, overAgentA);
+        var overNodeIdB = ExpectedHashedId("agent", "attempt", overAttempt, overAgentB);
+        Assert.Equal(193, $"agent:attempt:{overAttempt}:{overAgentA}".EnumerateRunes().Count());
+        Assert.Contains(overNodeIdA, ids);
+        Assert.Contains(overNodeIdB, ids);
+        Assert.NotEqual(overNodeIdA, overNodeIdB);
+        Assert.Matches("^agent~[a-f0-9]{64}$", overNodeIdA);
+        var exactParentId = $"agent:attempt:{exactAttempt}:parent";
+        var boundedEdge = Assert.Single(
+            graph.Edges,
+            edge => edge.SourceNodeId == exactParentId && edge.TargetNodeId == exactNodeId);
+        Assert.Equal(
+            ExpectedHashedId("control", exactParentId, exactNodeId),
+            boundedEdge.EdgeId);
+        Assert.Matches("^control~[a-f0-9]{64}$", boundedEdge.EdgeId);
+        Assert.Equal(ids.Count, graph.Nodes.Count);
+        Assert.All(graph.Nodes, static node =>
+            Assert.InRange(node.NodeId.EnumerateRunes().Count(), 1, 192));
+        Assert.All(graph.Edges, static edge =>
+            Assert.InRange(edge.EdgeId.EnumerateRunes().Count(), 1, 192));
+        var page = await store.GetWorkflowGraphAsync(
+            "project-a", "run-1", null, 1, null, 1, TestContext.Current.CancellationToken);
+        Assert.NotNull(page!.NextNodeCursor);
+        Assert.NotNull(page.NextEdgeCursor);
+        Assert.Equal(page.Nodes[^1].NodeId, page.NextNodeCursor);
+        Assert.Equal(page.Edges[^1].EdgeId, page.NextEdgeCursor);
+        Assert.InRange(page.NextNodeCursor!.EnumerateRunes().Count(), 1, 192);
+        Assert.InRange(page.NextEdgeCursor!.EnumerateRunes().Count(), 1, 192);
+
+        await store.RebuildWorkflowProjectionAsync(
+            "project-a", "run-1", TestContext.Current.CancellationToken);
+        var rebuilt = await ReadGraphAsync(store);
+        Assert.Equal(
+            graph.Nodes.Select(static node => node.NodeId),
+            rebuilt.Nodes.Select(static node => node.NodeId));
+        Assert.Equal(
+            graph.Edges.Select(static edge => edge.EdgeId),
+            rebuilt.Edges.Select(static edge => edge.EdgeId));
+    }
+
+    [Fact]
+    public async Task Gate_and_item_identifiers_preserve_attempt_and_domain_scope()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+        await store.AppendWorkflowEventsAsync(
+            "project-a", "run-1", "observer-1",
+            [
+                Event("run-approval", 1, WorkflowJournalEventKind.ApprovalRequested,
+                    data: """{"approval_id":"shared"}"""),
+                Event("run-command", 2, WorkflowJournalEventKind.ControlRequested,
+                    data: """{"command_id":"shared"}"""),
+                Event("run-item", 3, WorkflowJournalEventKind.ItemStarted,
+                    data: """{"item_id":"shared"}"""),
+                Event("a1", 4, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-1"),
+                Event("a1-approval", 5, WorkflowJournalEventKind.ApprovalRequested,
+                    attemptId: "attempt-1", data: """{"approval_id":"shared"}"""),
+                Event("a1-command", 6, WorkflowJournalEventKind.ControlRequested,
+                    attemptId: "attempt-1", data: """{"command_id":"shared"}"""),
+                Event("a1-item", 7, WorkflowJournalEventKind.ItemStarted,
+                    attemptId: "attempt-1", data: """{"item_id":"shared"}"""),
+                Event("a2", 8, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-2"),
+                Event("a2-approval", 9, WorkflowJournalEventKind.ApprovalRequested,
+                    attemptId: "attempt-2", data: """{"approval_id":"shared"}"""),
+                Event("a2-command", 10, WorkflowJournalEventKind.ControlRequested,
+                    attemptId: "attempt-2", data: """{"command_id":"shared"}"""),
+                Event("a2-item", 11, WorkflowJournalEventKind.ItemStarted,
+                    attemptId: "attempt-2", data: """{"item_id":"shared"}""")
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var ids = (await ReadGraphAsync(store)).Nodes
+            .Select(static node => node.NodeId)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Contains("gate:run:approval:shared", ids);
+        Assert.Contains("gate:run:command:shared", ids);
+        Assert.Contains("item:run:shared", ids);
+        Assert.Contains("gate:attempt:attempt-1:approval:shared", ids);
+        Assert.Contains("gate:attempt:attempt-1:command:shared", ids);
+        Assert.Contains("item:attempt:attempt-1:shared", ids);
+        Assert.Contains("gate:attempt:attempt-2:approval:shared", ids);
+        Assert.Contains("gate:attempt:attempt-2:command:shared", ids);
+        Assert.Contains("item:attempt:attempt-2:shared", ids);
+    }
+
+    [Fact]
     public async Task Paging_skips_nothing_when_the_projection_grows_between_pages()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -318,6 +669,19 @@ public sealed class WorkflowGraphInvariantTests
         return graph;
     }
 
+    private static string ExpectedHashedId(string kind, params string[] parts)
+    {
+        var canonical = new StringBuilder();
+        foreach (var part in new[] { kind }.Concat(parts))
+        {
+            canonical.Append(Encoding.UTF8.GetByteCount(part));
+            canonical.Append('#');
+            canonical.Append(part);
+        }
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
+        return $"{kind}~{Convert.ToHexStringLower(digest)}";
+    }
+
     private static Task<WorkflowRunStorageRow> CreateRunAsync(DuckDbStore store) =>
         store.CreateWorkflowRunAsync(
             new WorkflowRunStorageRow(
@@ -341,7 +705,9 @@ public sealed class WorkflowGraphInvariantTests
         string? attemptId = null,
         string? agentId = null,
         string? parentAgentId = null,
-        string? receiverAgentId = null) =>
+        string? receiverAgentId = null,
+        string? toolCallId = null,
+        string? data = null) =>
         new(
             eventId,
             sourceSequence,
@@ -353,7 +719,7 @@ public sealed class WorkflowGraphInvariantTests
             agentId,
             parentAgentId,
             receiverAgentId,
-            null,
+            toolCallId,
             [],
-            null);
+            data);
 }
