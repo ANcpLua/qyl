@@ -266,6 +266,13 @@ incremental work, checkpoint bytes and validation reasons, CAS outcomes, repairs
 orphan cleanup, typed DuckDB classifications, and Arrow batch/row counts without
 workflow payloads or secrets.
 
+Checkpoint filesystem containment is platform-owned. Linux and macOS use pinned
+directory handles, no-follow operations, and the native atomic `openat` create. Windows
+uses rooted component validation with reparse-point rejection plus the platform's
+atomic create-new and no-overwrite move operations. All six published qyl RIDs keep the
+same journal/checkpoint behavior; a platform may not silently fall back to memory-only
+derived state.
+
 The private DuckDB schema and access paths are generated from one metadata model:
 canonical DDL, stable column order and types, authoritative and disposable SHA-256
 schema identities, appender writers, Arrow mappings, and verifier metadata. The active

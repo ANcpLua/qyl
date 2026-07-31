@@ -41,14 +41,21 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
     private const uint OwnerFileMode = 0x180;
 
     private readonly string _root;
-    private readonly SafeFileHandle _rootHandle;
+    private readonly SafeFileHandle? _rootHandle;
+    private readonly WorkflowCheckpointWindowsFileSystem? _windows;
 
     public WorkflowCheckpointFileSystem(string root)
     {
+        _root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+        if (OperatingSystem.IsWindows())
+        {
+            _windows = new WorkflowCheckpointWindowsFileSystem(_root);
+            return;
+        }
         if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
         {
             throw new PlatformNotSupportedException(
-                "On-disk workflow checkpoints require Linux or macOS no-follow filesystem operations.");
+                "On-disk workflow checkpoints require Windows, Linux, or macOS filesystem operations.");
         }
         if (RuntimeInformation.ProcessArchitecture is not
             (Architecture.X64 or Architecture.Arm64))
@@ -57,7 +64,6 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
                 "On-disk workflow checkpoints require an x64 or arm64 process.");
         }
 
-        _root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         Directory.CreateDirectory(_root);
         var descriptor = OpenRoot(
             _root,
@@ -67,11 +73,18 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public void CreateDirectory(string path)
     {
+        if (_windows is not null)
+        {
+            _windows.CreateDirectory(path);
+            return;
+        }
         using var directory = OpenRelativeDirectory(path, create: true);
     }
 
     public SafeFileHandle CreateFile(string path)
     {
+        if (_windows is not null)
+            return _windows.CreateFile(path);
         using var parent = OpenParent(path, createParents: true, out var name);
         var descriptor = OpenAtCreateHandle(
             parent,
@@ -83,6 +96,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public SafeFileHandle OpenFile(string path)
     {
+        if (_windows is not null)
+            return _windows.OpenFile(path);
         using var parent = OpenParent(path, createParents: false, out var name);
         var descriptor = OpenAtHandle(
             parent,
@@ -93,6 +108,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public bool Exists(string path)
     {
+        if (_windows is not null)
+            return _windows.Exists(path);
         try
         {
             using var handle = OpenFile(path);
@@ -110,6 +127,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public DateTime LastWriteTimeUtc(string path)
     {
+        if (_windows is not null)
+            return _windows.LastWriteTimeUtc(path);
         try
         {
             using var handle = OpenFile(path);
@@ -127,6 +146,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public long Length(string path)
     {
+        if (_windows is not null)
+            return _windows.Length(path);
         try
         {
             using var handle = OpenFile(path);
@@ -144,6 +165,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public bool MoveFileNoReplace(string source, string destination)
     {
+        if (_windows is not null)
+            return _windows.MoveFileNoReplace(source, destination);
         using (var sourceHandle = OpenFile(source))
         {
         }
@@ -174,6 +197,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public bool MoveFileToQuarantine(string source, string destination)
     {
+        if (_windows is not null)
+            return _windows.MoveFileToQuarantine(source, destination);
         try
         {
             return MoveFileNoReplace(source, destination);
@@ -190,6 +215,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public bool DeleteFile(string path)
     {
+        if (_windows is not null)
+            return _windows.DeleteFile(path);
         try
         {
             using (var handle = OpenFile(path))
@@ -216,6 +243,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public bool DeleteEmptyDirectory(string path)
     {
+        if (_windows is not null)
+            return _windows.DeleteEmptyDirectory(path);
         try
         {
             using (var directory = OpenRelativeDirectory(path, create: false))
@@ -244,6 +273,8 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 
     public IEnumerable<WorkflowCheckpointFileSystemEntry> EnumerateTree(string path)
     {
+        if (_windows is not null)
+            return _windows.EnumerateTree(path);
         using var directory = TryOpenTreeRoot(path);
         if (directory is null)
             return [];
@@ -268,7 +299,10 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
         }
     }
 
-    public void Dispose() => _rootHandle.Dispose();
+    public void Dispose()
+    {
+        _rootHandle?.Dispose();
+    }
 
     private static void CollectDirectory(
         SafeFileHandle directory,
@@ -433,7 +467,7 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
         bool create)
     {
         var descriptor = OpenAtHandle(
-            _rootHandle,
+            _rootHandle!,
             ".",
             OpenReadOnly | OpenDirectory | OpenNoFollow | OpenCloseOnExec);
         var current = TakeHandle(descriptor, _root);

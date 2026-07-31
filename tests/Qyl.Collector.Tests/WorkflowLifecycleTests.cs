@@ -451,6 +451,16 @@ public sealed class WorkflowLifecycleTests
         Assert.Contains("-shared", project);
         Assert.Contains("-dynamiclib", project);
 
+        var windowsFileSystem = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "services",
+            "qyl.collector",
+            "Storage",
+            "WorkflowCheckpointWindowsFileSystem.cs"));
+        Assert.Contains("FileMode.CreateNew", windowsFileSystem);
+        Assert.Contains("File.Move(resolvedSource, resolvedDestination, overwrite: false)", windowsFileSystem);
+        Assert.Contains("FileAttributes.ReparsePoint", windowsFileSystem);
+
         var dockerfile = File.ReadAllText(Path.Combine(
             repositoryRoot,
             "services",
@@ -649,29 +659,32 @@ public sealed class WorkflowLifecycleTests
         var databasePath = DatabasePath("retention-activity");
         try
         {
-            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
-            await CreateRunAsync(store, "old-active");
-            await CreateRunAsync(store, "old-terminal");
-            await CreateRunAsync(store, "recent-terminal");
-            await store.AppendWorkflowEventsAsync(
-                "project-a",
-                "old-terminal",
-                "client-a",
-                [Event("completed-old", 1, WorkflowJournalEventKind.RunCompleted)],
-                [],
-                TestContext.Current.CancellationToken);
-            await store.AppendWorkflowEventsAsync(
-                "project-a",
-                "recent-terminal",
-                "client-a",
-                [Event("completed-recent", 1, WorkflowJournalEventKind.RunCompleted)],
-                [],
-                TestContext.Current.CancellationToken);
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+                await CreateRunAsync(seed, "old-active");
+                await CreateRunAsync(seed, "old-terminal");
+                await CreateRunAsync(seed, "recent-terminal");
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "old-terminal",
+                    "client-a",
+                    [Event("completed-old", 1, WorkflowJournalEventKind.RunCompleted)],
+                    [],
+                    TestContext.Current.CancellationToken);
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "recent-terminal",
+                    "client-a",
+                    [Event("completed-recent", 1, WorkflowJournalEventKind.RunCompleted)],
+                    [],
+                    TestContext.Current.CancellationToken);
+            }
             await SetLastActivityAsync(
                 databasePath,
                 ["old-active", "old-terminal"],
                 s_timestamp.AddDays(-40));
 
+            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
             var deleted = await store.DeleteExpiredWorkflowDataBatchAsync(
                 s_timestamp.AddDays(-30),
                 100,
