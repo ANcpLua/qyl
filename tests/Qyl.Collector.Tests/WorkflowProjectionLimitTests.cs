@@ -104,7 +104,7 @@ public sealed class WorkflowProjectionLimitTests
                          workflowProjectionLimits: new WorkflowProjectionLimits(maxWorkUnits: 2)))
         {
             await CreateRunAsync(belowFloor);
-            await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+            await AssertGraphFailureAsync<WorkflowProjectionLimitExceededException>(() =>
                 belowFloor.GetWorkflowGraphAsync(
                     "project-a", "run-1", null, 100, null, 100,
                     TestContext.Current.CancellationToken));
@@ -128,7 +128,7 @@ public sealed class WorkflowProjectionLimitTests
             [],
             TestContext.Current.CancellationToken);
         Assert.Equal(1, append.AcceptedCount);
-        await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+        await AssertGraphFailureAsync<WorkflowProjectionLimitExceededException>(() =>
             store.GetWorkflowGraphAsync(
                 "project-a", "run-1", null, 100, null, 100,
                 TestContext.Current.CancellationToken));
@@ -323,7 +323,7 @@ public sealed class WorkflowProjectionLimitTests
                 [Event("one", 1)],
                 [],
                 TestContext.Current.CancellationToken);
-            await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+            await AssertGraphFailureAsync<WorkflowProjectionLimitExceededException>(() =>
                 store.GetWorkflowGraphAsync(
                     "project-a",
                     "run-oversized-checkpoint",
@@ -469,7 +469,7 @@ public sealed class WorkflowProjectionLimitTests
                              },
                              workflowProjectionLimits: limits))
             {
-                await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+                await AssertGraphFailureAsync<WorkflowProjectionLimitExceededException>(() =>
                     recovered.GetWorkflowGraphAsync(
                         "project-a", "run-1", null, 100, null, 100,
                         TestContext.Current.CancellationToken));
@@ -486,7 +486,7 @@ public sealed class WorkflowProjectionLimitTests
                     failed.ProjectionFailureSemantic);
                 var writesAfterFirstFailure = Volatile.Read(ref writes);
 
-                await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+                await AssertGraphFailureAsync<WorkflowProjectionLimitExceededException>(() =>
                     recovered.GetWorkflowGraphAsync(
                         "project-a", "run-1", null, 100, null, 100,
                         TestContext.Current.CancellationToken));
@@ -559,7 +559,7 @@ public sealed class WorkflowProjectionLimitTests
                              },
                              workflowProjectionLimits: limits))
             {
-                await Assert.ThrowsAsync<InvalidDataException>(() =>
+                await AssertGraphFailureAsync<InvalidDataException>(() =>
                     recovered.GetWorkflowGraphAsync(
                         "project-a", "run-1", null, 100, null, 100,
                         TestContext.Current.CancellationToken));
@@ -576,7 +576,7 @@ public sealed class WorkflowProjectionLimitTests
                     failed.ProjectionFailureSemantic);
                 var writesAfterFirstFailure = Volatile.Read(ref writes);
 
-                await Assert.ThrowsAsync<InvalidDataException>(() =>
+                await AssertGraphFailureAsync<InvalidDataException>(() =>
                     recovered.GetWorkflowGraphAsync(
                         "project-a", "run-1", null, 100, null, 100,
                         TestContext.Current.CancellationToken));
@@ -621,18 +621,18 @@ public sealed class WorkflowProjectionLimitTests
             [
                 new WorkflowEventAppend
                 {
-                    EventId = "event-1",
+                    EventId = new WorkflowEventId("event-1"),
                     SourceSequence = 1,
                     Timestamp = s_timestamp,
                     Kind = WorkflowJournalEventKind.ContentCaptured,
-                    ContentRefs = [contentRef]
+                    ContentRefs = [new WorkflowContentRef(contentRef)]
                 }
             ],
             Content =
             [
                 new WorkflowContentChunk
                 {
-                    ContentRef = contentRef,
+                    ContentRef = new WorkflowContentRef(contentRef),
                     ContentType = "application/octet-stream",
                     Encoding = WorkflowContentEncoding.Base64,
                     Content = invalidContent
@@ -690,7 +690,7 @@ public sealed class WorkflowProjectionLimitTests
             "project-a", "run-1", "client-a", events, [],
             TestContext.Current.CancellationToken);
         Assert.Equal(events.Count, append.AcceptedCount);
-        await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+        await AssertGraphFailureAsync<WorkflowProjectionLimitExceededException>(() =>
             store.GetWorkflowGraphAsync(
                 "project-a", "run-1", null, 100, null, 100,
                 TestContext.Current.CancellationToken));
@@ -702,6 +702,14 @@ public sealed class WorkflowProjectionLimitTests
             events.Count,
             (await store.ReadWorkflowEventsAsync(
                 "project-a", "run-1", 0, 100, TestContext.Current.CancellationToken))!.Events.Count);
+    }
+
+    private static async Task AssertGraphFailureAsync<TException>(
+        Func<Task<WorkflowGraphSnapshot?>> action)
+        where TException : Exception
+    {
+        var error = await Assert.ThrowsAsync<WorkflowProjectionCorruptException>(action);
+        Assert.IsType<TException>(error.InnerException);
     }
 
     private static Task<WorkflowRunStorageRow> CreateRunAsync(DuckDbStore store) =>

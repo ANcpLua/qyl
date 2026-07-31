@@ -63,6 +63,7 @@ internal sealed partial class DuckDbStore
                     select.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList + """
                                           FROM workflow_runs
                                           WHERE status IN ('completed', 'failed')
+                                            AND deleted_at IS NULL
                                             AND last_activity_at < $1
                                           ORDER BY last_activity_at, project_id, run_id
                                           LIMIT $2
@@ -82,39 +83,38 @@ internal sealed partial class DuckDbStore
                             transaction,
                             token)
                         .ConfigureAwait(false);
-                var eventCount = 0;
-                var commandCount = 0;
                 foreach (var run in expiredRuns)
                 {
-                    var counts = CountWorkflowRows(
-                        con,
-                        transaction,
-                        run.ProjectId,
-                        run.RunId);
-                    eventCount += counts.Events;
-                    commandCount += counts.Commands;
+                    // Retention may retire disposable projections, but the
+                    // append-only journal remains the authoritative history.
+                    // A durable tombstone makes deletion observable and blocks
+                    // every later append or publication for this run id.
                     await using var delete = con.CreateCommand();
                     delete.Transaction = transaction;
                     delete.CommandText = """
-                                         DELETE FROM workflow_content_refs
-                                         WHERE project_id = $1 AND run_id = $2;
-                                         DELETE FROM workflow_client_journal_ranges
-                                         WHERE project_id = $1 AND run_id = $2;
-                                         DELETE FROM workflow_client_journal
-                                         WHERE project_id = $1 AND run_id = $2;
-                                         DELETE FROM workflow_events
-                                         WHERE project_id = $1 AND run_id = $2;
-                                         DELETE FROM workflow_commands
-                                         WHERE project_id = $1 AND run_id = $2;
-                                         DELETE FROM workflow_runs
+                                         UPDATE workflow_runs
+                                         SET deleted_at = current_timestamp,
+                                             active_checkpoint_sequence = 0,
+                                             active_checkpoint_id = NULL,
+                                             active_checkpoint_storage_key = NULL,
+                                             active_checkpoint_input_hash = NULL,
+                                             active_checkpoint_semantic_fingerprint = NULL,
+                                             active_checkpoint_configuration_fingerprint = NULL,
+                                             active_checkpoint_format_version = NULL,
+                                             active_checkpoint_byte_length = NULL,
+                                             active_checkpoint_created_at = NULL,
+                                             checkpoint_manifest_epoch = $4,
+                                             updated_at = current_timestamp
                                          WHERE project_id = $1 AND run_id = $2
-                                           AND run_generation = $3;
+                                           AND run_generation = $3
+                                           AND deleted_at IS NULL;
                                          """;
                     AddParameters(
                         delete,
                         run.ProjectId,
                         run.RunId,
-                        run.RunGeneration);
+                        run.RunGeneration,
+                        (decimal)epoch);
                     await delete.ExecuteNonQueryAsync(token).ConfigureAwait(false);
                 }
 
@@ -169,8 +169,8 @@ internal sealed partial class DuckDbStore
                 return (
                     Result: new WorkflowRetentionResult(
                         expiredRuns.Count,
-                        eventCount,
-                        commandCount,
+                        0,
+                        0,
                         contentCount),
                     Runs: (IReadOnlyList<WorkflowProjectionKey>)keys,
                     Mutation: deltas.Length is 0
@@ -201,28 +201,6 @@ internal sealed partial class DuckDbStore
         }
 
         return deletion.Result;
-    }
-
-    private static (int Events, int Commands) CountWorkflowRows(
-        DuckDBConnection con,
-        DbTransaction transaction,
-        string projectId,
-        string runId)
-    {
-        using var command = con.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-                              SELECT
-                                  (SELECT count(*) FROM workflow_events
-                                   WHERE project_id = $1 AND run_id = $2),
-                                  (SELECT count(*) FROM workflow_commands
-                                   WHERE project_id = $1 AND run_id = $2)
-                              """;
-        AddParameters(command, projectId, runId);
-        using var reader = command.ExecuteReader();
-        return reader.Read()
-            ? (DuckDbValueReader.ReadInt32(reader, 0, 0), DuckDbValueReader.ReadInt32(reader, 1, 0))
-            : default;
     }
 
     public StorageFileMetrics GetStorageFileMetrics()

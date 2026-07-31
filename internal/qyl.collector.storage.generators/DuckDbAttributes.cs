@@ -32,7 +32,7 @@ internal static class DuckDbAttributeSource
 
                                  /// <summary>
                                  /// Marks a partial type for DuckDB helper generation.
-                                 /// Generator will create AddParameters, MapFromReader, and column constants.
+                                 /// Generator creates schema, parameter, reader, and eligible appender helpers.
                                  /// </summary>
                                  [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false)]
                                  internal sealed class DuckDbTableAttribute : System.Attribute
@@ -42,6 +42,21 @@ internal static class DuckDbAttributeSource
 
                                      /// <summary>Optional ON CONFLICT clause for upsert behavior.</summary>
                                      public string? OnConflict { get; set; }
+
+                                     /// <summary>
+                                     /// Generate a reusable-row appender for an append-only table whose writes need no
+                                     /// conflict clause, returned key, compare-and-swap predicate, or per-row result.
+                                     /// </summary>
+                                     public bool AppenderEligible { get; set; }
+
+                                     /// <summary>
+                                     /// Marks storage that can be discarded and reconstructed from authoritative data.
+                                     /// Derived tables are reset automatically when their generated schema identity changes.
+                                     /// </summary>
+                                     public bool Derived { get; set; }
+
+                                     /// <summary>Generate a bounded-memory Apache Arrow reader for bulk scans.</summary>
+                                     public bool ArrowEligible { get; set; }
 
                                      /// <summary>
                                      /// Semicolon-separated index column groups. Use CLR property names, e.g. "ProjectId;ProjectId,TraceId".
@@ -71,9 +86,6 @@ internal static class DuckDbAttributeSource
 
                                      /// <summary>Optional SQL default expression for generated CREATE TABLE DDL.</summary>
                                      public string? DefaultSql { get; set; }
-
-                                     /// <summary>Do not apply DefaultSql while adding the column to an existing table.</summary>
-                                     public bool OmitDefaultFromMigration { get; set; }
 
                                      /// <summary>Primary-key order for generated CREATE TABLE DDL. Leave -1 for non-key columns.</summary>
                                      public int PrimaryKeyOrdinal { get; set; } = -1;

@@ -357,17 +357,17 @@ public sealed class WorkflowJournalTests
         Assert.NotNull(before);
         Assert.Equal(WorkflowRunStatus.Completed, before.Run.Status);
         Assert.Null(before.Run.ActiveAttemptId);
-        Assert.Equal("failed", Assert.Single(before.Nodes, static node => node.NodeId == "attempt:attempt-1").Status);
-        Assert.Equal("succeeded", Assert.Single(before.Nodes, static node => node.NodeId == "attempt:attempt-2").Status);
+        Assert.Equal("failed", Assert.Single(before.Nodes, static node => node.NodeId.Value == "attempt:attempt-1").Status);
+        Assert.Equal("succeeded", Assert.Single(before.Nodes, static node => node.NodeId.Value == "attempt:attempt-2").Status);
         Assert.Equal(
             "failed",
-            Assert.Single(before.Nodes, static node => node.NodeId == "agent:attempt:attempt-1:worker").Status);
+            Assert.Single(before.Nodes, static node => node.NodeId.Value == "agent:attempt:attempt-1:worker").Status);
         Assert.Equal(
             "succeeded",
-            Assert.Single(before.Nodes, static node => node.NodeId == "agent:attempt:attempt-2:worker").Status);
+            Assert.Single(before.Nodes, static node => node.NodeId.Value == "agent:attempt:attempt-2:worker").Status);
         Assert.Equal(
             "interrupted",
-            Assert.Single(before.Nodes, static node => node.NodeId == "turn:attempt:attempt-1:turn-1").Status);
+            Assert.Single(before.Nodes, static node => node.NodeId.Value == "turn:attempt:attempt-1:turn-1").Status);
 
         var beforeJson = JsonSerializer.Serialize(before, QylSerializerContext.Default.WorkflowGraphSnapshot);
         await store.RebuildWorkflowProjectionAsync(
@@ -563,18 +563,20 @@ public sealed class WorkflowJournalTests
         var conflict = Assert.Single(graph.Edges, static edge => edge.Kind is WorkflowEdgeKind.Conflict);
         var derived = Assert.IsType<DerivedWorkflowEdgeProvenance>(conflict.Provenance);
         Assert.Equal(0.85, derived.Confidence);
-        Assert.Equal(["w1-write", "w2-write"], derived.EventIds);
+        Assert.Equal(
+            ["w1-write", "w2-write"],
+            derived.EventIds.Select(static eventId => eventId.Value));
 
         var spawn = Assert.Single(
             graph.Edges,
-            static edge => edge.SourceNodeId == "agent:attempt:attempt-1:root" &&
-                           edge.TargetNodeId == "agent:attempt:attempt-1:worker-1" &&
+            static edge => edge.SourceNodeId.Value == "agent:attempt:attempt-1:root" &&
+                           edge.TargetNodeId.Value == "agent:attempt:attempt-1:worker-1" &&
                            edge.Kind is WorkflowEdgeKind.Control);
         Assert.IsType<RecordedWorkflowEdgeProvenance>(spawn.Provenance);
         Assert.Contains(
             graph.Edges,
-            static edge => edge.SourceNodeId == "message:message" &&
-                           edge.TargetNodeId == "agent:attempt:attempt-1:worker-2" &&
+            static edge => edge.SourceNodeId.Value == "message:message" &&
+                           edge.TargetNodeId.Value == "agent:attempt:attempt-1:worker-2" &&
                            edge.Kind is WorkflowEdgeKind.Data);
 
         Assert.Equal(3, graph.Statistics.WorkerCount);
@@ -699,10 +701,11 @@ public sealed class WorkflowJournalTests
                 (await constrained.GetWorkflowRunAsync(
                     "project-a", "run-1", TestContext.Current.CancellationToken))!
                 .LatestJournalSequence);
-            await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+            var projectionError = await Assert.ThrowsAsync<WorkflowProjectionCorruptException>(() =>
                 constrained.GetWorkflowGraphAsync(
                     "project-a", "run-1", null, 100, null, 100,
                     TestContext.Current.CancellationToken));
+            Assert.IsType<WorkflowProjectionLimitExceededException>(projectionError.InnerException);
         }
         finally
         {
@@ -970,7 +973,7 @@ public sealed class WorkflowJournalTests
     }
 
     [Fact]
-    public async Task Retention_deletes_expired_runs_events_commands_and_unreferenced_content()
+    public async Task Retention_tombstones_expired_runs_without_deleting_authoritative_history()
     {
         var databasePath = DatabasePath("retention");
         var plaintext = "expired workflow payload";
@@ -1031,10 +1034,14 @@ public sealed class WorkflowJournalTests
                     100,
                     TestContext.Current.CancellationToken);
                 Assert.Equal(1, result.Runs);
-                Assert.Equal(3, result.Events);
-                Assert.Equal(1, result.Commands);
-                Assert.Equal(1, result.Content);
+                Assert.Equal(0, result.Events);
+                Assert.Equal(0, result.Commands);
+                Assert.Equal(0, result.Content);
                 Assert.Null(await store.GetWorkflowRunAsync(
+                    "project-a",
+                    "run-1",
+                    TestContext.Current.CancellationToken));
+                Assert.True(await store.IsWorkflowRunDeletedAsync(
                     "project-a",
                     "run-1",
                     TestContext.Current.CancellationToken));
@@ -1047,6 +1054,31 @@ public sealed class WorkflowJournalTests
                     $"{databasePath}.workflow-checkpoints",
                     "*.json",
                     SearchOption.AllDirectories));
+            }
+
+            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await using var command = connection.CreateCommand();
+                command.CommandText = """
+                                      SELECT
+                                          (SELECT count(*) FROM workflow_events
+                                           WHERE project_id = 'project-a' AND run_id = 'run-1'),
+                                          (SELECT count(*) FROM workflow_commands
+                                           WHERE project_id = 'project-a' AND run_id = 'run-1'),
+                                          (SELECT count(*) FROM workflow_content
+                                           WHERE project_id = 'project-a' AND content_ref = $1),
+                                          (SELECT deleted_at IS NOT NULL FROM workflow_runs
+                                           WHERE project_id = 'project-a' AND run_id = 'run-1')
+                                      """;
+                command.Parameters.Add(new DuckDBParameter { Value = contentRef });
+                await using var reader = await command.ExecuteReaderAsync(
+                    TestContext.Current.CancellationToken);
+                Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
+                Assert.Equal(3, DuckDbValueReader.ReadInt32(reader, 0, 0));
+                Assert.Equal(1, DuckDbValueReader.ReadInt32(reader, 1, 0));
+                Assert.Equal(1, DuckDbValueReader.ReadInt32(reader, 2, 0));
+                Assert.True(reader.GetBoolean(3));
             }
         }
         finally
@@ -1153,22 +1185,22 @@ public sealed class WorkflowJournalTests
         Assert.True(first.Edges.Count <= 30);
         Assert.True(first.HasMoreNodes);
         Assert.True(first.HasMoreEdges);
-        Assert.Equal(first.Nodes[^1].NodeId, first.NextNodeCursor);
-        Assert.Equal(first.Edges[^1].EdgeId, first.NextEdgeCursor);
+        Assert.StartsWith("qylwg1.n.", first.NextNodeCursor!.Value.Value, StringComparison.Ordinal);
+        Assert.StartsWith("qylwg1.e.", first.NextEdgeCursor!.Value.Value, StringComparison.Ordinal);
         Assert.True(first.TotalNodeCount > first.Nodes.Count);
         Assert.True(first.TotalEdgeCount > first.Edges.Count);
 
         var second = await store.GetWorkflowGraphAsync(
             "project-a",
             "run-1",
-            first.NextNodeCursor,
+            first.NextNodeCursor?.Value,
             25,
-            first.NextEdgeCursor,
+            first.NextEdgeCursor?.Value,
             30,
             TestContext.Current.CancellationToken);
         Assert.NotNull(second);
-        Assert.Empty(first.Nodes.Select(static node => node.NodeId)
-            .Intersect(second.Nodes.Select(static node => node.NodeId), StringComparer.Ordinal));
+        Assert.Empty(first.Nodes.Select(static node => node.NodeId.Value)
+            .Intersect(second.Nodes.Select(static node => node.NodeId.Value), StringComparer.Ordinal));
         Assert.Equal(first.JournalSequence, second.JournalSequence);
         Assert.Equal(first.Statistics.T1Ms, second.Statistics.T1Ms);
     }

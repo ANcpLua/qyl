@@ -264,9 +264,7 @@ internal static class CodexObserverRuntime
             var content = workflowEvent.ContentRefs is null || batch.Content is null
                 ? []
                 : batch.Content
-                    .Where(chunk => workflowEvent.ContentRefs.Contains(
-                        chunk.ContentRef,
-                        StringComparer.Ordinal))
+                    .Where(chunk => workflowEvent.ContentRefs.Contains(chunk.ContentRef))
                     .ToArray();
             await spool.AppendAsync(
                 new WorkflowSpoolEntry(workflowEvent, content),

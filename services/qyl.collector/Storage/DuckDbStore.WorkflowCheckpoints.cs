@@ -32,14 +32,44 @@ internal sealed partial class DuckDbStore
         WorkflowRunStorageRow observed,
         CancellationToken ct)
     {
-        ThrowPersistedWorkflowProjectionFailure(observed, observed.LatestJournalSequence);
-        return await _workflowProjectionRuntime.WaitForAsync(
-            new WorkflowProjectionKey(
-                observed.ProjectId,
-                observed.RunId,
-                observed.RunGeneration),
-            observed.LatestJournalSequence,
-            ct).ConfigureAwait(false);
+        var key = new WorkflowProjectionKey(
+            observed.ProjectId,
+            observed.RunId,
+            observed.RunGeneration);
+        try
+        {
+            ThrowPersistedWorkflowProjectionFailure(observed, observed.LatestJournalSequence);
+            return await _workflowProjectionRuntime.WaitForAsync(
+                key,
+                observed.LatestJournalSequence,
+                ct).ConfigureAwait(false);
+        }
+        catch (QylStoreUnavailableException error)
+        {
+            throw new WorkflowProjectionUnavailableException(
+                observed.RunGeneration,
+                observed.LatestJournalSequence,
+                retryAfterMilliseconds: 1000,
+                rebuilding: _activatedCheckpointRepairs.ContainsKey(key),
+                error);
+        }
+        catch (WorkflowProjectionLimitExceededException error)
+        {
+            throw new WorkflowProjectionCorruptException(
+                observed.RunGeneration,
+                "projection_limits_exceeded",
+                error);
+        }
+        catch (Exception error) when (
+            error is WorkflowCheckpointIncompatibleException
+                or InvalidDataException
+                or JsonException)
+        {
+            throw new WorkflowProjectionCorruptException(
+                observed.RunGeneration,
+                "projection_recovery_failed",
+                error);
+        }
     }
 
     internal async Task<bool> IsWorkflowProjectionGenerationCurrentAsync(
@@ -189,6 +219,9 @@ internal sealed partial class DuckDbStore
                             CancellationToken.None)
                         .ConfigureAwait(false);
                 }
+                WorkflowLifecycleLog.CheckpointPublication(
+                    _logger,
+                    published ? "won" : "lost");
                 if (!published)
                 {
                     var current = await GetWorkflowRunAsync(
@@ -235,9 +268,9 @@ internal sealed partial class DuckDbStore
         WorkflowProjectionCheckpoint? prior,
         bool validateFullReplay,
         CancellationToken ct) =>
-        ExecuteReadAsync<WorkflowProjectionInput?>(con =>
+        ExecuteReadAsync<WorkflowProjectionInput?>(async (con, token) =>
         {
-            using var transaction = con.BeginTransaction();
+            await using var transaction = await con.BeginTransactionAsync(token).ConfigureAwait(false);
             var current = ReadWorkflowRun(con, key.ProjectId, key.RunId, transaction);
             if (current is null || current.RunGeneration != key.RunGeneration)
                 return null;
@@ -251,7 +284,7 @@ internal sealed partial class DuckDbStore
             budget.EnsureEventCount(targetSequence);
             if (targetSequence == current.LatestJournalSequence)
                 budget.EnsureSerializedInput(current.ProjectionInputBytes);
-            using var command = con.CreateCommand();
+            await using var command = con.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = "SELECT " + WorkflowEventDbRow.SelectColumnList + """
                                    FROM workflow_events
@@ -269,34 +302,51 @@ internal sealed partial class DuckDbStore
                 (decimal)afterSequence,
                 (decimal)targetSequence,
                 checked((long)(targetSequence - afterSequence) + 1));
-            using var reader = command.ExecuteReader();
             var events = new List<WorkflowEventStorageRow>();
-            while (reader.Read())
-                events.Add(ReadWorkflowEvent(WorkflowEventDbRow.MapFromReader(reader)));
+            var streamed = await WorkflowEventDbRow.ReadArrowRowsAsync(
+                    command,
+                    events,
+                    static (target, row) => target.Add(ReadWorkflowEvent(row)),
+                    token)
+                .ConfigureAwait(false);
+            WorkflowLifecycleLog.ArrowStreamConsumed(
+                _logger,
+                "projection_quantum",
+                streamed.Batches,
+                streamed.Rows);
             var expected = checked((long)(targetSequence - afterSequence));
             if (events.Count != expected)
                 throw new InvalidDataException(
                     "Workflow projection journal quantum is incomplete.");
 
             if (validateFullReplay)
-                ValidateWorkflowProjectionCounters(con, transaction, current, budget);
+            {
+                await ValidateWorkflowProjectionCountersAsync(
+                        con,
+                        transaction,
+                        current,
+                        budget,
+                        token)
+                    .ConfigureAwait(false);
+            }
 
             var projectedRun = WorkflowRunAtSequence(
                 current,
                 targetSequence,
                 events,
                 prior);
-            transaction.Commit();
+            await transaction.CommitAsync(token).ConfigureAwait(false);
             return new WorkflowProjectionInput(projectedRun, events, budget);
         }, ct);
 
-    private static void ValidateWorkflowProjectionCounters(
+    private async ValueTask ValidateWorkflowProjectionCountersAsync(
         DuckDBConnection con,
         DbTransaction transaction,
         WorkflowRunStorageRow run,
-        WorkflowProjectionBudget budget)
+        WorkflowProjectionBudget budget,
+        CancellationToken ct)
     {
-        using var command = con.CreateCommand();
+        await using var command = con.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = "SELECT " + WorkflowEventDbRow.SelectColumnList + """
                                FROM workflow_events
@@ -309,25 +359,41 @@ internal sealed partial class DuckDbStore
             run.ProjectId,
             run.RunId,
             budget.Limits.MaxEventsPerRun + 1);
-        using var reader = command.ExecuteReader();
-        long measuredInput = checked(
-            run.ImmutableProjectionInputBytes +
-            run.DynamicProjectionInputBytes);
-        long eventCount = 0;
-        while (reader.Read())
-        {
-            eventCount++;
-            budget.EnsureEventCount(eventCount);
-            measuredInput = checked(
-                measuredInput +
-                WorkflowCanonicalization.MeasureEventInput(
-                    ReadWorkflowEvent(WorkflowEventDbRow.MapFromReader(reader))));
-        }
-        if (eventCount != run.EventCount ||
-            measuredInput != run.ProjectionInputBytes)
+        var validation = new WorkflowProjectionCounterValidation(run, budget);
+        var streamed = await WorkflowEventDbRow.ReadArrowRowsAsync(
+                command,
+                validation,
+                static (state, row) => state.Add(ReadWorkflowEvent(row)),
+                ct)
+            .ConfigureAwait(false);
+        WorkflowLifecycleLog.ArrowStreamConsumed(
+            _logger,
+            "projection_counter_validation",
+            streamed.Batches,
+            streamed.Rows);
+        if (validation.EventCount != run.EventCount ||
+            validation.MeasuredInput != run.ProjectionInputBytes)
         {
             throw new InvalidDataException(
                 "Workflow projection cumulative counters are invalid.");
+        }
+    }
+
+    private sealed class WorkflowProjectionCounterValidation(
+        WorkflowRunStorageRow run,
+        WorkflowProjectionBudget budget)
+    {
+        public long EventCount { get; private set; }
+
+        public long MeasuredInput { get; private set; } = checked(
+            run.ImmutableProjectionInputBytes + run.DynamicProjectionInputBytes);
+
+        public void Add(WorkflowEventStorageRow workflowEvent)
+        {
+            EventCount++;
+            budget.EnsureEventCount(EventCount);
+            MeasuredInput = checked(
+                MeasuredInput + WorkflowCanonicalization.MeasureEventInput(workflowEvent));
         }
     }
 
@@ -446,7 +512,7 @@ internal sealed partial class DuckDbStore
         WorkflowCheckpointBlob blob,
         CancellationToken ct)
     {
-        if (!WorkflowCheckpointStore.HasCanonicalManifest(expected))
+        if (!WorkflowCheckpointStore.HasCanonicalCheckpointIdentity(expected))
             throw new InvalidDataException(
                 "Workflow checkpoint publication observed an invalid manifest identity.");
         var publishedStorageIdentity =
@@ -478,7 +544,13 @@ internal sealed partial class DuckDbStore
                                           SET active_checkpoint_sequence = $1,
                                               active_checkpoint_id = $2,
                                               active_checkpoint_storage_key = $3,
-                                              checkpoint_manifest_epoch = $4,
+                                              active_checkpoint_input_hash = $4,
+                                              active_checkpoint_semantic_fingerprint = $5,
+                                              active_checkpoint_configuration_fingerprint = $6,
+                                              active_checkpoint_format_version = $7,
+                                              active_checkpoint_byte_length = $8,
+                                              active_checkpoint_created_at = current_timestamp,
+                                              checkpoint_manifest_epoch = $9,
                                               projection_failure_sequence =
                                                   CASE WHEN projection_failure_sequence <= $1
                                                       THEN NULL ELSE projection_failure_sequence END,
@@ -492,14 +564,14 @@ internal sealed partial class DuckDbStore
                                                   CASE WHEN projection_failure_sequence <= $1
                                                       THEN NULL ELSE projection_failure_semantic END,
                                               updated_at = current_timestamp
-                                          WHERE project_id = $5
-                                            AND run_id = $6
-                                            AND run_generation = $7
-                                            AND active_checkpoint_sequence = $8
-                                            AND active_checkpoint_id IS NOT DISTINCT FROM $9
+                                          WHERE project_id = $10
+                                            AND run_id = $11
+                                            AND run_generation = $12
+                                            AND active_checkpoint_sequence = $13
+                                            AND active_checkpoint_id IS NOT DISTINCT FROM $14
                                             AND active_checkpoint_storage_key
-                                                IS NOT DISTINCT FROM $10
-                                            AND checkpoint_manifest_epoch = $11
+                                                IS NOT DISTINCT FROM $15
+                                            AND checkpoint_manifest_epoch = $16
                                             AND latest_journal_sequence >= $1
                                           RETURNING active_checkpoint_sequence
                                           """;
@@ -508,6 +580,11 @@ internal sealed partial class DuckDbStore
                         (decimal)checkpoint.JournalSequence,
                         blob.CheckpointId,
                         publishedStorageIdentity,
+                        checkpoint.RunInputHash,
+                        checkpoint.ProjectorSemanticFingerprint,
+                        checkpoint.ProjectionConfigurationFingerprint,
+                        checkpoint.FormatVersion,
+                        blob.Length,
                         (decimal)epoch,
                         expected.ProjectId,
                         expected.RunId,
@@ -708,6 +785,12 @@ internal sealed partial class DuckDbStore
                                         SET active_checkpoint_sequence = 0,
                                             active_checkpoint_id = NULL,
                                             active_checkpoint_storage_key = NULL,
+                                            active_checkpoint_input_hash = NULL,
+                                            active_checkpoint_semantic_fingerprint = NULL,
+                                            active_checkpoint_configuration_fingerprint = NULL,
+                                            active_checkpoint_format_version = NULL,
+                                            active_checkpoint_byte_length = NULL,
+                                            active_checkpoint_created_at = NULL,
                                             checkpoint_manifest_epoch = $1,
                                             projection_failure_sequence = NULL,
                                             projection_failure_kind = NULL,
@@ -1225,6 +1308,12 @@ internal sealed partial class DuckDbStore
                         validation.BrokenManifests,
                         ct)
                     .ConfigureAwait(false);
+                if (repairs.Count > 0)
+                {
+                    WorkflowLifecycleLog.ReconciliationRepairs(
+                        _logger,
+                        repairs.Count);
+                }
                 if (repairs.Count > 0 &&
                     _beforeCheckpointReconciliation is not null)
                 {

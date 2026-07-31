@@ -9,7 +9,7 @@ internal sealed class WorkflowJournalPump(
     private static readonly TimeSpan s_retryDelay = TimeSpan.FromSeconds(2);
     // Command id → the moment the control action actually executed. Held across ack
     // retries so a delayed acknowledgement cannot re-stamp the transition later.
-    private readonly Dictionary<string, DateTimeOffset> _appliedControls = new(StringComparer.Ordinal);
+    private readonly Dictionary<WorkflowCommandId, DateTimeOffset> _appliedControls = [];
     private string? _lastUploadError;
     private string? _lastControlError;
 
@@ -195,7 +195,7 @@ internal sealed class WorkflowJournalPump(
                 await appServer.SteerAsync(
                     target.ThreadId,
                     target.TurnId,
-                    command.CommandId,
+                    command.CommandId.Value,
                     command.Input,
                     cancellationToken).ConfigureAwait(false);
                 break;
@@ -214,7 +214,7 @@ internal sealed class WorkflowJournalPump(
                     throw new InvalidOperationException("Resume requires non-empty input.");
                 await appServer.ResumeAsync(
                     target.ThreadId,
-                    command.CommandId,
+                    command.CommandId.Value,
                     command.Input,
                     cancellationToken).ConfigureAwait(false);
                 break;

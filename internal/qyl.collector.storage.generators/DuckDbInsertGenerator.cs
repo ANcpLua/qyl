@@ -31,6 +31,12 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             var source = DuckDbEmitter.Emit(tableInfo);
             spc.AddSource(GetHintName(tableInfo), SourceText.From(source, Encoding.UTF8));
         });
+
+        context.RegisterSourceOutput(tableTypes.Collect(), static (spc, tables) =>
+        {
+            var source = DuckDbSchemaEmitter.Emit(tables);
+            spc.AddSource("DuckDbGeneratedSchema.g.cs", SourceText.From(source, Encoding.UTF8));
+        });
     }
 
     private static string GetHintName(DuckDbTableInfo tableInfo) =>
@@ -54,6 +60,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         string? tableName = null;
         string? onConflict = null;
+        var appenderEligible = false;
+        var derived = false;
+        var arrowEligible = false;
         var indexes = "";
         var uniqueIndexes = "";
 
@@ -66,6 +75,15 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             {
                 case "OnConflict":
                     onConflict = named.Value.Value as string;
+                    break;
+                case "AppenderEligible":
+                    appenderEligible = named.Value.Value is true;
+                    break;
+                case "Derived":
+                    derived = named.Value.Value is true;
+                    break;
+                case "ArrowEligible":
+                    arrowEligible = named.Value.Value is true;
                     break;
                 case "Indexes":
                     indexes = named.Value.Value as string ?? "";
@@ -103,6 +121,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             typeDecl is RecordDeclarationSyntax ? "record" : "class",
             tableName,
             onConflict,
+            appenderEligible,
+            derived,
+            arrowEligible,
             columns.ToArray().ToEquatableArray(),
             ParseIndexSpecs(tableName, indexes, columns, isUnique: false)
                 .Concat(ParseIndexSpecs(tableName, uniqueIndexes, columns, isUnique: true))
@@ -224,7 +245,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var excludeFromInsert = false;
         string? sqlType = null;
         string? defaultSql = null;
-        var omitDefaultFromMigration = false;
         var primaryKeyOrdinal = -1;
 
         var colAttr = FindAttribute(prop, columnAttributeType);
@@ -242,9 +262,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                         break;
                     case "DefaultSql":
                         defaultSql = named.Value.Value as string;
-                        break;
-                    case "OmitDefaultFromMigration":
-                        omitDefaultFromMigration = named.Value.Value is true;
                         break;
                     case "PrimaryKeyOrdinal":
                         if (named.Value.Value is int p)
@@ -267,7 +284,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             defaultOrdinal,
             sqlType,
             defaultSql,
-            omitDefaultFromMigration,
             primaryKeyOrdinal);
     }
 
@@ -313,6 +329,9 @@ internal readonly record struct DuckDbTableInfo(
     string TypeKind,
     string TableName,
     string? OnConflict,
+    bool AppenderEligible,
+    bool Derived,
+    bool ArrowEligible,
     EquatableArray<DuckDbColumnInfo> Columns,
     EquatableArray<DuckDbIndexInfo> Indexes);
 
@@ -330,5 +349,4 @@ internal readonly record struct DuckDbColumnInfo(
     int Ordinal,
     string? SqlType,
     string? DefaultSql,
-    bool OmitDefaultFromMigration,
     int PrimaryKeyOrdinal);

@@ -67,7 +67,7 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
     public void Record(WorkflowEventAppend workflowEvent)
     {
         if (_logger is not null)
-            s_logJournalEvent(_logger, workflowEvent.Kind, workflowEvent.EventId, null);
+            s_logJournalEvent(_logger, workflowEvent.Kind, workflowEvent.EventId.Value, null);
 
         switch (workflowEvent.Kind)
         {
@@ -225,18 +225,18 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
     private static IEnumerable<KeyValuePair<string, object?>> Tags(
         WorkflowEventAppend workflowEvent)
     {
-        yield return new("workflow.event.id", workflowEvent.EventId);
+        yield return new("workflow.event.id", workflowEvent.EventId.Value);
         yield return new("workflow.event.kind", workflowEvent.Kind.ToString());
         if (workflowEvent.ThreadId is not null)
             yield return new("thread.id", workflowEvent.ThreadId);
         if (workflowEvent.TurnId is not null)
             yield return new("turn.id", workflowEvent.TurnId);
         if (workflowEvent.AttemptId is not null)
-            yield return new("workflow.attempt.id", workflowEvent.AttemptId);
+            yield return new("workflow.attempt.id", workflowEvent.AttemptId.Value.Value);
         if (workflowEvent.AgentId is not null)
-            yield return new("workflow.agent.id", workflowEvent.AgentId);
+            yield return new("workflow.agent.id", workflowEvent.AgentId.Value.Value);
         if (workflowEvent.ToolCallId is not null)
-            yield return new("workflow.tool_call.id", workflowEvent.ToolCallId);
+            yield return new("workflow.tool_call.id", workflowEvent.ToolCallId.Value.Value);
     }
 
     private static string? Status(WorkflowEventAppend workflowEvent)
@@ -254,17 +254,17 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
     }
 
     private static string? AttemptKey(WorkflowEventAppend workflowEvent) =>
-        workflowEvent.AttemptId is null ? null : $"attempt:{workflowEvent.AttemptId}";
+        workflowEvent.AttemptId is null ? null : $"attempt:{workflowEvent.AttemptId.Value.Value}";
 
     private static string? TurnKey(WorkflowEventAppend workflowEvent) =>
         workflowEvent.TurnId is null ? null : $"turn:{workflowEvent.ThreadId}:{workflowEvent.TurnId}";
 
-    private static string? AgentKey(string? agentId) =>
-        agentId is null ? null : $"agent:{agentId}";
+    private static string? AgentKey(WorkflowAgentId? agentId) =>
+        agentId is null ? null : $"agent:{agentId.Value.Value}";
 
     private static string? ToolKey(WorkflowEventAppend workflowEvent) =>
-        workflowEvent.ToolCallId is null ? null : $"tool:{workflowEvent.ToolCallId}";
+        workflowEvent.ToolCallId is null ? null : $"tool:{workflowEvent.ToolCallId.Value.Value}";
 
     private static string? WaitKey(WorkflowEventAppend workflowEvent) =>
-        workflowEvent.ToolCallId is null ? null : $"wait:{workflowEvent.ToolCallId}";
+        workflowEvent.ToolCallId is null ? null : $"wait:{workflowEvent.ToolCallId.Value.Value}";
 }

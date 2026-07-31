@@ -25,7 +25,7 @@ internal static class WorkflowProjectionBuilder
     {
         var runNodeId = NodeId("run", run.RunId);
         Dictionary<string, MutableNode> nodes;
-        Dictionary<string, WorkflowGraphEdge> edges;
+        Dictionary<string, WorkflowProjectionEdge> edges;
         string? activeAttempt;
         Dictionary<string, string> lastNodeByOwner;
         Dictionary<string, List<(string NodeId, string EventId)>> writesByPath;
@@ -44,7 +44,7 @@ internal static class WorkflowProjectionBuilder
                     run.EndedAt,
                     [])
             };
-            edges = new Dictionary<string, WorkflowGraphEdge>(StringComparer.Ordinal);
+            edges = new Dictionary<string, WorkflowProjectionEdge>(StringComparer.Ordinal);
             activeAttempt = null;
             lastNodeByOwner = new Dictionary<string, string>(StringComparer.Ordinal);
             writesByPath =
@@ -198,7 +198,7 @@ internal static class WorkflowProjectionBuilder
             throw new InvalidDataException("Workflow projection journal suffix does not reach the requested run head.");
 
         var projectedNodes = nodes.Values
-            .Select(node => node.ToContract(now))
+            .Select(node => node.ToProjectionNode(now))
             .OrderBy(static node => node.StartedAt)
             .ThenBy(static node => node.NodeId, StringComparer.Ordinal)
             .ToArray();
@@ -208,17 +208,12 @@ internal static class WorkflowProjectionBuilder
         budget.EnsureGraphSize(projectedNodes.Length, projectedEdges.Length);
         var statistics = CalculateStatistics(projectedNodes, projectedEdges, run, now, budget);
 
-        var graph = new WorkflowGraphSnapshot
+        var graph = new WorkflowProjectionGraph
         {
-            Run = ToContract(run with { MetadataJson = null }),
+            Run = ToProjectionRun(run),
             Nodes = projectedNodes,
             Edges = projectedEdges,
             Statistics = statistics,
-            JournalSequence = run.LatestJournalSequence,
-            NextNodeCursor = null,
-            NextEdgeCursor = null,
-            HasMoreNodes = false,
-            HasMoreEdges = false,
             TotalNodeCount = projectedNodes.Length,
             TotalEdgeCount = projectedEdges.Length
         };
@@ -268,6 +263,89 @@ internal static class WorkflowProjectionBuilder
     internal static WorkflowRun ToContract(WorkflowRunStorageRow run) =>
         new()
         {
+            RunId = new WorkflowRunId(run.RunId),
+            Generation = new WorkflowGeneration(run.RunGeneration),
+            ThreadId = run.ThreadId,
+            Title = run.Title,
+            Status = run.Status,
+            StartedAt = run.StartedAt,
+            EndedAt = run.EndedAt,
+            LatestJournalSequence = run.LatestJournalSequence,
+            ActiveAttemptId = run.ActiveAttemptId is null
+                ? null
+                : new WorkflowAttemptId(run.ActiveAttemptId),
+            Metadata = ParseObject(run.MetadataJson)
+        };
+
+    internal static WorkflowGraphNode ToContract(WorkflowProjectionNode node) =>
+        new()
+        {
+            NodeId = new WorkflowNodeId(node.NodeId),
+            Kind = node.Kind,
+            Label = node.Label,
+            Status = node.Status,
+            AttemptId = node.AttemptId is null
+                ? null
+                : new WorkflowAttemptId(node.AttemptId),
+            AgentId = node.AgentId is null
+                ? null
+                : new WorkflowAgentId(node.AgentId),
+            StartedAt = node.StartedAt,
+            EndedAt = node.EndedAt,
+            DurationMs = node.DurationMs,
+            ContentRefs = node.ContentRefs?.Select(
+                    static value => new WorkflowContentRef(value))
+                .ToArray()
+        };
+
+    internal static WorkflowGraphEdge ToContract(WorkflowProjectionEdge edge) =>
+        new()
+        {
+            EdgeId = new WorkflowEdgeId(edge.EdgeId),
+            SourceNodeId = new WorkflowNodeId(edge.SourceNodeId),
+            TargetNodeId = new WorkflowNodeId(edge.TargetNodeId),
+            Kind = edge.Kind,
+            Provenance = edge.Provenance switch
+            {
+                WorkflowProjectionRecordedEdgeProvenance recorded =>
+                    new RecordedWorkflowEdgeProvenance
+                    {
+                        EventIds = recorded.EventIds.Select(
+                                static value => new WorkflowEventId(value))
+                            .ToArray()
+                    },
+                WorkflowProjectionDerivedEdgeProvenance derived =>
+                    new DerivedWorkflowEdgeProvenance
+                    {
+                        EventIds = derived.EventIds.Select(
+                                static value => new WorkflowEventId(value))
+                            .ToArray(),
+                        Evidence = derived.Evidence,
+                        Confidence = derived.Confidence
+                    },
+                _ => throw new InvalidDataException(
+                    "Workflow projection edge provenance is invalid.")
+            }
+        };
+
+    internal static WorkflowGraphStatistics ToContract(
+        WorkflowProjectionStatistics statistics) =>
+        new()
+        {
+            T1Ms = statistics.T1Ms,
+            TInfinityMs = statistics.TInfinityMs,
+            WallTimeMs = statistics.WallTimeMs,
+            PeakConcurrency = statistics.PeakConcurrency,
+            WorkerCount = statistics.WorkerCount,
+            ParallelLowerBoundMs = statistics.ParallelLowerBoundMs,
+            CriticalPathNodeIds = statistics.CriticalPathNodeIds.Select(
+                    static value => new WorkflowNodeId(value))
+                .ToArray()
+        };
+
+    private static WorkflowProjectionRun ToProjectionRun(WorkflowRunStorageRow run) =>
+        new()
+        {
             RunId = run.RunId,
             ThreadId = run.ThreadId,
             Title = run.Title,
@@ -275,13 +353,12 @@ internal static class WorkflowProjectionBuilder
             StartedAt = run.StartedAt,
             EndedAt = run.EndedAt,
             LatestJournalSequence = run.LatestJournalSequence,
-            ActiveAttemptId = run.ActiveAttemptId,
-            Metadata = ParseObject(run.MetadataJson)
+            ActiveAttemptId = run.ActiveAttemptId
         };
 
     private static void ProjectTurn(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -322,7 +399,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectAgent(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -362,7 +439,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectTool(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -400,7 +477,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectMessage(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -430,7 +507,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectWait(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -469,7 +546,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectGate(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -513,7 +590,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectFile(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         Dictionary<string, List<(string NodeId, string EventId)>> writesByPath,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
@@ -557,13 +634,13 @@ internal static class WorkflowProjectionBuilder
             var source = string.CompareOrdinal(previous.NodeId, owner) <= 0 ? previous.NodeId : owner;
             var target = source == owner ? previous.NodeId : owner;
             var edgeId = BoundedIdentifier("conflict", "file", path, source, target);
-            edges[edgeId] = new WorkflowGraphEdge
+            edges[edgeId] = new WorkflowProjectionEdge
             {
                 EdgeId = edgeId,
                 SourceNodeId = source,
                 TargetNodeId = target,
                 Kind = WorkflowEdgeKind.Conflict,
-                Provenance = new DerivedWorkflowEdgeProvenance
+                Provenance = new WorkflowProjectionDerivedEdgeProvenance
                 {
                     EventIds = [previous.EventId, workflowEvent.EventId],
                     Evidence = $"Both agents wrote {path}",
@@ -577,7 +654,7 @@ internal static class WorkflowProjectionBuilder
 
     private static void ProjectItem(
         Dictionary<string, MutableNode> nodes,
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         WorkflowEventStorageRow workflowEvent,
         string? attemptId,
         string? attemptNodeId)
@@ -607,15 +684,15 @@ internal static class WorkflowProjectionBuilder
             AddRecordedEdge(edges, owner, nodeId, WorkflowEdgeKind.Data, workflowEvent.EventId);
     }
 
-    private static WorkflowGraphStatistics CalculateStatistics(
-        IReadOnlyList<WorkflowGraphNode> nodes,
-        IReadOnlyList<WorkflowGraphEdge> edges,
+    private static WorkflowProjectionStatistics CalculateStatistics(
+        IReadOnlyList<WorkflowProjectionNode> nodes,
+        IReadOnlyList<WorkflowProjectionEdge> edges,
         WorkflowRunStorageRow run,
         DateTimeOffset now,
         WorkflowProjectionBudget budget)
     {
         var nodeById = nodes.ToDictionary(static node => node.NodeId, StringComparer.Ordinal);
-        var outgoing = new Dictionary<string, List<WorkflowGraphEdge>>(StringComparer.Ordinal);
+        var outgoing = new Dictionary<string, List<WorkflowProjectionEdge>>(StringComparer.Ordinal);
         foreach (var edge in edges)
         {
             budget.ChargeWork();
@@ -681,7 +758,7 @@ internal static class WorkflowProjectionBuilder
         var t1 = weights.Sum(static pair => pair.Value);
         var (tInfinity, criticalPath) = LongestPath(nodes, edges, weights, budget);
         var wallTime = Math.Max(0, ((run.EndedAt ?? now) - run.StartedAt).TotalMilliseconds);
-        return new WorkflowGraphStatistics
+        return new WorkflowProjectionStatistics
         {
             T1Ms = t1,
             TInfinityMs = tInfinity,
@@ -694,8 +771,8 @@ internal static class WorkflowProjectionBuilder
     }
 
     private static (double Duration, IReadOnlyList<string> Path) LongestPath(
-        IReadOnlyList<WorkflowGraphNode> nodes,
-        IReadOnlyList<WorkflowGraphEdge> edges,
+        IReadOnlyList<WorkflowProjectionNode> nodes,
+        IReadOnlyList<WorkflowProjectionEdge> edges,
         IReadOnlyDictionary<string, double> weights,
         WorkflowProjectionBudget budget)
     {
@@ -893,14 +970,14 @@ internal static class WorkflowProjectionBuilder
         return components;
     }
 
-    private static bool IsWeighted(WorkflowGraphNode node) =>
+    private static bool IsWeighted(WorkflowProjectionNode node) =>
         node.Kind is WorkflowNodeKind.Agent
             or WorkflowNodeKind.ToolCall
             or WorkflowNodeKind.Wait
             or WorkflowNodeKind.Gate
             or WorkflowNodeKind.Message;
 
-    private static bool IsPreciselyOwnedChild(WorkflowEdgeKind edgeKind, WorkflowGraphNode child) =>
+    private static bool IsPreciselyOwnedChild(WorkflowEdgeKind edgeKind, WorkflowProjectionNode child) =>
         edgeKind switch
         {
             WorkflowEdgeKind.Control => child.Kind is WorkflowNodeKind.Agent or WorkflowNodeKind.ToolCall,
@@ -1139,7 +1216,7 @@ internal static class WorkflowProjectionBuilder
     };
 
     private static void AddRecordedEdge(
-        Dictionary<string, WorkflowGraphEdge> edges,
+        Dictionary<string, WorkflowProjectionEdge> edges,
         string source,
         string target,
         WorkflowEdgeKind kind,
@@ -1149,7 +1226,7 @@ internal static class WorkflowProjectionBuilder
             return;
         var edgeId = BoundedIdentifier(EdgeKind(kind), source, target);
         if (edges.TryGetValue(edgeId, out var existing) &&
-            existing.Provenance is RecordedWorkflowEdgeProvenance recorded)
+            existing.Provenance is WorkflowProjectionRecordedEdgeProvenance recorded)
         {
             if (recorded.EventIds.Count >= MaxRecordedEventIds ||
                 recorded.EventIds.Contains(eventId, StringComparer.Ordinal))
@@ -1157,26 +1234,26 @@ internal static class WorkflowProjectionBuilder
                 return;
             }
 
-            edges[edgeId] = new WorkflowGraphEdge
+            edges[edgeId] = new WorkflowProjectionEdge
             {
                 EdgeId = edgeId,
                 SourceNodeId = source,
                 TargetNodeId = target,
                 Kind = kind,
-                Provenance = new RecordedWorkflowEdgeProvenance
+                Provenance = new WorkflowProjectionRecordedEdgeProvenance
                 {
                     EventIds = [.. recorded.EventIds, eventId]
                 }
             };
             return;
         }
-        edges[edgeId] = new WorkflowGraphEdge
+        edges[edgeId] = new WorkflowProjectionEdge
         {
             EdgeId = edgeId,
             SourceNodeId = source,
             TargetNodeId = target,
             Kind = kind,
-            Provenance = new RecordedWorkflowEdgeProvenance { EventIds = [eventId] }
+            Provenance = new WorkflowProjectionRecordedEdgeProvenance { EventIds = [eventId] }
         };
     }
 
@@ -1231,7 +1308,7 @@ internal static class WorkflowProjectionBuilder
                 _contentRefs.Add(contentRef);
         }
 
-        public WorkflowGraphNode ToContract(DateTimeOffset now) =>
+        public WorkflowProjectionNode ToProjectionNode(DateTimeOffset now) =>
             new()
             {
                 NodeId = NodeId,

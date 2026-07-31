@@ -12,7 +12,14 @@ internal static class DuckDbEmitter
         sb.AppendLine(GeneratedCodeHelpers.NullableEnable);
         sb.AppendLine();
         sb.AppendLine("using System;");
-        sb.AppendLine("using System.Collections.Concurrent;");
+        if (table.ArrowEligible)
+        {
+            sb.AppendLine("using System.IO;");
+            sb.AppendLine("using System.Threading;");
+            sb.AppendLine("using Apache.Arrow;");
+        }
+        if (!table.AppenderEligible)
+            sb.AppendLine("using System.Collections.Concurrent;");
         sb.AppendLine("using System.Data.Common;");
         sb.AppendLine("using System.Runtime.CompilerServices;");
         sb.AppendLine("using System.Text;");
@@ -24,8 +31,11 @@ internal static class DuckDbEmitter
 
         var insertColumns = table.Columns.Where(static c => !c.ExcludeFromInsert).ToArray();
 
-        sb.AppendLine("private static readonly ConcurrentDictionary<int, string> s_insertSqlCache = new();");
-        sb.AppendLine();
+        if (!table.AppenderEligible)
+        {
+            sb.AppendLine("private static readonly ConcurrentDictionary<int, string> s_insertSqlCache = new();");
+            sb.AppendLine();
+        }
 
         EmitColumnLists(sb, table.TableName, insertColumns, [.. table.Columns]);
 
@@ -33,12 +43,15 @@ internal static class DuckDbEmitter
         sb.AppendLine();
 
         EmitCreateTableDdl(sb, table);
-        EmitMigrateTableDdl(sb, table);
-        EmitPrimaryKeyColumns(sb, table);
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
+        if (table.AppenderEligible)
+            EmitAppender(sb, table, [.. table.Columns]);
         EmitMapFromReader(sb, table, [.. table.Columns]);
-        EmitBuildMultiRowInsertSql(sb, table);
+        if (table.ArrowEligible)
+            EmitArrowReader(sb, table, [.. table.Columns]);
+        if (!table.AppenderEligible)
+            EmitBuildMultiRowInsertSql(sb, table);
 
         sb.EndBlock();
 
@@ -95,7 +108,18 @@ internal static class DuckDbEmitter
     private static void EmitCreateTableDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
     {
         sb.AppendLine("public const string CreateTableDdl = \"\"\"");
-        sb.AppendLineNoIndent($"        CREATE TABLE IF NOT EXISTS {SqlIdentifier.Quote(table.TableName)} (");
+        foreach (var line in BuildCreateTableDdl(table).Split('\n'))
+            sb.AppendLineNoIndent($"        {line}");
+        sb.AppendLineNoIndent("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    internal static string BuildCreateTableDdl(DuckDbTableInfo table)
+    {
+        var ddl = new StringBuilder();
+        ddl.Append("CREATE TABLE IF NOT EXISTS ")
+            .Append(SqlIdentifier.Quote(table.TableName))
+            .AppendLine(" (");
 
         var primaryKeyColumns = table.Columns
             .Where(static c => c.PrimaryKeyOrdinal >= 0)
@@ -105,75 +129,36 @@ internal static class DuckDbEmitter
         for (var i = 0; i < table.Columns.Length; i++)
         {
             var column = table.Columns[i];
-            var line = new StringBuilder("            ");
-            line.Append(SqlIdentifier.Quote(column.ColumnName)).Append(' ').Append(ResolveSqlType(column));
-
-            if (!column.IsNullable)
-                line.Append(" NOT NULL");
-
-            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
-                line.Append(" DEFAULT ").Append(column.DefaultSql);
-
-            if (i < table.Columns.Length - 1 || primaryKeyColumns.Length > 0)
-                line.Append(',');
-
-            sb.AppendLineNoIndent(line.ToString());
-        }
-
-        if (primaryKeyColumns.Length > 0)
-        {
-            var line = new StringBuilder("            PRIMARY KEY (");
-            for (var i = 0; i < primaryKeyColumns.Length; i++)
-            {
-                if (i > 0)
-                    line.Append(", ");
-
-                line.Append(SqlIdentifier.Quote(primaryKeyColumns[i].ColumnName));
-            }
-
-            line.Append(')');
-            sb.AppendLineNoIndent(line.ToString());
-        }
-
-        sb.AppendLineNoIndent("        );");
-        sb.AppendLineNoIndent("        \"\"\";");
-        sb.AppendLine();
-    }
-
-    private static void EmitMigrateTableDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
-    {
-        sb.AppendLine("public const string MigrateTableDdl = \"\"\"");
-
-        foreach (var column in table.Columns)
-        {
-            var line = new StringBuilder("        ALTER TABLE ");
-            line.Append(SqlIdentifier.Quote(table.TableName))
-                .Append(" ADD COLUMN IF NOT EXISTS ")
+            ddl.Append("    ")
                 .Append(SqlIdentifier.Quote(column.ColumnName))
                 .Append(' ')
                 .Append(ResolveSqlType(column));
 
-            if (!column.OmitDefaultFromMigration &&
-                !string.IsNullOrWhiteSpace(column.DefaultSql))
-                line.Append(" DEFAULT ").Append(column.DefaultSql);
+            if (!column.IsNullable)
+                ddl.Append(" NOT NULL");
 
-            line.Append(';');
-            sb.AppendLineNoIndent(line.ToString());
+            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
+                ddl.Append(" DEFAULT ").Append(column.DefaultSql);
+
+            if (i < table.Columns.Length - 1 || primaryKeyColumns.Length > 0)
+                ddl.Append(',');
+
+            ddl.AppendLine();
         }
 
-        sb.AppendLineNoIndent("        \"\"\";");
-        sb.AppendLine();
-    }
+        if (primaryKeyColumns.Length > 0)
+        {
+            ddl.Append("    PRIMARY KEY (");
+            for (var i = 0; i < primaryKeyColumns.Length; i++)
+            {
+                if (i > 0)
+                    ddl.Append(", ");
+                ddl.Append(SqlIdentifier.Quote(primaryKeyColumns[i].ColumnName));
+            }
+            ddl.AppendLine(")");
+        }
 
-    private static void EmitPrimaryKeyColumns(IndentedStringBuilder sb, DuckDbTableInfo table)
-    {
-        var columns = table.Columns
-            .Where(static column => column.PrimaryKeyOrdinal >= 0)
-            .OrderBy(static column => column.PrimaryKeyOrdinal)
-            .Select(static column => column.ColumnName);
-
-        sb.AppendLine($"public const string PrimaryKeyColumnsCsv = \"{string.Join(",", columns)}\";");
-        sb.AppendLine();
+        return ddl.Append(");").ToString();
     }
 
     private static void EmitIndexesDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
@@ -187,33 +172,39 @@ internal static class DuckDbEmitter
 
         sb.AppendLine("public const string IndexesDdl = \"\"\"");
 
-        foreach (var index in table.Indexes)
-        {
-            var line = new StringBuilder(index.IsUnique
-                ? "        CREATE UNIQUE INDEX IF NOT EXISTS "
-                : "        CREATE INDEX IF NOT EXISTS ");
-            line.Append(SqlIdentifier.Quote(index.Name))
-                .Append(" ON ")
-                .Append(SqlIdentifier.Quote(table.TableName))
-                .Append('(');
-
-            for (var i = 0; i < index.ColumnNames.Length; i++)
-            {
-                if (i > 0)
-                    line.Append(", ");
-
-                line.Append(SqlIdentifier.Quote(index.ColumnNames[i]));
-            }
-
-            line.Append(");");
-            sb.AppendLineNoIndent(line.ToString());
-        }
+        foreach (var line in BuildIndexesDdl(table).Split('\n'))
+            sb.AppendLineNoIndent($"        {line}");
 
         sb.AppendLineNoIndent("        \"\"\";");
         sb.AppendLine();
     }
 
-    private static string ResolveSqlType(DuckDbColumnInfo column)
+    internal static string BuildIndexesDdl(DuckDbTableInfo table)
+    {
+        var ddl = new StringBuilder();
+        foreach (var index in table.Indexes)
+        {
+            if (ddl.Length > 0)
+                ddl.AppendLine();
+            ddl.Append(index.IsUnique
+                    ? "CREATE UNIQUE INDEX IF NOT EXISTS "
+                    : "CREATE INDEX IF NOT EXISTS ")
+                .Append(SqlIdentifier.Quote(index.Name))
+                .Append(" ON ")
+                .Append(SqlIdentifier.Quote(table.TableName))
+                .Append('(');
+            for (var i = 0; i < index.ColumnNames.Length; i++)
+            {
+                if (i > 0)
+                    ddl.Append(", ");
+                ddl.Append(SqlIdentifier.Quote(index.ColumnNames[i]));
+            }
+            ddl.Append(");");
+        }
+        return ddl.ToString();
+    }
+
+    internal static string ResolveSqlType(DuckDbColumnInfo column)
     {
         if (!string.IsNullOrWhiteSpace(column.SqlType))
             return column.SqlType!;
@@ -266,6 +257,37 @@ internal static class DuckDbEmitter
         return col.IsNullable
             ? $"{value} ?? (object)DBNull.Value"
             : value;
+    }
+
+    private static void EmitAppender(
+        IndentedStringBuilder sb,
+        DuckDbTableInfo table,
+        IReadOnlyList<DuckDbColumnInfo> columns)
+    {
+        if (!string.IsNullOrEmpty(table.OnConflict))
+        {
+            throw new InvalidOperationException(
+                $"Table {table.TableName} cannot generate an appender because it declares ON CONFLICT behavior.");
+        }
+
+        sb.AppendLine("/// <summary>Creates the generated reusable-row appender for this table.</summary>");
+        sb.AppendLine("public static DuckDBAppender CreateAppender(DuckDBConnection connection) =>");
+        sb.AppendLine("    connection.CreateAppender(TableName);");
+        sb.AppendLine();
+
+        sb.AppendLine("/// <summary>Appends one row in generated physical-column order without a per-row allocation.</summary>");
+        sb.AppendLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+        sb.AppendLine($"public static void AppendRow(DuckDBAppender appender, {table.TypeName} state) =>");
+        sb.AppendLine("    appender.AppendRow(state, static (row, value) =>");
+        sb.BeginBlock();
+        foreach (var column in columns)
+        {
+            sb.AppendLine(column.ExcludeFromInsert
+                ? "row.AppendDefault();"
+                : $"row.AppendValue(value.{column.PropertyName});");
+        }
+        sb.EndBlock("});");
+        sb.AppendLine();
     }
 
     private static void EmitMapFromReader(IndentedStringBuilder sb, DuckDbTableInfo table,
@@ -326,6 +348,70 @@ internal static class DuckDbEmitter
             "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
             _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
         };
+    }
+
+    private static void EmitArrowReader(
+        IndentedStringBuilder sb,
+        DuckDbTableInfo table,
+        IReadOnlyList<DuckDbColumnInfo> columns)
+    {
+        sb.AppendLine("/// <summary>Streams Arrow record batches and maps rows in generated physical-column order.</summary>");
+        sb.AppendLine($"public static async ValueTask<(long Rows, int Batches)> ReadArrowRowsAsync<TState>(DuckDBCommand command, TState state, Action<TState, {table.TypeName}> consume, CancellationToken cancellationToken)");
+        sb.BeginBlock();
+        sb.AppendLine("command.UseStreamingMode = true;");
+        sb.AppendLine("long rows = 0;");
+        sb.AppendLine("var batches = 0;");
+        sb.AppendLine("await foreach (var batch in command.ExecuteArrowBatchesAsync(cancellationToken).ConfigureAwait(false))");
+        sb.BeginBlock();
+        sb.AppendLine("using (batch)");
+        sb.BeginBlock();
+        sb.AppendLine("batches++;");
+        sb.AppendLine("for (var rowIndex = 0; rowIndex < batch.Length; rowIndex++)");
+        sb.BeginBlock();
+        sb.AppendLine("cancellationToken.ThrowIfCancellationRequested();");
+        sb.AppendLine($"consume(state, new {table.TypeName}");
+        sb.BeginBlock();
+        for (var i = 0; i < columns.Count; i++)
+        {
+            var separator = i < columns.Count - 1 ? "," : "";
+            sb.AppendLine($"{columns[i].PropertyName} = {BuildArrowAccessExpr(columns[i], i)}{separator}");
+        }
+        sb.EndBlock("});");
+        sb.AppendLine("rows++;");
+        sb.EndBlock();
+        sb.EndBlock();
+        sb.EndBlock();
+        sb.AppendLine("return (rows, batches);");
+        sb.EndBlock();
+        sb.AppendLine();
+    }
+
+    private static string BuildArrowAccessExpr(DuckDbColumnInfo column, int ordinal)
+    {
+        var type = column.PropertyType.TrimEnd('?');
+        var access = type switch
+        {
+            "string" or "System.String" => $"((StringArray)batch.Column({ordinal})).GetString(rowIndex)",
+            "byte" or "System.Byte" => $"((Int8Array)batch.Column({ordinal})).GetValue(rowIndex)",
+            "int" or "System.Int32" => $"((Int32Array)batch.Column({ordinal})).GetValue(rowIndex)",
+            "long" or "System.Int64" => $"((Int64Array)batch.Column({ordinal})).GetValue(rowIndex)",
+            "ulong" or "System.UInt64" => $"((UInt64Array)batch.Column({ordinal})).GetValue(rowIndex)",
+            "double" or "System.Double" => $"((DoubleArray)batch.Column({ordinal})).GetValue(rowIndex)",
+            "byte[]" or "System.Byte[]" => $"((BinaryArray)batch.Column({ordinal})).GetBytes(rowIndex).ToArray()",
+            "System.DateTimeOffset" or "DateTimeOffset" => $"((TimestampArray)batch.Column({ordinal})).GetTimestamp(rowIndex)",
+            _ => throw new InvalidOperationException(
+                $"No Arrow mapping for {column.PropertyType} on {column.PropertyName}.")
+        };
+
+        if (column.IsNullable)
+            return access;
+
+        return type is "string" or "System.String" or "byte" or "System.Byte" or
+            "int" or "System.Int32" or "long" or "System.Int64" or
+            "ulong" or "System.UInt64" or "double" or "System.Double" or
+            "System.DateTimeOffset" or "DateTimeOffset"
+            ? $"{access} ?? throw new InvalidDataException(\"Arrow column '{column.ColumnName}' contains NULL.\")"
+            : access;
     }
 
     private static void EmitBuildMultiRowInsertSql(IndentedStringBuilder sb, DuckDbTableInfo table)

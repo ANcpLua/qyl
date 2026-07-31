@@ -26,7 +26,8 @@ internal sealed record WorkflowCheckpointSweepCandidate(
 internal sealed record WorkflowCheckpointManifestValidation(
     IReadOnlyList<WorkflowRunStorageRow> BrokenManifests,
     int ProcessedManifests,
-    IReadOnlyList<string> ValidStorageIdentities);
+    IReadOnlyList<string> ValidStorageIdentities,
+    IReadOnlyDictionary<string, int> FailureCounts);
 
 internal readonly record struct WorkflowCheckpointIdentityDelta(
     ulong Epoch,
@@ -61,6 +62,10 @@ internal sealed record WorkflowCheckpointSweepPage(
     public bool ClaimedIsDirectory { get; set; }
 
     public bool ClaimedDeletionCompleted { get; set; }
+
+    public int RemovedCount { get; set; }
+
+    public long RemovedBytes { get; set; }
 }
 
 internal sealed class WorkflowCheckpointIncompatibleException(string message)
@@ -76,6 +81,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
     private readonly string? _quarantineRoot;
     private readonly WorkflowCheckpointFileSystem? _files;
     private readonly WorkflowProjectionLimits _limits;
+    private readonly ILogger<WorkflowCheckpointStore> _logger;
     private readonly Func<
         WorkflowCheckpointReconciliationStage,
         CancellationToken,
@@ -110,6 +116,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
     public WorkflowCheckpointStore(
         string? root,
         WorkflowProjectionLimits limits,
+        ILogger<WorkflowCheckpointStore> logger,
         Func<
             WorkflowCheckpointReconciliationStage,
             CancellationToken,
@@ -126,6 +133,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
             ? null
             : new WorkflowCheckpointFileSystem(_root);
         _limits = limits;
+        _logger = logger;
         _beforeReconciliation = beforeReconciliation;
         try
         {
@@ -173,7 +181,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
             : throw new InvalidDataException(
                 "Workflow checkpoint manifest identity is invalid.");
 
-    internal static bool HasCanonicalManifest(WorkflowRunStorageRow run)
+    internal static bool HasCanonicalCheckpointIdentity(WorkflowRunStorageRow run)
     {
         if (run.ActiveCheckpointId is null)
         {
@@ -190,6 +198,29 @@ internal sealed class WorkflowCheckpointStore : IDisposable
 
         return run.ActiveCheckpointStorageKey ==
                CanonicalStorageIdentity(run);
+    }
+
+    internal static bool HasCanonicalManifest(WorkflowRunStorageRow run)
+    {
+        if (!HasCanonicalCheckpointIdentity(run))
+            return false;
+
+        if (run.ActiveCheckpointId is null)
+        {
+            return run.ActiveCheckpointInputHash is null &&
+                   run.ActiveCheckpointSemanticFingerprint is null &&
+                   run.ActiveCheckpointConfigurationFingerprint is null &&
+                   run.ActiveCheckpointFormatVersion is null &&
+                   run.ActiveCheckpointByteLength is null &&
+                   run.ActiveCheckpointCreatedAt is null;
+        }
+
+        return IsLowerHexDigest(run.ActiveCheckpointInputHash) &&
+               !string.IsNullOrWhiteSpace(run.ActiveCheckpointSemanticFingerprint) &&
+               !string.IsNullOrWhiteSpace(run.ActiveCheckpointConfigurationFingerprint) &&
+               run.ActiveCheckpointFormatVersion is > 0 &&
+               run.ActiveCheckpointByteLength is > 0 &&
+               run.ActiveCheckpointCreatedAt.HasValue;
     }
 
     internal static bool IsCanonicalGeneration(string generation) =>
@@ -256,6 +287,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
                         bytes.LongLength,
                         present: true);
                 }
+                WorkflowLifecycleLog.CheckpointWritten(_logger, bytes.LongLength);
                 return new WorkflowCheckpointBlob(checkpointId, bytes.LongLength);
             }
             finally
@@ -337,6 +369,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
                         length,
                         present: true);
                 }
+                WorkflowLifecycleLog.CheckpointWritten(_logger, length);
                 return new WorkflowCheckpointBlob(checkpointId, length);
             }
             catch
@@ -389,26 +422,47 @@ internal sealed class WorkflowCheckpointStore : IDisposable
             run.ActiveCheckpointId,
             run.ActiveCheckpointSequence,
             bytes);
+        if (bytes.LongLength != run.ActiveCheckpointByteLength)
+            throw new InvalidDataException(
+                "Workflow checkpoint blob length does not match its manifest.");
         var checkpoint = JsonSerializer.Deserialize(
                              bytes,
                              WorkflowStorageJsonContext.Default.WorkflowProjectionCheckpoint)
                          ?? throw new InvalidDataException(
                              "Workflow checkpoint blob is invalid.");
-        if (checkpoint.FormatVersion is not 2 ||
+        if (checkpoint.FormatVersion != run.ActiveCheckpointFormatVersion ||
             checkpoint.ProjectId != run.ProjectId ||
             checkpoint.RunId != run.RunId ||
             checkpoint.RunGeneration != run.RunGeneration ||
             checkpoint.ProjectorSemanticFingerprint !=
+            run.ActiveCheckpointSemanticFingerprint ||
+            checkpoint.ProjectionConfigurationFingerprint !=
+            run.ActiveCheckpointConfigurationFingerprint ||
+            checkpoint.RunInputHash != run.ActiveCheckpointInputHash ||
+            checkpoint.JournalSequence != run.ActiveCheckpointSequence ||
+            checkpoint.FormatVersion is not 2 ||
+            checkpoint.ProjectorSemanticFingerprint !=
             WorkflowProjectionBuilder.SemanticFingerprint ||
             checkpoint.ProjectionConfigurationFingerprint !=
             _limits.ConfigurationFingerprint ||
-            checkpoint.RunInputHash != WorkflowProjectionBuilder.RunInputHash(run) ||
-            checkpoint.JournalSequence != run.ActiveCheckpointSequence)
+            checkpoint.RunInputHash != WorkflowProjectionBuilder.RunInputHash(run))
         {
             throw new WorkflowCheckpointIncompatibleException(
                 "Workflow checkpoint manifest is incompatible with the current projector.");
         }
         return checkpoint;
+    }
+
+    private static bool IsLowerHexDigest(string? value)
+    {
+        if (value is null || value.Length is not 64)
+            return false;
+        foreach (var character in value)
+        {
+            if (!IsLowerHex(character))
+                return false;
+        }
+        return true;
     }
 
     public async Task CompleteCandidateAsync(
@@ -563,6 +617,7 @@ internal sealed class WorkflowCheckpointStore : IDisposable
     {
         var broken = new List<WorkflowRunStorageRow>();
         var validStorageIdentities = new List<string>();
+        var failureCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var processed = 0;
         long examinedBytes = 0;
         var elapsed = Stopwatch.StartNew();
@@ -592,18 +647,43 @@ internal sealed class WorkflowCheckpointStore : IDisposable
                 // republish; the manifest stays referenced and the blob must
                 // survive the sweep.
                 validStorageIdentities.Add(CanonicalStorageIdentity(run));
+                broken.Add(run);
+                IncrementFailure(failureCounts, "incompatible");
             }
             catch (Exception error) when (
                 error is InvalidDataException or JsonException or FileNotFoundException)
             {
                 broken.Add(run);
+                IncrementFailure(
+                    failureCounts,
+                    error switch
+                    {
+                        FileNotFoundException => "missing_blob",
+                        JsonException => "invalid_json",
+                        _ => "invalid_data"
+                    });
             }
+        }
+        foreach (var failure in failureCounts)
+        {
+            WorkflowLifecycleLog.CheckpointValidationFailed(
+                _logger,
+                failure.Key,
+                failure.Value);
         }
         return new WorkflowCheckpointManifestValidation(
             broken,
             processed,
-            validStorageIdentities);
+            validStorageIdentities,
+            failureCounts);
     }
+
+    private static void IncrementFailure(
+        IDictionary<string, int> counts,
+        string reason) =>
+        counts[reason] = counts.TryGetValue(reason, out var count)
+            ? checked(count + 1)
+            : 1;
 
     public async Task CommitManifestPageAsync(
         IReadOnlyList<string> validStorageIdentities,
@@ -870,6 +950,10 @@ internal sealed class WorkflowCheckpointStore : IDisposable
                                 candidate.StorageIdentity,
                                 length,
                                 present: false);
+                            page.RemovedCount++;
+                            page.RemovedBytes = AddSaturating(
+                                page.RemovedBytes,
+                                Math.Max(0, length));
                             page.NextCandidateIndex++;
                         }
                         else
@@ -925,6 +1009,10 @@ internal sealed class WorkflowCheckpointStore : IDisposable
                     else
                     {
                         _files!.DeleteFile(claimedPath);
+                        page.RemovedCount++;
+                        page.RemovedBytes = AddSaturating(
+                            page.RemovedBytes,
+                            Math.Max(0, page.ClaimedLength));
                     }
                     page.ClaimedDeletionCompleted = true;
                 }
@@ -964,6 +1052,13 @@ internal sealed class WorkflowCheckpointStore : IDisposable
                 throw new InvalidOperationException(
                     "Workflow checkpoint sweep page is no longer current.");
             _pendingSweepPage = null;
+            if (page.RemovedCount > 0)
+            {
+                WorkflowLifecycleLog.OrphansRemoved(
+                    _logger,
+                    page.RemovedCount,
+                    page.RemovedBytes);
+            }
             if (!page.SweepComplete)
                 return true;
 

@@ -17,7 +17,7 @@ internal sealed class WorkflowCollectorClient(
     {
         var request = new WorkflowRunCreateRequest
         {
-            RunId = metadata.RunId,
+            RunId = new WorkflowRunId(metadata.RunId),
             ThreadId = metadata.ThreadId,
             Title = metadata.Title,
             StartedAt = metadata.StartedAt,
@@ -46,7 +46,7 @@ internal sealed class WorkflowCollectorClient(
     {
         var content = entries
             .SelectMany(static entry => entry.Content)
-            .DistinctBy(static chunk => chunk.ContentRef, StringComparer.Ordinal)
+            .DistinctBy(static chunk => chunk.ContentRef.Value, StringComparer.Ordinal)
             .ToArray();
         var request = new WorkflowEventBatchAppendRequest
         {
@@ -90,7 +90,7 @@ internal sealed class WorkflowCollectorClient(
 
     public async Task<WorkflowControlCommand> UpdateControlAsync(
         string runId,
-        string commandId,
+        WorkflowCommandId commandId,
         WorkflowControlStatus status,
         string? error,
         DateTimeOffset occurredAt,
@@ -104,7 +104,7 @@ internal sealed class WorkflowCollectorClient(
         };
         using var message = CreateRequest(
             HttpMethod.Post,
-            $"workflow-runs/{Uri.EscapeDataString(runId)}/commands/{Uri.EscapeDataString(commandId)}/status",
+            $"workflow-runs/{Uri.EscapeDataString(runId)}/commands/{Uri.EscapeDataString(commandId.Value)}/status",
             JsonContent.Create(
                 request,
                 CodexWorkflowContractJsonContext.Default.WorkflowControlStatusUpdateRequest));

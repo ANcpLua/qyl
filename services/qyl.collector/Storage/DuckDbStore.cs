@@ -36,7 +36,7 @@ internal sealed partial class DuckDbStore : IQylStore
     private readonly ILoggerFactory _loggerFactory;
     private readonly Channel<WriteJob> _jobs;
     private readonly Channel<IReadJob>? _reads;
-    private readonly Thread[] _readerThreads;
+    private readonly Task[] _readerTasks;
     private readonly Task _writerTask;
     private readonly WorkflowContentProtector _workflowContentProtector;
     private readonly WorkflowProjectionLimits _workflowProjectionLimits;
@@ -69,8 +69,7 @@ internal sealed partial class DuckDbStore : IQylStore
             beforeProjectionQuantum = null,
         Func<WorkflowCheckpointReconciliationStage, CancellationToken, ValueTask>?
             beforeCheckpointReconciliation = null,
-        ILoggerFactory? loggerFactory = null,
-        Action<int>? observeWorkflowMigrationRetainedRuns = null)
+        ILoggerFactory? loggerFactory = null)
     {
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _logger = _loggerFactory.CreateLogger<DuckDbStore>();
@@ -88,13 +87,14 @@ internal sealed partial class DuckDbStore : IQylStore
         _workflowCheckpointStore = new WorkflowCheckpointStore(
             _isInMemory ? null : $"{_databasePath}.workflow-checkpoints",
             _workflowProjectionLimits,
+            _loggerFactory.CreateLogger<WorkflowCheckpointStore>(),
             _beforeCheckpointReconciliation);
         var connection = new DuckDBConnection(_connectionString);
         try
         {
             connection.Open();
             ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
-            InitializeSchema(connection, observeWorkflowMigrationRetainedRuns);
+            InitializeSchema(connection);
         }
         catch
         {
@@ -120,7 +120,7 @@ internal sealed partial class DuckDbStore : IQylStore
         // single writer connection instead.
         if (_isInMemory)
         {
-            _readerThreads = [];
+            _readerTasks = [];
             _reads = null;
         }
         else
@@ -145,13 +145,21 @@ internal sealed partial class DuckDbStore : IQylStore
                 connections[i] = con;
             }
 
-            _readerThreads = new Thread[concurrency];
+            _readerTasks = new Task[concurrency];
             for (var i = 0; i < concurrency; i++)
             {
                 var con = connections[i];
-                var thread = new Thread(() => ReaderLoop(con)) { IsBackground = true, Name = $"duckdb-reader-{i}" };
-                thread.Start();
-                _readerThreads[i] = thread;
+                _readerTasks[i] = Task.Factory.StartNew(
+                        static state =>
+                        {
+                            var owner = ((DuckDbStore Store, DuckDBConnection Connection))state!;
+                            return owner.Store.ReaderLoopAsync(owner.Connection);
+                        },
+                        (Store: this, Connection: con),
+                        CancellationToken.None,
+                        TaskCreationOptions.LongRunning,
+                        TaskScheduler.Default)
+                    .Unwrap();
             }
         }
 
@@ -219,13 +227,19 @@ internal sealed partial class DuckDbStore : IQylStore
             AddShutdownError(ref shutdownErrors, ex);
         }
 
-        foreach (var thread in _readerThreads)
+        foreach (var readerTask in _readerTasks)
         {
-            if (!thread.Join(s_shutdownTimeout))
+            try
             {
-                AddShutdownError(
-                    ref shutdownErrors,
-                    new TimeoutException($"DuckDB reader thread '{thread.Name}' did not stop before shutdown timeout."));
+                await readerTask.WaitAsync(s_shutdownTimeout).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+            {
+                continue;
+            }
+            catch (Exception ex)
+            {
+                AddShutdownError(ref shutdownErrors, ex);
             }
         }
 
@@ -276,6 +290,21 @@ internal sealed partial class DuckDbStore : IQylStore
             return await ExecuteWriteAsync((con, _) => new ValueTask<T>(read(con)), ct).ConfigureAwait(false);
 
         var job = new ReadJob<T>(read, ct);
+        await _reads.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.WaitAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task<T> ExecuteReadAsync<T>(
+        Func<DuckDBConnection, CancellationToken, ValueTask<T>> read,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        ct.ThrowIfCancellationRequested();
+
+        if (_reads is null)
+            return await ExecuteWriteAsync(read, ct).ConfigureAwait(false);
+
+        var job = new AsyncReadJob<T>(read, ct);
         await _reads.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         return await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
@@ -743,34 +772,21 @@ internal sealed partial class DuckDbStore : IQylStore
         }
     }
 
-    // One dedicated OS thread per reader slot. Each owns a private connection (sharing the writer's
-    // cached native instance) and runs the synchronous (native, blocking) DuckDB read jobs here —
-    // never on a thread-pool thread.
-    private void ReaderLoop(DuckDBConnection con)
+    // One long-running reader task per slot owns a private connection. Synchronous
+    // point reads begin on its dedicated thread; Arrow jobs may yield between
+    // batches without blocking a request thread or sharing the connection.
+    private async Task ReaderLoopAsync(DuckDBConnection con)
     {
         var reader = _reads!.Reader;
         try
         {
-            while (true)
+            while (await reader.WaitToReadAsync(_cts.Token).ConfigureAwait(false))
             {
-                bool waited;
-                try
-                {
-                    waited = reader.WaitToReadAsync(_cts.Token).AsTask().GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-
-                if (!waited)
-                    break;
-
                 while (reader.TryRead(out var job))
                 {
                     try
                     {
-                        job.Execute(con);
+                        await job.ExecuteAsync(con).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException oce)
                     {
@@ -834,684 +850,311 @@ internal sealed partial class DuckDbStore : IQylStore
     // the statement.
     private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
 
-    private static void InitializeSchema(
-        DuckDBConnection con,
-        Action<int>? observeWorkflowMigrationRetainedRuns)
+    private static void InitializeSchema(DuckDBConnection con)
     {
-        // The live log stream needs a collector-owned monotonic cursor. Producer event timestamps
-        // are routinely delayed/out of order, so assign arrival order inside DuckDB instead.
-        using var logSequenceCmd = con.CreateCommand();
-        logSequenceCmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS logs_ingest_sequence START 1";
-        logSequenceCmd.ExecuteNonQuery();
+        using var transaction = con.BeginTransaction();
+        ExecuteSchemaSql(con, transaction, DuckDbGeneratedSchema.BootstrapDdl);
 
-        using var logsCmd = con.CreateCommand();
-        logsCmd.CommandText = string.Concat(
-            LogStorageRow.CreateTableDdl, "\n",
-            LogStorageRow.MigrateTableDdl, "\n",
-            LogStorageRow.IndexesDdl);
-        logsCmd.ExecuteNonQuery();
+        var stored = ReadSchemaIdentity(con, transaction);
+        var authoritativeMismatches = FindSchemaMismatches(
+            con,
+            transaction,
+            DuckDbGeneratedSchema.AuthoritativeTables);
+        if (stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash })
+        {
+            authoritativeMismatches = DuckDbGeneratedSchema.AuthoritativeTableNames;
+        }
+        var derivedMismatches = FindSchemaMismatches(
+            con,
+            transaction,
+            DuckDbGeneratedSchema.DerivedTables);
 
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = string.Concat(
-            SpanStorageRow.CreateTableDdl, "\n",
-            SpanStorageRow.MigrateTableDdl, "\n",
-            SpanStorageRow.IndexesDdl);
-        cmd.ExecuteNonQuery();
+        if (authoritativeMismatches.Count > 0)
+        {
+            if (HasRows(
+                    con,
+                    transaction,
+                    DuckDbGeneratedSchema.AuthoritativeTableNames))
+            {
+                var difference = stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash }
+                    ? $"stored authoritative DDL hash {stored.AuthoritativeHash} does not match " +
+                      DuckDbGeneratedSchema.AuthoritativeHash
+                    : $"incompatible tables: {string.Join(", ", authoritativeMismatches)}";
+                throw new QylSchemaMismatchException(
+                    "The authoritative DuckDB schema differs from this build while persisted data exists. " +
+                    "Start with a new database and replay or import the authoritative journal; qyl will not " +
+                    $"ALTER or delete that data automatically. Difference: {difference}");
+            }
 
-        using var workflowCmd = con.CreateCommand();
-        workflowCmd.CommandText = string.Concat(
-            WorkflowRunDbRow.CreateTableDdl, "\n",
-            WorkflowRunDbRow.MigrateTableDdl, "\n",
-            WorkflowEventDbRow.CreateTableDdl, "\n",
-            WorkflowEventDbRow.IndexesDdl, "\n",
-            WorkflowContentDbRow.CreateTableDdl, "\n",
-            WorkflowContentReferenceDbRow.CreateTableDdl, "\n",
-            WorkflowContentReferenceDbRow.IndexesDdl, "\n",
-            WorkflowClientJournalDbRow.CreateTableDdl, "\n",
-            WorkflowClientJournalRangeDbRow.CreateTableDdl, "\n",
-            WorkflowClientJournalRangeDbRow.IndexesDdl, "\n",
-            WorkflowCommandDbRow.CreateTableDdl, "\n",
-            WorkflowCommandDbRow.IndexesDdl, "\n",
-            QylStorageMigrationDbRow.CreateTableDdl, "\n",
-            WorkflowCheckpointRepairDbRow.CreateTableDdl, "\n",
-            WorkflowCheckpointClockDbRow.CreateTableDdl);
-        workflowCmd.ExecuteNonQuery();
+            DropTables(con, transaction, authoritativeMismatches);
+            if (authoritativeMismatches.Contains(LogStorageRow.TableName, StringComparer.Ordinal))
+                ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
+            CreateSchema(con, transaction, DuckDbGeneratedSchema.AuthoritativeDdl);
+            CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
+        }
+        else
+        {
+            // A schema created before qyl_schema_meta can be adopted only after its
+            // complete generated structure has been checked above. Derived state is
+            // never migrated: a mismatch is repaired by deterministic recreation.
+            CreateSchema(con, transaction, DuckDbGeneratedSchema.AuthoritativeDdl);
+            if (derivedMismatches.Count > 0 ||
+                stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash })
+            {
+                DropGeneratedTables(con, transaction, includeAuthoritative: false);
+            }
+            CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
+        }
 
-        MigrateWorkflowLifecycle(con, observeWorkflowMigrationRetainedRuns);
-
-        // DuckDB refuses ALTER TABLE while indexes depend on the table, so the
-        // workflow_runs indexes are created only after the lifecycle migration
-        // has applied its column constraints. The CHECKPOINT flushes the
-        // migration's row versions first; DuckDB also refuses CREATE INDEX over
-        // outstanding updates.
-        using var workflowRunIndexCmd = con.CreateCommand();
-        workflowRunIndexCmd.CommandText = string.Concat(
-            "CHECKPOINT;\n",
-            WorkflowRunDbRow.IndexesDdl);
-        workflowRunIndexCmd.ExecuteNonQuery();
-
-        // The retired workflow_projection_* tables are left in place. A collector
-        // that drops tables at startup from legacy detection is a mechanism this
-        // repository removed deliberately (VerifyNoRemovedBuildSurface); retiring
-        // their storage belongs to an explicit schema-version mechanism, not to
-        // schema initialisation. They are unreferenced, so leaving them is inert.
+        DropRetiredDerivedTables(con, transaction);
+        EnsureCheckpointClock(con, transaction);
+        WriteSchemaIdentity(con, transaction);
+        transaction.Commit();
 
         VerifyPersistedPrimaryKeys(con);
     }
 
-    private static void MigrateWorkflowLifecycle(
-        DuckDBConnection con,
-        Action<int>? observeWorkflowMigrationRetainedRuns)
-    {
-        using var transaction = con.BeginTransaction();
-        using (var prepare = con.CreateCommand())
-        {
-            prepare.Transaction = transaction;
-            prepare.CommandText = """
-                                  INSERT INTO workflow_checkpoint_clock
-                                  VALUES (0, 0)
-                                  ON CONFLICT DO NOTHING;
-                                  UPDATE workflow_runs
-                                  SET run_generation =
-                                          replace(lower(uuid()::VARCHAR), '-', ''),
-                                      active_checkpoint_sequence = 0,
-                                      active_checkpoint_id = NULL,
-                                      active_checkpoint_storage_key = NULL,
-                                      projection_failure_sequence = NULL,
-                                      projection_failure_kind = NULL,
-                                      projection_failure_configuration = NULL,
-                                      projection_failure_semantic = NULL
-                                  WHERE NOT regexp_full_match(
-                                      COALESCE(run_generation, ''),
-                                      '^[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$');
-                                  UPDATE workflow_runs
-                                  SET active_checkpoint_sequence = 0,
-                                      active_checkpoint_id = NULL,
-                                      active_checkpoint_storage_key = NULL
-                                  WHERE active_checkpoint_id IS NOT NULL
-                                    AND NOT regexp_full_match(
-                                        active_checkpoint_id,
-                                        '^[0-9a-f]{16}-[0-9a-f]{64}\.json$');
-                                  UPDATE workflow_runs
-                                  SET last_activity_at =
-                                      COALESCE(
-                                          updated_at,
-                                          created_at,
-                                          started_at,
-                                          current_timestamp)
-                                  WHERE last_activity_at IS NULL;
-                                  UPDATE workflow_runs
-                                  SET latest_journal_sequence =
-                                          coalesce(latest_journal_sequence, 0),
-                                      event_count = coalesce(event_count, 0),
-                                      projection_input_bytes =
-                                          coalesce(projection_input_bytes, 0),
-                                      immutable_projection_input_bytes =
-                                          coalesce(immutable_projection_input_bytes, 0),
-                                      dynamic_projection_input_bytes =
-                                          coalesce(dynamic_projection_input_bytes, 0),
-                                      next_command_sequence =
-                                          coalesce(next_command_sequence, 1),
-                                      next_control_event_source_sequence =
-                                          coalesce(next_control_event_source_sequence, 1),
-                                      active_checkpoint_sequence =
-                                          coalesce(active_checkpoint_sequence, 0),
-                                      checkpoint_manifest_epoch =
-                                          coalesce(checkpoint_manifest_epoch, 0);
-                                  ALTER TABLE workflow_runs
-                                      ALTER COLUMN last_activity_at SET DEFAULT current_timestamp;
-                                  """;
-            prepare.ExecuteNonQuery();
-        }
-
-        RepairWorkflowManifestIdentities(con, transaction);
-
-        const string migrationId = "workflow-lifecycle-v2";
-        var applied = false;
-        using (var marker = con.CreateCommand())
-        {
-            marker.Transaction = transaction;
-            marker.CommandText = """
-                                 SELECT count(*)
-                                 FROM qyl_storage_migrations
-                                 WHERE migration_id = $1
-                                 """;
-            AddParameters(marker, migrationId);
-            applied = Convert.ToInt32(
-                marker.ExecuteScalar(),
-                CultureInfo.InvariantCulture) is not 0;
-        }
-
-        if (!applied)
-        {
-            BackfillWorkflowLifecycle(
-                con,
-                transaction,
-                observeWorkflowMigrationRetainedRuns);
-            using var marker = con.CreateCommand();
-            marker.Transaction = transaction;
-            marker.CommandText = """
-                                 INSERT INTO qyl_storage_migrations (migration_id)
-                                 VALUES ($1)
-                                 """;
-            AddParameters(marker, migrationId);
-            marker.ExecuteNonQuery();
-        }
-
-        transaction.Commit();
-        ApplyWorkflowLifecycleRequiredConstraints(con);
-    }
-
-    private static void ApplyWorkflowLifecycleRequiredConstraints(
-        DuckDBConnection con)
-    {
-        const string migrationId = "workflow-lifecycle-required-columns-v2";
-        using (var marker = con.CreateCommand())
-        {
-            marker.CommandText = """
-                                 SELECT count(*)
-                                 FROM qyl_storage_migrations
-                                 WHERE migration_id = $1
-                                 """;
-            AddParameters(marker, migrationId);
-            if (Convert.ToInt32(
-                    marker.ExecuteScalar(),
-                    CultureInfo.InvariantCulture) is not 0)
-            {
-                return;
-            }
-        }
-
-        using (var constraints = con.CreateCommand())
-        {
-            // Runs outside the backfill transaction: SET NOT NULL rebuilds the
-            // primary-key index, and DuckDB refuses that while the transaction
-            // holds outstanding updates. The CHECKPOINT flushes those versions.
-            constraints.CommandText = """
-                                      CHECKPOINT;
-                                      DROP INDEX IF EXISTS idx_workflow_runs_active_checkpoint_storage_key;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN run_generation SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN latest_journal_sequence SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN event_count SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN projection_input_bytes SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN immutable_projection_input_bytes SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN dynamic_projection_input_bytes SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN next_command_sequence SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN next_control_event_source_sequence SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN active_checkpoint_sequence SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN checkpoint_manifest_epoch SET NOT NULL;
-                                      ALTER TABLE workflow_runs
-                                          ALTER COLUMN last_activity_at SET NOT NULL;
-                                      """;
-            constraints.ExecuteNonQuery();
-        }
-
-        using var record = con.CreateCommand();
-        record.CommandText = """
-                             INSERT INTO qyl_storage_migrations (migration_id)
-                             VALUES ($1)
-                             """;
-        AddParameters(record, migrationId);
-        record.ExecuteNonQuery();
-    }
-
-    private static void RepairWorkflowManifestIdentities(
+    private static SchemaIdentity? ReadSchemaIdentity(
         DuckDBConnection con,
         DbTransaction transaction)
     {
-        const int pageSize = 256;
-        string? projectCursor = null;
-        string? runCursor = null;
-        while (true)
-        {
-            var manifests = new List<WorkflowManifestMigrationRow>(pageSize);
-            using (var read = con.CreateCommand())
-            {
-                read.Transaction = transaction;
-                if (projectCursor is null)
-                {
-                    read.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList + """
-                                       FROM workflow_runs
-                                       WHERE active_checkpoint_sequence <> 0
-                                          OR active_checkpoint_id IS NOT NULL
-                                          OR active_checkpoint_storage_key IS NOT NULL
-                                       ORDER BY project_id, run_id
-                                       LIMIT $1
-                                       """;
-                    AddParameters(read, pageSize);
-                }
-                else
-                {
-                    read.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList + """
-                                       FROM workflow_runs
-                                       WHERE (
-                                               active_checkpoint_sequence <> 0
-                                            OR active_checkpoint_id IS NOT NULL
-                                            OR active_checkpoint_storage_key IS NOT NULL
-                                       )
-                                         AND (
-                                             project_id > $1 OR
-                                             (project_id = $1 AND run_id > $2)
-                                         )
-                                       ORDER BY project_id, run_id
-                                       LIMIT $3
-                                       """;
-                    AddParameters(read, projectCursor, runCursor!, pageSize);
-                }
-
-                using var reader = read.ExecuteReader();
-                while (reader.Read())
-                {
-                    var row = WorkflowRunDbRow.MapFromReader(reader);
-                    manifests.Add(new WorkflowManifestMigrationRow(
-                        row.ProjectId,
-                        row.RunId,
-                        row.RunGeneration,
-                        row.ActiveCheckpointSequence,
-                        row.ActiveCheckpointId,
-                        row.ActiveCheckpointStorageKey));
-                }
-            }
-
-            if (manifests.Count is 0)
-                return;
-
-            foreach (var manifest in manifests)
-            {
-                var valid = manifest.Sequence is not 0 &&
-                            manifest.CheckpointId is not null &&
-                            WorkflowCheckpointStore.IsCanonicalCheckpointId(
-                                manifest.CheckpointId,
-                                manifest.Sequence);
-                var canonicalStorageKey = valid
-                    ? WorkflowCheckpointStore.CanonicalStorageIdentity(
-                        manifest.ProjectId,
-                        manifest.RunId,
-                        manifest.RunGeneration,
-                        manifest.Sequence,
-                        manifest.CheckpointId)
-                    : null;
-                using var repair = con.CreateCommand();
-                repair.Transaction = transaction;
-                repair.CommandText = """
-                                     UPDATE workflow_runs
-                                     SET active_checkpoint_sequence = $1,
-                                         active_checkpoint_id = $2,
-                                         active_checkpoint_storage_key = $3
-                                     WHERE project_id = $4
-                                       AND run_id = $5
-                                       AND run_generation = $6
-                                       AND active_checkpoint_sequence = $7
-                                       AND active_checkpoint_id IS NOT DISTINCT FROM $8
-                                       AND active_checkpoint_storage_key
-                                           IS NOT DISTINCT FROM $9
-                                     """;
-                AddParameters(
-                    repair,
-                    valid ? (decimal)manifest.Sequence : 0m,
-                    DbValue(valid ? manifest.CheckpointId : null),
-                    DbValue(canonicalStorageKey),
-                    manifest.ProjectId,
-                    manifest.RunId,
-                    manifest.RunGeneration,
-                    (decimal)manifest.Sequence,
-                    DbValue(manifest.CheckpointId),
-                    DbValue(manifest.StorageKey));
-                repair.ExecuteNonQuery();
-            }
-
-            var last = manifests[^1];
-            projectCursor = last.ProjectId;
-            runCursor = last.RunId;
-        }
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              SELECT authoritative_schema_hash, derived_schema_hash
+                              FROM qyl_schema_meta
+                              WHERE singleton = 0
+                              """;
+        using var reader = command.ExecuteReader();
+        return reader.Read()
+            ? new SchemaIdentity(reader.GetString(0), reader.GetString(1))
+            : null;
     }
 
-    private sealed record WorkflowManifestMigrationRow(
-        string ProjectId,
-        string RunId,
-        string RunGeneration,
-        ulong Sequence,
-        string? CheckpointId,
-        string? StorageKey);
+    private static void WriteSchemaIdentity(
+        DuckDBConnection con,
+        DbTransaction transaction)
+    {
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              INSERT INTO qyl_schema_meta
+                                  (singleton, authoritative_schema_hash, derived_schema_hash)
+                              VALUES (0, $1, $2)
+                              ON CONFLICT (singleton) DO UPDATE SET
+                                  authoritative_schema_hash = excluded.authoritative_schema_hash,
+                                  derived_schema_hash = excluded.derived_schema_hash,
+                                  updated_at = now()
+                              """;
+        AddParameters(
+            command,
+            DuckDbGeneratedSchema.AuthoritativeHash,
+            DuckDbGeneratedSchema.DerivedHash);
+        command.ExecuteNonQuery();
+    }
 
-    private static void BackfillWorkflowLifecycle(
+    private static IReadOnlyList<string> FindSchemaMismatches(
         DuckDBConnection con,
         DbTransaction transaction,
-        Action<int>? observeRetainedRuns)
+        IReadOnlyList<DuckDbExpectedTable> expectedTables)
     {
-        using (var validate = con.CreateCommand())
+        var mismatches = new List<string>();
+        foreach (var table in expectedTables)
         {
-            validate.Transaction = transaction;
-            validate.CommandText = """
-                                   SELECT count(*)
-                                   FROM workflow_events AS event
-                                   LEFT JOIN workflow_runs AS run
-                                     ON run.project_id = event.project_id
-                                    AND run.run_id = event.run_id
-                                   WHERE run.run_id IS NULL
-                                   """;
-            if (Convert.ToInt64(
-                    validate.ExecuteScalar(),
-                    CultureInfo.InvariantCulture) is not 0)
+            using var command = con.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                                  SELECT column_name, data_type, is_nullable, column_default
+                                  FROM duckdb_columns()
+                                  WHERE schema_name = 'main' AND table_name = $1
+                                  ORDER BY column_index
+                                  """;
+            AddParameters(command, table.Name);
+            using var reader = command.ExecuteReader();
+            var ordinal = 0;
+            var tableMatches = true;
+            while (reader.Read())
             {
-                throw new InvalidDataException(
-                    "Workflow journal contains an event without its owning run.");
-            }
-        }
-
-        using (var create = con.CreateCommand())
-        {
-            create.Transaction = transaction;
-            create.CommandText = """
-                                 CREATE TEMP TABLE workflow_lifecycle_backfill (
-                                     project_id VARCHAR NOT NULL,
-                                     run_id VARCHAR NOT NULL,
-                                     latest_journal_sequence UBIGINT NOT NULL,
-                                     event_count BIGINT NOT NULL,
-                                     projection_input_bytes BIGINT NOT NULL,
-                                     immutable_projection_input_bytes BIGINT NOT NULL,
-                                     dynamic_projection_input_bytes BIGINT NOT NULL,
-                                     next_command_sequence UBIGINT NOT NULL,
-                                     next_control_event_source_sequence UBIGINT NOT NULL,
-                                     active_checkpoint_storage_key VARCHAR,
-                                     PRIMARY KEY (project_id, run_id)
-                                 )
-                                 """;
-            create.ExecuteNonQuery();
-        }
-
-        string? projectCursor = null;
-        string? runCursor = null;
-        while (true)
-        {
-            WorkflowRunStorageRow? run;
-            using (var readRun = con.CreateCommand())
-            {
-                readRun.Transaction = transaction;
-                if (projectCursor is null)
+                if (ordinal >= table.Columns.Length)
                 {
-                    readRun.CommandText =
-                        "SELECT " + WorkflowRunDbRow.SelectColumnList + """
-                        FROM workflow_runs
-                        ORDER BY project_id, run_id
-                        LIMIT 1
-                        """;
-                }
-                else
-                {
-                    readRun.CommandText =
-                        "SELECT " + WorkflowRunDbRow.SelectColumnList + """
-                        FROM workflow_runs
-                        WHERE project_id > $1
-                           OR (project_id = $1 AND run_id > $2)
-                        ORDER BY project_id, run_id
-                        LIMIT 1
-                        """;
-                    AddParameters(readRun, projectCursor, runCursor!);
-                }
-                using var reader = readRun.ExecuteReader();
-                run = reader.Read() ? ReadWorkflowRun(reader) : null;
-            }
-            if (run is null)
-                break;
-
-            observeRetainedRuns?.Invoke(1);
-            try
-            {
-                var state = new WorkflowLifecycleMigrationState(run);
-                using (var readEvents = con.CreateCommand())
-                {
-                    readEvents.Transaction = transaction;
-                    readEvents.CommandText =
-                        "SELECT " + WorkflowEventDbRow.SelectColumnList + """
-                        FROM workflow_events
-                        WHERE project_id = $1 AND run_id = $2
-                        ORDER BY journal_sequence
-                        """;
-                    AddParameters(readEvents, run.ProjectId, run.RunId);
-                    using var reader = readEvents.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        state.AddEvent(ReadWorkflowEvent(
-                            WorkflowEventDbRow.MapFromReader(reader)));
-                    }
+                    tableMatches = false;
+                    continue;
                 }
 
-                using (var readCommandSequence = con.CreateCommand())
+                var expected = table.Columns[ordinal++];
+                var actualName = reader.GetString(0);
+                var actualType = reader.GetString(1);
+                var actualNullable = reader.GetBoolean(2);
+                var actualDefault = reader.IsDBNull(3) ? null : reader.GetString(3);
+                if (!string.Equals(actualName, expected.Name, StringComparison.Ordinal) ||
+                    !string.Equals(
+                        NormalizeDuckDbType(actualType),
+                        NormalizeDuckDbType(expected.SqlType),
+                        StringComparison.Ordinal) ||
+                    actualNullable == expected.Required ||
+                    !DefaultsMatch(actualDefault, expected.DefaultSql))
                 {
-                    readCommandSequence.Transaction = transaction;
-                    readCommandSequence.CommandText = """
-                                                      SELECT max(command_sequence)
-                                                      FROM workflow_commands
-                                                      WHERE project_id = $1 AND run_id = $2
-                                                      """;
-                    AddParameters(
-                        readCommandSequence,
-                        run.ProjectId,
-                        run.RunId);
-                    var maximum = readCommandSequence.ExecuteScalar();
-                    if (maximum is not null and not DBNull)
-                    {
-                        state.NextCommandSequence = checked(
-                            Convert.ToUInt64(
-                                maximum,
-                                CultureInfo.InvariantCulture) + 1);
-                    }
+                    tableMatches = false;
                 }
-
-                using var insert = con.CreateCommand();
-                insert.Transaction = transaction;
-                insert.CommandText = """
-                                     INSERT INTO workflow_lifecycle_backfill
-                                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                                     """;
-                AddParameters(
-                    insert,
-                    state.Run.ProjectId,
-                    state.Run.RunId,
-                    (decimal)state.LatestJournalSequence,
-                    state.EventCount,
-                    state.ProjectionInputBytes,
-                    state.ImmutableProjectionInputBytes,
-                    state.DynamicProjectionInputBytes,
-                    (decimal)state.NextCommandSequence,
-                    (decimal)state.NextControlEventSourceSequence,
-                    DbValue(state.ActiveCheckpointStorageKey));
-                insert.ExecuteNonQuery();
-            }
-            finally
-            {
-                observeRetainedRuns?.Invoke(0);
             }
 
-            projectCursor = run.ProjectId;
-            runCursor = run.RunId;
+            if (!tableMatches || ordinal != table.Columns.Length)
+                mismatches.Add(table.Name);
         }
 
-        using (var apply = con.CreateCommand())
-        {
-            apply.Transaction = transaction;
-            apply.CommandText = """
-                                UPDATE workflow_runs AS run
-                                SET latest_journal_sequence = migration.latest_journal_sequence,
-                                    event_count = migration.event_count,
-                                    projection_input_bytes = migration.projection_input_bytes,
-                                    immutable_projection_input_bytes =
-                                        migration.immutable_projection_input_bytes,
-                                    dynamic_projection_input_bytes =
-                                        migration.dynamic_projection_input_bytes,
-                                    next_command_sequence = migration.next_command_sequence,
-                                    next_control_event_source_sequence =
-                                        migration.next_control_event_source_sequence,
-                                    active_checkpoint_storage_key =
-                                        migration.active_checkpoint_storage_key
-                                FROM workflow_lifecycle_backfill AS migration
-                                WHERE run.project_id = migration.project_id
-                                  AND run.run_id = migration.run_id;
-
-                                DELETE FROM workflow_client_journal_ranges;
-                                DELETE FROM workflow_client_journal;
-
-                                INSERT INTO workflow_client_journal
-                                    (project_id, run_id, client_id, acknowledged_source_sequence)
-                                WITH distinct_sources AS (
-                                    SELECT DISTINCT
-                                        project_id,
-                                        run_id,
-                                        client_id,
-                                        source_sequence
-                                    FROM workflow_events
-                                    WHERE source_sequence > 0
-                                ),
-                                ranked AS (
-                                    SELECT
-                                        project_id,
-                                        run_id,
-                                        client_id,
-                                        source_sequence,
-                                        row_number() OVER (
-                                            PARTITION BY project_id, run_id, client_id
-                                            ORDER BY source_sequence) AS source_rank
-                                    FROM distinct_sources
-                                )
-                                SELECT
-                                    project_id,
-                                    run_id,
-                                    client_id,
-                                    coalesce(
-                                        min(source_rank - 1)
-                                            FILTER (WHERE source_sequence <> source_rank),
-                                        max(source_rank),
-                                        0)::UBIGINT
-                                FROM ranked
-                                GROUP BY project_id, run_id, client_id;
-
-                                INSERT INTO workflow_client_journal_ranges
-                                    (project_id, run_id, client_id, range_start, range_end)
-                                WITH distinct_sources AS (
-                                    SELECT DISTINCT
-                                        event.project_id,
-                                        event.run_id,
-                                        event.client_id,
-                                        event.source_sequence
-                                    FROM workflow_events AS event
-                                    JOIN workflow_client_journal AS journal
-                                      ON journal.project_id = event.project_id
-                                     AND journal.run_id = event.run_id
-                                     AND journal.client_id = event.client_id
-                                    WHERE event.source_sequence >
-                                          journal.acknowledged_source_sequence
-                                ),
-                                islands AS (
-                                    SELECT
-                                        project_id,
-                                        run_id,
-                                        client_id,
-                                        source_sequence,
-                                        source_sequence::HUGEINT -
-                                            row_number() OVER (
-                                                PARTITION BY project_id, run_id, client_id
-                                                ORDER BY source_sequence) AS island
-                                    FROM distinct_sources
-                                )
-                                SELECT
-                                    project_id,
-                                    run_id,
-                                    client_id,
-                                    min(source_sequence),
-                                    max(source_sequence)
-                                FROM islands
-                                GROUP BY project_id, run_id, client_id, island;
-
-                                DROP TABLE workflow_lifecycle_backfill;
-                                """;
-            apply.ExecuteNonQuery();
-        }
+        return mismatches;
     }
 
-    private sealed class WorkflowLifecycleMigrationState
+    private static string NormalizeDuckDbType(string value)
     {
-        public WorkflowLifecycleMigrationState(WorkflowRunStorageRow run)
+        var normalized = value.Trim().ToUpperInvariant();
+        if (normalized.StartsWith("VARCHAR", StringComparison.Ordinal))
+            return "VARCHAR";
+        return normalized switch
         {
-            Run = run;
-            ImmutableProjectionInputBytes =
-                WorkflowCanonicalization.MeasureImmutableRunInput(run);
-            DynamicProjectionInputBytes =
-                WorkflowCanonicalization.MeasureDynamicRunInput(run);
-            ProjectionInputBytes = checked(
-                ImmutableProjectionInputBytes + DynamicProjectionInputBytes);
-            ActiveCheckpointStorageKey = run.ActiveCheckpointId is null
-                ? null
-                : WorkflowCheckpointStore.CanonicalStorageIdentity(run);
-        }
-
-        public WorkflowRunStorageRow Run { get; }
-
-        public ulong LatestJournalSequence { get; private set; }
-
-        public long EventCount { get; private set; }
-
-        public long ProjectionInputBytes { get; private set; }
-
-        public long ImmutableProjectionInputBytes { get; }
-
-        public long DynamicProjectionInputBytes { get; }
-
-        public ulong NextCommandSequence { get; set; } = 1;
-
-        public ulong NextControlEventSourceSequence { get; private set; } = 1;
-
-        public string? ActiveCheckpointStorageKey { get; }
-
-        public void AddEvent(WorkflowEventStorageRow workflowEvent)
-        {
-            var expectedSequence = checked((ulong)EventCount + 1);
-            if (workflowEvent.JournalSequence != expectedSequence)
-            {
-                throw new InvalidDataException(
-                    "Workflow journal sequence is not contiguous.");
-            }
-            LatestJournalSequence = workflowEvent.JournalSequence;
-            EventCount = checked(EventCount + 1);
-            ProjectionInputBytes = checked(
-                ProjectionInputBytes +
-                WorkflowCanonicalization.MeasureEventInput(workflowEvent));
-            if (workflowEvent.ClientId == "collector-control")
-            {
-                NextControlEventSourceSequence = Math.Max(
-                    NextControlEventSourceSequence,
-                    checked(workflowEvent.SourceSequence + 1));
-            }
-        }
+            "TIMESTAMP WITH TIME ZONE" => "TIMESTAMPTZ",
+            "TIMESTAMP WITHOUT TIME ZONE" => "TIMESTAMP",
+            _ => normalized
+        };
     }
+
+    private static bool DefaultsMatch(string? actual, string? expected)
+    {
+        if (actual is null || expected is null)
+            return actual is null && expected is null;
+
+        static string Normalize(string value) => string.Concat(
+            value.Where(static character => !char.IsWhiteSpace(character)))
+            .Trim('(', ')')
+            .ToLowerInvariant()
+            .Replace("\"", "", StringComparison.Ordinal)
+            .Replace("cast(uuid()asvarchar)", "uuid()::varchar", StringComparison.Ordinal);
+
+        return string.Equals(Normalize(actual), Normalize(expected), StringComparison.Ordinal);
+    }
+
+    private static bool HasRows(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        IReadOnlyList<string> tables)
+    {
+        foreach (var table in tables)
+        {
+            if (!TableExists(con, transaction, table))
+                continue;
+
+            using var command = con.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = string.Concat(
+                "SELECT EXISTS (SELECT 1 FROM ",
+                QuoteIdentifier(table),
+                " LIMIT 1)");
+            if (command.ExecuteScalar() is true)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TableExists(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        string table)
+    {
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              SELECT count(*)
+                              FROM duckdb_tables()
+                              WHERE schema_name = 'main' AND table_name = $1
+                              """;
+        AddParameters(command, table);
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) is 1;
+    }
+
+    private static void CreateSchema(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        IEnumerable<string> statements)
+    {
+        foreach (var statement in statements)
+            ExecuteSchemaSql(con, transaction, statement);
+    }
+
+    private static void DropGeneratedTables(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        bool includeAuthoritative)
+    {
+        DropTables(con, transaction, DuckDbGeneratedSchema.DerivedTableNames);
+
+        if (!includeAuthoritative)
+            return;
+
+        DropTables(con, transaction, DuckDbGeneratedSchema.AuthoritativeTableNames);
+        ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
+    }
+
+    private static void DropTables(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        IEnumerable<string> tables)
+    {
+        foreach (var table in tables)
+            ExecuteSchemaSql(con, transaction, $"DROP TABLE IF EXISTS {QuoteIdentifier(table)}");
+    }
+
+    private static void DropRetiredDerivedTables(
+        DuckDBConnection con,
+        DbTransaction transaction)
+    {
+        foreach (var table in DuckDbGeneratedSchema.RetiredDerivedTableNames)
+            ExecuteSchemaSql(con, transaction, $"DROP TABLE IF EXISTS {QuoteIdentifier(table)}");
+    }
+
+    private static void EnsureCheckpointClock(
+        DuckDBConnection con,
+        DbTransaction transaction)
+    {
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              INSERT INTO workflow_checkpoint_clock
+                              VALUES (0, 0)
+                              ON CONFLICT DO NOTHING
+                              """;
+        command.ExecuteNonQuery();
+    }
+
+    private static void ExecuteSchemaSql(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return;
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        command.ExecuteNonQuery();
+    }
+
+    private static string QuoteIdentifier(string value) =>
+        $"\"{value.Replace("\"", "\"\"")}\"";
+
+    private sealed record SchemaIdentity(string AuthoritativeHash, string DerivedHash);
 
     private static void VerifyPersistedPrimaryKeys(DuckDBConnection con)
     {
-        (string Table, string Columns)[] expected =
-        [
-            (SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv),
-            (LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv),
-            (WorkflowRunDbRow.TableName, WorkflowRunDbRow.PrimaryKeyColumnsCsv),
-            (WorkflowEventDbRow.TableName, WorkflowEventDbRow.PrimaryKeyColumnsCsv),
-            (WorkflowContentDbRow.TableName, WorkflowContentDbRow.PrimaryKeyColumnsCsv),
-            (WorkflowContentReferenceDbRow.TableName, WorkflowContentReferenceDbRow.PrimaryKeyColumnsCsv),
-            (WorkflowClientJournalDbRow.TableName, WorkflowClientJournalDbRow.PrimaryKeyColumnsCsv),
-            (WorkflowClientJournalRangeDbRow.TableName, WorkflowClientJournalRangeDbRow.PrimaryKeyColumnsCsv),
-            (WorkflowCommandDbRow.TableName, WorkflowCommandDbRow.PrimaryKeyColumnsCsv)
-        ];
-
-        foreach (var (table, columns) in expected)
-            VerifyPersistedPrimaryKey(con, table, columns);
+        foreach (var table in DuckDbGeneratedSchema.AuthoritativeTables
+                     .Concat(DuckDbGeneratedSchema.DerivedTables))
+        {
+            var columns = table.Columns
+                .Where(static column => column.PrimaryKeyOrdinal >= 0)
+                .OrderBy(static column => column.PrimaryKeyOrdinal)
+                .Select(static column => column.Name);
+            VerifyPersistedPrimaryKey(con, table.Name, string.Join(',', columns));
+        }
     }
 
     private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string table, string expectedCsv)
@@ -1624,7 +1267,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
     private interface IReadJob
     {
-        void Execute(DuckDBConnection con);
+        ValueTask ExecuteAsync(DuckDBConnection con);
         void Cancel();
         void Abort(Exception error);
     }
@@ -1638,12 +1281,12 @@ internal sealed partial class DuckDbStore : IQylStore
 
         // Runs on a dedicated reader thread. RunContinuationsAsynchronously guarantees the awaiting
         // caller's continuation resumes on the thread pool, never inline on this reader thread.
-        public void Execute(DuckDBConnection con)
+        public ValueTask ExecuteAsync(DuckDBConnection con)
         {
             if (ct.IsCancellationRequested)
             {
                 _tcs.TrySetCanceled(ct);
-                return;
+                return ValueTask.CompletedTask;
             }
 
             try
@@ -1658,6 +1301,7 @@ internal sealed partial class DuckDbStore : IQylStore
             {
                 _tcs.TrySetException(ex);
             }
+            return ValueTask.CompletedTask;
         }
 
         public void Cancel() => _tcs.TrySetCanceled();
@@ -1666,6 +1310,48 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             if (error is OperationCanceledException oce)
                 _tcs.TrySetCanceled(oce.CancellationToken);
+            else
+                _tcs.TrySetException(error);
+        }
+    }
+
+    private sealed class AsyncReadJob<TResult>(
+        Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> read,
+        CancellationToken ct) : IReadJob
+    {
+        private readonly TaskCompletionSource<TResult> _tcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<TResult> Task => _tcs.Task;
+
+        public async ValueTask ExecuteAsync(DuckDBConnection con)
+        {
+            if (ct.IsCancellationRequested)
+            {
+                _tcs.TrySetCanceled(ct);
+                return;
+            }
+
+            try
+            {
+                _tcs.TrySetResult(await read(con, ct).ConfigureAwait(false));
+            }
+            catch (OperationCanceledException error)
+            {
+                _tcs.TrySetCanceled(error.CancellationToken);
+            }
+            catch (Exception error)
+            {
+                _tcs.TrySetException(error);
+            }
+        }
+
+        public void Cancel() => _tcs.TrySetCanceled(ct);
+
+        public void Abort(Exception error)
+        {
+            if (error is OperationCanceledException cancelled)
+                _tcs.TrySetCanceled(cancelled.CancellationToken);
             else
                 _tcs.TrySetException(error);
         }

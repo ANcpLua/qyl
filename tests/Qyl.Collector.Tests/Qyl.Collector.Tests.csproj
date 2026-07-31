@@ -21,11 +21,13 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
     <PackageReference Include="xunit.v3.mtp-v2"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../services/qyl.collector/qyl.collector.csproj"/>
+    <ProjectReference Include="../../internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj"/>
   </ItemGroup>
 
 </Project>

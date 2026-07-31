@@ -218,6 +218,88 @@ The Workbench is *intentionally* outside this loop: an open-world client's entir
 
 Consequence, mirroring loop 1: it is structurally impossible for the MCP server (or the CLI) to describe an operation the collector doesn't serve, or to drift when the contract changes — the shadow-contract failure mode is deleted, not policed.
 
+### Workflow state — journal authority and disposable projections
+
+Workflow persistence has two owners and no third copy of truth. `qyl-api-schema`
+owns every public HTTP, SSE, and curated MCP workflow shape; its generated C# and
+TypeScript artifacts preserve branded identifiers, dedicated opaque cursors, closed
+projection-status variants, and structured deleted, cursor, unavailable, and corrupt
+errors. The collector owns the private persistence implementation. Its append-only
+DuckDB journal is the sole authoritative record of workflow history; run summaries,
+graphs, nodes, edges, statistics, manifests, repair state, and checkpoint files are
+derived and may be discarded and rebuilt. Durable deletion is a tombstone that blocks
+new events and stale publication without erasing journal history during ordinary
+retention.
+
+DuckDB.NET 1.5.5 is the storage floor and its APIs divide by semantics. Generated
+`DuckDBAppender.AppendRow<TState>` writers with reusable rows and static callbacks own
+eligible append-only ingestion; native `byte[]` mapping owns BLOB columns. Journal
+insertion itself remains typed, parameterized, transactional SQL wherever sequence
+allocation, idempotency, `ON CONFLICT`, affected-row counts, CAS, or `RETURNING` are
+required. Generated Arrow readers use streaming mode and asynchronous record batches
+for reconstruction and other bulk internal scans, dispose each batch at the generated
+ownership boundary, propagate cancellation, and convert directly into private
+projector state. Small point reads remain typed ADO.NET. Arrow and DuckDB storage types
+never cross the public contract boundary.
+
+Each run generation has at most one committed manifest referencing one immutable,
+content-addressed checkpoint containing its complete derived graph. A checkpoint is
+trusted only when its generation, included journal position, canonical journal/input
+hash, projector semantic fingerprint, configuration fingerprint, format version,
+byte length, and SHA-256 content address all match. Reads continue incrementally from
+that committed position; they do not replay the complete journal after a valid
+checkpoint exists. The bounded projection runtime coalesces demand per generation,
+distinguishes rotation from deletion, transfers waiters to a live successor, preserves
+cancellation ownership, and classifies DuckDB failures by the exhaustive 1.5.5
+`DuckDBErrorType` surface. Retryable failures receive bounded storage-level retries;
+constraint, schema, corruption, and programmer failures never become caller retry
+loops.
+
+Checkpoint replacement is write–flush-to-disk–close–validate–CAS-publish. The previous
+manifest and file remain active until that CAS succeeds; a loser reloads the winner and
+cannot overwrite it. A single hosted reconciliation owner validates manifests,
+schedules rebuilds for missing, corrupt, stale, or incompatible state, and removes
+temporary or orphaned files only after the safety interval. It never edits journal
+history to make a projection valid. Structured owned logs cover journal commit counts
+and latency, projection queue/coalescing/lifecycle and processed positions, full versus
+incremental work, checkpoint bytes and validation reasons, CAS outcomes, repairs,
+orphan cleanup, typed DuckDB classifications, and Arrow batch/row counts without
+workflow payloads or secrets.
+
+The private DuckDB schema and access paths are generated from one metadata model:
+canonical DDL, stable column order and types, authoritative and disposable SHA-256
+schema identities, appender writers, Arrow mappings, and verifier metadata. The active
+hashes live in `qyl_schema_meta`. Empty databases are created directly; disposable
+derived tables are dropped and recreated on mismatch. A mismatch touching non-empty
+authoritative run or journal tables fails closed and requires an explicit,
+operator-visible reset or a separately proven journal-preserving replacement. There is
+no ALTER/backfill compatibility-migration framework, persisted graph table, replay-on-
+read implementation, hand-written public workflow DTO, caller retry patch, or manual
+hot-path storage adapter to preserve.
+
+#### Workflow-storage acceptance evidence
+
+The remake was measured on 2026-07-31 on the same Apple M4 arm64 host with the
+same deterministic `Journal_pages_bound_large_histories` workload (2,000 events in
+four 500-event batches). Commit `61decc36` is the parameterized-per-row baseline;
+the accepted generated-appender implementation is the comparison. These are
+observed release measurements, not permanent latency thresholds.
+
+| Measure | Baseline | Generated appender |
+| --- | ---: | ---: |
+| Test duration | 3.338 s | 1.152 s |
+| Throughput | 599 events/s | 1,736 events/s |
+| Runtime-reported managed allocation | 8.99 MB | 7.69 MB |
+| Peak resident set | 494.9 MB | 177.5 MB |
+
+The full 2,000-event checkpoint probe produced a 1,168-byte content-addressed
+checkpoint and rebuilt it from the journal after deleting the committed file in
+58.8 ms. The final collector suite completed 195/195 tests in 50.4 seconds; the
+earlier multi-hour run was a stranded test process, not expected backend duration.
+Generated-source tests additionally assert the reusable `AppendRow<TState>` row,
+static callback, direct `byte[]`/BLOB mapping, streaming Arrow mode, and asynchronous
+batch ownership.
+
 ---
 
 ## 5. Enforcement over convention

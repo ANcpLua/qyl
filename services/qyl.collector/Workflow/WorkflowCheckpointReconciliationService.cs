@@ -35,12 +35,24 @@ internal sealed class WorkflowCheckpointReconciliationService(
             {
                 return;
             }
-            catch (Exception error) when (DuckDbTransientErrors.IsTransient(error))
+            catch (Exception error) when (DuckDbFailures.IsRetryable(error))
             {
+                var classification = DuckDbFailures.Classify(error);
+                WorkflowLifecycleLog.DuckDbFailure(
+                    logger,
+                    classification.ToString(),
+                    retry: true,
+                    error: error);
                 WorkflowLifecycleLog.ReconciliationDeferred(logger, error);
             }
             catch (Exception error)
             {
+                var classification = DuckDbFailures.Classify(error);
+                WorkflowLifecycleLog.DuckDbFailure(
+                    logger,
+                    classification.ToString(),
+                    retry: false,
+                    error: error);
                 // Checkpoint reconciliation is background maintenance. An
                 // unhandled exception here would otherwise reach the host and
                 // stop the collector, taking ingestion down for a fault that

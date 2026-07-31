@@ -1,4 +1,5 @@
 using Qyl.Api.Contracts.Workflow;
+using System.Text.Json.Serialization;
 
 namespace Qyl.Collector.Storage;
 
@@ -56,6 +57,19 @@ internal sealed partial record WorkflowRunDbRow
 
     public string? ActiveCheckpointStorageKey { get; init; }
 
+    public string? ActiveCheckpointInputHash { get; init; }
+
+    public string? ActiveCheckpointSemanticFingerprint { get; init; }
+
+    public string? ActiveCheckpointConfigurationFingerprint { get; init; }
+
+    public int? ActiveCheckpointFormatVersion { get; init; }
+
+    public long? ActiveCheckpointByteLength { get; init; }
+
+    [DuckDbColumn(SqlType = "TIMESTAMPTZ")]
+    public DateTimeOffset? ActiveCheckpointCreatedAt { get; init; }
+
     [DuckDbColumn(DefaultSql = "0")]
     public ulong CheckpointManifestEpoch { get; init; }
 
@@ -70,6 +84,9 @@ internal sealed partial record WorkflowRunDbRow
     [DuckDbColumn(SqlType = "JSON")]
     public string? MetadataJson { get; init; }
 
+    [DuckDbColumn(SqlType = "TIMESTAMPTZ")]
+    public DateTimeOffset? DeletedAt { get; init; }
+
     [DuckDbColumn(ExcludeFromInsert = true, SqlType = "TIMESTAMPTZ", DefaultSql = "current_timestamp")]
     public DateTimeOffset CreatedAt { get; init; }
 
@@ -79,13 +96,14 @@ internal sealed partial record WorkflowRunDbRow
     [DuckDbColumn(
         ExcludeFromInsert = true,
         SqlType = "TIMESTAMPTZ",
-        DefaultSql = "current_timestamp",
-        OmitDefaultFromMigration = true)]
+        DefaultSql = "current_timestamp")]
     public DateTimeOffset LastActivityAt { get; init; }
 }
 
 [DuckDbTable(
     "workflow_events",
+    AppenderEligible = true,
+    ArrowEligible = true,
     UniqueIndexes = "ProjectId,RunId,EventId;ProjectId,RunId,ClientId,SourceSequence")]
 internal sealed partial record WorkflowEventDbRow
 {
@@ -133,7 +151,10 @@ internal sealed partial record WorkflowEventDbRow
     public DateTimeOffset CreatedAt { get; init; }
 }
 
-[DuckDbTable("workflow_content", OnConflict = "ON CONFLICT DO NOTHING")]
+[DuckDbTable(
+    "workflow_content",
+    ArrowEligible = true,
+    OnConflict = "ON CONFLICT DO NOTHING")]
 internal sealed partial record WorkflowContentDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -269,13 +290,20 @@ internal sealed record WorkflowRunStorageRow(
     ulong ActiveCheckpointSequence = 0,
     string? ActiveCheckpointId = null,
     string? ActiveCheckpointStorageKey = null,
+    string? ActiveCheckpointInputHash = null,
+    string? ActiveCheckpointSemanticFingerprint = null,
+    string? ActiveCheckpointConfigurationFingerprint = null,
+    int? ActiveCheckpointFormatVersion = null,
+    long? ActiveCheckpointByteLength = null,
+    DateTimeOffset? ActiveCheckpointCreatedAt = null,
     ulong CheckpointManifestEpoch = 0,
     ulong? ProjectionFailureSequence = null,
     string? ProjectionFailureKind = null,
     string? ProjectionFailureConfiguration = null,
     string RunGeneration = "",
     string? ProjectionFailureSemantic = null,
-    DateTimeOffset LastActivityAt = default);
+    DateTimeOffset LastActivityAt = default,
+    DateTimeOffset? DeletedAt = null);
 
 internal sealed record WorkflowEventWrite(
     string EventId,
@@ -368,9 +396,82 @@ internal sealed record WorkflowProjectionPathWrites(
 internal sealed record WorkflowProjectionReplayState(
     string? ActiveAttemptId,
     IReadOnlyList<WorkflowProjectionNodeState> Nodes,
-    IReadOnlyList<WorkflowGraphEdge> Edges,
+    IReadOnlyList<WorkflowProjectionEdge> Edges,
     IReadOnlyList<WorkflowProjectionOwnerCursor> OwnerCursors,
     IReadOnlyList<WorkflowProjectionPathWrites> PathWrites);
+
+internal sealed class WorkflowProjectionRun
+{
+    public required string RunId { get; init; }
+    public string? ThreadId { get; init; }
+    public string? Title { get; init; }
+    public required WorkflowRunStatus Status { get; init; }
+    public required DateTimeOffset StartedAt { get; init; }
+    public DateTimeOffset? EndedAt { get; init; }
+    public required ulong LatestJournalSequence { get; init; }
+    public string? ActiveAttemptId { get; init; }
+}
+
+internal sealed class WorkflowProjectionNode
+{
+    public required string NodeId { get; init; }
+    public required WorkflowNodeKind Kind { get; init; }
+    public required string Label { get; init; }
+    public required string Status { get; init; }
+    public string? AttemptId { get; init; }
+    public string? AgentId { get; init; }
+    public DateTimeOffset? StartedAt { get; init; }
+    public DateTimeOffset? EndedAt { get; init; }
+    public double? DurationMs { get; init; }
+    public IReadOnlyList<string>? ContentRefs { get; init; }
+}
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(WorkflowProjectionRecordedEdgeProvenance), "recorded")]
+[JsonDerivedType(typeof(WorkflowProjectionDerivedEdgeProvenance), "derived")]
+internal interface WorkflowProjectionEdgeProvenance;
+
+internal sealed class WorkflowProjectionRecordedEdgeProvenance : WorkflowProjectionEdgeProvenance
+{
+    public required IReadOnlyList<string> EventIds { get; init; }
+}
+
+internal sealed class WorkflowProjectionDerivedEdgeProvenance : WorkflowProjectionEdgeProvenance
+{
+    public required IReadOnlyList<string> EventIds { get; init; }
+    public required string Evidence { get; init; }
+    public required double Confidence { get; init; }
+}
+
+internal sealed class WorkflowProjectionEdge
+{
+    public required string EdgeId { get; init; }
+    public required string SourceNodeId { get; init; }
+    public required string TargetNodeId { get; init; }
+    public required WorkflowEdgeKind Kind { get; init; }
+    public required WorkflowProjectionEdgeProvenance Provenance { get; init; }
+}
+
+internal sealed class WorkflowProjectionStatistics
+{
+    public required double T1Ms { get; init; }
+    public required double TInfinityMs { get; init; }
+    public required double WallTimeMs { get; init; }
+    public required int PeakConcurrency { get; init; }
+    public required int WorkerCount { get; init; }
+    public required double ParallelLowerBoundMs { get; init; }
+    public required IReadOnlyList<string> CriticalPathNodeIds { get; init; }
+}
+
+internal sealed class WorkflowProjectionGraph
+{
+    public required WorkflowProjectionRun Run { get; init; }
+    public required IReadOnlyList<WorkflowProjectionNode> Nodes { get; init; }
+    public required IReadOnlyList<WorkflowProjectionEdge> Edges { get; init; }
+    public required WorkflowProjectionStatistics Statistics { get; init; }
+    public required int TotalNodeCount { get; init; }
+    public required int TotalEdgeCount { get; init; }
+}
 
 internal sealed record WorkflowProjectionCheckpoint(
     int FormatVersion,
@@ -383,7 +484,7 @@ internal sealed record WorkflowProjectionCheckpoint(
     ulong JournalSequence,
     DateTimeOffset ProjectionTime,
     WorkflowProjectionReplayState ReplayState,
-    WorkflowGraphSnapshot Graph);
+    WorkflowProjectionGraph Graph);
 
 internal sealed record WorkflowControlCommandStorageRow(
     string ProjectId,
@@ -414,21 +515,11 @@ internal sealed class WorkflowEventConflictException(string message) : Exception
 
 internal sealed class WorkflowControlConflictException(string message) : Exception(message);
 
-// Applied storage migrations. The identifier is the migration's own name, so a
-// migration that has already run is recognised by presence alone.
-[DuckDbTable("qyl_storage_migrations")]
-internal sealed partial record QylStorageMigrationDbRow
-{
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string MigrationId { get; init; }
-
-    [DuckDbColumn(SqlType = "TIMESTAMPTZ", DefaultSql = "current_timestamp")]
-    public DateTimeOffset AppliedAt { get; init; }
-}
+internal sealed class QylSchemaMismatchException(string message) : Exception(message);
 
 // Runs whose checkpoint manifest was found broken and owe a rebuild. The row is
 // deleted by the publication that replaces the manifest.
-[DuckDbTable("workflow_checkpoint_repairs")]
+[DuckDbTable("workflow_checkpoint_repairs", Derived = true)]
 internal sealed partial record WorkflowCheckpointRepairDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -447,7 +538,7 @@ internal sealed partial record WorkflowCheckpointRepairDbRow
 // Single-row monotonic clock ordering manifest mutations against a sweep cycle.
 // The primary key pins the single row: every read and write addresses
 // `singleton = 0`, so no second row can be introduced.
-[DuckDbTable("workflow_checkpoint_clock")]
+[DuckDbTable("workflow_checkpoint_clock", Derived = true)]
 internal sealed partial record WorkflowCheckpointClockDbRow
 {
     [DuckDbColumn(SqlType = "UTINYINT", PrimaryKeyOrdinal = 0)]

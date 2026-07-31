@@ -40,10 +40,10 @@ public sealed class WorkflowObserverTests
             events.Select(static workflowEvent => workflowEvent.SourceSequence));
         Assert.Contains(events, static workflowEvent =>
             workflowEvent.Kind is WorkflowJournalEventKind.AgentSpawned &&
-            workflowEvent.AgentId == "thread-worker");
+            workflowEvent.AgentId?.Value == "thread-worker");
         Assert.Contains(events, static workflowEvent =>
             workflowEvent.Kind is WorkflowJournalEventKind.Joined &&
-            workflowEvent.ReceiverAgentId == "thread-worker");
+            workflowEvent.ReceiverAgentId?.Value == "thread-worker");
         Assert.Contains(events, static workflowEvent =>
             workflowEvent.Kind is WorkflowJournalEventKind.FileWritten &&
             workflowEvent.Data!["path"].ToString() == "src/storage.cs");
@@ -52,14 +52,16 @@ public sealed class WorkflowObserverTests
             .Where(static workflowEvent =>
                 workflowEvent.Kind is WorkflowJournalEventKind.AttemptCompleted)
             .ToArray();
-        Assert.Equal(["attempt-1", "attempt-2"], attempts.Select(static item => item.AttemptId));
+        Assert.Equal(
+            ["attempt-1", "attempt-2"],
+            attempts.Select(static item => item.AttemptId?.Value));
         Assert.Equal("interrupted", attempts[0].Data!["status"]);
         Assert.Equal("succeeded", attempts[1].Data!["status"]);
         Assert.Equal("completed", events[^1].Data!["status"]);
 
         Assert.All(content, static chunk =>
         {
-            Assert.StartsWith("sha256:", chunk.ContentRef, StringComparison.Ordinal);
+            Assert.StartsWith("sha256:", chunk.ContentRef.Value, StringComparison.Ordinal);
             Assert.Equal(WorkflowContentEncoding.Utf8, chunk.Encoding);
         });
         Assert.Contains(content, static chunk =>
@@ -166,7 +168,7 @@ public sealed class WorkflowObserverTests
 
         Assert.Equal(action, client.Action);
         Assert.Equal(
-            action is WorkflowControlAction.Interrupt ? null : command.CommandId,
+            action is WorkflowControlAction.Interrupt ? null : command.CommandId.Value,
             client.CommandId);
         Assert.Equal(input, client.Input);
     }
@@ -308,7 +310,7 @@ public sealed class WorkflowObserverTests
     {
         var chunk = new WorkflowContentChunk
         {
-            ContentRef = $"sha256:{new string('a', 64)}",
+            ContentRef = new WorkflowContentRef($"sha256:{new string('a', 64)}"),
             ContentType = "application/json",
             Encoding = WorkflowContentEncoding.Utf8,
             Content = content
@@ -316,7 +318,8 @@ public sealed class WorkflowObserverTests
         return new WorkflowSpoolEntry(
             new WorkflowEventAppend
             {
-                EventId = $"event-{sequence.ToString(CultureInfo.InvariantCulture)}",
+                EventId = new WorkflowEventId(
+                    $"event-{sequence.ToString(CultureInfo.InvariantCulture)}"),
                 SourceSequence = sequence,
                 Timestamp = s_receivedAt,
                 Kind = WorkflowJournalEventKind.RunCreated,
@@ -330,8 +333,8 @@ public sealed class WorkflowObserverTests
         string? input) =>
         new()
         {
-            CommandId = $"command-{action}",
-            RunId = "run-live",
+            CommandId = new WorkflowCommandId($"command-{action}"),
+            RunId = new WorkflowRunId("run-live"),
             Action = action,
             Status = WorkflowControlStatus.Requested,
             IdempotencyKey = $"idempotency-{action}",

@@ -195,11 +195,11 @@ public sealed class WorkflowGraphInvariantTests
         var after = await ReadGraphAsync(store);
 
         Assert.Equal(
-            before.Nodes.Select(static node => node.NodeId),
-            after.Nodes.Select(static node => node.NodeId));
+            before.Nodes.Select(static node => node.NodeId.Value),
+            after.Nodes.Select(static node => node.NodeId.Value));
         Assert.Equal(
-            before.Edges.Select(static edge => edge.EdgeId),
-            after.Edges.Select(static edge => edge.EdgeId));
+            before.Edges.Select(static edge => edge.EdgeId.Value),
+            after.Edges.Select(static edge => edge.EdgeId.Value));
         Assert.Equal(before.Statistics.T1Ms, after.Statistics.T1Ms);
         Assert.Equal(before.Statistics.TInfinityMs, after.Statistics.TInfinityMs);
         Assert.Equal(before.Statistics.CriticalPathNodeIds, after.Statistics.CriticalPathNodeIds);
@@ -207,8 +207,8 @@ public sealed class WorkflowGraphInvariantTests
         Assert.Equal(before.JournalSequence, after.JournalSequence);
 
         // Both attempts survive the rebuild: the journal established them, not the run row.
-        Assert.Contains(after.Nodes, static node => node.NodeId == "attempt:attempt-1");
-        Assert.Contains(after.Nodes, static node => node.NodeId == "attempt:attempt-2");
+        Assert.Contains(after.Nodes, static node => node.NodeId.Value == "attempt:attempt-1");
+        Assert.Contains(after.Nodes, static node => node.NodeId.Value == "attempt:attempt-2");
     }
 
     [Fact]
@@ -279,7 +279,7 @@ public sealed class WorkflowGraphInvariantTests
 
         var graph = await ReadGraphAsync(store);
 
-        Assert.Contains(graph.Nodes, static node => node.NodeId == "tool:run:root-tool");
+        Assert.Contains(graph.Nodes, static node => node.NodeId.Value == "tool:run:root-tool");
         Assert.Equal(100, graph.Statistics.T1Ms);
         Assert.Equal(100, graph.Statistics.TInfinityMs);
         Assert.Equal(1, graph.Statistics.PeakConcurrency);
@@ -336,16 +336,20 @@ public sealed class WorkflowGraphInvariantTests
 
         Assert.Equal(200, graph.Statistics.T1Ms);
         Assert.Equal(200, graph.Statistics.TInfinityMs);
-        Assert.Equal(expectedPath, graph.Statistics.CriticalPathNodeIds);
+        Assert.Equal(
+            expectedPath,
+            graph.Statistics.CriticalPathNodeIds.Select(static nodeId => nodeId.Value));
         Assert.All(
             expectedPath,
-            nodeId => Assert.Equal(1, graph.Statistics.CriticalPathNodeIds.Count(item => item == nodeId)));
+            nodeId => Assert.Equal(
+                1,
+                graph.Statistics.CriticalPathNodeIds.Count(item => item.Value == nodeId)));
         Assert.Equal(4, graph.Edges.Count(static edge => edge.Kind is WorkflowEdgeKind.Data));
         Assert.Contains(
             graph.Edges,
             static edge => edge.Kind is WorkflowEdgeKind.Control &&
-                           edge.SourceNodeId == "agent:attempt:attempt-1:b" &&
-                           edge.TargetNodeId == "tool:attempt:attempt-1:downstream");
+                           edge.SourceNodeId.Value == "agent:attempt:attempt-1:b" &&
+                           edge.TargetNodeId.Value == "tool:attempt:attempt-1:downstream");
 
         await using var skewedStore = new DuckDbStore(":memory:");
         await CreateRunAsync(skewedStore);
@@ -372,19 +376,27 @@ public sealed class WorkflowGraphInvariantTests
 
         Assert.Equal(graph.Statistics.T1Ms, skewed.Statistics.T1Ms);
         Assert.Equal(graph.Statistics.TInfinityMs, skewed.Statistics.TInfinityMs);
-        Assert.Equal(expectedPath, skewed.Statistics.CriticalPathNodeIds);
+        Assert.Equal(
+            expectedPath,
+            skewed.Statistics.CriticalPathNodeIds.Select(static nodeId => nodeId.Value));
         Assert.Equal(
             graph.Edges
                 .Where(static edge => edge.Kind is
                     WorkflowEdgeKind.Data or WorkflowEdgeKind.Control or WorkflowEdgeKind.Gate)
-                .Select(static edge => (edge.SourceNodeId, edge.TargetNodeId, edge.Kind))
+                .Select(static edge => (
+                    SourceNodeId: edge.SourceNodeId.Value,
+                    TargetNodeId: edge.TargetNodeId.Value,
+                    edge.Kind))
                 .OrderBy(static edge => edge.SourceNodeId, StringComparer.Ordinal)
                 .ThenBy(static edge => edge.TargetNodeId, StringComparer.Ordinal)
                 .ThenBy(static edge => edge.Kind),
             skewed.Edges
                 .Where(static edge => edge.Kind is
                     WorkflowEdgeKind.Data or WorkflowEdgeKind.Control or WorkflowEdgeKind.Gate)
-                .Select(static edge => (edge.SourceNodeId, edge.TargetNodeId, edge.Kind))
+                .Select(static edge => (
+                    SourceNodeId: edge.SourceNodeId.Value,
+                    TargetNodeId: edge.TargetNodeId.Value,
+                    edge.Kind))
                 .OrderBy(static edge => edge.SourceNodeId, StringComparer.Ordinal)
                 .ThenBy(static edge => edge.TargetNodeId, StringComparer.Ordinal)
                 .ThenBy(static edge => edge.Kind));
@@ -428,7 +440,7 @@ public sealed class WorkflowGraphInvariantTests
             null,
             10,
             TestContext.Current.CancellationToken);
-        Assert.Contains(maximumRunGraph!.Nodes, node => node.NodeId == $"run:{maximumRun}");
+        Assert.Contains(maximumRunGraph!.Nodes, node => node.NodeId.Value == $"run:{maximumRun}");
 
         await store.AppendWorkflowEventsAsync(
             "project-a", "run-1", "observer-1",
@@ -458,7 +470,7 @@ public sealed class WorkflowGraphInvariantTests
             [], TestContext.Current.CancellationToken);
 
         var graph = await ReadGraphAsync(store);
-        var ids = graph.Nodes.Select(static node => node.NodeId).ToHashSet(StringComparer.Ordinal);
+        var ids = graph.Nodes.Select(static node => node.NodeId.Value).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("agent:run:worker", ids);
         Assert.Contains("agent:attempt:run:worker", ids);
         Assert.Contains(@"agent:run:a\cb", ids);
@@ -483,34 +495,36 @@ public sealed class WorkflowGraphInvariantTests
         var exactParentId = $"agent:attempt:{exactAttempt}:parent";
         var boundedEdge = Assert.Single(
             graph.Edges,
-            edge => edge.SourceNodeId == exactParentId && edge.TargetNodeId == exactNodeId);
+            edge => edge.SourceNodeId.Value == exactParentId && edge.TargetNodeId.Value == exactNodeId);
         Assert.Equal(
             ExpectedHashedId("control", exactParentId, exactNodeId),
-            boundedEdge.EdgeId);
-        Assert.Matches("^control~[a-f0-9]{64}$", boundedEdge.EdgeId);
+            boundedEdge.EdgeId.Value);
+        Assert.Matches("^control~[a-f0-9]{64}$", boundedEdge.EdgeId.Value);
         Assert.Equal(ids.Count, graph.Nodes.Count);
         Assert.All(graph.Nodes, static node =>
-            Assert.InRange(node.NodeId.EnumerateRunes().Count(), 1, 192));
+            Assert.InRange(node.NodeId.Value.EnumerateRunes().Count(), 1, 192));
         Assert.All(graph.Edges, static edge =>
-            Assert.InRange(edge.EdgeId.EnumerateRunes().Count(), 1, 192));
+            Assert.InRange(edge.EdgeId.Value.EnumerateRunes().Count(), 1, 192));
         var page = await store.GetWorkflowGraphAsync(
             "project-a", "run-1", null, 1, null, 1, TestContext.Current.CancellationToken);
         Assert.NotNull(page!.NextNodeCursor);
         Assert.NotNull(page.NextEdgeCursor);
-        Assert.Equal(page.Nodes[^1].NodeId, page.NextNodeCursor);
-        Assert.Equal(page.Edges[^1].EdgeId, page.NextEdgeCursor);
-        Assert.InRange(page.NextNodeCursor!.EnumerateRunes().Count(), 1, 192);
-        Assert.InRange(page.NextEdgeCursor!.EnumerateRunes().Count(), 1, 192);
+        Assert.StartsWith("qylwg1.n.", page.NextNodeCursor.Value.Value, StringComparison.Ordinal);
+        Assert.StartsWith("qylwg1.e.", page.NextEdgeCursor.Value.Value, StringComparison.Ordinal);
+        Assert.NotEqual(page.Nodes[^1].NodeId.Value, page.NextNodeCursor.Value.Value);
+        Assert.NotEqual(page.Edges[^1].EdgeId.Value, page.NextEdgeCursor.Value.Value);
+        Assert.InRange(page.NextNodeCursor.Value.Value.EnumerateRunes().Count(), 1, 1536);
+        Assert.InRange(page.NextEdgeCursor.Value.Value.EnumerateRunes().Count(), 1, 1536);
 
         await store.RebuildWorkflowProjectionAsync(
             "project-a", "run-1", TestContext.Current.CancellationToken);
         var rebuilt = await ReadGraphAsync(store);
         Assert.Equal(
-            graph.Nodes.Select(static node => node.NodeId),
-            rebuilt.Nodes.Select(static node => node.NodeId));
+            graph.Nodes.Select(static node => node.NodeId.Value),
+            rebuilt.Nodes.Select(static node => node.NodeId.Value));
         Assert.Equal(
-            graph.Edges.Select(static edge => edge.EdgeId),
-            rebuilt.Edges.Select(static edge => edge.EdgeId));
+            graph.Edges.Select(static edge => edge.EdgeId.Value),
+            rebuilt.Edges.Select(static edge => edge.EdgeId.Value));
     }
 
     [Fact]
@@ -546,7 +560,7 @@ public sealed class WorkflowGraphInvariantTests
             TestContext.Current.CancellationToken);
 
         var ids = (await ReadGraphAsync(store)).Nodes
-            .Select(static node => node.NodeId)
+            .Select(static node => node.NodeId.Value)
             .ToHashSet(StringComparer.Ordinal);
         Assert.Contains("gate:run:approval:shared", ids);
         Assert.Contains("gate:run:command:shared", ids);
@@ -580,7 +594,7 @@ public sealed class WorkflowGraphInvariantTests
             "project-a", "run-1", "observer-1", events, [], TestContext.Current.CancellationToken);
 
         var original = (await ReadPageAsync(store, null, 1000)).Nodes
-            .Select(static node => node.NodeId)
+            .Select(static node => node.NodeId.Value)
             .ToHashSet(StringComparer.Ordinal);
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -590,12 +604,12 @@ public sealed class WorkflowGraphInvariantTests
             var snapshot = await ReadPageAsync(store, cursor, 10);
             foreach (var node in snapshot.Nodes)
             {
-                Assert.True(seen.Add(node.NodeId), $"node '{node.NodeId}' was returned on two pages");
+                Assert.True(seen.Add(node.NodeId.Value), $"node '{node.NodeId.Value}' was returned on two pages");
             }
 
             if (!snapshot.HasMoreNodes)
                 break;
-            cursor = snapshot.NextNodeCursor;
+            cursor = snapshot.NextNodeCursor?.Value;
             Assert.NotNull(cursor);
 
             await store.AppendWorkflowEventsAsync(
@@ -609,6 +623,70 @@ public sealed class WorkflowGraphInvariantTests
             missed.Length is 0,
             $"paging skipped {missed.Length} node(s) that existed before the first page: " +
             string.Join(", ", missed.Take(5)));
+    }
+
+    [Fact]
+    public async Task Graph_cursors_reject_cross_run_generation_stale_and_malformed_reuse()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var firstRun = await CreateRunAsync(store, "run-1");
+        await CreateRunAsync(store, "run-2");
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [
+                Event("attempt-1", 1, WorkflowJournalEventKind.AttemptStarted,
+                    attemptId: "attempt-1"),
+                Event("agent-1", 2, WorkflowJournalEventKind.AgentStarted,
+                    attemptId: "attempt-1", agentId: "agent-1")
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-2",
+            "observer-1",
+            [Event("attempt-2", 1, WorkflowJournalEventKind.AttemptStarted,
+                attemptId: "attempt-2")],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var first = await store.GetWorkflowGraphAsync(
+            "project-a", "run-1", null, 1, null, 10,
+            TestContext.Current.CancellationToken);
+        var cursor = first!.NextNodeCursor!.Value.Value;
+
+        var wrongRun = await Assert.ThrowsAsync<WorkflowCursorRejectedException>(() =>
+            store.GetWorkflowGraphAsync(
+                "project-a", "run-2", cursor, 10, null, 10,
+                TestContext.Current.CancellationToken));
+        Assert.Equal(WorkflowCursorFailureReason.WrongRun, wrongRun.Reason);
+
+        var successorGeneration = Guid.NewGuid().ToString("N");
+        var wrongGenerationCursor = WorkflowGraphCursorCodec.EncodeNode(
+            "project-a", "run-1", firstRun.RunGeneration, "run:run-1");
+        var wrongGeneration = Assert.Throws<WorkflowCursorRejectedException>(() =>
+            WorkflowGraphCursorCodec.DecodeNode(
+                wrongGenerationCursor,
+                "project-a",
+                "run-1",
+                successorGeneration));
+        Assert.Equal(WorkflowCursorFailureReason.WrongGeneration, wrongGeneration.Reason);
+
+        var staleCursor = WorkflowGraphCursorCodec.EncodeNode(
+            "project-a", "run-1", firstRun.RunGeneration, "missing-node");
+        var stale = await Assert.ThrowsAsync<WorkflowCursorRejectedException>(() =>
+            store.GetWorkflowGraphAsync(
+                "project-a", "run-1", staleCursor, 10, null, 10,
+                TestContext.Current.CancellationToken));
+        Assert.Equal(WorkflowCursorFailureReason.Stale, stale.Reason);
+
+        var malformed = await Assert.ThrowsAsync<WorkflowCursorRejectedException>(() =>
+            store.GetWorkflowGraphAsync(
+                "project-a", "run-1", "not-a-cursor", 10, null, 10,
+                TestContext.Current.CancellationToken));
+        Assert.Equal(WorkflowCursorFailureReason.Invalid, malformed.Reason);
     }
 
     private static async Task<WorkflowGraphSnapshot> ReadPageAsync(DuckDbStore store, string? cursor, int limit)
@@ -682,11 +760,13 @@ public sealed class WorkflowGraphInvariantTests
         return $"{kind}~{Convert.ToHexStringLower(digest)}";
     }
 
-    private static Task<WorkflowRunStorageRow> CreateRunAsync(DuckDbStore store) =>
+    private static Task<WorkflowRunStorageRow> CreateRunAsync(
+        DuckDbStore store,
+        string runId = "run-1") =>
         store.CreateWorkflowRunAsync(
             new WorkflowRunStorageRow(
                 "project-a",
-                "run-1",
+                runId,
                 "thread-1",
                 "Graph invariant fixture",
                 WorkflowRunStatus.Active,

@@ -1205,51 +1205,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     Target VerifyCollectorStorageTablesUseGeneratedDdl => d => d
         .Unlisted()
-        .Description("Verify storage row tables and indexes use generated DuckDB DDL")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
-            if (!storeFile.FileExists())
-                throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
-
-            var initializedDdlMembers = DuckDbStoreGeneratedDdlReferences(storeFile);
-            var tableInfos = ReadDuckDbTableDdlInfos();
-            var requiredDdlMembers = tableInfos
-                .Select(info => info.TypeName + ".CreateTableDdl")
-                .Concat(tableInfos
-                    .Where(static info => info.HasIndexes)
-                    .Select(static info => info.TypeName + ".IndexesDdl"))
-                .ToArray();
-
-            var missing = requiredDdlMembers
-                .Where(member => !initializedDdlMembers.Contains(member))
-                .ToList();
-            var forbidden = ManualStorageDdlOffenders().ToList();
-
-            if (missing.Count is 0 && forbidden.Count is 0)
-            {
-                Log.Information("Collector storage row tables and indexes use generated DuckDB DDL");
-                return;
-            }
-
-            foreach (var member in missing)
-                Log.Error("  Missing generated DDL usage in DuckDbStore.cs: {Member}", member);
-
-            foreach (var offender in forbidden)
-                Log.Error("  Manual storage DDL at {File}:{Line}: {Text}",
-                    offender.File,
-                    offender.Line,
-                    offender.Text);
-
-            throw new InvalidOperationException(
-                "Do not handwrite CREATE TABLE or CREATE INDEX DDL for generated storage rows. Put schema metadata on " +
-                "DuckDbTable/DuckDbColumn attributes and initialize row tables/indexes through generated DDL constants.");
-        });
-
-    Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d
-        .Unlisted()
-        .Description("Verify storage row writes use generated DuckDB insert helpers")
+        .Description("Verify generated DuckDB schema identity owns storage lifecycle")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -1258,11 +1214,97 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
 
             var text = File.ReadAllText(storeFile);
+            string[] requiredSchemaOwnership =
+            [
+                "DuckDbGeneratedSchema.BootstrapDdl",
+                "DuckDbGeneratedSchema.AuthoritativeHash",
+                "DuckDbGeneratedSchema.DerivedHash",
+                "DuckDbGeneratedSchema.AuthoritativeDdl",
+                "DuckDbGeneratedSchema.DerivedDdl",
+                "QylSchemaMismatchException",
+                "FindSchemaMismatches"
+            ];
+            string[] forbiddenMigrationSurface =
+            [
+                "MigrateWorkflowLifecycle",
+                "ApplyWorkflowLifecycleRequiredConstraints",
+                "RepairWorkflowManifestIdentities",
+                "BackfillWorkflowLifecycle",
+                "ALTER COLUMN",
+                "MigrateTableDdl",
+                "OmitDefaultFromMigration"
+            ];
+
+            var storageAndGeneratorText = string.Join('\n',
+                (CollectorDirectory / "Storage").GlobFiles("*.cs")
+                    .Concat((RootDirectory / "internal" / "qyl.collector.storage.generators")
+                        .GlobFiles("*.cs"))
+                    .Select(static file => File.ReadAllText(file.ToString())));
+            var missing = requiredSchemaOwnership
+                .Where(token => !text.Contains(token, StringComparison.Ordinal))
+                .ToList();
+            var obsolete = forbiddenMigrationSurface
+                .Where(token => storageAndGeneratorText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+            var forbidden = ManualStorageDdlOffenders().ToList();
+
+            if (missing.Count is 0 && obsolete.Count is 0 && forbidden.Count is 0)
+            {
+                Log.Information("Generated schema hashes own DuckDB reset and recreation");
+                return;
+            }
+
+            foreach (var token in missing)
+                Log.Error("  Missing generated schema ownership in DuckDbStore.cs: {Token}", token);
+
+            foreach (var token in obsolete)
+                Log.Error("  Obsolete ALTER/backfill migration surface remains: {Token}", token);
+
+            foreach (var offender in forbidden)
+                Log.Error("  Manual storage DDL at {File}:{Line}: {Text}",
+                    offender.File,
+                    offender.Line,
+                    offender.Text);
+
+            throw new InvalidOperationException(
+                "DuckDbTable/DuckDbColumn metadata must generate the exact DDL, structural catalog and SHA-256 " +
+                "schema identity. Authoritative mismatches fail closed when data exists; disposable derived " +
+                "schemas are dropped and recreated. Do not restore ALTER/backfill migration machinery.");
+        });
+
+    Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d
+        .Unlisted()
+        .Description("Verify generated DuckDB hot paths use the correct 1.5.5 APIs")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var workflowFile = CollectorDirectory / "Storage" / "DuckDbStore.Workflow.cs";
+            var checkpointsFile = CollectorDirectory / "Storage" / "DuckDbStore.WorkflowCheckpoints.cs";
+            var workflowModelsFile = CollectorDirectory / "Storage" / "WorkflowStorageModels.cs";
+            var emitterFile = RootDirectory / "internal" / "qyl.collector.storage.generators" / "DuckDbEmitter.cs";
+            if (!storeFile.FileExists())
+                throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
+
+            var text = string.Join('\n',
+                File.ReadAllText(storeFile),
+                File.ReadAllText(workflowFile),
+                File.ReadAllText(checkpointsFile),
+                File.ReadAllText(workflowModelsFile),
+                File.ReadAllText(emitterFile));
 
             string[] requiredGeneratedInsertHelpers =
             [
                 "InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters",
-                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters"
+                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters",
+                "WorkflowEventDbRow.CreateAppender",
+                "WorkflowEventDbRow.AppendRow",
+                "AppenderEligible = true",
+                "appender.AppendRow(state, static (row, value)",
+                "WorkflowEventDbRow.ReadArrowRowsAsync",
+                "ExecuteArrowBatchesAsync(cancellationToken)",
+                "command.UseStreamingMode = true",
+                "UseStreamingMode = true"
             ];
 
             string[] forbiddenManualInsertLoopTokens =
@@ -1272,7 +1314,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "BuildMultiRowInsertSql(chunkSize)",
                 "LogStorageRow.AddParameters(cmd, logs[offset + i])",
                 "SpanStorageRow.AddParameters(cmd, spans[offset + i])",
-                "MapSpan(reader)"
+                "MapSpan(reader)",
+                "WorkflowEventDbRow.BuildMultiRowInsertSql"
             ];
 
             var missing = requiredGeneratedInsertHelpers
@@ -1284,7 +1327,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             if (missing.Count is 0 && forbidden.Count is 0)
             {
-                Log.Information("Collector storage row writes use generated DuckDB insert helpers");
+                Log.Information("Collector DuckDB hot paths use generated appender and Arrow APIs");
                 return;
             }
 
@@ -1295,8 +1338,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 Log.Error("  Manual storage row insert loop token found in DuckDbStore.cs: {Token}", token);
 
             throw new InvalidOperationException(
-                "Do not handwrite per-row storage insert loops for generated row types. Use InsertRowsBatchedAsync " +
-                "with each row type's generated AddParameters and BuildMultiRowInsertSql helpers.");
+                "Use generated AppendRow<TState> for eligible append-only workflow events, generated Arrow streaming " +
+                "for bulk workflow reads, and parameterized SQL only for conflict, CAS or RETURNING semantics.");
         });
 
     Target VerifyOtlpProtoSourcesPinned => d => d
@@ -1835,10 +1878,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                                     + " must upsert ON CONFLICT (project_id, trace_id, span_id)");
             }
 
-            if (!StoreInitializesGeneratedSpanDdl(storeFile))
+            if (!StoreInitializesGeneratedAuthoritativeDdl(storeFile))
             {
                 missingRequired.Add(RootDirectory.GetRelativePathTo(storeFile).ToString()
-                                    + " must initialize spans through SpanStorageRow.CreateTableDdl");
+                                    + " must initialize authoritative tables through "
+                                    + "DuckDbGeneratedSchema.AuthoritativeDdl");
             }
 
             var unsafeSql = UnsafeSpanIdentitySqlFragments().ToList();
@@ -2083,7 +2127,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "ShouldDropTelemetryTablesForSpanIdentity",
                 "s_legacyTelemetry",
                 "PRAGMA table_info",
-                "DROP TABLE IF EXISTS",
+                "DROP TABLE IF EXISTS spans",
+                "DROP TABLE IF EXISTS logs",
                 "ModelPricingService",
                 "ModelPricingRow",
                 "GenAiCostUsd",
@@ -2996,19 +3041,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                tableInfos.Any(info => normalized.Contains(" from " + info.TableName, StringComparison.Ordinal));
     }
 
-    private static IReadOnlySet<string> DuckDbStoreGeneratedDdlReferences(AbsolutePath storeFile)
-    {
-        var root = ParseCompilationUnit(storeFile);
-        return root.DescendantNodes()
-            .OfType<MemberAccessExpressionSyntax>()
-            .Where(static memberAccess => memberAccess.Name.Identifier.ValueText is "CreateTableDdl" or "IndexesDdl" &&
-                                          memberAccess.Expression is IdentifierNameSyntax)
-            .Select(static memberAccess =>
-                ((IdentifierNameSyntax)memberAccess.Expression).Identifier.ValueText + "." +
-                memberAccess.Name.Identifier.ValueText)
-            .ToHashSet(StringComparer.Ordinal);
-    }
-
     private IEnumerable<ManualDdlOffender> ManualStorageDdlOffenders()
     {
         foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
@@ -3116,7 +3148,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         return new StorageRowIdentity(primaryKeyOrdinals, onConflict);
     }
 
-    private static bool StoreInitializesGeneratedSpanDdl(AbsolutePath storeFile)
+    private static bool StoreInitializesGeneratedAuthoritativeDdl(AbsolutePath storeFile)
     {
         if (!storeFile.FileExists())
             return false;
@@ -3125,8 +3157,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         return root.DescendantNodes()
             .OfType<MemberAccessExpressionSyntax>()
             .Any(static memberAccess =>
-                memberAccess.Expression is IdentifierNameSyntax { Identifier.ValueText: "SpanStorageRow" } &&
-                memberAccess.Name.Identifier.ValueText is "CreateTableDdl");
+                memberAccess.Expression is IdentifierNameSyntax
+                {
+                    Identifier.ValueText: "DuckDbGeneratedSchema"
+                } &&
+                memberAccess.Name.Identifier.ValueText is "AuthoritativeDdl");
     }
 
     private IEnumerable<UnsafeSqlOffender> UnsafeSpanIdentitySqlFragments()

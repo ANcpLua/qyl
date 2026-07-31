@@ -55,7 +55,7 @@ internal sealed class CodexEventNormalizer
             ? paramsElement
             : default;
         var events = new List<WorkflowEventAppend>();
-        var content = new Dictionary<string, WorkflowContentChunk>(StringComparer.Ordinal);
+        var content = new Dictionary<WorkflowContentRef, WorkflowContentChunk>();
 
         switch (method)
         {
@@ -317,7 +317,7 @@ internal sealed class CodexEventNormalizer
         DateTimeOffset receivedAt,
         bool completed,
         List<WorkflowEventAppend> events,
-        Dictionary<string, WorkflowContentChunk> content)
+        Dictionary<WorkflowContentRef, WorkflowContentChunk> content)
     {
         if (!TryString(parameters, "threadId", out var threadId) ||
             !TryString(parameters, "turnId", out var turnId) ||
@@ -407,7 +407,7 @@ internal sealed class CodexEventNormalizer
         string? attemptId,
         DateTimeOffset timestamp,
         bool completed,
-        IReadOnlyList<string> contentRefs,
+        IReadOnlyList<WorkflowContentRef> contentRefs,
         List<WorkflowEventAppend> events)
     {
         var itemId = RequiredString(item, "id");
@@ -531,7 +531,7 @@ internal sealed class CodexEventNormalizer
         string turnId,
         string? attemptId,
         DateTimeOffset timestamp,
-        IReadOnlyList<string> contentRefs,
+        IReadOnlyList<WorkflowContentRef> contentRefs,
         List<WorkflowEventAppend> events)
     {
         if (!TryString(item, "agentThreadId", out var agentThreadId))
@@ -568,7 +568,7 @@ internal sealed class CodexEventNormalizer
         string? attemptId,
         DateTimeOffset timestamp,
         bool completed,
-        IReadOnlyList<string> contentRefs,
+        IReadOnlyList<WorkflowContentRef> contentRefs,
         List<WorkflowEventAppend> events)
     {
         var itemId = RequiredString(item, "id");
@@ -655,7 +655,7 @@ internal sealed class CodexEventNormalizer
         JsonElement parameters,
         DateTimeOffset receivedAt,
         List<WorkflowEventAppend> events,
-        Dictionary<string, WorkflowContentChunk> content)
+        Dictionary<WorkflowContentRef, WorkflowContentChunk> content)
     {
         if (!TryString(parameters, "threadId", out var threadId) ||
             !TryString(parameters, "turnId", out var turnId) ||
@@ -720,7 +720,7 @@ internal sealed class CodexEventNormalizer
         DateTimeOffset timestamp,
         bool completed,
         List<WorkflowEventAppend> events,
-        Dictionary<string, WorkflowContentChunk> content)
+        Dictionary<WorkflowContentRef, WorkflowContentChunk> content)
     {
         if (!TryString(parameters, "threadId", out var threadId) ||
             !TryString(parameters, "turnId", out var turnId) ||
@@ -759,7 +759,7 @@ internal sealed class CodexEventNormalizer
         string? parentAgentId,
         string? receiverAgentId,
         string? toolCallId,
-        IReadOnlyList<string> contentRefs,
+        IReadOnlyList<WorkflowContentRef> contentRefs,
         IReadOnlyDictionary<string, object>? data)
     {
         var workflowEvent = CreateEvent(
@@ -790,24 +790,24 @@ internal sealed class CodexEventNormalizer
         string? parentAgentId,
         string? receiverAgentId,
         string? toolCallId,
-        IReadOnlyList<string> contentRefs,
+        IReadOnlyList<WorkflowContentRef> contentRefs,
         IReadOnlyDictionary<string, object>? data)
     {
         if (!_eventIds.Add(eventId))
             return null;
         return new WorkflowEventAppend
         {
-            EventId = eventId,
+            EventId = new WorkflowEventId(eventId),
             SourceSequence = ++_sourceSequence,
             Timestamp = timestamp,
             Kind = kind,
             ThreadId = threadId,
             TurnId = turnId,
-            AttemptId = attemptId,
-            AgentId = agentId,
-            ParentAgentId = parentAgentId,
-            ReceiverAgentId = receiverAgentId,
-            ToolCallId = toolCallId,
+            AttemptId = attemptId is null ? null : new WorkflowAttemptId(attemptId),
+            AgentId = agentId is null ? null : new WorkflowAgentId(agentId),
+            ParentAgentId = parentAgentId is null ? null : new WorkflowAgentId(parentAgentId),
+            ReceiverAgentId = receiverAgentId is null ? null : new WorkflowAgentId(receiverAgentId),
+            ToolCallId = toolCallId is null ? null : new WorkflowToolCallId(toolCallId),
             ContentRefs = contentRefs.Count is 0 ? null : contentRefs,
             Data = data
         };
@@ -857,7 +857,7 @@ internal sealed class CodexEventNormalizer
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
         return new WorkflowContentChunk
         {
-            ContentRef = $"sha256:{hash}",
+            ContentRef = new WorkflowContentRef($"sha256:{hash}"),
             ContentType = "application/json",
             Encoding = WorkflowContentEncoding.Utf8,
             Content = json

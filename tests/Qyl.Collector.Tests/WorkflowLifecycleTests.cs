@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using DuckDB.NET.Data;
@@ -38,6 +39,17 @@ public sealed class WorkflowLifecycleTests
             Assert.Equal(
                 WorkflowCheckpointStore.CanonicalStorageIdentity(first),
                 first.ActiveCheckpointStorageKey);
+            Assert.True(WorkflowCheckpointStore.HasCanonicalManifest(first));
+            Assert.Equal(
+                WorkflowProjectionBuilder.RunInputHash(first),
+                first.ActiveCheckpointInputHash);
+            Assert.Equal(
+                WorkflowProjectionBuilder.SemanticFingerprint,
+                first.ActiveCheckpointSemanticFingerprint);
+            Assert.NotNull(first.ActiveCheckpointConfigurationFingerprint);
+            Assert.Equal(2, first.ActiveCheckpointFormatVersion);
+            Assert.True(first.ActiveCheckpointByteLength > 0);
+            Assert.NotNull(first.ActiveCheckpointCreatedAt);
             Assert.True(first.CheckpointManifestEpoch > 0);
 
             await store.AppendWorkflowEventsAsync(
@@ -53,90 +65,22 @@ public sealed class WorkflowLifecycleTests
             Assert.Equal(
                 WorkflowCheckpointStore.CanonicalStorageIdentity(second),
                 second.ActiveCheckpointStorageKey);
+            Assert.True(WorkflowCheckpointStore.HasCanonicalManifest(second));
+            Assert.Equal(
+                WorkflowProjectionBuilder.RunInputHash(second),
+                second.ActiveCheckpointInputHash);
+            Assert.Equal(
+                WorkflowProjectionBuilder.SemanticFingerprint,
+                second.ActiveCheckpointSemanticFingerprint);
+            Assert.Equal(
+                first.ActiveCheckpointConfigurationFingerprint,
+                second.ActiveCheckpointConfigurationFingerprint);
+            Assert.Equal(2, second.ActiveCheckpointFormatVersion);
+            Assert.True(second.ActiveCheckpointByteLength > 0);
+            Assert.NotNull(second.ActiveCheckpointCreatedAt);
             Assert.True(
                 second.CheckpointManifestEpoch >
                 first.CheckpointManifestEpoch);
-        }
-        finally
-        {
-            DeleteDatabase(databasePath);
-        }
-    }
-
-    [Fact]
-    public async Task Startup_repairs_exact_manifest_triples_and_clears_partial_identity()
-    {
-        var databasePath = DatabasePath("checkpoint-manifest-triples");
-        try
-        {
-            var manifests = new Dictionary<string, WorkflowRunStorageRow>(
-                StringComparer.Ordinal);
-            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
-            {
-                foreach (var runId in new[] { "null-key", "stale-key", "forged-key", "partial" })
-                {
-                    await CreateRunAsync(seed, runId);
-                    await seed.AppendWorkflowEventsAsync(
-                        "project-a", runId, "client-a", [Event($"{runId}-one", 1)], [],
-                        TestContext.Current.CancellationToken);
-                    Assert.NotNull(await seed.GetWorkflowGraphAsync(
-                        "project-a", runId, null, 100, null, 100,
-                        TestContext.Current.CancellationToken));
-                    manifests.Add(
-                        runId,
-                        (await seed.GetWorkflowRunAsync(
-                            "project-a",
-                            runId,
-                            TestContext.Current.CancellationToken))!);
-                }
-            }
-
-            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
-            {
-                await connection.OpenAsync(TestContext.Current.CancellationToken);
-                await using var corrupt = connection.CreateCommand();
-                corrupt.CommandText = """
-                                      UPDATE workflow_runs
-                                      SET active_checkpoint_storage_key =
-                                          CASE run_id
-                                              WHEN 'null-key' THEN NULL
-                                              WHEN 'stale-key' THEN 'stale'
-                                              WHEN 'forged-key' THEN $1
-                                              ELSE active_checkpoint_storage_key
-                                          END,
-                                          active_checkpoint_id =
-                                              CASE WHEN run_id = 'partial'
-                                                  THEN NULL
-                                                  ELSE active_checkpoint_id END
-                                      WHERE project_id = 'project-a'
-                                        AND run_id IN (
-                                            'null-key',
-                                            'stale-key',
-                                            'forged-key',
-                                            'partial')
-                                      """;
-                corrupt.Parameters.Add(new DuckDBParameter
-                {
-                    Value = manifests["null-key"].ActiveCheckpointStorageKey!
-                });
-                await corrupt.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-            }
-
-            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
-            foreach (var runId in new[] { "null-key", "stale-key", "forged-key" })
-            {
-                var repaired = await store.GetWorkflowRunAsync(
-                    "project-a", runId, TestContext.Current.CancellationToken);
-                Assert.True(WorkflowCheckpointStore.HasCanonicalManifest(repaired!));
-                Assert.Equal(
-                    WorkflowCheckpointStore.CanonicalStorageIdentity(repaired),
-                    repaired.ActiveCheckpointStorageKey);
-            }
-            var partial = await store.GetWorkflowRunAsync(
-                "project-a", "partial", TestContext.Current.CancellationToken);
-            Assert.Equal(0UL, partial!.ActiveCheckpointSequence);
-            Assert.Null(partial.ActiveCheckpointId);
-            Assert.Null(partial.ActiveCheckpointStorageKey);
         }
         finally
         {
@@ -160,7 +104,7 @@ public sealed class WorkflowLifecycleTests
                 [
                     new WorkflowEventAppend
                     {
-                        EventId = "forged-control",
+                        EventId = new WorkflowEventId("forged-control"),
                         SourceSequence = 1,
                         Timestamp = s_timestamp,
                         Kind = WorkflowJournalEventKind.ContentCaptured
@@ -179,163 +123,26 @@ public sealed class WorkflowLifecycleTests
     }
 
     [Fact]
-    public async Task Legacy_reconstruction_preserves_collector_control_acknowledgement_state()
+    public async Task Authoritative_schema_mismatch_with_journal_rows_fails_closed()
     {
-        var databasePath = DatabasePath("legacy-control-journal");
+        var databasePath = DatabasePath("authoritative-schema-mismatch");
         try
         {
             await SeedLegacyWorkflowDatabaseAsync(databasePath);
-            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
-            {
-                await connection.OpenAsync(TestContext.Current.CancellationToken);
-                await using var insert = connection.CreateCommand();
-                insert.CommandText = WorkflowEventDbRow.BuildMultiRowInsertSql(1);
-                WorkflowEventDbRow.AddParameters(
-                    insert,
-                    new WorkflowEventDbRow
-                    {
-                        ProjectId = "project-a",
-                        RunId = "run-1",
-                        JournalSequence = 3,
-                        EventId = "legacy-control",
-                        ClientId = "collector-control",
-                        SourceSequence = 7,
-                        EventTime = s_timestamp.AddMilliseconds(3),
-                        Kind = "control_requested",
-                        ThreadId = "thread-1",
-                        TurnId = null,
-                        AttemptId = null,
-                        AgentId = null,
-                        ParentAgentId = null,
-                        ReceiverAgentId = null,
-                        ToolCallId = null,
-                        ContentRefsJson = "[]",
-                        DataJson = null
-                    });
-                await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-            }
 
-            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
-            await using var verify = new DuckDBConnection($"DataSource={databasePath}");
-            await verify.OpenAsync(TestContext.Current.CancellationToken);
-            await using var command = verify.CreateCommand();
-            command.CommandText = """
-                                  SELECT acknowledged_source_sequence
-                                  FROM workflow_client_journal
-                                  WHERE project_id = 'project-a'
-                                    AND run_id = 'run-1'
-                                    AND client_id = 'collector-control'
-                                  """;
-            Assert.Equal(
-                0UL,
-                Convert.ToUInt64(
-                    await command.ExecuteScalarAsync(
-                        TestContext.Current.CancellationToken)));
-            command.CommandText = """
-                                  SELECT count(*)
-                                  FROM workflow_client_journal_ranges
-                                  WHERE project_id = 'project-a'
-                                    AND run_id = 'run-1'
-                                    AND client_id = 'collector-control'
-                                    AND range_start = 7
-                                    AND range_end = 7
-                                  """;
-            Assert.Equal(
-                1,
-                Convert.ToInt32(
-                    await command.ExecuteScalarAsync(
-                        TestContext.Current.CancellationToken)));
-        }
-        finally
-        {
-            DeleteDatabase(databasePath);
-        }
-    }
-
-    [Fact]
-    public async Task Legacy_journal_state_is_backfilled_into_the_lifecycle_columns()
-    {
-        var databasePath = DatabasePath("legacy-backfill");
-        var maximumRetainedRuns = 0;
-        var retentionObservations = 0;
-        try
-        {
-            await SeedLegacyWorkflowDatabaseAsync(databasePath);
-            await AddLegacyRunsAsync(databasePath, 64);
-            await using (var store = new DuckDbStore(
-                             databasePath,
-                             maxConcurrentReads: 1,
-                             observeWorkflowMigrationRetainedRuns: retained =>
-                             {
-                                 Interlocked.Increment(ref retentionObservations);
-                                 maximumRetainedRuns = Math.Max(
-                                     maximumRetainedRuns,
-                                     retained);
-                             }))
-            {
-                var run = await store.GetWorkflowRunAsync(
-                    "project-a", "run-1", TestContext.Current.CancellationToken);
-                var events = await store.ReadWorkflowEventsAsync(
-                    "project-a", "run-1", 0, 10,
-                    TestContext.Current.CancellationToken);
-                Assert.NotNull(run);
-                Assert.Equal(2L, run.EventCount);
-                Assert.Equal(2UL, run.LatestJournalSequence);
-                Assert.Equal(5UL, run.NextCommandSequence);
-                Assert.Equal(1UL, run.NextControlEventSourceSequence);
-                Assert.Equal(
-                    WorkflowCanonicalization.MeasureImmutableRunInput(run) +
-                    WorkflowCanonicalization.MeasureDynamicRunInput(run) +
-                    events!.Events.Sum(WorkflowCanonicalization.MeasureEventInput),
-                    run.ProjectionInputBytes);
-                Assert.Equal(
-                    s_timestamp.AddDays(-40),
-                    run.LastActivityAt);
-                Assert.True(WorkflowCheckpointStore.IsCanonicalGeneration(
-                    run.RunGeneration));
-
-                var projected = await store.GetWorkflowGraphAsync(
-                    "project-a", "run-1", null, 100, null, 100,
-                    TestContext.Current.CancellationToken);
-                Assert.Equal(2UL, projected!.JournalSequence);
-                var gapFill = await store.AppendWorkflowEventsAsync(
-                    "project-a",
-                    "run-1",
-                    "client-a",
-                    [Event("source-two", 2)],
-                    [],
-                    TestContext.Current.CancellationToken);
-                Assert.Equal(3UL, gapFill.AcknowledgedSourceSequence);
-            }
-            Assert.True(retentionObservations >= 130);
-            Assert.Equal(1, maximumRetainedRuns);
+            var error = Assert.Throws<QylSchemaMismatchException>(
+                () => new DuckDbStore(databasePath, maxConcurrentReads: 1));
+            Assert.Contains("will not ALTER or delete", error.Message, StringComparison.Ordinal);
 
             await using var connection = new DuckDBConnection($"DataSource={databasePath}");
             await connection.OpenAsync(TestContext.Current.CancellationToken);
             await using var command = connection.CreateCommand();
-            command.CommandText = """
-                                  SELECT count(*)
-                                  FROM information_schema.columns
-                                  WHERE table_name = 'workflow_runs'
-                                    AND column_name IN (
-                                        'run_generation',
-                                        'latest_journal_sequence',
-                                        'event_count',
-                                        'projection_input_bytes',
-                                        'immutable_projection_input_bytes',
-                                        'dynamic_projection_input_bytes',
-                                        'next_command_sequence',
-                                        'next_control_event_source_sequence',
-                                        'active_checkpoint_sequence',
-                                        'checkpoint_manifest_epoch',
-                                        'last_activity_at')
-                                    AND is_nullable <> 'NO'
-                                  """;
+            command.CommandText = "SELECT count(*) FROM workflow_events";
             Assert.Equal(
-                0,
+                2,
                 Convert.ToInt32(
-                    await command.ExecuteScalarAsync(
-                        TestContext.Current.CancellationToken)));
+                    await command.ExecuteScalarAsync(TestContext.Current.CancellationToken),
+                    CultureInfo.InvariantCulture));
         }
         finally
         {
@@ -344,62 +151,101 @@ public sealed class WorkflowLifecycleTests
     }
 
     [Fact]
-    public async Task Persisted_path_components_are_repaired_without_escaping_checkpoint_root()
+    public async Task Missing_authoritative_table_cannot_adopt_a_partially_populated_database()
     {
-        var databasePath = DatabasePath("path-containment");
-        var sentinel = $"{databasePath}.sentinel";
+        var databasePath = DatabasePath("partial-authoritative-schema");
         try
         {
             await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
-            {
                 await CreateRunAsync(seed, "run-1");
-                await seed.AppendWorkflowEventsAsync(
-                    "project-a", "run-1", "client-a", [Event("one", 1)], [],
-                    TestContext.Current.CancellationToken);
-                Assert.NotNull(await seed.GetWorkflowGraphAsync(
-                    "project-a", "run-1", null, 100, null, 100,
-                    TestContext.Current.CancellationToken));
+
+            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await using var damage = connection.CreateCommand();
+                damage.CommandText = """
+                                     DELETE FROM qyl_schema_meta;
+                                     DROP TABLE workflow_content_refs;
+                                     """;
+                await damage.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             }
-            await File.WriteAllTextAsync(
-                sentinel,
-                "outside-checkpoint-root",
-                TestContext.Current.CancellationToken);
+
+            var error = Assert.Throws<QylSchemaMismatchException>(
+                () => new DuckDbStore(databasePath, maxConcurrentReads: 1));
+            Assert.Contains("persisted data exists", error.Message, StringComparison.Ordinal);
+
+            await using var verify = new DuckDBConnection($"DataSource={databasePath}");
+            await verify.OpenAsync(TestContext.Current.CancellationToken);
+            await using var preserved = verify.CreateCommand();
+            preserved.CommandText = "SELECT count(*) FROM workflow_runs";
+            Assert.Equal(
+                1,
+                Convert.ToInt32(
+                    await preserved.ExecuteScalarAsync(TestContext.Current.CancellationToken),
+                    CultureInfo.InvariantCulture));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Generated_schema_identity_is_persisted_and_retires_derived_tables()
+    {
+        var databasePath = DatabasePath("generated-schema-identity");
+        try
+        {
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+                await CreateRunAsync(seed, "run-1");
+
             await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
             {
                 await connection.OpenAsync(TestContext.Current.CancellationToken);
                 await using var command = connection.CreateCommand();
                 command.CommandText = """
-                                      UPDATE workflow_runs
-                                      SET run_generation = '../outside',
-                                          active_checkpoint_id = $1,
-                                          active_checkpoint_storage_key = $1
-                                      WHERE project_id = 'project-a' AND run_id = 'run-1'
+                                      CREATE TABLE workflow_projection_nodes (node_id VARCHAR);
+                                      CREATE TABLE workflow_projection_edges (edge_id VARCHAR);
+                                      CREATE TABLE workflow_projection_state (run_id VARCHAR);
                                       """;
-                command.Parameters.Add(new DuckDBParameter
-                {
-                    Value = Path.GetFullPath(sentinel)
-                });
-                await command.ExecuteNonQueryAsync(
-                    TestContext.Current.CancellationToken);
+                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             }
 
-            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
-            var repaired = await store.GetWorkflowRunAsync(
-                "project-a", "run-1", TestContext.Current.CancellationToken);
-            Assert.True(File.Exists(sentinel));
-            Assert.True(WorkflowCheckpointStore.IsCanonicalGeneration(
-                repaired!.RunGeneration));
-            Assert.Null(repaired.ActiveCheckpointId);
-            Assert.Null(repaired.ActiveCheckpointStorageKey);
-            Assert.False(WorkflowCheckpointStore.IsCanonicalGeneration("../outside"));
-            Assert.False(WorkflowCheckpointStore.IsCanonicalGeneration("bad/name"));
-            Assert.False(WorkflowCheckpointStore.IsCanonicalCheckpointId("../blob.json"));
-            Assert.False(WorkflowCheckpointStore.IsCanonicalCheckpointId(
-                Path.GetFullPath(sentinel)));
+            await using (var reopened = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+                Assert.NotNull(await reopened.GetWorkflowRunAsync(
+                    "project-a", "run-1", TestContext.Current.CancellationToken));
+
+            await using var verify = new DuckDBConnection($"DataSource={databasePath}");
+            await verify.OpenAsync(TestContext.Current.CancellationToken);
+            await using var identity = verify.CreateCommand();
+            identity.CommandText = """
+                                   SELECT authoritative_schema_hash, derived_schema_hash
+                                   FROM qyl_schema_meta
+                                   WHERE singleton = 0
+                                   """;
+            await using var reader = await identity.ExecuteReaderAsync(
+                TestContext.Current.CancellationToken);
+            Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
+            Assert.Equal(DuckDbGeneratedSchema.AuthoritativeHash, reader.GetString(0));
+            Assert.Equal(DuckDbGeneratedSchema.DerivedHash, reader.GetString(1));
+
+            await using var retired = verify.CreateCommand();
+            retired.CommandText = """
+                                  SELECT count(*)
+                                  FROM duckdb_tables()
+                                  WHERE table_name IN (
+                                      'workflow_projection_nodes',
+                                      'workflow_projection_edges',
+                                      'workflow_projection_state')
+                                  """;
+            Assert.Equal(
+                0,
+                Convert.ToInt32(
+                    await retired.ExecuteScalarAsync(TestContext.Current.CancellationToken),
+                    CultureInfo.InvariantCulture));
         }
         finally
         {
-            File.Delete(sentinel);
             DeleteDatabase(databasePath);
         }
     }
@@ -432,10 +278,11 @@ public sealed class WorkflowLifecycleTests
                 "project-a", "run-1", "client-a", [Event("one", 1)], [],
                 TestContext.Current.CancellationToken);
 
-            await Assert.ThrowsAnyAsync<InvalidDataException>(() =>
+            var projectionError = await Assert.ThrowsAsync<WorkflowProjectionCorruptException>(() =>
                 store.GetWorkflowGraphAsync(
                     "project-a", "run-1", null, 100, null, 100,
                     TestContext.Current.CancellationToken));
+            Assert.IsAssignableFrom<InvalidDataException>(projectionError.InnerException);
             while (await store.ReconcileWorkflowCheckpointsAsync(
                        TestContext.Current.CancellationToken))
             {
@@ -592,7 +439,14 @@ public sealed class WorkflowLifecycleTests
             "<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>",
             project);
         Assert.Contains(
-            "<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>",
+            "<TargetPath>runtimes/$(QylCheckpointNativeRid)/native/$(QylCheckpointNativeFileName)</TargetPath>",
+            project);
+        Assert.Contains(
+            "<TargetPath>runtimes/$(QylCheckpointNativeFamily)/native/$(QylCheckpointNativeFileName)</TargetPath>",
+            project);
+        Assert.Contains("QylCopyCheckpointNativeForPublish", project);
+        Assert.Contains(
+            "DestinationFiles=\"$(PublishDir)$(QylCheckpointNativeFileName)\"",
             project);
         Assert.Contains("-shared", project);
         Assert.Contains("-dynamiclib", project);
@@ -603,6 +457,15 @@ public sealed class WorkflowLifecycleTests
             "qyl.collector",
             "Dockerfile"));
         Assert.Contains("libqyl_checkpoint_native.so", dockerfile);
+
+        var ciWorkflow = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            ".github",
+            "workflows",
+            "ci.yml"));
+        Assert.Contains(
+            "timeout --signal=TERM --kill-after=30s 5m dotnet test",
+            ciWorkflow);
     }
 
     [Fact]
@@ -772,10 +635,11 @@ public sealed class WorkflowLifecycleTests
             });
         await CreateRunAsync(store, "run-1");
 
-        await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+        var oversized = await Assert.ThrowsAsync<WorkflowProjectionCorruptException>(() =>
             store.GetWorkflowGraphAsync(
                 "project-a", "run-1", null, 100, null, 100,
                 TestContext.Current.CancellationToken));
+        Assert.IsType<WorkflowProjectionLimitExceededException>(oversized.InnerException);
         Assert.Equal(1, attempts);
     }
 
@@ -1311,10 +1175,11 @@ public sealed class WorkflowLifecycleTests
                 await deterministic.AppendWorkflowEventsAsync(
                     "project-a", "run-1", "client-a", [Event("one", 1)], [],
                     TestContext.Current.CancellationToken);
-                await Assert.ThrowsAsync<InvalidDataException>(() =>
+                var deterministicError = await Assert.ThrowsAsync<WorkflowProjectionCorruptException>(() =>
                     deterministic.GetWorkflowGraphAsync(
                         "project-a", "run-1", null, 100, null, 100,
                         TestContext.Current.CancellationToken));
+                Assert.IsType<InvalidDataException>(deterministicError.InnerException);
                 var failed = await deterministic.GetWorkflowRunAsync(
                     "project-a", "run-1", TestContext.Current.CancellationToken);
                 Assert.Equal("invalid", failed!.ProjectionFailureKind);
@@ -1331,7 +1196,7 @@ public sealed class WorkflowLifecycleTests
     }
 
     [Fact]
-    public async Task Delete_recreate_generation_rejects_the_stale_worker_publication()
+    public async Task Durable_deletion_rejects_recreation_and_stale_worker_publication()
     {
         var databasePath = DatabasePath("generation-aba");
         var oldWorkerEntered = new TaskCompletionSource<bool>(
@@ -1374,16 +1239,19 @@ public sealed class WorkflowLifecycleTests
             await WaitUntilAsync(
                 async () => await store.GetWorkflowRunAsync(
                     "project-a", "run-1", TestContext.Current.CancellationToken) is null);
-            var recreated = await CreateRunAsync(store, "run-1");
-            Assert.NotEqual(oldGeneration, recreated.RunGeneration);
+            await Assert.ThrowsAsync<WorkflowRunDeletedException>(() =>
+                CreateRunAsync(store, "run-1"));
             releaseOldWorker.TrySetResult(true);
             Assert.Equal(1, (await retention).Runs);
 
-            var current = await store.GetWorkflowRunAsync(
-                "project-a", "run-1", TestContext.Current.CancellationToken);
-            Assert.Equal(recreated.RunGeneration, current!.RunGeneration);
-            Assert.Null(current.ActiveCheckpointId);
-            Assert.Equal(0UL, current.ActiveCheckpointSequence);
+            Assert.True(await store.IsWorkflowRunDeletedAsync(
+                "project-a", "run-1", TestContext.Current.CancellationToken));
+            Assert.Null(await store.GetWorkflowRunAsync(
+                "project-a", "run-1", TestContext.Current.CancellationToken));
+            Assert.Empty(Directory.GetFiles(
+                $"{databasePath}.workflow-checkpoints",
+                "*.json",
+                SearchOption.AllDirectories));
         }
         finally
         {
@@ -2225,7 +2093,7 @@ public sealed class WorkflowLifecycleTests
     }
 
     [Fact]
-    public async Task Graph_endpoint_maps_projection_capacity_to_conflict()
+    public async Task Graph_endpoint_maps_nonretryable_projection_capacity_to_corruption()
     {
         await using var store = new DuckDbStore(
             ":memory:",
@@ -2241,7 +2109,7 @@ public sealed class WorkflowLifecycleTests
             TestContext.Current.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
     }
 
     [Fact]
@@ -2296,7 +2164,7 @@ public sealed class WorkflowLifecycleTests
     }
 
     [Fact]
-    public async Task Graph_endpoint_maps_generation_retirement_to_not_found()
+    public async Task Graph_endpoint_maps_durable_deletion_to_gone()
     {
         var databasePath = DatabasePath("graph-endpoint-gone");
         var entered = new TaskCompletionSource<bool>(
@@ -2349,7 +2217,7 @@ public sealed class WorkflowLifecycleTests
             var result = await endpoint;
             await result.ExecuteAsync(context);
             await deletion;
-            Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
+            Assert.Equal(StatusCodes.Status410Gone, context.Response.StatusCode);
         }
         finally
         {
@@ -2402,10 +2270,11 @@ public sealed class WorkflowLifecycleTests
                 Assert.Equal(2, snapshot.WorkerCount);
                 Assert.Equal(2, snapshot.ActiveWorkers);
                 Assert.Equal(2, snapshot.AdmittedDemands);
-                await Assert.ThrowsAsync<QylStoreUnavailableException>(() =>
+                var admission = await Assert.ThrowsAsync<WorkflowProjectionUnavailableException>(() =>
                     store.GetWorkflowGraphAsync(
                         "project-a", "run-3", null, 100, null, 100,
                         TestContext.Current.CancellationToken));
+                Assert.IsType<QylStoreUnavailableException>(admission.InnerException);
                 release.TrySetResult(true);
                 await store.GetWorkflowGraphAsync(
                     "project-a", "run-1", null, 100, null, 100,
@@ -2721,47 +2590,6 @@ public sealed class WorkflowLifecycleTests
         }
     }
 
-    private static async Task AddLegacyRunsAsync(string databasePath, int count)
-    {
-        await using var connection = new DuckDBConnection($"DataSource={databasePath}");
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        for (var index = 0; index < count; index++)
-        {
-            await using var run = connection.CreateCommand();
-            run.CommandText = """
-                              INSERT INTO workflow_runs (
-                                  project_id,
-                                  run_id,
-                                  thread_id,
-                                  title,
-                                  status,
-                                  started_at,
-                                  ended_at,
-                                  latest_journal_sequence,
-                                  active_attempt_id,
-                                  metadata_json,
-                                  created_at,
-                                  updated_at)
-                              VALUES (
-                                  'project-a',
-                                  $1,
-                                  NULL,
-                                  NULL,
-                                  'active',
-                                  $2,
-                                  NULL,
-                                  0,
-                                  NULL,
-                                  NULL,
-                                  $2,
-                                  $2)
-                              """;
-            run.Parameters.Add(new DuckDBParameter { Value = $"legacy-extra-{index:D4}" });
-            run.Parameters.Add(new DuckDBParameter { Value = s_timestamp.UtcDateTime });
-            await run.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-        }
-    }
-
     private static async Task SeedLegacyWorkflowDatabaseAsync(string databasePath)
     {
         await using var connection = new DuckDBConnection($"DataSource={databasePath}");
@@ -2838,38 +2666,37 @@ public sealed class WorkflowLifecycleTests
             await run.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
 
-        foreach (var (journalSequence, sourceSequence, eventId) in new[]
-                 {
-                     (1UL, 1UL, "legacy-one"),
-                     (2UL, 3UL, "legacy-three")
-                 })
+        using (var workflowEventAppender = WorkflowEventDbRow.CreateAppender(connection))
         {
-            await using var workflowEvent = connection.CreateCommand();
-            workflowEvent.CommandText = WorkflowEventDbRow.BuildMultiRowInsertSql(1);
-            WorkflowEventDbRow.AddParameters(
-                workflowEvent,
-                new WorkflowEventDbRow
-                {
-                    ProjectId = "project-a",
-                    RunId = "run-1",
-                    JournalSequence = journalSequence,
-                    EventId = eventId,
-                    ClientId = "client-a",
-                    SourceSequence = sourceSequence,
-                    EventTime = s_timestamp.AddMilliseconds(journalSequence),
-                    Kind = "content_captured",
-                    ThreadId = "thread-1",
-                    TurnId = null,
-                    AttemptId = null,
-                    AgentId = null,
-                    ParentAgentId = null,
-                    ReceiverAgentId = null,
-                    ToolCallId = null,
-                    ContentRefsJson = "[]",
-                    DataJson = null
-                });
-            await workflowEvent.ExecuteNonQueryAsync(
-                TestContext.Current.CancellationToken);
+            foreach (var (journalSequence, sourceSequence, eventId) in new[]
+                     {
+                         (1UL, 1UL, "legacy-one"),
+                         (2UL, 3UL, "legacy-three")
+                     })
+            {
+                WorkflowEventDbRow.AppendRow(
+                    workflowEventAppender,
+                    new WorkflowEventDbRow
+                    {
+                        ProjectId = "project-a",
+                        RunId = "run-1",
+                        JournalSequence = journalSequence,
+                        EventId = eventId,
+                        ClientId = "client-a",
+                        SourceSequence = sourceSequence,
+                        EventTime = s_timestamp.AddMilliseconds(journalSequence),
+                        Kind = "content_captured",
+                        ThreadId = "thread-1",
+                        TurnId = null,
+                        AttemptId = null,
+                        AgentId = null,
+                        ParentAgentId = null,
+                        ReceiverAgentId = null,
+                        ToolCallId = null,
+                        ContentRefsJson = "[]",
+                        DataJson = null
+                    });
+            }
         }
 
         await using var workflowCommand = connection.CreateCommand();

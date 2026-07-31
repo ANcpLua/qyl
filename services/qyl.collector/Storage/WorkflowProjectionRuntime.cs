@@ -130,6 +130,7 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
                     RecordAdmissionRejection("ready_queue_invariant");
                     return false;
                 }
+                WorkflowLifecycleLog.ProjectionQueued(_logger, desiredSequence);
                 return true;
             }
 
@@ -137,6 +138,7 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
             demand.ForcePersistThroughSequence = Math.Max(
                 demand.ForcePersistThroughSequence,
                 forcePersistThroughSequence);
+            WorkflowLifecycleLog.ProjectionCoalesced(_logger, desiredSequence);
             return true;
         }
     }
@@ -195,6 +197,7 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
                         new QylStoreUnavailableException(
                             "Workflow projection admission is at capacity."));
                 }
+                WorkflowLifecycleLog.ProjectionQueued(_logger, desiredSequence);
             }
             else if (demand.Retired)
             {
@@ -206,6 +209,7 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
                 demand.ForcePersistThroughSequence = Math.Max(
                     demand.ForcePersistThroughSequence,
                     forcePersistThroughSequence);
+                WorkflowLifecycleLog.ProjectionCoalesced(_logger, desiredSequence);
             }
 
             if (retirement is null)
@@ -247,6 +251,8 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
             }
             joined = demand.Joined.Task;
         }
+
+        WorkflowLifecycleLog.ProjectionRetired(_logger);
 
         // Retirement drops the in-flight demand so a repair can rebuild from a
         // clean slate. The waiters belong to the run, not to the demand, so they
@@ -374,6 +380,13 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
                 Interlocked.Increment(ref _activeWorkers);
                 try
                 {
+                    var priorSequence = prior?.Checkpoint.JournalSequence ?? 0;
+                    var mode = prior is null ? "full" : "incremental";
+                    WorkflowLifecycleLog.ProjectionStarted(
+                        _logger,
+                        mode,
+                        priorSequence,
+                        target);
                     var step = await _store.ProjectWorkflowQuantumAsync(
                         key,
                         prior,
@@ -389,16 +402,28 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
                             HandOffDemandToSuccessor(key, demand, rotated.Successor);
                             continue;
                         case WorkflowProjectionStep.Advanced advanced:
+                            WorkflowLifecycleLog.ProjectionCompleted(
+                                _logger,
+                                mode,
+                                advanced.State.Checkpoint.JournalSequence - priorSequence,
+                                advanced.State.Checkpoint.JournalSequence);
                             CompleteSuccessfulQuantum(key, demand, advanced.State);
                             break;
                     }
                 }
                 catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
                 {
+                    WorkflowLifecycleLog.ProjectionCancelled(_logger);
                     CompleteDemandWithCancellation(key, demand, _shutdown.Token);
                 }
                 catch (Exception error)
                 {
+                    var classification = DuckDbFailures.Classify(error);
+                    WorkflowLifecycleLog.DuckDbFailure(
+                        _logger,
+                        classification.ToString(),
+                        DuckDbFailures.IsRetryable(classification),
+                        error);
                     if (IsTransient(error) && RetryDemand(key, demand, error))
                     {
                         await Task.Delay(
@@ -778,7 +803,7 @@ internal sealed class WorkflowProjectionRuntime : IAsyncDisposable
     }
 
     private static bool IsTransient(Exception error) =>
-        DuckDbTransientErrors.IsTransient(error);
+        DuckDbFailures.IsRetryable(error);
 
     private void RecordAdmissionRejection(string reason)
     {
@@ -952,12 +977,12 @@ internal static class WorkflowProjectionMemory
 
     private static long Characters(string? value) => value?.Length * 2L ?? 0;
 
-    private static long ProvenanceBytes(WorkflowEdgeProvenance provenance) =>
+    private static long ProvenanceBytes(WorkflowProjectionEdgeProvenance provenance) =>
         provenance switch
         {
-            RecordedWorkflowEdgeProvenance recorded =>
+            WorkflowProjectionRecordedEdgeProvenance recorded =>
                 recorded.EventIds.Sum(static value => 32L + Characters(value)),
-            DerivedWorkflowEdgeProvenance derived =>
+            WorkflowProjectionDerivedEdgeProvenance derived =>
                 derived.EventIds.Sum(static value => 32L + Characters(value)) +
                 Characters(derived.Evidence),
             _ => 0

@@ -51,11 +51,19 @@
 
   <ItemGroup Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
     <Content Include="$(QylCheckpointNativeOutput)">
-      <TargetPath>$(QylCheckpointNativeFileName)</TargetPath>
+      <!-- DllImportResolver probes the NuGet runtime-native layout during a
+           regular build and through ProjectReference test outputs. -->
+      <TargetPath>runtimes/$(QylCheckpointNativeRid)/native/$(QylCheckpointNativeFileName)</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </Content>
+    <None Include="$(QylCheckpointNativeOutput)">
+      <!-- Portable macOS hosts probe the family RID while Linux hosts probe
+           the architecture-specific RID. Ship both resolver layouts. -->
+      <TargetPath>runtimes/$(QylCheckpointNativeFamily)/native/$(QylCheckpointNativeFileName)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
   <!-- The asset is compiled only when the host toolchain matches the target,
@@ -77,6 +85,20 @@
           Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -dynamiclib -arch $(QylCheckpointNativeArchitecture) -Wl,-install_name,@rpath/$(QylCheckpointNativeFileName) -o &quot;$(QylCheckpointNativeOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
     <ItemGroup>
       <FileWrites Include="$(QylCheckpointNativeOutput)"/>
+    </ItemGroup>
+  </Target>
+
+  <!-- The NativeAOT container consumes the loose sidecar next to the
+       executable and verifies that exact delivery shape. Runtime build
+       layouts above remain separate from this publish-only copy. -->
+  <Target Name="QylCopyCheckpointNativeForPublish"
+          AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
+    <Copy SourceFiles="$(QylCheckpointNativeOutput)"
+          DestinationFiles="$(PublishDir)$(QylCheckpointNativeFileName)"
+          SkipUnchangedFiles="true"/>
+    <ItemGroup>
+      <FileWrites Include="$(PublishDir)$(QylCheckpointNativeFileName)"/>
     </ItemGroup>
   </Target>
 

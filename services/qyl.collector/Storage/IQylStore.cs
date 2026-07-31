@@ -2,6 +2,40 @@ namespace Qyl.Collector.Storage;
 
 internal sealed class QylStoreUnavailableException(string message) : Exception(message);
 
+internal sealed class WorkflowRunDeletedException(string runId)
+    : Exception($"Workflow run '{runId}' was deleted.")
+{
+    internal string RunId { get; } = runId;
+}
+
+internal sealed class WorkflowProjectionUnavailableException(
+    string generation,
+    ulong targetJournalPosition,
+    int retryAfterMilliseconds,
+    bool rebuilding,
+    Exception innerException)
+    : Exception("Workflow projection is temporarily unavailable.", innerException)
+{
+    internal string Generation { get; } = generation;
+
+    internal ulong TargetJournalPosition { get; } = targetJournalPosition;
+
+    internal int RetryAfterMilliseconds { get; } = retryAfterMilliseconds;
+
+    internal bool Rebuilding { get; } = rebuilding;
+}
+
+internal sealed class WorkflowProjectionCorruptException(
+    string generation,
+    string reason,
+    Exception innerException)
+    : Exception("Workflow projection is non-retryably unavailable.", innerException)
+{
+    internal string Generation { get; } = generation;
+
+    internal string Reason { get; } = reason;
+}
+
 internal readonly record struct TracePageCursor(ulong ActivityUnixNano, string TraceId);
 
 internal sealed record TraceStoragePage(
@@ -111,6 +145,11 @@ internal interface IQylStore : IAsyncDisposable
         CancellationToken ct = default);
 
     Task<WorkflowRunStorageRow?> GetWorkflowRunAsync(
+        string projectId,
+        string runId,
+        CancellationToken ct = default);
+
+    Task<bool> IsWorkflowRunDeletedAsync(
         string projectId,
         string runId,
         CancellationToken ct = default);

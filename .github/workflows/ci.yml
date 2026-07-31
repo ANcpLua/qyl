@@ -132,7 +132,7 @@ jobs:
         run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config -p:QylAot=false
 
       - name: Test
-        run: dotnet test qyl.slnx --configuration Release --no-build --no-restore
+        run: timeout --signal=TERM --kill-after=30s 5m dotnet test qyl.slnx --configuration Release --no-build --no-restore
 
       - name: Verify
         run: ./eng/build.sh VerifyBackend --Configuration Release

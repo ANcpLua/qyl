@@ -18,7 +18,7 @@ internal static partial class CollectorEndpointExtensions
     private const int DefaultEdgeLimit = 500;
     private const int MaximumAppendItems = 500;
 
-    private const int MaxCursorLength = 192;
+    private const int MaxCursorLength = WorkflowGraphCursorCodec.MaximumEncodedLength;
     private const int MaximumContentCharacters = 1_398_104;
 
     private static async Task<IResult> CreateRunAsync(
@@ -32,7 +32,7 @@ internal static partial class CollectorEndpointExtensions
             var row = await store.CreateWorkflowRunAsync(
                 new WorkflowRunStorageRow(
                     ResolveProjectScope(context),
-                    request.RunId,
+                    request.RunId.Value,
                     request.ThreadId,
                     request.Title,
                     WorkflowRunStatus.Active,
@@ -47,8 +47,12 @@ internal static partial class CollectorEndpointExtensions
         catch (WorkflowRunConflictException)
         {
             return ContractErrorResults.Conflict(
-                request.RunId,
+                request.RunId.Value,
                 "The run already exists with different immutable metadata.");
+        }
+        catch (WorkflowRunDeletedException deleted)
+        {
+            return ContractErrorResults.WorkflowRunDeleted(deleted.RunId);
         }
         catch (QylStoreUnavailableException)
         {
@@ -63,14 +67,24 @@ internal static partial class CollectorEndpointExtensions
     {
         if (!TryIntQuery(context, "limit", DefaultRunLimit, 1, 200, out var limit, out var error))
             return error!;
-        if (!TryOffset(context.Request.Query["cursor"].FirstOrDefault(), out var offset))
-            return ContractErrorResults.Validation("cursor", "Cursor must be a non-negative integer offset.",
-                "cursor.invalid");
         if (!TryRunStatus(context.Request.Query["status"].FirstOrDefault(), out var status))
             return ContractErrorResults.Validation("status", "Unknown workflow run status.", "status.invalid");
 
+        var projectId = ResolveProjectScope(context);
+        if (!WorkflowRunCursorCodec.TryDecode(
+                context.Request.Query["cursor"].FirstOrDefault(),
+                projectId,
+                status,
+                out var offset))
+        {
+            return ContractErrorResults.Validation(
+                "cursor",
+                "Cursor is invalid or belongs to another workflow-run listing.",
+                "cursor.invalid");
+        }
+
         var rows = await store.ListWorkflowRunsAsync(
-            ResolveProjectScope(context),
+            projectId,
             status,
             limit + 1,
             offset,
@@ -79,7 +93,12 @@ internal static partial class CollectorEndpointExtensions
         return Results.Ok(new WorkflowRunPage
         {
             Items = rows.Take(limit).Select(WorkflowProjectionBuilder.ToContract).ToArray(),
-            NextCursor = hasMore ? (offset + limit).ToString(CultureInfo.InvariantCulture) : null,
+            NextCursor = hasMore
+                ? new WorkflowRunCursor(WorkflowRunCursorCodec.Encode(
+                    projectId,
+                    status,
+                    offset + limit))
+                : null,
             HasMore = hasMore
         });
     }
@@ -92,7 +111,7 @@ internal static partial class CollectorEndpointExtensions
     {
         var row = await store.GetWorkflowRunAsync(ResolveProjectScope(context), runId, ct).ConfigureAwait(false);
         return row is null
-            ? ContractErrorResults.NotFound("workflow_run", runId)
+            ? await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false)
             : Results.Ok(WorkflowProjectionBuilder.ToContract(row));
     }
 
@@ -154,21 +173,23 @@ internal static partial class CollectorEndpointExtensions
                 runId,
                 request.ClientId,
                 request.Events.Select(static workflowEvent => new WorkflowEventWrite(
-                    workflowEvent.EventId,
+                    workflowEvent.EventId.Value,
                     workflowEvent.SourceSequence,
                     workflowEvent.Timestamp,
                     workflowEvent.Kind,
                     workflowEvent.ThreadId,
                     workflowEvent.TurnId,
-                    workflowEvent.AttemptId,
-                    workflowEvent.AgentId,
-                    workflowEvent.ParentAgentId,
-                    workflowEvent.ReceiverAgentId,
-                    workflowEvent.ToolCallId,
-                    workflowEvent.ContentRefs ?? [],
+                    workflowEvent.AttemptId?.Value,
+                    workflowEvent.AgentId?.Value,
+                    workflowEvent.ParentAgentId?.Value,
+                    workflowEvent.ReceiverAgentId?.Value,
+                    workflowEvent.ToolCallId?.Value,
+                    workflowEvent.ContentRefs?.Select(
+                            static contentRef => contentRef.Value)
+                        .ToArray() ?? [],
                     SerializeObject(workflowEvent.Data))).ToArray(),
                 request.Content?.Select(static content => new WorkflowContentWrite(
-                    content.ContentRef,
+                    content.ContentRef.Value,
                     content.ContentType,
                     content.Encoding,
                     content.Content)).ToArray() ?? [],
@@ -184,7 +205,11 @@ internal static partial class CollectorEndpointExtensions
         }
         catch (KeyNotFoundException)
         {
-            return ContractErrorResults.NotFound("workflow_run", runId);
+            return await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false);
+        }
+        catch (WorkflowRunDeletedException deleted)
+        {
+            return ContractErrorResults.WorkflowRunDeleted(deleted.RunId);
         }
         catch (WorkflowContentValidationException)
         {
@@ -234,7 +259,7 @@ internal static partial class CollectorEndpointExtensions
                 limit,
                 ct).ConfigureAwait(false);
             if (page is null)
-                return ContractErrorResults.NotFound("workflow_run", runId);
+                return await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false);
             if (page.Events.Count > 0 || waitMs is 0 || TimeProvider.System.GetUtcNow() >= deadline)
                 return Results.Ok(ToContract(page));
             await Task.Delay(TimeSpan.FromMilliseconds(250), TimeProvider.System, ct).ConfigureAwait(false);
@@ -295,23 +320,49 @@ internal static partial class CollectorEndpointExtensions
                 edgeLimit,
                 ct).ConfigureAwait(false);
             return graph is null
-                ? ContractErrorResults.NotFound("workflow_run", runId)
+                ? await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false)
                 : Results.Ok(graph);
         }
         catch (KeyNotFoundException)
         {
-            return ContractErrorResults.NotFound("workflow_run", runId);
+            return await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false);
         }
-        catch (WorkflowProjectionLimitExceededException)
+        catch (WorkflowRunDeletedException deleted)
         {
-            return ContractErrorResults.Conflict(
-                runId,
-                "The workflow run has reached its immutable journal or projection capacity.");
+            return ContractErrorResults.WorkflowRunDeleted(deleted.RunId);
         }
-        catch (QylStoreUnavailableException)
+        catch (WorkflowCursorRejectedException rejected)
         {
-            return ContractErrorResults.ServiceUnavailable(
-                "workflow_projection_capacity");
+            return ContractErrorResults.WorkflowCursor(
+                rejected.Kind,
+                rejected.Reason,
+                rejected.CurrentGeneration);
+        }
+        catch (WorkflowProjectionUnavailableException unavailable)
+        {
+            context.Response.Headers.RetryAfter = Math.Max(
+                    1,
+                    (int)Math.Ceiling(unavailable.RetryAfterMilliseconds / 1000d))
+                .ToString(CultureInfo.InvariantCulture);
+            WorkflowProjectionStatus status = unavailable.Rebuilding
+                ? new RebuildingWorkflowProjectionStatus
+                {
+                    Generation = new WorkflowGeneration(unavailable.Generation),
+                    TargetJournalPosition = unavailable.TargetJournalPosition,
+                    RetryAfterMs = unavailable.RetryAfterMilliseconds
+                }
+                : new UnavailableWorkflowProjectionStatus
+                {
+                    Generation = new WorkflowGeneration(unavailable.Generation),
+                    RetryAfterMs = unavailable.RetryAfterMilliseconds
+                };
+            return ContractErrorResults.WorkflowProjectionUnavailable(status);
+        }
+        catch (WorkflowProjectionCorruptException corrupt)
+        {
+            return ContractErrorResults.WorkflowProjectionCorrupt(
+                corrupt.Generation,
+                corrupt.Reason);
         }
     }
 
@@ -327,11 +378,20 @@ internal static partial class CollectorEndpointExtensions
             runId,
             contentRef,
             ct).ConfigureAwait(false);
-        return content is null
-            ? ContractErrorResults.NotFound("workflow_content", contentRef)
-            : Results.Ok(new WorkflowContent
+        if (content is null)
+        {
+            if (await store.IsWorkflowRunDeletedAsync(
+                    ResolveProjectScope(context),
+                    runId,
+                    ct).ConfigureAwait(false))
             {
-                ContentRef = content.ContentRef,
+                return ContractErrorResults.WorkflowRunDeleted(runId);
+            }
+            return ContractErrorResults.NotFound("workflow_content", contentRef);
+        }
+        return Results.Ok(new WorkflowContent
+            {
+                ContentRef = new WorkflowContentRef(content.ContentRef),
                 ContentType = content.ContentType,
                 Encoding = content.Encoding,
                 Content = content.Content,
@@ -369,7 +429,7 @@ internal static partial class CollectorEndpointExtensions
             DefaultEventLimit,
             ct).ConfigureAwait(false);
         if (page is null)
-            return ContractErrorResults.NotFound("workflow_run", runId);
+            return await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false);
 
         context.Response.StatusCode = StatusCodes.Status200OK;
         context.Response.ContentType = "text/event-stream";
@@ -484,7 +544,7 @@ internal static partial class CollectorEndpointExtensions
                 TimeProvider.System.GetUtcNow(),
                 ct).ConfigureAwait(false);
             return command is null
-                ? ContractErrorResults.NotFound("workflow_run", runId)
+                ? await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false)
                 : Results.Ok(ToContract(command));
         }
         catch (WorkflowControlConflictException)
@@ -528,7 +588,7 @@ internal static partial class CollectorEndpointExtensions
                 limit,
                 ct).ConfigureAwait(false);
             if (page is null)
-                return ContractErrorResults.NotFound("workflow_run", runId);
+                return await MissingWorkflowRunAsync(context, runId, store, ct).ConfigureAwait(false);
             if (page.Commands.Count > 0 || waitMs is 0 || TimeProvider.System.GetUtcNow() >= deadline)
             {
                 return Results.Ok(new WorkflowControlCommandPage
@@ -563,9 +623,16 @@ internal static partial class CollectorEndpointExtensions
                 // receipt time remains the fallback for callers that omit it.
                 request.OccurredAt ?? TimeProvider.System.GetUtcNow(),
                 ct).ConfigureAwait(false);
-            return command is null
-                ? ContractErrorResults.NotFound("workflow_control", commandId)
-                : Results.Ok(ToContract(command));
+            if (command is not null)
+                return Results.Ok(ToContract(command));
+            if (await store.IsWorkflowRunDeletedAsync(
+                    ResolveProjectScope(context),
+                    runId,
+                    ct).ConfigureAwait(false))
+            {
+                return ContractErrorResults.WorkflowRunDeleted(runId);
+            }
+            return ContractErrorResults.NotFound("workflow_control", commandId);
         }
         catch (WorkflowControlConflictException)
         {
@@ -598,20 +665,34 @@ internal static partial class CollectorEndpointExtensions
     private static WorkflowJournalEvent ToContract(WorkflowEventStorageRow workflowEvent) =>
         new()
         {
-            EventId = workflowEvent.EventId,
+            EventId = new WorkflowEventId(workflowEvent.EventId),
             SourceSequence = workflowEvent.SourceSequence,
             Timestamp = workflowEvent.Timestamp,
             Kind = workflowEvent.Kind,
             ThreadId = workflowEvent.ThreadId,
             TurnId = workflowEvent.TurnId,
-            AttemptId = workflowEvent.AttemptId,
-            AgentId = workflowEvent.AgentId,
-            ParentAgentId = workflowEvent.ParentAgentId,
-            ReceiverAgentId = workflowEvent.ReceiverAgentId,
-            ToolCallId = workflowEvent.ToolCallId,
-            ContentRefs = workflowEvent.ContentRefs.Count is 0 ? null : workflowEvent.ContentRefs,
+            AttemptId = workflowEvent.AttemptId is null
+                ? null
+                : new WorkflowAttemptId(workflowEvent.AttemptId),
+            AgentId = workflowEvent.AgentId is null
+                ? null
+                : new WorkflowAgentId(workflowEvent.AgentId),
+            ParentAgentId = workflowEvent.ParentAgentId is null
+                ? null
+                : new WorkflowAgentId(workflowEvent.ParentAgentId),
+            ReceiverAgentId = workflowEvent.ReceiverAgentId is null
+                ? null
+                : new WorkflowAgentId(workflowEvent.ReceiverAgentId),
+            ToolCallId = workflowEvent.ToolCallId is null
+                ? null
+                : new WorkflowToolCallId(workflowEvent.ToolCallId),
+            ContentRefs = workflowEvent.ContentRefs.Count is 0
+                ? null
+                : workflowEvent.ContentRefs.Select(
+                        static contentRef => new WorkflowContentRef(contentRef))
+                    .ToArray(),
             Data = ParseObject(workflowEvent.DataJson),
-            RunId = workflowEvent.RunId,
+            RunId = new WorkflowRunId(workflowEvent.RunId),
             ClientId = workflowEvent.ClientId,
             JournalSequence = workflowEvent.JournalSequence
         };
@@ -619,8 +700,8 @@ internal static partial class CollectorEndpointExtensions
     private static WorkflowControlCommand ToContract(WorkflowControlCommandStorageRow command) =>
         new()
         {
-            CommandId = command.CommandId,
-            RunId = command.RunId,
+            CommandId = new WorkflowCommandId(command.CommandId),
+            RunId = new WorkflowRunId(command.RunId),
             Action = command.Action,
             Status = command.Status,
             IdempotencyKey = command.IdempotencyKey,
@@ -630,6 +711,19 @@ internal static partial class CollectorEndpointExtensions
             CommandSequence = command.CommandSequence,
             Error = command.Error
         };
+
+    private static async Task<IResult> MissingWorkflowRunAsync(
+        HttpContext context,
+        string runId,
+        IQylStore store,
+        CancellationToken ct) =>
+        await store.IsWorkflowRunDeletedAsync(
+                ResolveProjectScope(context),
+                runId,
+                ct)
+            .ConfigureAwait(false)
+            ? ContractErrorResults.WorkflowRunDeleted(runId)
+            : ContractErrorResults.NotFound("workflow_run", runId);
 
     private static string? SerializeObject(IReadOnlyDictionary<string, object>? value) =>
         value is null
@@ -708,13 +802,6 @@ internal static partial class CollectorEndpointExtensions
     {
         cursor = string.IsNullOrEmpty(raw) ? null : raw;
         return cursor is null || cursor.EnumerateRunes().Count() <= MaxCursorLength;
-    }
-
-    private static bool TryOffset(string? raw, out int offset)
-    {
-        offset = 0;
-        return raw is null ||
-               int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out offset) && offset >= 0;
     }
 
     private static bool TryRunStatus(string? raw, out WorkflowRunStatus? status)
