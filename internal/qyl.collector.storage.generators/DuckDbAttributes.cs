@@ -72,6 +72,9 @@ internal static class DuckDbAttributeSource
                                      /// <summary>Optional SQL default expression for generated CREATE TABLE DDL.</summary>
                                      public string? DefaultSql { get; set; }
 
+                                     /// <summary>Do not apply DefaultSql while adding the column to an existing table.</summary>
+                                     public bool OmitDefaultFromMigration { get; set; }
+
                                      /// <summary>Primary-key order for generated CREATE TABLE DDL. Leave -1 for non-key columns.</summary>
                                      public int PrimaryKeyOrdinal { get; set; } = -1;
 

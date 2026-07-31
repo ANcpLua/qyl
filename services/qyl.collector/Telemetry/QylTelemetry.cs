@@ -1,15 +1,33 @@
 
+using System.Diagnostics.Metrics;
+
 namespace Qyl.Collector.Telemetry;
 
 internal static class QylTelemetry
 {
     public const string ServiceName = "Qyl.Collector";
 
+    private static readonly Meter s_meter = new(
+        ServiceName,
+        BuildVersion.InformationalVersion);
+    private static readonly Counter<long> s_workflowLifecycleOutcomes =
+        s_meter.CreateCounter<long>(
+            "qyl.workflow.lifecycle.outcomes",
+            "{outcome}");
+
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
         Version = BuildVersion.InformationalVersion,
         TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
+
+    public static void RecordWorkflowLifecycleOutcome(
+        string outcome,
+        string reason) =>
+        s_workflowLifecycleOutcomes.Add(
+            1,
+            new KeyValuePair<string, object?>("outcome", outcome),
+            new KeyValuePair<string, object?>("reason", reason));
 }
 
 internal static class QylLatencyNames
