@@ -224,6 +224,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var excludeFromInsert = false;
         string? sqlType = null;
         string? defaultSql = null;
+        var omitDefaultFromMigration = false;
         var primaryKeyOrdinal = -1;
 
         var colAttr = FindAttribute(prop, columnAttributeType);
@@ -241,6 +242,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                         break;
                     case "DefaultSql":
                         defaultSql = named.Value.Value as string;
+                        break;
+                    case "OmitDefaultFromMigration":
+                        omitDefaultFromMigration = named.Value.Value is true;
                         break;
                     case "PrimaryKeyOrdinal":
                         if (named.Value.Value is int p)
@@ -263,6 +267,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             defaultOrdinal,
             sqlType,
             defaultSql,
+            omitDefaultFromMigration,
             primaryKeyOrdinal);
     }
 
@@ -325,4 +330,5 @@ internal readonly record struct DuckDbColumnInfo(
     int Ordinal,
     string? SqlType,
     string? DefaultSql,
+    bool OmitDefaultFromMigration,
     int PrimaryKeyOrdinal);

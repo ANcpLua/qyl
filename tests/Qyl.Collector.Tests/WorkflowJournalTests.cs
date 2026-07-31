@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Qyl.Api.Contracts.Workflow;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
+using Qyl.Collector.Workflow;
 
 namespace Qyl.Collector.Tests;
 
@@ -98,6 +99,215 @@ public sealed class WorkflowJournalTests
     }
 
     [Fact]
+    public async Task Acknowledgement_ranges_bridge_without_scanning_the_run_journal()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+
+        var first = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [
+                Event("event-5", 5, WorkflowJournalEventKind.ContentCaptured),
+                Event("event-7", 7, WorkflowJournalEventKind.ContentCaptured)
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(0UL, first.AcknowledgedSourceSequence);
+
+        var bridgeFuture = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [Event("event-6", 6, WorkflowJournalEventKind.ContentCaptured)],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(0UL, bridgeFuture.AcknowledgedSourceSequence);
+
+        var firstGap = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [
+                Event("event-1", 1, WorkflowJournalEventKind.ContentCaptured),
+                Event("event-3", 3, WorkflowJournalEventKind.ContentCaptured)
+            ],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(1UL, firstGap.AcknowledgedSourceSequence);
+
+        var bridgeFirstGap = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [Event("event-2", 2, WorkflowJournalEventKind.ContentCaptured)],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(3UL, bridgeFirstGap.AcknowledgedSourceSequence);
+
+        var complete = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [Event("event-4", 4, WorkflowJournalEventKind.ContentCaptured)],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(7UL, complete.AcknowledgedSourceSequence);
+
+        var retry = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [Event("event-4", 4, WorkflowJournalEventKind.ContentCaptured)],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(7UL, retry.AcknowledgedSourceSequence);
+    }
+
+    [Fact]
+    public void Content_reference_lookup_has_the_exact_ownership_index()
+    {
+        Assert.Contains(
+            """
+            "idx_workflow_content_refs_project_id_run_id_content_ref" ON "workflow_content_refs"("project_id", "run_id", "content_ref")
+            """,
+            WorkflowContentReferenceDbRow.IndexesDdl,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Run_projection_input_uses_persisted_immutable_and_dynamic_counters()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var created = await store.CreateWorkflowRunAsync(
+            new WorkflowRunStorageRow(
+                "project-a",
+                "run-1",
+                "thread-1",
+                "Projection counter fixture",
+                WorkflowRunStatus.Active,
+                s_startedAt,
+                null,
+                0,
+                null,
+                $"{{\"metadata\":\"{new string('m', 128 * 1024)}\"}}"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            WorkflowCanonicalization.MeasureImmutableRunInput(created),
+            created.ImmutableProjectionInputBytes);
+        Assert.Equal(
+            WorkflowCanonicalization.MeasureDynamicRunInput(created),
+            created.DynamicProjectionInputBytes);
+
+        await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [Event("attempt", 1, WorkflowJournalEventKind.AttemptStarted, attemptId: "attempt-1")],
+            [],
+            TestContext.Current.CancellationToken);
+
+        var updated = await store.GetWorkflowRunAsync(
+            "project-a", "run-1", TestContext.Current.CancellationToken);
+        var persistedEvent = Assert.Single((await store.ReadWorkflowEventsAsync(
+            "project-a", "run-1", 0, 10, TestContext.Current.CancellationToken))!.Events);
+        Assert.Equal(created.ImmutableProjectionInputBytes, updated!.ImmutableProjectionInputBytes);
+        Assert.NotEqual(created.DynamicProjectionInputBytes, updated.DynamicProjectionInputBytes);
+        Assert.Equal(
+            checked(
+                updated.ImmutableProjectionInputBytes +
+                updated.DynamicProjectionInputBytes +
+                WorkflowCanonicalization.MeasureEventInput(persistedEvent)),
+            updated.ProjectionInputBytes);
+    }
+
+    [Fact]
+    public async Task Retries_canonicalize_json_objects_and_submicrosecond_timestamps()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+        var first = Event(
+            "canonical",
+            1,
+            WorkflowJournalEventKind.ContentCaptured,
+            data: """{"b":{"d":2,"c":1},"a":[{"z":0,"y":1}]}""") with
+        {
+            Timestamp = s_startedAt.AddTicks(1)
+        };
+        var reordered = first with
+        {
+            Timestamp = s_startedAt.AddTicks(9),
+            DataJson = """{"a":[{"y":1,"z":0}],"b":{"c":1,"d":2}}"""
+        };
+
+        var withinBatch = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [first, reordered],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(1, withinBatch.AcceptedCount);
+        Assert.Equal(1, withinBatch.DuplicateCount);
+
+        var persistedRetry = await store.AppendWorkflowEventsAsync(
+            "project-a",
+            "run-1",
+            "observer-1",
+            [reordered],
+            [],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(0, persistedRetry.AcceptedCount);
+        Assert.Equal(1, persistedRetry.DuplicateCount);
+
+        var page = await store.ReadWorkflowEventsAsync(
+            "project-a", "run-1", 0, 10, TestContext.Current.CancellationToken);
+        var persisted = Assert.Single(page!.Events);
+        Assert.Equal(s_startedAt, persisted.Timestamp);
+        Assert.Equal(
+            """{"a":[{"y":1,"z":0}],"b":{"c":1,"d":2}}""",
+            persisted.DataJson);
+    }
+
+    [Fact]
+    public async Task Run_creation_canonicalizes_metadata_and_timestamp_before_idempotency()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var first = await store.CreateWorkflowRunAsync(
+            new WorkflowRunStorageRow(
+                "project-a",
+                "canonical-run",
+                "thread-1",
+                "Canonical run",
+                WorkflowRunStatus.Active,
+                s_startedAt.AddTicks(1),
+                null,
+                0,
+                null,
+                """{"z":1,"nested":{"b":2,"a":1}}"""),
+            TestContext.Current.CancellationToken);
+        var retry = await store.CreateWorkflowRunAsync(
+            new WorkflowRunStorageRow(
+                "project-a",
+                "canonical-run",
+                "thread-1",
+                "Canonical run",
+                WorkflowRunStatus.Active,
+                s_startedAt.AddTicks(9),
+                null,
+                0,
+                null,
+                """{"nested":{"a":1,"b":2},"z":1}"""),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(first, retry);
+        Assert.Equal(s_startedAt, retry.StartedAt);
+        Assert.Equal("""{"nested":{"a":1,"b":2},"z":1}""", retry.MetadataJson);
+    }
+
+    [Fact]
     public async Task Replay_preserves_failed_attempt_before_resumed_success()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -151,13 +361,13 @@ public sealed class WorkflowJournalTests
         Assert.Equal("succeeded", Assert.Single(before.Nodes, static node => node.NodeId == "attempt:attempt-2").Status);
         Assert.Equal(
             "failed",
-            Assert.Single(before.Nodes, static node => node.NodeId == "agent:attempt-1:worker").Status);
+            Assert.Single(before.Nodes, static node => node.NodeId == "agent:attempt:attempt-1:worker").Status);
         Assert.Equal(
             "succeeded",
-            Assert.Single(before.Nodes, static node => node.NodeId == "agent:attempt-2:worker").Status);
+            Assert.Single(before.Nodes, static node => node.NodeId == "agent:attempt:attempt-2:worker").Status);
         Assert.Equal(
             "interrupted",
-            Assert.Single(before.Nodes, static node => node.NodeId == "turn:attempt-1:turn-1").Status);
+            Assert.Single(before.Nodes, static node => node.NodeId == "turn:attempt:attempt-1:turn-1").Status);
 
         var beforeJson = JsonSerializer.Serialize(before, QylSerializerContext.Default.WorkflowGraphSnapshot);
         await store.RebuildWorkflowProjectionAsync(
@@ -357,18 +567,18 @@ public sealed class WorkflowJournalTests
 
         var spawn = Assert.Single(
             graph.Edges,
-            static edge => edge.SourceNodeId == "agent:attempt-1:root" &&
-                           edge.TargetNodeId == "agent:attempt-1:worker-1" &&
+            static edge => edge.SourceNodeId == "agent:attempt:attempt-1:root" &&
+                           edge.TargetNodeId == "agent:attempt:attempt-1:worker-1" &&
                            edge.Kind is WorkflowEdgeKind.Control);
         Assert.IsType<RecordedWorkflowEdgeProvenance>(spawn.Provenance);
         Assert.Contains(
             graph.Edges,
             static edge => edge.SourceNodeId == "message:message" &&
-                           edge.TargetNodeId == "agent:attempt-1:worker-2" &&
+                           edge.TargetNodeId == "agent:attempt:attempt-1:worker-2" &&
                            edge.Kind is WorkflowEdgeKind.Data);
 
         Assert.Equal(3, graph.Statistics.WorkerCount);
-        Assert.Equal(3, graph.Statistics.PeakConcurrency);
+        Assert.Equal(2, graph.Statistics.PeakConcurrency);
         Assert.Equal(6, graph.Statistics.WallTimeMs);
         Assert.Equal(
             Math.Max(
@@ -439,6 +649,224 @@ public sealed class WorkflowJournalTests
         {
             DeleteDatabase(databasePath);
         }
+    }
+
+    [Fact]
+    public async Task Append_and_control_commit_without_replaying_the_projection()
+    {
+        var databasePath = DatabasePath("hot-path");
+        try
+        {
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+                await CreateRunAsync(seed);
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "run-1",
+                    "observer-1",
+                    [Event("seed", 1, WorkflowJournalEventKind.ContentCaptured)],
+                    [],
+                    TestContext.Current.CancellationToken);
+                Assert.NotNull(await seed.GetWorkflowGraphAsync(
+                    "project-a", "run-1", null, 100, null, 100,
+                    TestContext.Current.CancellationToken));
+            }
+
+            await using var constrained = new DuckDbStore(
+                databasePath,
+                maxConcurrentReads: 1,
+                workflowProjectionLimits: new WorkflowProjectionLimits(maxWorkUnits: 0));
+            var append = await constrained.AppendWorkflowEventsAsync(
+                "project-a",
+                "run-1",
+                "observer-1",
+                [Event("hot-append", 2, WorkflowJournalEventKind.ContentCaptured)],
+                [],
+                TestContext.Current.CancellationToken);
+            var command = await constrained.SubmitWorkflowControlAsync(
+                "project-a",
+                "run-1",
+                WorkflowControlAction.Interrupt,
+                "hot-control",
+                null,
+                s_startedAt.AddSeconds(1),
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(1, append.AcceptedCount);
+            Assert.NotNull(command);
+            Assert.Equal(
+                3UL,
+                (await constrained.GetWorkflowRunAsync(
+                    "project-a", "run-1", TestContext.Current.CancellationToken))!
+                .LatestJournalSequence);
+            await Assert.ThrowsAsync<WorkflowProjectionLimitExceededException>(() =>
+                constrained.GetWorkflowGraphAsync(
+                    "project-a", "run-1", null, 100, null, 100,
+                    TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Coalesced_projection_keeps_durable_checkpoints_geometrically_bounded()
+    {
+        var databasePath = DatabasePath("coalesced");
+        try
+        {
+            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
+            await CreateRunAsync(store);
+            for (ulong sequence = 1; sequence <= 40; sequence++)
+            {
+                await store.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "run-1",
+                    "observer-1",
+                    [Event(
+                        $"event-{sequence}",
+                        sequence,
+                        WorkflowJournalEventKind.ContentCaptured,
+                        (int)sequence)],
+                    [],
+                    TestContext.Current.CancellationToken);
+            }
+
+            var graph = await store.GetWorkflowGraphAsync(
+                "project-a", "run-1", null, 100, null, 100,
+                TestContext.Current.CancellationToken);
+            Assert.NotNull(graph);
+            Assert.Equal(40UL, graph.JournalSequence);
+            var activeSequence = (await store.GetWorkflowRunAsync(
+                "project-a", "run-1", TestContext.Current.CancellationToken))!
+                .ActiveCheckpointSequence;
+            Assert.InRange(activeSequence, 1UL, 40UL);
+            Assert.InRange(Directory.GetFiles(
+                $"{databasePath}.workflow-checkpoints",
+                "*.json",
+                SearchOption.AllDirectories).Length, 1, 7);
+            while (await store.ReconcileWorkflowCheckpointsAsync(
+                       TestContext.Current.CancellationToken))
+            {
+            }
+            Assert.Single(Directory.GetFiles(
+                $"{databasePath}.workflow-checkpoints",
+                "*.json",
+                SearchOption.AllDirectories));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Corrupt_checkpoint_is_rebuilt_from_the_bounded_journal()
+    {
+        var databasePath = DatabasePath("checkpoint-recovery");
+        try
+        {
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+                await CreateRunAsync(seed);
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "run-1",
+                    "observer-1",
+                    [
+                        Event("one", 1, WorkflowJournalEventKind.ContentCaptured),
+                        Event("two", 2, WorkflowJournalEventKind.ContentCaptured)
+                    ],
+                    [],
+                    TestContext.Current.CancellationToken);
+                Assert.NotNull(await seed.GetWorkflowGraphAsync(
+                    "project-a", "run-1", null, 100, null, 100,
+                    TestContext.Current.CancellationToken));
+            }
+
+            var checkpoint = Assert.Single(Directory.GetFiles(
+                $"{databasePath}.workflow-checkpoints",
+                "*.json",
+                SearchOption.AllDirectories));
+            await File.WriteAllTextAsync(
+                checkpoint,
+                """{"corrupt":true}""",
+                TestContext.Current.CancellationToken);
+
+            await using var recovered = new DuckDbStore(databasePath, maxConcurrentReads: 1);
+            var graph = await recovered.GetWorkflowGraphAsync(
+                "project-a", "run-1", null, 100, null, 100,
+                TestContext.Current.CancellationToken);
+            Assert.NotNull(graph);
+            Assert.Equal(2UL, graph.JournalSequence);
+            await recovered.RebuildWorkflowProjectionAsync(
+                "project-a", "run-1", TestContext.Current.CancellationToken);
+            var rebuilt = await recovered.GetWorkflowGraphAsync(
+                "project-a", "run-1", null, 100, null, 100,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(
+                JsonSerializer.Serialize(graph, QylSerializerContext.Default.WorkflowGraphSnapshot),
+                JsonSerializer.Serialize(rebuilt, QylSerializerContext.Default.WorkflowGraphSnapshot));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Control_and_control_event_sequences_are_persisted_per_run()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await CreateRunAsync(store);
+        await store.CreateWorkflowRunAsync(
+            new WorkflowRunStorageRow(
+                "project-a",
+                "run-2",
+                "thread-2",
+                "Second run",
+                WorkflowRunStatus.Active,
+                s_startedAt,
+                null,
+                0,
+                null,
+                null),
+            TestContext.Current.CancellationToken);
+
+        var first = await store.SubmitWorkflowControlAsync(
+            "project-a",
+            "run-1",
+            WorkflowControlAction.Interrupt,
+            "run-one-command",
+            null,
+            s_startedAt,
+            TestContext.Current.CancellationToken);
+        var second = await store.SubmitWorkflowControlAsync(
+            "project-a",
+            "run-2",
+            WorkflowControlAction.Interrupt,
+            "run-two-command",
+            null,
+            s_startedAt,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1UL, first!.CommandSequence);
+        Assert.Equal(1UL, second!.CommandSequence);
+        var firstEvent = Assert.Single((await store.ReadWorkflowEventsAsync(
+            "project-a", "run-1", 0, 10, TestContext.Current.CancellationToken))!.Events);
+        var secondEvent = Assert.Single((await store.ReadWorkflowEventsAsync(
+            "project-a", "run-2", 0, 10, TestContext.Current.CancellationToken))!.Events);
+        Assert.Equal(1UL, firstEvent.SourceSequence);
+        Assert.Equal(1UL, secondEvent.SourceSequence);
+        var firstRun = await store.GetWorkflowRunAsync(
+            "project-a", "run-1", TestContext.Current.CancellationToken);
+        var secondRun = await store.GetWorkflowRunAsync(
+            "project-a", "run-2", TestContext.Current.CancellationToken);
+        Assert.Equal(2UL, firstRun!.NextCommandSequence);
+        Assert.Equal(2UL, secondRun!.NextCommandSequence);
+        Assert.Equal(2UL, firstRun.NextControlEventSourceSequence);
+        Assert.Equal(2UL, secondRun.NextControlEventSourceSequence);
     }
 
     [Fact]
@@ -581,6 +1009,9 @@ public sealed class WorkflowJournalTests
                 await connection.OpenAsync(TestContext.Current.CancellationToken);
                 await using var command = connection.CreateCommand();
                 command.CommandText = """
+                                      UPDATE workflow_runs
+                                      SET last_activity_at = $1
+                                      WHERE project_id = 'project-a' AND run_id = 'run-1';
                                       UPDATE workflow_content
                                       SET created_at = $1
                                       WHERE project_id = 'project-a' AND content_ref = $2
@@ -612,6 +1043,10 @@ public sealed class WorkflowJournalTests
                     "run-1",
                     contentRef,
                     TestContext.Current.CancellationToken));
+                Assert.Empty(Directory.GetFiles(
+                    $"{databasePath}.workflow-checkpoints",
+                    "*.json",
+                    SearchOption.AllDirectories));
             }
         }
         finally
@@ -793,5 +1228,8 @@ public sealed class WorkflowJournalTests
     {
         File.Delete(databasePath);
         File.Delete($"{databasePath}.wal");
+        var checkpoints = $"{databasePath}.workflow-checkpoints";
+        if (Directory.Exists(checkpoints))
+            Directory.Delete(checkpoints, recursive: true);
     }
 }

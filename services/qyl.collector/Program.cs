@@ -14,6 +14,7 @@ builder.UseQyl(options =>
     options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
     options.AdditionalActivitySources.Add(QylTelemetry.ServiceName);
+    options.AdditionalMeters.Add(QylTelemetry.ServiceName);
 });
 
 var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
@@ -38,6 +39,3 @@ StartupBanner.Print(
 app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"[qyl] Application started and listening on port {ports.Http}"));
 
-await app.RunAsync().ConfigureAwait(false);
-
-public partial class Program;

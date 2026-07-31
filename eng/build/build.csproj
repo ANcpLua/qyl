@@ -32,6 +32,8 @@
     <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
     <!-- Override vulnerable Nuke.Common transitives. -->
     <PackageReference Include="NuGet.Packaging"/>
+    <!-- Pin transitive dependency to a patched version to avoid the NU1903 audit error for
+      System.Security.Cryptography.Xml 10.0.6 (GHSA-23rf-6693-g89p and related advisories). -->
     <PackageReference Include="System.Security.Cryptography.Xml"/>
   </ItemGroup>
 

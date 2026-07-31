@@ -133,8 +133,8 @@ internal sealed partial class RetentionService(
             deletedWorkflowContent,
             writeBatches,
             duration,
-            fileBefore.DatabaseFileSizeBytes,
-            fileAfter.DatabaseFileSizeBytes);
+            fileBefore.ManagedStorageBytes,
+            fileAfter.ManagedStorageBytes);
 
         if (result.TotalRows > 0)
         {
@@ -169,7 +169,7 @@ internal sealed partial class RetentionService(
     [LoggerMessage(
         EventId = 3001,
         Level = LogLevel.Information,
-        Message = "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedWorkflowRuns} workflow runs, {DeletedWorkflowEvents} workflow events, {DeletedWorkflowCommands} workflow commands, and {DeletedWorkflowContent} content chunks in {DurationMs} ms; database file size changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
+        Message = "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedWorkflowRuns} workflow runs, {DeletedWorkflowEvents} workflow events, {DeletedWorkflowCommands} workflow commands, and {DeletedWorkflowContent} content chunks in {DurationMs} ms; managed storage changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
     private static partial void LogCycleCompleted(
         ILogger logger,
         long deletedLogRows,
