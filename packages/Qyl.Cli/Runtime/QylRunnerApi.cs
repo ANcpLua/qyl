@@ -34,27 +34,32 @@ internal sealed partial class QylRunnerApi(
     internal const int MaxConcurrentRequests = 32;
     internal const int MaxConcurrentStreams = 8;
 
+    private readonly HttpListener _listener = new();
     private int _activeRequests;
     private int _activeStreams;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public override Task StartAsync(CancellationToken cancellationToken)
     {
         var prefix = $"{QylConstants.Network.HttpScheme}://{QylConstants.Network.Loopback}:{options.RunnerPort}{QylConstants.Routes.Runner}/";
-
-        using var listener = new HttpListener();
-        listener.Prefixes.Add(prefix);
+        _listener.Prefixes.Add(prefix);
         try
         {
-            listener.Start();
+            _listener.Start();
         }
         catch (HttpListenerException ex)
         {
             LogBindFailed(prefix, ex.Message);
-            return;
+            _listener.Close();
+            throw;
         }
 
         LogListening(prefix);
-        await using var stopRegistration = stoppingToken.Register(listener.Stop).ConfigureAwait(false);
+        return base.StartAsync(cancellationToken);
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await using var stopRegistration = stoppingToken.Register(_listener.Stop).ConfigureAwait(false);
 
         // Each accepted connection is handled concurrently (SSE streams are long-lived, so we cannot await
         // inline). Handler tasks are tracked — never discarded — and drained on shutdown; HandleAsync is
@@ -65,13 +70,9 @@ internal sealed partial class QylRunnerApi(
             HttpListenerContext context;
             try
             {
-                context = await listener.GetContextAsync().ConfigureAwait(false);
+                context = await _listener.GetContextAsync().ConfigureAwait(false);
             }
             catch (Exception) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (HttpListenerException)
             {
                 break;
             }
@@ -102,6 +103,12 @@ internal sealed partial class QylRunnerApi(
         }
 
         await Task.WhenAll(handlers).ConfigureAwait(false);
+    }
+
+    public override void Dispose()
+    {
+        _listener.Close();
+        base.Dispose();
     }
 
     private async Task HandleWithCapacityLeaseAsync(

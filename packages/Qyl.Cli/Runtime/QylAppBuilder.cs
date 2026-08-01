@@ -122,9 +122,12 @@ internal sealed class QylAppBuilder
         _host.Services.AddSingleton<QylResourceActions>();
         _host.Services.AddSingleton<QylLogStore>();
         _host.Services.AddSingleton<QylProcessLauncher>();
+        _host.Services.AddHostedService<QylRunnerApi>();
+        // Bind the control endpoint before dynamic resource ports are claimed.
+        // This removes the free-port TOCTOU where a child could take the runner's
+        // configured port and leave the product running without its control API.
         _host.Services.AddHostedService<QylOrchestrator>();
         _host.Services.AddHostedService<QylConsoleUi>();
-        _host.Services.AddHostedService<QylRunnerApi>();
         return new QylApp(_host.Build());
     }
 

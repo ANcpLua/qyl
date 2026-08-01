@@ -95,8 +95,8 @@ public sealed class RunnerControlTests
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(3);
 
-        await orchestrator.StartAsync(lifetime.Token);
         await api.StartAsync(lifetime.Token);
+        await orchestrator.StartAsync(lifetime.Token);
         try
         {
             await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Ready, lifetime.Token);
@@ -133,8 +133,8 @@ public sealed class RunnerControlTests
         {
             lifetime.Cancel();
             using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await api.StopAsync(stopTimeout.Token);
             await orchestrator.StopAsync(stopTimeout.Token);
+            await api.StopAsync(stopTimeout.Token);
             api.Dispose();
             orchestrator.Dispose();
         }

@@ -13,6 +13,33 @@ namespace Qyl.Cli.Tests;
 public sealed class RunnerApiTests
 {
     [Fact]
+    public async Task Runner_bind_failure_fails_startup_instead_of_silently_removing_control()
+    {
+        using var occupied = new TcpListener(IPAddress.Loopback, 0);
+        occupied.Start();
+        var port = ((IPEndPoint)occupied.LocalEndpoint).Port;
+        var api = new QylRunnerApi(
+            new QylResourceRegistry([], TimeProvider.System),
+            new QylLogStore(),
+            new QylResourceActions(),
+            new QylAppOptions { RunnerPort = port },
+            NullLogger<QylRunnerApi>.Instance);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+        cancellation.CancelAfter(TimeSpan.FromSeconds(5));
+
+        try
+        {
+            await Assert.ThrowsAsync<HttpListenerException>(
+                () => api.StartAsync(cancellation.Token));
+        }
+        finally
+        {
+            api.Dispose();
+        }
+    }
+
+    [Fact]
     public async Task Runner_is_loopback_only_has_no_wildcard_cors_and_rejects_an_untrusted_host()
     {
         var port = ClaimLoopbackPort();
