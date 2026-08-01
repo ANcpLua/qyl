@@ -48,6 +48,7 @@ internal static class CollectorSmoke
     private const string ProtobufContentType = "application/x-protobuf";
     private const string JsonContentType = "application/json";
     private const string StockSourceName = "Qyl.CollectorAotSmoke.StockSdk";
+    private const string WorkflowRunId = "aot-smoke-workflow";
     private static readonly TimeSpan s_requestTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan s_readbackTimeout = TimeSpan.FromSeconds(15);
 
@@ -79,10 +80,17 @@ internal static class CollectorSmoke
                 case "stock-sdk" when args.Length is 2:
                     await VerifyStockSdkAsync(ParseBaseUri(args[1])).ConfigureAwait(false);
                     break;
+                case "workflow-write" when args.Length is 2:
+                    await WriteWorkflowAsync(ParseBaseUri(args[1])).ConfigureAwait(false);
+                    break;
+                case "workflow-read" when args.Length is 2:
+                    await VerifyWorkflowAsync(ParseBaseUri(args[1])).ConfigureAwait(false);
+                    break;
                 default:
                     throw new ArgumentException(
                         "Usage: CollectorAotSmoke wire <api-base> <otlp-http-base> <grpc-base> | " +
-                        "persistence <api-base> | grpc-auth <grpc-base> | stock-sdk <api-base>");
+                        "persistence <api-base> | grpc-auth <grpc-base> | stock-sdk <api-base> | " +
+                        "workflow-write <api-base> | workflow-read <api-base>");
             }
 
             return 0;
@@ -183,6 +191,82 @@ internal static class CollectorSmoke
         AssertEqual(tracesBeforeMetrics, tracesAfterMetrics, "metrics export changed stored trace count");
         AssertEqual(logsBeforeMetrics, logsAfterMetrics, "metrics export changed stored log count");
         Console.WriteLine("[driver] HTTP and gRPC metrics discard acknowledgements and storage absence verified");
+    }
+
+    private static async Task WriteWorkflowAsync(Uri apiBase)
+    {
+        await PostJsonAsync(
+                new Uri(apiBase, "api/v1/workflow-runs"),
+                new JsonObject
+                {
+                    ["run_id"] = WorkflowRunId,
+                    ["thread_id"] = "aot-smoke-thread",
+                    ["title"] = "NativeAOT checkpoint smoke",
+                    ["started_at"] = "2026-08-01T00:00:00Z"
+                })
+            .ConfigureAwait(false);
+        await PostJsonAsync(
+                new Uri(apiBase, $"api/v1/workflow-runs/{WorkflowRunId}/events"),
+                new JsonObject
+                {
+                    ["client_id"] = "aot-smoke-client",
+                    ["events"] = new JsonArray
+                    {
+                        new JsonObject
+                        {
+                            ["event_id"] = "aot-attempt-started",
+                            ["source_sequence"] = "1",
+                            ["timestamp"] = "2026-08-01T00:00:01Z",
+                            ["kind"] = "attempt_started",
+                            ["attempt_id"] = "aot-attempt"
+                        },
+                        new JsonObject
+                        {
+                            ["event_id"] = "aot-attempt-completed",
+                            ["source_sequence"] = "2",
+                            ["timestamp"] = "2026-08-01T00:00:02Z",
+                            ["kind"] = "attempt_completed",
+                            ["attempt_id"] = "aot-attempt",
+                            ["data"] = new JsonObject { ["status"] = "succeeded" }
+                        }
+                    }
+                })
+            .ConfigureAwait(false);
+        await VerifyWorkflowAsync(apiBase).ConfigureAwait(false);
+    }
+
+    private static async Task VerifyWorkflowAsync(Uri apiBase)
+    {
+        using var response = await s_http.GetAsync(
+                new Uri(apiBase, $"api/v1/workflow-runs/{WorkflowRunId}/graph?node_limit=100&edge_limit=100"))
+            .ConfigureAwait(false);
+        var payload = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (response.StatusCode is not HttpStatusCode.OK)
+            throw new InvalidOperationException(
+                $"Workflow graph returned {(int)response.StatusCode}: {payload}");
+
+        using var document = JsonDocument.Parse(payload);
+        var root = document.RootElement;
+        AssertEqual(
+            WorkflowRunId,
+            root.GetProperty("run").GetProperty("run_id").GetString(),
+            "workflow graph run id");
+        AssertEqual("2", root.GetProperty("journal_sequence").GetString(), "workflow journal sequence");
+        AssertEqual(
+            "committed",
+            root.GetProperty("projection_status").GetProperty("state").GetString(),
+            "workflow projection state");
+        if (root.GetProperty("total_node_count").GetInt32() < 2)
+            throw new InvalidOperationException("Workflow graph did not contain the run and attempt nodes.");
+    }
+
+    private static async Task PostJsonAsync(Uri uri, JsonObject body)
+    {
+        using var content = new StringContent(body.ToJsonString(), Encoding.UTF8, JsonContentType);
+        using var response = await s_http.PostAsync(uri, content).ConfigureAwait(false);
+        var payload = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (response.StatusCode is not HttpStatusCode.OK)
+            throw new InvalidOperationException($"POST {uri} returned {(int)response.StatusCode}: {payload}");
     }
 
     private static async Task ExportJsonTraceAsync(

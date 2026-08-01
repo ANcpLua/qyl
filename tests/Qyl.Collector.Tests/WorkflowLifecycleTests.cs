@@ -444,12 +444,16 @@ public sealed class WorkflowLifecycleTests
         Assert.Contains(
             "<TargetPath>runtimes/$(QylCheckpointNativeFamily)/native/$(QylCheckpointNativeFileName)</TargetPath>",
             project);
-        Assert.Contains("QylCopyCheckpointNativeForPublish", project);
+        Assert.Contains("<DirectPInvoke Include=\"qyl_checkpoint_native\"/>", project);
         Assert.Contains(
-            "DestinationFiles=\"$(PublishDir)$(QylCheckpointNativeFileName)\"",
+            "<NativeLibrary Include=\"$(QylCheckpointNativeStaticOutput)\"/>",
             project);
+        Assert.Contains("libqyl_checkpoint_native.a", project);
+        Assert.Contains("ar rcs", project);
+        Assert.DoesNotContain("QylCopyCheckpointNativeForPublish", project);
         Assert.Contains("-shared", project);
         Assert.Contains("-dynamiclib", project);
+        Assert.Contains("-mmacosx-version-min=$(QylCheckpointNativeMacOsMinimumVersion)", project);
 
         var windowsFileSystem = File.ReadAllText(Path.Combine(
             repositoryRoot,
@@ -466,7 +470,7 @@ public sealed class WorkflowLifecycleTests
             "services",
             "qyl.collector",
             "Dockerfile"));
-        Assert.Contains("libqyl_checkpoint_native.so", dockerfile);
+        Assert.Contains("test ! -e /app/libqyl_checkpoint_native.so", dockerfile);
 
         var ciWorkflow = File.ReadAllText(Path.Combine(
             repositoryRoot,

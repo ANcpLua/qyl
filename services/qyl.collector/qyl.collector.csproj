@@ -43,10 +43,15 @@
     <QylCheckpointNativeCanBuild Condition="'$(QylCheckpointNativeHostFamily)' == '$(QylCheckpointNativeFamily)' AND ('$(QylCheckpointNativeFamily)' == 'osx' OR '$(QylCheckpointNativeArchitecture)' == '$(QylCheckpointNativeHostArchitecture)')">true</QylCheckpointNativeCanBuild>
     <QylCheckpointNativeExtension Condition="'$(QylCheckpointNativeFamily)' == 'linux'">.so</QylCheckpointNativeExtension>
     <QylCheckpointNativeExtension Condition="'$(QylCheckpointNativeFamily)' == 'osx'">.dylib</QylCheckpointNativeExtension>
+    <QylCheckpointNativeMacOsMinimumVersion>12.0</QylCheckpointNativeMacOsMinimumVersion>
     <QylCheckpointNativeFileName>libqyl_checkpoint_native$(QylCheckpointNativeExtension)</QylCheckpointNativeFileName>
+    <QylCheckpointNativeStaticFileName>libqyl_checkpoint_native.a</QylCheckpointNativeStaticFileName>
+    <QylCheckpointNativeObjectFileName>qyl_checkpoint_native.o</QylCheckpointNativeObjectFileName>
     <QylCheckpointNativeSource>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', 'Native', 'qyl_checkpoint_native.c'))</QylCheckpointNativeSource>
     <QylCheckpointNativeOutputDirectory>$([MSBuild]::NormalizeDirectory('$(BaseIntermediateOutputPath)', 'qyl-native', '$(Configuration)', '$(TargetFramework)', '$(QylCheckpointNativeRid)'))</QylCheckpointNativeOutputDirectory>
     <QylCheckpointNativeOutput>$([MSBuild]::NormalizePath('$(QylCheckpointNativeOutputDirectory)', '$(QylCheckpointNativeFileName)'))</QylCheckpointNativeOutput>
+    <QylCheckpointNativeStaticOutput>$([MSBuild]::NormalizePath('$(QylCheckpointNativeOutputDirectory)', '$(QylCheckpointNativeStaticFileName)'))</QylCheckpointNativeStaticOutput>
+    <QylCheckpointNativeObjectOutput>$([MSBuild]::NormalizePath('$(QylCheckpointNativeOutputDirectory)', '$(QylCheckpointNativeObjectFileName)'))</QylCheckpointNativeObjectOutput>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
@@ -66,39 +71,39 @@
     </None>
   </ItemGroup>
 
+  <!-- NativeAOT binds this P/Invoke directly and consumes the archive at the
+       final native link. The shipping executable therefore has no loader-path
+       dependency on a loose checkpoint sidecar. Managed builds keep the RID
+       assets above because their runtime P/Invoke is intentionally dynamic. -->
+  <ItemGroup Condition="'$(PublishAot)' == 'true' AND '$(QylCheckpointNativeCanBuild)' == 'true'">
+    <DirectPInvoke Include="qyl_checkpoint_native"/>
+    <NativeLibrary Include="$(QylCheckpointNativeStaticOutput)"/>
+  </ItemGroup>
+
   <!-- The asset is compiled only when the host toolchain matches the target,
        because the multi-RID tool package publishes this project for every RID
        from a single host; failing there would make packaging impossible off the
        target OS. The delivery contract is enforced where it is actually
-       required: the collector Dockerfile asserts libqyl_checkpoint_native.so
-       exists in the published NativeAOT output. -->
+       required: NativeAOT consumes the static archive, the Dockerfile rejects a
+       loose sidecar, and the deployment smoke executes checkpoint publication. -->
 
   <Target Name="QylCompileCheckpointNative"
           BeforeTargets="CoreCompile;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems"
           Inputs="$(QylCheckpointNativeSource)"
-          Outputs="$(QylCheckpointNativeOutput)"
+          Outputs="$(QylCheckpointNativeOutput);$(QylCheckpointNativeStaticOutput)"
           Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
     <MakeDir Directories="$(QylCheckpointNativeOutputDirectory)"/>
     <Exec Condition="'$(QylCheckpointNativeFamily)' == 'linux'"
           Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -shared -Wl,-z,relro,-z,now -Wl,--no-undefined -o &quot;$(QylCheckpointNativeOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
+    <Exec Condition="'$(QylCheckpointNativeFamily)' == 'linux'"
+          Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -c -o &quot;$(QylCheckpointNativeObjectOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
     <Exec Condition="'$(QylCheckpointNativeFamily)' == 'osx'"
-          Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -dynamiclib -arch $(QylCheckpointNativeArchitecture) -Wl,-install_name,@rpath/$(QylCheckpointNativeFileName) -o &quot;$(QylCheckpointNativeOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
+          Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -mmacosx-version-min=$(QylCheckpointNativeMacOsMinimumVersion) -dynamiclib -arch $(QylCheckpointNativeArchitecture) -Wl,-install_name,@rpath/$(QylCheckpointNativeFileName) -o &quot;$(QylCheckpointNativeOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
+    <Exec Condition="'$(QylCheckpointNativeFamily)' == 'osx'"
+          Command="clang -std=c11 -O2 -fPIC -fvisibility=hidden -mmacosx-version-min=$(QylCheckpointNativeMacOsMinimumVersion) -arch $(QylCheckpointNativeArchitecture) -c -o &quot;$(QylCheckpointNativeObjectOutput)&quot; &quot;$(QylCheckpointNativeSource)&quot;"/>
+    <Exec Command="ar rcs &quot;$(QylCheckpointNativeStaticOutput)&quot; &quot;$(QylCheckpointNativeObjectOutput)&quot;"/>
     <ItemGroup>
-      <FileWrites Include="$(QylCheckpointNativeOutput)"/>
-    </ItemGroup>
-  </Target>
-
-  <!-- The NativeAOT container consumes the loose sidecar next to the
-       executable and verifies that exact delivery shape. Runtime build
-       layouts above remain separate from this publish-only copy. -->
-  <Target Name="QylCopyCheckpointNativeForPublish"
-          AfterTargets="CopyFilesToPublishDirectory"
-          Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
-    <Copy SourceFiles="$(QylCheckpointNativeOutput)"
-          DestinationFiles="$(PublishDir)$(QylCheckpointNativeFileName)"
-          SkipUnchangedFiles="true"/>
-    <ItemGroup>
-      <FileWrites Include="$(PublishDir)$(QylCheckpointNativeFileName)"/>
+      <FileWrites Include="$(QylCheckpointNativeOutput);$(QylCheckpointNativeStaticOutput);$(QylCheckpointNativeObjectOutput)"/>
     </ItemGroup>
   </Target>
 

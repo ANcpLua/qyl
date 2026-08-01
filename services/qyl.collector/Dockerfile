@@ -27,7 +27,7 @@ RUN eng/scripts/publish-collector-aot.sh /app
 RUN test -x /app/qyl.collector \
     && test ! -e /app/qyl.collector.dll \
     && test -f /app/libduckdb.so \
-    && test -f /app/libqyl_checkpoint_native.so \
+    && test ! -e /app/libqyl_checkpoint_native.so \
     || (echo "ERROR: Native AOT publish did not produce the expected collector artifacts" && exit 1)
 
 RUN set -e; \
