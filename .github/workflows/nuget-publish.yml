@@ -90,7 +90,7 @@ jobs:
           echo "Version tag $GITHUB_REF_NAME authorizes the publish lane."
 
   verify:
-    name: Consumer smoke (${{ matrix.os }})
+    name: Consumer smoke (${{ matrix.rid }})
     needs: version
     if: github.event_name == 'pull_request' || needs.version.outputs.publish == 'true'
     concurrency:
@@ -99,7 +99,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: ubuntu-24.04-arm
+            rid: linux-arm64
+          - os: windows-latest
+            rid: win-x64
+          - os: windows-11-arm
+            rid: win-arm64
+          - os: macos-15-intel
+            rid: osx-x64
+          - os: macos-latest
+            rid: osx-arm64
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -135,14 +147,14 @@ jobs:
       - name: Pack current platform
         run: |
           RID="$(dotnet --info | awk '/ RID:/ { print $2; exit }')"
-          if [ -z "$RID" ]; then
-            echo "Could not determine the .NET runtime identifier." >&2
+          if [ "$RID" != "${{ matrix.rid }}" ]; then
+            echo "Runner resolved RID '$RID', expected '${{ matrix.rid }}'." >&2
             exit 1
           fi
           mkdir -p "$PACKAGES"
           dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA" \
-            -p:ToolPackageRuntimeIdentifiers="$RID"
+            -p:ToolPackageRuntimeIdentifiers="${{ matrix.rid }}"
 
       - name: Install and exercise the packed tool
         # The smoke's internal phase timeouts cap it well under 5 minutes; the step limit
@@ -158,6 +170,13 @@ jobs:
           QYL_CI_RUN_ID: nuget-publish-${{ github.run_id }}
           QYL_CI_LEG: ${{ matrix.os }}
         run: dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- "$PACKAGES"
+
+      - name: Upload verified RID package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0c # v7
+        with:
+          name: package-${{ matrix.rid }}
+          path: ${{ env.PACKAGES }}/qyl.${{ matrix.rid }}.${{ env.VERSION }}.nupkg
+          if-no-files-found: error
 
   pack:
     name: Pack release set
@@ -200,6 +219,13 @@ jobs:
           dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
 
+      - name: Assemble RID packages from matching platform runners
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: package-*
+          path: ${{ env.PACKAGES }}
+          merge-multiple: true
+
       - name: Validate package identity and provenance
         shell: bash
         run: |
@@ -220,6 +246,12 @@ jobs:
               "linux-x64": "libduckdb.so", "linux-arm64": "libduckdb.so",
               "osx-x64": "libduckdb.dylib", "osx-arm64": "libduckdb.dylib",
               "win-x64": "duckdb.dll", "win-arm64": "duckdb.dll",
+          }
+          checkpoint_native = {
+              "linux-x64": "libqyl_checkpoint_native.so",
+              "linux-arm64": "libqyl_checkpoint_native.so",
+              "osx-x64": "libqyl_checkpoint_native.dylib",
+              "osx-arm64": "libqyl_checkpoint_native.dylib",
           }
           actual = set()
           for path in glob.glob("Artifacts/nuget/*.nupkg"):
@@ -253,6 +285,8 @@ jobs:
                       f"{prefix}/collector/qyl.collector.runtimeconfig.json",
                       f"{prefix}/collector/{native[rid]}",
                   }
+                  if rid in checkpoint_native:
+                      required.add(f"{prefix}/collector/{checkpoint_native[rid]}")
                   missing = required - entries
                   if missing:
                       raise SystemExit(f"{package_id} is missing runtime entries: {sorted(missing)}")

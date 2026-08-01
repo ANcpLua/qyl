@@ -56,25 +56,19 @@
 
   <ItemGroup Condition="'$(QylCheckpointNativeCanBuild)' == 'true'">
     <Content Include="$(QylCheckpointNativeOutput)">
-      <!-- DllImportResolver probes the NuGet runtime-native layout during a
-           regular build and through ProjectReference test outputs. -->
-      <TargetPath>runtimes/$(QylCheckpointNativeRid)/native/$(QylCheckpointNativeFileName)</TargetPath>
+      <!-- Managed LibraryImport resolves beside the application. NativeAOT
+           consumes the static archive instead and must not ship this sidecar. -->
+      <TargetPath>$(QylCheckpointNativeFileName)</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      <CopyToPublishDirectory Condition="'$(PublishAot)' != 'true'">PreserveNewest</CopyToPublishDirectory>
+      <CopyToPublishDirectory Condition="'$(PublishAot)' == 'true'">Never</CopyToPublishDirectory>
     </Content>
-    <None Include="$(QylCheckpointNativeOutput)">
-      <!-- Portable macOS hosts probe the family RID while Linux hosts probe
-           the architecture-specific RID. Ship both resolver layouts. -->
-      <TargetPath>runtimes/$(QylCheckpointNativeFamily)/native/$(QylCheckpointNativeFileName)</TargetPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </None>
   </ItemGroup>
 
   <!-- NativeAOT binds this P/Invoke directly and consumes the archive at the
        final native link. The shipping executable therefore has no loader-path
-       dependency on a loose checkpoint sidecar. Managed builds keep the RID
-       assets above because their runtime P/Invoke is intentionally dynamic. -->
+       dependency on a loose checkpoint sidecar. Managed builds and tool
+       packages keep the matching host sidecar beside the collector assembly. -->
   <ItemGroup Condition="'$(PublishAot)' == 'true' AND '$(QylCheckpointNativeCanBuild)' == 'true'">
     <DirectPInvoke Include="qyl_checkpoint_native"/>
     <NativeLibrary Include="$(QylCheckpointNativeStaticOutput)"/>

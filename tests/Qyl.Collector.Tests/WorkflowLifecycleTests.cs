@@ -418,6 +418,13 @@ public sealed class WorkflowLifecycleTests
         Assert.Contains(
             "LibraryImport(CheckpointNativeLibrary, EntryPoint = \"qyl_openat_create\"",
             managedSource);
+        Assert.Contains(
+            "NativeLibrary.SetDllImportResolver(",
+            managedSource);
+        Assert.Contains(
+            "NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, fileName))",
+            managedSource);
+        Assert.DoesNotContain("DllImportSearchPath.AssemblyDirectory", managedSource);
         Assert.DoesNotContain("mknodat", managedSource);
         Assert.DoesNotContain("OpenCreate", managedSource);
         Assert.DoesNotContain("OpenExclusive", managedSource);
@@ -439,11 +446,13 @@ public sealed class WorkflowLifecycleTests
             "<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>",
             project);
         Assert.Contains(
-            "<TargetPath>runtimes/$(QylCheckpointNativeRid)/native/$(QylCheckpointNativeFileName)</TargetPath>",
+            "<TargetPath>$(QylCheckpointNativeFileName)</TargetPath>",
             project);
         Assert.Contains(
-            "<TargetPath>runtimes/$(QylCheckpointNativeFamily)/native/$(QylCheckpointNativeFileName)</TargetPath>",
+            "<CopyToPublishDirectory Condition=\"'$(PublishAot)' != 'true'\">PreserveNewest</CopyToPublishDirectory>",
             project);
+        Assert.DoesNotContain("<TargetPath>runtimes/$(QylCheckpointNativeRid)/native/", project);
+        Assert.DoesNotContain("<TargetPath>runtimes/$(QylCheckpointNativeFamily)/native/", project);
         Assert.Contains("<DirectPInvoke Include=\"qyl_checkpoint_native\"/>", project);
         Assert.Contains(
             "<NativeLibrary Include=\"$(QylCheckpointNativeStaticOutput)\"/>",

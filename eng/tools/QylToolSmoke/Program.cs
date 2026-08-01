@@ -46,6 +46,8 @@ if (packageMode)
     implementation.RequireEntry($"tools/net10.0/{rid}/collector/qyl.collector.deps.json");
     implementation.RequireEntry($"tools/net10.0/{rid}/collector/qyl.collector.runtimeconfig.json");
     implementation.RequireEntry($"tools/net10.0/{rid}/collector/{NativeDuckDbName()}");
+    if (NativeCheckpointName() is { } checkpointNative)
+        implementation.RequireEntry($"tools/net10.0/{rid}/collector/{checkpointNative}");
 }
 else if (!File.Exists(installedTool))
 {
@@ -186,7 +188,8 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
             throw new InvalidOperationException("The packaged collector did not serve the embedded dashboard.");
 
         await VerifyIngestAndReadbackAsync(client);
-        Progress("live: ingest and readback verified, shutting down");
+        await VerifyWorkflowCheckpointAsync(client);
+        Progress("live: ingest, workflow checkpoint, and readback verified, shutting down");
     }
     finally
     {
@@ -293,6 +296,91 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
         var body = await response.Content.ReadAsStringAsync();
         return body.Contains(traceId, StringComparison.Ordinal) && body.Contains("qyl-tool-smoke", StringComparison.Ordinal);
     }, TimeSpan.FromSeconds(20), "OTLP trace was not readable from the product API");
+}
+
+static async Task VerifyWorkflowCheckpointAsync(HttpClient client)
+{
+    const string runId = "qyl-tool-smoke-workflow";
+    using (var createContent = new StringContent(
+               JsonSerializer.Serialize(new
+               {
+                   run_id = runId,
+                   thread_id = "qyl-tool-smoke-thread",
+                   title = "Packaged workflow checkpoint",
+                   started_at = "2026-08-01T00:00:00Z"
+               }),
+               Encoding.UTF8,
+               "application/json"))
+    using (var create = await client.PostAsync(
+               "http://127.0.0.1:5100/api/v1/workflow-runs",
+               createContent))
+    {
+        if (!create.IsSuccessStatusCode)
+        {
+            var error = await create.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Installed collector rejected workflow creation with {(int)create.StatusCode}: {error}");
+        }
+    }
+
+    using (var appendContent = new StringContent(
+               JsonSerializer.Serialize(new
+               {
+                   client_id = "qyl-tool-smoke-client",
+                   events = new object[]
+                   {
+                       new
+                       {
+                           event_id = "qyl-tool-attempt-started",
+                           source_sequence = "1",
+                           timestamp = "2026-08-01T00:00:01Z",
+                           kind = "attempt_started",
+                           attempt_id = "qyl-tool-attempt"
+                       },
+                       new
+                       {
+                           event_id = "qyl-tool-attempt-completed",
+                           source_sequence = "2",
+                           timestamp = "2026-08-01T00:00:02Z",
+                           kind = "attempt_completed",
+                           attempt_id = "qyl-tool-attempt",
+                           data = new { status = "succeeded" }
+                       }
+                   }
+               }),
+               Encoding.UTF8,
+               "application/json"))
+    using (var append = await client.PostAsync(
+               $"http://127.0.0.1:5100/api/v1/workflow-runs/{runId}/events",
+               appendContent))
+    {
+        if (!append.IsSuccessStatusCode)
+        {
+            var error = await append.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Installed collector rejected workflow append with {(int)append.StatusCode}: {error}");
+        }
+    }
+
+    using var graph = await client.GetAsync(
+        $"http://127.0.0.1:5100/api/v1/workflow-runs/{runId}/graph?node_limit=100&edge_limit=100");
+    var graphPayload = await graph.Content.ReadAsStringAsync();
+    if (!graph.IsSuccessStatusCode)
+    {
+        throw new InvalidOperationException(
+            $"Installed collector rejected workflow graph projection with {(int)graph.StatusCode}: {graphPayload}");
+    }
+
+    using var document = JsonDocument.Parse(graphPayload);
+    var root = document.RootElement;
+    if (root.GetProperty("run").GetProperty("run_id").GetString() != runId ||
+        root.GetProperty("journal_sequence").GetString() != "2" ||
+        root.GetProperty("projection_status").GetProperty("state").GetString() != "committed" ||
+        root.GetProperty("total_node_count").GetInt32() < 2)
+    {
+        throw new InvalidOperationException(
+            $"Installed collector returned an invalid workflow checkpoint projection: {graphPayload}");
+    }
 }
 
 static async Task<bool> IsHealthyAsync(HttpClient client, string uri)
@@ -465,6 +553,13 @@ static string NativeDuckDbName()
     if (OperatingSystem.IsWindows()) return "duckdb.dll";
     if (OperatingSystem.IsMacOS()) return "libduckdb.dylib";
     return "libduckdb.so";
+}
+
+static string? NativeCheckpointName()
+{
+    if (OperatingSystem.IsWindows()) return null;
+    if (OperatingSystem.IsMacOS()) return "libqyl_checkpoint_native.dylib";
+    return "libqyl_checkpoint_native.so";
 }
 
 internal sealed record PackageInfo(string Path, string Id, string Version, HashSet<string> Entries)

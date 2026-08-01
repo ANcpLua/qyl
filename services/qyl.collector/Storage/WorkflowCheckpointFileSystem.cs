@@ -13,6 +13,8 @@ internal readonly record struct WorkflowCheckpointFileSystemEntry(
 internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
 {
     private const string CheckpointNativeLibrary = "qyl_checkpoint_native";
+    private const string CheckpointNativeLibraryLinux = "libqyl_checkpoint_native.so";
+    private const string CheckpointNativeLibraryMacOs = "libqyl_checkpoint_native.dylib";
     private const int ErrorInterrupted = 4;
     private const int AtRemovedDirectoryLinux = 0x200;
     private const int AtRemovedDirectoryMacOs = 0x80;
@@ -43,6 +45,16 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
     private readonly string _root;
     private readonly SafeFileHandle? _rootHandle;
     private readonly WorkflowCheckpointWindowsFileSystem? _windows;
+
+    static WorkflowCheckpointFileSystem()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            NativeLibrary.SetDllImportResolver(
+                typeof(WorkflowCheckpointFileSystem).Assembly,
+                ResolveCheckpointNativeLibrary);
+        }
+    }
 
     public WorkflowCheckpointFileSystem(string root)
     {
@@ -821,6 +833,27 @@ internal sealed partial class WorkflowCheckpointFileSystem : IDisposable
         {
             ThrowPathError(Marshal.GetLastPInvokeError(), "directory");
         }
+    }
+
+    private static IntPtr ResolveCheckpointNativeLibrary(
+        string libraryName,
+        System.Reflection.Assembly assembly,
+        DllImportSearchPath? searchPath)
+    {
+        _ = assembly;
+        _ = searchPath;
+        if (!string.Equals(
+                libraryName,
+                CheckpointNativeLibrary,
+                StringComparison.Ordinal))
+        {
+            return IntPtr.Zero;
+        }
+
+        var fileName = OperatingSystem.IsMacOS()
+            ? CheckpointNativeLibraryMacOs
+            : CheckpointNativeLibraryLinux;
+        return NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, fileName));
     }
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
