@@ -1,5 +1,0 @@
-[mcp_servers."cloudflare-api"]
-enabled = true
-
-[mcp_servers.railway]
-enabled = true
