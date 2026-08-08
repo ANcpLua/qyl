@@ -150,6 +150,169 @@ public sealed class WorkflowLifecycleTests
         }
     }
 
+    [Theory]
+    [InlineData(true, "project_id, run_id, client_id")]
+    [InlineData(true, "run_id, project_id, event_id")]
+    [InlineData(false, "project_id, run_id, event_id")]
+    public async Task Damaged_journal_idempotency_index_with_rows_fails_closed(
+        bool unique,
+        string columns)
+    {
+        const string IndexName = "uidx_workflow_events_project_id_run_id_event_id";
+        var databasePath = DatabasePath("journal-idempotency-index");
+        try
+        {
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+                await CreateRunAsync(seed, "run-1");
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "run-1",
+                    "client-a",
+                    [Event("event-1", 1)],
+                    [],
+                    TestContext.Current.CancellationToken);
+            }
+
+            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await using var damage = connection.CreateCommand();
+                damage.CommandText = string.Concat(
+                    "DROP INDEX ",
+                    IndexName,
+                    "; CREATE ",
+                    unique ? "UNIQUE " : "",
+                    "INDEX ",
+                    IndexName,
+                    " ON workflow_events(",
+                    columns,
+                    ");");
+                await damage.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            }
+
+            var error = Assert.Throws<QylSchemaMismatchException>(
+                () => new DuckDbStore(databasePath, maxConcurrentReads: 1));
+            Assert.Contains("workflow_events", error.Message, StringComparison.Ordinal);
+
+            await using var verify = new DuckDBConnection($"DataSource={databasePath}");
+            await verify.OpenAsync(TestContext.Current.CancellationToken);
+            await using var preserved = verify.CreateCommand();
+            preserved.CommandText = "SELECT count(*) FROM workflow_events";
+            Assert.Equal(
+                1,
+                Convert.ToInt32(
+                    await preserved.ExecuteScalarAsync(TestContext.Current.CancellationToken),
+                    CultureInfo.InvariantCulture));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Theory]
+    [InlineData("DROP INDEX uidx_workflow_events_project_id_run_id_event_id")]
+    [InlineData("CREATE INDEX idx_workflow_events_unexpected ON workflow_events(event_id)")]
+    [InlineData("""
+                DROP INDEX uidx_workflow_events_project_id_run_id_event_id;
+                CREATE UNIQUE INDEX uidx_workflow_events_project_id_run_id_event_id
+                    ON workflow_content_refs(project_id, run_id, content_ref)
+                """)]
+    public async Task Missing_extra_or_wrong_owner_journal_index_with_rows_fails_closed(
+        string damageSql)
+    {
+        var databasePath = DatabasePath("journal-index-set");
+        try
+        {
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+                await CreateRunAsync(seed, "run-1");
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "run-1",
+                    "client-a",
+                    [Event("event-1", 1)],
+                    [],
+                    TestContext.Current.CancellationToken);
+            }
+
+            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await using var damage = connection.CreateCommand();
+                damage.CommandText = damageSql;
+                await damage.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            }
+
+            var error = Assert.Throws<QylSchemaMismatchException>(
+                () => new DuckDbStore(databasePath, maxConcurrentReads: 1));
+            Assert.Contains("workflow_events", error.Message, StringComparison.Ordinal);
+
+            await using var verify = new DuckDBConnection($"DataSource={databasePath}");
+            await verify.OpenAsync(TestContext.Current.CancellationToken);
+            await using var preserved = verify.CreateCommand();
+            preserved.CommandText = "SELECT count(*) FROM workflow_events";
+            Assert.Equal(
+                1,
+                Convert.ToInt32(
+                    await preserved.ExecuteScalarAsync(TestContext.Current.CancellationToken),
+                    CultureInfo.InvariantCulture));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Disposable_run_summary_is_reconstructed_from_the_journal()
+    {
+        var databasePath = DatabasePath("reconstruct-run-summary");
+        try
+        {
+            await using (var seed = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+                await CreateRunAsync(seed, "run-1");
+                await seed.AppendWorkflowEventsAsync(
+                    "project-a",
+                    "run-1",
+                    "client-a",
+                    [
+                        Event("attempt", 1, WorkflowJournalEventKind.AttemptStarted),
+                        Event("complete", 2, WorkflowJournalEventKind.RunCompleted)
+                    ],
+                    [],
+                    TestContext.Current.CancellationToken);
+            }
+
+            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await using var remove = connection.CreateCommand();
+                remove.CommandText = "DELETE FROM workflow_run_summaries";
+                await remove.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            }
+
+            await using var recovered = new DuckDbStore(databasePath, maxConcurrentReads: 1);
+            var run = await recovered.GetWorkflowRunAsync(
+                "project-a",
+                "run-1",
+                TestContext.Current.CancellationToken);
+
+            Assert.NotNull(run);
+            Assert.Equal(WorkflowRunStatus.Completed, run.Status);
+            Assert.Equal(2UL, run.LatestJournalSequence);
+            Assert.Equal(2, run.EventCount);
+            Assert.Null(run.ActiveAttemptId);
+            Assert.NotNull(run.EndedAt);
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
     [Fact]
     public async Task Missing_authoritative_table_cannot_adopt_a_partially_populated_database()
     {
@@ -573,6 +736,7 @@ public sealed class WorkflowLifecycleTests
             await retirement.WaitAsync(TestContext.Current.CancellationToken);
             var checkpoint = await duringRetirement.WaitAsync(
                 TestContext.Current.CancellationToken);
+            Assert.NotNull(checkpoint);
             Assert.Equal(0UL, checkpoint.JournalSequence);
             var readmitted = await first;
             Assert.Equal(0UL, readmitted!.JournalSequence);
@@ -730,10 +894,9 @@ public sealed class WorkflowLifecycleTests
                 await connection.OpenAsync(TestContext.Current.CancellationToken);
                 await using var command = connection.CreateCommand();
                 command.CommandText = """
-                                      UPDATE workflow_runs
+                                      UPDATE workflow_run_summaries
                                       SET status = 'completed',
-                                          ended_at = $1,
-                                          last_activity_at = $2
+                                          ended_at = $1
                                       WHERE project_id = 'project-a'
                                         AND run_id = 'run-1'
                                       """;
@@ -741,11 +904,20 @@ public sealed class WorkflowLifecycleTests
                 {
                     Value = s_timestamp.UtcDateTime
                 });
-                command.Parameters.Add(new DuckDBParameter
+                await command.ExecuteNonQueryAsync(
+                    TestContext.Current.CancellationToken);
+                await using var activity = connection.CreateCommand();
+                activity.CommandText = """
+                                       UPDATE workflow_runs
+                                       SET last_activity_at = $1
+                                       WHERE project_id = 'project-a'
+                                         AND run_id = 'run-1'
+                                       """;
+                activity.Parameters.Add(new DuckDBParameter
                 {
                     Value = s_timestamp.AddDays(-40).UtcDateTime
                 });
-                await command.ExecuteNonQueryAsync(
+                await activity.ExecuteNonQueryAsync(
                     TestContext.Current.CancellationToken);
             }
 
@@ -2106,6 +2278,8 @@ public sealed class WorkflowLifecycleTests
                 TestContext.Current.CancellationToken);
             var failed = await failedHead.WaitAsync(
                 TestContext.Current.CancellationToken);
+            Assert.NotNull(completed);
+            Assert.NotNull(failed);
             Assert.Equal(2UL, completed.JournalSequence);
             Assert.Equal(WorkflowRunStatus.Completed, completed.Graph.Run.Status);
             Assert.Equal(2UL, failed.JournalSequence);

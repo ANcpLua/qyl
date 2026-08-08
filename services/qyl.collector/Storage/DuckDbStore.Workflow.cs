@@ -9,11 +9,139 @@ namespace Qyl.Collector.Storage;
 
 internal sealed partial class DuckDbStore
 {
+    private static void RebuildWorkflowRunSummaries(
+        DuckDBConnection con,
+        DbTransaction transaction)
+    {
+        using (var clear = con.CreateCommand())
+        {
+            clear.Transaction = transaction;
+            clear.CommandText = "DELETE FROM workflow_run_summaries";
+            clear.ExecuteNonQuery();
+        }
+
+        var runs = new List<WorkflowRunDbRow>();
+        using (var command = con.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList +
+                                  " FROM workflow_runs";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+                runs.Add(WorkflowRunDbRow.MapFromReader(reader));
+        }
+
+        foreach (var envelope in runs)
+        {
+            var status = WorkflowRunStatus.Active;
+            DateTimeOffset? endedAt = null;
+            string? activeAttempt = null;
+            var terminalSeen = false;
+            var eventCount = 0L;
+            var expectedSequence = 1UL;
+            var baseRun = new WorkflowRunStorageRow(
+                envelope.ProjectId,
+                envelope.RunId,
+                envelope.ThreadId,
+                envelope.Title,
+                status,
+                envelope.StartedAt,
+                null,
+                0,
+                null,
+                envelope.MetadataJson);
+            var immutableBytes = WorkflowCanonicalization.MeasureImmutableRunInput(baseRun);
+            var eventBytes = 0L;
+
+            using (var events = con.CreateCommand())
+            {
+                events.Transaction = transaction;
+                events.CommandText = "SELECT " + WorkflowEventDbRow.SelectColumnList + """
+                                     FROM workflow_events
+                                     WHERE project_id = $1 AND run_id = $2
+                                     ORDER BY journal_sequence
+                                     """;
+                AddParameters(events, envelope.ProjectId, envelope.RunId);
+                using var reader = events.ExecuteReader();
+                while (reader.Read())
+                {
+                    var workflowEvent = ReadWorkflowEvent(reader);
+                    if (workflowEvent.JournalSequence != expectedSequence++)
+                        throw new InvalidDataException(
+                            $"Workflow journal '{envelope.RunId}' is not contiguous.");
+                    eventCount++;
+                    eventBytes = checked(eventBytes +
+                        WorkflowCanonicalization.MeasureEventInput(workflowEvent));
+                    if (terminalSeen)
+                        continue;
+                    if (workflowEvent.Kind is WorkflowJournalEventKind.AttemptStarted)
+                    {
+                        activeAttempt = workflowEvent.AttemptId;
+                        status = WorkflowRunStatus.Active;
+                        endedAt = null;
+                    }
+                    else if (workflowEvent.Kind is WorkflowJournalEventKind.RunCompleted)
+                    {
+                        status = EventRunStatus(workflowEvent) ?? WorkflowRunStatus.Completed;
+                        endedAt = workflowEvent.Timestamp;
+                        activeAttempt = null;
+                    }
+                    else if (workflowEvent.Kind is WorkflowJournalEventKind.TurnInterrupted)
+                    {
+                        status = WorkflowRunStatus.Interrupted;
+                        endedAt = workflowEvent.Timestamp;
+                    }
+                    else if (workflowEvent.Kind is WorkflowJournalEventKind.TurnStarted &&
+                             status is WorkflowRunStatus.Interrupted)
+                    {
+                        status = WorkflowRunStatus.Active;
+                        endedAt = null;
+                    }
+                    terminalSeen = status is WorkflowRunStatus.Completed or WorkflowRunStatus.Failed;
+                }
+            }
+
+            var summaryRun = baseRun with
+            {
+                Status = status,
+                EndedAt = endedAt,
+                LatestJournalSequence = checked((ulong)eventCount),
+                ActiveAttemptId = activeAttempt,
+                EventCount = eventCount
+            };
+            var dynamicBytes = WorkflowCanonicalization.MeasureDynamicRunInput(summaryRun);
+            using var insert = con.CreateCommand();
+            insert.Transaction = transaction;
+            insert.CommandText = WorkflowRunSummaryDbRow.BuildMultiRowInsertSql(1);
+            WorkflowRunSummaryDbRow.AddParameters(insert, new WorkflowRunSummaryDbRow
+            {
+                ProjectId = envelope.ProjectId,
+                RunId = envelope.RunId,
+                Status = RunStatus(status),
+                EndedAt = endedAt,
+                LatestJournalSequence = checked((ulong)eventCount),
+                EventCount = eventCount,
+                ProjectionInputBytes = checked(immutableBytes + dynamicBytes + eventBytes),
+                ImmutableProjectionInputBytes = immutableBytes,
+                DynamicProjectionInputBytes = dynamicBytes,
+                ActiveAttemptId = activeAttempt
+            });
+            insert.ExecuteNonQuery();
+        }
+    }
+
     public async Task<WorkflowRunStorageRow> CreateWorkflowRunAsync(
         WorkflowRunStorageRow run,
         CancellationToken ct = default)
     {
-        run = WorkflowCanonicalization.Normalize(run);
+        run = WorkflowCanonicalization.Normalize(run) with
+        {
+            Status = WorkflowRunStatus.Active,
+            EndedAt = null,
+            LatestJournalSequence = 0,
+            ActiveAttemptId = null,
+            EventCount = 0
+        };
         var immutableInputBytes = WorkflowCanonicalization.MeasureImmutableRunInput(run);
         var dynamicInputBytes = WorkflowCanonicalization.MeasureDynamicRunInput(run);
         var inputBytes = checked(immutableInputBytes + dynamicInputBytes);
@@ -62,15 +190,7 @@ internal sealed partial class DuckDbStore
                     RunGeneration = persistedRun.RunGeneration,
                     ThreadId = persistedRun.ThreadId,
                     Title = persistedRun.Title,
-                    Status = RunStatus(persistedRun.Status),
                     StartedAt = persistedRun.StartedAt,
-                    EndedAt = persistedRun.EndedAt,
-                    LatestJournalSequence = persistedRun.LatestJournalSequence,
-                    EventCount = persistedRun.EventCount,
-                    ProjectionInputBytes = persistedRun.ProjectionInputBytes,
-                    ImmutableProjectionInputBytes = persistedRun.ImmutableProjectionInputBytes,
-                    DynamicProjectionInputBytes = persistedRun.DynamicProjectionInputBytes,
-                    ActiveAttemptId = persistedRun.ActiveAttemptId,
                     NextCommandSequence = persistedRun.NextCommandSequence,
                     NextControlEventSourceSequence = persistedRun.NextControlEventSourceSequence,
                     ActiveCheckpointSequence = 0,
@@ -87,6 +207,26 @@ internal sealed partial class DuckDbStore
                     ProjectionFailureConfiguration = null,
                     ProjectionFailureSemantic = null,
                     MetadataJson = persistedRun.MetadataJson
+                });
+                await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using (var command = con.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandText = WorkflowRunSummaryDbRow.BuildMultiRowInsertSql(1);
+                WorkflowRunSummaryDbRow.AddParameters(command, new WorkflowRunSummaryDbRow
+                {
+                    ProjectId = persistedRun.ProjectId,
+                    RunId = persistedRun.RunId,
+                    Status = RunStatus(WorkflowRunStatus.Active),
+                    EndedAt = null,
+                    LatestJournalSequence = 0,
+                    EventCount = 0,
+                    ProjectionInputBytes = inputBytes,
+                    ImmutableProjectionInputBytes = immutableInputBytes,
+                    DynamicProjectionInputBytes = dynamicInputBytes,
+                    ActiveAttemptId = null
                 });
                 await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
@@ -134,20 +274,35 @@ internal sealed partial class DuckDbStore
         CancellationToken ct = default) =>
         ExecuteReadAsync<IReadOnlyList<WorkflowRunStorageRow>>(con =>
         {
+            using var transaction = con.BeginTransaction();
             using var command = con.CreateCommand();
-            command.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList + """
-                                   FROM workflow_runs
-                                   WHERE project_id = $1
-                                     AND deleted_at IS NULL
-                                     AND ($2 IS NULL OR status = $2)
-                                   ORDER BY started_at DESC, run_id
+            command.Transaction = transaction;
+            command.CommandText = """
+                                   SELECT workflow_runs.project_id, workflow_runs.run_id
+                                   FROM workflow_runs AS workflow_runs
+                                   JOIN workflow_run_summaries AS summary
+                                     ON summary.project_id = workflow_runs.project_id
+                                    AND summary.run_id = workflow_runs.run_id
+                                   WHERE workflow_runs.project_id = $1
+                                     AND workflow_runs.deleted_at IS NULL
+                                     AND ($2 IS NULL OR summary.status = $2)
+                                   ORDER BY workflow_runs.started_at DESC, workflow_runs.run_id
                                    LIMIT $3 OFFSET $4
                                    """;
             AddParameters(command, projectId, DbValue(status is null ? null : RunStatus(status.Value)), limit, offset);
             using var reader = command.ExecuteReader();
-            var rows = new List<WorkflowRunStorageRow>();
+            var runKeys = new List<(string ProjectId, string RunId)>();
             while (reader.Read())
-                rows.Add(ReadWorkflowRun(reader));
+                runKeys.Add((reader.GetString(0), reader.GetString(1)));
+            reader.Close();
+            var rows = new List<WorkflowRunStorageRow>(runKeys.Count);
+            foreach (var key in runKeys)
+            {
+                rows.Add(ReadWorkflowRun(con, key.ProjectId, key.RunId, transaction) ??
+                    throw new InvalidDataException(
+                        $"Workflow run '{key.RunId}' disappeared during listing."));
+            }
+            transaction.Commit();
             return rows;
         }, ct);
 
@@ -336,8 +491,9 @@ internal sealed partial class DuckDbStore
 
             using (var eventAppender = WorkflowEventDbRow.CreateAppender(con))
             {
-                foreach (var workflowEvent in newEvents)
+                for (var eventIndex = 0; eventIndex < newEvents.Count; eventIndex++)
                 {
+                    var workflowEvent = newEvents[eventIndex];
                     EnsureContentReferencesExist(
                         con,
                         transaction,
@@ -346,6 +502,7 @@ internal sealed partial class DuckDbStore
                         capturedInThisBatch,
                         workflowEvent.ContentRefs);
                     journalSequence++;
+                    _beforeWorkflowEventAppend?.Invoke(eventAppender, eventIndex);
                     AppendWorkflowEvent(
                         eventAppender,
                         projectId,
@@ -371,32 +528,43 @@ internal sealed partial class DuckDbStore
             await using (var update = con.CreateCommand())
             {
                 update.Transaction = transaction;
-                update.CommandText = """
-                                     UPDATE workflow_runs
-                                     SET latest_journal_sequence = $1,
-                                         active_attempt_id = $2,
-                                         status = $3,
-                                         ended_at = $4,
-                                         event_count = $5,
-                                         projection_input_bytes = $6,
-                                         dynamic_projection_input_bytes = $7,
-                                         updated_at = current_timestamp,
-                                         last_activity_at = current_timestamp
-                                     WHERE project_id = $8 AND run_id = $9 AND run_generation = $10
+                update.CommandText = $"""
+                                     UPDATE {WorkflowRunSummaryDbRow.TableName}
+                                     SET {WorkflowRunSummaryDbRow.LatestJournalSequenceColumnName} = $1,
+                                         {WorkflowRunSummaryDbRow.ActiveAttemptIdColumnName} = $2,
+                                         {WorkflowRunSummaryDbRow.StatusColumnName} = $3,
+                                         {WorkflowRunSummaryDbRow.EndedAtColumnName} = $4,
+                                         {WorkflowRunSummaryDbRow.EventCountColumnName} = $5,
+                                         {WorkflowRunSummaryDbRow.ProjectionInputBytesColumnName} = $6,
+                                         {WorkflowRunSummaryDbRow.DynamicProjectionInputBytesColumnName} = $7
+                                     WHERE {WorkflowRunSummaryDbRow.ProjectIdColumnName} = $8
+                                       AND {WorkflowRunSummaryDbRow.RunIdColumnName} = $9
                                      """;
-                AddParameters(
+                WorkflowRunSummaryDbRow.AddJournalHeadUpdateParameters(
                     update,
-                    (decimal)latest,
-                    DbValue(activeAttempt),
+                    latest,
+                    activeAttempt,
                     RunStatus(status),
-                    endedAt.HasValue ? endedAt.Value.UtcDateTime : DBNull.Value,
+                    endedAt,
                     eventCount,
                     projectionInputBytes,
                     dynamicInputBytes,
                     projectId,
-                    runId,
-                    run.RunGeneration);
+                    runId);
                 await update.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+            await using (var activity = con.CreateCommand())
+            {
+                activity.Transaction = transaction;
+                activity.CommandText = """
+                                       UPDATE workflow_runs
+                                       SET updated_at = current_timestamp,
+                                           last_activity_at = current_timestamp
+                                       WHERE project_id = $1 AND run_id = $2
+                                         AND run_generation = $3
+                                       """;
+                AddParameters(activity, projectId, runId, run.RunGeneration);
+                await activity.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             var acknowledged = UpdateWorkflowClientAcknowledgement(
@@ -919,27 +1087,45 @@ internal sealed partial class DuckDbStore
                                """;
         AddParameters(command, projectId, runId, includeDeleted);
         using var reader = command.ExecuteReader();
-        return reader.Read() ? ReadWorkflowRun(reader) : null;
+        if (!reader.Read())
+            return null;
+        var row = WorkflowRunDbRow.MapFromReader(reader);
+        reader.Close();
+        return ReadWorkflowRun(con, row, transaction);
     }
 
-    private static WorkflowRunStorageRow ReadWorkflowRun(DbDataReader reader)
+    private static WorkflowRunStorageRow ReadWorkflowRun(
+        DuckDBConnection con,
+        WorkflowRunDbRow row,
+        DbTransaction? transaction = null)
     {
-        var row = WorkflowRunDbRow.MapFromReader(reader);
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT " + WorkflowRunSummaryDbRow.SelectColumnList + """
+                              FROM workflow_run_summaries
+                              WHERE project_id = $1 AND run_id = $2
+                              """;
+        AddParameters(command, row.ProjectId, row.RunId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            throw new InvalidDataException(
+                $"Workflow run '{row.RunId}' has no reconstructed journal summary.");
+        var summary = WorkflowRunSummaryDbRow.MapFromReader(reader);
         return new WorkflowRunStorageRow(
             row.ProjectId,
             row.RunId,
             row.ThreadId,
             row.Title,
-            ParseRunStatus(row.Status),
+            ParseRunStatus(summary.Status),
             row.StartedAt,
-            row.EndedAt,
-            row.LatestJournalSequence,
-            row.ActiveAttemptId,
+            summary.EndedAt,
+            summary.LatestJournalSequence,
+            summary.ActiveAttemptId,
             row.MetadataJson,
-            row.EventCount,
-            row.ProjectionInputBytes,
-            row.ImmutableProjectionInputBytes,
-            row.DynamicProjectionInputBytes,
+            summary.EventCount,
+            summary.ProjectionInputBytes,
+            summary.ImmutableProjectionInputBytes,
+            summary.DynamicProjectionInputBytes,
             row.NextCommandSequence,
             row.NextControlEventSourceSequence,
             row.ActiveCheckpointSequence,
@@ -1324,12 +1510,19 @@ internal sealed partial class DuckDbStore
         {
             using var update = con.CreateCommand();
             update.Transaction = transaction;
-            update.CommandText = """
-                                 UPDATE workflow_client_journal
-                                 SET acknowledged_source_sequence = $1
-                                 WHERE project_id = $2 AND run_id = $3 AND client_id = $4
+            update.CommandText = $"""
+                                 UPDATE {WorkflowClientJournalDbRow.TableName}
+                                 SET {WorkflowClientJournalDbRow.AcknowledgedSourceSequenceColumnName} = $1
+                                 WHERE {WorkflowClientJournalDbRow.ProjectIdColumnName} = $2
+                                   AND {WorkflowClientJournalDbRow.RunIdColumnName} = $3
+                                   AND {WorkflowClientJournalDbRow.ClientIdColumnName} = $4
                                  """;
-            AddParameters(update, (decimal)acknowledged, projectId, runId, clientId);
+            WorkflowClientJournalDbRow.AddCoordinationAcknowledgeParameters(
+                update,
+                acknowledged,
+                projectId,
+                runId,
+                clientId);
             update.ExecuteNonQuery();
         }
         return acknowledged;
@@ -1413,21 +1606,21 @@ internal sealed partial class DuckDbStore
     {
         using var command = con.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-                              UPDATE workflow_client_journal_ranges
-                              SET range_end = $1
-                              WHERE project_id = $2
-                                AND run_id = $3
-                                AND client_id = $4
-                                AND range_start = $5
+        command.CommandText = $"""
+                              UPDATE {WorkflowClientJournalRangeDbRow.TableName}
+                              SET {WorkflowClientJournalRangeDbRow.RangeEndColumnName} = $1
+                              WHERE {WorkflowClientJournalRangeDbRow.ProjectIdColumnName} = $2
+                                AND {WorkflowClientJournalRangeDbRow.RunIdColumnName} = $3
+                                AND {WorkflowClientJournalRangeDbRow.ClientIdColumnName} = $4
+                                AND {WorkflowClientJournalRangeDbRow.RangeStartColumnName} = $5
                               """;
-        AddParameters(
+        WorkflowClientJournalRangeDbRow.AddCoordinationAdvanceRangeParameters(
             command,
-            (decimal)rangeEnd,
+            rangeEnd,
             projectId,
             runId,
             clientId,
-            (decimal)rangeStart);
+            rangeStart);
         command.ExecuteNonQuery();
     }
 
@@ -1441,14 +1634,19 @@ internal sealed partial class DuckDbStore
     {
         using var command = con.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-                              DELETE FROM workflow_client_journal_ranges
-                              WHERE project_id = $1
-                                AND run_id = $2
-                                AND client_id = $3
-                                AND range_start = $4
+        command.CommandText = $"""
+                              DELETE FROM {WorkflowClientJournalRangeDbRow.TableName}
+                              WHERE {WorkflowClientJournalRangeDbRow.ProjectIdColumnName} = $1
+                                AND {WorkflowClientJournalRangeDbRow.RunIdColumnName} = $2
+                                AND {WorkflowClientJournalRangeDbRow.ClientIdColumnName} = $3
+                                AND {WorkflowClientJournalRangeDbRow.RangeStartColumnName} = $4
                               """;
-        AddParameters(command, projectId, runId, clientId, (decimal)rangeStart);
+        WorkflowClientJournalRangeDbRow.AddCoordinationDeleteRangeParameters(
+            command,
+            projectId,
+            runId,
+            clientId,
+            rangeStart);
         command.ExecuteNonQuery();
     }
 
@@ -1559,28 +1757,42 @@ internal sealed partial class DuckDbStore
         }
         using var update = con.CreateCommand();
         update.Transaction = transaction;
-        update.CommandText = """
-                             UPDATE workflow_runs
-                             SET latest_journal_sequence = $1,
-                                 event_count = $2,
-                                 projection_input_bytes = $3,
-                                 next_command_sequence = $4,
-                                 next_control_event_source_sequence = $5,
-                                 updated_at = current_timestamp,
-                                 last_activity_at = current_timestamp
-                             WHERE project_id = $6 AND run_id = $7 AND run_generation = $8
+        update.CommandText = $"""
+                             UPDATE {WorkflowRunSummaryDbRow.TableName}
+                             SET {WorkflowRunSummaryDbRow.LatestJournalSequenceColumnName} = $1,
+                                 {WorkflowRunSummaryDbRow.EventCountColumnName} = $2,
+                                 {WorkflowRunSummaryDbRow.ProjectionInputBytesColumnName} = $3
+                             WHERE {WorkflowRunSummaryDbRow.ProjectIdColumnName} = $4
+                               AND {WorkflowRunSummaryDbRow.RunIdColumnName} = $5
                              """;
-        AddParameters(
+        WorkflowRunSummaryDbRow.AddControlJournalHeadUpdateParameters(
             update,
-            (decimal)latest,
+            latest,
             eventCount,
             projectionInputBytes,
-            (decimal)nextCommandSequence,
-            (decimal)nextControlEventSourceSequence,
+            run.ProjectId,
+            run.RunId);
+        update.ExecuteNonQuery();
+        using var envelope = con.CreateCommand();
+        envelope.Transaction = transaction;
+        envelope.CommandText = $"""
+                               UPDATE {WorkflowRunDbRow.TableName}
+                               SET {WorkflowRunDbRow.NextCommandSequenceColumnName} = $1,
+                                   {WorkflowRunDbRow.NextControlEventSourceSequenceColumnName} = $2,
+                                   {WorkflowRunDbRow.UpdatedAtColumnName} = current_timestamp,
+                                   {WorkflowRunDbRow.LastActivityAtColumnName} = current_timestamp
+                               WHERE {WorkflowRunDbRow.ProjectIdColumnName} = $3
+                                 AND {WorkflowRunDbRow.RunIdColumnName} = $4
+                                 AND {WorkflowRunDbRow.RunGenerationColumnName} = $5
+                               """;
+        WorkflowRunDbRow.AddControlJournalEnvelopeUpdateParameters(
+            envelope,
+            nextCommandSequence,
+            nextControlEventSourceSequence,
             run.ProjectId,
             run.RunId,
             run.RunGeneration);
-        update.ExecuteNonQuery();
+        envelope.ExecuteNonQuery();
     }
 
     private static bool IsControlTransitionAllowed(

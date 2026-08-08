@@ -45,6 +45,67 @@ public sealed class DuckDbStorageGeneratorTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Named_parameter_set_tracks_property_rename_from_canonical_metadata()
+    {
+        const string source = """
+                              namespace Qyl.Collector.Storage;
+
+                              [DuckDbTable(
+                                  "probe_rows",
+                                  ParameterSets = "Advance:RenamedSequence,Id")]
+                              internal sealed partial record ProbeRow
+                              {
+                                  public ulong RenamedSequence { get; init; }
+                                  public required string Id { get; init; }
+                              }
+                              """;
+
+        var generated = Generate(source);
+
+        Assert.Contains("public const string AdvanceColumnList", generated, StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string RenamedSequenceColumnName = \"\\\"renamed_sequence\\\"\";",
+            generated,
+            StringComparison.Ordinal);
+        Assert.Contains("\"renamed_sequence\", \"id\"", generated, StringComparison.Ordinal);
+        Assert.Contains("public static void AddAdvanceParameters(", generated, StringComparison.Ordinal);
+        Assert.Contains("ulong renamedSequence,", generated, StringComparison.Ordinal);
+        Assert.Contains("string id)", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"sequence\", \"id\"", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Named_parameter_set_order_is_independent_of_physical_declaration_order()
+    {
+        const string first = """
+                             namespace Qyl.Collector.Storage;
+                             [DuckDbTable("probe_rows", ParameterSets = "Advance:Id,Sequence")]
+                             internal sealed partial record ProbeRow
+                             {
+                                 public ulong Sequence { get; init; }
+                                 public required string Id { get; init; }
+                             }
+                             """;
+        const string reordered = """
+                                 namespace Qyl.Collector.Storage;
+                                 [DuckDbTable("probe_rows", ParameterSets = "Advance:Id,Sequence")]
+                                 internal sealed partial record ProbeRow
+                                 {
+                                     public required string Id { get; init; }
+                                     public ulong Sequence { get; init; }
+                                 }
+                                 """;
+
+        foreach (var generated in new[] { Generate(first), Generate(reordered) })
+        {
+            Assert.Contains("\"id\", \"sequence\"", generated, StringComparison.Ordinal);
+            Assert.True(
+                generated.IndexOf("string id,", StringComparison.Ordinal) <
+                generated.IndexOf("ulong sequence)", StringComparison.Ordinal));
+        }
+    }
+
     private static string Generate(string source)
     {
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)

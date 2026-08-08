@@ -68,6 +68,13 @@ internal static class DuckDbAttributeSource
                                      /// </summary>
                                      public string UniqueIndexes { get; set; } = "";
 
+                                     /// <summary>
+                                     /// Semicolon-separated named parameter sets for explicit SQL operations.
+                                     /// Each set uses "Name:Property,Property" syntax. The generator owns the
+                                     /// physical column names, CLR parameter types, and positional binder order.
+                                     /// </summary>
+                                     public string ParameterSets { get; set; } = "";
+
                                      public DuckDbTableAttribute(string tableName) => TableName = tableName;
                                  }
 

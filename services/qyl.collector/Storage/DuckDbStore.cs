@@ -24,6 +24,7 @@ internal sealed partial class DuckDbStore : IQylStore
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
     private readonly Func<WorkflowProjectionKey, ulong, CancellationToken, ValueTask>?
         _beforeProjectionQuantum;
+    private readonly Action<DuckDBAppender, int>? _beforeWorkflowEventAppend;
     private readonly Func<
         WorkflowCheckpointReconciliationStage,
         CancellationToken,
@@ -69,7 +70,8 @@ internal sealed partial class DuckDbStore : IQylStore
             beforeProjectionQuantum = null,
         Func<WorkflowCheckpointReconciliationStage, CancellationToken, ValueTask>?
             beforeCheckpointReconciliation = null,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        Action<DuckDBAppender, int>? beforeWorkflowEventAppend = null)
     {
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _logger = _loggerFactory.CreateLogger<DuckDbStore>();
@@ -79,6 +81,7 @@ internal sealed partial class DuckDbStore : IQylStore
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
         _beforeProjectionQuantum = beforeProjectionQuantum;
+        _beforeWorkflowEventAppend = beforeWorkflowEventAppend;
         _beforeCheckpointReconciliation = beforeCheckpointReconciliation;
         _workflowContentProtector = workflowContentProtector ??
             new WorkflowContentProtector(
@@ -886,6 +889,11 @@ internal sealed partial class DuckDbStore : IQylStore
                     $"ALTER or delete that data automatically. Difference: {difference}");
             }
 
+            DropExpectedIndexes(
+                con,
+                transaction,
+                DuckDbGeneratedSchema.AuthoritativeTables.Where(
+                    table => authoritativeMismatches.Contains(table.Name, StringComparer.Ordinal)));
             DropTables(con, transaction, authoritativeMismatches);
             if (authoritativeMismatches.Contains(LogStorageRow.TableName, StringComparer.Ordinal))
                 ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
@@ -901,6 +909,7 @@ internal sealed partial class DuckDbStore : IQylStore
             if (derivedMismatches.Count > 0 ||
                 stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash })
             {
+                DropExpectedIndexes(con, transaction, DuckDbGeneratedSchema.DerivedTables);
                 DropGeneratedTables(con, transaction, includeAuthoritative: false);
             }
             CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
@@ -908,6 +917,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
         DropRetiredDerivedTables(con, transaction);
         EnsureCheckpointClock(con, transaction);
+        RebuildWorkflowRunSummaries(con, transaction);
         WriteSchemaIdentity(con, transaction);
         transaction.Commit();
 
@@ -961,48 +971,112 @@ internal sealed partial class DuckDbStore : IQylStore
         var mismatches = new List<string>();
         foreach (var table in expectedTables)
         {
-            using var command = con.CreateCommand();
-            command.Transaction = transaction;
-            command.CommandText = """
-                                  SELECT column_name, data_type, is_nullable, column_default
-                                  FROM duckdb_columns()
-                                  WHERE schema_name = 'main' AND table_name = $1
-                                  ORDER BY column_index
-                                  """;
-            AddParameters(command, table.Name);
-            using var reader = command.ExecuteReader();
             var ordinal = 0;
             var tableMatches = true;
-            while (reader.Read())
             {
-                if (ordinal >= table.Columns.Length)
+                using var command = con.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = """
+                                      SELECT column_name, data_type, is_nullable, column_default
+                                      FROM duckdb_columns()
+                                      WHERE schema_name = 'main' AND table_name = $1
+                                      ORDER BY column_index
+                                      """;
+                AddParameters(command, table.Name);
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
                 {
-                    tableMatches = false;
-                    continue;
-                }
+                    if (ordinal >= table.Columns.Length)
+                    {
+                        tableMatches = false;
+                        continue;
+                    }
 
-                var expected = table.Columns[ordinal++];
-                var actualName = reader.GetString(0);
-                var actualType = reader.GetString(1);
-                var actualNullable = reader.GetBoolean(2);
-                var actualDefault = reader.IsDBNull(3) ? null : reader.GetString(3);
-                if (!string.Equals(actualName, expected.Name, StringComparison.Ordinal) ||
-                    !string.Equals(
-                        NormalizeDuckDbType(actualType),
-                        NormalizeDuckDbType(expected.SqlType),
-                        StringComparison.Ordinal) ||
-                    actualNullable == expected.Required ||
-                    !DefaultsMatch(actualDefault, expected.DefaultSql))
-                {
-                    tableMatches = false;
+                    var expected = table.Columns[ordinal++];
+                    var actualName = reader.GetString(0);
+                    var actualType = reader.GetString(1);
+                    var actualNullable = reader.GetBoolean(2);
+                    var actualDefault = reader.IsDBNull(3) ? null : reader.GetString(3);
+                    if (!string.Equals(actualName, expected.Name, StringComparison.Ordinal) ||
+                        !string.Equals(
+                            NormalizeDuckDbType(actualType),
+                            NormalizeDuckDbType(expected.SqlType),
+                            StringComparison.Ordinal) ||
+                        actualNullable == expected.Required ||
+                        !DefaultsMatch(actualDefault, expected.DefaultSql))
+                    {
+                        tableMatches = false;
+                    }
                 }
             }
 
-            if (!tableMatches || ordinal != table.Columns.Length)
+            if (!tableMatches || ordinal != table.Columns.Length ||
+                !IndexesMatch(con, transaction, table))
                 mismatches.Add(table.Name);
         }
 
         return mismatches;
+    }
+
+    private static bool IndexesMatch(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        DuckDbExpectedTable table)
+    {
+        var actualIndexes = new Dictionary<
+            string,
+            (string Table, bool Unique, string[] Columns)>(StringComparer.Ordinal);
+        using (var command = con.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = """
+                                  SELECT index_name, table_name, is_unique, expressions
+                                  FROM duckdb_indexes()
+                                  WHERE schema_name = 'main' AND table_name = $1
+                                  """;
+            AddParameters(command, table.Name);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                if (!actualIndexes.TryAdd(
+                        reader.GetString(0),
+                        (reader.GetString(1),
+                            reader.GetBoolean(2),
+                            ParseDuckDbIndexExpressions(reader.GetString(3)))))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (actualIndexes.Count != table.Indexes.Length)
+            return false;
+
+        foreach (var expected in table.Indexes)
+        {
+            if (!actualIndexes.TryGetValue(expected.Name, out var actual) ||
+                !string.Equals(actual.Table, table.Name, StringComparison.Ordinal) ||
+                actual.Unique != expected.Unique ||
+                !actual.Columns.SequenceEqual(expected.Columns, StringComparer.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static string[] ParseDuckDbIndexExpressions(string expressions)
+    {
+        var value = expressions.Trim();
+        if (value.Length >= 2 && value[0] == '[' && value[^1] == ']')
+            value = value[1..^1];
+        if (value.Length is 0)
+            return [];
+
+        return value.Split(',')
+            .Select(static column => column.Trim().Trim('"'))
+            .ToArray();
     }
 
     private static string NormalizeDuckDbType(string value)
@@ -1102,6 +1176,15 @@ internal sealed partial class DuckDbStore : IQylStore
     {
         foreach (var table in tables)
             ExecuteSchemaSql(con, transaction, $"DROP TABLE IF EXISTS {QuoteIdentifier(table)}");
+    }
+
+    private static void DropExpectedIndexes(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        IEnumerable<DuckDbExpectedTable> tables)
+    {
+        foreach (var index in tables.SelectMany(static table => table.Indexes))
+            ExecuteSchemaSql(con, transaction, $"DROP INDEX IF EXISTS {QuoteIdentifier(index.Name)}");
     }
 
     private static void DropRetiredDerivedTables(

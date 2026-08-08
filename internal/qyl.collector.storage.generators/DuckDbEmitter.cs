@@ -45,6 +45,7 @@ internal static class DuckDbEmitter
         EmitCreateTableDdl(sb, table);
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
+        EmitParameterSets(sb, table.ParameterSets.ToArray());
         if (table.AppenderEligible)
             EmitAppender(sb, table, [.. table.Columns]);
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -68,8 +69,21 @@ internal static class DuckDbEmitter
         sb.AppendLine($"private const string QuotedTableName = \"{EscapeCSharpString(SqlIdentifier.Quote(tableName))}\";");
         sb.AppendLine();
 
+        EmitColumnNameConstants(sb, selectColumns);
         EmitColumnListConstant(sb, "ColumnList", insertColumns);
         EmitColumnListConstant(sb, "SelectColumnList", selectColumns);
+    }
+
+    private static void EmitColumnNameConstants(
+        IndentedStringBuilder sb,
+        IReadOnlyList<DuckDbColumnInfo> columns)
+    {
+        foreach (var column in columns)
+        {
+            sb.AppendLine(
+                $"public const string {column.PropertyName}ColumnName = \"{EscapeCSharpString(SqlIdentifier.Quote(column.ColumnName))}\";");
+        }
+        sb.AppendLine();
     }
 
     private static void EmitColumnListConstant(IndentedStringBuilder sb, string name, DuckDbColumnInfo[] columns)
@@ -249,6 +263,11 @@ internal static class DuckDbEmitter
     {
         var value = $"row.{col.PropertyName}";
 
+        return BuildParameterValueExpr(col, value);
+    }
+
+    private static string BuildParameterValueExpr(DuckDbColumnInfo col, string value)
+    {
         if (col.PropertyType.TrimEnd('?') is "ulong" or "System.UInt64")
             return col.IsNullable
                 ? $"{value}.HasValue ? (object)(decimal){value}.Value : DBNull.Value"
@@ -257,6 +276,57 @@ internal static class DuckDbEmitter
         return col.IsNullable
             ? $"{value} ?? (object)DBNull.Value"
             : value;
+    }
+
+    private static void EmitParameterSets(
+        IndentedStringBuilder sb,
+        IReadOnlyList<DuckDbParameterSetInfo> parameterSets)
+    {
+        foreach (var parameterSet in parameterSets)
+        {
+            var columns = parameterSet.Columns.ToArray();
+            var parameterNames = BuildParameterNames(columns);
+            EmitColumnListConstant(sb, $"{parameterSet.Name}ColumnList", columns);
+            sb.AppendLine("/// <summary>Adds typed positional parameters in the generated operation-column order.</summary>");
+            sb.AppendLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+            sb.AppendLine($"public static void Add{parameterSet.Name}Parameters(");
+            sb.AppendLine("    DuckDBCommand cmd,");
+            for (var i = 0; i < columns.Length; i++)
+            {
+                var column = columns[i];
+                var suffix = i == columns.Length - 1 ? ")" : ",";
+                sb.AppendLine($"    {column.PropertyType} {parameterNames[i]}{suffix}");
+            }
+            sb.BeginBlock();
+            for (var i = 0; i < columns.Length; i++)
+            {
+                var column = columns[i];
+                sb.AppendLine(
+                    $"cmd.Parameters.Add(new DuckDBParameter {{ Value = {BuildParameterValueExpr(column, parameterNames[i])} }});");
+            }
+            sb.EndBlock();
+            sb.AppendLine();
+        }
+    }
+
+    private static string ToParameterName(string propertyName) =>
+        propertyName.Length is 0
+            ? propertyName
+            : char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
+
+    private static string[] BuildParameterNames(IReadOnlyList<DuckDbColumnInfo> columns)
+    {
+        var occurrences = new Dictionary<string, int>(StringComparer.Ordinal);
+        var names = new string[columns.Count];
+        for (var i = 0; i < columns.Count; i++)
+        {
+            var baseName = ToParameterName(columns[i].PropertyName);
+            occurrences.TryGetValue(baseName, out var count);
+            count++;
+            occurrences[baseName] = count;
+            names[i] = count is 1 ? baseName : baseName + count.ToString(CultureInfo.InvariantCulture);
+        }
+        return names;
     }
 
     private static void EmitAppender(

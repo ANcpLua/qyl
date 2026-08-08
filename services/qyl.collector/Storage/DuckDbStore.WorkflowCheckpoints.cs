@@ -539,45 +539,52 @@ internal sealed partial class DuckDbStore
                 await using (var command = con.CreateCommand())
                 {
                     command.Transaction = transaction;
-                    command.CommandText = """
-                                          UPDATE workflow_runs
-                                          SET active_checkpoint_sequence = $1,
-                                              active_checkpoint_id = $2,
-                                              active_checkpoint_storage_key = $3,
-                                              active_checkpoint_input_hash = $4,
-                                              active_checkpoint_semantic_fingerprint = $5,
-                                              active_checkpoint_configuration_fingerprint = $6,
-                                              active_checkpoint_format_version = $7,
-                                              active_checkpoint_byte_length = $8,
-                                              active_checkpoint_created_at = current_timestamp,
-                                              checkpoint_manifest_epoch = $9,
-                                              projection_failure_sequence =
-                                                  CASE WHEN projection_failure_sequence <= $1
-                                                      THEN NULL ELSE projection_failure_sequence END,
-                                              projection_failure_kind =
-                                                  CASE WHEN projection_failure_sequence <= $1
-                                                      THEN NULL ELSE projection_failure_kind END,
-                                              projection_failure_configuration =
-                                                  CASE WHEN projection_failure_sequence <= $1
-                                                      THEN NULL ELSE projection_failure_configuration END,
-                                              projection_failure_semantic =
-                                                  CASE WHEN projection_failure_sequence <= $1
-                                                      THEN NULL ELSE projection_failure_semantic END,
-                                              updated_at = current_timestamp
-                                          WHERE project_id = $10
-                                            AND run_id = $11
-                                            AND run_generation = $12
-                                            AND active_checkpoint_sequence = $13
-                                            AND active_checkpoint_id IS NOT DISTINCT FROM $14
-                                            AND active_checkpoint_storage_key
+                    command.CommandText = $"""
+                                          UPDATE {WorkflowRunDbRow.TableName}
+                                          SET {WorkflowRunDbRow.ActiveCheckpointSequenceColumnName} = $1,
+                                              {WorkflowRunDbRow.ActiveCheckpointIdColumnName} = $2,
+                                              {WorkflowRunDbRow.ActiveCheckpointStorageKeyColumnName} = $3,
+                                              {WorkflowRunDbRow.ActiveCheckpointInputHashColumnName} = $4,
+                                              {WorkflowRunDbRow.ActiveCheckpointSemanticFingerprintColumnName} = $5,
+                                              {WorkflowRunDbRow.ActiveCheckpointConfigurationFingerprintColumnName} = $6,
+                                              {WorkflowRunDbRow.ActiveCheckpointFormatVersionColumnName} = $7,
+                                              {WorkflowRunDbRow.ActiveCheckpointByteLengthColumnName} = $8,
+                                              {WorkflowRunDbRow.ActiveCheckpointCreatedAtColumnName} = current_timestamp,
+                                              {WorkflowRunDbRow.CheckpointManifestEpochColumnName} = $9,
+                                              {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} =
+                                                  CASE WHEN {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} <= $1
+                                                      THEN NULL ELSE {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} END,
+                                              {WorkflowRunDbRow.ProjectionFailureKindColumnName} =
+                                                  CASE WHEN {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} <= $1
+                                                      THEN NULL ELSE {WorkflowRunDbRow.ProjectionFailureKindColumnName} END,
+                                              {WorkflowRunDbRow.ProjectionFailureConfigurationColumnName} =
+                                                  CASE WHEN {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} <= $1
+                                                      THEN NULL ELSE {WorkflowRunDbRow.ProjectionFailureConfigurationColumnName} END,
+                                              {WorkflowRunDbRow.ProjectionFailureSemanticColumnName} =
+                                                  CASE WHEN {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} <= $1
+                                                      THEN NULL ELSE {WorkflowRunDbRow.ProjectionFailureSemanticColumnName} END,
+                                              {WorkflowRunDbRow.UpdatedAtColumnName} = current_timestamp
+                                          WHERE {WorkflowRunDbRow.ProjectIdColumnName} = $10
+                                            AND {WorkflowRunDbRow.RunIdColumnName} = $11
+                                            AND {WorkflowRunDbRow.RunGenerationColumnName} = $12
+                                            AND {WorkflowRunDbRow.ActiveCheckpointSequenceColumnName} = $13
+                                            AND {WorkflowRunDbRow.ActiveCheckpointIdColumnName} IS NOT DISTINCT FROM $14
+                                            AND {WorkflowRunDbRow.ActiveCheckpointStorageKeyColumnName}
                                                 IS NOT DISTINCT FROM $15
-                                            AND checkpoint_manifest_epoch = $16
-                                            AND latest_journal_sequence >= $1
-                                          RETURNING active_checkpoint_sequence
+                                            AND {WorkflowRunDbRow.CheckpointManifestEpochColumnName} = $16
+                                            AND EXISTS (
+                                                SELECT 1
+                                                FROM {WorkflowRunSummaryDbRow.TableName} AS summary
+                                                WHERE summary.{WorkflowRunSummaryDbRow.ProjectIdColumnName} =
+                                                      {WorkflowRunDbRow.TableName}.{WorkflowRunDbRow.ProjectIdColumnName}
+                                                  AND summary.{WorkflowRunSummaryDbRow.RunIdColumnName} =
+                                                      {WorkflowRunDbRow.TableName}.{WorkflowRunDbRow.RunIdColumnName}
+                                                  AND summary.{WorkflowRunSummaryDbRow.LatestJournalSequenceColumnName} >= $1)
+                                          RETURNING {WorkflowRunDbRow.ActiveCheckpointSequenceColumnName}
                                           """;
-                    AddParameters(
+                    WorkflowRunDbRow.AddManifestPublishCasParameters(
                         command,
-                        (decimal)checkpoint.JournalSequence,
+                        checkpoint.JournalSequence,
                         blob.CheckpointId,
                         publishedStorageIdentity,
                         checkpoint.RunInputHash,
@@ -585,14 +592,14 @@ internal sealed partial class DuckDbStore
                         checkpoint.ProjectionConfigurationFingerprint,
                         checkpoint.FormatVersion,
                         blob.Length,
-                        (decimal)epoch,
+                        epoch,
                         expected.ProjectId,
                         expected.RunId,
                         expected.RunGeneration,
-                        (decimal)expected.ActiveCheckpointSequence,
-                        DbValue(expected.ActiveCheckpointId),
-                        DbValue(expected.ActiveCheckpointStorageKey),
-                        (decimal)expected.CheckpointManifestEpoch);
+                        expected.ActiveCheckpointSequence,
+                        expected.ActiveCheckpointId,
+                        expected.ActiveCheckpointStorageKey,
+                        expected.CheckpointManifestEpoch);
                     await using var reader = await command
                         .ExecuteReaderAsync(token)
                         .ConfigureAwait(false);
@@ -715,7 +722,11 @@ internal sealed partial class DuckDbStore
                                   WHERE project_id = $5
                                     AND run_id = $6
                                     AND run_generation = $7
-                                    AND latest_journal_sequence >= $1
+                                    AND EXISTS (
+                                        SELECT 1 FROM workflow_run_summaries AS summary
+                                        WHERE summary.project_id = workflow_runs.project_id
+                                          AND summary.run_id = workflow_runs.run_id
+                                          AND summary.latest_journal_sequence >= $1)
                                   """;
             AddParameters(
                 command,
@@ -780,53 +791,63 @@ internal sealed partial class DuckDbStore
                 await using (var clear = con.CreateCommand())
                 {
                     clear.Transaction = transaction;
-                    clear.CommandText = """
-                                        UPDATE workflow_runs
-                                        SET active_checkpoint_sequence = 0,
-                                            active_checkpoint_id = NULL,
-                                            active_checkpoint_storage_key = NULL,
-                                            active_checkpoint_input_hash = NULL,
-                                            active_checkpoint_semantic_fingerprint = NULL,
-                                            active_checkpoint_configuration_fingerprint = NULL,
-                                            active_checkpoint_format_version = NULL,
-                                            active_checkpoint_byte_length = NULL,
-                                            active_checkpoint_created_at = NULL,
-                                            checkpoint_manifest_epoch = $1,
-                                            projection_failure_sequence = NULL,
-                                            projection_failure_kind = NULL,
-                                            projection_failure_configuration = NULL,
-                                            projection_failure_semantic = NULL,
-                                            updated_at = current_timestamp
-                                        WHERE project_id = $2
-                                          AND run_id = $3
-                                          AND run_generation = $4
-                                          AND active_checkpoint_sequence = $5
-                                          AND active_checkpoint_id
+                    clear.CommandText = $"""
+                                        UPDATE {WorkflowRunDbRow.TableName}
+                                        SET {WorkflowRunDbRow.ActiveCheckpointSequenceColumnName} = 0,
+                                            {WorkflowRunDbRow.ActiveCheckpointIdColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointStorageKeyColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointInputHashColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointSemanticFingerprintColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointConfigurationFingerprintColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointFormatVersionColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointByteLengthColumnName} = NULL,
+                                            {WorkflowRunDbRow.ActiveCheckpointCreatedAtColumnName} = NULL,
+                                            {WorkflowRunDbRow.CheckpointManifestEpochColumnName} = $1,
+                                            {WorkflowRunDbRow.ProjectionFailureSequenceColumnName} = NULL,
+                                            {WorkflowRunDbRow.ProjectionFailureKindColumnName} = NULL,
+                                            {WorkflowRunDbRow.ProjectionFailureConfigurationColumnName} = NULL,
+                                            {WorkflowRunDbRow.ProjectionFailureSemanticColumnName} = NULL,
+                                            {WorkflowRunDbRow.UpdatedAtColumnName} = current_timestamp
+                                        WHERE {WorkflowRunDbRow.ProjectIdColumnName} = $2
+                                          AND {WorkflowRunDbRow.RunIdColumnName} = $3
+                                          AND {WorkflowRunDbRow.RunGenerationColumnName} = $4
+                                          AND {WorkflowRunDbRow.ActiveCheckpointSequenceColumnName} = $5
+                                          AND {WorkflowRunDbRow.ActiveCheckpointIdColumnName}
                                               IS NOT DISTINCT FROM $6
-                                          AND active_checkpoint_storage_key
+                                          AND {WorkflowRunDbRow.ActiveCheckpointStorageKeyColumnName}
                                               IS NOT DISTINCT FROM $7
-                                          AND checkpoint_manifest_epoch = $8
-                                        RETURNING latest_journal_sequence
+                                          AND {WorkflowRunDbRow.CheckpointManifestEpochColumnName} = $8
+                                        RETURNING {WorkflowRunDbRow.RunIdColumnName}
                                         """;
-                    AddParameters(
+                    WorkflowRunDbRow.AddManifestResetCasParameters(
                         clear,
-                        (decimal)epoch,
+                        epoch,
                         observed.ProjectId,
                         observed.RunId,
                         observed.RunGeneration,
-                        (decimal)observed.ActiveCheckpointSequence,
-                        DbValue(observed.ActiveCheckpointId),
-                        DbValue(observed.ActiveCheckpointStorageKey),
-                        (decimal)observed.CheckpointManifestEpoch);
+                        observed.ActiveCheckpointSequence,
+                        observed.ActiveCheckpointId,
+                        observed.ActiveCheckpointStorageKey,
+                        observed.CheckpointManifestEpoch);
                     await using var reader = await clear
                         .ExecuteReaderAsync(token)
                         .ConfigureAwait(false);
                     if (await reader.ReadAsync(token).ConfigureAwait(false))
                     {
-                        repairTarget = DuckDbValueReader.ReadUInt64(
-                            reader,
-                            0,
-                            0);
+                        await reader.DisposeAsync().ConfigureAwait(false);
+                        await using var head = con.CreateCommand();
+                        head.Transaction = transaction;
+                        head.CommandText = $"""
+                                           SELECT {WorkflowRunSummaryDbRow.LatestJournalSequenceColumnName}
+                                           FROM {WorkflowRunSummaryDbRow.TableName}
+                                           WHERE {WorkflowRunSummaryDbRow.ProjectIdColumnName} = $1
+                                             AND {WorkflowRunSummaryDbRow.RunIdColumnName} = $2
+                                           """;
+                        AddParameters(head, observed.ProjectId, observed.RunId);
+                        var value = await head.ExecuteScalarAsync(token).ConfigureAwait(false) ??
+                                    throw new InvalidDataException(
+                                        $"Workflow run '{observed.RunId}' has no journal summary.");
+                        repairTarget = Convert.ToUInt64(value, CultureInfo.InvariantCulture);
                     }
                 }
 
@@ -999,9 +1020,16 @@ internal sealed partial class DuckDbStore
                     await using var reader = await survey
                         .ExecuteReaderAsync(token)
                         .ConfigureAwait(false);
+                    var surveyedRows = new List<WorkflowRunDbRow>();
                     while (await reader.ReadAsync(token).ConfigureAwait(false))
+                        surveyedRows.Add(WorkflowRunDbRow.MapFromReader(reader));
+                    await reader.DisposeAsync().ConfigureAwait(false);
+                    foreach (var surveyedEnvelope in surveyedRows)
                     {
-                        var surveyed = WorkflowRunDbRow.MapFromReader(reader);
+                        var surveyed = ReadWorkflowRun(
+                            con,
+                            surveyedEnvelope,
+                            transaction);
                         repairs.Add(new WorkflowCheckpointRepair(
                             new WorkflowProjectionKey(
                                 surveyed.ProjectId,
@@ -1287,9 +1315,13 @@ internal sealed partial class DuckDbStore
                             (decimal)_checkpointReconciliationEpoch);
                     }
                     using var reader = command.ExecuteReader();
-                    var rows = new List<WorkflowRunStorageRow>(pageLimit);
+                    var persisted = new List<WorkflowRunDbRow>(pageLimit);
                     while (reader.Read())
-                        rows.Add(ReadWorkflowRun(reader));
+                        persisted.Add(WorkflowRunDbRow.MapFromReader(reader));
+                    reader.Close();
+                    var rows = new List<WorkflowRunStorageRow>(persisted.Count);
+                    foreach (var row in persisted)
+                        rows.Add(ReadWorkflowRun(con, row));
                     return rows;
                 }, ct).ConfigureAwait(false);
 

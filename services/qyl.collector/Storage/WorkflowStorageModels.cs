@@ -3,7 +3,20 @@ using System.Text.Json.Serialization;
 
 namespace Qyl.Collector.Storage;
 
-[DuckDbTable("workflow_runs", Indexes = "ActiveCheckpointStorageKey")]
+[DuckDbTable(
+    "workflow_runs",
+    Indexes = "ActiveCheckpointStorageKey",
+    ParameterSets =
+        "ControlJournalEnvelopeUpdate:NextCommandSequence,NextControlEventSourceSequence," +
+        "ProjectId,RunId,RunGeneration;" +
+        "ManifestPublishCas:ActiveCheckpointSequence,ActiveCheckpointId,ActiveCheckpointStorageKey," +
+        "ActiveCheckpointInputHash,ActiveCheckpointSemanticFingerprint," +
+        "ActiveCheckpointConfigurationFingerprint,ActiveCheckpointFormatVersion," +
+        "ActiveCheckpointByteLength,CheckpointManifestEpoch,ProjectId,RunId,RunGeneration," +
+        "ActiveCheckpointSequence,ActiveCheckpointId,ActiveCheckpointStorageKey,CheckpointManifestEpoch;" +
+        "ManifestResetCas:CheckpointManifestEpoch,ProjectId,RunId,RunGeneration," +
+        "ActiveCheckpointSequence,ActiveCheckpointId,ActiveCheckpointStorageKey,CheckpointManifestEpoch;" +
+        "RetentionTombstone:ProjectId,RunId,RunGeneration,CheckpointManifestEpoch")]
 internal sealed partial record WorkflowRunDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -19,30 +32,8 @@ internal sealed partial record WorkflowRunDbRow
 
     public string? Title { get; init; }
 
-    public required string Status { get; init; }
-
     [DuckDbColumn(SqlType = "TIMESTAMPTZ")]
     public DateTimeOffset StartedAt { get; init; }
-
-    [DuckDbColumn(SqlType = "TIMESTAMPTZ")]
-    public DateTimeOffset? EndedAt { get; init; }
-
-    [DuckDbColumn(DefaultSql = "0")]
-    public ulong LatestJournalSequence { get; init; }
-
-    [DuckDbColumn(DefaultSql = "0")]
-    public long EventCount { get; init; }
-
-    [DuckDbColumn(DefaultSql = "0")]
-    public long ProjectionInputBytes { get; init; }
-
-    [DuckDbColumn(DefaultSql = "0")]
-    public long ImmutableProjectionInputBytes { get; init; }
-
-    [DuckDbColumn(DefaultSql = "0")]
-    public long DynamicProjectionInputBytes { get; init; }
-
-    public string? ActiveAttemptId { get; init; }
 
     [DuckDbColumn(DefaultSql = "1")]
     public ulong NextCommandSequence { get; init; }
@@ -98,6 +89,47 @@ internal sealed partial record WorkflowRunDbRow
         SqlType = "TIMESTAMPTZ",
         DefaultSql = "current_timestamp")]
     public DateTimeOffset LastActivityAt { get; init; }
+}
+
+// A disposable cache reconstructed exclusively from workflow_events plus the
+// immutable run envelope. It is never an authority for workflow lifecycle.
+[DuckDbTable(
+    "workflow_run_summaries",
+    Derived = true,
+    ParameterSets =
+        "JournalHeadUpdate:LatestJournalSequence,ActiveAttemptId,Status,EndedAt,EventCount," +
+        "ProjectionInputBytes,DynamicProjectionInputBytes,ProjectId,RunId;" +
+        "ControlJournalHeadUpdate:LatestJournalSequence,EventCount,ProjectionInputBytes," +
+        "ProjectId,RunId")]
+internal sealed partial record WorkflowRunSummaryDbRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    public required string ProjectId { get; init; }
+
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string RunId { get; init; }
+
+    public required string Status { get; init; }
+
+    [DuckDbColumn(SqlType = "TIMESTAMPTZ")]
+    public DateTimeOffset? EndedAt { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public ulong LatestJournalSequence { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long EventCount { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long ProjectionInputBytes { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long ImmutableProjectionInputBytes { get; init; }
+
+    [DuckDbColumn(DefaultSql = "0")]
+    public long DynamicProjectionInputBytes { get; init; }
+
+    public string? ActiveAttemptId { get; init; }
 }
 
 [DuckDbTable(
@@ -201,7 +233,10 @@ internal sealed partial record WorkflowContentReferenceDbRow
     public DateTimeOffset CreatedAt { get; init; }
 }
 
-[DuckDbTable("workflow_client_journal")]
+[DuckDbTable(
+    "workflow_client_journal",
+    ParameterSets =
+        "CoordinationAcknowledge:AcknowledgedSourceSequence,ProjectId,RunId,ClientId")]
 internal sealed partial record WorkflowClientJournalDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -219,7 +254,10 @@ internal sealed partial record WorkflowClientJournalDbRow
 
 [DuckDbTable(
     "workflow_client_journal_ranges",
-    Indexes = "ProjectId,RunId,ClientId,RangeEnd")]
+    Indexes = "ProjectId,RunId,ClientId,RangeEnd",
+    ParameterSets =
+        "CoordinationAdvanceRange:RangeEnd,ProjectId,RunId,ClientId,RangeStart;" +
+        "CoordinationDeleteRange:ProjectId,RunId,ClientId,RangeStart")]
 internal sealed partial record WorkflowClientJournalRangeDbRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]

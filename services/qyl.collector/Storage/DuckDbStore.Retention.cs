@@ -56,16 +56,23 @@ internal sealed partial class DuckDbStore
                 await using var transaction = await con
                     .BeginTransactionAsync(token)
                     .ConfigureAwait(false);
+                var expiredRunKeys = new List<(string ProjectId, string RunId)>();
                 var expiredRuns = new List<WorkflowRunStorageRow>();
                 await using (var select = con.CreateCommand())
                 {
                     select.Transaction = transaction;
-                    select.CommandText = "SELECT " + WorkflowRunDbRow.SelectColumnList + """
+                    select.CommandText = """
+                                          SELECT workflow_runs.project_id, workflow_runs.run_id
                                           FROM workflow_runs
-                                          WHERE status IN ('completed', 'failed')
-                                            AND deleted_at IS NULL
-                                            AND last_activity_at < $1
-                                          ORDER BY last_activity_at, project_id, run_id
+                                          JOIN workflow_run_summaries AS summary
+                                            ON summary.project_id = workflow_runs.project_id
+                                           AND summary.run_id = workflow_runs.run_id
+                                          WHERE summary.status IN ('completed', 'failed')
+                                            AND workflow_runs.deleted_at IS NULL
+                                            AND workflow_runs.last_activity_at < $1
+                                          ORDER BY workflow_runs.last_activity_at,
+                                                   workflow_runs.project_id,
+                                                   workflow_runs.run_id
                                           LIMIT $2
                                           """;
                     AddParameters(select, cutoff.UtcDateTime, batchSize);
@@ -73,7 +80,12 @@ internal sealed partial class DuckDbStore
                         .ExecuteReaderAsync(token)
                         .ConfigureAwait(false);
                     while (await reader.ReadAsync(token).ConfigureAwait(false))
-                        expiredRuns.Add(ReadWorkflowRun(reader));
+                        expiredRunKeys.Add((reader.GetString(0), reader.GetString(1)));
+                }
+                foreach (var key in expiredRunKeys)
+                {
+                    if (ReadWorkflowRun(con, key.ProjectId, key.RunId, transaction) is { } run)
+                        expiredRuns.Add(run);
                 }
 
                 var epoch = expiredRuns.Count is 0
@@ -91,30 +103,31 @@ internal sealed partial class DuckDbStore
                     // every later append or publication for this run id.
                     await using var delete = con.CreateCommand();
                     delete.Transaction = transaction;
-                    delete.CommandText = """
-                                         UPDATE workflow_runs
-                                         SET deleted_at = current_timestamp,
-                                             active_checkpoint_sequence = 0,
-                                             active_checkpoint_id = NULL,
-                                             active_checkpoint_storage_key = NULL,
-                                             active_checkpoint_input_hash = NULL,
-                                             active_checkpoint_semantic_fingerprint = NULL,
-                                             active_checkpoint_configuration_fingerprint = NULL,
-                                             active_checkpoint_format_version = NULL,
-                                             active_checkpoint_byte_length = NULL,
-                                             active_checkpoint_created_at = NULL,
-                                             checkpoint_manifest_epoch = $4,
-                                             updated_at = current_timestamp
-                                         WHERE project_id = $1 AND run_id = $2
-                                           AND run_generation = $3
-                                           AND deleted_at IS NULL;
+                    delete.CommandText = $"""
+                                         UPDATE {WorkflowRunDbRow.TableName}
+                                         SET {WorkflowRunDbRow.DeletedAtColumnName} = current_timestamp,
+                                             {WorkflowRunDbRow.ActiveCheckpointSequenceColumnName} = 0,
+                                             {WorkflowRunDbRow.ActiveCheckpointIdColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointStorageKeyColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointInputHashColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointSemanticFingerprintColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointConfigurationFingerprintColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointFormatVersionColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointByteLengthColumnName} = NULL,
+                                             {WorkflowRunDbRow.ActiveCheckpointCreatedAtColumnName} = NULL,
+                                             {WorkflowRunDbRow.CheckpointManifestEpochColumnName} = $4,
+                                             {WorkflowRunDbRow.UpdatedAtColumnName} = current_timestamp
+                                         WHERE {WorkflowRunDbRow.ProjectIdColumnName} = $1
+                                           AND {WorkflowRunDbRow.RunIdColumnName} = $2
+                                           AND {WorkflowRunDbRow.RunGenerationColumnName} = $3
+                                           AND {WorkflowRunDbRow.DeletedAtColumnName} IS NULL;
                                          """;
-                    AddParameters(
+                    WorkflowRunDbRow.AddRetentionTombstoneParameters(
                         delete,
                         run.ProjectId,
                         run.RunId,
                         run.RunGeneration,
-                        (decimal)epoch);
+                        epoch);
                     await delete.ExecuteNonQueryAsync(token).ConfigureAwait(false);
                 }
 

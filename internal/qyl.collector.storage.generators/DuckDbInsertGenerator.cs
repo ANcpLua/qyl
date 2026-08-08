@@ -65,6 +65,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var arrowEligible = false;
         var indexes = "";
         var uniqueIndexes = "";
+        var parameterSets = "";
 
         if (tableAttr.ConstructorArguments.Length > 0)
             tableName = tableAttr.GetConstructorArgument<string>(0);
@@ -90,6 +91,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                     break;
                 case "UniqueIndexes":
                     uniqueIndexes = named.Value.Value as string ?? "";
+                    break;
+                case "ParameterSets":
+                    parameterSets = named.Value.Value as string ?? "";
                     break;
             }
         }
@@ -128,7 +132,70 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             ParseIndexSpecs(tableName, indexes, columns, isUnique: false)
                 .Concat(ParseIndexSpecs(tableName, uniqueIndexes, columns, isUnique: true))
                 .ToArray()
+                .ToEquatableArray(),
+            ParseParameterSets(tableName, parameterSets, columns)
+                .ToArray()
                 .ToEquatableArray());
+    }
+
+    private static IEnumerable<DuckDbParameterSetInfo> ParseParameterSets(
+        string tableName,
+        string parameterSets,
+        IReadOnlyCollection<DuckDbColumnInfo> columns)
+    {
+        if (string.IsNullOrWhiteSpace(parameterSets))
+            yield break;
+
+        var columnsByProperty = columns.ToDictionary(static column => column.PropertyName, StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var setSpec in parameterSets.Split(';'))
+        {
+            var separator = setSpec.IndexOf(':');
+            if (separator <= 0 || separator == setSpec.Length - 1)
+            {
+                throw new InvalidOperationException(
+                    $"DuckDB parameter set on '{tableName}' must use 'Name:Property,Property' syntax.");
+            }
+
+            var name = setSpec[..separator].Trim();
+            if (!SyntaxFacts.IsValidIdentifier(name))
+            {
+                throw new InvalidOperationException(
+                    $"DuckDB parameter set name '{name}' on '{tableName}' is not a valid C# identifier.");
+            }
+            if (!names.Add(name))
+            {
+                throw new InvalidOperationException(
+                    $"DuckDB parameter set '{name}' is declared more than once on '{tableName}'.");
+            }
+
+            var setColumns = setSpec[(separator + 1)..]
+                .Split(',')
+                .Select(static property => property.Trim())
+                .Where(static property => property.Length > 0)
+                .Select(property => ResolveParameterColumn(tableName, name, property, columnsByProperty))
+                .ToArray();
+            if (setColumns.Length is 0)
+            {
+                throw new InvalidOperationException(
+                    $"DuckDB parameter set '{name}' on '{tableName}' has no columns.");
+            }
+
+            yield return new DuckDbParameterSetInfo(name, setColumns.ToEquatableArray());
+        }
+    }
+
+    private static DuckDbColumnInfo ResolveParameterColumn(
+        string tableName,
+        string parameterSet,
+        string propertyName,
+        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByProperty)
+    {
+        if (columnsByProperty.TryGetValue(propertyName, out var column))
+            return column;
+
+        throw new InvalidOperationException(
+            $"DuckDB parameter set '{parameterSet}' on '{tableName}' references unknown property '{propertyName}'.");
     }
 
     private static IEnumerable<DuckDbIndexInfo> ParseIndexSpecs(
@@ -333,12 +400,17 @@ internal readonly record struct DuckDbTableInfo(
     bool Derived,
     bool ArrowEligible,
     EquatableArray<DuckDbColumnInfo> Columns,
-    EquatableArray<DuckDbIndexInfo> Indexes);
+    EquatableArray<DuckDbIndexInfo> Indexes,
+    EquatableArray<DuckDbParameterSetInfo> ParameterSets);
 
 internal readonly record struct DuckDbIndexInfo(
     string Name,
     EquatableArray<string> ColumnNames,
     bool IsUnique);
+
+internal readonly record struct DuckDbParameterSetInfo(
+    string Name,
+    EquatableArray<DuckDbColumnInfo> Columns);
 
 internal readonly record struct DuckDbColumnInfo(
     string PropertyName,

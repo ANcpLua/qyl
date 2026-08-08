@@ -512,7 +512,7 @@ public sealed class WorkflowProjectionLimitTests
     }
 
     [Fact]
-    public async Task Recovery_invalid_failure_is_durable_until_configuration_changes()
+    public async Task Recovery_reconstructs_invalid_disposable_summary_without_failure()
     {
         var databasePath = DatabasePath("durable-recovery-invalid");
         try
@@ -548,7 +548,6 @@ public sealed class WorkflowProjectionLimitTests
                 original.ProjectionInputBytes + 1);
 
             var writes = 0;
-            var limits = new WorkflowProjectionLimits();
             await using (var recovered = new DuckDbStore(
                              databasePath,
                              maxConcurrentReads: 1,
@@ -556,49 +555,20 @@ public sealed class WorkflowProjectionLimitTests
                              {
                                  Interlocked.Increment(ref writes);
                                  return ValueTask.CompletedTask;
-                             },
-                             workflowProjectionLimits: limits))
+                             }))
             {
-                await AssertGraphFailureAsync<InvalidDataException>(() =>
-                    recovered.GetWorkflowGraphAsync(
-                        "project-a", "run-1", null, 100, null, 100,
-                        TestContext.Current.CancellationToken));
-
-                var failed = await recovered.GetWorkflowRunAsync(
+                var rebuilt = await recovered.GetWorkflowGraphAsync(
+                    "project-a", "run-1", null, 100, null, 100,
+                    TestContext.Current.CancellationToken);
+                var recoveredRun = await recovered.GetWorkflowRunAsync(
                     "project-a", "run-1", TestContext.Current.CancellationToken);
-                Assert.Equal(original.ActiveCheckpointId, failed!.ActiveCheckpointId);
-                Assert.Equal(original.ActiveCheckpointSequence, failed.ActiveCheckpointSequence);
-                Assert.Equal(failed.LatestJournalSequence, failed.ProjectionFailureSequence!.Value);
-                Assert.Equal("invalid", failed.ProjectionFailureKind);
-                Assert.Equal(limits.ConfigurationFingerprint, failed.ProjectionFailureConfiguration);
-                Assert.Equal(
-                    WorkflowProjectionBuilder.SemanticFingerprint,
-                    failed.ProjectionFailureSemantic);
-                var writesAfterFirstFailure = Volatile.Read(ref writes);
-
-                await AssertGraphFailureAsync<InvalidDataException>(() =>
-                    recovered.GetWorkflowGraphAsync(
-                        "project-a", "run-1", null, 100, null, 100,
-                        TestContext.Current.CancellationToken));
-                Assert.Equal(writesAfterFirstFailure, Volatile.Read(ref writes));
+                Assert.Equal(1UL, rebuilt!.JournalSequence);
+                Assert.Equal(original.ProjectionInputBytes,
+                    recoveredRun!.ProjectionInputBytes);
+                Assert.Null(recoveredRun.ProjectionFailureSequence);
+                Assert.Null(recoveredRun.ProjectionFailureKind);
+                Assert.True(Volatile.Read(ref writes) > 0);
             }
-
-            await SetProjectionInputBytesAsync(databasePath, original.ProjectionInputBytes);
-            var changedLimits = new WorkflowProjectionLimits(maxNodes: 19_999);
-            await using var retried = new DuckDbStore(
-                databasePath,
-                maxConcurrentReads: 1,
-                workflowProjectionLimits: changedLimits);
-            var rebuilt = await retried.GetWorkflowGraphAsync(
-                "project-a", "run-1", null, 100, null, 100,
-                TestContext.Current.CancellationToken);
-            var recoveredRun = await retried.GetWorkflowRunAsync(
-                "project-a", "run-1", TestContext.Current.CancellationToken);
-            Assert.Equal(1UL, rebuilt!.JournalSequence);
-            Assert.Null(recoveredRun!.ProjectionFailureSequence);
-            Assert.Null(recoveredRun.ProjectionFailureKind);
-            Assert.Null(recoveredRun.ProjectionFailureConfiguration);
-            Assert.Null(recoveredRun.ProjectionFailureSemantic);
         }
         finally
         {
@@ -760,7 +730,7 @@ public sealed class WorkflowProjectionLimitTests
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-                              UPDATE workflow_runs
+                              UPDATE workflow_run_summaries
                               SET projection_input_bytes = $1
                               WHERE project_id = 'project-a' AND run_id = 'run-1'
                               """;
