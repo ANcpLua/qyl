@@ -248,6 +248,15 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.scope.version",
         "otel.status_code",
         "otel.status_description",
+        "qyl.agent.diagnostic.check.count", // incubating
+        "qyl.agent.diagnostic.check.failed_count", // incubating
+        "qyl.agent.diagnostic.extension.id", // incubating
+        "qyl.agent.diagnostic.format.version", // incubating
+        "qyl.agent.diagnostic.outcome", // incubating
+        "qyl.agent.diagnostic.phase", // incubating
+        "qyl.agent.diagnostic.probe.id", // incubating
+        "qyl.agent.diagnostic.snapshot.id", // incubating
+        "qyl.agent.diagnostic.variable.count", // incubating
         "qyl.exception.source", // incubating
         "qyl.instrumentation.domain", // incubating
         "qyl.mcp.evaluation_run.id", // incubating
@@ -258,6 +267,11 @@ internal static class CollectorSemanticAttributeCatalog
         "qyl.mcp.server.id", // incubating
         "qyl.mcp.test_case.id", // incubating
         "qyl.mcp.tool.name", // incubating
+        "qyl.workflow.agent.id", // incubating
+        "qyl.workflow.attempt.id", // incubating
+        "qyl.workflow.event.id", // incubating
+        "qyl.workflow.run.id", // incubating
+        "qyl.workflow.tool_call.id", // incubating
         "rpc.connect_rpc.error_code",
         "rpc.connect_rpc.request.metadata",
         "rpc.connect_rpc.response.metadata",

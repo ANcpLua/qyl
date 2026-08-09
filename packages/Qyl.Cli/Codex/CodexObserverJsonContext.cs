@@ -32,5 +32,7 @@ internal partial class CodexWorkflowContractJsonContext : JsonSerializerContext;
 [JsonSerializable(typeof(WorkflowSpoolEntry[]))]
 [JsonSerializable(typeof(WorkflowSpoolEnvelope))]
 [JsonSerializable(typeof(ActiveWorkflowRun))]
+[JsonSerializable(typeof(DiagnosticSnapshotInboxRequest))]
+[JsonSerializable(typeof(DiagnosticSnapshotInboxAcknowledgement))]
 [JsonSerializable(typeof(string))]
 internal partial class CodexObserverStateJsonContext : JsonSerializerContext;

@@ -13,6 +13,21 @@ namespace Qyl.Cli.Codex;
 internal sealed class WorkflowTelemetryProjection : IDisposable
 {
     private const string SourceName = "qyl.codex.observer";
+    private const string DiagnosticEventName = "qyl.agent.diagnostic.snapshot";
+    private const string DiagnosticExtensionId = "qyl.agent.diagnostic.extension.id";
+    private const string DiagnosticFormatVersion = "qyl.agent.diagnostic.format.version";
+    private const string DiagnosticSnapshotId = "qyl.agent.diagnostic.snapshot.id";
+    private const string DiagnosticProbeId = "qyl.agent.diagnostic.probe.id";
+    private const string DiagnosticPhase = "qyl.agent.diagnostic.phase";
+    private const string DiagnosticOutcome = "qyl.agent.diagnostic.outcome";
+    private const string DiagnosticVariableCount = "qyl.agent.diagnostic.variable.count";
+    private const string DiagnosticCheckCount = "qyl.agent.diagnostic.check.count";
+    private const string DiagnosticFailedCheckCount = "qyl.agent.diagnostic.check.failed_count";
+    private const string WorkflowRunId = "qyl.workflow.run.id";
+    private const string WorkflowEventId = "qyl.workflow.event.id";
+    private const string WorkflowAttemptId = "qyl.workflow.attempt.id";
+    private const string WorkflowAgentId = "qyl.workflow.agent.id";
+    private const string WorkflowToolCallId = "qyl.workflow.tool_call.id";
     private static readonly Action<ILogger, WorkflowJournalEventKind, string, Exception?>
         s_logJournalEvent = LoggerMessage.Define<WorkflowJournalEventKind, string>(
             LogLevel.Information,
@@ -20,13 +35,15 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
             "Workflow journal event {EventKind} {EventId}");
 
     private readonly ActivitySource _source = new(SourceName, BuildVersion.ProductVersion);
+    private readonly string _runId;
     private readonly Dictionary<string, Activity> _activities = new(StringComparer.Ordinal);
     private readonly TracerProvider? _traces;
     private readonly ILoggerFactory? _loggerFactory;
     private readonly ILogger? _logger;
 
-    private WorkflowTelemetryProjection(string? apiKey)
+    private WorkflowTelemetryProjection(string runId, string? apiKey)
     {
+        _runId = runId;
         if (string.IsNullOrWhiteSpace(apiKey))
             return;
 
@@ -62,7 +79,8 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
         _logger = _loggerFactory.CreateLogger(SourceName);
     }
 
-    public static WorkflowTelemetryProjection Create(string? apiKey) => new(apiKey);
+    public static WorkflowTelemetryProjection Create(string runId, string? apiKey) =>
+        new(runId, apiKey);
 
     public void Record(WorkflowEventAppend workflowEvent)
     {
@@ -112,6 +130,9 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
                 break;
             case WorkflowJournalEventKind.Joined:
                 RecordJoin(workflowEvent);
+                break;
+            case WorkflowJournalEventKind.ContentCaptured:
+                RecordDiagnosticSnapshot(workflowEvent);
                 break;
             case WorkflowJournalEventKind.ToolCompleted:
                 Stop(ToolKey(workflowEvent), workflowEvent);
@@ -199,6 +220,56 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
         activity?.SetEndTime(workflowEvent.Timestamp.UtcDateTime);
     }
 
+    private void RecordDiagnosticSnapshot(WorkflowEventAppend workflowEvent)
+    {
+        if (DataString(workflowEvent, "extension_id") != DiagnosticSnapshotCapture.ExtensionId ||
+            DataInt64(workflowEvent, "format_version") != DiagnosticSnapshotCapture.FormatVersion)
+        {
+            return;
+        }
+        var activity = ActiveActivity(workflowEvent);
+        if (activity is null)
+            return;
+
+        var tags = new ActivityTagsCollection
+        {
+            [DiagnosticExtensionId] = DataString(workflowEvent, "extension_id"),
+            [DiagnosticFormatVersion] = DataInt64(workflowEvent, "format_version"),
+            [DiagnosticSnapshotId] = DataString(workflowEvent, "snapshot_id"),
+            [DiagnosticProbeId] = DataString(workflowEvent, "probe_id"),
+            [DiagnosticPhase] = DataString(workflowEvent, "phase"),
+            [DiagnosticOutcome] = DataString(workflowEvent, "outcome"),
+            [DiagnosticVariableCount] = DataInt64(workflowEvent, "variable_count"),
+            [DiagnosticCheckCount] = DataInt64(workflowEvent, "check_count"),
+            [DiagnosticFailedCheckCount] = DataInt64(workflowEvent, "failed_check_count"),
+            [WorkflowRunId] = _runId,
+            [WorkflowEventId] = workflowEvent.EventId.Value
+        };
+        if (workflowEvent.AttemptId is not null)
+            tags[WorkflowAttemptId] = workflowEvent.AttemptId.Value.Value;
+        if (workflowEvent.AgentId is not null)
+            tags[WorkflowAgentId] = workflowEvent.AgentId.Value.Value;
+        if (workflowEvent.ToolCallId is not null)
+            tags[WorkflowToolCallId] = workflowEvent.ToolCallId.Value.Value;
+        activity.AddEvent(new ActivityEvent(DiagnosticEventName, workflowEvent.Timestamp, tags));
+    }
+
+    private Activity? ActiveActivity(WorkflowEventAppend workflowEvent)
+    {
+        foreach (var key in new[]
+                 {
+                     AgentKey(workflowEvent.AgentId),
+                     TurnKey(workflowEvent),
+                     AttemptKey(workflowEvent),
+                     "run"
+                 })
+        {
+            if (key is not null && _activities.TryGetValue(key, out var activity))
+                return activity;
+        }
+        return null;
+    }
+
     private ActivityContext AgentParentContext(WorkflowEventAppend workflowEvent)
     {
         var parent = Context(AgentKey(workflowEvent.ParentAgentId));
@@ -251,6 +322,34 @@ internal sealed class WorkflowTelemetryProjection : IDisposable
         return value is JsonElement { ValueKind: JsonValueKind.String } element
             ? element.GetString()
             : value.ToString();
+    }
+
+    private static string? DataString(WorkflowEventAppend workflowEvent, string key)
+    {
+        if (workflowEvent.Data is null || !workflowEvent.Data.TryGetValue(key, out var value))
+            return null;
+        return value is JsonElement { ValueKind: JsonValueKind.String } element
+            ? element.GetString()
+            : value?.ToString();
+    }
+
+    private static long? DataInt64(WorkflowEventAppend workflowEvent, string key)
+    {
+        if (workflowEvent.Data is null || !workflowEvent.Data.TryGetValue(key, out var value))
+            return null;
+        if (value is JsonElement { ValueKind: JsonValueKind.Number } element &&
+            element.TryGetInt64(out var jsonValue))
+        {
+            return jsonValue;
+        }
+        return value switch
+        {
+            byte item => item,
+            short item => item,
+            int item => item,
+            long item => item,
+            _ => null
+        };
     }
 
     private static string? AttemptKey(WorkflowEventAppend workflowEvent) =>

@@ -10,6 +10,8 @@ internal sealed class CodexEventNormalizer
     private readonly HashSet<string> _eventIds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ThreadContext> _threads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ApprovalContext> _approvals = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DiagnosticSnapshotContext> _diagnosticSnapshots =
+        new(StringComparer.Ordinal);
     private ulong _sourceSequence;
     private string? _rootThreadId;
     private string? _activeRootTurnId;
@@ -117,6 +119,58 @@ internal sealed class CodexEventNormalizer
         return workflowEvent is null
             ? default
             : new CodexNormalizedBatch([workflowEvent], []);
+    }
+
+    public CodexNormalizedBatch NormalizeDiagnosticSnapshot(
+        DiagnosticSnapshotInboxRequest request,
+        DateTimeOffset receivedAt)
+    {
+        if (_diagnosticSnapshots.TryGetValue(request.SnapshotId, out var previous))
+        {
+            if (!string.Equals(previous.PayloadDigest, request.PayloadDigest, StringComparison.Ordinal))
+                throw new DiagnosticSnapshotConflictException();
+            return previous.Batch ?? default;
+        }
+        if (_rootThreadId is null || !_threads.TryGetValue(_rootThreadId, out var root))
+            throw new DiagnosticSnapshotContextUnavailableException();
+
+        var eventId = StableEventId("diagnostic", request.SnapshotId);
+        var workflowEvent = CreateEvent(
+            eventId,
+            WorkflowJournalEventKind.ContentCaptured,
+            receivedAt,
+            _rootThreadId,
+            root.ActiveTurnId,
+            root.AttemptId,
+            null,
+            null,
+            null,
+            null,
+            [request.Content.ContentRef],
+            new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                ["extension_id"] = DiagnosticSnapshotCapture.ExtensionId,
+                ["format_version"] = DiagnosticSnapshotCapture.FormatVersion,
+                ["snapshot_id"] = request.SnapshotId,
+                ["probe_id"] = request.ProbeId,
+                ["phase"] = request.Phase,
+                ["outcome"] = request.Outcome,
+                ["variable_count"] = request.VariableCount,
+                ["check_count"] = request.CheckCount,
+                ["failed_check_count"] = request.FailedCheckCount,
+                ["content_ref"] = request.Content.ContentRef.Value
+            }) ?? throw new DiagnosticSnapshotConflictException();
+        var batch = new CodexNormalizedBatch([workflowEvent], [request.Content]);
+        _diagnosticSnapshots.Add(
+            request.SnapshotId,
+            new DiagnosticSnapshotContext(request.PayloadDigest, batch));
+        return batch;
+    }
+
+    public void MarkDiagnosticSnapshotRecorded(string snapshotId)
+    {
+        if (_diagnosticSnapshots.TryGetValue(snapshotId, out var context))
+            _diagnosticSnapshots[snapshotId] = context with { Batch = null };
     }
 
     private void NormalizeThreadStarted(
@@ -1008,4 +1062,12 @@ internal sealed class CodexEventNormalizer
         string TurnId,
         string? ItemId,
         string? AttemptId);
+
+    private sealed record DiagnosticSnapshotContext(
+        string PayloadDigest,
+        CodexNormalizedBatch? Batch);
 }
+
+internal sealed class DiagnosticSnapshotConflictException : Exception;
+
+internal sealed class DiagnosticSnapshotContextUnavailableException : Exception;

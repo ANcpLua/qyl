@@ -27,6 +27,33 @@ internal sealed record ActiveWorkflowRun(
     DateTimeOffset StartedAt,
     int ProcessId);
 
+internal sealed record DiagnosticSnapshotInboxRequest(
+    string RunId,
+    string SnapshotId,
+    string ProbeId,
+    string Phase,
+    string Outcome,
+    int VariableCount,
+    int CheckCount,
+    int FailedCheckCount,
+    string PayloadDigest,
+    DateTimeOffset SubmittedAt,
+    Qyl.Api.Contracts.Workflow.WorkflowContentChunk Content);
+
+internal sealed record DiagnosticSnapshotInboxAcknowledgement(
+    string RunId,
+    string SnapshotId,
+    string PayloadDigest,
+    string Status,
+    string Code,
+    string? EventId);
+
+internal readonly record struct DiagnosticSnapshotSubmissionResult(
+    bool Recorded,
+    string Code,
+    string SnapshotId,
+    string? EventId);
+
 internal sealed record CodexSchemaIdentity(
     string CodexVersion,
     string SchemaDirectory,

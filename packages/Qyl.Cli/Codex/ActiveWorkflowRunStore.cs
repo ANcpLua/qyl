@@ -14,9 +14,12 @@ internal sealed class ActiveWorkflowRunStore
     public ActiveWorkflowRunStore(string root)
     {
         Directory.CreateDirectory(root);
+        Root = root;
         _activePath = Path.Combine(root, ActiveFileName);
         _lockPath = Path.Combine(root, LockFileName);
     }
+
+    public string Root { get; }
 
     public FileStream Acquire()
     {
