@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Qyl.Api.Contracts.Diagnostics;
+using Qyl.Api.Contracts.Mcp;
 using Qyl.Api.Contracts.Workflow;
 using Qyl.Cli.Codex;
 
@@ -40,15 +42,56 @@ public sealed class DiagnosticSnapshotTests
                 .EnumerateArray()
                 .Single(static item => item.GetProperty("name").GetString() == "record_diagnostic_snapshot");
             var schema = tool.GetProperty("inputSchema");
+            var outputSchema = tool.GetProperty("outputSchema");
             var description = tool.GetProperty("description").GetString();
-            Assert.Contains("Reuse the same snapshotId", description, StringComparison.Ordinal);
+            Assert.Contains("Reuse the same snapshot_id", description, StringComparison.Ordinal);
             Assert.Contains("sensitive values are redacted", description, StringComparison.Ordinal);
             Assert.Contains("secret values are omitted", description, StringComparison.Ordinal);
-            Assert.False(schema.GetProperty("additionalProperties").GetBoolean());
+            Assert.Equal(ToolSchemas.RecordDiagnosticSnapshotInput, schema.GetRawText());
+            Assert.Equal(ToolSchemas.RecordDiagnosticSnapshotOutput, outputSchema.GetRawText());
+            Assert.Equal(JsonValueKind.Object, schema.GetProperty("unevaluatedProperties").GetProperty("not").ValueKind);
+            Assert.True(schema.GetProperty("properties").TryGetProperty("snapshot_id", out _));
+            Assert.False(schema.GetProperty("properties").TryGetProperty("snapshotId", out _));
             Assert.Equal(64, schema.GetProperty("properties").GetProperty("variables").GetProperty("maxItems").GetInt32());
             Assert.Equal(64, schema.GetProperty("properties").GetProperty("checks").GetProperty("maxItems").GetInt32());
             Assert.False(tool.GetProperty("annotations").GetProperty("readOnlyHint").GetBoolean());
             Assert.True(tool.GetProperty("annotations").GetProperty("idempotentHint").GetBoolean());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Bridge_error_output_keeps_generated_snapshot_identifier_contract()
+    {
+        var root = TemporaryDirectory();
+        try
+        {
+            var store = new ActiveWorkflowRunStore(root);
+            await store.WriteAsync(ActiveRun(), TestContext.Current.CancellationToken);
+            using var input = new StringReader(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"record_diagnostic_snapshot","arguments":{"snapshot_id":"not valid","probe_id":"probe_1","phase":"input","variables":[]},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
+                """);
+            using var output = new StringWriter(CultureInfo.InvariantCulture);
+
+            Assert.Equal(
+                0,
+                await ObserverBridgeServer.RunAsync(
+                    store,
+                    input,
+                    output,
+                    TestContext.Current.CancellationToken));
+
+            using var response = JsonDocument.Parse(output.ToString());
+            var result = response.RootElement.GetProperty("result");
+            Assert.True(result.GetProperty("isError").GetBoolean());
+            var structured = result.GetProperty("structuredContent");
+            Assert.Equal("invalid_snapshot_id", structured.GetProperty("code").GetString());
+            Assert.Equal("unknown", structured.GetProperty("snapshot_id").GetString());
+            Assert.Equal("snapshot_id", structured.GetProperty("field").GetString());
         }
         finally
         {
@@ -118,6 +161,18 @@ public sealed class DiagnosticSnapshotTests
             Assert.Equal(1, request.FailedCheckCount);
             Assert.DoesNotContain("sensitive-plain", request.Content.Content, StringComparison.Ordinal);
             Assert.DoesNotContain("secret-plain", request.Content.Content, StringComparison.Ordinal);
+
+            var typedPayload = JsonSerializer.Deserialize(
+                request.Content.Content,
+                CodexWorkflowContractJsonContext.Default.AgentDiagnosticSnapshot);
+            Assert.NotNull(typedPayload);
+            Assert.Equal(AgentDiagnosticExtensionId.Snapshot, typedPayload.ExtensionId);
+            Assert.IsType<RedactedAgentDiagnosticVariable>(
+                typedPayload.Variables.Single(static item =>
+                    item is RedactedAgentDiagnosticVariable variable && variable.Name.Value == "token"));
+            Assert.IsType<OmittedAgentDiagnosticVariable>(
+                typedPayload.Variables.Single(static item =>
+                    item is OmittedAgentDiagnosticVariable variable && variable.Name.Value == "password"));
 
             using var captured = JsonDocument.Parse(request.Content.Content);
             var payload = captured.RootElement;
@@ -238,8 +293,12 @@ public sealed class DiagnosticSnapshotTests
             using var response = JsonDocument.Parse(output.ToString());
             var result = response.RootElement.GetProperty("result");
             Assert.False(result.GetProperty("isError").GetBoolean());
-            Assert.True(result.GetProperty("structuredContent").GetProperty("recorded").GetBoolean());
-            Assert.Equal("recorded", result.GetProperty("structuredContent").GetProperty("code").GetString());
+            var structured = result.GetProperty("structuredContent");
+            Assert.True(structured.GetProperty("recorded").GetBoolean());
+            Assert.Equal("recorded", structured.GetProperty("code").GetString());
+            Assert.Equal("snapshot_1", structured.GetProperty("snapshot_id").GetString());
+            Assert.True(structured.TryGetProperty("event_id", out _));
+            Assert.False(structured.TryGetProperty("snapshotId", out _));
 
             var entry = Assert.Single(spool.ReadAfter(0, 10));
             Assert.Equal(WorkflowJournalEventKind.ContentCaptured, entry.Event.Kind);
@@ -442,11 +501,11 @@ public sealed class DiagnosticSnapshotTests
             var json = fixture switch
             {
                 "duplicate-variable" =>
-                    """{"snapshotId":"snapshot_1","probeId":"probe_1","phase":"input","variables":[{"name":"x","classification":"public","value":1},{"name":"x","classification":"internal","value":2}]}""",
+                    """{"snapshot_id":"snapshot_1","probe_id":"probe_1","phase":"input","variables":[{"name":"x","classification":"public","value":1},{"name":"x","classification":"internal","value":2}]}""",
                 "bad-actual" =>
-                    """{"snapshotId":"snapshot_1","probeId":"probe_1","phase":"input","variables":[],"checks":[{"checkId":"check_1","operator":"exists","actual":"not valid"}]}""",
+                    """{"snapshot_id":"snapshot_1","probe_id":"probe_1","phase":"input","variables":[],"checks":[{"check_id":"check_1","operator":"exists","actual":"not valid"}]}""",
                 _ =>
-                    """{"snapshotId":"snapshot_1","probeId":"probe_1","phase":"input","variables":[{"name":"x","classification":"public","value":1}],"checks":[{"checkId":"check_1","operator":"equal","actual":"x","expression":"x == 1"}]}"""
+                    """{"snapshot_id":"snapshot_1","probe_id":"probe_1","phase":"input","variables":[{"name":"x","classification":"public","value":1}],"checks":[{"check_id":"check_1","operator":"equal","actual":"x","expression":"x == 1"}]}"""
             };
             using var document = JsonDocument.Parse(json);
 
@@ -511,10 +570,10 @@ public sealed class DiagnosticSnapshotTests
                     ',',
                     Enumerable.Range(0, DiagnosticSnapshotCapture.MaxChecks + 1)
                         .Select(static index =>
-                            $"{{\"checkId\":\"c{index}\",\"operator\":\"exists\",\"actual\":\"x\"}}"))
+                            $"{{\"check_id\":\"c{index}\",\"operator\":\"exists\",\"actual\":\"x\"}}"))
                 : "";
             var json =
-                "{\"snapshotId\":\"snapshot_bounds\",\"probeId\":\"probe_bounds\",\"phase\":\"input\",\"variables\":[" +
+                "{\"snapshot_id\":\"snapshot_bounds\",\"probe_id\":\"probe_bounds\",\"phase\":\"input\",\"variables\":[" +
                 variables +
                 "]" +
                 (fixture == "checks" ? ",\"checks\":[" + checks + "]" : "") +
@@ -547,17 +606,17 @@ public sealed class DiagnosticSnapshotTests
             using var document = JsonDocument.Parse(
                 """
                 {
-                  "snapshotId":"snapshot_unknown",
-                  "probeId":"probe_unknown",
+                  "snapshot_id":"snapshot_unknown",
+                  "probe_id":"probe_unknown",
                   "phase":"input",
                   "variables":[
                     {"name":"text","classification":"public","value":"1"},
                     {"name":"number","classification":"public","value":1}
                   ],
                   "checks":[
-                    {"checkId":"missing_operand","operator":"equal","actual":"missing","expected":"number"},
-                    {"checkId":"incompatible","operator":"not_equal","actual":"text","expected":"number"},
-                    {"checkId":"missing_exists","operator":"exists","actual":"missing"}
+                    {"check_id":"missing_operand","operator":"equal","actual":"missing","expected":"number"},
+                    {"check_id":"incompatible","operator":"not_equal","actual":"text","expected":"number"},
+                    {"check_id":"missing_exists","operator":"exists","actual":"missing"}
                   ]
                 }
                 """);
@@ -741,8 +800,8 @@ public sealed class DiagnosticSnapshotTests
     private const string ValidArgumentsJson =
         """
         {
-          "snapshotId":"snapshot_1",
-          "probeId":"probe.output",
+          "snapshot_id":"snapshot_1",
+          "probe_id":"probe.output",
           "phase":"checkpoint",
           "variables":[
             {"name":"result","classification":"public","value":5},
@@ -753,10 +812,10 @@ public sealed class DiagnosticSnapshotTests
             {"name":"missing","classification":"public","value":null}
           ],
           "checks":[
-            {"checkId":"check_gt","operator":"greater_than","actual":"result","expected":"limit"},
-            {"checkId":"check_type","operator":"type_is","actual":"result","expectedType":"integer"},
-            {"checkId":"check_token","operator":"contains","actual":"token","expected":"token"},
-            {"checkId":"check_exists","operator":"exists","actual":"missing"}
+            {"check_id":"check_gt","operator":"greater_than","actual":"result","expected":"limit"},
+            {"check_id":"check_type","operator":"type_is","actual":"result","expected_type":"integer"},
+            {"check_id":"check_token","operator":"contains","actual":"token","expected":"token"},
+            {"check_id":"check_exists","operator":"exists","actual":"missing"}
           ]
         }
         """;
@@ -764,8 +823,8 @@ public sealed class DiagnosticSnapshotTests
     private const string ReorderedArgumentsJson =
         """
         {
-          "probeId":"probe.output",
-          "snapshotId":"snapshot_1",
+          "probe_id":"probe.output",
+          "snapshot_id":"snapshot_1",
           "variables":[
             {"classification":"secret","value":"secret-plain","name":"password"},
             {"classification":"public","value":null,"name":"missing"},
@@ -776,10 +835,10 @@ public sealed class DiagnosticSnapshotTests
           ],
           "phase":"checkpoint",
           "checks":[
-            {"actual":"missing","operator":"exists","checkId":"check_exists"},
-            {"expected":"token","actual":"token","operator":"contains","checkId":"check_token"},
-            {"expectedType":"integer","actual":"result","operator":"type_is","checkId":"check_type"},
-            {"expected":"limit","actual":"result","operator":"greater_than","checkId":"check_gt"}
+            {"actual":"missing","operator":"exists","check_id":"check_exists"},
+            {"expected":"token","actual":"token","operator":"contains","check_id":"check_token"},
+            {"expected_type":"integer","actual":"result","operator":"type_is","check_id":"check_type"},
+            {"expected":"limit","actual":"result","operator":"greater_than","check_id":"check_gt"}
           ]
         }
         """;

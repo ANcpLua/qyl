@@ -146,6 +146,7 @@ Qyl.Collector host process (self-telemetry only)
 
 Qyl.Cli
 ├── Qyl.Api.Contracts                        ← generated API client, only path to the collector
+├── Qyl.Telemetry.SemanticConventions.Incubating ← observer-emitted qyl vocabulary constants
 ├── Qyl.Telemetry.Hosting                    ← own self-telemetry only
 └── (zero Qyl.Collector.* references — collector is spawned as a process, reached via API)
 

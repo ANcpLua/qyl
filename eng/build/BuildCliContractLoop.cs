@@ -30,11 +30,147 @@ namespace Qyl.Build;
 /// reported rather than assumed innocent, only known collection wrappers are unwrapped to their
 /// element (any other generic is itself the wire shape and is judged whole), and finding nothing
 /// at all is a failure: a gate whose scope moved out from under it must say so, not report success
-/// over an empty set.
+/// over an empty set. <c>System.Text.Json.JsonElement</c> is the single serialization intrinsic:
+/// generated contracts use <c>object?</c> for an explicitly open JSON value, and source-generated
+/// serialization needs metadata for the runtime carrier without making it a CLI-owned wire model.
 /// </summary>
 interface ICliContractLoop : IHazSourcePaths
 {
     private const string ContractNamespacePrefix = "Qyl.Api.Contracts.";
+    private const string OpenJsonValueCarrier = "System.Text.Json.JsonElement";
+
+    Target VerifyCliMcpToolSchemasAreGenerated => d => d
+        .Unlisted()
+        .Description("Verify Qyl.Cli MCP tools publish generated input and output schemas")
+        .Executes(() =>
+        {
+            var repoRoot = NukeBuild.RootDirectory;
+            var cliDirectory = repoRoot / "packages" / "Qyl.Cli";
+            var roots = cliDirectory.GlobFiles("**/*.cs")
+                .Where(static file => !file.ToString().Contains("/obj/", StringComparison.Ordinal)
+                                      && !file.ToString().Contains("/bin/", StringComparison.Ordinal)
+                                      && !file.Name.EndsWith(".g.cs", StringComparison.Ordinal)
+                                      && !file.Name.EndsWith(".Designer.cs", StringComparison.Ordinal))
+                .OrderBy(static file => file.ToString(), StringComparer.Ordinal)
+                .Select(file => (
+                    File: file,
+                    Root: CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString())
+                        .GetCompilationUnitRoot()))
+                .ToList();
+
+            var generatedSchemaFields = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (_, root) in roots)
+            {
+                foreach (var variable in root.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+                {
+                    if (variable.Initializer?.Value is not InvocationExpressionSyntax
+                        {
+                            Expression: IdentifierNameSyntax { Identifier.ValueText: "ParseSchema" },
+                            ArgumentList.Arguments.Count: 1,
+                        } parse ||
+                        parse.ArgumentList.Arguments[0].Expression is not MemberAccessExpressionSyntax artifact ||
+                        !artifact.Expression.ToString().EndsWith("ToolSchemas", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    generatedSchemaFields[variable.Identifier.ValueText] = artifact.Name.Identifier.ValueText;
+                }
+            }
+
+            var offenders = new List<string>();
+            var usedArtifacts = new HashSet<string>(StringComparer.Ordinal);
+            var schemaPropertyCount = 0;
+            foreach (var (file, root) in roots)
+            {
+                var relative = repoRoot.GetRelativePathTo(file).ToString().Replace('\\', '/');
+                foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+                {
+                    var text = literal.Token.ValueText;
+                    if (!text.Contains("\"inputSchema\"", StringComparison.Ordinal) &&
+                        !text.Contains("\"outputSchema\"", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var line = literal.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                    offenders.Add(
+                        $"{relative}:{line}: raw JSON declares an inputSchema/outputSchema; " +
+                        "write a generated ToolSchemas artifact instead");
+                }
+
+                foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                {
+                    if (invocation.Expression is not MemberAccessExpressionSyntax propertyWrite ||
+                        propertyWrite.Name.Identifier.ValueText is not "WritePropertyName" ||
+                        invocation.ArgumentList.Arguments.Count is not 1 ||
+                        invocation.ArgumentList.Arguments[0].Expression is not LiteralExpressionSyntax literal ||
+                        literal.Token.ValueText is not ("inputSchema" or "outputSchema"))
+                    {
+                        continue;
+                    }
+
+                    schemaPropertyCount++;
+                    var line = invocation.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                    if (invocation.Parent is not ExpressionStatementSyntax statement ||
+                        statement.Parent is not BlockSyntax block)
+                    {
+                        offenders.Add($"{relative}:{line}: {literal.Token.ValueText} is not a standalone generated-schema write");
+                        continue;
+                    }
+
+                    var statementIndex = block.Statements.IndexOf(statement);
+                    if (statementIndex < 0 || statementIndex + 1 >= block.Statements.Count ||
+                        block.Statements[statementIndex + 1] is not ExpressionStatementSyntax
+                        {
+                            Expression: InvocationExpressionSyntax
+                            {
+                                Expression: MemberAccessExpressionSyntax writeTo,
+                                ArgumentList.Arguments.Count: 1,
+                            } generatedWrite,
+                        } ||
+                        writeTo.Name.Identifier.ValueText is not "WriteTo" ||
+                        writeTo.Expression is not IdentifierNameSyntax schemaField ||
+                        generatedWrite.ArgumentList.Arguments[0].Expression.ToString() != propertyWrite.Expression.ToString() ||
+                        !generatedSchemaFields.TryGetValue(schemaField.Identifier.ValueText, out var artifactName))
+                    {
+                        offenders.Add(
+                            $"{relative}:{line}: {literal.Token.ValueText} must be written directly from a " +
+                            "JsonElement parsed from Qyl.Api.Contracts.Mcp.ToolSchemas");
+                        continue;
+                    }
+
+                    usedArtifacts.Add(artifactName);
+                }
+            }
+
+            string[] requiredArtifacts =
+            [
+                "GetActiveWorkflowRunInput",
+                "GetActiveWorkflowRunOutput",
+                "RecordDiagnosticSnapshotInput",
+                "RecordDiagnosticSnapshotOutput",
+            ];
+            foreach (var artifact in requiredArtifacts.Where(artifact => !usedArtifacts.Contains(artifact)))
+                offenders.Add($"generated ToolSchemas.{artifact} is not published by the Qyl.Cli MCP bridge");
+
+            if (schemaPropertyCount is 0)
+                offenders.Add("no MCP inputSchema/outputSchema properties were found under packages/Qyl.Cli");
+
+            if (offenders.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Qyl.Cli publishes a hand-maintained or missing MCP tool schema:" + Environment.NewLine +
+                    string.Join(Environment.NewLine, offenders) + Environment.NewLine +
+                    "Define named tool input/output models in qyl-api-schema, regenerate Qyl.Api.Contracts, " +
+                    "and write the matching Qyl.Api.Contracts.Mcp.ToolSchemas artifact verbatim.");
+            }
+
+            Log.Information(
+                "Qyl.Cli publishes {SchemaProperties} MCP input/output schemas from {Artifacts} generated artifacts",
+                schemaPropertyCount,
+                usedArtifacts.Count);
+        });
 
     /// <summary>
     /// Generic wrappers that serialize their single element rather than themselves. Anything not
@@ -98,6 +234,7 @@ interface ICliContractLoop : IHazSourcePaths
 
             var offenders = new List<string>();
             var registeredCount = 0;
+            var intrinsicRegisteredCount = 0;
             var localRegisteredCount = 0;
 
             foreach (var (file, root) in roots)
@@ -149,6 +286,11 @@ interface ICliContractLoop : IHazSourcePaths
                         var resolved = Resolve(written, aliases);
                         if (resolved.StartsWith(ContractNamespacePrefix, StringComparison.Ordinal))
                             continue;
+                        if (resolved == OpenJsonValueCarrier)
+                        {
+                            intrinsicRegisteredCount++;
+                            continue;
+                        }
 
                         var line = attribute.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                         offenders.Add(resolved == written
@@ -192,7 +334,9 @@ interface ICliContractLoop : IHazSourcePaths
                     "The CLI is a client of the collector API and owns none of it. Map the value to a " +
                     "Qyl.Api.Contracts type first — QylRunnerContractMapper is where that happens — and " +
                     "register the contract type. If the type IS a contract type, name it so the verifier " +
-                    "can prove it: a `using Contract... = Qyl.Api.Contracts....;` alias or a fully-qualified name.");
+                    "can prove it: a `using Contract... = Qyl.Api.Contracts....;` alias or a fully-qualified name. " +
+                    "JsonElement is allowed only as the runtime carrier for an open JSON member already owned " +
+                    "by a generated contract.");
             }
 
             if (contextNames.Count is 0 || registeredCount is 0)
@@ -203,9 +347,11 @@ interface ICliContractLoop : IHazSourcePaths
             }
 
             Log.Information(
-                "Qyl.Cli collector boundaries serialize contract types only: {Registered} contract and " +
-                "{LocalRegistered} local-state registrations across {Contexts} JSON context(s)",
-                registeredCount,
+                "Qyl.Cli collector boundaries serialize contract types only: {ContractRegistered} contract, " +
+                "{IntrinsicRegistered} open-JSON intrinsic, and {LocalRegistered} local-state registrations " +
+                "across {Contexts} JSON context(s)",
+                registeredCount - intrinsicRegisteredCount,
+                intrinsicRegisteredCount,
                 localRegisteredCount,
                 contextNames.Count);
 

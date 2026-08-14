@@ -3,13 +3,17 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Qyl.Api.Contracts.Diagnostics;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Api.Contracts.Workflow;
+using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
+using QylTelemetryNames = Qyl.Telemetry.SemanticConventions.Incubating.Names.QylTelemetryNames;
 
 namespace Qyl.Cli.Codex;
 
 internal static class DiagnosticSnapshotCapture
 {
-    internal const string ExtensionId = "qyl.agent.diagnostic.snapshot";
+    internal const string ExtensionId = QylTelemetryNames.Events.QylAgentDiagnosticSnapshot;
     internal const int FormatVersion = 1;
     internal const int MaxIdentifierLength = 128;
     internal const int MaxVariables = 64;
@@ -20,7 +24,12 @@ internal static class DiagnosticSnapshotCapture
     internal const int MaxCapturedBytes = 64 * 1024;
 
     private static readonly HashSet<string> s_phases =
-        ["input", "output", "error", "checkpoint"];
+    [
+        QylAttributes.AgentDiagnosticPhaseValues.Input,
+        QylAttributes.AgentDiagnosticPhaseValues.Output,
+        QylAttributes.AgentDiagnosticPhaseValues.Error,
+        QylAttributes.AgentDiagnosticPhaseValues.Checkpoint
+    ];
     private static readonly HashSet<string> s_classifications =
         ["public", "internal", "sensitive", "secret"];
     private static readonly HashSet<string> s_operators =
@@ -53,15 +62,15 @@ internal static class DiagnosticSnapshotCapture
             return Fail("payload_too_large", "arguments", out error);
         if (!HasOnlyProperties(
                 arguments,
-                ["snapshotId", "probeId", "phase", "variables", "checks"],
+                ["snapshot_id", "probe_id", "phase", "variables", "checks"],
                 out var invalidRootProperty))
         {
             return Fail("invalid_property", invalidRootProperty, out error);
         }
-        if (!TryIdentifier(arguments, "snapshotId", out var snapshotId))
-            return Fail("invalid_snapshot_id", "snapshotId", out error);
-        if (!TryIdentifier(arguments, "probeId", out var probeId))
-            return Fail("invalid_probe_id", "probeId", out error);
+        if (!TryIdentifier(arguments, "snapshot_id", out var snapshotId))
+            return Fail("invalid_snapshot_id", "snapshot_id", out error);
+        if (!TryIdentifier(arguments, "probe_id", out var probeId))
+            return Fail("invalid_probe_id", "probe_id", out error);
         if (!TryRequiredString(arguments, "phase", out var phase) || !s_phases.Contains(phase))
             return Fail("invalid_phase", "phase", out error);
         if (!arguments.TryGetProperty("variables", out var variablesElement) ||
@@ -135,15 +144,15 @@ internal static class DiagnosticSnapshotCapture
                 if (checkElement.ValueKind is not JsonValueKind.Object ||
                     !HasOnlyProperties(
                         checkElement,
-                        ["checkId", "operator", "actual", "expected", "expectedType"],
+                        ["check_id", "operator", "actual", "expected", "expected_type"],
                         out _))
                 {
                     return Fail("invalid_check", path, out error);
                 }
-                if (!TryIdentifier(checkElement, "checkId", out var checkId))
-                    return Fail("invalid_check_id", $"{path}.checkId", out error);
+                if (!TryIdentifier(checkElement, "check_id", out var checkId))
+                    return Fail("invalid_check_id", $"{path}.check_id", out error);
                 if (!checkIds.Add(checkId))
-                    return Fail("duplicate_check", $"{path}.checkId", out error);
+                    return Fail("duplicate_check", $"{path}.check_id", out error);
                 if (!TryRequiredString(checkElement, "operator", out var checkOperator) ||
                     !s_operators.Contains(checkOperator))
                 {
@@ -156,7 +165,7 @@ internal static class DiagnosticSnapshotCapture
                 variablesByName.TryGetValue(actualName, out var actualVariable);
 
                 var hasExpected = checkElement.TryGetProperty("expected", out var expectedElement);
-                var hasExpectedType = checkElement.TryGetProperty("expectedType", out var expectedTypeElement);
+                var hasExpectedType = checkElement.TryGetProperty("expected_type", out var expectedTypeElement);
                 string? expectedName = null;
                 string? expectedType = null;
                 DiagnosticVariable? expectedVariable = null;
@@ -177,7 +186,7 @@ internal static class DiagnosticSnapshotCapture
                         (expectedType = expectedTypeElement.GetString()) is null ||
                         !s_valueTypes.Contains(expectedType))
                     {
-                        return Fail("invalid_expected_type", $"{path}.expectedType", out error);
+                        return Fail("invalid_expected_type", $"{path}.expected_type", out error);
                     }
                 }
                 else if (hasExpected || hasExpectedType)
@@ -203,34 +212,50 @@ internal static class DiagnosticSnapshotCapture
         var failedChecks = checks.Count(static check => check.Outcome == "fail");
         var unknownChecks = checks.Count(static check => check.Outcome == "unknown");
         var outcome = checks.Count == 0
-            ? "not_evaluated"
+            ? QylAttributes.AgentDiagnosticOutcomeValues.NotEvaluated
             : failedChecks > 0
-                ? "fail"
+                ? QylAttributes.AgentDiagnosticOutcomeValues.Fail
                 : unknownChecks > 0
-                    ? "unknown"
-                    : "pass";
+                    ? QylAttributes.AgentDiagnosticOutcomeValues.Unknown
+                    : QylAttributes.AgentDiagnosticOutcomeValues.Pass;
 
-        var semanticPayload = WritePayload(
+        RecordDiagnosticSnapshotInput contract;
+        try
+        {
+            contract = JsonSerializer.Deserialize(
+                           arguments,
+                           CodexWorkflowContractJsonContext.Default.RecordDiagnosticSnapshotInput)
+                       ?? throw new JsonException("Diagnostic snapshot input cannot be null.");
+        }
+        catch (JsonException)
+        {
+            return Fail("invalid_input", "arguments", out error);
+        }
+        snapshotId = contract.SnapshotId.Value;
+        probeId = contract.ProbeId.Value;
+        phase = PhaseValue(contract.Phase);
+
+        var semanticPayload = WriteSemanticPayload(
             snapshotId,
             probeId,
             phase,
             outcome,
             variables,
-            checks,
-            captureNonce: null,
-            redact: false);
+            checks);
         var payloadDigest = protector.KeyedDigest(semanticPayload);
         CryptographicOperations.ZeroMemory(semanticPayload);
         var captureNonce = RandomNumberGenerator.GetBytes(16);
-        var capturedPayload = WritePayload(
+        var snapshot = CreateSnapshot(
             snapshotId,
             probeId,
             phase,
             outcome,
             variables,
             checks,
-            Convert.ToHexStringLower(captureNonce),
-            redact: true);
+            Convert.ToHexStringLower(captureNonce));
+        var capturedPayload = JsonSerializer.SerializeToUtf8Bytes(
+            snapshot,
+            CodexWorkflowContractJsonContext.Default.AgentDiagnosticSnapshot);
         foreach (var variable in variables)
             CryptographicOperations.ZeroMemory(variable.CanonicalValue);
         if (capturedPayload.Length > MaxCapturedBytes)
@@ -345,23 +370,174 @@ internal static class DiagnosticSnapshotCapture
         return lessThan ? left < right ? "pass" : "fail" : left > right ? "pass" : "fail";
     }
 
-    private static byte[] WritePayload(
+    internal static AgentDiagnosticSnapshotSummary CreateSummary(
+        DiagnosticSnapshotInboxRequest request) =>
+        new()
+        {
+            ExtensionId = AgentDiagnosticExtensionId.Snapshot,
+            FormatVersion = FormatVersion,
+            SnapshotId = new AgentDiagnosticSnapshotId(request.SnapshotId),
+            ProbeId = new AgentDiagnosticProbeId(request.ProbeId),
+            Phase = ParsePhase(request.Phase),
+            Outcome = ParseOutcome(request.Outcome),
+            VariableCount = request.VariableCount,
+            CheckCount = request.CheckCount,
+            FailedCheckCount = request.FailedCheckCount,
+            ContentRef = request.Content.ContentRef
+        };
+
+    private static AgentDiagnosticSnapshot CreateSnapshot(
         string snapshotId,
         string probeId,
         string phase,
         string outcome,
         IReadOnlyList<DiagnosticVariable> variables,
         IReadOnlyList<DiagnosticCheck> checks,
-        string? captureNonce,
-        bool redact)
+        string captureNonce) =>
+        new()
+        {
+            ExtensionId = AgentDiagnosticExtensionId.Snapshot,
+            FormatVersion = FormatVersion,
+            SnapshotId = new AgentDiagnosticSnapshotId(snapshotId),
+            CaptureNonce = captureNonce,
+            ProbeId = new AgentDiagnosticProbeId(probeId),
+            Phase = ParsePhase(phase),
+            Variables = variables
+                .OrderBy(static item => item.Name, StringComparer.Ordinal)
+                .Select(ToCapturedVariable)
+                .ToArray(),
+            Checks = checks
+                .OrderBy(static item => item.CheckId, StringComparer.Ordinal)
+                .Select(ToCheckResult)
+                .ToArray(),
+            Outcome = ParseOutcome(outcome)
+        };
+
+    private static AgentDiagnosticVariable ToCapturedVariable(DiagnosticVariable variable)
+    {
+        var name = new AgentDiagnosticVariableName(variable.Name);
+        var type = ParseValueType(variable.ValueType);
+        var classification = ParseClassification(variable.Classification);
+        return variable.Classification switch
+        {
+            "public" or "internal" => new CapturedAgentDiagnosticVariable
+            {
+                Name = name,
+                Type = type,
+                Classification = classification,
+                Value = variable.Value
+            },
+            "sensitive" => new RedactedAgentDiagnosticVariable
+            {
+                Name = name,
+                Type = type,
+                Classification = classification
+            },
+            "secret" => new OmittedAgentDiagnosticVariable
+            {
+                Name = name,
+                Type = type,
+                Classification = classification
+            },
+            _ => throw new InvalidDataException("Unsupported diagnostic classification.")
+        };
+    }
+
+    private static AgentDiagnosticCheckResult ToCheckResult(DiagnosticCheck check) =>
+        new()
+        {
+            CheckId = new AgentDiagnosticCheckId(check.CheckId),
+            Operator = ParseOperator(check.Operator),
+            Actual = new AgentDiagnosticVariableName(check.Actual),
+            Expected = check.Expected is null
+                ? null
+                : new AgentDiagnosticVariableName(check.Expected),
+            ExpectedType = check.ExpectedType is null
+                ? null
+                : ParseValueType(check.ExpectedType),
+            Outcome = ParseCheckOutcome(check.Outcome)
+        };
+
+    private static AgentDiagnosticPhase ParsePhase(string value) => value switch
+    {
+        QylAttributes.AgentDiagnosticPhaseValues.Input => AgentDiagnosticPhase.Input,
+        QylAttributes.AgentDiagnosticPhaseValues.Output => AgentDiagnosticPhase.Output,
+        QylAttributes.AgentDiagnosticPhaseValues.Error => AgentDiagnosticPhase.Error,
+        QylAttributes.AgentDiagnosticPhaseValues.Checkpoint => AgentDiagnosticPhase.Checkpoint,
+        _ => throw new InvalidDataException("Unsupported diagnostic phase.")
+    };
+
+    private static string PhaseValue(AgentDiagnosticPhase value) => value switch
+    {
+        AgentDiagnosticPhase.Input => QylAttributes.AgentDiagnosticPhaseValues.Input,
+        AgentDiagnosticPhase.Output => QylAttributes.AgentDiagnosticPhaseValues.Output,
+        AgentDiagnosticPhase.Error => QylAttributes.AgentDiagnosticPhaseValues.Error,
+        AgentDiagnosticPhase.Checkpoint => QylAttributes.AgentDiagnosticPhaseValues.Checkpoint,
+        _ => throw new InvalidDataException("Unsupported diagnostic phase.")
+    };
+
+    private static AgentDiagnosticOutcome ParseOutcome(string value) => value switch
+    {
+        QylAttributes.AgentDiagnosticOutcomeValues.Pass => AgentDiagnosticOutcome.Pass,
+        QylAttributes.AgentDiagnosticOutcomeValues.Fail => AgentDiagnosticOutcome.Fail,
+        QylAttributes.AgentDiagnosticOutcomeValues.Unknown => AgentDiagnosticOutcome.UnknownResult,
+        QylAttributes.AgentDiagnosticOutcomeValues.NotEvaluated => AgentDiagnosticOutcome.NotEvaluated,
+        _ => throw new InvalidDataException("Unsupported diagnostic outcome.")
+    };
+
+    private static AgentDiagnosticCheckOutcome ParseCheckOutcome(string value) => value switch
+    {
+        "pass" => AgentDiagnosticCheckOutcome.Pass,
+        "fail" => AgentDiagnosticCheckOutcome.Fail,
+        "unknown" => AgentDiagnosticCheckOutcome.UnknownResult,
+        _ => throw new InvalidDataException("Unsupported diagnostic check outcome.")
+    };
+
+    private static AgentDiagnosticValueType ParseValueType(string value) => value switch
+    {
+        "null" => AgentDiagnosticValueType.Null,
+        "boolean" => AgentDiagnosticValueType.Boolean,
+        "integer" => AgentDiagnosticValueType.Integer,
+        "number" => AgentDiagnosticValueType.Number,
+        "string" => AgentDiagnosticValueType.String,
+        "json" => AgentDiagnosticValueType.Json,
+        _ => throw new InvalidDataException("Unsupported diagnostic value type.")
+    };
+
+    private static AgentDiagnosticClassification ParseClassification(string value) => value switch
+    {
+        "public" => AgentDiagnosticClassification.Public,
+        "internal" => AgentDiagnosticClassification.Internal,
+        "sensitive" => AgentDiagnosticClassification.Sensitive,
+        "secret" => AgentDiagnosticClassification.Secret,
+        _ => throw new InvalidDataException("Unsupported diagnostic classification.")
+    };
+
+    private static AgentDiagnosticOperator ParseOperator(string value) => value switch
+    {
+        "equal" => AgentDiagnosticOperator.Equal,
+        "not_equal" => AgentDiagnosticOperator.NotEqual,
+        "exists" => AgentDiagnosticOperator.Exists,
+        "type_is" => AgentDiagnosticOperator.TypeIs,
+        "contains" => AgentDiagnosticOperator.Contains,
+        "less_than" => AgentDiagnosticOperator.LessThan,
+        "greater_than" => AgentDiagnosticOperator.GreaterThan,
+        _ => throw new InvalidDataException("Unsupported diagnostic operator.")
+    };
+
+    private static byte[] WriteSemanticPayload(
+        string snapshotId,
+        string probeId,
+        string phase,
+        string outcome,
+        IReadOnlyList<DiagnosticVariable> variables,
+        IReadOnlyList<DiagnosticCheck> checks)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using var writer = new Utf8JsonWriter(buffer);
         writer.WriteStartObject();
         writer.WriteString("extension_id", ExtensionId);
         writer.WriteNumber("format_version", FormatVersion);
-        if (captureNonce is not null)
-            writer.WriteString("capture_nonce", captureNonce);
         writer.WriteString("snapshot_id", snapshotId);
         writer.WriteString("probe_id", probeId);
         writer.WriteString("phase", phase);
@@ -374,18 +550,9 @@ internal static class DiagnosticSnapshotCapture
             writer.WriteString("name", variable.Name);
             writer.WriteString("classification", variable.Classification);
             writer.WriteString("type", variable.ValueType);
-            if (!redact || variable.Classification is "public" or "internal")
-            {
-                writer.WriteString("capture", "value");
-                writer.WritePropertyName("value");
-                writer.WriteRawValue(variable.CanonicalValue, skipInputValidation: true);
-            }
-            else
-            {
-                writer.WriteString(
-                    "capture",
-                    variable.Classification == "sensitive" ? "redacted" : "omitted");
-            }
+            writer.WriteString("capture", "value");
+            writer.WritePropertyName("value");
+            writer.WriteRawValue(variable.CanonicalValue, skipInputValidation: true);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -514,7 +681,7 @@ internal static class DiagnosticSnapshotCapture
                IsMachineIdentifier(candidate, out result);
     }
 
-    private static bool IsMachineIdentifier(string? candidate, out string result)
+    internal static bool IsMachineIdentifier(string? candidate, out string result)
     {
         result = candidate ?? "";
         if (candidate is null || candidate.Length is 0 or > MaxIdentifierLength ||

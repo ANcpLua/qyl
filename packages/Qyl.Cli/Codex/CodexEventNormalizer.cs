@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Qyl.Api.Contracts.Diagnostics;
 using Qyl.Api.Contracts.Workflow;
 
 namespace Qyl.Cli.Codex;
@@ -134,6 +135,7 @@ internal sealed class CodexEventNormalizer
         if (_rootThreadId is null || !_threads.TryGetValue(_rootThreadId, out var root))
             throw new DiagnosticSnapshotContextUnavailableException();
 
+        var summary = DiagnosticSnapshotCapture.CreateSummary(request);
         var eventId = StableEventId("diagnostic", request.SnapshotId);
         var workflowEvent = CreateEvent(
             eventId,
@@ -147,19 +149,7 @@ internal sealed class CodexEventNormalizer
             null,
             null,
             [request.Content.ContentRef],
-            new Dictionary<string, object>(StringComparer.Ordinal)
-            {
-                ["extension_id"] = DiagnosticSnapshotCapture.ExtensionId,
-                ["format_version"] = DiagnosticSnapshotCapture.FormatVersion,
-                ["snapshot_id"] = request.SnapshotId,
-                ["probe_id"] = request.ProbeId,
-                ["phase"] = request.Phase,
-                ["outcome"] = request.Outcome,
-                ["variable_count"] = request.VariableCount,
-                ["check_count"] = request.CheckCount,
-                ["failed_check_count"] = request.FailedCheckCount,
-                ["content_ref"] = request.Content.ContentRef.Value
-            }) ?? throw new DiagnosticSnapshotConflictException();
+            DiagnosticSummaryData(summary)) ?? throw new DiagnosticSnapshotConflictException();
         var batch = new CodexNormalizedBatch([workflowEvent], [request.Content]);
         _diagnosticSnapshots.Add(
             request.SnapshotId,
@@ -916,6 +906,26 @@ internal sealed class CodexEventNormalizer
             Encoding = WorkflowContentEncoding.Utf8,
             Content = json
         };
+    }
+
+    private static IReadOnlyDictionary<string, object> DiagnosticSummaryData(
+        AgentDiagnosticSnapshotSummary summary)
+    {
+        var element = JsonSerializer.SerializeToElement(
+            summary,
+            CodexWorkflowContractJsonContext.Default.AgentDiagnosticSnapshotSummary);
+        var data = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var property in element.EnumerateObject())
+        {
+            data.Add(property.Name, property.Value.ValueKind switch
+            {
+                JsonValueKind.String => property.Value.GetString()!,
+                JsonValueKind.Number when property.Value.TryGetInt64(out var integer) => integer,
+                _ => throw new InvalidDataException(
+                    $"Diagnostic summary property '{property.Name}' must be a string or integer.")
+            });
+        }
+        return data;
     }
 
     private static IReadOnlyDictionary<string, object>? Data(

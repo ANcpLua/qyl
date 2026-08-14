@@ -1,6 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Qyl.Api.Contracts.Mcp;
+using Qyl.Api.Contracts.Mcp.Tools;
+using Qyl.Api.Contracts.Workflow;
 
 namespace Qyl.Cli.Codex;
 
@@ -14,6 +17,15 @@ internal static class ObserverBridgeServer
     private const string ServerInfoMetaKey = "io.modelcontextprotocol/serverInfo";
     private const string ReadToolName = "get_active_workflow_run";
     private const string DiagnosticToolName = "record_diagnostic_snapshot";
+    private static readonly JsonElement s_getActiveWorkflowRunInputSchema =
+        ParseSchema(ToolSchemas.GetActiveWorkflowRunInput);
+    private static readonly JsonElement s_getActiveWorkflowRunOutputSchema =
+        ParseSchema(ToolSchemas.GetActiveWorkflowRunOutput);
+    private static readonly JsonElement s_recordDiagnosticSnapshotInputSchema =
+        ParseSchema(ToolSchemas.RecordDiagnosticSnapshotInput);
+    private static readonly JsonElement s_recordDiagnosticSnapshotOutputSchema =
+        ParseSchema(ToolSchemas.RecordDiagnosticSnapshotOutput);
+    private static readonly JsonElement s_emptyObject = ParseSchema("{}");
 
     public static async Task<int> RunAsync(
         ActiveWorkflowRunStore activeRuns,
@@ -170,36 +182,9 @@ internal static class ObserverBridgeServer
                     "description",
                     "Returns the workflow run observed by the active qyl codex process, if one exists.");
                 writer.WritePropertyName("inputSchema");
-                writer.WriteStartObject();
-                writer.WriteString("type", "object");
-                writer.WritePropertyName("properties");
-                writer.WriteStartObject();
-                writer.WriteEndObject();
-                writer.WriteBoolean("additionalProperties", false);
-                writer.WriteEndObject();
+                s_getActiveWorkflowRunInputSchema.WriteTo(writer);
                 writer.WritePropertyName("outputSchema");
-                writer.WriteStartObject();
-                writer.WriteString("$schema", "https://json-schema.org/draft/2020-12/schema");
-                writer.WriteString("type", "object");
-                writer.WritePropertyName("properties");
-                writer.WriteStartObject();
-                WriteBooleanSchema(writer, "active");
-                WriteBooleanSchema(writer, "liveControlsAvailable");
-                WriteStringSchema(writer, "runId");
-                WriteStringSchema(writer, "threadId");
-                writer.WritePropertyName("startedAt");
-                writer.WriteStartObject();
-                writer.WriteString("type", "string");
-                writer.WriteString("format", "date-time");
-                writer.WriteEndObject();
-                writer.WriteEndObject();
-                writer.WritePropertyName("required");
-                writer.WriteStartArray();
-                writer.WriteStringValue("active");
-                writer.WriteStringValue("liveControlsAvailable");
-                writer.WriteEndArray();
-                writer.WriteBoolean("additionalProperties", false);
-                writer.WriteEndObject();
+                s_getActiveWorkflowRunOutputSchema.WriteTo(writer);
                 writer.WritePropertyName("annotations");
                 writer.WriteStartObject();
                 writer.WriteBoolean("readOnlyHint", true);
@@ -252,6 +237,25 @@ internal static class ObserverBridgeServer
         }
 
         var active = activeRuns.Read();
+        if (parameters.TryGetProperty("arguments", out var arguments) &&
+            (arguments.ValueKind is not JsonValueKind.Object || arguments.EnumerateObject().Any()))
+        {
+            await WriteErrorAsync(output, id, -32602, "get_active_workflow_run accepts no arguments.")
+                .ConfigureAwait(false);
+            return;
+        }
+
+        _ = JsonSerializer.Deserialize(
+            arguments.ValueKind is JsonValueKind.Object ? arguments : s_emptyObject,
+            CodexWorkflowContractJsonContext.Default.GetActiveWorkflowRunInput);
+        var result = new GetActiveWorkflowRunOutput
+        {
+            Active = active is not null,
+            LiveControlsAvailable = active is not null,
+            RunId = active is null ? null : new WorkflowRunId(active.RunId),
+            ThreadId = active?.ThreadId,
+            StartedAt = active?.StartedAt
+        };
 
         await WriteAsync(
             output,
@@ -270,17 +274,10 @@ internal static class ObserverBridgeServer
                 writer.WriteEndObject();
                 writer.WriteEndArray();
                 writer.WritePropertyName("structuredContent");
-                writer.WriteStartObject();
-                writer.WriteBoolean("active", active is not null);
-                writer.WriteBoolean("liveControlsAvailable", active is not null);
-                if (active is not null)
-                {
-                    writer.WriteString("runId", active.RunId);
-                    if (active.ThreadId is not null)
-                        writer.WriteString("threadId", active.ThreadId);
-                    writer.WriteString("startedAt", active.StartedAt);
-                }
-                writer.WriteEndObject();
+                JsonSerializer.Serialize(
+                    writer,
+                    result,
+                    CodexWorkflowContractJsonContext.Default.GetActiveWorkflowRunOutput);
                 writer.WriteBoolean("isError", false);
             }).ConfigureAwait(false);
     }
@@ -305,9 +302,12 @@ internal static class ObserverBridgeServer
             return;
         }
 
-        var snapshotId = arguments.TryGetProperty("snapshotId", out var snapshotElement) &&
-                         snapshotElement.ValueKind is JsonValueKind.String
-            ? snapshotElement.GetString() ?? "unknown"
+        var snapshotId = arguments.TryGetProperty("snapshot_id", out var snapshotElement) &&
+                         snapshotElement.ValueKind is JsonValueKind.String &&
+                         DiagnosticSnapshotCapture.IsMachineIdentifier(
+                             snapshotElement.GetString(),
+                             out var validSnapshotId)
+            ? validSnapshotId
             : "unknown";
         if (active is null)
         {
@@ -413,15 +413,20 @@ internal static class ObserverBridgeServer
                 writer.WriteEndObject();
                 writer.WriteEndArray();
                 writer.WritePropertyName("structuredContent");
-                writer.WriteStartObject();
-                writer.WriteBoolean("recorded", result.Recorded);
-                writer.WriteString("code", result.Code);
-                writer.WriteString("snapshotId", result.SnapshotId);
-                if (result.EventId is not null)
-                    writer.WriteString("eventId", result.EventId);
-                if (field is not null)
-                    writer.WriteString("field", field);
-                writer.WriteEndObject();
+                JsonSerializer.Serialize(
+                    writer,
+                    new RecordDiagnosticSnapshotOutput
+                    {
+                        Recorded = result.Recorded,
+                        Code = result.Code,
+                        SnapshotId = new Qyl.Api.Contracts.Diagnostics.AgentDiagnosticSnapshotId(
+                            result.SnapshotId),
+                        EventId = result.EventId is null
+                            ? null
+                            : new WorkflowEventId(result.EventId),
+                        Field = field
+                    },
+                    CodexWorkflowContractJsonContext.Default.RecordDiagnosticSnapshotOutput);
                 writer.WriteBoolean("isError", !result.Recorded);
             });
 
@@ -438,92 +443,15 @@ internal static class ObserverBridgeServer
         writer.WriteString(
             "description",
             "Record one immutable, bounded diagnostic state frame against the active qyl Codex run. " +
-            "Reuse the same snapshotId and payload when retrying; changing a payload under an existing " +
-            "snapshotId is a conflict. Variable names remain data: public/internal values enter protected " +
+            "Reuse the same snapshot_id and payload when retrying; changing a payload under an existing " +
+            "snapshot_id is a conflict. Variable names remain data: public/internal values enter protected " +
             "content, sensitive values are redacted, and secret values are omitted. Checks reference " +
             "variable names and use closed operators; expression strings are not accepted.");
         writer.WritePropertyName("inputSchema");
-        writer.WriteStartObject();
-        writer.WriteString("$schema", "https://json-schema.org/draft/2020-12/schema");
-        writer.WriteString("type", "object");
-        writer.WritePropertyName("properties");
-        writer.WriteStartObject();
-        WriteMachineIdentifierSchema(writer, "snapshotId");
-        WriteMachineIdentifierSchema(writer, "probeId");
-        WriteEnumSchema(writer, "phase", ["input", "output", "error", "checkpoint"]);
-        writer.WritePropertyName("variables");
-        writer.WriteStartObject();
-        writer.WriteString("type", "array");
-        writer.WriteString(
-            "description",
-            "Dynamically named typed state. Classification is applied before the frame leaves the bridge process.");
-        writer.WriteNumber("maxItems", DiagnosticSnapshotCapture.MaxVariables);
-        writer.WritePropertyName("items");
-        writer.WriteStartObject();
-        writer.WriteString("type", "object");
-        writer.WritePropertyName("properties");
-        writer.WriteStartObject();
-        WriteMachineIdentifierSchema(writer, "name");
-        WriteEnumSchema(writer, "classification", ["public", "internal", "sensitive", "secret"]);
-        writer.WritePropertyName("value");
-        writer.WriteStartObject();
-        writer.WriteEndObject();
-        writer.WriteEndObject();
-        WriteRequired(writer, ["name", "classification", "value"]);
-        writer.WriteBoolean("additionalProperties", false);
-        writer.WriteEndObject();
-        writer.WriteEndObject();
-        writer.WritePropertyName("checks");
-        writer.WriteStartObject();
-        writer.WriteString("type", "array");
-        writer.WriteString(
-            "description",
-            "Structural checks whose actual/expected operands are variable-name references. Missing or incompatible operands are unknown, except exists on absent/null state is fail.");
-        writer.WriteNumber("maxItems", DiagnosticSnapshotCapture.MaxChecks);
-        writer.WritePropertyName("default");
-        writer.WriteStartArray();
-        writer.WriteEndArray();
-        writer.WritePropertyName("items");
-        writer.WriteStartObject();
-        writer.WriteString("type", "object");
-        writer.WritePropertyName("properties");
-        writer.WriteStartObject();
-        WriteMachineIdentifierSchema(writer, "checkId");
-        WriteEnumSchema(
-            writer,
-            "operator",
-            ["equal", "not_equal", "exists", "type_is", "contains", "less_than", "greater_than"]);
-        WriteMachineIdentifierSchema(writer, "actual");
-        WriteMachineIdentifierSchema(writer, "expected");
-        WriteEnumSchema(
-            writer,
-            "expectedType",
-            ["null", "boolean", "integer", "number", "string", "json"]);
-        writer.WriteEndObject();
-        WriteRequired(writer, ["checkId", "operator", "actual"]);
-        writer.WriteBoolean("additionalProperties", false);
-        writer.WriteEndObject();
-        writer.WriteEndObject();
-        writer.WriteEndObject();
-        WriteRequired(writer, ["snapshotId", "probeId", "phase", "variables"]);
-        writer.WriteBoolean("additionalProperties", false);
-        writer.WriteEndObject();
+        s_recordDiagnosticSnapshotInputSchema.WriteTo(writer);
 
         writer.WritePropertyName("outputSchema");
-        writer.WriteStartObject();
-        writer.WriteString("$schema", "https://json-schema.org/draft/2020-12/schema");
-        writer.WriteString("type", "object");
-        writer.WritePropertyName("properties");
-        writer.WriteStartObject();
-        WriteBooleanSchema(writer, "recorded");
-        WriteStringSchema(writer, "code");
-        WriteStringSchema(writer, "snapshotId");
-        WriteStringSchema(writer, "eventId");
-        WriteStringSchema(writer, "field");
-        writer.WriteEndObject();
-        WriteRequired(writer, ["recorded", "code", "snapshotId"]);
-        writer.WriteBoolean("additionalProperties", false);
-        writer.WriteEndObject();
+        s_recordDiagnosticSnapshotOutputSchema.WriteTo(writer);
         writer.WritePropertyName("annotations");
         writer.WriteStartObject();
         writer.WriteBoolean("readOnlyHint", false);
@@ -532,42 +460,6 @@ internal static class ObserverBridgeServer
         writer.WriteBoolean("openWorldHint", false);
         writer.WriteEndObject();
         writer.WriteEndObject();
-    }
-
-    private static void WriteMachineIdentifierSchema(Utf8JsonWriter writer, string name)
-    {
-        writer.WritePropertyName(name);
-        writer.WriteStartObject();
-        writer.WriteString("type", "string");
-        writer.WriteNumber("minLength", 1);
-        writer.WriteNumber("maxLength", DiagnosticSnapshotCapture.MaxIdentifierLength);
-        writer.WriteString("pattern", "^[A-Za-z0-9_][A-Za-z0-9._:/\\[\\]-]*$");
-        writer.WriteEndObject();
-    }
-
-    private static void WriteEnumSchema(
-        Utf8JsonWriter writer,
-        string name,
-        IReadOnlyList<string> values)
-    {
-        writer.WritePropertyName(name);
-        writer.WriteStartObject();
-        writer.WriteString("type", "string");
-        writer.WritePropertyName("enum");
-        writer.WriteStartArray();
-        foreach (var value in values)
-            writer.WriteStringValue(value);
-        writer.WriteEndArray();
-        writer.WriteEndObject();
-    }
-
-    private static void WriteRequired(Utf8JsonWriter writer, IReadOnlyList<string> names)
-    {
-        writer.WritePropertyName("required");
-        writer.WriteStartArray();
-        foreach (var name in names)
-            writer.WriteStringValue(name);
-        writer.WriteEndArray();
     }
 
     private static bool TryValidateModernEnvelope(
@@ -748,12 +640,10 @@ internal static class ObserverBridgeServer
         writer.WriteString("cacheScope", "public");
     }
 
-    private static void WriteBooleanSchema(Utf8JsonWriter writer, string name)
+    private static JsonElement ParseSchema(string schema)
     {
-        writer.WritePropertyName(name);
-        writer.WriteStartObject();
-        writer.WriteString("type", "boolean");
-        writer.WriteEndObject();
+        using var document = JsonDocument.Parse(schema);
+        return document.RootElement.Clone();
     }
 
     private readonly record struct BoundedLine(string? Value, bool ExceedsLimit)
@@ -820,14 +710,6 @@ internal static class ObserverBridgeServer
                 value.Length--;
             return new BoundedLine(value.ToString(), false);
         }
-    }
-
-    private static void WriteStringSchema(Utf8JsonWriter writer, string name)
-    {
-        writer.WritePropertyName(name);
-        writer.WriteStartObject();
-        writer.WriteString("type", "string");
-        writer.WriteEndObject();
     }
 
     private static async Task WriteEnvelopeAsync(

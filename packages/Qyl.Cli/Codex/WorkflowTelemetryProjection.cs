@@ -7,27 +7,29 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Qyl.Api.Contracts.Workflow;
+using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
+using QylTelemetryNames = Qyl.Telemetry.SemanticConventions.Incubating.Names.QylTelemetryNames;
 
 namespace Qyl.Cli.Codex;
 
 internal sealed class WorkflowTelemetryProjection : IDisposable
 {
     private const string SourceName = "qyl.codex.observer";
-    private const string DiagnosticEventName = "qyl.agent.diagnostic.snapshot";
-    private const string DiagnosticExtensionId = "qyl.agent.diagnostic.extension.id";
-    private const string DiagnosticFormatVersion = "qyl.agent.diagnostic.format.version";
-    private const string DiagnosticSnapshotId = "qyl.agent.diagnostic.snapshot.id";
-    private const string DiagnosticProbeId = "qyl.agent.diagnostic.probe.id";
-    private const string DiagnosticPhase = "qyl.agent.diagnostic.phase";
-    private const string DiagnosticOutcome = "qyl.agent.diagnostic.outcome";
-    private const string DiagnosticVariableCount = "qyl.agent.diagnostic.variable.count";
-    private const string DiagnosticCheckCount = "qyl.agent.diagnostic.check.count";
-    private const string DiagnosticFailedCheckCount = "qyl.agent.diagnostic.check.failed_count";
-    private const string WorkflowRunId = "qyl.workflow.run.id";
-    private const string WorkflowEventId = "qyl.workflow.event.id";
-    private const string WorkflowAttemptId = "qyl.workflow.attempt.id";
-    private const string WorkflowAgentId = "qyl.workflow.agent.id";
-    private const string WorkflowToolCallId = "qyl.workflow.tool_call.id";
+    private const string DiagnosticEventName = QylTelemetryNames.Events.QylAgentDiagnosticSnapshot;
+    private const string DiagnosticExtensionId = QylAttributes.AgentDiagnosticExtensionId;
+    private const string DiagnosticFormatVersion = QylAttributes.AgentDiagnosticFormatVersion;
+    private const string DiagnosticSnapshotId = QylAttributes.AgentDiagnosticSnapshotId;
+    private const string DiagnosticProbeId = QylAttributes.AgentDiagnosticProbeId;
+    private const string DiagnosticPhase = QylAttributes.AgentDiagnosticPhase;
+    private const string DiagnosticOutcome = QylAttributes.AgentDiagnosticOutcome;
+    private const string DiagnosticVariableCount = QylAttributes.AgentDiagnosticVariableCount;
+    private const string DiagnosticCheckCount = QylAttributes.AgentDiagnosticCheckCount;
+    private const string DiagnosticFailedCheckCount = QylAttributes.AgentDiagnosticCheckFailedCount;
+    private const string WorkflowRunId = QylAttributes.WorkflowRunId;
+    private const string WorkflowEventId = QylAttributes.WorkflowEventId;
+    private const string WorkflowAttemptId = QylAttributes.WorkflowAttemptId;
+    private const string WorkflowAgentId = QylAttributes.WorkflowAgentId;
+    private const string WorkflowToolCallId = QylAttributes.WorkflowToolCallId;
     private static readonly Action<ILogger, WorkflowJournalEventKind, string, Exception?>
         s_logJournalEvent = LoggerMessage.Define<WorkflowJournalEventKind, string>(
             LogLevel.Information,

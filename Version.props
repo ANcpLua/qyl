@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>1.1.8</QylVersion>
+    <QylVersion>1.2.0</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -25,8 +25,8 @@
     <!-- The producer family ships from the Qyl.OpenTelemetry.AutoInstrumentation repo on one
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property. -->
     <QylTelemetryVersion>9.0.1</QylTelemetryVersion>
-    <QylSemanticConventionsVersion>1.0.0</QylSemanticConventionsVersion>
-    <QylApiContractsVersion>7.0.0</QylApiContractsVersion>
+    <QylSemanticConventionsVersion>4.2.0</QylSemanticConventionsVersion>
+    <QylApiContractsVersion>7.1.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>

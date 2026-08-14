@@ -2562,6 +2562,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         // VerifyBackend, not Verify, so a gate hung only on Verify never executes in CI.
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
+        .DependsOn<ICliContractLoop>(static x => x.VerifyCliMcpToolSchemasAreGenerated)
         // Same reasoning, applied to the gate that polices this exact asymmetry: hung only on Ci,
         // the CI-coverage check would never run in the CI it describes.
         .DependsOn<ICiCoverage>(static x => x.VerifyCiTargetCoversWorkflow);
@@ -2571,6 +2572,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyBackend)
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
+        .DependsOn<ICliContractLoop>(static x => x.VerifyCliMcpToolSchemasAreGenerated)
         .DependsOn(VerifyFrontendApiTypes)
         .DependsOn(VerifyFrontendTypes)
         .Executes(() =>
@@ -2612,6 +2614,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             Log.Information("  Collector log storage writes are replay-idempotent");
             Log.Information("  README configuration matches every QYL_* code binding");
             Log.Information("  Removed local build surfaces stayed removed");
+            Log.Information("  Qyl.Cli serialization roots are generated API contracts");
+            Log.Information("  Qyl.Cli MCP tool schemas are generated contract artifacts");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 
