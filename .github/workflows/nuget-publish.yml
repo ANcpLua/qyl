@@ -260,7 +260,15 @@ jobs:
                   root = ET.fromstring(package.read(nuspec))
                   entries = set(package.namelist())
                   if path.endswith(f"qyl.{os.environ['VERSION']}.nupkg"):
-                      settings = package.read("tools/net10.0/any/DotnetToolSettings.xml").decode("utf-8-sig")
+                      settings_entries = entries.intersection({
+                          "tools/net10.0/any/DotnetToolSettings.xml",
+                          "tools/any/any/DotnetToolSettings.xml",
+                      })
+                      if len(settings_entries) != 1:
+                          raise SystemExit(
+                              f"Outer qyl package contains {len(settings_entries)} supported tool settings entries, expected one"
+                          )
+                      settings = package.read(next(iter(settings_entries))).decode("utf-8-sig")
                       for rid in native:
                           route = f'RuntimeIdentifier="{rid}" Id="qyl.{rid}"'
                           if route not in settings:

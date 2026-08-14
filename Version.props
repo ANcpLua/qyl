@@ -59,7 +59,7 @@
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
     <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
     <MicrosoftBuildVersion>18.7.1</MicrosoftBuildVersion>
-    <!-- Overrides a vulnerable Nuke.Common transitive. -->
-    <NuGetPackagingVersion>7.6.0</NuGetPackagingVersion>
+    <!-- Keeps Nuke's NuGet train patched and aligned with .NET SDK 10.0.400. -->
+    <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
   </PropertyGroup>
 </Project>

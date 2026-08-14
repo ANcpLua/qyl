@@ -46,10 +46,21 @@ sealed class Build : NukeBuild,
         .Before<IPipeline>(static x => x.FrontendInstall)
         .Executes(() =>
         {
+            var buildScriptArtifacts = (RootDirectory / "eng" / "build" / "artifacts")
+                .ToString()
+                .Replace('\\', '/') + "/";
+            var pathComparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
             RootDirectory.GlobDirectories("**/bin", "**/obj")
-                .Where(static directory => !directory.ToString()
-                    .Replace('\\', '/')
-                    .Contains("/node_modules/", StringComparison.Ordinal))
+                .Where(directory =>
+                {
+                    var path = directory.ToString().Replace('\\', '/') + "/";
+                    return !path.Contains("/node_modules/", StringComparison.Ordinal)
+                           // The running build, its lazy dependencies, and its assets graph live here.
+                           && !path.StartsWith(buildScriptArtifacts, pathComparison);
+                })
                 .DeleteDirectories();
             From<IHazArtifacts>().ArtifactsDirectory.CreateOrCleanDirectory();
         });

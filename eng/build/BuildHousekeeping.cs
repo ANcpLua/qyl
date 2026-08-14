@@ -12,7 +12,7 @@ interface IHousekeeping : IHazSourcePaths
 {
     AbsolutePath ToolsDirectory => RootDirectory / "eng" / "tools";
 
-    [Parameter("Requested .NET 10 SDK version for UpdateSdkVersions (e.g. 10.0.302)")]
+    [Parameter("Requested .NET 10 SDK version for UpdateSdkVersions (e.g. 10.0.400)")]
     string? SdkVersion => TryGetValue(() => SdkVersion);
 
     Target VerifySdkVersions => d => d

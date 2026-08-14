@@ -39,8 +39,10 @@ if (packageMode)
         string.Equals(package.Id, $"qyl.{rid}", StringComparison.OrdinalIgnoreCase));
     expectedVersion = outer.Version;
 
-    outer.RequireEntry("tools/net10.0/any/DotnetToolSettings.xml");
-    outer.RequireText("tools/net10.0/any/DotnetToolSettings.xml", $"RuntimeIdentifier=\"{rid}\"");
+    var outerSettingsPath = outer.RequireSingleEntry(
+        "tools/net10.0/any/DotnetToolSettings.xml",
+        "tools/any/any/DotnetToolSettings.xml");
+    outer.RequireText(outerSettingsPath, $"RuntimeIdentifier=\"{rid}\"");
     implementation.RequireEntry($"tools/net10.0/{rid}/DotnetToolSettings.xml");
     implementation.RequireEntry($"tools/net10.0/{rid}/collector/qyl.collector.dll");
     implementation.RequireEntry($"tools/net10.0/{rid}/collector/qyl.collector.deps.json");
@@ -582,6 +584,15 @@ internal sealed record PackageInfo(string Path, string Id, string Version, HashS
     {
         if (!Entries.Contains(path))
             throw new InvalidDataException($"Package '{Path}' is missing required entry '{path}'.");
+    }
+
+    internal string RequireSingleEntry(params string[] candidates)
+    {
+        var matches = Entries.Intersect(candidates, StringComparer.Ordinal).ToArray();
+        return matches.Length == 1
+            ? matches[0]
+            : throw new InvalidDataException(
+                $"Package '{Path}' contains {matches.Length} supported tool settings entries, expected exactly one.");
     }
 
     internal void RequireText(string path, string expected)
