@@ -85,9 +85,6 @@ internal static class QylConstants
     public static class Orchestrator
     {
         public const string DotnetExecutable = "dotnet";
-        public const string RunCommand = "run";
-        public const string ProjectFlag = "--project";
-        public const string NoLaunchProfileFlag = "--no-launch-profile";
         public const int HealthPollIntervalMs = 500;
         public const int HealthProbeAttemptTimeoutSeconds = 5;
         public const int StartupTimeoutSeconds = 60;
@@ -97,10 +94,8 @@ internal static class QylConstants
     public static class LogEvents
     {
         public const int OrchestratorStarted = 1100;
-        public const int ResourceStarting = 1101;
         public const int ResourceReady = 1102;
         public const int ResourceFailed = 1103;
-        public const int ResourceStopped = 1104;
         public const int ResourceRestarting = 1113;
         public const int ChildStdout = 1105;
         public const int ChildStderr = 1106;

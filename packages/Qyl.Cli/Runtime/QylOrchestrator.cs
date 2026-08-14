@@ -50,10 +50,6 @@ internal sealed partial class QylOrchestrator(
         Message = "Resource '{Name}' ready on {Endpoint}")]
     private static partial void LogReady(ILogger logger, string name, Uri endpoint);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information,
-        Message = "Connection-only resource '{Name}' ready")]
-    private static partial void LogConnectionReady(ILogger logger, string name);
-
     [LoggerMessage(EventId = QylConstants.LogEvents.ResourceFailed, Level = LogLevel.Error,
         Message = "Resource '{Name}' failed to start: {Reason}")]
     private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);

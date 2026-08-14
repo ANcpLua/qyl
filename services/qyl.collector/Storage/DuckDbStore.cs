@@ -1452,21 +1452,6 @@ internal sealed partial class DuckDbStore : IQylStore
             _parameters.Add(new DuckDBParameter { Value = value });
         }
 
-        public void AddDescendingCursor(
-            string primaryColumn,
-            string tieBreakerColumn,
-            object primaryValue,
-            object tieBreakerValue)
-        {
-            var primaryParameter = $"${_paramIndex++}";
-            var tieBreakerParameter = $"${_paramIndex++}";
-            _conditions.Add(
-                $"({primaryColumn} < {primaryParameter} OR " +
-                $"({primaryColumn} = {primaryParameter} AND {tieBreakerColumn} < {tieBreakerParameter}))");
-            _parameters.Add(new DuckDBParameter { Value = primaryValue });
-            _parameters.Add(new DuckDBParameter { Value = tieBreakerValue });
-        }
-
         public readonly string WhereClause =>
             _conditions.Count > 0 ? $"WHERE {string.Join(" AND ", _conditions)}" : "";
 

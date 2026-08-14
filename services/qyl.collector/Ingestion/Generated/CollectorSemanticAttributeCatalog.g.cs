@@ -662,10 +662,7 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiReasoningTokens = "gen_ai.usage.reasoning.output_tokens"; // incubating
     internal const string GenAiRequestModel = "gen_ai.request.model"; // incubating
     internal const string GenAiResponseModel = "gen_ai.response.model"; // incubating
-    internal const string GenAiStopReason = "gen_ai.response.finish_reasons"; // incubating
-    internal const string GenAiTemperature = "gen_ai.request.temperature"; // incubating
     internal const string GenAiToolCallId = "gen_ai.tool.call.id"; // incubating
-    internal const string GenAiToolName = "gen_ai.tool.name"; // incubating
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
     internal const string HttpUrlDeprecated = "http.url";

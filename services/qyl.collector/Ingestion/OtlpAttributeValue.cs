@@ -59,19 +59,6 @@ internal sealed class OtlpAttributeValue
             _ => null
         };
 
-    public double? AsDouble() =>
-        Kind switch
-        {
-            OtlpAttributeValueKind.Double => (double)value,
-            OtlpAttributeValueKind.Int => (long)value,
-            OtlpAttributeValueKind.String when double.TryParse(
-                (string)value,
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out var parsed) => parsed,
-            _ => null
-        };
-
     public string ToStableString() =>
         Kind switch
         {

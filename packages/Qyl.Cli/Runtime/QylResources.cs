@@ -70,14 +70,3 @@ internal enum QylResourceKind
     Project,
     Command
 }
-
-internal static class QylResourceKindExtensions
-{
-    internal static string ToWireName(this QylResourceKind kind) => kind switch
-    {
-        QylResourceKind.Collector => "collector",
-        QylResourceKind.Project => "project",
-        QylResourceKind.Command => "command",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown resource kind")
-    };
-}

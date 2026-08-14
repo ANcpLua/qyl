@@ -208,7 +208,7 @@ internal sealed class QylAppBuilder
         }
 
         _resources.Add(resource);
-        return new QylResourceBuilder(this, resource, (oldResource, newResource) =>
+        return new QylResourceBuilder(resource, (oldResource, newResource) =>
         {
             var index = _resources.IndexOf(oldResource);
             if (index >= 0)

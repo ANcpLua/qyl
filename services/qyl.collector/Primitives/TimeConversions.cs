@@ -7,9 +7,6 @@ internal static class TimeConversions
     private const long NanosPerMillisecond = 1_000_000L;
     private const ulong NanosPerTick = 100UL;
 
-    public static long ToUnixNano(DateTimeOffset dto) =>
-        dto.ToUnixTimeMilliseconds() * NanosPerMillisecond;
-
     public static ulong ToUnixNanoUnsigned(DateTimeOffset dto) =>
         TryToUnixNanoUnsigned(dto, out var unixNano)
             ? unixNano
