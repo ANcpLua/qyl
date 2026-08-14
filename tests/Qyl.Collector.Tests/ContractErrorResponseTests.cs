@@ -130,7 +130,7 @@ public sealed class ContractErrorResultsTests
             options);
         var context = CreateContext();
         context.Request.Path = "/api/v1/logs";
-        context.Request.Headers[options.HeaderName] = options.PrimaryApiKey;
+        context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = options.PrimaryApiKey;
 
         await middleware.InvokeAsync(context);
 
@@ -151,6 +151,9 @@ public sealed class ContractErrorResultsTests
         await middleware.InvokeAsync(context);
 
         Assert.Equal("https://console.example", context.Response.Headers.AccessControlAllowOrigin.ToString());
+        Assert.Equal(
+            "content-type, x-otlp-api-key",
+            context.Response.Headers.AccessControlAllowHeaders.ToString());
         Assert.Contains("Origin", context.Response.Headers.Vary.ToString(), StringComparison.Ordinal);
     }
 

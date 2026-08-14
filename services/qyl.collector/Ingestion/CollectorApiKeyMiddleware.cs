@@ -29,11 +29,11 @@ internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKey
             return;
         }
 
-        var apiKey = context.Request.Headers[options.HeaderName].FirstOrDefault();
+        var apiKey = context.Request.Headers[OtlpConstants.ApiKeyHeaderName].FirstOrDefault();
 
         if (!OtlpApiKeyValidator.IsValid(apiKey, options))
         {
-            var challenge = $"{options.HeaderName} realm=\"qyl-otlp\"";
+            var challenge = $"{OtlpConstants.ApiKeyHeaderName} realm=\"qyl-otlp\"";
             context.Response.Headers.WWWAuthenticate = challenge;
             if (isReadApi)
             {

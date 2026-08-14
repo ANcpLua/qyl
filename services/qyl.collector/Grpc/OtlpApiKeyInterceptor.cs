@@ -16,7 +16,9 @@ internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interce
         UnaryServerMethod<TRequest, TResponse> continuation)
     {
         if (options.IsApiKeyMode &&
-            !OtlpApiKeyValidator.IsValid(context.RequestHeaders.GetValue(options.HeaderName), options))
+            !OtlpApiKeyValidator.IsValid(
+                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName),
+                options))
         {
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
         }

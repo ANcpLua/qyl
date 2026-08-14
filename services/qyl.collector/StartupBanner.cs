@@ -26,7 +26,7 @@ internal static class StartupBanner
             Console.WriteLine($"  CORS origins      {corsOptions.AllowedOrigins}");
 
         Console.WriteLine(apiKeyOptions?.IsApiKeyMode == true
-            ? "  authentication    x-otlp-api-key required"
+            ? $"  authentication    {OtlpConstants.ApiKeyHeaderName} required"
             : "  authentication    unsecured");
         Console.WriteLine();
     }

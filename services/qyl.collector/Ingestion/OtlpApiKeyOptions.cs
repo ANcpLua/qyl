@@ -17,14 +17,6 @@ internal sealed class OtlpApiKeyOptions
 
     public string? SecondaryApiKey { get; set; }
 
-    public string HeaderName
-    {
-        get;
-        set => field = !string.IsNullOrWhiteSpace(value)
-            ? value
-            : throw new ArgumentException("HeaderName cannot be empty", nameof(value));
-    } = "x-otlp-api-key";
-
     public bool IsApiKeyMode =>
         string.Equals(AuthMode, "ApiKey", StringComparison.OrdinalIgnoreCase);
 }

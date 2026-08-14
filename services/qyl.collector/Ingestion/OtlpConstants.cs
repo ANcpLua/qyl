@@ -2,6 +2,8 @@ namespace Qyl.Collector.Ingestion;
 
 internal static class OtlpConstants
 {
+    public const string ApiKeyHeaderName = "x-otlp-api-key";
+
     public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1/metrics"];
 
     private static readonly string[] s_namespacePaths = ["/v1", "/v1development"];
