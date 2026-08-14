@@ -76,6 +76,14 @@ interface ICiCoverage : IHazSourcePaths
                 }
             }
 
+            if (!Regex.IsMatch(
+                    workflow,
+                    @"(?m)^\s*run:\s+timeout\b[^\r\n]*\bdotnet\s+test\b",
+                    RegexOptions.CultureInvariant))
+            {
+                offenders.Add("CI's dotnet test command is not bounded by the timeout process guard");
+            }
+
             if (offenders.Count > 0)
             {
                 throw new InvalidOperationException(

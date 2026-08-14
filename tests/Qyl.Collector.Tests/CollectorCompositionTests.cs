@@ -14,8 +14,11 @@ namespace Qyl.Collector.Tests;
 /// the probe honest — if the OTel SDK ever stops registering Otlp-named services, that test goes
 /// red instead of the negative one passing vacuously.
 /// </summary>
+[Collection(ProcessEnvironmentTestGroup.Name)]
 public sealed class CollectorCompositionTests
 {
+    private const string OtlpEndpointVariable = "OTEL_EXPORTER_OTLP_ENDPOINT";
+
     private static bool HasOtlpRegistration(IServiceCollection services) => services.Any(static d =>
         Mentions(d.ServiceType)
         || (d.ServiceType.IsGenericType && d.ServiceType.GetGenericArguments().Any(Mentions))
@@ -25,14 +28,28 @@ public sealed class CollectorCompositionTests
     private static bool Mentions(Type type) =>
         (type.FullName ?? string.Empty).Contains("Otlp", StringComparison.Ordinal);
 
+    private static bool ComposeHasOtlpRegistration(string? endpoint)
+    {
+        var originalEndpoint = Environment.GetEnvironmentVariable(OtlpEndpointVariable);
+        try
+        {
+            Environment.SetEnvironmentVariable(OtlpEndpointVariable, endpoint);
+            var builder = WebApplication.CreateSlimBuilder();
+
+            QylServiceDefaultsExtensions.ConfigureQylTelemetry(builder, new QylOptions());
+
+            return HasOtlpRegistration(builder.Services);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(OtlpEndpointVariable, originalEndpoint);
+        }
+    }
+
     [Fact]
     public void No_configured_endpoint_composes_no_otlp_exporter()
     {
-        var builder = WebApplication.CreateSlimBuilder();
-
-        QylServiceDefaultsExtensions.ConfigureQylTelemetry(builder, new QylOptions());
-
-        Assert.False(HasOtlpRegistration(builder.Services),
+        Assert.False(ComposeHasOtlpRegistration(endpoint: null),
             "With no OTEL_EXPORTER_OTLP_ENDPOINT configured, the composition registered an OTLP " +
             "exporter — the localhost fallback would be this collector's own ingest port. " +
             "RequireConfiguredEndpoint must stay set in ConfigureQylTelemetry.");
@@ -43,20 +60,8 @@ public sealed class CollectorCompositionTests
     {
         // The composition reads the endpoint from the process environment, so the
         // positive control sets it there (TEST-NET-3: never routable, never resolved).
-        Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", "http://203.0.113.9:4318");
-        try
-        {
-            var builder = WebApplication.CreateSlimBuilder();
-
-            QylServiceDefaultsExtensions.ConfigureQylTelemetry(builder, new QylOptions());
-
-            Assert.True(HasOtlpRegistration(builder.Services),
-                "A configured endpoint composed no OTLP exporter — the negative assertion above " +
-                "would now pass for the wrong reason. The composition or this probe changed shape.");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", null);
-        }
+        Assert.True(ComposeHasOtlpRegistration("http://203.0.113.9:4318"),
+            "A configured endpoint composed no OTLP exporter — the negative assertion above " +
+            "would now pass for the wrong reason. The composition or this probe changed shape.");
     }
 }

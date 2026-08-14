@@ -643,15 +643,6 @@ public sealed class WorkflowLifecycleTests
             "qyl.collector",
             "Dockerfile"));
         Assert.Contains("test ! -e /app/libqyl_checkpoint_native.so", dockerfile);
-
-        var ciWorkflow = File.ReadAllText(Path.Combine(
-            repositoryRoot,
-            ".github",
-            "workflows",
-            "ci.yml"));
-        Assert.Contains(
-            "timeout --signal=TERM --kill-after=30s 5m dotnet test",
-            ciWorkflow);
     }
 
     [Fact]
