@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Qyl.Api.Contracts.Diagnostics;
 using Qyl.Api.Contracts.Mcp;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Api.Contracts.Workflow;
 using Qyl.Cli.Codex;
 
@@ -105,7 +106,7 @@ public sealed class DiagnosticSnapshotTests
         var root = TemporaryDirectory();
         try
         {
-            var oversized = new string('x', 256 * 1024 + 1);
+            var oversized = new string('x', ObserverBridgeServer.MaxMessageCharacters + 1);
             using var input = new StringReader(
                 oversized +
                 "\n" +
@@ -143,7 +144,7 @@ public sealed class DiagnosticSnapshotTests
         try
         {
             var inbox = new DiagnosticSnapshotInbox(root);
-            using var document = JsonDocument.Parse(ValidArgumentsJson);
+            using var document = JsonDocument.Parse(s_validArgumentsJson);
             Assert.True(
                 DiagnosticSnapshotCapture.TryCreate(
                     ActiveRun(),
@@ -235,6 +236,8 @@ public sealed class DiagnosticSnapshotTests
     public async Task Tool_call_crosses_encrypted_inbox_and_reaches_encrypted_spool()
     {
         var root = TemporaryDirectory();
+        CancellationTokenSource? drainCancellation = null;
+        Task? drain = null;
         try
         {
             var activeRuns = new ActiveWorkflowRunStore(root);
@@ -246,9 +249,9 @@ public sealed class DiagnosticSnapshotTests
             var spool = new WorkflowSpoolStore(root).Open("run-live");
             var normalizer = SeedNormalizer();
             using var journalGate = new SemaphoreSlim(1, 1);
-            using var drainCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            drainCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 TestContext.Current.CancellationToken);
-            var drain = Task.Run(
+            drain = Task.Run(
                 async () =>
                 {
                     try
@@ -273,7 +276,7 @@ public sealed class DiagnosticSnapshotTests
                 drainCancellation.Token);
 
             var compactArguments = string.Concat(
-                ValidArgumentsJson.Where(static character => character is not '\r' and not '\n'));
+                s_validArgumentsJson.Where(static character => character is not '\r' and not '\n'));
             var requestJson =
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"record_diagnostic_snapshot\",\"arguments\":" +
                 compactArguments +
@@ -304,7 +307,7 @@ public sealed class DiagnosticSnapshotTests
             Assert.Equal(WorkflowJournalEventKind.ContentCaptured, entry.Event.Kind);
             Assert.Single(entry.Content);
             Assert.Contains("public-result", entry.Content[0].Content, StringComparison.Ordinal);
-            Assert.Contains("sensitive-plain", ValidArgumentsJson, StringComparison.Ordinal);
+            Assert.Contains("sensitive-plain", s_validArgumentsJson, StringComparison.Ordinal);
             Assert.DoesNotContain("sensitive-plain", entry.Content[0].Content, StringComparison.Ordinal);
             Assert.DoesNotContain("secret-plain", entry.Content[0].Content, StringComparison.Ordinal);
 
@@ -320,7 +323,28 @@ public sealed class DiagnosticSnapshotTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            try
+            {
+                if (drainCancellation is not null)
+                {
+                    await drainCancellation.CancelAsync();
+                    if (drain is not null)
+                    {
+                        try
+                        {
+                            await drain;
+                        }
+                        catch (OperationCanceledException) when (drainCancellation.IsCancellationRequested)
+                        {
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                drainCancellation?.Dispose();
+                DeleteDirectoryBestEffort(root);
+            }
         }
     }
 
@@ -332,8 +356,8 @@ public sealed class DiagnosticSnapshotTests
         {
             var inbox = new DiagnosticSnapshotInbox(root);
             inbox.PrepareRun("run-live");
-            var first = Capture(inbox, ValidArgumentsJson);
-            var reordered = Capture(inbox, ReorderedArgumentsJson);
+            var first = Capture(inbox, s_validArgumentsJson);
+            var reordered = Capture(inbox, s_reorderedArgumentsJson);
             Assert.Equal(first.PayloadDigest, reordered.PayloadDigest);
 
             var spool = new WorkflowSpoolStore(root).Open("run-live");
@@ -364,7 +388,7 @@ public sealed class DiagnosticSnapshotTests
             Assert.Single(spool.ReadAfter(0, 10));
 
             using var changedDocument = JsonDocument.Parse(
-                ValidArgumentsJson.Replace("public-result", "changed-result", StringComparison.Ordinal));
+                s_validArgumentsJson.Replace("public-result", "changed-result", StringComparison.Ordinal));
             Assert.True(DiagnosticSnapshotCapture.TryCreate(
                 ActiveRun(),
                 changedDocument.RootElement,
@@ -393,7 +417,7 @@ public sealed class DiagnosticSnapshotTests
         {
             var inbox = new DiagnosticSnapshotInbox(root);
             inbox.PrepareRun("run-live");
-            var stale = Capture(inbox, ValidArgumentsJson);
+            var stale = Capture(inbox, s_validArgumentsJson);
 
             inbox.PrepareRun("run-next");
             var result = await inbox.SubmitAsync(
@@ -450,7 +474,7 @@ public sealed class DiagnosticSnapshotTests
         {
             var inbox = new DiagnosticSnapshotInbox(root);
             inbox.PrepareRun("run-live");
-            var request = Capture(inbox, ValidArgumentsJson);
+            var request = Capture(inbox, s_validArgumentsJson);
             var submission = inbox.SubmitAsync(
                 request,
                 TimeSpan.FromSeconds(2),
@@ -682,7 +706,7 @@ public sealed class DiagnosticSnapshotTests
             }
 
             var inbox = new DiagnosticSnapshotInbox(root);
-            var request = Capture(inbox, ValidArgumentsJson);
+            var request = Capture(inbox, s_validArgumentsJson);
             Record(telemetry, normalizer.NormalizeDiagnosticSnapshot(request, s_timestamp));
             telemetry.Record(new WorkflowEventAppend
             {
@@ -797,49 +821,128 @@ public sealed class DiagnosticSnapshotTests
         return path;
     }
 
-    private const string ValidArgumentsJson =
-        """
+    private static void DeleteDirectoryBestEffort(string path)
+    {
+        try
         {
-          "snapshot_id":"snapshot_1",
-          "probe_id":"probe.output",
-          "phase":"checkpoint",
-          "variables":[
-            {"name":"result","classification":"public","value":5},
-            {"name":"label","classification":"public","value":"public-result"},
-            {"name":"limit","classification":"internal","value":3},
-            {"name":"token","classification":"sensitive","value":"sensitive-plain"},
-            {"name":"password","classification":"secret","value":"secret-plain"},
-            {"name":"missing","classification":"public","value":null}
-          ],
-          "checks":[
-            {"check_id":"check_gt","operator":"greater_than","actual":"result","expected":"limit"},
-            {"check_id":"check_type","operator":"type_is","actual":"result","expected_type":"integer"},
-            {"check_id":"check_token","operator":"contains","actual":"token","expected":"token"},
-            {"check_id":"check_exists","operator":"exists","actual":"missing"}
-          ]
+            Directory.Delete(path, recursive: true);
         }
-        """;
+        catch (DirectoryNotFoundException)
+        {
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
 
-    private const string ReorderedArgumentsJson =
-        """
+    private static readonly string s_validArgumentsJson = CreateValidArgumentsJson();
+    private static readonly string s_reorderedArgumentsJson = ReorderObjectProperties(s_validArgumentsJson);
+
+    private static string CreateValidArgumentsJson()
+    {
+        var input = new RecordDiagnosticSnapshotInput
         {
-          "probe_id":"probe.output",
-          "snapshot_id":"snapshot_1",
-          "variables":[
-            {"classification":"secret","value":"secret-plain","name":"password"},
-            {"classification":"public","value":null,"name":"missing"},
-            {"classification":"internal","value":3,"name":"limit"},
-            {"classification":"sensitive","value":"sensitive-plain","name":"token"},
-            {"classification":"public","value":5,"name":"result"}
-            ,{"classification":"public","value":"public-result","name":"label"}
-          ],
-          "phase":"checkpoint",
-          "checks":[
-            {"actual":"missing","operator":"exists","check_id":"check_exists"},
-            {"expected":"token","actual":"token","operator":"contains","check_id":"check_token"},
-            {"expected_type":"integer","actual":"result","operator":"type_is","check_id":"check_type"},
-            {"expected":"limit","actual":"result","operator":"greater_than","check_id":"check_gt"}
-          ]
+            SnapshotId = new AgentDiagnosticSnapshotId("snapshot_1"),
+            ProbeId = new AgentDiagnosticProbeId("probe.output"),
+            Phase = AgentDiagnosticPhase.Checkpoint,
+            Variables =
+            [
+                Variable("result", AgentDiagnosticClassification.Public, JsonValue(5)),
+                Variable("label", AgentDiagnosticClassification.Public, JsonValue("public-result")),
+                Variable("limit", AgentDiagnosticClassification.Internal, JsonValue(3)),
+                Variable("token", AgentDiagnosticClassification.Sensitive, JsonValue("sensitive-plain")),
+                Variable("password", AgentDiagnosticClassification.Secret, JsonValue("secret-plain")),
+                Variable("missing", AgentDiagnosticClassification.Public, JsonValue(null))
+            ],
+            Checks =
+            [
+                Check("check_gt", AgentDiagnosticOperator.GreaterThan, "result", expected: "limit"),
+                Check(
+                    "check_type",
+                    AgentDiagnosticOperator.TypeIs,
+                    "result",
+                    expectedType: AgentDiagnosticValueType.Integer),
+                Check("check_token", AgentDiagnosticOperator.Contains, "token", expected: "token"),
+                Check("check_exists", AgentDiagnosticOperator.Exists, "missing")
+            ]
+        };
+
+        return JsonSerializer.Serialize(
+            input,
+            CodexWorkflowContractJsonContext.Default.RecordDiagnosticSnapshotInput);
+    }
+
+    private static RecordDiagnosticSnapshotVariableInput Variable(
+        string name,
+        AgentDiagnosticClassification classification,
+        JsonElement value) =>
+        new()
+        {
+            Name = new AgentDiagnosticVariableName(name),
+            Classification = classification,
+            Value = value
+        };
+
+    private static JsonElement JsonValue(int value) =>
+        JsonSerializer.SerializeToElement(
+            value,
+            CodexWorkflowContractJsonContext.Default.Int32);
+
+    private static JsonElement JsonValue(string? value) =>
+        JsonSerializer.SerializeToElement(
+            value,
+            CodexWorkflowContractJsonContext.Default.String);
+
+    private static RecordDiagnosticSnapshotCheckInput Check(
+        string checkId,
+        AgentDiagnosticOperator checkOperator,
+        string actual,
+        string? expected = null,
+        AgentDiagnosticValueType? expectedType = null) =>
+        new()
+        {
+            CheckId = new AgentDiagnosticCheckId(checkId),
+            Operator = checkOperator,
+            Actual = new AgentDiagnosticVariableName(actual),
+            Expected = expected is null ? null : new AgentDiagnosticVariableName(expected),
+            ExpectedType = expectedType
+        };
+
+    private static string ReorderObjectProperties(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        using var buffer = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(buffer))
+            WriteReordered(document.RootElement, writer);
+        return Encoding.UTF8.GetString(buffer.ToArray());
+    }
+
+    private static void WriteReordered(JsonElement element, Utf8JsonWriter writer)
+    {
+        if (element.ValueKind is JsonValueKind.Object)
+        {
+            writer.WriteStartObject();
+            foreach (var property in element.EnumerateObject().Reverse())
+            {
+                writer.WritePropertyName(property.Name);
+                WriteReordered(property.Value, writer);
+            }
+            writer.WriteEndObject();
+            return;
         }
-        """;
+
+        if (element.ValueKind is JsonValueKind.Array)
+        {
+            writer.WriteStartArray();
+            foreach (var item in element.EnumerateArray())
+                WriteReordered(item, writer);
+            writer.WriteEndArray();
+            return;
+        }
+
+        element.WriteTo(writer);
+    }
 }

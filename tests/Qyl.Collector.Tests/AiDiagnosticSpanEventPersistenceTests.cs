@@ -30,7 +30,7 @@ public sealed class AiDiagnosticSpanEventPersistenceTests
     ];
 
     [Fact]
-    public async Task Fixed_diagnostic_projection_persists_on_span_events_without_dynamic_or_sensitive_payloads()
+    public async Task ToSpanStorageRows_DiagnosticSpanEvent_PersistsOnlyFixedSafeAttributes()
     {
         var diagnosticEvent = new Span.Types.Event
         {
@@ -62,8 +62,8 @@ public sealed class AiDiagnosticSpanEventPersistenceTests
 
         var span = new Span
         {
-            TraceId = ByteString.CopyFrom(new byte[16]),
-            SpanId = ByteString.CopyFrom(new byte[8]),
+            TraceId = ByteString.CopyFrom(Convert.FromHexString("00112233445566778899AABBCCDDEEFF")),
+            SpanId = ByteString.CopyFrom(Convert.FromHexString("0011223344556677")),
             Name = "codex.workflow.turn",
             StartTimeUnixNano = 1,
             EndTimeUnixNano = 3,
@@ -116,7 +116,7 @@ public sealed class AiDiagnosticSpanEventPersistenceTests
     [InlineData("qyl.agent.diagnostic.check.0.result")]
     [InlineData("qyl.agent.diagnostic.snapshot.secret")]
     [InlineData("baggage.qyl.agent.diagnostic.snapshot.id")]
-    public void Dynamic_and_sensitive_diagnostic_keys_are_not_captured(string key)
+    public void AttributeKeySets_DynamicOrSensitiveDiagnosticKey_RejectsCapture(string key)
     {
         Assert.False(AttributeKeySets.ShouldCaptureSpanAttribute(key));
         Assert.False(AttributeKeySets.IsSafeSpanAttribute(key));

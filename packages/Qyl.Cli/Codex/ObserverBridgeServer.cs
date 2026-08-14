@@ -9,7 +9,7 @@ namespace Qyl.Cli.Codex;
 
 internal static class ObserverBridgeServer
 {
-    private const int MaxMessageCharacters = 256 * 1024;
+    internal const int MaxMessageCharacters = 256 * 1024;
     private const string ProtocolVersion = "2026-07-28";
     private const string ProtocolVersionMetaKey = "io.modelcontextprotocol/protocolVersion";
     private const string ClientInfoMetaKey = "io.modelcontextprotocol/clientInfo";

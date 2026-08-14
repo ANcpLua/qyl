@@ -39,6 +39,15 @@ interface ICliContractLoop : IHazSourcePaths
     private const string ContractNamespacePrefix = "Qyl.Api.Contracts.";
     private const string OpenJsonValueCarrier = "System.Text.Json.JsonElement";
 
+    private static bool IsCliSource(AbsolutePath file)
+    {
+        var path = file.ToString().Replace('\\', '/');
+        return !path.Contains("/obj/", StringComparison.Ordinal)
+               && !path.Contains("/bin/", StringComparison.Ordinal)
+               && !file.Name.EndsWith(".g.cs", StringComparison.Ordinal)
+               && !file.Name.EndsWith(".Designer.cs", StringComparison.Ordinal);
+    }
+
     Target VerifyCliMcpToolSchemasAreGenerated => d => d
         .Unlisted()
         .Description("Verify Qyl.Cli MCP tools publish generated input and output schemas")
@@ -47,10 +56,7 @@ interface ICliContractLoop : IHazSourcePaths
             var repoRoot = NukeBuild.RootDirectory;
             var cliDirectory = repoRoot / "packages" / "Qyl.Cli";
             var roots = cliDirectory.GlobFiles("**/*.cs")
-                .Where(static file => !file.ToString().Contains("/obj/", StringComparison.Ordinal)
-                                      && !file.ToString().Contains("/bin/", StringComparison.Ordinal)
-                                      && !file.Name.EndsWith(".g.cs", StringComparison.Ordinal)
-                                      && !file.Name.EndsWith(".Designer.cs", StringComparison.Ordinal))
+                .Where(IsCliSource)
                 .OrderBy(static file => file.ToString(), StringComparer.Ordinal)
                 .Select(file => (
                     File: file,
@@ -58,8 +64,10 @@ interface ICliContractLoop : IHazSourcePaths
                         .GetCompilationUnitRoot()))
                 .ToList();
 
+            var offenders = new List<string>();
             var generatedSchemaFields = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var (_, root) in roots)
+            var ambiguousSchemaFields = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (file, root) in roots)
             {
                 foreach (var variable in root.DescendantNodes().OfType<VariableDeclaratorSyntax>())
                 {
@@ -74,26 +82,44 @@ interface ICliContractLoop : IHazSourcePaths
                         continue;
                     }
 
-                    generatedSchemaFields[variable.Identifier.ValueText] = artifact.Name.Identifier.ValueText;
+                    var fieldName = variable.Identifier.ValueText;
+                    var artifactName = artifact.Name.Identifier.ValueText;
+                    if (generatedSchemaFields.TryGetValue(fieldName, out var existingArtifact) &&
+                        !string.Equals(existingArtifact, artifactName, StringComparison.Ordinal))
+                    {
+                        ambiguousSchemaFields.Add(fieldName);
+                        var relative = repoRoot.GetRelativePathTo(file).ToString().Replace('\\', '/');
+                        var line = variable.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                        offenders.Add(
+                            $"{relative}:{line}: schema field '{fieldName}' ambiguously maps to " +
+                            $"ToolSchemas.{existingArtifact} and ToolSchemas.{artifactName}");
+                        continue;
+                    }
+
+                    generatedSchemaFields.TryAdd(fieldName, artifactName);
                 }
             }
 
-            var offenders = new List<string>();
             var usedArtifacts = new HashSet<string>(StringComparer.Ordinal);
             var schemaPropertyCount = 0;
             foreach (var (file, root) in roots)
             {
                 var relative = repoRoot.GetRelativePathTo(file).ToString().Replace('\\', '/');
-                foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+                var schemaTextNodes = root.DescendantNodes()
+                    .OfType<LiteralExpressionSyntax>()
+                    .Select(static literal => (Node: (SyntaxNode)literal, Text: literal.Token.ValueText))
+                    .Concat(root.DescendantNodes()
+                        .OfType<InterpolatedStringTextSyntax>()
+                        .Select(static text => (Node: (SyntaxNode)text, Text: text.TextToken.ValueText)));
+                foreach (var (node, text) in schemaTextNodes)
                 {
-                    var text = literal.Token.ValueText;
                     if (!text.Contains("\"inputSchema\"", StringComparison.Ordinal) &&
                         !text.Contains("\"outputSchema\"", StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    var line = literal.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                    var line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                     offenders.Add(
                         $"{relative}:{line}: raw JSON declares an inputSchema/outputSchema; " +
                         "write a generated ToolSchemas artifact instead");
@@ -132,6 +158,7 @@ interface ICliContractLoop : IHazSourcePaths
                         writeTo.Name.Identifier.ValueText is not "WriteTo" ||
                         writeTo.Expression is not IdentifierNameSyntax schemaField ||
                         generatedWrite.ArgumentList.Arguments[0].Expression.ToString() != propertyWrite.Expression.ToString() ||
+                        ambiguousSchemaFields.Contains(schemaField.Identifier.ValueText) ||
                         !generatedSchemaFields.TryGetValue(schemaField.Identifier.ValueText, out var artifactName))
                     {
                         offenders.Add(
@@ -191,10 +218,7 @@ interface ICliContractLoop : IHazSourcePaths
             var repoRoot = NukeBuild.RootDirectory;
             var cliDirectory = repoRoot / "packages" / "Qyl.Cli";
             var sources = cliDirectory.GlobFiles("**/*.cs")
-                .Where(static file => !file.ToString().Contains("/obj/", StringComparison.Ordinal)
-                                      && !file.ToString().Contains("/bin/", StringComparison.Ordinal)
-                                      && !file.Name.EndsWith(".g.cs", StringComparison.Ordinal)
-                                      && !file.Name.EndsWith(".Designer.cs", StringComparison.Ordinal))
+                .Where(IsCliSource)
                 .OrderBy(static file => file.ToString(), StringComparer.Ordinal)
                 .ToList();
 
@@ -339,7 +363,8 @@ interface ICliContractLoop : IHazSourcePaths
                     "by a generated contract.");
             }
 
-            if (contextNames.Count is 0 || registeredCount is 0)
+            var contractRegisteredCount = registeredCount - intrinsicRegisteredCount;
+            if (contextNames.Count is 0 || contractRegisteredCount is 0)
             {
                 throw new InvalidOperationException(
                     "G10(a) found no JsonSerializerContext registrations under packages/Qyl.Cli, so it " +
@@ -350,7 +375,7 @@ interface ICliContractLoop : IHazSourcePaths
                 "Qyl.Cli collector boundaries serialize contract types only: {ContractRegistered} contract, " +
                 "{IntrinsicRegistered} open-JSON intrinsic, and {LocalRegistered} local-state registrations " +
                 "across {Contexts} JSON context(s)",
-                registeredCount - intrinsicRegisteredCount,
+                contractRegisteredCount,
                 intrinsicRegisteredCount,
                 localRegisteredCount,
                 contextNames.Count);
