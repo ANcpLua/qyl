@@ -6,7 +6,6 @@ on:
     paths: ["**.md", "lychee.toml", ".github/workflows/links.yml"]
   pull_request:
     branches: [main]
-    paths: ["**.md", "lychee.toml", ".github/workflows/links.yml"]
   schedule:
     # Weekly sweep catches external links that rot while no doc changes.
     - cron: "17 6 * * 1"
