@@ -34,8 +34,10 @@ interface IDependencyEdges : IHazSourcePaths
             "Qyl.Telemetry.Hosting", "Qyl.Api.Contracts",
             "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
         ],
-        // G11: the CLI is a client of the collector API — generated contracts only.
-        ["packages/Qyl.Cli/Qyl.Cli.csproj"] = ["Qyl.Api.Contracts"],
+        // G11: the CLI is a client of the collector API. Its observer also emits qyl-owned
+        // telemetry using the published incubating vocabulary rather than local string copies.
+        ["packages/Qyl.Cli/Qyl.Cli.csproj"] =
+            ["Qyl.Api.Contracts", "Qyl.Telemetry.SemanticConventions.Incubating"],
         ["packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj"] =
             ["Qyl.Telemetry.SemanticConventions.SourceGeneration"],
         // Collector product function: generated contracts it serves. The producer stack

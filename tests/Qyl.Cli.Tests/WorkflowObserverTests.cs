@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Qyl.Api.Contracts.Mcp;
 using Qyl.Api.Contracts.Workflow;
 using Qyl.Cli.Codex;
 
@@ -219,13 +220,23 @@ public sealed class WorkflowObserverTests
                     .GetProperty("io.modelcontextprotocol/serverInfo")
                     .GetProperty("name")
                     .GetString());
+            using var toolsResponse = JsonDocument.Parse(responses[1]);
+            var readTool = toolsResponse.RootElement
+                .GetProperty("result")
+                .GetProperty("tools")
+                .EnumerateArray()
+                .Single(static tool => tool.GetProperty("name").GetString() == "get_active_workflow_run");
+            Assert.Equal(ToolSchemas.GetActiveWorkflowRunInput, readTool.GetProperty("inputSchema").GetRawText());
+            Assert.Equal(ToolSchemas.GetActiveWorkflowRunOutput, readTool.GetProperty("outputSchema").GetRawText());
             using var response = JsonDocument.Parse(responses[2]);
             var callResult = response.RootElement.GetProperty("result");
             Assert.Equal("complete", callResult.GetProperty("resultType").GetString());
             var structured = callResult.GetProperty("structuredContent");
             Assert.True(structured.GetProperty("active").GetBoolean());
-            Assert.True(structured.GetProperty("liveControlsAvailable").GetBoolean());
-            Assert.Equal("run-live", structured.GetProperty("runId").GetString());
+            Assert.True(structured.GetProperty("live_controls_available").GetBoolean());
+            Assert.Equal("run-live", structured.GetProperty("run_id").GetString());
+            Assert.Equal("thread-live", structured.GetProperty("thread_id").GetString());
+            Assert.False(structured.TryGetProperty("liveControlsAvailable", out _));
         }
         finally
         {

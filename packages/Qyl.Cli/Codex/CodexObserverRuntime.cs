@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace Qyl.Cli.Codex;
 
@@ -28,6 +29,7 @@ internal static class CodexObserverRuntime
         await using var activeLockScope = activeLock.ConfigureAwait(false);
 
         using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var diagnosticShutdown = CancellationTokenSource.CreateLinkedTokenSource(shutdown.Token);
         ConsoleCancelEventHandler cancelHandler = (_, eventArgs) =>
         {
             eventArgs.Cancel = true;
@@ -46,11 +48,18 @@ internal static class CodexObserverRuntime
         CodexAppServerClient? observer = null;
         Task? uploadTask = null;
         Task? controlTask = null;
+        Task? diagnosticTask = null;
         WorkflowSpool? spool = null;
         WorkflowSpoolMetadata? metadata = null;
+        DiagnosticSnapshotInbox? diagnosticInbox = null;
+        var diagnosticsPrepared = false;
+        var diagnosticsStopped = false;
+        using var journalGate = new SemaphoreSlim(1, 1);
         var normalizer = new CodexEventNormalizer();
+        var acceptingObserverMessages = true;
         var runCompleted = false;
         using var telemetry = WorkflowTelemetryProjection.Create(
+            runId,
             Environment.GetEnvironmentVariable(ApiKeyEnvironment));
         using var httpClient = new HttpClient
         {
@@ -65,6 +74,9 @@ internal static class CodexObserverRuntime
 
             var spoolStore = new WorkflowSpoolStore(root);
             spool = spoolStore.Open(runId);
+            diagnosticInbox = new DiagnosticSnapshotInbox(root);
+            diagnosticInbox.PrepareRun(runId);
+            diagnosticsPrepared = true;
             metadata = new WorkflowSpoolMetadata(
                 runId,
                 null,
@@ -79,10 +91,21 @@ internal static class CodexObserverRuntime
                 new ActiveWorkflowRun(runId, null, startedAt, Environment.ProcessId),
                 shutdown.Token).ConfigureAwait(false);
 
-            await AppendBatchAsync(
+            var startBatch = normalizer.StartRun(startedAt);
+            await AppendBatchAsync(spool, startBatch, shutdown.Token).ConfigureAwait(false);
+            foreach (var workflowEvent in startBatch.Events ?? [])
+                telemetry.Record(workflowEvent);
+
+#pragma warning disable CA2025 // Awaited during shutdown before journalGate leaves scope.
+            diagnosticTask = RunDiagnosticDrainLoopAsync(
+                diagnosticInbox,
+                runId,
+                normalizer,
                 spool,
-                normalizer.StartRun(startedAt),
-                shutdown.Token).ConfigureAwait(false);
+                telemetry.Record,
+                journalGate,
+                diagnosticShutdown.Token);
+#pragma warning restore CA2025
 
             var token = Base64Url(RandomNumberGenerator.GetBytes(32));
             var tokenPath = Path.Combine(runtimeDirectory, "capability-token");
@@ -103,32 +126,42 @@ internal static class CodexObserverRuntime
                 TaskCreationOptions.RunContinuationsAsynchronously);
             observer.MessageReceived += async message =>
             {
-                var batch = normalizer.Normalize(message, TimeProvider.System.GetUtcNow());
-                if (batch.Events is null || batch.Events.Count is 0)
-                    return;
-
-                if (normalizer.RootThreadId is not null &&
-                    metadata.ThreadId != normalizer.RootThreadId)
+                await journalGate.WaitAsync(shutdown.Token).ConfigureAwait(false);
+                try
                 {
-                    metadata = metadata with
-                    {
-                        ThreadId = normalizer.RootThreadId,
-                        Title = normalizer.RootTitle
-                    };
-                    await spool.WriteMetadataAsync(metadata, shutdown.Token).ConfigureAwait(false);
-                    await activeRuns.WriteAsync(
-                        new ActiveWorkflowRun(
-                            runId,
-                            normalizer.RootThreadId,
-                            startedAt,
-                            Environment.ProcessId),
-                        shutdown.Token).ConfigureAwait(false);
-                    rootThreadReady.TrySetResult();
-                }
+                    if (!acceptingObserverMessages)
+                        return;
+                    var batch = normalizer.Normalize(message, TimeProvider.System.GetUtcNow());
+                    if (batch.Events is null || batch.Events.Count is 0)
+                        return;
 
-                foreach (var workflowEvent in batch.Events)
-                    telemetry.Record(workflowEvent);
-                await AppendBatchAsync(spool, batch, shutdown.Token).ConfigureAwait(false);
+                    if (normalizer.RootThreadId is not null &&
+                        metadata.ThreadId != normalizer.RootThreadId)
+                    {
+                        metadata = metadata with
+                        {
+                            ThreadId = normalizer.RootThreadId,
+                            Title = normalizer.RootTitle
+                        };
+                        await spool.WriteMetadataAsync(metadata, shutdown.Token).ConfigureAwait(false);
+                        await activeRuns.WriteAsync(
+                            new ActiveWorkflowRun(
+                                runId,
+                                normalizer.RootThreadId,
+                                startedAt,
+                                Environment.ProcessId),
+                            shutdown.Token).ConfigureAwait(false);
+                        rootThreadReady.TrySetResult();
+                    }
+
+                    foreach (var workflowEvent in batch.Events)
+                        telemetry.Record(workflowEvent);
+                    await AppendBatchAsync(spool, batch, shutdown.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    journalGate.Release();
+                }
             };
             await observer.ConnectAsync(endpoint, token, shutdown.Token).ConfigureAwait(false);
 
@@ -138,13 +171,16 @@ internal static class CodexObserverRuntime
                 Environment.GetEnvironmentVariable(ApiKeyEnvironment));
             var pump = new WorkflowJournalPump(spoolStore, collector);
             uploadTask = pump.RunUploadLoopAsync(shutdown.Token);
+#pragma warning disable CA2025 // Awaited during shutdown before journalGate leaves scope.
             controlTask = RunControlsWhenReadyAsync(
                 rootThreadReady.Task,
                 runId,
                 pump,
                 normalizer,
                 observer,
+                journalGate,
                 shutdown.Token);
+#pragma warning restore CA2025
 
             tui = StartTui(codexExecutable, endpoint, token, codexArguments);
             var tuiExit = tui.WaitForExitAsync(shutdown.Token);
@@ -166,14 +202,37 @@ internal static class CodexObserverRuntime
             }
 
             await tuiExit.ConfigureAwait(false);
-            var finalBatch = normalizer.CompleteRun(
-                TimeProvider.System.GetUtcNow(),
-                tui.ExitCode is 0);
-            foreach (var workflowEvent in finalBatch.Events ?? [])
-                telemetry.Record(workflowEvent);
-            await AppendBatchAsync(spool, finalBatch, CancellationToken.None).ConfigureAwait(false);
-            metadata = metadata with { Sealed = true };
-            await spool.WriteMetadataAsync(metadata, CancellationToken.None).ConfigureAwait(false);
+            activeRuns.Clear(runId);
+            diagnosticInbox.CloseRun(runId);
+            await StopDiagnosticDrainAsync(
+                diagnosticShutdown,
+                diagnosticTask,
+                diagnosticInbox,
+                runId,
+                normalizer,
+                spool,
+                telemetry.Record,
+                journalGate).ConfigureAwait(false);
+            diagnosticsStopped = true;
+
+            await journalGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                acceptingObserverMessages = false;
+                activeRuns.Clear(runId);
+                var finalBatch = normalizer.CompleteRun(
+                    TimeProvider.System.GetUtcNow(),
+                    tui.ExitCode is 0);
+                foreach (var workflowEvent in finalBatch.Events ?? [])
+                    telemetry.Record(workflowEvent);
+                await AppendBatchAsync(spool, finalBatch, CancellationToken.None).ConfigureAwait(false);
+                metadata = metadata with { Sealed = true };
+                await spool.WriteMetadataAsync(metadata, CancellationToken.None).ConfigureAwait(false);
+            }
+            finally
+            {
+                journalGate.Release();
+            }
             runCompleted = true;
 
             using var flushTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -194,14 +253,39 @@ internal static class CodexObserverRuntime
         }
         finally
         {
+            activeRuns.Clear(runId);
+            if (!diagnosticsStopped && diagnosticsPrepared)
+            {
+                diagnosticInbox!.CloseRun(runId);
+                await StopDiagnosticDrainAsync(
+                    diagnosticShutdown,
+                    diagnosticTask,
+                    diagnosticInbox,
+                    runId,
+                    normalizer,
+                    spool,
+                    telemetry.Record,
+                    journalGate).ConfigureAwait(false);
+            }
+
             if (!runCompleted && spool is not null && metadata is not null)
             {
-                var failedBatch = normalizer.CompleteRun(TimeProvider.System.GetUtcNow(), succeeded: false);
-                foreach (var workflowEvent in failedBatch.Events ?? [])
-                    telemetry.Record(workflowEvent);
-                await AppendBatchAsync(spool, failedBatch, CancellationToken.None).ConfigureAwait(false);
-                metadata = metadata with { Sealed = true };
-                await spool.WriteMetadataAsync(metadata, CancellationToken.None).ConfigureAwait(false);
+                await journalGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    acceptingObserverMessages = false;
+                    activeRuns.Clear(runId);
+                    var failedBatch = normalizer.CompleteRun(TimeProvider.System.GetUtcNow(), succeeded: false);
+                    foreach (var workflowEvent in failedBatch.Events ?? [])
+                        telemetry.Record(workflowEvent);
+                    await AppendBatchAsync(spool, failedBatch, CancellationToken.None).ConfigureAwait(false);
+                    metadata = metadata with { Sealed = true };
+                    await spool.WriteMetadataAsync(metadata, CancellationToken.None).ConfigureAwait(false);
+                }
+                finally
+                {
+                    journalGate.Release();
+                }
             }
 
             await shutdown.CancelAsync().ConfigureAwait(false);
@@ -216,7 +300,6 @@ internal static class CodexObserverRuntime
             await DisposeObserverAsync(observer).ConfigureAwait(false);
             if (appServer is not null)
                 await appServer.DisposeAsync().ConfigureAwait(false);
-            activeRuns.Clear(runId);
             Console.CancelKeyPress -= cancelHandler;
             DeleteRuntimeDirectory(runtimeDirectory);
         }
@@ -241,6 +324,7 @@ internal static class CodexObserverRuntime
         WorkflowJournalPump pump,
         CodexEventNormalizer normalizer,
         CodexAppServerClient observer,
+        SemaphoreSlim journalGate,
         CancellationToken cancellationToken)
     {
         await rootThreadReady.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -248,7 +332,128 @@ internal static class CodexObserverRuntime
             runId,
             normalizer,
             observer,
+            journalGate,
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task RunDiagnosticDrainLoopAsync(
+        DiagnosticSnapshotInbox inbox,
+        string runId,
+        CodexEventNormalizer normalizer,
+        WorkflowSpool spool,
+        Action<Qyl.Api.Contracts.Workflow.WorkflowEventAppend> recordTelemetry,
+        SemaphoreSlim journalGate,
+        CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await DrainDiagnosticsOnceAsync(
+                        inbox,
+                        runId,
+                        normalizer,
+                        spool,
+                        recordTelemetry,
+                        journalGate,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception exception) when (
+                exception is IOException or InvalidDataException or CryptographicException or JsonException)
+            {
+                Console.Error.WriteLine(
+                    $"[qyl] Diagnostic inbox drain failed (diagnostic_inbox_unreadable): {exception.GetType().Name}");
+            }
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task StopDiagnosticDrainAsync(
+        CancellationTokenSource diagnosticShutdown,
+        Task? diagnosticTask,
+        DiagnosticSnapshotInbox inbox,
+        string runId,
+        CodexEventNormalizer normalizer,
+        WorkflowSpool? spool,
+        Action<Qyl.Api.Contracts.Workflow.WorkflowEventAppend> recordTelemetry,
+        SemaphoreSlim journalGate)
+    {
+        await diagnosticShutdown.CancelAsync().ConfigureAwait(false);
+        if (diagnosticTask is not null)
+            await IgnoreExpectedShutdownAsync(diagnosticTask).ConfigureAwait(false);
+        if (spool is not null)
+        {
+            await DrainDiagnosticsOnceAsync(
+                    inbox,
+                    runId,
+                    normalizer,
+                    spool,
+                    recordTelemetry,
+                    journalGate,
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+    }
+
+    internal static async Task<int> DrainDiagnosticsOnceAsync(
+        DiagnosticSnapshotInbox inbox,
+        string runId,
+        CodexEventNormalizer normalizer,
+        WorkflowSpool spool,
+        Action<Qyl.Api.Contracts.Workflow.WorkflowEventAppend>? recordTelemetry,
+        SemaphoreSlim journalGate,
+        CancellationToken cancellationToken)
+    {
+        var recorded = 0;
+        foreach (var request in inbox.ReadPending(runId))
+        {
+            CodexNormalizedBatch batch;
+            await journalGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                batch = normalizer.NormalizeDiagnosticSnapshot(
+                    request,
+                    TimeProvider.System.GetUtcNow());
+                if (batch.Events is { Count: > 0 })
+                {
+                    await AppendBatchAsync(spool, batch, CancellationToken.None).ConfigureAwait(false);
+                    normalizer.MarkDiagnosticSnapshotRecorded(request.SnapshotId);
+                    foreach (var workflowEvent in batch.Events)
+                        recordTelemetry?.Invoke(workflowEvent);
+                }
+            }
+            catch (DiagnosticSnapshotContextUnavailableException)
+            {
+                continue;
+            }
+            catch (DiagnosticSnapshotConflictException)
+            {
+                await inbox.AcknowledgeAsync(
+                    request,
+                    "failed",
+                    "snapshot_conflict",
+                    null,
+                    cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+            finally
+            {
+                journalGate.Release();
+            }
+
+            var eventId = batch.Events is { Count: > 0 }
+                ? batch.Events[0].EventId.Value
+                : $"diagnostic:{request.SnapshotId}";
+            await inbox.AcknowledgeAsync(
+                request,
+                "recorded",
+                "recorded",
+                eventId,
+                cancellationToken).ConfigureAwait(false);
+            recorded++;
+        }
+        return recorded;
     }
 
     private static async Task AppendBatchAsync(

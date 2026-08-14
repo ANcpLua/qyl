@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Qyl.Api.Contracts.Diagnostics;
 using Qyl.Api.Contracts.Workflow;
 
 namespace Qyl.Cli.Codex;
@@ -10,6 +11,8 @@ internal sealed class CodexEventNormalizer
     private readonly HashSet<string> _eventIds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ThreadContext> _threads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ApprovalContext> _approvals = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DiagnosticSnapshotContext> _diagnosticSnapshots =
+        new(StringComparer.Ordinal);
     private ulong _sourceSequence;
     private string? _rootThreadId;
     private string? _activeRootTurnId;
@@ -117,6 +120,47 @@ internal sealed class CodexEventNormalizer
         return workflowEvent is null
             ? default
             : new CodexNormalizedBatch([workflowEvent], []);
+    }
+
+    public CodexNormalizedBatch NormalizeDiagnosticSnapshot(
+        DiagnosticSnapshotInboxRequest request,
+        DateTimeOffset receivedAt)
+    {
+        if (_diagnosticSnapshots.TryGetValue(request.SnapshotId, out var previous))
+        {
+            if (!string.Equals(previous.PayloadDigest, request.PayloadDigest, StringComparison.Ordinal))
+                throw new DiagnosticSnapshotConflictException();
+            return previous.Batch ?? default;
+        }
+        if (_rootThreadId is null || !_threads.TryGetValue(_rootThreadId, out var root))
+            throw new DiagnosticSnapshotContextUnavailableException();
+
+        var summary = DiagnosticSnapshotCapture.CreateSummary(request);
+        var eventId = StableEventId("diagnostic", request.SnapshotId);
+        var workflowEvent = CreateEvent(
+            eventId,
+            WorkflowJournalEventKind.ContentCaptured,
+            receivedAt,
+            _rootThreadId,
+            root.ActiveTurnId,
+            root.AttemptId,
+            null,
+            null,
+            null,
+            null,
+            [request.Content.ContentRef],
+            DiagnosticSummaryData(summary)) ?? throw new DiagnosticSnapshotConflictException();
+        var batch = new CodexNormalizedBatch([workflowEvent], [request.Content]);
+        _diagnosticSnapshots.Add(
+            request.SnapshotId,
+            new DiagnosticSnapshotContext(request.PayloadDigest, batch));
+        return batch;
+    }
+
+    public void MarkDiagnosticSnapshotRecorded(string snapshotId)
+    {
+        if (_diagnosticSnapshots.TryGetValue(snapshotId, out var context))
+            _diagnosticSnapshots[snapshotId] = context with { Batch = null };
     }
 
     private void NormalizeThreadStarted(
@@ -864,6 +908,26 @@ internal sealed class CodexEventNormalizer
         };
     }
 
+    private static IReadOnlyDictionary<string, object> DiagnosticSummaryData(
+        AgentDiagnosticSnapshotSummary summary)
+    {
+        var element = JsonSerializer.SerializeToElement(
+            summary,
+            CodexWorkflowContractJsonContext.Default.AgentDiagnosticSnapshotSummary);
+        var data = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var property in element.EnumerateObject())
+        {
+            data.Add(property.Name, property.Value.ValueKind switch
+            {
+                JsonValueKind.String => property.Value.GetString()!,
+                JsonValueKind.Number when property.Value.TryGetInt64(out var integer) => integer,
+                _ => throw new InvalidDataException(
+                    $"Diagnostic summary property '{property.Name}' must be a string or integer.")
+            });
+        }
+        return data;
+    }
+
     private static IReadOnlyDictionary<string, object>? Data(
         params (string Name, string? Value)[] values)
     {
@@ -1008,4 +1072,12 @@ internal sealed class CodexEventNormalizer
         string TurnId,
         string? ItemId,
         string? AttemptId);
+
+    private sealed record DiagnosticSnapshotContext(
+        string PayloadDigest,
+        CodexNormalizedBatch? Batch);
 }
+
+internal sealed class DiagnosticSnapshotConflictException : Exception;
+
+internal sealed class DiagnosticSnapshotContextUnavailableException : Exception;

@@ -62,23 +62,36 @@ internal sealed class WorkflowSpool
         var line = JsonSerializer.SerializeToUtf8Bytes(
             envelope,
             CodexObserverStateJsonContext.Default.WorkflowSpoolEnvelope);
+        var record = GC.AllocateUninitializedArray<byte>(line.Length + 1);
+        line.CopyTo(record, 0);
+        record[^1] = (byte)'\n';
 
         await _writeLock.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var stream = new FileStream(
                 EventsPath,
-                FileMode.Append,
-                FileAccess.Write,
+                FileMode.OpenOrCreate,
+                FileAccess.ReadWrite,
                 FileShare.Read,
                 16 * 1024,
                 FileOptions.Asynchronous | FileOptions.WriteThrough);
             await using (stream.ConfigureAwait(false))
             {
-                await stream.WriteAsync(line, cancellationToken).ConfigureAwait(false);
-                await stream.WriteAsync("\n"u8.ToArray(), cancellationToken).ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 WorkflowSpoolProtector.RestrictToCurrentUser(EventsPath);
+                var originalLength = stream.Length;
+                stream.Position = originalLength;
+                try
+                {
+                    await stream.WriteAsync(record, cancellationToken).ConfigureAwait(false);
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    stream.SetLength(originalLength);
+                    stream.Flush(flushToDisk: true);
+                    throw;
+                }
             }
         }
         finally

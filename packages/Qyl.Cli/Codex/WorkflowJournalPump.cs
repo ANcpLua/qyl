@@ -76,6 +76,7 @@ internal sealed class WorkflowJournalPump(
         string runId,
         CodexEventNormalizer normalizer,
         ICodexControlClient appServer,
+        SemaphoreSlim? normalizerGate,
         CancellationToken cancellationToken)
     {
         ulong cursor = 0;
@@ -126,9 +127,26 @@ internal sealed class WorkflowJournalPump(
 
                     if (!_appliedControls.TryGetValue(command.CommandId, out var appliedAt))
                     {
+                        CodexControlTarget target;
+                        if (normalizerGate is null)
+                        {
+                            target = normalizer.ControlTarget;
+                        }
+                        else
+                        {
+                            await normalizerGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                target = normalizer.ControlTarget;
+                            }
+                            finally
+                            {
+                                normalizerGate.Release();
+                            }
+                        }
                         await ApplyControlAsync(
                             command,
-                            normalizer.ControlTarget,
+                            target,
                             appServer,
                             cancellationToken).ConfigureAwait(false);
                         appliedAt = TimeProvider.System.GetUtcNow();

@@ -137,12 +137,14 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.request.seed", // incubating
         "gen_ai.request.stop_sequences", // incubating
         "gen_ai.request.stream", // incubating
+        "gen_ai.request.stream_cursor", // incubating
         "gen_ai.request.temperature", // incubating
         "gen_ai.request.top_k", // incubating
         "gen_ai.request.top_p", // incubating
         "gen_ai.response.finish_reasons", // incubating
         "gen_ai.response.id", // incubating
         "gen_ai.response.model", // incubating
+        "gen_ai.response.status", // incubating
         "gen_ai.response.time_to_first_chunk", // incubating
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
@@ -248,6 +250,15 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.scope.version",
         "otel.status_code",
         "otel.status_description",
+        "qyl.agent.diagnostic.check.count", // incubating
+        "qyl.agent.diagnostic.check.failed_count", // incubating
+        "qyl.agent.diagnostic.extension.id", // incubating
+        "qyl.agent.diagnostic.format.version", // incubating
+        "qyl.agent.diagnostic.outcome", // incubating
+        "qyl.agent.diagnostic.phase", // incubating
+        "qyl.agent.diagnostic.probe.id", // incubating
+        "qyl.agent.diagnostic.snapshot.id", // incubating
+        "qyl.agent.diagnostic.variable.count", // incubating
         "qyl.exception.source", // incubating
         "qyl.instrumentation.domain", // incubating
         "qyl.mcp.evaluation_run.id", // incubating
@@ -258,6 +269,11 @@ internal static class CollectorSemanticAttributeCatalog
         "qyl.mcp.server.id", // incubating
         "qyl.mcp.test_case.id", // incubating
         "qyl.mcp.tool.name", // incubating
+        "qyl.workflow.agent.id", // incubating
+        "qyl.workflow.attempt.id", // incubating
+        "qyl.workflow.event.id", // incubating
+        "qyl.workflow.run.id", // incubating
+        "qyl.workflow.tool_call.id", // incubating
         "rpc.connect_rpc.error_code",
         "rpc.connect_rpc.request.metadata",
         "rpc.connect_rpc.response.metadata",
@@ -344,12 +360,14 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.request.seed", // incubating
         "gen_ai.request.stop_sequences", // incubating
         "gen_ai.request.stream", // incubating
+        "gen_ai.request.stream_cursor", // incubating
         "gen_ai.request.temperature", // incubating
         "gen_ai.request.top_k", // incubating
         "gen_ai.request.top_p", // incubating
         "gen_ai.response.finish_reasons", // incubating
         "gen_ai.response.id", // incubating
         "gen_ai.response.model", // incubating
+        "gen_ai.response.status", // incubating
         "gen_ai.response.time_to_first_chunk", // incubating
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
@@ -680,6 +698,7 @@ internal static class CollectorSemanticAttributeCatalog
         internal const string DeleteMemoryStore = "delete_memory_store"; // incubating
         internal const string Embeddings = "embeddings"; // incubating
         internal const string ExecuteTool = "execute_tool"; // incubating
+        internal const string FetchResponse = "fetch_response"; // incubating
         internal const string GenerateContent = "generate_content"; // incubating
         internal const string InvokeAgent = "invoke_agent"; // incubating
         internal const string InvokeWorkflow = "invoke_workflow"; // incubating

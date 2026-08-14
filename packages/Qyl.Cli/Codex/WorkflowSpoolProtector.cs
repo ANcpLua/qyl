@@ -81,6 +81,12 @@ internal sealed class WorkflowSpoolProtector
         return plaintext;
     }
 
+    public string KeyedDigest(ReadOnlySpan<byte> value)
+    {
+        var digest = HMACSHA256.HashData(_key, value);
+        return $"hmac-sha256:{Convert.ToHexStringLower(digest)}";
+    }
+
     internal static void RestrictToCurrentUser(string path)
     {
         if (OperatingSystem.IsWindows())

@@ -25,6 +25,7 @@
     <PackageReference Include="OpenTelemetry"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="Qyl.Api.Contracts"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 

@@ -45,6 +45,15 @@
   },
   "developmentAttributeAllowList": {
     "span": [
+      "qyl.agent.diagnostic.check.count",
+      "qyl.agent.diagnostic.check.failed_count",
+      "qyl.agent.diagnostic.extension.id",
+      "qyl.agent.diagnostic.format.version",
+      "qyl.agent.diagnostic.outcome",
+      "qyl.agent.diagnostic.phase",
+      "qyl.agent.diagnostic.probe.id",
+      "qyl.agent.diagnostic.snapshot.id",
+      "qyl.agent.diagnostic.variable.count",
       "qyl.exception.source",
       "qyl.instrumentation.domain",
       "qyl.mcp.evaluation_run.id",
@@ -54,7 +63,12 @@
       "qyl.mcp.sdk.tier",
       "qyl.mcp.server.id",
       "qyl.mcp.test_case.id",
-      "qyl.mcp.tool.name"
+      "qyl.mcp.tool.name",
+      "qyl.workflow.agent.id",
+      "qyl.workflow.attempt.id",
+      "qyl.workflow.event.id",
+      "qyl.workflow.run.id",
+      "qyl.workflow.tool_call.id"
     ],
     "log": [
       "browser.device_memory",
