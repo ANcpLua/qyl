@@ -61,8 +61,9 @@ internal sealed partial class DuckDbStore
                 await using (var select = con.CreateCommand())
                 {
                     select.Transaction = transaction;
-                    select.CommandText = """
-                                          SELECT workflow_runs.project_id, workflow_runs.run_id
+                    select.CommandText = $"""
+                                          SELECT workflow_runs.{WorkflowRunDbRow.ProjectIdColumnName},
+                                                 workflow_runs.{WorkflowRunDbRow.RunIdColumnName}
                                           FROM workflow_runs
                                           JOIN workflow_run_summaries AS summary
                                             ON summary.project_id = workflow_runs.project_id

@@ -277,8 +277,9 @@ internal sealed partial class DuckDbStore
             using var transaction = con.BeginTransaction();
             using var command = con.CreateCommand();
             command.Transaction = transaction;
-            command.CommandText = """
-                                   SELECT workflow_runs.project_id, workflow_runs.run_id
+            command.CommandText = $"""
+                                   SELECT workflow_runs.{WorkflowRunDbRow.ProjectIdColumnName},
+                                          workflow_runs.{WorkflowRunDbRow.RunIdColumnName}
                                    FROM workflow_runs AS workflow_runs
                                    JOIN workflow_run_summaries AS summary
                                      ON summary.project_id = workflow_runs.project_id
