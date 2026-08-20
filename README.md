@@ -1,5 +1,7 @@
 # qyl
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ANcpLua/qyl/badge)](https://scorecard.dev/viewer/?uri=github.com/ANcpLua/qyl)
+
 A local OpenTelemetry investigation stack for .NET. Instrument an application with one
 line, run the collector on your own machine, and read the traces and logs back through
 the embedded dashboard, the collector API, or MCP.
