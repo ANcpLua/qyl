@@ -11,8 +11,8 @@
        shared lines (a runtime, a release train) cannot drift apart by being typed twice. -->
 
   <PropertyGroup Label="Platform">
-    <DotNetRuntimeVersion>10.0.10</DotNetRuntimeVersion>
-    <MicrosoftExtensionsVersion>10.8.0</MicrosoftExtensionsVersion>
+    <DotNetRuntimeVersion>10.0.11</DotNetRuntimeVersion>
+    <MicrosoftExtensionsVersion>10.9.0</MicrosoftExtensionsVersion>
     <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x
          (verified 2026-07-16 against 3.9.0: its XmlCommentGenerator emits `IOpenApiMediaType.Example = ...`,
          read-only in 3.x -> CS0200). Hold on the newest 2.x, which is patched for GHSA-v5pm-xwqc-g5wc;
@@ -24,8 +24,8 @@
   <PropertyGroup Label="qyl-owned packages">
     <!-- The producer family ships from the Qyl.OpenTelemetry.AutoInstrumentation repo on one
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property. -->
-    <QylTelemetryVersion>9.0.1</QylTelemetryVersion>
-    <QylSemanticConventionsVersion>4.2.0</QylSemanticConventionsVersion>
+    <QylTelemetryVersion>9.1.0</QylTelemetryVersion>
+    <QylSemanticConventionsVersion>4.3.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>7.2.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
@@ -45,20 +45,20 @@
          timing has shifted between patch releases before. -->
     <DuckDBVersion>1.5.5</DuckDBVersion>
     <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
-    <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
+    <GrpcAspNetCoreVersion>2.83.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Build and test tooling">
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
-    <VersionizeVersion>2.5.0</VersionizeVersion>
+    <VersionizeVersion>2.6.0</VersionizeVersion>
     <XunitVersion>3.2.2</XunitVersion>
     <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
     <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
-    <MicrosoftBuildVersion>18.7.1</MicrosoftBuildVersion>
+    <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
     <!-- Keeps Nuke's NuGet train patched and aligned with .NET SDK 10.0.400. -->
     <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
   </PropertyGroup>

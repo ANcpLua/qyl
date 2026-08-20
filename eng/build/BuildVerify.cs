@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
@@ -1344,7 +1346,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     Target VerifyOtlpProtoSourcesPinned => d => d
         .Unlisted()
-        .Description("Verify vendored protocol inputs match pinned upstream files")
+        .Description("Verify vendored protocol inputs derive from immutable upstream files")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -1354,16 +1356,52 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new FileNotFoundException("Missing OTLP protobuf provenance lock", lockFile.ToString());
 
             using var document = JsonDocument.Parse(File.ReadAllText(lockFile));
-            var expected = new Dictionary<string, string>(StringComparer.Ordinal);
+            var expected = new Dictionary<string, PinnedProtoFile>(StringComparer.Ordinal);
             foreach (var source in document.RootElement.GetProperty("sources").EnumerateArray())
-            foreach (var file in source.GetProperty("files").EnumerateArray())
             {
-                var path = file.GetProperty("path").GetString()
-                           ?? throw new InvalidOperationException("Protocol lock contains an empty path.");
-                var sha256 = file.GetProperty("sha256").GetString()
-                             ?? throw new InvalidOperationException($"Protocol lock contains no hash for {path}.");
-                if (!expected.TryAdd(path, sha256))
-                    throw new InvalidOperationException($"Protocol lock contains duplicate path {path}.");
+                ValidatePinnedProtoLockProperties(source, "protocol source", "repository", "revision", "files");
+                var repository = ReadRequiredLockString(source, "repository", "protocol source");
+                var repositorySlug = ResolvePinnedProtoRepositorySlug(repository);
+                var revision = ReadRequiredLockString(source, "revision", repository);
+                ValidatePinnedProtoRevision(revision, repository);
+
+                foreach (var file in source.GetProperty("files").EnumerateArray())
+                {
+                    var path = ReadRequiredLockString(file, "path", repository);
+                    ValidatePinnedProtoLockProperties(
+                        file,
+                        path,
+                        "path",
+                        "upstreamSha256",
+                        "vendoredSha256",
+                        "canonicalization");
+                    ValidatePinnedProtoPath(path, repository);
+                    var upstreamSha256 = ReadPinnedProtoSha256(file, "upstreamSha256", path);
+                    var vendoredSha256 = ReadPinnedProtoSha256(file, "vendoredSha256", path);
+                    var canonicalization = ReadPinnedProtoCanonicalization(file, path);
+                    if (canonicalization is null &&
+                        !string.Equals(upstreamSha256, vendoredSha256, StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            $"Protocol lock entry {path} has differing upstream and vendored hashes without a declared canonicalization.");
+                    }
+                    if (canonicalization is not null &&
+                        string.Equals(upstreamSha256, vendoredSha256, StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            $"Protocol lock entry {path} declares a canonicalization even though its upstream and vendored hashes match.");
+                    }
+
+                    var pinnedFile = new PinnedProtoFile(
+                        repositorySlug,
+                        revision,
+                        path,
+                        upstreamSha256,
+                        vendoredSha256,
+                        canonicalization);
+                    if (!expected.TryAdd(path, pinnedFile))
+                        throw new InvalidOperationException($"Protocol lock contains duplicate path {path}.");
+                }
             }
 
             var actualPaths = protoRoot.GlobFiles("**/*.proto")
@@ -1375,16 +1413,35 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new InvalidOperationException(
                     "The vendored protocol file set differs from Protos/upstream.lock.json. Update the pin and every hash together.");
 
-            foreach (var (path, expectedHash) in expected)
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("qyl-build-provenance/1.0");
+
+            foreach (var pinnedFile in expected.Values.OrderBy(static file => file.Path, StringComparer.Ordinal))
             {
-                var bytes = File.ReadAllBytes(protoRoot / path);
-                var actualHash = Convert.ToHexStringLower(SHA256.HashData(bytes));
-                if (!string.Equals(actualHash, expectedHash, StringComparison.Ordinal))
+                var vendoredBytes = File.ReadAllBytes(protoRoot / pinnedFile.Path);
+                var vendoredHash = ComputePinnedProtoSha256(vendoredBytes);
+                if (!string.Equals(vendoredHash, pinnedFile.VendoredSha256, StringComparison.Ordinal))
                     throw new InvalidOperationException(
-                        $"Vendored protocol input {path} does not match its pinned upstream SHA-256. Expected {expectedHash}, got {actualHash}.");
+                        $"Vendored protocol input {pinnedFile.Path} does not match its declared vendored SHA-256. " +
+                        $"Expected {pinnedFile.VendoredSha256}, got {vendoredHash}.");
+
+                var upstreamBytes = DownloadPinnedProtoSource(client, pinnedFile);
+                var upstreamHash = ComputePinnedProtoSha256(upstreamBytes);
+                if (!string.Equals(upstreamHash, pinnedFile.UpstreamSha256, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"Authoritative upstream input {pinnedFile.Path} at {pinnedFile.Revision} has SHA-256 " +
+                        $"{upstreamHash}, expected {pinnedFile.UpstreamSha256}.");
+
+                var expectedVendoredBytes = ApplyPinnedProtoCanonicalization(upstreamBytes, pinnedFile);
+                if (!vendoredBytes.AsSpan().SequenceEqual(expectedVendoredBytes))
+                    throw new InvalidOperationException(
+                        $"Vendored protocol input {pinnedFile.Path} is not byte-identical to its immutable upstream source " +
+                        "after applying the separately declared canonicalization.");
             }
 
-            Log.Information("Vendored OTLP and google.rpc protocol inputs match pinned upstream revisions");
+            Log.Information(
+                "Vendored OTLP and google.rpc protocol inputs derive from verified immutable upstream revisions");
         });
 
     Target VerifyNoHandwrittenOtlpWireParser => d => d
@@ -2682,6 +2739,261 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     private readonly record struct CollectorAttributeLiteralValues(
         IReadOnlySet<string> SemanticConventionValues);
+
+    private readonly record struct PinnedProtoFile(
+        string RepositorySlug,
+        string Revision,
+        string Path,
+        string UpstreamSha256,
+        string VendoredSha256,
+        PinnedProtoCanonicalization? Canonicalization);
+
+    private readonly record struct PinnedProtoCanonicalization(
+        string Justification,
+        IReadOnlyList<PinnedProtoCommentReplacement> CommentReplacements,
+        int AppendTrailingLineFeeds);
+
+    private readonly record struct PinnedProtoCommentReplacement(
+        string Upstream,
+        string Vendored);
+
+    private static void ValidatePinnedProtoLockProperties(
+        JsonElement element,
+        string context,
+        params string[] allowedProperties)
+    {
+        var allowed = new HashSet<string>(allowedProperties, StringComparer.Ordinal);
+        foreach (var property in element.EnumerateObject())
+        {
+            if (!allowed.Contains(property.Name))
+                throw new InvalidOperationException(
+                    $"Protocol lock {context} contains unsupported property '{property.Name}'.");
+        }
+    }
+
+    private static string ReadRequiredLockString(JsonElement element, string propertyName, string context)
+    {
+        if (!element.TryGetProperty(propertyName, out var property) ||
+            property.ValueKind is not JsonValueKind.String ||
+            string.IsNullOrWhiteSpace(property.GetString()))
+        {
+            throw new InvalidOperationException(
+                $"Protocol lock {context} must declare a non-empty string '{propertyName}'.");
+        }
+
+        return property.GetString()!;
+    }
+
+    private static string ResolvePinnedProtoRepositorySlug(string repository) =>
+        repository switch
+        {
+            "https://github.com/open-telemetry/opentelemetry-proto" =>
+                "open-telemetry/opentelemetry-proto",
+            "https://github.com/googleapis/googleapis" =>
+                "googleapis/googleapis",
+            _ => throw new InvalidOperationException(
+                $"Protocol lock repository '{repository}' is not an allowed authoritative upstream.")
+        };
+
+    private static void ValidatePinnedProtoRevision(string revision, string repository)
+    {
+        if (revision.Length != 40 || revision.Any(static character => !IsLowerHexCharacter(character)))
+            throw new InvalidOperationException(
+                $"Protocol lock revision '{revision}' for {repository} must be one lowercase 40-character commit SHA.");
+    }
+
+    private static void ValidatePinnedProtoPath(string path, string repository)
+    {
+        var segments = path.Split('/');
+        if (path.StartsWith("/", StringComparison.Ordinal) ||
+            path.Contains('\\') ||
+            !path.EndsWith(".proto", StringComparison.Ordinal) ||
+            segments.Any(static segment => segment.Length is 0 || segment is "." or ".."))
+        {
+            throw new InvalidOperationException(
+                $"Protocol lock path '{path}' for {repository} must be one safe relative .proto path.");
+        }
+    }
+
+    private static string ReadPinnedProtoSha256(JsonElement file, string propertyName, string path)
+    {
+        var hash = ReadRequiredLockString(file, propertyName, path);
+        if (hash.Length != 64 || hash.Any(static character => !IsLowerHexCharacter(character)))
+            throw new InvalidOperationException(
+                $"Protocol lock {propertyName} for {path} must be one lowercase 64-character SHA-256.");
+
+        return hash;
+    }
+
+    private static bool IsLowerHexCharacter(char character) =>
+        character is >= '0' and <= '9' or >= 'a' and <= 'f';
+
+    private static PinnedProtoCanonicalization? ReadPinnedProtoCanonicalization(JsonElement file, string path)
+    {
+        if (!file.TryGetProperty("canonicalization", out var canonicalization))
+            return null;
+
+        if (canonicalization.ValueKind is not JsonValueKind.Object)
+            throw new InvalidOperationException(
+                $"Protocol lock canonicalization for {path} must be one object.");
+
+        ValidatePinnedProtoLockProperties(
+            canonicalization,
+            $"canonicalization for {path}",
+            "justification",
+            "replaceLineComments",
+            "appendTrailingLineFeeds");
+
+        var justification = ReadRequiredLockString(canonicalization, "justification", path);
+        var appendTrailingLineFeeds = 0;
+        if (canonicalization.TryGetProperty("appendTrailingLineFeeds", out var appendProperty))
+        {
+            if (appendProperty.ValueKind is not JsonValueKind.Number ||
+                !appendProperty.TryGetInt32(out appendTrailingLineFeeds) ||
+                appendTrailingLineFeeds is not 1)
+            {
+                throw new InvalidOperationException(
+                    $"Protocol lock canonicalization for {path} may append exactly one trailing LF only.");
+            }
+        }
+
+        var replacements = new List<PinnedProtoCommentReplacement>();
+        if (canonicalization.TryGetProperty("replaceLineComments", out var replacementArray))
+        {
+            if (replacementArray.ValueKind is not JsonValueKind.Array)
+                throw new InvalidOperationException(
+                    $"Protocol lock comment replacements for {path} must be one array.");
+
+            foreach (var replacement in replacementArray.EnumerateArray())
+            {
+                ValidatePinnedProtoLockProperties(
+                    replacement,
+                    $"comment replacement for {path}",
+                    "upstream",
+                    "vendored");
+                var upstream = ReadRequiredLockString(replacement, "upstream", path);
+                var vendored = ReadRequiredLockString(replacement, "vendored", path);
+                if (!upstream.StartsWith("//", StringComparison.Ordinal) ||
+                    !vendored.StartsWith("//", StringComparison.Ordinal) ||
+                    upstream.Contains('\n') ||
+                    upstream.Contains('\r') ||
+                    vendored.Contains('\n') ||
+                    vendored.Contains('\r') ||
+                    string.Equals(upstream, vendored, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Protocol lock replacement for {path} must change exactly one single-line // comment.");
+                }
+
+                replacements.Add(new PinnedProtoCommentReplacement(upstream, vendored));
+            }
+        }
+
+        if (replacements.Count is 0 && appendTrailingLineFeeds is 0)
+            throw new InvalidOperationException(
+                $"Protocol lock canonicalization for {path} declares no bounded transformation.");
+
+        return new PinnedProtoCanonicalization(
+            justification,
+            replacements,
+            appendTrailingLineFeeds);
+    }
+
+    private static string ComputePinnedProtoSha256(byte[] bytes) =>
+        Convert.ToHexStringLower(SHA256.HashData(bytes));
+
+    private static byte[] DownloadPinnedProtoSource(HttpClient client, PinnedProtoFile pinnedFile)
+    {
+        const int maximumProtoBytes = 4 * 1024 * 1024;
+        var encodedPath = string.Join(
+            '/',
+            pinnedFile.Path.Split('/').Select(Uri.EscapeDataString));
+        var uri = new Uri(
+            $"https://raw.githubusercontent.com/{pinnedFile.RepositorySlug}/{pinnedFile.Revision}/{encodedPath}");
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var response = client.Send(request, HttpCompletionOption.ResponseHeadersRead);
+            if ((int)response.StatusCode != 200)
+                throw new InvalidOperationException(
+                    $"Immutable upstream protocol URL {uri} returned HTTP {(int)response.StatusCode}.");
+
+            if (response.Content.Headers.ContentLength is > maximumProtoBytes)
+                throw new InvalidOperationException(
+                    $"Immutable upstream protocol URL {uri} exceeded the {maximumProtoBytes}-byte limit.");
+
+            using var stream = response.Content.ReadAsStream();
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            if (buffer.Length > maximumProtoBytes)
+                throw new InvalidOperationException(
+                    $"Immutable upstream protocol URL {uri} exceeded the {maximumProtoBytes}-byte limit.");
+
+            return buffer.ToArray();
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InvalidOperationException(
+                $"Unable to fetch immutable upstream protocol source {uri}; provenance verification fails closed.",
+                exception);
+        }
+        catch (OperationCanceledException exception)
+        {
+            throw new InvalidOperationException(
+                $"Timed out fetching immutable upstream protocol source {uri}; provenance verification fails closed.",
+                exception);
+        }
+    }
+
+    private static byte[] ApplyPinnedProtoCanonicalization(byte[] upstreamBytes, PinnedProtoFile pinnedFile)
+    {
+        if (pinnedFile.Canonicalization is not { } canonicalization)
+            return upstreamBytes;
+
+        var transformed = upstreamBytes;
+        foreach (var replacement in canonicalization.CommentReplacements)
+            transformed = ReplacePinnedProtoCommentLine(transformed, replacement, pinnedFile.Path);
+
+        if (canonicalization.AppendTrailingLineFeeds is 1)
+        {
+            var withTrailingLineFeed = new byte[transformed.Length + 1];
+            Buffer.BlockCopy(transformed, 0, withTrailingLineFeed, 0, transformed.Length);
+            withTrailingLineFeed[^1] = (byte)'\n';
+            transformed = withTrailingLineFeed;
+        }
+
+        return transformed;
+    }
+
+    private static byte[] ReplacePinnedProtoCommentLine(
+        byte[] bytes,
+        PinnedProtoCommentReplacement replacement,
+        string path)
+    {
+        var upstreamLine = Encoding.UTF8.GetBytes(replacement.Upstream + "\n");
+        var vendoredLine = Encoding.UTF8.GetBytes(replacement.Vendored + "\n");
+        var index = bytes.AsSpan().IndexOf(upstreamLine);
+        if (index < 0 || (index > 0 && bytes[index - 1] != (byte)'\n'))
+            throw new InvalidOperationException(
+                $"Immutable upstream protocol source {path} does not contain its declared whole-line comment.");
+
+        var remaining = bytes.AsSpan(index + upstreamLine.Length);
+        if (remaining.IndexOf(upstreamLine) >= 0)
+            throw new InvalidOperationException(
+                $"Immutable upstream protocol source {path} contains its declared comment more than once.");
+
+        var transformed = new byte[bytes.Length - upstreamLine.Length + vendoredLine.Length];
+        Buffer.BlockCopy(bytes, 0, transformed, 0, index);
+        Buffer.BlockCopy(vendoredLine, 0, transformed, index, vendoredLine.Length);
+        Buffer.BlockCopy(
+            bytes,
+            index + upstreamLine.Length,
+            transformed,
+            index + vendoredLine.Length,
+            bytes.Length - index - upstreamLine.Length);
+        return transformed;
+    }
 
     private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
         CollectorDirectory.GlobFiles("**/*.cs")

@@ -4,11 +4,11 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces and logs back through
 the embedded dashboard, the collector API, or MCP.
 
-qyl 1.1.3 is released. The site and documentation are at [qyl.at](https://qyl.at/). The
-other two hosted surfaces are endpoints rather than pages: `https://api.qyl.at` serves
-the collector read API and OTLP ingest under their route prefixes, and
-`https://mcp.qyl.at/mcp` is the MCP endpoint, which answers `401` to anything without an
-OAuth 2.1 bearer token.
+The latest public qyl release is 1.1.8; the `main` branch is the 1.2.0 source line. The
+site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
+are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
+OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
+which answers `401` to anything without an OAuth 2.1 bearer token.
 
 ## Run the stack
 
@@ -60,19 +60,20 @@ call there is no exporter to configure.
 Metrics are accepted at the wire and acknowledged with `partial_success`, then discarded.
 qyl stores and serves traces and logs.
 
-## The shipped artifacts
+## Artifacts and release lines
 
 qyl is one dependency graph with several independently released packages. Each line
 carries its own version — the 1.0.0 launch is an event, not a number every package
-adopts. The versions below are the current heads, not a compatible set frozen together;
-the registries are authoritative when one has moved on.
+adopts. The versions below are the source and dependency lines targeted by `main`, not a
+claim that every target has already been published. Package registries are authoritative
+for public availability.
 
-| Package | Line | Repository |
+| Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 1.1.3 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.0.1 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 1.0.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 6.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `qyl` (dotnet tool) | 1.2.0 (latest public: 1.1.8) | this one |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.SemanticConventions*` | 4.3.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 7.2.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 1.1.3 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last

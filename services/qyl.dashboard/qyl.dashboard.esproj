@@ -10,8 +10,8 @@
     </PropertyGroup>
 
     <Target Name="Restore">
-        <Message Text="[Frontend] Restoring dependencies (npm)..." Importance="high"/>
-        <Exec Command="$(NpmExe) install" WorkingDirectory="$(FrontendRoot)"/>
+        <Message Text="[Frontend] Restoring dependencies from package-lock.json (npm ci)..." Importance="high"/>
+        <Exec Command="$(NpmExe) ci" WorkingDirectory="$(FrontendRoot)"/>
     </Target>
 
     <Target Name="Build" DependsOnTargets="Restore">

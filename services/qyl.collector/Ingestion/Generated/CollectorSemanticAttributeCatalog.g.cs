@@ -206,6 +206,7 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.gcp_pubsub.message.ack_id", // incubating
         "messaging.gcp_pubsub.message.delivery_attempt", // incubating
         "messaging.gcp_pubsub.message.ordering_key", // incubating
+        "messaging.kafka.cluster.id", // incubating
         "messaging.kafka.consumer.group",
         "messaging.kafka.destination.partition",
         "messaging.kafka.message.key", // incubating
@@ -429,6 +430,7 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.gcp_pubsub.message.ack_id", // incubating
         "messaging.gcp_pubsub.message.delivery_attempt", // incubating
         "messaging.gcp_pubsub.message.ordering_key", // incubating
+        "messaging.kafka.cluster.id", // incubating
         "messaging.kafka.consumer.group",
         "messaging.kafka.destination.partition",
         "messaging.kafka.message.key", // incubating
@@ -684,7 +686,7 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
     internal const string HttpUrlDeprecated = "http.url";
-    internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.43.0";
+    internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.44.0";
     internal const string ServiceName = "service.name";
     internal const string UrlFull = "url.full";
 

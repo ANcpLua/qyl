@@ -1,3 +1,4 @@
+# CANONICAL-DEPARTURE: multi-stage release pipeline with per-RID package, provenance, indexing, and published-consumer gates
 name: NuGet trusted publishing
 
 # Publishing requires a human act (architecture §5): the publish lane triggers on
