@@ -359,6 +359,10 @@ disproved):
 > revision-hash-pinned). Superseded IDs are unlisted after indexing, never
 > shimmed. The next breaking bundle (#12+#13) ships as one major.
 
+(Published reality, 2026-08-20: the contract lineage is 7.x — `Qyl.Api.Contracts`
+and `@ancplua/qyl-api-schema` shipped 7.2.0 in the OTel semconv 1.44.0 sync —
+still revision-hash-pinned per the rule above.)
+
 Consequences that stand from the earlier text:
 
 - no compat shims — a shim would create exactly the second contract owner the
@@ -395,7 +399,10 @@ rules:
   applies to ABI artifacts too: one change, one regeneration, one diff.
   (Published reality, 2026-07-28: the family shipped 9.0.x with the anchor at
   `QylGeneratedCodeAbi.V9` — package major == anchor major per
-  `tools/verify-version-sync.py`, consistent with §6.1's per-package lineage.)
+  `tools/verify-version-sync.py`, consistent with §6.1's per-package lineage.
+  Updated 2026-08-20: the family is at 9.1.0 and the semconv packages at 4.3.0
+  on upstream OTel semconv 1.44.0 — both minor releases, anchor unchanged at
+  `QylGeneratedCodeAbi.V9`.)
 
 With tag-triggered publishing (§5), the entire rename can land on `main` with
 zero registry effect; the version tag is the human act.
