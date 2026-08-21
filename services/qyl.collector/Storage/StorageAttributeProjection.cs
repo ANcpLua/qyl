@@ -45,7 +45,7 @@ internal static class StorageAttributeProjection
             GenAiInputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiInputTokens),
             GenAiOutputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiOutputTokens),
             GenAiCacheReadInputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiCacheReadInputTokens),
-            GenAiCacheCreationInputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiCacheCreationInputTokens),
+            GenAiCacheWriteInputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiCacheWriteInputTokens),
             GenAiReasoningTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiReasoningTokens));
 
     private static string? GetString(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes, string? key) =>
@@ -75,5 +75,5 @@ internal readonly record struct SpanHotAttributeProjection(
     long? GenAiInputTokens,
     long? GenAiOutputTokens,
     long? GenAiCacheReadInputTokens,
-    long? GenAiCacheCreationInputTokens,
+    long? GenAiCacheWriteInputTokens,
     long? GenAiReasoningTokens);

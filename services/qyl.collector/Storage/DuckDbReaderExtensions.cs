@@ -18,7 +18,7 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
         gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
         gen_ai_cache_read_input_tokens = EXCLUDED.gen_ai_cache_read_input_tokens,
-        gen_ai_cache_creation_input_tokens = EXCLUDED.gen_ai_cache_creation_input_tokens,
+        gen_ai_cache_write_input_tokens = EXCLUDED.gen_ai_cache_write_input_tokens,
         gen_ai_reasoning_tokens = EXCLUDED.gen_ai_reasoning_tokens,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
@@ -56,7 +56,7 @@ internal sealed partial record SpanStorageRow
     public long? GenAiInputTokens { get; init; }
     public long? GenAiOutputTokens { get; init; }
     public long? GenAiCacheReadInputTokens { get; init; }
-    public long? GenAiCacheCreationInputTokens { get; init; }
+    public long? GenAiCacheWriteInputTokens { get; init; }
     public long? GenAiReasoningTokens { get; init; }
 
     [DuckDbColumn(SqlType = "JSON")]

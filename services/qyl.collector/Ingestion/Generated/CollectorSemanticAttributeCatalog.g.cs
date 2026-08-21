@@ -158,11 +158,20 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.tool.description", // incubating
         "gen_ai.tool.name", // incubating
         "gen_ai.tool.type", // incubating
-        "gen_ai.usage.cache_creation.input_tokens", // incubating
+        "gen_ai.usage.audio.cache_read.input_tokens", // incubating
+        "gen_ai.usage.audio.input_tokens", // incubating
+        "gen_ai.usage.audio.output_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
+        "gen_ai.usage.cache_write.input_tokens", // incubating
+        "gen_ai.usage.image.cache_read.input_tokens", // incubating
+        "gen_ai.usage.image.input_tokens", // incubating
+        "gen_ai.usage.image.output_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
+        "gen_ai.usage.text.cache_read.input_tokens", // incubating
+        "gen_ai.usage.text.input_tokens", // incubating
+        "gen_ai.usage.text.output_tokens", // incubating
         "gen_ai.workflow.name", // incubating
         "http.client_ip",
         "http.flavor",
@@ -382,11 +391,20 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.tool.description", // incubating
         "gen_ai.tool.name", // incubating
         "gen_ai.tool.type", // incubating
-        "gen_ai.usage.cache_creation.input_tokens", // incubating
+        "gen_ai.usage.audio.cache_read.input_tokens", // incubating
+        "gen_ai.usage.audio.input_tokens", // incubating
+        "gen_ai.usage.audio.output_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
+        "gen_ai.usage.cache_write.input_tokens", // incubating
+        "gen_ai.usage.image.cache_read.input_tokens", // incubating
+        "gen_ai.usage.image.input_tokens", // incubating
+        "gen_ai.usage.image.output_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
+        "gen_ai.usage.text.cache_read.input_tokens", // incubating
+        "gen_ai.usage.text.input_tokens", // incubating
+        "gen_ai.usage.text.output_tokens", // incubating
         "gen_ai.workflow.name", // incubating
         "http.client_ip",
         "http.flavor",
@@ -661,8 +679,8 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.response.finish_reasons", // incubating
         "gen_ai.response.model", // incubating
         "gen_ai.tool.name", // incubating
-        "gen_ai.usage.cache_creation.input_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
+        "gen_ai.usage.cache_write.input_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens" // incubating
@@ -672,8 +690,8 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string DbStatementDeprecated = "db.statement";
     internal const string DbSystemDeprecated = "db.system";
     internal const string DbSystemName = "db.system.name";
-    internal const string GenAiCacheCreationInputTokens = "gen_ai.usage.cache_creation.input_tokens"; // incubating
     internal const string GenAiCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"; // incubating
+    internal const string GenAiCacheWriteInputTokens = "gen_ai.usage.cache_write.input_tokens"; // incubating
     internal const string GenAiInputTokens = "gen_ai.usage.input_tokens"; // incubating
     internal const string GenAiOperationName = "gen_ai.operation.name"; // incubating
     internal const string GenAiOutputTokens = "gen_ai.usage.output_tokens"; // incubating

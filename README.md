@@ -75,8 +75,8 @@ for public availability.
 | --- | --- | --- |
 | `qyl` (dotnet tool) | 1.2.0 (latest public: 1.1.8) | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 4.3.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 7.2.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `Qyl.Telemetry.SemanticConventions*` | 4.4.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 7.3.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 1.1.3 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last

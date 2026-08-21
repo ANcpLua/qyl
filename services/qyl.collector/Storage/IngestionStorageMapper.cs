@@ -57,7 +57,7 @@ internal static class IngestionStorageMapper
             GenAiInputTokens = projection.GenAiInputTokens,
             GenAiOutputTokens = projection.GenAiOutputTokens,
             GenAiCacheReadInputTokens = projection.GenAiCacheReadInputTokens,
-            GenAiCacheCreationInputTokens = projection.GenAiCacheCreationInputTokens,
+            GenAiCacheWriteInputTokens = projection.GenAiCacheWriteInputTokens,
             GenAiReasoningTokens = projection.GenAiReasoningTokens,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes, projection),
             ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
