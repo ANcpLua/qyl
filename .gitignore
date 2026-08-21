@@ -7,6 +7,10 @@ artifacts/
 [Ll]og/
 [Ll]ogs/
 !src/**/Logs/
+# The vendored OTLP proto tree contains a nested logs/ directory. Git exempts
+# tracked files from ignore rules, but `railway up` walks the filesystem with
+# these patterns and would omit it from the build context.
+!**/Protos/**
 *.dll
 *.exe
 *.pdb
