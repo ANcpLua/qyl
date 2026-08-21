@@ -1,0 +1,67 @@
+name: Criticality
+
+# Publishes a machine-generated OpenSSF Criticality Score measurement for this
+# repository into the public workflow run summary, so anyone can verify the
+# score from a browser without running code. Uses the official implementation
+# plus the two collection fixes submitted upstream as
+# https://github.com/ossf/criticality_score/pull/832 (the released binary
+# cannot measure repositories with GitHub App contributors and reports zero
+# issue counts; both are GitHub API drift, documented in the PR).
+on:
+  schedule:
+    # Monthly refresh keeps the published measurement current.
+    - cron: "37 6 3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: criticality
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: Measure criticality score
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scoring tool (upstream + PR 832 fixes, pinned)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ANcpLua/criticality_score
+          ref: 91b62e52885e788162eb2244fef4d08ae8574bdd # fix/github-api-drift
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build -o criticality_score ./cmd/criticality_score
+
+      - name: Measure
+        env:
+          GITHUB_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./criticality_score -depsdev-disable -format=json "https://github.com/${GITHUB_REPOSITORY}" | tee result.json
+
+      - name: Publish run summary
+        run: |
+          {
+            echo "## OpenSSF Criticality Score: $(jq -r .default_score result.json)"
+            echo
+            echo "Repository: \`${GITHUB_REPOSITORY}\` · Measured: $(date -u +%F) · Method: \`default_score\`, official implementation + [ossf/criticality_score#832](https://github.com/ossf/criticality_score/pull/832)"
+            echo
+            echo "| Signal | Value |"
+            echo "| --- | ---: |"
+            jq -r '.legacy | to_entries[] | "| \(.key) | \(.value) |"' result.json
+            echo
+            echo "Full evidence and derivation: [docs/criticality.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/criticality.md)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload result
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v6
+        with:
+          name: criticality-score
+          path: result.json
