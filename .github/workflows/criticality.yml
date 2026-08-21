@@ -1,9 +1,10 @@
 name: Criticality
 
 # Publishes a machine-generated OpenSSF Criticality Score measurement for this
-# repository into the public workflow run summary, so anyone can verify the
-# score from a browser without running code. Uses the official implementation
-# plus the two collection fixes submitted upstream as
+# repository: the score and raw signals land in the public workflow run summary,
+# and a shields-endpoint JSON is pushed to the unprotected `badge` branch so the
+# README badge always displays the latest CI-measured value. Uses the official
+# implementation plus the two collection fixes submitted upstream as
 # https://github.com/ossf/criticality_score/pull/832 (the released binary
 # cannot measure repositories with GitHub App contributors and reports zero
 # issue counts; both are GitHub API drift, documented in the PR).
@@ -24,27 +25,32 @@ jobs:
   measure:
     name: Measure criticality score
     runs-on: ubuntu-latest
+    permissions:
+      # Required to push the badge JSON to the `badge` branch.
+      contents: write
     steps:
       - name: Checkout scoring tool (upstream + PR 832 fixes, pinned)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ANcpLua/criticality_score
           ref: 91b62e52885e788162eb2244fef4d08ae8574bdd # fix/github-api-drift
+          path: tool
           persist-credentials: false
 
       - name: Setup Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
-          go-version-file: go.mod
+          go-version-file: tool/go.mod
 
       - name: Build
-        run: go build -o criticality_score ./cmd/criticality_score
+        working-directory: tool
+        run: go build -o "$RUNNER_TEMP/criticality_score" ./cmd/criticality_score
 
       - name: Measure
         env:
           GITHUB_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./criticality_score -depsdev-disable -format=json "https://github.com/${GITHUB_REPOSITORY}" | tee result.json
+          "$RUNNER_TEMP/criticality_score" -depsdev-disable -format=json "https://github.com/${GITHUB_REPOSITORY}" | tee result.json
 
       - name: Publish run summary
         run: |
@@ -59,6 +65,23 @@ jobs:
             echo
             echo "Full evidence and derivation: [docs/criticality.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/criticality.md)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish badge JSON to the badge branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          score="$(jq -r .default_score result.json)"
+          rounded="$(printf '%.2f' "$score")"
+          color="$(awk -v s="$score" 'BEGIN{print (s>=0.4)?"2C7A5B":"D9821B"}')"
+          mkdir badge-pub && cd badge-pub
+          jq -n --arg m "$rounded" --arg c "$color" \
+            '{schemaVersion:1,label:"OpenSSF Criticality",message:$m,color:$c}' > criticality.json
+          git init -q -b badge
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add criticality.json
+          git commit -q -m "Criticality badge: ${score}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badge:badge
 
       - name: Upload result
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v6
