@@ -313,7 +313,12 @@ does not exist in the family.
 **Logs.** Logs are the logs signal. `ILogger` records flow through the
 OpenTelemetry logging provider to `/v1/logs` with trace context attached by the
 SDK; third-party loggers reach the same signal through their OTLP or `ILogger`
-bridges. A log is never a span, and no `log.*` span attribute exists.
+bridges. A logs promise accepts only a `LogRecord`-producing declaration —
+Hosting's provider registration for `ILogger`, a target or appender
+declaration for a third-party logger — and a promise with none is
+`not_implemented` by absence. A log is never a span, and no `log.*` span
+attribute exists; the type system rejects the lane before a product decision
+is needed.
 
 #### Attributes on the wire
 
