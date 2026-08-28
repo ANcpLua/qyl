@@ -173,6 +173,9 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.text.input_tokens", // incubating
         "gen_ai.usage.text.output_tokens", // incubating
         "gen_ai.workflow.name", // incubating
+        "graphql.document", // incubating
+        "graphql.operation.name", // incubating
+        "graphql.operation.type", // incubating
         "http.client_ip",
         "http.flavor",
         "http.host",

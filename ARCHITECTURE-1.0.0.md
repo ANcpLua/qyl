@@ -631,12 +631,9 @@ describes a gap.
 - Three system values (`dotnet_wcf`, `masstransit`, `nservicebus`) are
   literals in the producer and in no registry: extend the registry or declare
   them local — undecided.
-- A log-as-span lane (`ILogger`, NLog, log4net) emits `log.severity` spans.
-- The collector policy has no `graphql.` prefix, so GraphQL spans lose their
-  operation attributes at ingest. Eight development keys (`web.vital.*`,
-  `page.route`, `navigation.type`, `browser.*`) exist only in the policy, and
-  the `qyl.at` Worker emits them as literals; they belong in
-  `qyl-registry.json`.
+- Eight development keys (`web.vital.*`, `page.route`, `navigation.type`,
+  `browser.*`) exist only in the collector policy, and the `qyl.at` Worker
+  emits them as literals; they belong in `qyl-registry.json`.
 - `Qyl.Telemetry.SemanticConventions.Analyzers` is referenced by no producer or
   collector project, so `QYL0200` runs only in the semconv repository's tests;
   G1 is carried by the smoke script over two directories.
