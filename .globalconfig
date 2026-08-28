@@ -41,26 +41,13 @@ dotnet_diagnostic.IDE0200.severity = warning
 
 dotnet_diagnostic.CS1591.severity = none
 
-dotnet_diagnostic.AL1000.severity = error
-dotnet_diagnostic.AL1001.severity = warning
-dotnet_diagnostic.AL1002.severity = error
-dotnet_diagnostic.AL1003.severity = warning
-dotnet_diagnostic.AL1004.severity = warning
-dotnet_diagnostic.AL1005.severity = warning
-dotnet_diagnostic.AL1006.severity = error
-dotnet_diagnostic.AL1007.severity = error
-dotnet_diagnostic.AL1008.severity = error
-dotnet_diagnostic.AL1009.severity = warning
-dotnet_diagnostic.AL1010.severity = suggestion
-dotnet_diagnostic.AL1011.severity = suggestion
-dotnet_diagnostic.AL1012.severity = suggestion
-dotnet_diagnostic.AL1100.severity = error
-dotnet_diagnostic.AL1101.severity = error
-dotnet_diagnostic.AL1102.severity = error
-dotnet_diagnostic.AL1103.severity = error
-dotnet_diagnostic.AL1104.severity = error
-# AL1600: Hardcoded version rule is for SDK development, not consumer projects using CPM
+# ANcpLua.NET.Sdk ships Config/Analyzer.ANcpLua.Analyzers.editorconfig covering all 90 AL
+# rules, so only qyl's deviations from it belong here. The 18 entries previously listed
+# (AL1000-AL1012, AL1100-AL1104) restated the SDK's values verbatim and were dropped.
+
+# AL1600: hardcoded-version rule targets SDK development, not consumer projects using CPM.
 dotnet_diagnostic.AL1600.severity = none
+# AL1700: re-tighten to the analyzer's declared default; the SDK demotes it to suggestion.
 dotnet_diagnostic.AL1700.severity = warning
 
 # RS0030 severity is controlled by SDK (warning) + EditorConfig patterns
