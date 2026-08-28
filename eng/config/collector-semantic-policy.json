@@ -12,6 +12,7 @@
     ],
     "incubatingPrefixes": [
       "gen_ai.",
+      "graphql.",
       "mcp.",
       "messaging.",
       "rpc.",
