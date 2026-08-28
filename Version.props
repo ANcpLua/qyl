@@ -18,7 +18,11 @@
          read-only in 3.x -> CS0200). Hold on the newest 2.x, which is patched for GHSA-v5pm-xwqc-g5wc;
          retry 3.x when AspNetCore.OpenApi ships a 3.x-compatible generator. Transitive-only pin. -->
     <MicrosoftOpenApiVersion>2.11.0</MicrosoftOpenApiVersion>
-    <RoslynVersion>5.6.0</RoslynVersion>
+    <RoslynVersion>5.9.0</RoslynVersion>
+    <!-- Microsoft.CodeAnalysis.PublicApiAnalyzers ships on its own cadence and has no 5.9.0
+         (5.6.0 is its newest). Feeding it $(RoslynVersion) fails restore with NU1102 the
+         moment the compiler packages move ahead, so it gets its own property. -->
+    <RoslynPublicApiAnalyzersVersion>5.6.0</RoslynPublicApiAnalyzersVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="qyl-owned packages">
@@ -28,7 +32,7 @@
     <QylSemanticConventionsVersion>4.4.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>7.3.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.42</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.44</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">
