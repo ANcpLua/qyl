@@ -1,4 +1,8 @@
 import {describe, expect, it} from 'vitest';
+import type {LogRecord} from '@ancplua/qyl-api-schema/types';
+import {parseChunkRetryRecord} from '@/components/ui/error-boundary';
+import {readStoredTheme} from '@/hooks/use-theme';
+import {normalizeSeverity} from '@/pages/LogsPage';
 import {
     parseHealthReport,
     parseHeartbeatEvent,
@@ -174,5 +178,63 @@ describe('wire timestamp shapes the collector actually emits', () => {
     it('names the failing member in the mismatch detail', () => {
         expect(() => parseTracePage({items: [{...trace, spans: [{...span, resource: {}}]}], has_more: false}))
             .toThrow(/items\[0\]\.spans\[0\]\.resource\.service_name/);
+    });
+});
+
+// `severity_text` is a closed contract enum at compile time, but the runtime guard in
+// normalizeSeverity exists because an OTLP exporter can put any label on the wire.
+const offContract = (text: string) => text as LogRecord['severity_text'];
+
+// The parsers above read the collector contract; the guards below read input the contract
+// never covers: localStorage strings, a retry marker the app wrote itself, and severity
+// labels an exporter is free to invent.
+describe('non-contract input guards', () => {
+    describe('stored theme parsing', () => {
+        it('keeps every theme the toggle can write', () => {
+            for (const theme of ['light', 'dark', 'system'] as const) {
+                expect(readStoredTheme(theme)).toBe(theme);
+            }
+        });
+
+        it('falls back to dark for absent, stale or corrupt values', () => {
+            expect(readStoredTheme(null)).toBe('dark');
+            expect(readStoredTheme('')).toBe('dark');
+            expect(readStoredTheme('midnight')).toBe('dark');
+            expect(readStoredTheme('{"theme":"light"}')).toBe('dark');
+        });
+    });
+
+    describe('stale-chunk retry record parsing', () => {
+        it('reads a well-formed retry marker', () => {
+            expect(parseChunkRetryRecord('{"signature":"/logs|/assets/x.js","at":1700000000000}'))
+                .toEqual({signature: '/logs|/assets/x.js', at: 1700000000000});
+        });
+
+        it('treats an absent or malformed marker as no previous retry', () => {
+            expect(parseChunkRetryRecord(null)).toBeNull();
+            expect(parseChunkRetryRecord('{"signature":"/logs|/assets/x.js"}')).toBeNull();
+            expect(parseChunkRetryRecord('{"signature":"/logs|/assets/x.js","at":"1700000000000"}')).toBeNull();
+            expect(parseChunkRetryRecord('"not-an-object"')).toBeNull();
+        });
+
+        it('propagates unparseable JSON to the caller that already guards it', () => {
+            expect(() => parseChunkRetryRecord('{')).toThrow(SyntaxError);
+        });
+    });
+
+    describe('log severity normalization', () => {
+        it('accepts every named level regardless of case or padding', () => {
+            expect(normalizeSeverity('WARN', 9)).toBe('warn');
+            expect(normalizeSeverity('FATAL', 9)).toBe('fatal');
+            expect(normalizeSeverity('TRACE', 21)).toBe('trace');
+            expect(normalizeSeverity(offContract('  Debug '), 17)).toBe('debug');
+        });
+
+        it('falls back to the numeric severity for unknown or absent labels', () => {
+            expect(normalizeSeverity(offContract('verbose'), 9)).toBe('info');
+            expect(normalizeSeverity(undefined, 17)).toBe('error');
+            expect(normalizeSeverity(undefined, 21)).toBe('fatal');
+            expect(normalizeSeverity(offContract(''), 1)).toBe('trace');
+        });
     });
 });
