@@ -1,4 +1,5 @@
 import {memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {z} from 'zod';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import {
     AlertCircle,
@@ -28,7 +29,15 @@ import {RingBuffer} from '@/lib/RingBuffer';
 import {formatAttributeValue} from '@/lib/attribute-value';
 import type {AttributeValue, LogRecord} from '@ancplua/qyl-api-schema/types';
 
-type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
+
+const logLevelSchema = z.enum(LOG_LEVELS);
+
+type LogLevel = z.infer<typeof logLevelSchema>;
+
+// `severity_text` is free-form on the wire, so an unrecognised label falls through to the
+// numeric severity mapping below; the level picker falls back to its unfiltered default.
+const minLevelSchema = logLevelSchema.catch('trace');
 
 interface LogViewRecord {
     original: LogRecord;
@@ -61,8 +70,6 @@ const LOG_LEVEL_CONFIG: Record<
     fatal: {icon: Skull, className: 'log-level-fatal', color: 'text-signal-red'},
 };
 
-const LOG_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
-
 function normalizeLogRecord(log: LogRecord): LogViewRecord {
     const timeUnixNano = log.time_unix_nano;
     const observedUnixNano = log.observed_time_unix_nano;
@@ -84,10 +91,10 @@ function normalizeLogRecord(log: LogRecord): LogViewRecord {
     };
 }
 
-function normalizeSeverity(severityText: LogRecord['severity_text'], severityNumber: number): LogLevel {
+export function normalizeSeverity(severityText: LogRecord['severity_text'], severityNumber: number): LogLevel {
     if (typeof severityText === 'string') {
-        const normalized = severityText.trim().toLowerCase();
-        if (LOG_LEVELS.includes(normalized as LogLevel)) return normalized as LogLevel;
+        const named = logLevelSchema.safeParse(severityText.trim().toLowerCase());
+        if (named.success) return named.data;
     }
 
     return severityNumber >= 21 ? 'fatal'
@@ -536,7 +543,7 @@ export function LogsPage() {
                     />
                 </div>
 
-                <Select value={minLevel} onValueChange={(v) => setMinLevel(v as LogLevel)}>
+                <Select value={minLevel} onValueChange={(v) => setMinLevel(minLevelSchema.parse(v))}>
                     <SelectTrigger className="w-32">
                         <SelectValue placeholder="Min Level"/>
                     </SelectTrigger>

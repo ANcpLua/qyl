@@ -2,8 +2,7 @@ import {execFile} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {promisify} from 'node:util';
 import {expect, test} from '@playwright/test';
-import Ajv2020, {type ValidateFunction} from 'ajv/dist/2020.js';
-import qylSchema from '@ancplua/qyl-api-schema/json-schema' with {type: 'json'};
+import {publishedContractSchema} from '@ancplua/qyl-api-schema/zod';
 import {
     ProblemDetailsMediaType,
     type HealthReport,
@@ -12,39 +11,28 @@ import {
     type Trace,
     type ValidationError,
 } from '@ancplua/qyl-api-schema/types';
+import {parseContract} from '../src/lib/contract-validation';
 
-const schemaValidator = new Ajv2020({strict: false, validateFormats: false});
 const execFileAsync = promisify(execFile);
-schemaValidator.addSchema(qylSchema);
-const validateTrace = schemaValidator.compile<Trace>({
-    $ref: `${qylSchema.$id}#/$defs/OTel.Traces.Trace`,
-});
-const validateLog = schemaValidator.compile<LogRecord>({
-    $ref: `${qylSchema.$id}#/$defs/OTel.Logs.LogRecord`,
-});
-const validateHealth = schemaValidator.compile<HealthReport>({
-    $ref: `${qylSchema.$id}#/$defs/Health.HealthReport`,
-});
-const validateNotFound = schemaValidator.compile<NotFoundError>({
-    $ref: `${qylSchema.$id}#/$defs/Common.Errors.NotFoundError`,
-});
-const validateValidationError = schemaValidator.compile<ValidationError>({
-    $ref: `${qylSchema.$id}#/$defs/Common.Errors.ValidationError`,
-});
 
-function assertGeneratedContract<T>(validator: ValidateFunction<T>, value: unknown): asserts value is T {
-    expect(validator(value), JSON.stringify(validator.errors)).toBe(true);
+function contractParser<T>(definitionName: string): (value: unknown) => T {
+    const schema = publishedContractSchema<T>(definitionName);
+    return value => parseContract(schema, value, definitionName);
 }
+
+const parseTraceContract = contractParser<Trace>('OTel.Traces.Trace');
+const parseLogContract = contractParser<LogRecord>('OTel.Logs.LogRecord');
+const parseHealthContract = contractParser<HealthReport>('Health.HealthReport');
+const parseNotFoundContract = contractParser<NotFoundError>('Common.Errors.NotFoundError');
+const parseValidationErrorContract = contractParser<ValidationError>('Common.Errors.ValidationError');
 
 function pageItems(value: unknown): unknown[] {
     expect(value).toEqual(expect.objectContaining({items: expect.any(Array), has_more: expect.any(Boolean)}));
     return (value as {items: unknown[]}).items;
 }
 
-function generatedPageItems<T>(validator: ValidateFunction<T>, value: unknown): T[] {
-    const items = pageItems(value);
-    for (const item of items) assertGeneratedContract(validator, item);
-    return items;
+function generatedPageItems<T>(parseItem: (value: unknown) => T, value: unknown): T[] {
+    return pageItems(value).map(item => parseItem(item));
 }
 
 test.describe('qyl executable product surface', () => {
@@ -53,8 +41,7 @@ test.describe('qyl executable product surface', () => {
         expect(response.status()).toBe(200);
         expect(response.headers()['content-type']).toContain('application/json');
 
-        const body: unknown = await response.json();
-        assertGeneratedContract(validateHealth, body);
+        const body = parseHealthContract(await response.json());
         expect(body.status).toBe('healthy');
         expect(body.entries.duckdb.status).toBe('healthy');
     });
@@ -109,7 +96,7 @@ test.describe('qyl executable product surface', () => {
         await expect.poll(async () => {
             const response = await request.get('/api/v1/traces?limit=100');
             expect(response.status()).toBe(200);
-            const traces = generatedPageItems(validateTrace, await response.json());
+            const traces = generatedPageItems(parseTraceContract, await response.json());
             return traces.find(trace => trace.services.includes(serviceName));
         }).toMatchObject({
             services: [serviceName],
@@ -120,7 +107,7 @@ test.describe('qyl executable product surface', () => {
                 `/api/v1/logs?serviceName=${encodeURIComponent(serviceName)}&limit=100`,
             );
             expect(response.status()).toBe(200);
-            const logs = generatedPageItems(validateLog, await response.json());
+            const logs = generatedPageItems(parseLogContract, await response.json());
             return logs.find(log => log.resource.service_name === serviceName)?.body.string_value;
         }, {timeout: 20_000}).toMatch(/^(?!sha256:).+\S.*$/);
     });
@@ -154,8 +141,7 @@ test.describe('qyl executable product surface', () => {
         const response = await request.get('/api/v1/traces/00000000000000000000000000000000');
         expect(response.status()).toBe(404);
         expect(response.headers()['content-type']).toContain(ProblemDetailsMediaType);
-        const problem: unknown = await response.json();
-        assertGeneratedContract(validateNotFound, problem);
+        const problem = parseNotFoundContract(await response.json());
         expect(problem.status).toBe(404);
     });
 
@@ -168,8 +154,7 @@ test.describe('qyl executable product surface', () => {
             const response = await request.get(path);
             expect(response.status()).toBe(400);
             expect(response.headers()['content-type']).toContain(ProblemDetailsMediaType);
-            const problem: unknown = await response.json();
-            assertGeneratedContract(validateValidationError, problem);
+            const problem = parseValidationErrorContract(await response.json());
             expect(problem.errors).toEqual([
                 expect.objectContaining({field, code}),
             ]);

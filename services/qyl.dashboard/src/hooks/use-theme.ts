@@ -1,6 +1,17 @@
 import {useCallback, useEffect, useState} from 'react';
+import {z} from 'zod';
 
-type Theme = 'light' | 'dark' | 'system';
+const themeSchema = z.enum(['light', 'dark', 'system']);
+
+type Theme = z.infer<typeof themeSchema>;
+
+// A theme written by an older build — or by anything else on this origin — is untrusted input,
+// so a stale or corrupt value falls back to the default instead of being asserted into `Theme`.
+const storedThemeSchema = themeSchema.catch('dark');
+
+export function readStoredTheme(stored: string | null): Theme {
+    return storedThemeSchema.parse(stored);
+}
 
 function getSystemTheme(): 'light' | 'dark' {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -14,7 +25,7 @@ function applyTheme(theme: Theme) {
 export function useTheme() {
     const [theme, setThemeState] = useState<Theme>(() => {
         if (typeof window === 'undefined') return 'dark';
-        return (localStorage.getItem('theme') as Theme) ?? 'dark';
+        return readStoredTheme(localStorage.getItem('theme'));
     });
 
     const setTheme = useCallback((newTheme: Theme) => {

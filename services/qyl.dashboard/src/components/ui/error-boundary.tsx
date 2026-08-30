@@ -1,4 +1,5 @@
 import {Component, type ErrorInfo, type ReactNode} from 'react';
+import {z} from 'zod';
 
 interface Props {
     children: ReactNode;
@@ -11,6 +12,16 @@ interface State {
 
 const STALE_CHUNK_RETRY_KEY = 'qyl:stale-chunk-retry';
 const STALE_CHUNK_RETRY_WINDOW_MS = 60_000;
+
+const chunkRetryRecordSchema = z.object({signature: z.string(), at: z.number()});
+
+// The retry marker is whatever a previous build left in sessionStorage; anything that is not
+// exactly `{signature: string, at: number}` counts as "no previous retry" and allows one reload.
+export function parseChunkRetryRecord(raw: string | null): z.infer<typeof chunkRetryRecordSchema> | null {
+    if (raw === null) return null;
+    const parsed = chunkRetryRecordSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+}
 
 function isRecoverableChunkLoadError(error: Error): boolean {
     const message = error.message;
@@ -35,14 +46,12 @@ function shouldReloadForChunkError(error: Error): boolean {
     }
 
     try {
-        const raw = sessionStorage.getItem(STALE_CHUNK_RETRY_KEY);
-        const previous = raw ? JSON.parse(raw) as { signature?: string; at?: number } : null;
+        const previous = parseChunkRetryRecord(sessionStorage.getItem(STALE_CHUNK_RETRY_KEY));
         const signature = getRecoverySignature(error);
         const now = Date.now();
 
         if (
             previous?.signature === signature
-            && typeof previous.at === 'number'
             && now - previous.at < STALE_CHUNK_RETRY_WINDOW_MS
         ) {
             return false;
