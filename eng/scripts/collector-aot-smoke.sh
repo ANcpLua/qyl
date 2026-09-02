@@ -210,7 +210,7 @@ grep -q '<title>QYL Dashboard</title>' <<<"$DASHBOARD" \
   || fail "/ did not serve the embedded dashboard"
 echo "[smoke] Embedded dashboard verified"
 
-phase "Lanes 1-5: HTTP JSON/protobuf, gRPC traces/logs, and metrics discard"
+phase "Lanes 1-5: HTTP JSON/protobuf, gRPC traces/logs, and metrics ingest"
 run_driver wire "$API_BASE" "$OTLP_HTTP_BASE" "$GRPC_BASE"
 docker exec "$CONTAINER_NAME" test -s /data/qyl.duckdb \
   || fail "collector did not persist its DuckDB file on /data"

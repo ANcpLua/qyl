@@ -43,8 +43,8 @@ internal static class CollectorSmoke
     private const string GrpcSpanId = "d7ad6b7169203331";
     private const string GrpcLogService = "aot-smoke-grpc-logs";
     private const string GrpcLogEvent = "aot.smoke.grpc.log";
-    private const string MetricsDiscardMessage =
-        "metrics are accepted for wire compatibility but not stored";
+    // qyl stores every metric shape except OTLP's summary, which it declines by name.
+    private const string DeclinedSummaryMetricName = "aot.smoke.summary";
     private const string ProtobufContentType = "application/x-protobuf";
     private const string JsonContentType = "application/json";
     private const string StockSourceName = "Qyl.CollectorAotSmoke.StockSdk";
@@ -174,7 +174,7 @@ internal static class CollectorSmoke
             using var response = await http.PostAsync(new Uri(otlpHttpBase, "v1/metrics"), content)
                 .ConfigureAwait(false);
             var payload = await ReadSuccessPayloadAsync(response, ProtobufContentType).ConfigureAwait(false);
-            AssertMetricsDiscard(ExportMetricsServiceResponse.Parser.ParseFrom(payload), expectedCount: 3);
+            AssertMetricsStored(ExportMetricsServiceResponse.Parser.ParseFrom(payload));
         }
 
         var metricsClient = new MetricsService.MetricsServiceClient(channel);
@@ -182,7 +182,7 @@ internal static class CollectorSmoke
                 metricsRequest,
                 deadline: DateTime.UtcNow.Add(s_requestTimeout))
             .ResponseAsync.ConfigureAwait(false);
-        AssertMetricsDiscard(grpcMetricsResponse, expectedCount: 3);
+        AssertMetricsStored(grpcMetricsResponse);
 
         var tracesAfterMetrics = await GetPageItemCountAsync(http, new Uri(apiBase, "api/v1/traces"))
             .ConfigureAwait(false);
@@ -190,7 +190,7 @@ internal static class CollectorSmoke
             .ConfigureAwait(false);
         AssertEqual(tracesBeforeMetrics, tracesAfterMetrics, "metrics export changed stored trace count");
         AssertEqual(logsBeforeMetrics, logsAfterMetrics, "metrics export changed stored log count");
-        Console.WriteLine("[driver] HTTP and gRPC metrics discard acknowledgements and storage absence verified");
+        Console.WriteLine("[driver] HTTP and gRPC metrics ingest and summary rejection verified");
     }
 
     private static async Task WriteWorkflowAsync(Uri apiBase)
@@ -545,6 +545,14 @@ internal static class CollectorSmoke
             }
         };
 
+    private static HistogramDataPoint HistogramPoint(ulong timeUnixNano)
+    {
+        var point = new HistogramDataPoint { TimeUnixNano = timeUnixNano, Count = 3, Sum = 6 };
+        point.ExplicitBounds.AddRange([1.0, 5.0]);
+        point.BucketCounts.AddRange([1UL, 1UL, 1UL]);
+        return point;
+    }
+
     private static ExportMetricsServiceRequest BuildMetrics(ulong timeUnixNano) =>
         new()
         {
@@ -565,7 +573,7 @@ internal static class CollectorSmoke
                             {
                                 new OtlpMetric
                                 {
-                                    Name = "aot.smoke.discarded",
+                                    Name = "aot.smoke.gauge",
                                     Gauge = new Gauge
                                     {
                                         DataPoints =
@@ -574,6 +582,23 @@ internal static class CollectorSmoke
                                             NumberPoint(timeUnixNano + 1, 2),
                                             NumberPoint(timeUnixNano + 2, 3)
                                         }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = "aot.smoke.histogram",
+                                    Histogram = new Histogram
+                                    {
+                                        AggregationTemporality = AggregationTemporality.Delta,
+                                        DataPoints = { HistogramPoint(timeUnixNano) }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = DeclinedSummaryMetricName,
+                                    Summary = new Summary
+                                    {
+                                        DataPoints = { new SummaryDataPoint { TimeUnixNano = timeUnixNano } }
                                     }
                                 }
                             }
@@ -611,12 +636,22 @@ internal static class CollectorSmoke
                 $"Log export rejected {partial.RejectedLogRecords} records: {partial.ErrorMessage}");
     }
 
-    private static void AssertMetricsDiscard(ExportMetricsServiceResponse response, long expectedCount)
+    // Acceptance is the storage evidence: the gauge and histogram travel the whole
+    // converter -> mapper -> DuckDB writer path in the NativeAOT binary, and a failure
+    // anywhere in it answers 503 (or gRPC Unavailable) rather than 200. Only the summary
+    // point is rejected, and the response has to name it so a sender can act on it.
+    private static void AssertMetricsStored(ExportMetricsServiceResponse response)
     {
         if (response.PartialSuccess is null)
-            throw new InvalidOperationException("Metrics discard response omitted partial_success.");
-        AssertEqual(expectedCount, response.PartialSuccess.RejectedDataPoints, "rejected metric data-point count");
-        AssertEqual(MetricsDiscardMessage, response.PartialSuccess.ErrorMessage, "metrics discard error_message");
+            throw new InvalidOperationException("Metrics response omitted partial_success.");
+        AssertEqual(1, response.PartialSuccess.RejectedDataPoints, "rejected metric data-point count");
+        if (!response.PartialSuccess.ErrorMessage.Contains(
+                DeclinedSummaryMetricName,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Metrics partial_success did not name the declined instrument: {response.PartialSuccess.ErrorMessage}");
+        }
     }
 
     private static Uri ParseBaseUri(string value)
