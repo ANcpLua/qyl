@@ -1,7 +1,9 @@
 import type {
+    CursorPageMetricDescriptor,
     CursorPageSessionEntity,
     CursorPageSpan,
     CursorPageTrace,
+    MetricQueryResult,
     HealthReport,
     HeartbeatEvent,
     LogStreamEvent,
@@ -15,6 +17,8 @@ const sessionPageSchema = publishedContractSchema<CursorPageSessionEntity>('Oper
 const tracePageSchema = publishedContractSchema<CursorPageTrace>('Operations.TracesApi_list.Response.200');
 const sessionTracePageSchema = publishedContractSchema<CursorPageTrace>('Operations.SessionsApi_getTraces.Response.200');
 const spanPageSchema = publishedContractSchema<CursorPageSpan>('Operations.TracesApi_getSpans.Response.200');
+const metricPageSchema = publishedContractSchema<CursorPageMetricDescriptor>('Operations.MetricsApi_list.Response.200');
+const metricQuerySchema = publishedContractSchema<MetricQueryResult>('Operations.MetricsApi_query.Response.200');
 const logStreamEventSchema = publishedContractSchema<LogStreamEvent>('Streaming.LogStreamEvent');
 const heartbeatEventSchema = publishedContractSchema<HeartbeatEvent>('Streaming.HeartbeatEvent');
 const problemDetailsSchema = publishedContractSchema<ProblemDetails>('Common.Errors.ProblemDetails');
@@ -39,6 +43,12 @@ export const parseSessionTracePage = (value: unknown, sessionId: string): Cursor
 
 export const parseSpanPage = (value: unknown, traceId: string): CursorPageSpan =>
     parseContract(spanPageSchema, value, `/api/v1/traces/${traceId}/spans`);
+
+export const parseMetricPage = (value: unknown): CursorPageMetricDescriptor =>
+    parseContract(metricPageSchema, value, '/api/v1/metrics');
+
+export const parseMetricQuery = (value: unknown, name: string): MetricQueryResult =>
+    parseContract(metricQuerySchema, value, `/api/v1/metrics/${name}/query`);
 
 export const parseLogStreamEvent = (value: unknown): LogStreamEvent =>
     parseContract(logStreamEventSchema, value, '/api/v1/stream/logs log event');

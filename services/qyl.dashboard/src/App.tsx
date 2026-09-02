@@ -7,6 +7,7 @@ import {DashboardLayout} from '@/components/layout/DashboardLayout';
 
 const TracesPage = lazy(() => import('@/pages/TracesPage').then(m => ({default: m.TracesPage})));
 const LogsPage = lazy(() => import('@/pages/LogsPage').then(m => ({default: m.LogsPage})));
+const MetricsPage = lazy(() => import('@/pages/MetricsPage').then(m => ({default: m.MetricsPage})));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -30,6 +31,7 @@ export default function App() {
                                 <Route path="/" element={<Navigate to="/traces" replace/>}/>
                                 <Route path="/traces" element={<TracesPage/>}/>
                                 <Route path="/logs" element={<LogsPage/>}/>
+                                <Route path="/metrics" element={<MetricsPage/>}/>
                                 <Route path="*" element={<Navigate to="/traces" replace/>}/>
                             </Route>
                         </Routes>

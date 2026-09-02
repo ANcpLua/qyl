@@ -22,8 +22,123 @@ internal readonly record struct ParsedLogsParameters(
     DateTimeOffset? EndTime,
     int? Limit);
 
+internal readonly record struct ParsedMetricsParameters(
+    string? NamePrefix,
+    int? Limit);
+
+internal readonly record struct ParsedMetricSeriesParameters(
+    IReadOnlyList<MetricAttributeMatcher> Matchers,
+    int? Limit);
+
+internal readonly record struct ParsedMetricQueryParameters(
+    DateTimeOffset? StartTime,
+    DateTimeOffset? EndTime,
+    long? StepMs,
+    MetricAggregation Aggregation,
+    IReadOnlyList<string> GroupBy,
+    IReadOnlyList<MetricAttributeMatcher> Matchers,
+    int? SeriesLimit);
+
 internal static class ContractQueryParser
 {
+    // Metric query parameters carry their OpenAPI wire names verbatim: the contract is
+    // what an agent or the dashboard codes against, and a name that only the collector
+    // knows is a name no generated client can send.
+    internal static IResult? ParseMetrics(HttpRequest request, out ParsedMetricsParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadString("name_prefix", out var namePrefix) is { } prefixError) return prefixError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+
+        parsed = new ParsedMetricsParameters(namePrefix, limit);
+        return null;
+    }
+
+    internal static IResult? ParseMetricSeries(HttpRequest request, out ParsedMetricSeriesParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (ReadMatchers(reader, out var matchers) is { } matcherError) return matcherError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+
+        parsed = new ParsedMetricSeriesParameters(matchers, limit);
+        return null;
+    }
+
+    internal static IResult? ParseMetricQuery(HttpRequest request, out ParsedMetricQueryParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
+        if (reader.ReadInt64("step_ms", out var stepMs) is { } stepError) return stepError;
+        if (reader.ReadStringList("group_by", out var groupBy) is { } groupError) return groupError;
+        if (ReadMatchers(reader, out var matchers) is { } matcherError) return matcherError;
+        if (reader.ReadInteger("series_limit", out var seriesLimit) is { } seriesError) return seriesError;
+
+        var aggregation = MetricAggregation.Avg;
+        if (reader.ReadString("aggregation", out var rawAggregation) is { } aggregationError)
+            return aggregationError;
+        if (rawAggregation is not null && !TryParseAggregation(rawAggregation, out aggregation))
+        {
+            return Invalid(
+                "aggregation",
+                "Value must be one of avg, min, max, sum, count, last, p50, p90, p95, p99.",
+                "aggregation.invalid",
+                rawAggregation);
+        }
+
+        parsed = new ParsedMetricQueryParameters(
+            startTime,
+            endTime,
+            stepMs,
+            aggregation,
+            groupBy,
+            matchers,
+            seriesLimit);
+        return null;
+    }
+
+    // The contract spells a matcher `key=value`, splitting on the first '=' so a value may
+    // itself contain one. An entry with no '=' selects nothing knowable, so it is rejected
+    // rather than silently ignored.
+    private static IResult? ReadMatchers(QueryReader reader, out IReadOnlyList<MetricAttributeMatcher> matchers)
+    {
+        matchers = [];
+        if (reader.ReadStringList("attr", out var exact) is { } exactError) return exactError;
+        if (reader.ReadStringList("attr_prefix", out var prefixed) is { } prefixError) return prefixError;
+
+        var parsed = new List<MetricAttributeMatcher>(exact.Count + prefixed.Count);
+        foreach (var (name, values, isPrefix) in
+                 new[] { ("attr", exact, false), ("attr_prefix", prefixed, true) })
+        {
+            foreach (var value in values)
+            {
+                var separator = value.IndexOf('=', StringComparison.Ordinal);
+                if (separator <= 0)
+                {
+                    return Invalid(
+                        name,
+                        "Value must be 'key=value' with a non-empty key.",
+                        "matcher.invalid",
+                        value);
+                }
+
+                parsed.Add(new MetricAttributeMatcher(
+                    value[..separator],
+                    value[(separator + 1)..],
+                    isPrefix));
+            }
+        }
+
+        matchers = parsed;
+        return null;
+    }
+
+    private static bool TryParseAggregation(string raw, out MetricAggregation aggregation) =>
+        Enum.TryParse(raw, ignoreCase: true, out aggregation) && Enum.IsDefined(aggregation);
+
     internal static IResult? ParseSessions(HttpRequest request, out ParsedSessionsParameters parsed)
     {
         parsed = default;
@@ -96,6 +211,53 @@ internal static class ContractQueryParser
                 "Value must be a single 32-bit integer.",
                 "query.invalid_integer",
                 rejectedValue);
+        }
+
+        public IResult? ReadInt64(string name, out long? value)
+        {
+            value = null;
+            if (!TryReadSingle(name, out var raw, out var rejectedValue)) return null;
+            if (raw is not null && long.TryParse(
+                    raw,
+                    NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture,
+                    out var parsed))
+            {
+                value = parsed;
+                return null;
+            }
+
+            return Invalid(
+                name,
+                "Value must be a single 64-bit integer.",
+                "query.invalid_integer",
+                rejectedValue);
+        }
+
+        // Repeatable parameters are the one place multiple values are legal, so they bypass
+        // TryReadSingle rather than being rejected by it.
+        public IResult? ReadStringList(string name, out IReadOnlyList<string> values)
+        {
+            values = [];
+            if (!query.TryGetValue(name, out var raw)) return null;
+
+            var parsed = new List<string>(raw.Count);
+            foreach (var value in raw)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    return Invalid(
+                        name,
+                        "Each value must be a non-empty string.",
+                        "query.invalid_string",
+                        JoinValues(raw));
+                }
+
+                parsed.Add(value);
+            }
+
+            values = parsed;
+            return null;
         }
 
         public IResult? ReadBoolean(string name, out bool? value)

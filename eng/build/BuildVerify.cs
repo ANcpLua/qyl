@@ -479,8 +479,31 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 ["DefaultPageLimit"] = expectedDefault,
                 ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
                 ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
-                ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum")
+                ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
+                // The metric routes carry their own default and maximum rather than the shared
+                // page limit: a metric catalog is a small, dense list and a range query returns
+                // streams, not rows, so neither is bounded by the same number as a span page.
+                ["MetricDefaultLimit"] =
+                    ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "default"),
+                ["MetricMaxLimit"] =
+                    ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "maximum"),
+                ["MetricSeriesDefaultLimit"] = ReadOpenApiIntegerSchemaValue(
+                    document, "/api/v1/metrics/{metric_name}/query", "series_limit", "default"),
+                ["MetricSeriesMaxLimit"] = ReadOpenApiIntegerSchemaValue(
+                    document, "/api/v1/metrics/{metric_name}/query", "series_limit", "maximum"),
+                ["MetricDefaultStepMs"] = ReadOpenApiIntegerSchemaValue(
+                    document, "/api/v1/metrics/{metric_name}/query", "step_ms", "default"),
+                ["MetricMaxStepMs"] = ReadOpenApiIntegerSchemaValue(
+                    document, "/api/v1/metrics/{metric_name}/query", "step_ms", "maximum")
             };
+
+            // The series-listing limit shares the catalog's bounds; assert that rather than
+            // duplicating a constant that would then be free to drift from it.
+            EnsureOpenApiLimitBoundsMatch(
+                document,
+                "/api/v1/metrics/{metric_name}/series",
+                expected["MetricDefaultLimit"],
+                expected["MetricMaxLimit"]);
 
             var mismatches = expected
                 .Where(pair => !constants.TryGetValue(pair.Key, out var actual) || actual != pair.Value)
@@ -503,6 +526,22 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             throw new InvalidOperationException(
                 "Collector endpoint limits must match qyl-api-schema OpenAPI. Update qyl-api-schema first, regenerate/publish contracts, then update ContractLimits.");
         });
+
+    private static void EnsureOpenApiLimitBoundsMatch(
+        JsonDocument document,
+        string path,
+        int expectedDefault,
+        int expectedMaximum)
+    {
+        var actualDefault = ReadOpenApiIntegerSchemaValue(document, path, "limit", "default");
+        var actualMaximum = ReadOpenApiIntegerSchemaValue(document, path, "limit", "maximum");
+        if (actualDefault != expectedDefault || actualMaximum != expectedMaximum)
+        {
+            throw new InvalidOperationException(
+                $"{path} limit bounds ({actualDefault}/{actualMaximum}) must match the metric catalog's " +
+                $"({expectedDefault}/{expectedMaximum}).");
+        }
+    }
 
     Target VerifyCollectorRoutesMatchOpenApi => d => d
         .Unlisted()

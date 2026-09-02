@@ -17,6 +17,7 @@ using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.Streaming;
 using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
 using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
@@ -50,6 +51,10 @@ internal static partial class CollectorEndpointExtensions
         api.MapGet("/traces", GetTracesAsync);
         api.MapGet("/traces/{trace_id}", GetTraceAsync);
         api.MapGet("/traces/{trace_id}/spans", GetTraceSpansAsync);
+
+        api.MapGet("/metrics", GetMetricsAsync);
+        api.MapGet("/metrics/{metric_name}/series", GetMetricSeriesAsync);
+        api.MapGet("/metrics/{metric_name}/query", QueryMetricAsync);
 
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/stream/logs", StreamLogsAsync);
@@ -315,6 +320,151 @@ internal static partial class CollectorEndpointExtensions
                 "The collector could not persist the OTLP metrics payload.");
         }
     }
+
+
+    internal static async Task<IResult> GetMetricsAsync(
+        HttpContext httpContext,
+        IQylStore store,
+        CancellationToken ct)
+    {
+        if (ContractQueryParser.ParseMetrics(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.MetricDefaultLimit,
+                ContractLimits.MetricMaxLimit, out var boundedLimit))
+        {
+            return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
+        }
+
+        var metrics = await store.ListMetricsAsync(
+            ResolveProjectScope(httpContext),
+            query.NamePrefix,
+            boundedLimit,
+            ct);
+
+        return Results.Ok(new CursorPageMetricDescriptor
+        {
+            Items = MetricMapper.ToContracts(metrics),
+            HasMore = metrics.Count >= boundedLimit
+        });
+    }
+
+    internal static async Task<IResult> GetMetricSeriesAsync(
+        HttpContext httpContext,
+        [FromRoute(Name = "metric_name")] string metricName,
+        IQylStore store,
+        CancellationToken ct)
+    {
+        if (ContractQueryParser.ParseMetricSeries(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.MetricDefaultLimit,
+                ContractLimits.MetricMaxLimit, out var boundedLimit))
+        {
+            return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
+        }
+
+        var projectId = ResolveProjectScope(httpContext);
+        var series = await store.ListMetricSeriesAsync(
+            projectId,
+            metricName,
+            query.Matchers,
+            boundedLimit,
+            ct);
+
+        // An empty page under a name that was never recorded is a 404: the caller asked
+        // about an instrument, not about a filter, and "no such metric" is the answer that
+        // tells it to stop asking. A name that exists but matches no filter is an empty 200.
+        if (series.Count is 0 && query.Matchers.Count is 0)
+            return ContractErrorResults.NotFound("metric", metricName);
+
+        return Results.Ok(new CursorPageMetricSeries
+        {
+            Items = MetricMapper.ToContracts(series),
+            HasMore = series.Count >= boundedLimit
+        });
+    }
+
+    internal static async Task<IResult> QueryMetricAsync(
+        HttpContext httpContext,
+        [FromRoute(Name = "metric_name")] string metricName,
+        IQylStore store,
+        CancellationToken ct)
+    {
+        if (ContractQueryParser.ParseMetricQuery(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
+        if (query.StartTime is not { } startTime)
+            return MissingRequired("start_time");
+        if (query.EndTime is not { } endTime)
+            return MissingRequired("end_time");
+        if (endTime < startTime)
+        {
+            return ContractErrorResults.Validation(
+                "end_time",
+                "The range end must not precede its start.",
+                "range.inverted",
+                endTime.ToString("O", CultureInfo.InvariantCulture));
+        }
+
+        var stepMs = query.StepMs ?? ContractLimits.MetricDefaultStepMs;
+        if (stepMs is < 1 or > ContractLimits.MetricMaxStepMs)
+        {
+            return ContractErrorResults.Validation(
+                "step_ms",
+                $"Step must be between 1 and {ContractLimits.MetricMaxStepMs} milliseconds.",
+                "step.out_of_range",
+                stepMs.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (!ContractLimits.TryResolve(query.SeriesLimit, ContractLimits.MetricSeriesDefaultLimit,
+                ContractLimits.MetricSeriesMaxLimit, out var boundedSeriesLimit))
+        {
+            return ContractErrorResults.Validation(
+                "series_limit",
+                $"Series limit must be between 1 and {ContractLimits.MetricSeriesMaxLimit}.",
+                "limit.out_of_range",
+                query.SeriesLimit?.ToString(CultureInfo.InvariantCulture));
+        }
+
+        var projectId = ResolveProjectScope(httpContext);
+        var descriptor = (await store.ListMetricsAsync(projectId, metricName, limit: 1, ct))
+            .FirstOrDefault(entry => string.Equals(entry.MetricName, metricName, StringComparison.Ordinal));
+        if (descriptor is null)
+            return ContractErrorResults.NotFound("metric", metricName);
+
+        // Ask for one extra stream so the truncation flag reports a fact rather than the
+        // coincidence of the result exactly filling the limit.
+        var series = await store.QueryMetricAsync(new MetricRangeQuery
+        {
+            ProjectId = projectId,
+            MetricName = metricName,
+            StartUnixNano = QylTimeConversions.ToUnixNanoUnsigned(startTime.ToUniversalTime()),
+            EndUnixNano = QylTimeConversions.ToUnixNanoUnsigned(endTime.ToUniversalTime()),
+            StepUnixNano = (ulong)stepMs * 1_000_000UL,
+            Aggregation = query.Aggregation,
+            GroupBy = query.GroupBy,
+            Matchers = query.Matchers,
+            SeriesLimit = boundedSeriesLimit + 1
+        }, ct);
+
+        var truncated = series.Count > boundedSeriesLimit;
+        return Results.Ok(MetricMapper.ToQueryResult(
+            descriptor,
+            query.Aggregation,
+            stepMs,
+            startTime,
+            endTime,
+            truncated ? [.. series.Take(boundedSeriesLimit)] : series,
+            truncated));
+    }
+
+    private static IResult MissingRequired(string field) =>
+        ContractErrorResults.Validation(
+            field,
+            "Value is required.",
+            "query.missing",
+            null);
 
     internal static async Task<IResult> GetSessionsAsync(
         HttpContext httpContext,
@@ -766,6 +916,12 @@ internal static partial class CollectorEndpointExtensions
         public const int SessionMaxLimit = 1_000;
         public const int TraceMaxLimit = 1_000;
         public const int LogMaxLimit = 10_000;
+        public const int MetricDefaultLimit = 200;
+        public const int MetricMaxLimit = 1_000;
+        public const int MetricSeriesDefaultLimit = 50;
+        public const int MetricSeriesMaxLimit = 500;
+        public const long MetricDefaultStepMs = 60_000;
+        public const long MetricMaxStepMs = 86_400_000;
         public const int MinimumLogSeverity = 0;
         public const int MinimumStreamSeverity = 1;
         public const int MaximumLogSeverity = 24;
