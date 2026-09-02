@@ -488,12 +488,12 @@ rename is an **ABI-free slice** when the namespace and the entry point survive
 (`Qyl.Sdk` → `Qyl.Telemetry.Hosting` kept namespace `Qyl` and `AddQyl()`).
 
 The inbound scope name is a registry fact (`scope_names` →
-`QylTelemetryNames.Scopes`), currently `Qyl.OpenTelemetry.AutoInstrumentation`
-and becoming `Qyl.Telemetry.AutoInstrumentation` with AutoInstrumentation
-10.0.0. Renaming it is a registry change shipped with a producer major; readers
-accept both names across that major. The conformance assertion in
-`tests/Qyl.Sdk.Conformance/Program.cs` still pins the current name and flips
-with the pin bump, not before it.
+`QylTelemetryNames.Scopes`), and is `Qyl.Telemetry.AutoInstrumentation` as of
+AutoInstrumentation 10.0.0 — the rename from
+`Qyl.OpenTelemetry.AutoInstrumentation` shipped with that producer major, which
+is how a registry change is always shipped; readers accept both names across
+it. The conformance assertion in `tests/Qyl.Sdk.Conformance/Program.cs` pins
+the new name, flipped in the same commit as the 10.0.0 pin bump.
 
 ByteIdentity snapshots, PublicAPI baselines, and pinned verifier tokens
 regenerate in the same commit as the change: one change, one regeneration, one
@@ -507,7 +507,7 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 
 | Line | Shipped | Next | Owner of the number |
 |---|---|---|---|
-| Producer family (`Qyl.Telemetry.*`) | 9.1.0 · ABI `V9` | 10.0.0 · ABI `V10` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
+| Producer family (`Qyl.Telemetry.*`) | 10.0.0 · ABI `V10` | 10.0.0 · ABI `V10` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
 | Semantic conventions | 6.0.0 | — | `Directory.Build.props` `<VersionPrefix>` |
 | Collector + `qyl` tool | 1.1.8 | 1.2.0 | `qyl/Version.props` `<QylVersion>` |
 | API contract | 7.3.0 | — | release tag |
@@ -517,7 +517,7 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 | Consumer → owner | Pinned | Target | Where |
 |---|---|---|---|
 | Producer → semantic conventions | 4.4.0 | 6.0.0 | producer `Directory.Packages.props` |
-| Collector → producer family | 9.1.0 | 10.0.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
+| Collector → producer family | 10.0.0 | 10.0.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
 | Collector → semantic conventions | 4.4.0 | 6.0.0 | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
 | Collector, MCP, dashboards → API contract | 7.3.0 | 7.3.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
 
@@ -535,7 +535,7 @@ in the owning file:
 | `MassTransit.RabbitMQ` | 8.5.10      | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
 | `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0       | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
 | `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3      | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
-| `Qyl.Telemetry.SemanticConventions.Analyzers` | unpublished | `PackPreviewAnalyzers=false` until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
+| `Qyl.Telemetry.SemanticConventions.Analyzers` | 7.0.0, unreferenced | Published, but no consumer here references it until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
 | `OpenTelemetry.Instrumentation.Runtime` | absent      | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
 
 ---
