@@ -8,7 +8,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Qyl.Api.Contracts.Workflow;
 using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
-using QylTelemetryNames = Qyl.Telemetry.SemanticConventions.Incubating.Names.QylTelemetryNames;
+using QylTelemetryNames = Qyl.Telemetry.SemanticConventions.Names.QylTelemetryNames;
 
 namespace Qyl.Cli.Codex;
 

@@ -188,7 +188,8 @@ eng/build                        → SemanticConventions, Incubating        (cat
 eng/tools/QylSdkConformance      → Qyl.Api.Contracts
 internal/qyl.instrumentation     → Qyl.Telemetry.Hosting, Qyl.Api.Contracts,
                                    SemanticConventions, Incubating        (self-telemetry only)
-packages/Qyl.Cli                 → Qyl.Api.Contracts, Incubating
+packages/Qyl.Cli                 → Qyl.Api.Contracts,
+                                   SemanticConventions, Incubating       (scope and event names)
 packages/Qyl.Run.Workload        → SemanticConventions.SourceGeneration
 services/qyl.collector           → Qyl.Api.Contracts
 tests/Qyl.Sdk.Conformance        → Qyl.Telemetry.Hosting                  (released package, never a project)
