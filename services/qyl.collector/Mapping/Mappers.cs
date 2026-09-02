@@ -3,10 +3,17 @@ using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Traces;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
 using TraceContract = Qyl.Api.Contracts.OTel.Traces.Trace;
+using ContractMetricKind = Qyl.Api.Contracts.OTel.Metrics.MetricKind;
+using ContractMetricTemporality = Qyl.Api.Contracts.OTel.Metrics.MetricTemporality;
+using ContractMetricAggregation = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation;
+using StorageMetricAggregation = Qyl.Collector.Storage.MetricAggregation;
+using StorageMetricKind = Qyl.Collector.Storage.MetricKind;
+using StorageMetricTemporality = Qyl.Collector.Storage.MetricTemporality;
 
 namespace Qyl.Collector.Mapping;
 
@@ -572,4 +579,112 @@ internal static class SessionMapper
 
     private static DateTimeOffset AsUtcOffset(DateTime timestamp) =>
         new(DateTime.SpecifyKind(timestamp, DateTimeKind.Utc));
+}
+
+internal static class MetricMapper
+{
+    public static MetricDescriptor ToContract(MetricCatalogEntry entry) =>
+        new()
+        {
+            Name = entry.MetricName,
+            Kind = ToKind(entry.MetricKind),
+            Temporality = ToTemporality(entry.Temporality),
+            Monotonic = entry.IsMonotonic is not 0,
+            Unit = entry.Unit,
+            Description = entry.Description,
+            SeriesCount = entry.SeriesCount,
+            LastSeen = QylTimeConversions.NanosToDateTimeOffset(entry.LastSeenUnixNano)
+        };
+
+    public static IReadOnlyList<MetricDescriptor> ToContracts(IReadOnlyList<MetricCatalogEntry> entries) =>
+        [.. entries.Select(static entry => ToContract(entry))];
+
+    public static MetricSeries ToContract(MetricSeriesRow row) =>
+        new()
+        {
+            SeriesId = row.SeriesId,
+            Name = row.MetricName,
+            Kind = ToKind(row.MetricKind),
+            Attributes = ContractJson.ParseAttributes(row.AttributesJson) ?? [],
+            ServiceName = row.ServiceName,
+            Unit = row.Unit,
+            FirstSeen = QylTimeConversions.NanosToDateTimeOffset(row.FirstSeenUnixNano),
+            LastSeen = QylTimeConversions.NanosToDateTimeOffset(row.LastSeenUnixNano)
+        };
+
+    public static IReadOnlyList<MetricSeries> ToContracts(IReadOnlyList<MetricSeriesRow> rows) =>
+        [.. rows.Select(static row => ToContract(row))];
+
+    /// <summary>
+    /// Builds the whole query answer from the catalog entry that identified the metric and
+    /// the streams the store produced. The endpoint hands over both and reads neither: the
+    /// instrument's shape and unit are storage facts, and this is where they stop being one.
+    /// </summary>
+    public static MetricQueryResult ToQueryResult(
+        MetricCatalogEntry descriptor,
+        StorageMetricAggregation aggregation,
+        long stepMs,
+        DateTimeOffset startTime,
+        DateTimeOffset endTime,
+        IReadOnlyList<MetricQuerySeries> series,
+        bool truncated) =>
+        new()
+        {
+            Name = descriptor.MetricName,
+            Kind = ToKind(descriptor.MetricKind),
+            Unit = descriptor.Unit,
+            Aggregation = ToAggregation(aggregation),
+            StepMs = stepMs,
+            StartTime = startTime,
+            EndTime = endTime,
+            Series = [.. series.Select(static stream => ToContract(stream))],
+            Truncated = truncated
+        };
+
+    private static MetricSeriesResult ToContract(MetricQuerySeries stream) =>
+        new()
+        {
+            Attributes = ContractJson.ParseAttributes(stream.AttributesJson) ?? [],
+            Buckets =
+            [
+                .. stream.Points.Select(static point => new MetricBucket
+                {
+                    BucketStart = QylTimeConversions.NanosToDateTimeOffset(point.BucketStartUnixNano),
+                    Value = point.Value,
+                    PointCount = (long)point.PointCount
+                })
+            ]
+        };
+
+    // The storage enums and the contract enums are two spellings of one vocabulary, kept
+    // apart on purpose: storage bytes are a persisted format and the contract names are a
+    // published one, and neither should be free to drag the other along when it changes.
+    private static ContractMetricKind ToKind(byte metricKind) => metricKind switch
+    {
+        (byte)StorageMetricKind.Sum => ContractMetricKind.Sum,
+        (byte)StorageMetricKind.Histogram => ContractMetricKind.Histogram,
+        (byte)StorageMetricKind.ExponentialHistogram => ContractMetricKind.Exponential_histogram,
+        _ => ContractMetricKind.Gauge
+    };
+
+    private static ContractMetricTemporality ToTemporality(byte temporality) => temporality switch
+    {
+        (byte)StorageMetricTemporality.Delta => ContractMetricTemporality.Delta,
+        (byte)StorageMetricTemporality.Cumulative => ContractMetricTemporality.Cumulative,
+        _ => ContractMetricTemporality.Unspecified
+    };
+
+    private static ContractMetricAggregation ToAggregation(StorageMetricAggregation aggregation) => aggregation switch
+    {
+        StorageMetricAggregation.Min => ContractMetricAggregation.Min,
+        StorageMetricAggregation.Max => ContractMetricAggregation.Max,
+        StorageMetricAggregation.Sum => ContractMetricAggregation.Sum,
+        StorageMetricAggregation.Count => ContractMetricAggregation.Count,
+        StorageMetricAggregation.Last => ContractMetricAggregation.Last,
+        StorageMetricAggregation.P50 => ContractMetricAggregation.P50,
+        StorageMetricAggregation.P90 => ContractMetricAggregation.P90,
+        StorageMetricAggregation.P95 => ContractMetricAggregation.P95,
+        StorageMetricAggregation.P99 => ContractMetricAggregation.P99,
+        _ => ContractMetricAggregation.Avg
+    };
 }

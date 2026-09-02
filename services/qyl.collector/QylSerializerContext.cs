@@ -4,6 +4,7 @@ using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Traces;
 using Qyl.Api.Contracts.Streaming;
 using Qyl.Api.Contracts.Workflow;
@@ -35,6 +36,17 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(LogBodyArray))]
 [JsonSerializable(typeof(LogBodyBytes))]
 [JsonSerializable(typeof(CursorPageLogRecord))]
+[JsonSerializable(typeof(MetricDescriptor))]
+[JsonSerializable(typeof(MetricDescriptor[]))]
+[JsonSerializable(typeof(CursorPageMetricDescriptor))]
+[JsonSerializable(typeof(MetricSeries))]
+[JsonSerializable(typeof(MetricSeries[]))]
+[JsonSerializable(typeof(CursorPageMetricSeries))]
+[JsonSerializable(typeof(MetricBucket))]
+[JsonSerializable(typeof(MetricBucket[]))]
+[JsonSerializable(typeof(MetricSeriesResult))]
+[JsonSerializable(typeof(MetricSeriesResult[]))]
+[JsonSerializable(typeof(MetricQueryResult))]
 [JsonSerializable(typeof(SessionEntity))]
 [JsonSerializable(typeof(SessionEntity[]))]
 [JsonSerializable(typeof(List<SessionEntity>))]
