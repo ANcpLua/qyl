@@ -144,6 +144,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             StringComparer.Ordinal);
         incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Span);
         incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Log);
+        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Metric);
 
         var spanAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.SpanAttributeAllowList.StablePrefixes, "spanAttributeAllowList.stablePrefixes"),
@@ -154,6 +155,11 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             ValuesWithPrefixes(stableAttributeValues, policy.LogAttributeAllowList.StablePrefixes, "logAttributeAllowList.stablePrefixes"),
             ValuesWithPrefixes(incubatingAttributeValues, policy.LogAttributeAllowList.IncubatingPrefixes, "logAttributeAllowList.incubatingPrefixes"),
             policy.DevelopmentAttributeAllowList.Log);
+
+        var metricAttributeAllowList = NormalizedValues(
+            ValuesWithPrefixes(stableAttributeValues, policy.MetricAttributeAllowList.StablePrefixes, "metricAttributeAllowList.stablePrefixes"),
+            ValuesWithPrefixes(incubatingAttributeValues, policy.MetricAttributeAllowList.IncubatingPrefixes, "metricAttributeAllowList.incubatingPrefixes"),
+            policy.DevelopmentAttributeAllowList.Metric);
 
         var resourceAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
@@ -214,6 +220,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         WriteFrozenSet(builder, "QylResourceAttributeAllowList", policy.QylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "MetricAttributeAllowList", metricAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteStringArray(builder, "HttpHeaderAttributePrefixes", policy.HttpHeaderAttributePrefixes);
         // Raw prefixes, not their registry expansion: DeniedExactKeys below only carries the keys
@@ -552,6 +559,7 @@ internal sealed class CollectorSemanticPolicyConfig
 {
     public CollectorSemanticPrefixPolicy SpanAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy LogAttributeAllowList { get; init; } = new();
+    public CollectorSemanticPrefixPolicy MetricAttributeAllowList { get; init; } = new();
     public CollectorSemanticPrefixPolicy ResourceAttributeAllowList { get; init; } = new();
     public CollectorDevelopmentAttributePolicy DevelopmentAttributeAllowList { get; init; } = new();
     public string[] QylResourceAttributeAllowList { get; init; } = [];
@@ -571,9 +579,11 @@ internal sealed class CollectorSemanticPolicyConfig
     {
         SpanAttributeAllowList.Validate(relativePath, "spanAttributeAllowList");
         LogAttributeAllowList.Validate(relativePath, "logAttributeAllowList");
+        MetricAttributeAllowList.Validate(relativePath, "metricAttributeAllowList");
         ResourceAttributeAllowList.Validate(relativePath, "resourceAttributeAllowList");
         RequireNonEmpty(DevelopmentAttributeAllowList.Span, relativePath, "developmentAttributeAllowList.span");
         RequireNonEmpty(DevelopmentAttributeAllowList.Log, relativePath, "developmentAttributeAllowList.log");
+        RequireNonEmpty(DevelopmentAttributeAllowList.Metric, relativePath, "developmentAttributeAllowList.metric");
 
         RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");
         RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
@@ -643,6 +653,7 @@ internal sealed class CollectorDevelopmentAttributePolicy
 {
     public string[] Span { get; init; } = [];
     public string[] Log { get; init; } = [];
+    public string[] Metric { get; init; } = [];
 }
 
 [JsonSourceGenerationOptions(

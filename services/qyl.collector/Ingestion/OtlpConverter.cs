@@ -13,7 +13,7 @@ using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
 
 namespace Qyl.Collector.Ingestion;
 
-internal static class OtlpConverter
+internal static partial class OtlpConverter
 {
     #region OTLP Trace Conversion
 
