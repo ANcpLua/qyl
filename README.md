@@ -7,7 +7,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces and logs back through
 the embedded dashboard, the collector API, or MCP.
 
-The latest public qyl release is 1.1.8; the `main` branch is the 1.2.0 source line. The
+The latest public qyl release is 1.1.8; the `main` branch is the 2.0.0 source line. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -77,7 +77,7 @@ for public availability.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 1.2.0 (latest public: 1.1.8) | this one |
+| `qyl` (dotnet tool) | 2.0.0 (latest public: 1.1.8) | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 9.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 6.0.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 7.3.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
