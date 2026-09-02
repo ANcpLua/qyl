@@ -10,26 +10,6 @@ export default defineConfig({
             '@': resolve(__dirname, './src'),
         },
     },
-    build: {
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router')) {
-                        return 'react-vendor';
-                    }
-                    if (id.includes('node_modules/@tanstack/')) {
-                        return 'tanstack';
-                    }
-                    if (id.includes('node_modules/echarts')) {
-                        return 'echarts';
-                    }
-                    if (id.includes('node_modules/recharts')) {
-                        return 'recharts';
-                    }
-                },
-            },
-        },
-    },
     server: {
         port: 5173,
         proxy: {
