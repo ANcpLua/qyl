@@ -13,15 +13,15 @@
   <PropertyGroup Label="Platform">
     <DotNetRuntimeVersion>10.0.11</DotNetRuntimeVersion>
     <MicrosoftExtensionsVersion>10.9.0</MicrosoftExtensionsVersion>
-    <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x
-         (verified 2026-07-16 against 3.9.0: its XmlCommentGenerator emits `IOpenApiMediaType.Example = ...`,
-         read-only in 3.x -> CS0200). Hold on the newest 2.x, which is patched for GHSA-v5pm-xwqc-g5wc;
-         retry 3.x when AspNetCore.OpenApi ships a 3.x-compatible generator. Transitive-only pin. -->
-    <MicrosoftOpenApiVersion>2.11.0</MicrosoftOpenApiVersion>
+    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.x declares Microsoft.OpenApi [2.x, 3.0.0)
+         and its XmlCommentGenerator assigns IOpenApiMediaType.Example, read-only in 3.x (CS0200,
+         reproduced 2026-08-29 with 10.0.11 + 3.10.2). The generator fix (OfType<OpenApiMediaType>)
+         ships in .NET 11 preview4+ (preview7 current), so 3.x arrives with the .NET 11 move. -->
+    <MicrosoftOpenApiVersion>2.12.2</MicrosoftOpenApiVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
     <!-- Microsoft.CodeAnalysis.PublicApiAnalyzers ships on its own cadence and has no 5.9.0
-         (5.6.0 is its newest). Feeding it $(RoslynVersion) fails restore with NU1102 the
-         moment the compiler packages move ahead, so it gets its own property. -->
+         (5.6.0 is its newest, checked on nuget.org 2026-09-02). Feeding it $(RoslynVersion) fails
+         restore with NU1102 the moment the compiler packages move ahead, so it gets its own property. -->
     <RoslynPublicApiAnalyzersVersion>5.6.0</RoslynPublicApiAnalyzersVersion>
   </PropertyGroup>
 
@@ -29,14 +29,14 @@
     <!-- The producer family ships from the Qyl.OpenTelemetry.AutoInstrumentation repo on one
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property. -->
     <QylTelemetryVersion>9.1.0</QylTelemetryVersion>
-    <QylSemanticConventionsVersion>4.4.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>6.0.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>7.4.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.44</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.45</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">
-    <OpenTelemetryVersion>1.17.0</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.18.0</OpenTelemetryVersion>
     <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
          it (2026-07-26). Retention's space reuse rides the experimental
          vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
@@ -48,7 +48,7 @@
          run it after any DuckDB bump because the option is experimental and its trigger
          timing has shifted between patch releases before. -->
     <DuckDBVersion>1.5.5</DuckDBVersion>
-    <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
+    <GoogleProtobufVersion>3.36.0</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.83.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
   </PropertyGroup>
@@ -57,10 +57,10 @@
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <VersionizeVersion>2.6.0</VersionizeVersion>
-    <XunitVersion>3.2.2</XunitVersion>
+    <XunitVersion>4.0.0</XunitVersion>
     <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
-    <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
+    <NetFrameworkReferenceAssembliesVersion>1.0.4</NetFrameworkReferenceAssembliesVersion>
     <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
     <!-- Keeps Nuke's NuGet train patched and aligned with .NET SDK 10.0.400. -->

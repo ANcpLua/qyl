@@ -522,14 +522,14 @@ typed-instrument gap.
 **Held pins** are design, not debt; each carries its reason beside the number
 in the owning file:
 
-| Pin | Held at | Why |
-|---|---|---|
-| `Microsoft.OpenApi` | 2.11.0 | `Microsoft.AspNetCore.OpenApi`'s generator assigns a member that is read-only in 3.x (CS0200); newest patched 2.x. `qyl/Version.props` |
-| `MassTransit.RabbitMQ` | 8.5.10 | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
-| `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0 | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
-| `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3 | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
+| Pin | Held at     | Why |
+|---|-------------|---|
+| `Microsoft.OpenApi` | 2.12.2      | `Microsoft.AspNetCore.OpenApi` 10.x declares `[2.x, 3.0.0)` and its generator assigns a member read-only in 3.x (CS0200); fixed in .NET 11 preview4+. `qyl/Version.props` |
+| `MassTransit.RabbitMQ` | 8.5.10      | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
+| `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0       | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
+| `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3      | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
 | `Qyl.Telemetry.SemanticConventions.Analyzers` | unpublished | `PackPreviewAnalyzers=false` until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
-| `OpenTelemetry.Instrumentation.Runtime` | absent | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
+| `OpenTelemetry.Instrumentation.Runtime` | absent      | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
 
 ---
 
