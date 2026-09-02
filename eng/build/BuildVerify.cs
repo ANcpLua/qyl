@@ -2125,7 +2125,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "README.md",
                 RootDirectory / "qyl.slnx",
                 RootDirectory / "nuget.config",
-                RootDirectory / "railway.json",
+                RootDirectory / ".railway" / "railway.ts",
                 RootDirectory / ".gitignore",
                 RootDirectory / ".github" / "workflows" / "ci.yml",
                 RootDirectory / "eng" / "build.sh",
@@ -2459,6 +2459,10 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             AbsolutePath[] removedPaths =
             [
+                // Railway Config as Code is deprecated (files stop working 2026-12-01);
+                // .railway/railway.ts is the only Railway configuration surface.
+                RootDirectory / "railway.json",
+                RootDirectory / "railway.toml",
                 RootDirectory / "services" / "qyl.collector" / "Contracts",
                 RootDirectory / "services" / "qyl.collector" / "Query",
                 RootDirectory / "services" / "qyl.collector" / "Observe",
