@@ -7,7 +7,7 @@ using Qyl.Api.Contracts.Diagnostics;
 using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Api.Contracts.Workflow;
 using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
-using QylTelemetryNames = Qyl.Telemetry.SemanticConventions.Incubating.Names.QylTelemetryNames;
+using QylTelemetryNames = Qyl.Telemetry.SemanticConventions.Names.QylTelemetryNames;
 
 namespace Qyl.Cli.Codex;
 
