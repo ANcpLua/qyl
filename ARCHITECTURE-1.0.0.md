@@ -278,6 +278,13 @@ declares the join between owners, and the generator produces the plumbing.
 | Which upstream rows are implemented | The generator's emitted interceptor manifests (`contractKeys`); the coverage matrix is upstream rows ⨝ manifests, and a row with no manifest is `not_implemented` by absence |
 | Body template | The helper's own signature — a `Start` returning `Activity?` wraps, a same-named forwarding overload forwards, a declared metric records duration alongside |
 
+GraphQL is the one recorded exception to registry-owned span kind: the
+registry's `graphql.server` span group is development-stability, and the
+GraphQL span nests inside the ASP.NET Core server span, so qyl keeps
+`ActivityKind.Internal` for it by decision (2026-09-02). The reason is
+recorded in the `Qyl.Telemetry.AutoInstrumentation` CHANGELOG under
+`## [10.0.0] - 2026-09-02` → `### Changed`.
+
 The generator reads the contract as an additional file and emits typed
 promises (`OtelDotnetAuto.Traces.HttpClient`, `OtelDotnetAuto.Logs.ILogger`):
 the signal is the type, so a logs promise cannot be handed to a span-starting
@@ -303,7 +310,12 @@ definition's required attributes.
 `DiagnosticSource` listeners, and from library-native `ActivitySource`s that
 qyl subscribes to by name. Span names are computed from tags by fixed rules;
 span kinds, required attributes, and scope names are registry facts. No tag
-key or source name is a hand-typed literal (G1).
+key or source name is a hand-typed literal (G1). The one recorded exception is
+GraphQL: its `graphql.server` span group is development-stability and the span
+nests inside the ASP.NET Core server span, so qyl keeps `ActivityKind.Internal`
+for it by decision (2026-09-02) rather than emitting a second server span per
+request — see `## [10.0.0] - 2026-09-02` → `### Changed` in the
+`Qyl.Telemetry.AutoInstrumentation` CHANGELOG.
 
 **Metrics.** The producer never re-produces an instrument the runtime or a
 library already publishes. `System.Runtime`, `Microsoft.AspNetCore.*`,
@@ -508,23 +520,23 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 | Line | Shipped | Next | Owner of the number |
 |---|---|---|---|
 | Producer family (`Qyl.Telemetry.*`) | 10.0.0 · ABI `V10` | 10.0.0 · ABI `V10` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
-| Semantic conventions | 6.0.0 | — | `Directory.Build.props` `<VersionPrefix>` |
-| Collector + `qyl` tool | 1.1.8 | 1.2.0 | `qyl/Version.props` `<QylVersion>` |
-| API contract | 7.3.0 | — | release tag |
-| MCP plane (`qyl-mcp-server`, root, workbench) | 1.1.3 · 1.1.1 · 1.1.1 | 1.2.0 across all three | `qyl.mcp/*/package.json` |
+| Semantic conventions | 7.0.0 | — | `Directory.Build.props` `<VersionPrefix>` |
+| Collector + `qyl` tool | 2.0.0 | — | `qyl/Version.props` `<QylVersion>` |
+| API contract | 8.0.0 | — | release tag |
+| MCP plane (`qyl-mcp-server`, root, workbench) | 3.0.0 · 1.1.1 · 1.1.1 | — | `qyl.mcp/*/package.json` |
 | Site (`qyl.at`) | 1.0.0 | — | `qyl.at/package.json` |
 
 | Consumer → owner | Pinned | Target | Where |
 |---|---|---|---|
-| Producer → semantic conventions | 4.4.0 | 6.0.0 | producer `Directory.Packages.props` |
+| Producer → semantic conventions | 7.0.0 | 7.0.0 — in sync | producer `Directory.Packages.props` |
 | Collector → producer family | 10.0.0 | 10.0.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
-| Collector → semantic conventions | 4.4.0 | 6.0.0 | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
-| Collector, MCP, dashboards → API contract | 7.3.0 | 7.3.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
+| Collector → semantic conventions | 7.0.0 | 7.0.0 — in sync | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
+| Collector, MCP, dashboards → API contract | 8.0.0 | 8.0.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
 
-The producer → semantic-conventions edge is a migration, not a bump: 6.0.0
-ships the definition types as package types, and `QYLSG001` is an error when a
-definition surface is used without the package reference. It closes the §10
-typed-instrument gap.
+The producer → semantic-conventions edge was a migration, not a bump: the
+definition types ship as package types from 6.0.0 on, and `QYLSG001` is an
+error when a definition surface is used without the package reference. It
+closed the §10 typed-instrument gap.
 
 **Held pins** are design, not debt; each carries its reason beside the number
 in the owning file:
@@ -633,10 +645,9 @@ describes a gap.
   `Qyl.Telemetry.AutoInstrumentation.Hosting` ship as separate packages, and
   `AddQylAutoInstrumentation()` lives in the latter; both fold into
   `Qyl.Telemetry.AutoInstrumentation`.
-- The producer pins a semantic-convention release without typed definitions;
-  `QylMetricNames` hand-types the two qyl instrument names, and no analyzer
-  checks enrichment against required attributes. The typed-instrument bridge
-  lands with the 6.0.0 pin.
+- The producer pins semantic conventions 7.0.0, which carries the typed
+  definitions, but `QylMetricNames` still hand-types the two qyl instrument
+  names and no analyzer checks enrichment against required attributes.
 - The upstream contract YAML is read only by `tools/generate-contract-artifacts.py`;
   `QylAutoInstrumentationIds`, `QylAutoInstrumentationSignal`,
   `QylInstrumentationDomains`, and `QylInterceptorBody` restate the contract,
