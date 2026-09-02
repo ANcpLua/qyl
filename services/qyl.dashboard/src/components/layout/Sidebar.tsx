@@ -1,6 +1,7 @@
 import {NavLink, useLocation} from 'react-router';
 import type {LucideIcon} from 'lucide-react';
 import {
+    Activity,
     ChevronLeft,
     ChevronRight,
     FileText,
@@ -21,6 +22,7 @@ interface NavItem {
 const navItems: NavItem[] = [
     {to: '/traces', icon: GitBranch, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
+    {to: '/metrics', icon: Activity, label: 'METRICS', shortcut: 'M'},
 ];
 
 interface SidebarProps {

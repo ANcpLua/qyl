@@ -5,7 +5,15 @@ import type {
 } from '@/types';
 import {getAttributesRecord, nanoToIso, compareNs, nsDelta, nsToEpochMs, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
-import {parseSessionPage, parseSessionTracePage, parseSpanPage, parseTracePage} from '@/lib/contract-validation';
+import {
+    parseMetricPage,
+    parseMetricQuery,
+    parseSessionPage,
+    parseSessionTracePage,
+    parseSpanPage,
+    parseTracePage,
+} from '@/lib/contract-validation';
+import type {MetricAggregation, MetricDescriptor, MetricQueryResult} from '@ancplua/qyl-api-schema/types';
 
 export const telemetryKeys = {
     all: ['telemetry'] as const,
@@ -14,6 +22,9 @@ export const telemetryKeys = {
     sessionSpans: (id: string) => [...telemetryKeys.session(id), 'traces'] as const,
     traces: () => [...telemetryKeys.all, 'traces'] as const,
     traceSpans: (id: string) => [...telemetryKeys.all, 'trace', id, 'spans'] as const,
+    metrics: () => [...telemetryKeys.all, 'metrics'] as const,
+    metricRange: (name: string, aggregation: string, windowMinutes: number) =>
+        [...telemetryKeys.metrics(), name, aggregation, windowMinutes] as const,
 };
 
 export function useSessions() {
@@ -134,3 +145,42 @@ export function formatTimestamp(iso: string): string {
 }
 
 export {getAttributesRecord, nanoToIso, compareNs, nsDelta, nsToEpochMs, nsToMs, STATUS_ERROR};
+
+export function useMetrics() {
+    return useQuery({
+        queryKey: telemetryKeys.metrics(),
+        queryFn: () => fetchJson('/api/v1/metrics', parseMetricPage),
+        select: (data): MetricDescriptor[] => data.items,
+        refetchInterval: 15000,
+    });
+}
+
+/**
+ * The collector reduces server-side, so the window and step are the whole request:
+ * the browser receives buckets, never points, and does no aggregation of its own.
+ */
+export function useMetricRange(
+    name: string | undefined,
+    aggregation: MetricAggregation,
+    windowMinutes: number,
+) {
+    return useQuery({
+        queryKey: telemetryKeys.metricRange(name ?? '', aggregation, windowMinutes),
+        queryFn: (): Promise<MetricQueryResult> => {
+            const end = new Date();
+            const start = new Date(end.getTime() - windowMinutes * 60_000);
+            const params = new URLSearchParams({
+                start_time: start.toISOString(),
+                end_time: end.toISOString(),
+                step_ms: String(Math.max(1, Math.round((windowMinutes * 60_000) / 60))),
+                aggregation,
+            });
+            return fetchJson(
+                `/api/v1/metrics/${encodeURIComponent(name!)}/query?${params}`,
+                value => parseMetricQuery(value, name!),
+            );
+        },
+        enabled: !!name,
+        refetchInterval: 15000,
+    });
+}

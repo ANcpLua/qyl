@@ -12,6 +12,7 @@ interface TopBarProps {
 const pageTitle: Record<string, string> = {
     '/traces': 'TRACES',
     '/logs': 'STRUCTURED LOGS',
+    '/metrics': 'METRICS',
 };
 
 export function TopBar({
