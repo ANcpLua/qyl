@@ -41,6 +41,10 @@ static async Task<IResult> RunConformanceAsync(
         lifetime);
 
     var inbound = Activity.Current;
+    // The producer scope name becomes "Qyl.Telemetry.AutoInstrumentation" with
+    // AutoInstrumentation 10.0.0. This assertion flips in the same commit as that pin
+    // bump, not before it: asserting a name no published package emits would fail the
+    // conformance gate against every version that currently exists.
     if (inbound is null ||
         !string.Equals(
             inbound.Source.Name,

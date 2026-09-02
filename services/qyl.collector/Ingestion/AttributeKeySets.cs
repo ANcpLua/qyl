@@ -24,6 +24,12 @@ internal static class AttributeKeySets
     internal static bool IsSafeLogAttribute(string key) =>
         !IsDenied(key) && CollectorSemanticAttributeCatalog.LogAttributeAllowList.Contains(key);
 
+    // Metric attributes are the series identity, so an unregistered key would fork every
+    // series it appears on and make the catalog unreadable. They pass exactly the same
+    // registry-backed policy as span and log attributes.
+    internal static bool IsSafeMetricAttribute(string key) =>
+        !IsDenied(key) && CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key);
+
     internal static bool IsSafeResourceAttribute(string key) =>
         !IsDenied(key) &&
         (CollectorSemanticAttributeCatalog.ResourceAttributeAllowList.Contains(key) ||

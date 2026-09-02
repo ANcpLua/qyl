@@ -1,5 +1,6 @@
 using Google.Protobuf;
 using Grpc.AspNetCore.Server;
+using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,7 @@ using OtlpScopeMetrics = OpenTelemetry.Proto.Metrics.V1.ScopeMetrics;
 using OtlpResourceLogs = OpenTelemetry.Proto.Logs.V1.ResourceLogs;
 using OtlpScopeLogs = OpenTelemetry.Proto.Logs.V1.ScopeLogs;
 using RpcStatus = Google.Rpc.Status;
+using GrpcStatus = Grpc.Core.Status;
 
 namespace Qyl.Collector.Tests;
 
@@ -326,10 +328,11 @@ public sealed class OtlpWireTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task Metrics_are_counted_discarded_and_acknowledged_in_both_transports(
+    public async Task Metrics_are_stored_and_summaries_reported_as_partial_success_in_both_transports(
         bool json,
         bool gzip)
     {
+        const ulong pointTime = 1_700_000_000_000_000_000UL;
         var request = new ExportMetricsServiceRequest
         {
             ResourceMetrics =
@@ -344,39 +347,80 @@ public sealed class OtlpWireTests
                             {
                                 new OtlpMetric
                                 {
-                                    Name = "discard.gauge",
+                                    Name = "wire.gauge",
+                                    Unit = "1",
                                     Gauge = new Gauge
                                     {
-                                        DataPoints = { new NumberDataPoint(), new NumberDataPoint() }
+                                        DataPoints =
+                                        {
+                                            new NumberDataPoint
+                                            {
+                                                TimeUnixNano = pointTime, AsDouble = 4
+                                            },
+                                            new NumberDataPoint
+                                            {
+                                                TimeUnixNano = pointTime + 1, AsDouble = 6
+                                            }
+                                        }
                                     }
                                 },
                                 new OtlpMetric
                                 {
-                                    Name = "discard.sum",
+                                    Name = "wire.sum",
                                     Sum = new Sum
                                     {
-                                        DataPoints = { new NumberDataPoint() }
+                                        IsMonotonic = true,
+                                        AggregationTemporality = AggregationTemporality.Cumulative,
+                                        DataPoints =
+                                        {
+                                            new NumberDataPoint { TimeUnixNano = pointTime, AsInt = 7 }
+                                        }
                                     }
                                 },
                                 new OtlpMetric
                                 {
-                                    Name = "discard.histogram",
+                                    Name = "wire.histogram",
                                     Histogram = new Histogram
                                     {
-                                        DataPoints = { new HistogramDataPoint(), new HistogramDataPoint() }
+                                        AggregationTemporality = AggregationTemporality.Delta,
+                                        DataPoints =
+                                        {
+                                            new HistogramDataPoint
+                                            {
+                                                TimeUnixNano = pointTime,
+                                                Count = 3,
+                                                Sum = 12,
+                                                ExplicitBounds = { 1.0, 5.0 },
+                                                BucketCounts = { 1, 1, 1 }
+                                            }
+                                        }
                                     }
                                 },
                                 new OtlpMetric
                                 {
-                                    Name = "discard.exponential-histogram",
+                                    Name = "wire.exponential-histogram",
                                     ExponentialHistogram = new ExponentialHistogram
                                     {
-                                        DataPoints = { new ExponentialHistogramDataPoint() }
+                                        AggregationTemporality = AggregationTemporality.Delta,
+                                        DataPoints =
+                                        {
+                                            new ExponentialHistogramDataPoint
+                                            {
+                                                TimeUnixNano = pointTime,
+                                                Scale = 0,
+                                                Count = 2,
+                                                Sum = 6,
+                                                Positive = new ExponentialHistogramDataPoint.Types.Buckets
+                                                {
+                                                    Offset = 1, BucketCounts = { 1, 1 }
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 new OtlpMetric
                                 {
-                                    Name = "discard.summary",
+                                    Name = "wire.summary",
                                     Summary = new Summary
                                     {
                                         DataPoints =
@@ -405,8 +449,10 @@ public sealed class OtlpWireTests
         if (gzip)
             context.Request.Headers.ContentEncoding = "gzip";
 
+        await using var store = new DuckDbStore(":memory:");
         var result = await CollectorEndpointExtensions.IngestOtlpMetricsAsync(
             context,
+            store,
             TestContext.Current.CancellationToken);
         await result.ExecuteAsync(context);
 
@@ -418,10 +464,28 @@ public sealed class OtlpWireTests
             ? JsonParser.Default.Parse<ExportMetricsServiceResponse>(
                 Encoding.UTF8.GetString(ResponseBytes(context)))
             : ExportMetricsServiceResponse.Parser.ParseFrom(ResponseBytes(context));
-        AssertDiscardResponse(response);
+        AssertSummaryRejected(response);
 
-        var grpcResponse = await new MetricsServiceImpl().Export(request, null!);
-        AssertDiscardResponse(grpcResponse);
+        // Every non-summary shape in the request reached storage through the HTTP path.
+        var catalog = await store.ListMetricsAsync(
+            ProjectScope.DefaultProjectId,
+            ct: TestContext.Current.CancellationToken);
+        Assert.Equal(
+            ["wire.exponential-histogram", "wire.gauge", "wire.histogram", "wire.sum"],
+            catalog.Select(static entry => entry.MetricName));
+        Assert.DoesNotContain(catalog, static entry => entry.MetricName is "wire.summary");
+
+        await using var grpcStore = new DuckDbStore(":memory:");
+        var grpcResponse = await new MetricsServiceImpl(grpcStore).Export(
+            request,
+            new TestServerCallContext(TestContext.Current.CancellationToken));
+        AssertSummaryRejected(grpcResponse);
+        Assert.Equal(
+            catalog.Select(static entry => entry.MetricName),
+            (await grpcStore.ListMetricsAsync(
+                ProjectScope.DefaultProjectId,
+                ct: TestContext.Current.CancellationToken))
+            .Select(static entry => entry.MetricName));
     }
 
     [Fact]
@@ -483,6 +547,33 @@ public sealed class OtlpWireTests
         Assert.Equal(3, node[5]!["value"]![3]!["values"]!["deep"]![1]!["value"]!.GetValue<int>());
     }
 
+    /// <summary>
+    /// The smallest ServerCallContext the OTLP service implementations actually read: they
+    /// use only the cancellation token, and gRPC ships no in-box test double for ASP.NET.
+    /// </summary>
+    private sealed class TestServerCallContext(CancellationToken cancellationToken)
+        : ServerCallContext
+    {
+        protected override string MethodCore => "/test/Export";
+        protected override string HostCore => "localhost";
+        protected override string PeerCore => "ipv4:127.0.0.1:0";
+        protected override DateTime DeadlineCore => DateTime.MaxValue;
+        protected override Metadata RequestHeadersCore { get; } = [];
+        protected override CancellationToken CancellationTokenCore { get; } = cancellationToken;
+        protected override Metadata ResponseTrailersCore { get; } = [];
+        protected override GrpcStatus StatusCore { get; set; }
+        protected override WriteOptions? WriteOptionsCore { get; set; }
+        protected override AuthContext AuthContextCore { get; } = new("", new Dictionary<string, List<AuthProperty>>());
+        protected override IDictionary<object, object> UserStateCore { get; } = new Dictionary<object, object>();
+
+        protected override ContextPropagationToken CreatePropagationTokenCore(
+            ContextPropagationOptions? options) =>
+            throw new NotSupportedException();
+
+        protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders) =>
+            Task.CompletedTask;
+    }
+
     private static DefaultHttpContext NewResponseContext()
     {
         var context = new DefaultHttpContext();
@@ -490,11 +581,14 @@ public sealed class OtlpWireTests
         return context;
     }
 
-    private static void AssertDiscardResponse(ExportMetricsServiceResponse response)
+    // Only the three summary points are rejected; the gauge, sum and both histogram shapes
+    // are stored, so partial success reports 3 rather than the whole request.
+    private static void AssertSummaryRejected(ExportMetricsServiceResponse response)
     {
         Assert.NotNull(response.PartialSuccess);
-        Assert.Equal(9, response.PartialSuccess.RejectedDataPoints);
-        Assert.Equal(OtlpMetricsDiscard.ErrorMessage, response.PartialSuccess.ErrorMessage);
+        Assert.Equal(3, response.PartialSuccess.RejectedDataPoints);
+        Assert.Contains("summary", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("wire.summary", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
     }
 
     private static byte[] Gzip(byte[] payload)

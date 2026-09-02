@@ -66,6 +66,36 @@ internal interface IQylStore : IAsyncDisposable
         int batchSize,
         CancellationToken ct = default);
 
+    Task InsertMetricsAsync(
+        IReadOnlyList<MetricSeriesRow> series,
+        IReadOnlyList<MetricPointRow> points,
+        CancellationToken ct = default);
+
+    /// <summary>Metric names recorded for a project, with the shape shared by their series.</summary>
+    Task<IReadOnlyList<MetricCatalogEntry>> ListMetricsAsync(
+        string projectId,
+        string? namePrefix = null,
+        int limit = 200,
+        CancellationToken ct = default);
+
+    /// <summary>The distinct attribute streams recorded under one metric name.</summary>
+    Task<IReadOnlyList<MetricSeriesRow>> ListMetricSeriesAsync(
+        string projectId,
+        string metricName,
+        IReadOnlyList<MetricAttributeMatcher> matchers,
+        int limit = 200,
+        CancellationToken ct = default);
+
+    /// <summary>Aggregates one metric into time buckets server-side; never returns raw points.</summary>
+    Task<IReadOnlyList<MetricQuerySeries>> QueryMetricAsync(
+        MetricRangeQuery request,
+        CancellationToken ct = default);
+
+    Task<MetricRetentionResult> DeleteExpiredMetricsBatchAsync(
+        ulong cutoffUnixNano,
+        int batchSize,
+        CancellationToken ct = default);
+
     Task<int> DeleteExpiredSpansBatchAsync(
         ulong cutoffUnixNano,
         int batchSize,

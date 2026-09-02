@@ -60,8 +60,12 @@ the qyl activity sources and meters, and exports traces, metrics, and logs over 
 discovered on localhost. Environment variables on their own export nothing; without the
 call there is no exporter to configure.
 
-Metrics are accepted at the wire and acknowledged with `partial_success`, then discarded.
-qyl stores and serves traces and logs.
+qyl stores and serves traces, logs, and metrics. Metric points land in a series index plus
+a point table, and are queried by metric name, attribute matchers, a time range, and a step
+— aggregated server-side into buckets, never returned as raw points. OTLP's summary point
+is the one shape qyl declines: its pre-computed quantiles cannot be re-aggregated over a
+window or merged across series, so it is reported back as a `partial_success` naming the
+instrument rather than stored unqueryable.
 
 ## Artifacts and release lines
 

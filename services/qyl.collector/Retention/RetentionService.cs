@@ -62,6 +62,8 @@ internal sealed partial class RetentionService(
         var fileBefore = store.GetStorageFileMetrics();
         long deletedLogs = 0;
         long deletedSpans = 0;
+        long deletedMetricPoints = 0;
+        long deletedMetricSeries = 0;
         long deletedWorkflowRuns = 0;
         long deletedWorkflowEvents = 0;
         long deletedWorkflowCommands = 0;
@@ -101,6 +103,20 @@ internal sealed partial class RetentionService(
 
             while (true)
             {
+                var deleted = await store.DeleteExpiredMetricsBatchAsync(
+                        cutoff,
+                        DeleteBatchSize,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                writeBatches++;
+                deletedMetricPoints += deleted.Points;
+                deletedMetricSeries += deleted.Series;
+                if (deleted.Points < DeleteBatchSize)
+                    break;
+            }
+
+            while (true)
+            {
                 var deleted = await store.DeleteExpiredWorkflowDataBatchAsync(
                         timeProvider.GetUtcNow().AddDays(-options.Days),
                         DeleteBatchSize,
@@ -117,7 +133,8 @@ internal sealed partial class RetentionService(
         }
         finally
         {
-            if (deletedLogs + deletedSpans + deletedWorkflowRuns + deletedWorkflowEvents +
+            if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries +
+                deletedWorkflowRuns + deletedWorkflowEvents +
                 deletedWorkflowCommands + deletedWorkflowContent > 0)
                 await CheckpointAfterDeletionAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -127,6 +144,8 @@ internal sealed partial class RetentionService(
         var result = new RetentionCycleOutcome(
             deletedLogs,
             deletedSpans,
+            deletedMetricPoints,
+            deletedMetricSeries,
             deletedWorkflowRuns,
             deletedWorkflowEvents,
             deletedWorkflowCommands,
@@ -142,6 +161,8 @@ internal sealed partial class RetentionService(
                 logger,
                 result.DeletedLogRows,
                 result.DeletedSpanRows,
+                result.DeletedMetricPoints,
+                result.DeletedMetricSeries,
                 result.DeletedWorkflowRuns,
                 result.DeletedWorkflowEvents,
                 result.DeletedWorkflowCommands,
@@ -169,11 +190,13 @@ internal sealed partial class RetentionService(
     [LoggerMessage(
         EventId = 3001,
         Level = LogLevel.Information,
-        Message = "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedWorkflowRuns} workflow runs, {DeletedWorkflowEvents} workflow events, {DeletedWorkflowCommands} workflow commands, and {DeletedWorkflowContent} content chunks in {DurationMs} ms; managed storage changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
+        Message = "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedMetricPoints} metric points, {DeletedMetricSeries} metric series, {DeletedWorkflowRuns} workflow runs, {DeletedWorkflowEvents} workflow events, {DeletedWorkflowCommands} workflow commands, and {DeletedWorkflowContent} content chunks in {DurationMs} ms; managed storage changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
     private static partial void LogCycleCompleted(
         ILogger logger,
         long deletedLogRows,
         long deletedSpanRows,
+        long deletedMetricPoints,
+        long deletedMetricSeries,
         long deletedWorkflowRuns,
         long deletedWorkflowEvents,
         long deletedWorkflowCommands,
@@ -189,6 +212,8 @@ internal sealed partial class RetentionService(
 internal readonly record struct RetentionCycleOutcome(
     long DeletedLogRows,
     long DeletedSpanRows,
+    long DeletedMetricPoints,
+    long DeletedMetricSeries,
     long DeletedWorkflowRuns,
     long DeletedWorkflowEvents,
     long DeletedWorkflowCommands,
@@ -198,9 +223,10 @@ internal readonly record struct RetentionCycleOutcome(
     long FileSizeBeforeBytes,
     long FileSizeAfterBytes)
 {
-    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, TimeSpan.Zero, 0, 0);
+    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0, TimeSpan.Zero, 0, 0);
 
     public long TotalRows =>
-        DeletedLogRows + DeletedSpanRows + DeletedWorkflowRuns + DeletedWorkflowEvents +
+        DeletedLogRows + DeletedSpanRows + DeletedMetricPoints + DeletedMetricSeries +
+        DeletedWorkflowRuns + DeletedWorkflowEvents +
         DeletedWorkflowCommands + DeletedWorkflowContent;
 }

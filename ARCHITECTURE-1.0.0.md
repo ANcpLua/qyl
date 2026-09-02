@@ -39,7 +39,7 @@ customer process                                     qyl collector process
 │ Qyl.Telemetry.SemanticConventions  │               │ services/qyl.collector             │
 │ Qyl.Telemetry                      │     OTLP      │   ingest      :4317 gRPC  :4318    │
 │ Qyl.Telemetry.AutoInstrumentation  │ ────────────► │   catalog     CollectorSemantic…   │
-│ Qyl.Telemetry.Hosting   AddQyl()   │  /v1/traces   │   DuckDB      traces, logs         │
+│ Qyl.Telemetry.Hosting   AddQyl()   │  /v1/traces   │   DuckDB      traces, logs, metrics│
 └────────────────────────────────────┘  /v1/logs     │   API+health  :5100                │
         ▲                               /v1/metrics  └────────────────┬───────────────────┘
         │                                                             │ collector API
@@ -64,10 +64,13 @@ ingest, and knows the collector only as an endpoint URI.
 
 **Collector.** One project, one process (`services/qyl.collector`). It listens
 on OTLP gRPC `:4317` and OTLP/HTTP `:4318`, validates ingest against the
-generated catalog, persists traces and logs to DuckDB, and serves the API,
-dashboard, and health surface on `:5100`. Metrics are accepted on the wire,
-counted, and acknowledged with `partial_success`; they are not stored. Other
-OTLP signals have no endpoint. The release and container artifact is NativeAOT;
+generated catalog, persists traces, logs, and metrics to DuckDB, and serves the
+API, dashboard, and health surface on `:5100`. Metric points pass the same
+registry-backed attribute policy span attributes do, and are stored as a series
+index (`metric_series`) plus a narrow point table (`metric_points`); OTLP's
+summary point is declined by name in a `partial_success` because its
+pre-computed quantiles cannot be re-aggregated. Other OTLP signals have no
+endpoint. The release and container artifact is NativeAOT;
 the copy bundled into the `qyl` tool ships framework-dependent. The collector's
 product code references no `Qyl.Telemetry.*` package.
 
@@ -484,9 +487,12 @@ rename is an **ABI-free slice** when the namespace and the entry point survive
 (`Qyl.Sdk` → `Qyl.Telemetry.Hosting` kept namespace `Qyl` and `AddQyl()`).
 
 The inbound scope name is a registry fact (`scope_names` →
-`QylTelemetryNames.Scopes`), currently `Qyl.OpenTelemetry.AutoInstrumentation`.
-Renaming it is a registry change shipped with a producer major; readers accept
-both names across that major.
+`QylTelemetryNames.Scopes`), currently `Qyl.OpenTelemetry.AutoInstrumentation`
+and becoming `Qyl.Telemetry.AutoInstrumentation` with AutoInstrumentation
+10.0.0. Renaming it is a registry change shipped with a producer major; readers
+accept both names across that major. The conformance assertion in
+`tests/Qyl.Sdk.Conformance/Program.cs` still pins the current name and flips
+with the pin bump, not before it.
 
 ByteIdentity snapshots, PublicAPI baselines, and pinned verifier tokens
 regenerate in the same commit as the change: one change, one regeneration, one
@@ -522,14 +528,14 @@ typed-instrument gap.
 **Held pins** are design, not debt; each carries its reason beside the number
 in the owning file:
 
-| Pin | Held at | Why |
-|---|---|---|
-| `Microsoft.OpenApi` | 2.11.0 | `Microsoft.AspNetCore.OpenApi`'s generator assigns a member that is read-only in 3.x (CS0200); newest patched 2.x. `qyl/Version.props` |
-| `MassTransit.RabbitMQ` | 8.5.10 | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
-| `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0 | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
-| `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3 | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
+| Pin | Held at     | Why |
+|---|-------------|---|
+| `Microsoft.OpenApi` | 2.12.2      | `Microsoft.AspNetCore.OpenApi` 10.x declares `[2.x, 3.0.0)` and its generator assigns a member read-only in 3.x (CS0200); fixed in .NET 11 preview4+. `qyl/Version.props` |
+| `MassTransit.RabbitMQ` | 8.5.10      | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
+| `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0       | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
+| `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3      | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
 | `Qyl.Telemetry.SemanticConventions.Analyzers` | unpublished | `PackPreviewAnalyzers=false` until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
-| `OpenTelemetry.Instrumentation.Runtime` | absent | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
+| `OpenTelemetry.Instrumentation.Runtime` | absent      | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
 
 ---
 
@@ -583,8 +589,16 @@ hand-declared contract shapes in first-party clients 0.
 - No runtime registry loading, no reflection, no IL rewriting, no plugin model.
   A capability that cannot be generated or compiled in waits.
 - No multi-collector federation, no clustering. One binary, one DuckDB.
-- No metrics storage. Metrics are accepted, counted, and discarded with
-  `partial_success`; half-storing a signal is worse than declining it.
+- No raw-point metric reads. Metric queries name a metric, match attributes,
+  and give a range and a step; the collector aggregates into buckets server-side
+  because the primary consumer is an agent over MCP, and a compact bucketed
+  answer is both the cheaper payload and the one it can reason about.
+- No OTLP summary storage. Its pre-computed quantiles can be neither
+  re-aggregated over a window nor merged across series, so it is declined by
+  name in a `partial_success`; half-storing a signal is worse than declining it.
+- No second histogram shape. An exponential histogram is materialized into the
+  same explicit bucket vector an OTLP histogram uses, so storage and queries
+  carry one shape and percentiles work uniformly.
 - No log-as-span lane. Logs are logs.
 
 ---
