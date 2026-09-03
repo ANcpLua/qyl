@@ -59,18 +59,6 @@ internal static partial class CollectorEndpointExtensions
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/stream/logs", StreamLogsAsync);
 
-        api.MapPost("/workflow-runs", CreateRunAsync);
-        api.MapGet("/workflow-runs", ListRunsAsync);
-        api.MapGet("/workflow-runs/{run_id}", GetRunAsync);
-        api.MapPost("/workflow-runs/{run_id}/events", AppendEventsAsync);
-        api.MapGet("/workflow-runs/{run_id}/events", ReadEventsAsync);
-        api.MapGet("/workflow-runs/{run_id}/graph", GetGraphAsync);
-        api.MapGet("/workflow-runs/{run_id}/content/{content_ref}", GetContentAsync);
-        api.MapGet("/workflow-runs/{run_id}/stream", StreamEventsAsync);
-        api.MapPost("/workflow-runs/{run_id}/commands", SubmitControlAsync);
-        api.MapGet("/workflow-runs/{run_id}/commands", PollControlsAsync);
-        api.MapPost("/workflow-runs/{run_id}/commands/{command_id}/status", UpdateControlAsync);
-
         app.MapFallback(FallbackHandler);
 
         return app;

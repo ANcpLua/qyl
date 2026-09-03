@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization.Metadata;
 using Qyl.Api.Contracts.Common.Errors;
-using Qyl.Api.Contracts.Workflow;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 
 namespace Qyl.Collector;
@@ -44,74 +43,6 @@ internal static class ContractErrorResults
             CreateServiceUnavailable(reason),
             QylSerializerContext.Default.ServiceUnavailableError,
             statusCode: StatusCodes.Status503ServiceUnavailable,
-            contentType: ProblemDetailsMediaType.Value);
-
-    internal static IResult WorkflowCursor(
-        WorkflowCursorKind kind,
-        WorkflowCursorFailureReason reason,
-        string currentGeneration) =>
-        Results.Json(
-            new WorkflowCursorError
-            {
-                ProblemType = new Uri("about:blank"),
-                Title = "Invalid Workflow Cursor",
-                Status = StatusCodes.Status409Conflict,
-                Detail = "The cursor cannot be used for this workflow projection.",
-                CursorKind = kind,
-                Reason = reason,
-                CurrentGeneration = new WorkflowGeneration(currentGeneration)
-            },
-            QylSerializerContext.Default.WorkflowCursorError,
-            statusCode: StatusCodes.Status409Conflict,
-            contentType: ProblemDetailsMediaType.Value);
-
-    internal static IResult WorkflowRunDeleted(string runId) =>
-        Results.Json(
-            new WorkflowRunDeletedError
-            {
-                ProblemType = new Uri("about:blank"),
-                Title = "Workflow Run Deleted",
-                Status = StatusCodes.Status410Gone,
-                Detail = "The workflow run was durably deleted and cannot accept further work.",
-                RunId = new WorkflowRunId(runId)
-            },
-            QylSerializerContext.Default.WorkflowRunDeletedError,
-            statusCode: StatusCodes.Status410Gone,
-            contentType: ProblemDetailsMediaType.Value);
-
-    internal static IResult WorkflowProjectionUnavailable(
-        WorkflowProjectionStatus status) =>
-        Results.Json(
-            new WorkflowProjectionUnavailableError
-            {
-                ProblemType = new Uri("about:blank"),
-                Title = "Workflow Projection Unavailable",
-                Status = StatusCodes.Status503ServiceUnavailable,
-                Detail = "The workflow projection is temporarily unavailable. Retry later.",
-                ProjectionStatus = status
-            },
-            QylSerializerContext.Default.WorkflowProjectionUnavailableError,
-            statusCode: StatusCodes.Status503ServiceUnavailable,
-            contentType: ProblemDetailsMediaType.Value);
-
-    internal static IResult WorkflowProjectionCorrupt(
-        string generation,
-        string reason) =>
-        Results.Json(
-            new WorkflowProjectionCorruptError
-            {
-                ProblemType = new Uri("about:blank"),
-                Title = "Workflow Projection Corrupt",
-                Status = StatusCodes.Status500InternalServerError,
-                Detail = "The committed workflow projection could not be reconstructed safely.",
-                ProjectionStatus = new CorruptWorkflowProjectionStatus
-                {
-                    Generation = new WorkflowGeneration(generation),
-                    Reason = reason
-                }
-            },
-            QylSerializerContext.Default.WorkflowProjectionCorruptError,
-            statusCode: StatusCodes.Status500InternalServerError,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static Task WriteValidationAsync(

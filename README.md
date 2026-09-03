@@ -25,23 +25,6 @@ on `:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889
 Telemetry is stored under `~/.qyl/`, never in the working directory. All five ports are
 checked up front, so a conflict fails the command instead of leaving a half-bound stack.
 
-## Observe Codex workflows
-
-`qyl codex` owns the Codex app-server connection so the workflow journal is factual
-rather than inferred from generic telemetry:
-
-```bash
-export QYL_API_KEY='your-qyl-ingest-key'
-qyl codex --
-```
-
-It verifies the installed Codex app-server schema, starts an authenticated loopback
-server and the normal Codex TUI, and records immutable runs, attempts, collaboration,
-tools, content references, and controls. Uploads are idempotent. Network failures leave
-an encrypted spool under `~/.qyl/codex/` for retry instead of losing or rewriting
-events. The bundled Observe Graph plugin discovers the current run through the local
-`qyl observer-bridge`; that bridge is modern-only MCP `2026-07-28`.
-
 ## Send telemetry from an application
 
 ```bash
@@ -76,10 +59,10 @@ each is published. Package registries are authoritative for public availability.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 2.0.0 | this one |
+| `qyl` (dotnet tool) | 3.0.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 10.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 7.1.1 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 8.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 9.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 3.0.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last

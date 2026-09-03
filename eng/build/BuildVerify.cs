@@ -1267,10 +1267,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             ];
             string[] forbiddenMigrationSurface =
             [
-                "MigrateWorkflowLifecycle",
-                "ApplyWorkflowLifecycleRequiredConstraints",
-                "RepairWorkflowManifestIdentities",
-                "BackfillWorkflowLifecycle",
                 "ALTER COLUMN",
                 "MigrateTableDdl",
                 "OmitDefaultFromMigration"
@@ -1320,32 +1316,18 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .Executes(() =>
         {
             var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
-            var workflowFile = CollectorDirectory / "Storage" / "DuckDbStore.Workflow.cs";
-            var checkpointsFile = CollectorDirectory / "Storage" / "DuckDbStore.WorkflowCheckpoints.cs";
-            var workflowModelsFile = CollectorDirectory / "Storage" / "WorkflowStorageModels.cs";
             var emitterFile = RootDirectory / "internal" / "qyl.collector.storage.generators" / "DuckDbEmitter.cs";
             if (!storeFile.FileExists())
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
 
             var text = string.Join('\n',
                 File.ReadAllText(storeFile),
-                File.ReadAllText(workflowFile),
-                File.ReadAllText(checkpointsFile),
-                File.ReadAllText(workflowModelsFile),
                 File.ReadAllText(emitterFile));
 
             string[] requiredGeneratedInsertHelpers =
             [
                 "InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters",
-                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters",
-                "WorkflowEventDbRow.CreateAppender",
-                "WorkflowEventDbRow.AppendRow",
-                "AppenderEligible = true",
-                "appender.AppendRow(state, static (row, value)",
-                "WorkflowEventDbRow.ReadArrowRowsAsync",
-                "ExecuteArrowBatchesAsync(cancellationToken)",
-                "command.UseStreamingMode = true",
-                "UseStreamingMode = true"
+                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters"
             ];
 
             string[] forbiddenManualInsertLoopTokens =
@@ -1355,8 +1337,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "BuildMultiRowInsertSql(chunkSize)",
                 "LogStorageRow.AddParameters(cmd, logs[offset + i])",
                 "SpanStorageRow.AddParameters(cmd, spans[offset + i])",
-                "MapSpan(reader)",
-                "WorkflowEventDbRow.BuildMultiRowInsertSql"
+                "MapSpan(reader)"
             ];
 
             var missing = requiredGeneratedInsertHelpers
@@ -1379,8 +1360,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 Log.Error("  Manual storage row insert loop token found in DuckDbStore.cs: {Token}", token);
 
             throw new InvalidOperationException(
-                "Use generated AppendRow<TState> for eligible append-only workflow events, generated Arrow streaming " +
-                "for bulk workflow reads, and parameterized SQL only for conflict, CAS or RETURNING semantics.");
+                "Use the generated batched insert helper for append-only telemetry rows and parameterized SQL " +
+                "only for conflict, CAS or RETURNING semantics.");
         });
 
     Target VerifyOtlpProtoSourcesPinned => d => d
@@ -2318,6 +2299,18 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "CodexTelemetryMapper",
                 "WithCodexTransformations",
                 "codex.",
+                // The Codex observer and its workflow journal shipped out of the product in 3.0.0.
+                "namespace Qyl.Collector.Workflow",
+                "WorkflowEndpointExtensions",
+                "WorkflowCheckpointStore",
+                "WorkflowProjectionRuntime",
+                "WorkflowProjectionBuilder",
+                "WorkflowContentProtector",
+                "WorkflowCheckpointReconciliationService",
+                "WorkflowEventDbRow",
+                "WorkflowRunDbRow",
+                "DeleteExpiredWorkflowDataBatchAsync",
+                "qyl_checkpoint_native",
                 "GetErrorsAsync",
                 "GetErrorStatsAsync",
                 "UpdateErrorStatusAsync",
@@ -2448,6 +2441,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             string[] removedCollectorRoutePrefixes =
             [
+                "/workflow-runs",
                 "/observe",
                 "/qyl.js",
                 "/logs/live",
@@ -2482,6 +2476,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "services" / "qyl.collector" / "Services",
                 RootDirectory / "services" / "qyl.collector" / "Tracking",
                 RootDirectory / "services" / "qyl.collector" / "Workflows",
+                RootDirectory / "services" / "qyl.collector" / "Workflow",
+                RootDirectory / "services" / "qyl.collector" / "Native",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "WorkflowStorageModels.cs",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbStore.Workflow.cs",
+                RootDirectory / "services" / "qyl.collector" / "Hosting" / "WorkflowEndpointExtensions.cs",
+                RootDirectory / "packages" / "Qyl.Cli" / "Codex",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "Migrations",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.cs",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.sql",
@@ -2662,7 +2662,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         // VerifyBackend, not Verify, so a gate hung only on Verify never executes in CI.
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
-        .DependsOn<ICliContractLoop>(static x => x.VerifyCliMcpToolSchemasAreGenerated)
         // Same reasoning, applied to the gate that polices this exact asymmetry: hung only on Ci,
         // the CI-coverage check would never run in the CI it describes.
         .DependsOn<ICiCoverage>(static x => x.VerifyCiTargetCoversWorkflow);
@@ -2672,7 +2671,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyBackend)
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
-        .DependsOn<ICliContractLoop>(static x => x.VerifyCliMcpToolSchemasAreGenerated)
         .DependsOn(VerifyFrontendApiTypes)
         .DependsOn(VerifyFrontendTypes)
         .Executes(() =>

@@ -1,10 +1,6 @@
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Collections.Concurrent;
-using System.Security.Cryptography;
-using System.Text;
 using Qyl.Collector.Telemetry;
-using Qyl.Collector.Workflow;
 
 using static System.Threading.Volatile;
 
@@ -22,13 +18,6 @@ internal sealed partial class DuckDbStore : IQylStore
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
-    private readonly Func<WorkflowProjectionKey, ulong, CancellationToken, ValueTask>?
-        _beforeProjectionQuantum;
-    private readonly Action<DuckDBAppender, int>? _beforeWorkflowEventAppend;
-    private readonly Func<
-        WorkflowCheckpointReconciliationStage,
-        CancellationToken,
-        ValueTask>? _beforeCheckpointReconciliation;
     private readonly string _connectionString;
     private readonly string _databasePath;
     private readonly bool _isInMemory;
@@ -39,19 +28,6 @@ internal sealed partial class DuckDbStore : IQylStore
     private readonly Channel<IReadJob>? _reads;
     private readonly Task[] _readerTasks;
     private readonly Task _writerTask;
-    private readonly WorkflowContentProtector _workflowContentProtector;
-    private readonly WorkflowProjectionLimits _workflowProjectionLimits;
-    private readonly WorkflowCheckpointStore _workflowCheckpointStore;
-    private readonly WorkflowProjectionRuntime _workflowProjectionRuntime;
-    private readonly SemaphoreSlim _checkpointReconciliationGate = new(1, 1);
-    private readonly SemaphoreSlim _checkpointManifestMutationGate = new(1, 1);
-    private readonly ConcurrentDictionary<WorkflowProjectionKey, byte>
-        _activatedCheckpointRepairs = new();
-
-    private string? _checkpointManifestProjectCursor;
-    private string? _checkpointManifestRunCursor;
-    private ulong _checkpointReconciliationEpoch;
-    private WorkflowCheckpointReconciliationPhase _checkpointReconciliationPhase;
     private int _disposed;
 
 
@@ -64,14 +40,7 @@ internal sealed partial class DuckDbStore : IQylStore
         int? threads = null,
         string? tempDirectory = null,
         Func<CancellationToken, ValueTask>? beforeWrite = null,
-        WorkflowContentProtector? workflowContentProtector = null,
-        WorkflowProjectionLimits? workflowProjectionLimits = null,
-        Func<WorkflowProjectionKey, ulong, CancellationToken, ValueTask>?
-            beforeProjectionQuantum = null,
-        Func<WorkflowCheckpointReconciliationStage, CancellationToken, ValueTask>?
-            beforeCheckpointReconciliation = null,
-        ILoggerFactory? loggerFactory = null,
-        Action<DuckDBAppender, int>? beforeWorkflowEventAppend = null)
+        ILoggerFactory? loggerFactory = null)
     {
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _logger = _loggerFactory.CreateLogger<DuckDbStore>();
@@ -80,18 +49,6 @@ internal sealed partial class DuckDbStore : IQylStore
         _connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
-        _beforeProjectionQuantum = beforeProjectionQuantum;
-        _beforeWorkflowEventAppend = beforeWorkflowEventAppend;
-        _beforeCheckpointReconciliation = beforeCheckpointReconciliation;
-        _workflowContentProtector = workflowContentProtector ??
-            new WorkflowContentProtector(
-                SHA256.HashData(Encoding.UTF8.GetBytes("qyl-workflow-storage-tests")));
-        _workflowProjectionLimits = workflowProjectionLimits ?? new WorkflowProjectionLimits();
-        _workflowCheckpointStore = new WorkflowCheckpointStore(
-            _isInMemory ? null : $"{_databasePath}.workflow-checkpoints",
-            _workflowProjectionLimits,
-            _loggerFactory.CreateLogger<WorkflowCheckpointStore>(),
-            _beforeCheckpointReconciliation);
         var connection = new DuckDBConnection(_connectionString);
         try
         {
@@ -102,7 +59,6 @@ internal sealed partial class DuckDbStore : IQylStore
         catch
         {
             connection.Dispose();
-            _workflowCheckpointStore.Dispose();
             throw;
         }
 
@@ -165,30 +121,10 @@ internal sealed partial class DuckDbStore : IQylStore
                     .Unwrap();
             }
         }
-
-        _workflowProjectionRuntime = new WorkflowProjectionRuntime(
-            this,
-            _workflowProjectionLimits,
-            _loggerFactory,
-            _cts.Token);
     }
 
 
     private DuckDBConnection Connection { get; }
-
-    internal WorkflowProjectionRuntimeSnapshot WorkflowProjectionRuntimeSnapshot =>
-        _workflowProjectionRuntime.Snapshot;
-
-    internal Task RetireWorkflowProjectionAsync(WorkflowProjectionKey key) =>
-        _workflowProjectionRuntime.RetireAsync(key);
-
-    internal Task<WorkflowProjectionCheckpoint?> WaitForWorkflowProjectionAsync(
-        WorkflowProjectionKey key,
-        ulong sequence,
-        CancellationToken ct) =>
-        _workflowProjectionRuntime.WaitForAsync(key, sequence, ct);
-
-    internal string? WorkflowCheckpointRoot => _workflowCheckpointStore.Root;
 
     public async ValueTask DisposeAsync()
     {
@@ -199,19 +135,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
         _jobs.Writer.TryComplete();
         _reads?.Writer.TryComplete();
-        var projectionShutdown = _workflowProjectionRuntime.DisposeAsync().AsTask();
         await _cts.CancelAsync().ConfigureAwait(false);
-
-        try
-        {
-            await projectionShutdown
-                .WaitAsync(s_shutdownTimeout)
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            AddShutdownError(ref shutdownErrors, ex);
-        }
 
         try
         {
@@ -272,9 +196,6 @@ internal sealed partial class DuckDbStore : IQylStore
         }
 
         Connection.Dispose();
-        _workflowCheckpointStore.Dispose();
-        _checkpointManifestMutationGate.Dispose();
-        _checkpointReconciliationGate.Dispose();
         _cts.Dispose();
 
         if (shutdownErrors is { Count: > 0 })
@@ -296,22 +217,6 @@ internal sealed partial class DuckDbStore : IQylStore
         await _reads.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         return await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
-
-    private async Task<T> ExecuteReadAsync<T>(
-        Func<DuckDBConnection, CancellationToken, ValueTask<T>> read,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        ct.ThrowIfCancellationRequested();
-
-        if (_reads is null)
-            return await ExecuteWriteAsync(read, ct).ConfigureAwait(false);
-
-        var job = new AsyncReadJob<T>(read, ct);
-        await _reads.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.WaitAsync(ct).ConfigureAwait(false);
-    }
-
 
     private async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
         CancellationToken ct = default)
@@ -591,7 +496,7 @@ internal sealed partial class DuckDbStore : IQylStore
     {
         errors ??= [];
         errors.Add(error);
-        WorkflowLifecycleLog.ShutdownFailed(_logger, error);
+        DuckDbStoreLog.ShutdownFailed(_logger, error);
     }
 
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
@@ -764,7 +669,7 @@ internal sealed partial class DuckDbStore : IQylStore
         }
         catch (Exception error)
         {
-            WorkflowLifecycleLog.StorageWorkerFailed(_logger, error);
+            DuckDbStoreLog.StorageWorkerFailed(_logger, error);
         }
         finally
         {
@@ -915,9 +820,7 @@ internal sealed partial class DuckDbStore : IQylStore
             CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
         }
 
-        DropRetiredDerivedTables(con, transaction);
-        EnsureCheckpointClock(con, transaction);
-        RebuildWorkflowRunSummaries(con, transaction);
+        DropRetiredTables(con, transaction);
         WriteSchemaIdentity(con, transaction);
         transaction.Commit();
 
@@ -1187,26 +1090,12 @@ internal sealed partial class DuckDbStore : IQylStore
             ExecuteSchemaSql(con, transaction, $"DROP INDEX IF EXISTS {QuoteIdentifier(index.Name)}");
     }
 
-    private static void DropRetiredDerivedTables(
+    private static void DropRetiredTables(
         DuckDBConnection con,
         DbTransaction transaction)
     {
-        foreach (var table in DuckDbGeneratedSchema.RetiredDerivedTableNames)
+        foreach (var table in DuckDbGeneratedSchema.RetiredTableNames)
             ExecuteSchemaSql(con, transaction, $"DROP TABLE IF EXISTS {QuoteIdentifier(table)}");
-    }
-
-    private static void EnsureCheckpointClock(
-        DuckDBConnection con,
-        DbTransaction transaction)
-    {
-        using var command = con.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-                              INSERT INTO workflow_checkpoint_clock
-                              VALUES (0, 0)
-                              ON CONFLICT DO NOTHING
-                              """;
-        command.ExecuteNonQuery();
     }
 
     private static void ExecuteSchemaSql(
@@ -1220,6 +1109,12 @@ internal sealed partial class DuckDbStore : IQylStore
         command.Transaction = transaction;
         command.CommandText = sql;
         command.ExecuteNonQuery();
+    }
+
+    private static void AddParameters(DuckDBCommand command, params object[] values)
+    {
+        foreach (var value in values)
+            command.Parameters.Add(new DuckDBParameter { Value = value });
     }
 
     private static string QuoteIdentifier(string value) =>
@@ -1393,48 +1288,6 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             if (error is OperationCanceledException oce)
                 _tcs.TrySetCanceled(oce.CancellationToken);
-            else
-                _tcs.TrySetException(error);
-        }
-    }
-
-    private sealed class AsyncReadJob<TResult>(
-        Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> read,
-        CancellationToken ct) : IReadJob
-    {
-        private readonly TaskCompletionSource<TResult> _tcs =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public Task<TResult> Task => _tcs.Task;
-
-        public async ValueTask ExecuteAsync(DuckDBConnection con)
-        {
-            if (ct.IsCancellationRequested)
-            {
-                _tcs.TrySetCanceled(ct);
-                return;
-            }
-
-            try
-            {
-                _tcs.TrySetResult(await read(con, ct).ConfigureAwait(false));
-            }
-            catch (OperationCanceledException error)
-            {
-                _tcs.TrySetCanceled(error.CancellationToken);
-            }
-            catch (Exception error)
-            {
-                _tcs.TrySetException(error);
-            }
-        }
-
-        public void Cancel() => _tcs.TrySetCanceled(ct);
-
-        public void Abort(Exception error)
-        {
-            if (error is OperationCanceledException cancelled)
-                _tcs.TrySetCanceled(cancelled.CancellationToken);
             else
                 _tcs.TrySetException(error);
         }

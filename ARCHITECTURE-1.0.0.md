@@ -188,8 +188,7 @@ eng/build                        → SemanticConventions, Incubating        (cat
 eng/tools/QylSdkConformance      → Qyl.Api.Contracts
 internal/qyl.instrumentation     → Qyl.Telemetry.Hosting, Qyl.Api.Contracts,
                                    SemanticConventions, Incubating        (self-telemetry only)
-packages/Qyl.Cli                 → Qyl.Api.Contracts,
-                                   SemanticConventions, Incubating       (scope and event names)
+packages/Qyl.Cli                 → Qyl.Api.Contracts
 packages/Qyl.Run.Workload        → SemanticConventions.SourceGeneration
 services/qyl.collector           → Qyl.Api.Contracts
 tests/Qyl.Sdk.Conformance        → Qyl.Telemetry.Hosting                  (released package, never a project)
@@ -385,64 +384,21 @@ The Workbench's own API is in the contract. The external MCP servers it
 connects to are not, and never will be: an open-world client's job is servers
 with no shared static contract.
 
-### Workflow state
+### Collector persistence
 
-Two owners, no third copy of truth. `qyl-api-schema` owns every public workflow
-HTTP, SSE, and MCP shape — branded identifiers, opaque cursors, closed
-projection-status variants, structured `deleted` / `cursor` / `unavailable` /
-`corrupt` errors. The collector owns the private persistence:
-
-- The append-only DuckDB **journal** is the sole authoritative record of
-  workflow history. Run summaries, graphs, nodes, edges, statistics, manifests,
-  repair state, and checkpoint files are derived and may be discarded and
-  rebuilt. Durable deletion is a tombstone: it blocks new events and stale
-  publication and never erases journal history.
-- Each run generation has at most one committed manifest referencing one
-  immutable, content-addressed checkpoint. A checkpoint is trusted only when
-  generation, included journal position, canonical input hash, projector
-  fingerprint, configuration fingerprint, format version, byte length, and
-  SHA-256 address all match; reads then continue incrementally from that
-  position.
-- Checkpoint replacement is write → flush → close → validate → CAS-publish. The
-  previous manifest stays active until the CAS succeeds; a loser reloads the
-  winner and cannot overwrite it. One hosted reconciliation owner validates
-  manifests, schedules rebuilds for missing, corrupt, stale, or incompatible
-  state, and removes orphans after a safety interval. It never edits the
-  journal.
-- The projection runtime coalesces demand per generation, distinguishes
-  rotation from deletion, transfers waiters to a live successor, and preserves
-  cancellation ownership. Every DuckDB error type has an explicit
-  classification: retryable failures get bounded storage-level retries;
-  constraint, schema, corruption, and programmer failures never become caller
-  retry loops.
-- Storage APIs divide by semantics. Generated appenders — reusable rows, static
-  callbacks, native `byte[]` for BLOBs — own append-only ingestion. Typed,
-  parameterised, transactional SQL owns everything needing sequence allocation,
-  idempotency, `ON CONFLICT`, affected-row counts, CAS, or `RETURNING`.
-  Streaming Arrow with asynchronous batches, disposed at the generated boundary
-  with cancellation propagated, owns bulk reads; point reads stay typed
-  ADO.NET.
-- The private schema and access paths are generated from one metadata model —
-  canonical DDL, stable column order and types, appender writers, Arrow
-  mappings, verifier metadata — with authoritative and disposable SHA-256
-  schema identities in `qyl_schema_meta`. Empty databases are created directly;
-  disposable tables are dropped and recreated on mismatch; a mismatch on
-  non-empty authoritative tables fails closed and requires an explicit,
-  operator-visible reset or a separately proven journal-preserving
-  replacement. There is no migration framework, no persisted graph table, no
-  replay-on-read, no hand-written public workflow DTO, no caller retry patch,
-  no hand-written hot-path storage adapter.
-- Checkpoint filesystem containment is platform-owned (pinned directory
-  handles and no-follow atomic creates on Linux/macOS; rooted validation with
-  reparse-point rejection, atomic create-new, and no-overwrite move on
-  Windows). Every published RID keeps the same journal and checkpoint
-  behaviour; none falls back to memory-only derived state.
-- Structured logs cover journal commits, projection lifecycle and positions,
-  checkpoint validation and CAS outcomes, repairs, and storage classifications
-  — never workflow payloads or secrets.
-
-Arrow, DuckDB types, rows, hashes, and checkpoints never cross the public
-contract boundary.
+The collector owns its DuckDB storage privately; no row, hash or DuckDB type
+crosses the public contract boundary. The private schema and access paths are
+generated from one metadata model — canonical DDL, stable column order and
+types, verifier metadata — with authoritative and disposable SHA-256 schema
+identities in `qyl_schema_meta`. Empty databases are created directly;
+disposable derived tables are dropped and recreated on mismatch; a mismatch on
+non-empty authoritative tables fails closed and requires an explicit,
+operator-visible reset — a new database file, never an `ALTER`. Tables retired
+from the model are dropped by name. There is no migration framework and no
+hand-written hot-path storage adapter. Every DuckDB error type has an explicit
+classification: retryable failures get bounded storage-level retries;
+constraint, schema, corruption, and programmer failures never become caller
+retry loops.
 
 ---
 
@@ -521,8 +477,8 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 |---|---|---|---|
 | Producer family (`Qyl.Telemetry.*`) | 10.1.0 · ABI `V10` | 10.1.0 · ABI `V10` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
 | Semantic conventions | 7.1.1 | — | `Directory.Build.props` `<VersionPrefix>` |
-| Collector + `qyl` tool | 2.0.0 | — | `qyl/Version.props` `<QylVersion>` |
-| API contract | 8.0.0 | — | release tag |
+| Collector + `qyl` tool | 3.0.0 | — | `qyl/Version.props` `<QylVersion>` |
+| API contract | 9.0.0 | — | release tag |
 | MCP plane (`qyl-mcp-server`, root, workbench) | 3.0.0 · 1.1.1 · 1.1.1 | — | `qyl.mcp/*/package.json` |
 | Site (`qyl.at`) | 1.0.0 | — | `qyl.at/package.json` |
 
@@ -531,7 +487,7 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 | Producer → semantic conventions | 7.1.1 | 7.1.1 — in sync | producer `Directory.Packages.props` |
 | Collector → producer family | 10.1.0 | 10.1.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
 | Collector → semantic conventions | 7.1.1 | 7.1.1 — in sync | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
-| Collector, MCP, dashboards → API contract | 8.0.0 | 8.0.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
+| Collector, MCP, dashboards → API contract | 9.0.0 | 9.0.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
 
 The producer → semantic-conventions edge was a migration, not a bump: the
 definition types ship as package types from 6.0.0 on, and `QYLSG001` is an
