@@ -475,8 +475,8 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 
 | Line | Shipped | Next | Owner of the number |
 |---|---|---|---|
-| Producer family (`Qyl.Telemetry.*`) | 10.1.0 · ABI `V10` | 10.1.0 · ABI `V10` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
-| Semantic conventions | 7.1.1 | — | `Directory.Build.props` `<VersionPrefix>` |
+| Producer family (`Qyl.Telemetry.*`) | 11.0.0 · ABI `V11` | 11.0.0 · ABI `V11` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
+| Semantic conventions | 8.0.0 | — | `Directory.Build.props` `<VersionPrefix>` |
 | Collector + `qyl` tool | 3.0.0 | — | `qyl/Version.props` `<QylVersion>` |
 | API contract | 9.0.0 | — | release tag |
 | MCP plane (`qyl-mcp-server`, root, workbench) | 3.0.0 · 1.1.1 · 1.1.1 | — | `qyl.mcp/*/package.json` |
@@ -484,9 +484,9 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 
 | Consumer → owner | Pinned | Target | Where |
 |---|---|---|---|
-| Producer → semantic conventions | 7.1.1 | 7.1.1 — in sync | producer `Directory.Packages.props` |
-| Collector → producer family | 10.1.0 | 10.1.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
-| Collector → semantic conventions | 7.1.1 | 7.1.1 — in sync | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
+| Producer → semantic conventions | 8.0.0 | 8.0.0 — in sync | producer `Directory.Packages.props` |
+| Collector → producer family | 11.0.0 | 11.0.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
+| Collector → semantic conventions | 8.0.0 | 8.0.0 — in sync | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
 | Collector, MCP, dashboards → API contract | 9.0.0 | 9.0.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
 
 The producer → semantic-conventions edge was a migration, not a bump: the
@@ -503,7 +503,7 @@ in the owning file:
 | `MassTransit.RabbitMQ` | 8.5.10      | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
 | `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0       | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
 | `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3      | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
-| `Qyl.Telemetry.SemanticConventions.Analyzers` | 7.1.1, unreferenced here | The producer references it from 10.1.0 under the instrumentation-library opt-out; no project in this repository references it until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
+| `Qyl.Telemetry.SemanticConventions.Analyzers` | 8.0.0, unreferenced here | The producer references it from 10.1.0 under the instrumentation-library opt-out; no project in this repository references it until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
 | `OpenTelemetry.Instrumentation.Runtime` | absent      | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
 
 ---
@@ -601,7 +601,7 @@ describes a gap.
   `Qyl.Telemetry.AutoInstrumentation.Hosting` ship as separate packages, and
   `AddQylAutoInstrumentation()` lives in the latter; both fold into
   `Qyl.Telemetry.AutoInstrumentation`.
-- The producer pins semantic conventions 7.1.1, which carries the typed
+- The producer pins semantic conventions 8.0.0, which carries the typed
   definitions, but `QylMetricNames` still hand-types the two qyl instrument
   names and no analyzer checks enrichment against required attributes.
 - The upstream contract YAML is read only by `tools/generate-contract-artifacts.py`;
