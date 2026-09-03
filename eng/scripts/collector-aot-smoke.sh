@@ -21,7 +21,6 @@ SDK_CONFORMANCE_PROJECT="$REPO_ROOT/tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformanc
 SDK_CONFORMANCE_DRIVER_PROJECT="$REPO_ROOT/eng/tools/QylSdkConformance/QylSdkConformance.csproj"
 SDK_CONFORMANCE_PUBLISH_DIRECTORY="$REPO_ROOT/artifacts/publish/Qyl.Sdk.Conformance/release"
 AUTH_KEY="aot-smoke-api-key-$SMOKE_ID"
-WORKFLOW_CONTENT_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 cleanup() {
   local status=$?
@@ -136,7 +135,6 @@ start_container() {
     --mount "type=volume,source=$VOLUME_NAME,target=/data"
     --env "PORT=$API_CONTAINER_PORT"
     --env "QYL_OTLP_AUTH_MODE=$auth_mode"
-    --env "QYL_WORKFLOW_CONTENT_KEY=$WORKFLOW_CONTENT_KEY"
   )
 
   if [[ "$auth_mode" == "ApiKey" ]]; then
@@ -216,13 +214,6 @@ docker exec "$CONTAINER_NAME" test -s /data/qyl.duckdb \
   || fail "collector did not persist its DuckDB file on /data"
 echo "[smoke] Native storage file verified"
 
-phase "Workflow journal projection publishes a statically linked checkpoint"
-run_driver workflow-write "$API_BASE"
-docker exec "$CONTAINER_NAME" sh -c \
-  'find /data/qyl.duckdb.workflow-checkpoints -type f -name "*.json" -print -quit | grep -q .' \
-  || fail "workflow projection did not publish a checkpoint sidecar"
-echo "[smoke] Workflow checkpoint publication verified"
-
 phase "Stock OTel SDK default export with only OTEL_EXPORTER_OTLP_ENDPOINT"
 (
   while IFS='=' read -r variable _; do
@@ -244,8 +235,6 @@ wait_for_ready
 assert_runtime_identity
 run_driver persistence "$API_BASE"
 echo "[smoke] Trace persisted across container restart"
-run_driver workflow-read "$API_BASE"
-echo "[smoke] Workflow checkpoint survived container restart"
 stop_cleanly "Persistent-container graceful stop"
 
 phase "Lane 6: ApiKey-mode gRPC rejects missing metadata"
@@ -257,4 +246,4 @@ run_driver grpc-auth "$GRPC_BASE"
 stop_cleanly "ApiKey-container graceful stop"
 
 echo
-echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes, workflow checkpoint persistence, and released-Qyl.Telemetry.Hosting conformance"
+echo "[smoke] PASS: the Native AOT deployment image satisfies all seven OTLP wire lanes and released-Qyl.Telemetry.Hosting conformance"

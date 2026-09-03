@@ -20,9 +20,6 @@ internal sealed class DuckDbHealthCheck(IQylStore store, RetentionOptions retent
                 ["session_count"] = stats.SessionCount,
                 ["database_file_size_bytes"] = fileMetrics.DatabaseFileSizeBytes,
                 ["wal_file_size_bytes"] = fileMetrics.WalFileSizeBytes,
-                ["live_checkpoint_bytes"] = fileMetrics.LiveCheckpointBytes,
-                ["temporary_or_orphan_checkpoint_bytes"] =
-                    fileMetrics.TemporaryOrOrphanCheckpointBytes,
                 ["managed_storage_bytes"] = fileMetrics.ManagedStorageBytes,
                 ["storage_free_bytes"] = fileMetrics.StorageFreeBytes
             };

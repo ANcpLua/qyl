@@ -12,7 +12,6 @@
 **/.cursor
 **/.fleet
 **/.claude
-**/.codex
 **/.agents
 **/.mcp.json
 **/*.*proj.user

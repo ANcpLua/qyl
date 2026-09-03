@@ -25,10 +25,6 @@
     <PackageReference Include="OpenTelemetry"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="Qyl.Api.Contracts"/>
-    <!-- The qyl-owned scope and event names moved into the stable package in 7.0.0;
-         the incubating sibling still carries the qyl.* attribute keys. -->
-    <PackageReference Include="Qyl.Telemetry.SemanticConventions" PrivateAssets="all"/>
-    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 

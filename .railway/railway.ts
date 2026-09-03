@@ -46,7 +46,6 @@ export default defineRailway(() => {
       QYL_OTLP_PRIMARY_API_KEY: preserve(),
       QYL_PORT: preserve(),
       QYL_RETENTION_DAYS: preserve(),
-      QYL_WORKFLOW_CONTENT_KEY: preserve(),
     },
   });
 

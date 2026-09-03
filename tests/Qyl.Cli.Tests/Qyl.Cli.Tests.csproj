@@ -28,8 +28,4 @@
     <ProjectReference Include="../../packages/Qyl.Cli/Qyl.Cli.csproj"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="Fixtures/**/*.jsonl" CopyToOutputDirectory="PreserveNewest"/>
-  </ItemGroup>
-
 </Project>

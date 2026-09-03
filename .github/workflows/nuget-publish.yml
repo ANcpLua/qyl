@@ -248,12 +248,6 @@ jobs:
               "osx-x64": "libduckdb.dylib", "osx-arm64": "libduckdb.dylib",
               "win-x64": "duckdb.dll", "win-arm64": "duckdb.dll",
           }
-          checkpoint_native = {
-              "linux-x64": "libqyl_checkpoint_native.so",
-              "linux-arm64": "libqyl_checkpoint_native.so",
-              "osx-x64": "libqyl_checkpoint_native.dylib",
-              "osx-arm64": "libqyl_checkpoint_native.dylib",
-          }
           actual = set()
           for path in glob.glob("Artifacts/nuget/*.nupkg"):
               with zipfile.ZipFile(path) as package:
@@ -294,8 +288,6 @@ jobs:
                       f"{prefix}/collector/qyl.collector.runtimeconfig.json",
                       f"{prefix}/collector/{native[rid]}",
                   }
-                  if rid in checkpoint_native:
-                      required.add(f"{prefix}/collector/{checkpoint_native[rid]}")
                   missing = required - entries
                   if missing:
                       raise SystemExit(f"{package_id} is missing runtime entries: {sorted(missing)}")
