@@ -41,7 +41,8 @@ project.lock.json
 *.svclog
 *.scc
 
-.claude/
+.claude/settings.local.json
+.claude/settings.local.json.*
 
 .smart/
 
