@@ -1,0 +1,8 @@
+services:
+  qyl.sample:
+    image: qyl.sample
+    build:
+      context: .
+      dockerfile: qyl.sample/Dockerfile
+    ports:
+      - "127.0.0.1:5062:8080"

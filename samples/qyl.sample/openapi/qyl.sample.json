@@ -1,0 +1,267 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "qyl.sample | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/todos": {
+      "get": {
+        "tags": [
+          "Todos"
+        ],
+        "summary": "Lists every todo.",
+        "operationId": "GetTodos",
+        "responses": {
+          "200": {
+            "description": "All todos, ordered by identity.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Todo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Todos"
+        ],
+        "summary": "Creates a todo.",
+        "description": "The request is validated by the generated validation resolver before this handler runs.",
+        "operationId": "CreateTodo",
+        "requestBody": {
+          "description": "The todo to create.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTodoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The todo was stored; `Location` points at its JSON representation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/todos/{id}": {
+      "get": {
+        "tags": [
+          "Todos"
+        ],
+        "summary": "Gets a todo as JSON.",
+        "operationId": "GetTodoById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identity of the todo.",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The todo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No todo has that identity."
+          }
+        }
+      }
+    },
+    "/todos/{id}/xml": {
+      "get": {
+        "tags": [
+          "Todos"
+        ],
+        "summary": "Gets a todo as XML.",
+        "description": "The document is written by the `XmlWriter` code generated for `[GenerateXml]`; no `XmlSerializer` and no runtime reflection are involved.",
+        "operationId": "GetTodoXml",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identity of the todo.",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The todo as an XML document.",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No todo has that identity."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateTodoRequest": {
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string",
+            "description": "What has to be done."
+          },
+          "dueBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The day it is due, if any.",
+            "format": "date"
+          }
+        },
+        "description": "Request body for creating a todo. The DataAnnotations are enforced by the generated validation resolver before the handler runs."
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Todo": {
+        "required": [
+          "id",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Identity of the todo.",
+            "format": "int32"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What has to be done."
+          },
+          "dueBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The day it is due, if any.",
+            "format": "date"
+          },
+          "isComplete": {
+            "type": "boolean",
+            "description": "Whether it is done.",
+            "default": false
+          }
+        },
+        "description": "A todo item. JSON through AppJsonSerializerContext; XML through the generated IXmlWritable implementation."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Todos"
+    }
+  ]
+}

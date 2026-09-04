@@ -1,0 +1,42 @@
+@qyl.sample_HostAddress = http://localhost:5062
+
+### All todos (template)
+GET {{qyl.sample_HostAddress}}/todos/
+Accept: application/json
+
+### One todo as JSON (template)
+GET {{qyl.sample_HostAddress}}/todos/1
+Accept: application/json
+
+### The same todo as XML: written by the generated XmlWriter code behind [GenerateXml]
+GET {{qyl.sample_HostAddress}}/todos/1/xml
+Accept: application/xml
+
+### Invalid request: the generated validation resolver answers 400 application/problem+json
+POST {{qyl.sample_HostAddress}}/todos/
+Content-Type: application/json
+
+{
+  "title": "no"
+}
+
+### Valid request: 201 with Location: /todos/{id}
+# @name create
+POST {{qyl.sample_HostAddress}}/todos/
+Content-Type: application/json
+
+{
+  "title": "Read the generated code under obj/generated",
+  "dueBy": "2026-09-05"
+}
+
+### Read it back as XML
+GET {{qyl.sample_HostAddress}}/todos/{{create.response.body.id}}/xml
+Accept: application/xml
+
+### Unknown identity: 404
+GET {{qyl.sample_HostAddress}}/todos/999
+
+### OpenAPI document: XML-comment summaries, validation 400, application/xml 200
+GET {{qyl.sample_HostAddress}}/openapi/v1.json
+Accept: application/json
