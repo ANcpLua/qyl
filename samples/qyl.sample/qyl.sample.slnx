@@ -14,6 +14,8 @@
     <File Path="qyl.sdk/Build/Qyl.Sdk.Api.props" />
     <File Path="qyl.sdk/Build/Qyl.Sdk.Api.targets" />
     <File Path="qyl.sdk/Build/Qyl.Sdk.Packages.props" />
+    <File Path="qyl.sdk/Qyl.Sdk.nuspec" />
+    <Project Path="qyl.sdk/Qyl.Sdk.csproj" />
     <Project Path="qyl.sdk/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" />
   </Folder>
   <Folder Name="/qyl.sdk/Sources/">
