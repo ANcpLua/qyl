@@ -305,11 +305,20 @@ definition's required attributes.
 
 #### Signals
 
-**Traces.** Spans come from the declarative interceptor catalog above, from
-`DiagnosticSource` listeners, and from library-native `ActivitySource`s that
-qyl subscribes to by name. Span names are computed from tags by fixed rules;
-span kinds, required attributes, and scope names are registry facts. No tag
-key or source name is a hand-typed literal (G1). The one recorded exception is
+**Traces.** Which of the three mechanisms carries a library is decided by one
+question, asked per library: does `AddSource(name)` alone deliver spans,
+without a contrib package and without a `DiagnosticListener` adapter?
+
+| Answer | Mechanism |
+|---|---|
+| Yes | `AddSource` plus one table-driven `Qyl.Telemetry.Hosting` processor. No interceptor. |
+| Native source behind a consumer opt-in | The same, with the opt-in documented and analyzer-checked. Never injected on the consumer's behalf. |
+| No, including `DiagnosticSource`-only libraries | A Roslyn interceptor from the declarative catalog above. |
+
+Source names are registry facts — generated constants from the semantic
+conventions — and span names are computed from tags by fixed rules; span kinds
+and required attributes are registry facts too. No tag key or source name is a
+hand-typed literal (G1). The one recorded exception is
 GraphQL: its `graphql.server` span group is development-stability and the span
 nests inside the ASP.NET Core server span, so qyl keeps `ActivityKind.Internal`
 for it by decision (2026-09-02) rather than emitting a second server span per
@@ -457,12 +466,12 @@ rename is an **ABI-free slice** when the namespace and the entry point survive
 (`Qyl.Sdk` → `Qyl.Telemetry.Hosting` kept namespace `Qyl` and `AddQyl()`).
 
 The inbound scope name is a registry fact (`scope_names` →
-`QylTelemetryNames.Scopes`), and is `Qyl.Telemetry.AutoInstrumentation` as of
-AutoInstrumentation 10.0.0 — the rename from
-`Qyl.OpenTelemetry.AutoInstrumentation` shipped with that producer major, which
-is how a registry change is always shipped; readers accept both names across
-it. The conformance assertion in `tests/Qyl.Sdk.Conformance/Program.cs` pins
-the new name, flipped in the same commit as the 10.0.0 pin bump.
+`QylTelemetryNames.Scopes`), and is `Qyl.Telemetry.AutoInstrumentation`. The
+conformance assertion in `tests/Qyl.Sdk.Conformance/Program.cs` pins what the
+producer emits. The collector reads no scope name: the OTLP converters touch
+`ScopeSpans`, `ScopeMetrics` and `ScopeLogs` only to reach the records and to
+inherit `SchemaUrl`, and no scope column is stored. Ingestion neither accepts
+nor rejects a spelling, because it never looks at one.
 
 ByteIdentity snapshots, PublicAPI baselines, and pinned verifier tokens
 regenerate in the same commit as the change: one change, one regeneration, one
@@ -476,18 +485,18 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 
 | Line | Shipped | Next | Owner of the number |
 |---|---|---|---|
-| Producer family (`Qyl.Telemetry.*`) | 11.0.0 · ABI `V11` | 11.0.0 · ABI `V11` | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
-| Semantic conventions | 8.0.0 | — | `Directory.Build.props` `<VersionPrefix>` |
-| Collector + `qyl` tool | 3.0.0 | — | `qyl/Version.props` `<QylVersion>` |
+| Producer family (`Qyl.Telemetry.*`) | 13.0.0 · ABI `V13` | — | `Directory.Build.props` `<Version>`, `QylGeneratedCodeAbi.cs` (`refactor/elegance`) |
+| Semantic conventions | 8.1.0 | — | `Directory.Build.props` `<VersionPrefix>` |
+| Collector + `qyl` tool | 3.0.0 | 3.1.0 | `qyl/Version.props` `<QylVersion>` |
 | API contract | 9.0.0 | — | release tag |
 | MCP plane (`qyl-mcp-server`, root, workbench) | 4.0.0 · 1.1.1 · 1.1.1 | — | `qyl.mcp/*/package.json` |
 | Site (`qyl.at`) | 1.0.0 | — | `qyl.at/package.json` |
 
 | Consumer → owner | Pinned | Target | Where |
 |---|---|---|---|
-| Producer → semantic conventions | 8.0.0 | 8.0.0 — in sync | producer `Directory.Packages.props` |
-| Collector → producer family | 11.0.0 | 11.0.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
-| Collector → semantic conventions | 8.0.0 | 8.0.0 — in sync | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
+| Producer → semantic conventions | 8.1.0 | 8.1.0 — in sync | producer `Directory.Packages.props` |
+| Collector → producer family | 13.0.0 | 13.0.0 | `qyl/Version.props` `<QylTelemetryVersion>` |
+| Collector → semantic conventions | 8.1.0 | 8.1.0 — in sync | `qyl/Version.props` `<QylSemanticConventionsVersion>` |
 | Collector, MCP, dashboards → API contract | 9.0.0 | 9.0.0 — in sync | `qyl/Version.props` `<QylApiContractsVersion>`; `package.json` exact pins |
 
 The producer → semantic-conventions edge was a migration, not a bump: the
@@ -500,11 +509,11 @@ in the owning file:
 
 | Pin | Held at     | Why |
 |---|-------------|---|
-| `Microsoft.OpenApi` | 2.12.2      | `Microsoft.AspNetCore.OpenApi` 10.x declares `[2.x, 3.0.0)` and its generator assigns a member read-only in 3.x (CS0200); fixed in .NET 11 preview4+. `qyl/Version.props` |
+| `Microsoft.OpenApi` | 2.12.2      | `Microsoft.AspNetCore.OpenApi` 10.0.11 declares `[2.7.5, 3.0.0)` and its source generator fails to compile against 3.x with CS0012; waits for the .NET release that widens the range. `qyl/Version.props` |
 | `MassTransit.RabbitMQ` | 8.5.10      | 9+ requires a runtime licence; the verifier stays on the no-secret line. Producer `Directory.Packages.props` |
 | `Microsoft.CodeAnalysis.PublicApiAnalyzers` | 5.6.0       | Ships on its own cadence; no release matches the compiler line, so it has its own property. `qyl/Version.props`, producer `Directory.Packages.props` |
 | `SQLitePCLRaw.lib.e_sqlite3` | 3.53.3      | Overrides `Microsoft.Data.Sqlite`'s vulnerable native transitive (GHSA-2m69-gcr7-jv3q). Producer `Directory.Packages.props` |
-| `Qyl.Telemetry.SemanticConventions.Analyzers` | 8.0.0, unreferenced here | The producer references it from 10.1.0 under the instrumentation-library opt-out; no project in this repository references it until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
+| `Qyl.Telemetry.SemanticConventions.Analyzers` | 8.1.0, unreferenced here | The producer references it from 10.1.0 under the instrumentation-library opt-out; no project in this repository references it until consumer evidence and behaviour coverage exist (§10, `QYL0200`) |
 | `OpenTelemetry.Instrumentation.Runtime` | absent      | The runtime's `System.Runtime` meter is subscribed directly (§4); on .NET 9+ the package is a forwarder to it |
 
 ---
@@ -602,7 +611,7 @@ describes a gap.
   `Qyl.Telemetry.AutoInstrumentation.Hosting` ship as separate packages, and
   `AddQylAutoInstrumentation()` lives in the latter; both fold into
   `Qyl.Telemetry.AutoInstrumentation`.
-- The producer pins semantic conventions 8.0.0, which carries the typed
+- The producer pins semantic conventions 8.1.0, which carries the typed
   definitions, but `QylMetricNames` still hand-types the two qyl instrument
   names and no analyzer checks enrichment against required attributes.
 - The upstream contract YAML is read only by `tools/generate-contract-artifacts.py`;
@@ -611,9 +620,6 @@ describes a gap.
   the registry, and the helper signature by hand, and
   `docs/contracts/qyl-aot-ownership.yaml` is hand-edited instead of joined
   from the emitted manifests.
-- Three system values (`dotnet_wcf`, `masstransit`, `nservicebus`) are
-  literals in the producer and in no registry: extend the registry or declare
-  them local — undecided.
 - Eight development keys (`web.vital.*`, `page.route`, `navigation.type`,
   `browser.*`) exist only in the collector policy, and the `qyl.at` Worker
   emits them as literals; they belong in `qyl-registry.json`.

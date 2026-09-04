@@ -7,7 +7,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-The latest public qyl release is 3.0.0, which is also the `main` branch source line. The
+The latest public qyl release is 3.1.0, which is also the `main` branch source line. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -59,9 +59,9 @@ each is published. Package registries are authoritative for public availability.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 3.0.0 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 11.0.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 8.0.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
+| `qyl` (dotnet tool) | 3.1.0 | this one |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 13.0.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.SemanticConventions*` | 8.1.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 9.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 4.0.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 
