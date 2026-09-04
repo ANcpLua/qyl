@@ -41,10 +41,9 @@ static async Task<IResult> RunConformanceAsync(
         lifetime);
 
     var inbound = Activity.Current;
-    // AutoInstrumentation 10.0.0 renamed the inbound scope from
-    // "Qyl.OpenTelemetry.AutoInstrumentation"; the registry (scope_names ->
-    // QylTelemetryNames.Scopes) is the source of this string, and this assertion is what
-    // proves the published package actually emits what the registry declares.
+    // The registry (scope_names -> QylTelemetryNames.Scopes) is the source of this string,
+    // and this assertion is what proves the published package actually emits what the
+    // registry declares.
     if (inbound is null ||
         !string.Equals(
             inbound.Source.Name,
