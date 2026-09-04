@@ -20,8 +20,9 @@ rather than against a guaranteed response window.
 
 ## Supported versions
 
-Fixes land on `main` and ship in the next release. Only the most recent released
-version receives security fixes; earlier 1.x releases are not patched in place.
+Fixes land on `main` and ship in the next release. Security fixes are published
+for the current 3.x line only; earlier majors (1.x and 2.x) are not patched in
+place.
 
 ## Disclosure
 
