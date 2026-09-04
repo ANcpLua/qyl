@@ -404,10 +404,11 @@ retry loops.
 
 ## 5. Enforcement over convention
 
-Every rule the compiler can own, the compiler owns, and the corresponding prose
-is deleted from `AGENTS.md`. Verification artifacts — analyzers, verifiers,
-snapshots, PublicAPI baselines, ABI anchors — are contracts: they change through
-their owning bump rule and regeneration, never by loosening so a change passes.
+Every rule the compiler can own, the compiler owns, and no prose restatement of
+it is kept anywhere in the repository. Verification artifacts — analyzers,
+verifiers, snapshots, PublicAPI baselines, ABI anchors — are contracts: they
+change through their owning bump rule and regeneration, never by loosening so a
+change passes.
 
 | Rule | Enforcer | Failure |
 |---|---|---|
@@ -479,7 +480,7 @@ and closes with its tag; a consumer row closes when the pin equals the owner.
 | Semantic conventions | 8.0.0 | — | `Directory.Build.props` `<VersionPrefix>` |
 | Collector + `qyl` tool | 3.0.0 | — | `qyl/Version.props` `<QylVersion>` |
 | API contract | 9.0.0 | — | release tag |
-| MCP plane (`qyl-mcp-server`, root, workbench) | 3.0.0 · 1.1.1 · 1.1.1 | — | `qyl.mcp/*/package.json` |
+| MCP plane (`qyl-mcp-server`, root, workbench) | 4.0.0 · 1.1.1 · 1.1.1 | — | `qyl.mcp/*/package.json` |
 | Site (`qyl.at`) | 1.0.0 | — | `qyl.at/package.json` |
 
 | Consumer → owner | Pinned | Target | Where |
