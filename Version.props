@@ -32,7 +32,7 @@
     <QylSemanticConventionsVersion>8.0.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>9.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.45</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.46</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">
@@ -48,7 +48,7 @@
          run it after any DuckDB bump because the option is experimental and its trigger
          timing has shifted between patch releases before. -->
     <DuckDBVersion>1.5.5</DuckDBVersion>
-    <GoogleProtobufVersion>3.36.0</GoogleProtobufVersion>
+    <GoogleProtobufVersion>3.36.1</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.83.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
   </PropertyGroup>
@@ -56,11 +56,11 @@
   <PropertyGroup Label="Build and test tooling">
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
-    <VersionizeVersion>2.6.0</VersionizeVersion>
+    <VersionizeVersion>2.7.0</VersionizeVersion>
     <XunitVersion>4.0.0</XunitVersion>
     <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
-    <NetFrameworkReferenceAssembliesVersion>1.0.4</NetFrameworkReferenceAssembliesVersion>
+    <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
     <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
     <!-- Keeps Nuke's NuGet train patched and aligned with .NET SDK 10.0.400. -->
