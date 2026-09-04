@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>3.0.0</QylVersion>
+    <QylVersion>3.1.0</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -13,10 +13,10 @@
   <PropertyGroup Label="Platform">
     <DotNetRuntimeVersion>10.0.11</DotNetRuntimeVersion>
     <MicrosoftExtensionsVersion>10.9.0</MicrosoftExtensionsVersion>
-    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.x declares Microsoft.OpenApi [2.x, 3.0.0)
-         and its XmlCommentGenerator assigns IOpenApiMediaType.Example, read-only in 3.x (CS0200,
-         reproduced 2026-08-29 with 10.0.11 + 3.10.2). The generator fix (OfType<OpenApiMediaType>)
-         ships in .NET 11 preview4+ (preview7 current), so 3.x arrives with the .NET 11 move. -->
+    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.11 declares Microsoft.OpenApi
+         [2.7.5, 3.0.0), and its source generator fails to compile against 3.x with CS0012
+         (the type it emits lives in an assembly the generated code does not reference).
+         3.x arrives with the .NET release that widens the declared range. -->
     <MicrosoftOpenApiVersion>2.12.2</MicrosoftOpenApiVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
     <!-- Microsoft.CodeAnalysis.PublicApiAnalyzers ships on its own cadence and has no 5.9.0
@@ -28,8 +28,8 @@
   <PropertyGroup Label="qyl-owned packages">
     <!-- The producer family ships from the Qyl.OpenTelemetry.AutoInstrumentation repo on one
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property. -->
-    <QylTelemetryVersion>11.0.0</QylTelemetryVersion>
-    <QylSemanticConventionsVersion>8.0.0</QylSemanticConventionsVersion>
+    <QylTelemetryVersion>13.0.0</QylTelemetryVersion>
+    <QylSemanticConventionsVersion>8.1.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>9.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.46</ANcpLuaRoslynUtilitiesVersion>
