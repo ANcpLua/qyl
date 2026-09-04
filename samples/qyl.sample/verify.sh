@@ -2,7 +2,8 @@
 # Proves the qyl.sdk template extension end to end:
 #   build → every compile-time generator produced its output → committed OpenAPI contract is current →
 #   managed app passes the HTTP scenario → Native AOT publish → native binary passes the same scenario and serves the same contract →
-#   (when Docker is available) the container image builds with Native AOT and passes the scenario too.
+#   (when Docker is available) the container image builds with Native AOT and passes the scenario too →
+#   qyl.sdk packs as the Qyl.Sdk MSBuild SDK and a consumer using <Project Sdk="Qyl.Sdk/version"> builds the identical contract.
 set -euo pipefail
 
 root_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -124,16 +125,16 @@ require_generated() {
 
 cd "$root_dir"
 
-echo "[1/7] Build the solution into a scratch artifacts directory"
+echo "[1/8] Build the solution into a scratch artifacts directory"
 [[ -f "$contract" ]] || fail "committed contract $contract is missing: run dotnet build once and commit the result"
 cp "$contract" "$scratch_dir/contract-before-build.json"
 dotnet build "$solution" --configuration Release --artifacts-path "$scratch_dir/managed" --disable-build-servers --no-incremental -p:UseSharedCompilation=false
 
-echo "[2/7] Confirm the committed OpenAPI contract is what the build produced"
+echo "[2/8] Confirm the committed OpenAPI contract is what the build produced"
 # Compared against a copy taken before the build (not git diff), so the check also holds for files not yet committed.
 diff -u "$scratch_dir/contract-before-build.json" "$contract" >&2 || fail "qyl.sample/openapi/qyl.sample.json changed during the build: commit the result"
 
-echo "[3/7] Confirm every compile-time generator ran"
+echo "[3/8] Confirm every compile-time generator ran"
 require_generated "validation resolver"     "CreateTodoRequest"              "ValidatableInfoResolver.g.cs"
 require_generated "request delegates"       "MapPost"                        "GeneratedRouteBuilderExtensions.g.cs"
 require_generated "OpenAPI comment cache"   "Creates a todo."                "OpenApiXmlCommentSupport.generated.cs"
@@ -143,14 +144,14 @@ require_generated "problem JSON context"    "HttpValidationProblemDetails"   "Qy
 require_generated "public Program"          "public partial class Program"   "PublicTopLevelProgram.Generated.g.cs"
 echo "  All generators produced their output."
 
-echo "[4/7] Run the HTTP scenario against the managed build"
+echo "[4/8] Run the HTTP scenario against the managed build"
 managed_api="$(find "$scratch_dir/managed/bin" -type f -path '*qyl.sample*' -name 'qyl.sample' -perm -111 -print -quit)"
 [[ -x "${managed_api:-}" ]] || fail "managed app host not found"
 start_api "$managed_api" managed
 run_scenario managed
 stop_api
 
-echo "[5/7] Publish with Native AOT for $runtime_id"
+echo "[5/8] Publish with Native AOT for $runtime_id"
 dotnet publish "$project" --configuration Release --runtime "$runtime_id" --self-contained true --artifacts-path "$scratch_dir/native" --disable-build-servers -p:UseSharedCompilation=false
 native_api="$(find "$scratch_dir/native" -type f -path '*/publish/*' -name 'qyl.sample' -perm -111 -print -quit)"
 [[ -x "${native_api:-}" ]] || fail "native executable not found"
@@ -164,12 +165,12 @@ if find "$(dirname -- "$native_api")" -maxdepth 1 -type f \( -name '*.dll' -o -n
     fail "managed deployment files were found beside the native executable"
 fi
 
-echo "[6/7] Run the same scenario against the native executable"
+echo "[6/8] Run the same scenario against the native executable"
 start_api "$native_api" native
 run_scenario native
 stop_api
 
-echo "[7/7] Build the container image (Native AOT inside the SDK image) and run the scenario against it"
+echo "[7/8] Build the container image (Native AOT inside the SDK image) and run the scenario against it"
 if [[ "${SKIP_DOCKER:-0}" == "1" ]]; then
     echo "  skipped: SKIP_DOCKER=1"
 elif ! command -v docker >/dev/null || ! docker version >/dev/null 2>&1; then
@@ -198,5 +199,45 @@ else
     fi
 fi
 
+echo "[8/8] Pack qyl.sdk as the Qyl.Sdk MSBuild SDK and build a consumer from the package"
+sdk_version="$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' "$root_dir/qyl.sdk/Qyl.Sdk.csproj")"
+[[ -n "$sdk_version" ]] || fail "could not read the SDK version from qyl.sdk/Qyl.Sdk.csproj"
+feed="$scratch_dir/feed"
+dotnet pack "$root_dir/qyl.sdk/Qyl.Sdk.csproj" --configuration Release --output "$feed" --disable-build-servers -p:UseSharedCompilation=false
+[[ -f "$feed/Qyl.Sdk.$sdk_version.nupkg" ]] || fail "Qyl.Sdk.$sdk_version.nupkg was not produced"
+# The same sources as the sample, but the project reads <Project Sdk="Qyl.Sdk/version">: no imports, no generator reference, no CPM.
+consumer="$scratch_dir/consumer/qyl.sample"
+mkdir -p "$consumer"
+cp -R "$root_dir/qyl.sample/Program.cs" "$root_dir/qyl.sample/AppJsonSerializerContext.cs" "$root_dir/qyl.sample/Todos" "$root_dir/qyl.sample/appsettings.json" "$consumer/"
+cat >"$consumer/qyl.sample.csproj" <<PROJECT
+<Project Sdk="Qyl.Sdk/$sdk_version">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Qyl.Sample</RootNamespace>
+    </PropertyGroup>
+</Project>
+PROJECT
+cat >"$consumer/nuget.config" <<NUGET
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="qyl-local" value="$feed" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+</configuration>
+NUGET
+# The SDK resolver caches by id and version in the global packages folder; drop this version so the fresh package is used.
+rm -rf "${NUGET_PACKAGES:-$HOME/.nuget/packages}/qyl.sdk/$sdk_version"
+dotnet build "$consumer/qyl.sample.csproj" --configuration Release --disable-build-servers -p:UseSharedCompilation=false
+[[ -f "$consumer/obj/generated/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.XmlWriterGenerator/Qyl_Sample_Todo.GenerateXml.g.cs" ]] || fail "packaged generator did not run in the consumer"
+jq -S 'del(.servers)' "$consumer/openapi/qyl.sample.json" >"$scratch_dir/consumer-openapi.json"
+diff -q "$scratch_dir/contract.json" "$scratch_dir/consumer-openapi.json" >/dev/null || {
+    diff "$scratch_dir/contract.json" "$scratch_dir/consumer-openapi.json" >&2 || true
+    fail "the consumer built from the Qyl.Sdk package produced a different contract"
+}
+pass "Qyl.Sdk $sdk_version package" "<Project Sdk=\"Qyl.Sdk/$sdk_version\"> builds the identical contract"
+
 completed=1
-echo "All generator, validation, XML, OpenAPI, Native AOT, and container checks passed."
+echo "All generator, validation, XML, OpenAPI, Native AOT, container, and package checks passed."

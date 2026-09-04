@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Packs qyl.sdk/ as the Qyl.Sdk MSBuild SDK: `dotnet pack qyl.sdk/Qyl.Sdk.csproj -o <feed>`.
+    Nothing is compiled here; the nuspec lists Sdk/, Build/, Sources/, and the generator built by the project reference.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>0.1.0-alpha</Version>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NuspecFile>Qyl.Sdk.nuspec</NuspecFile>
+    <NuspecProperties>version=$(Version);configuration=$(Configuration)</NuspecProperties>
+    <!-- CS2008: no source files, by design. NU5128: no lib/ folder, by design. -->
+    <NoWarn>$(NoWarn);CS2008;NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

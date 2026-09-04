@@ -7,6 +7,8 @@
     <QylSdkSourcesPath>$(QylSdkRoot)Sources/</QylSdkSourcesPath>
     <QylSdkXmlGeneratorProject>$(QylSdkRoot)Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj</QylSdkXmlGeneratorProject>
 
+    <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
+
     <!-- Every HTTP boundary is produced at compile time; nothing is discovered by reflection at runtime. -->
     <PublishAot Condition="'$(PublishAot)' == ''">true</PublishAot>
     <InvariantGlobalization Condition="'$(InvariantGlobalization)' == ''">true</InvariantGlobalization>

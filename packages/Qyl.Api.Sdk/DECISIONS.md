@@ -61,3 +61,19 @@ written into the compilation as `Qyl.QylSdkBuild.OpenApiVersion` before `CoreCom
 consumer overrides the version with `<QylOpenApiVersion>OpenApi3_0</QylOpenApiVersion>` and both documents move together.
 `Configure<OpenApiOptions>("v1", ...)` remains the mechanism for everything else (transformers, `ShouldInclude`, ...);
 `verify.sh` fails if the served document ever differs from the committed one.
+
+## 2026-09-04 · Packed as an MSBuild SDK; the sample keeps explicit imports
+
+`Qyl.Sdk.csproj` + `Qyl.Sdk.nuspec` pack `Sdk/`, `Build/`, `Sources/**` and the generator (`analyzers/dotnet/cs`) as the
+`Qyl.Sdk` MSBuild SDK (`packageType` `MSBuildSdk`). The targets detect the packed form by the presence of that analyzer and switch
+from the `ProjectReference` to an `<Analyzer>`; implicit package references carry `Version` without CPM and `VersionOverride`
+with it. Verified by `verify.sh` stage 8: a consumer reading `<Project Sdk="Qyl.Sdk/0.1.0-alpha">` from a scratch feed, with the
+sample's sources and an unchanged `Program.cs`, produces the byte-identical contract.
+
+The sample in this repository stays on the explicit `Sdk.props` / `Sdk.targets` imports: a fresh clone must build in Rider or
+with `dotnet build` without a pack step and without a local feed. Whether the sample later moves into qyl or only the SDK is
+published is decided after this alpha.
+
+Open: the id `Qyl.Sdk` on nuget.org is qyl's telemetry onboarding package (`builder.AddQyl()`, owner ANcpLua, 5.1.0 … 8.5.0,
+latest 2026-07-26). This API SDK is a different thing under the same id. `0.1.0-alpha` is local-only and must not be pushed;
+publishing needs a decision: a new id for the API SDK, or folding it into the existing package.

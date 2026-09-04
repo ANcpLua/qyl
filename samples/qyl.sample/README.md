@@ -109,10 +109,11 @@ that sets it first wins.
 ./verify.sh
 ```
 
-Seven stages: build into a scratch artifacts directory; confirm the committed contract did not change; confirm every generator's
+Eight stages: build into a scratch artifacts directory; confirm the committed contract did not change; confirm every generator's
 output; run the HTTP scenario against the managed build; publish Native AOT for the current macOS or Linux runtime identifier; run
 the same scenario against the native executable and compare its `/openapi/v1.json` with the committed contract; when Docker is
-available, build the container image and run the scenario against it (`SKIP_DOCKER=1` skips that stage explicitly).
+available, build the container image and run the scenario against it (`SKIP_DOCKER=1` skips that stage explicitly); pack
+`Qyl.Sdk` and build a consumer from the package (see below).
 `RUNTIME_ID=linux-x64 ./verify.sh` overrides platform detection; `KEEP_ARTIFACTS=1` keeps the scratch directory.
 
 Run it by hand with `dotnet run --project qyl.sample` and [`qyl.sample/qyl.sample.http`](qyl.sample/qyl.sample.http), or
@@ -131,8 +132,30 @@ single-call API) is recorded with date and reason in [`qyl.sdk/DECISIONS.md`](qy
 - Upstream patterns are verified against the installed SDK, not against documentation; `verify.sh` is the source of truth for
   what this repository does.
 
-## Toward `Qyl.Sdk`
+## `Qyl.Sdk`, the package
 
-Packing `qyl.sdk/` as an MSBuild SDK (the `ANcpLua.NET.Sdk.Web` layout) means: `Sdk/*` as the entry points, `Build/*` as-is,
-`Sources/**` shipped as content the props keep linking into the consumer, and the generator under `analyzers/dotnet/cs` instead of a
-`ProjectReference`. The consumer then reads `<Project Sdk="Qyl.Sdk">`, and Program.cs does not change.
+`qyl.sdk/Qyl.Sdk.csproj` packs the same files as an MSBuild SDK (the `ANcpLua.NET.Sdk.Web` layout): `Sdk/*` as entry points,
+`Build/*` as-is, `Sources/**` as content the props keep linking into the consumer, the generator under `analyzers/dotnet/cs`.
+
+```sh
+dotnet pack qyl.sdk/Qyl.Sdk.csproj -o ./feed
+```
+
+A consumer then needs no imports, no generator reference, and no central package management:
+
+```xml
+<Project Sdk="Qyl.Sdk/0.1.0-alpha">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Qyl.Sample</RootNamespace>
+    </PropertyGroup>
+</Project>
+```
+
+`Program.cs` is unchanged. `verify.sh` stage 8 packs the SDK into a scratch feed, builds exactly this consumer from it with the
+sample's sources, and fails unless the contract it produces is identical to the committed one. The sample in this repository
+keeps the explicit imports so a fresh clone builds without a pack step.
+
+The id `Qyl.Sdk` is already taken on nuget.org by qyl's telemetry onboarding package (`builder.AddQyl()`, owner ANcpLua, latest
+8.5.0). This alpha is local-only under that id; publishing needs either a new id for the API SDK or a merge into the existing one.

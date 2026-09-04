@@ -1,6 +1,12 @@
 <Project>
-  <ItemGroup>
-    <!-- Implicit references carry their own version (NU1009): the SDK owns them, the consumer's CPM file does not. -->
+  <PropertyGroup>
+    <!-- Packed form: the generator ships under analyzers/dotnet/cs; in-repo form: it is a project next to this file. -->
+    <_QylSdkPackagedGenerator>$(QylSdkRoot)analyzers/dotnet/cs/Qyl.Sdk.Xml.Generator.dll</_QylSdkPackagedGenerator>
+    <QylSdkPackaged Condition="'$(QylSdkPackaged)' == '' and Exists('$(_QylSdkPackagedGenerator)')">true</QylSdkPackaged>
+  </PropertyGroup>
+
+  <!-- Implicit references carry their own version: the SDK owns them (NU1009 forbids a PackageVersion for an implicit reference). -->
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"
                       VersionOverride="$(QylAspNetCoreOpenApiVersion)"
                       IsImplicitlyDefined="true" />
@@ -10,8 +16,24 @@
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
                       IsImplicitlyDefined="true" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"
+                      Version="$(QylAspNetCoreOpenApiVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
+                      Condition="'$(QylEmitOpenApiDocument)' == 'true'"
+                      Version="$(QylApiDescriptionServerVersion)"
+                      PrivateAssets="all"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+                      IsImplicitlyDefined="true" />
+  </ItemGroup>
 
-    <!-- [GenerateXml] generator; consumed as an analyzer only. A packed SDK ships it under analyzers/dotnet/cs instead. -->
+  <!-- [GenerateXml] generator; consumed as an analyzer only. -->
+  <ItemGroup Condition="'$(QylSdkPackaged)' == 'true'">
+    <Analyzer Include="$(_QylSdkPackagedGenerator)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(QylSdkPackaged)' != 'true'">
     <ProjectReference Include="$(QylSdkXmlGeneratorProject)"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"

@@ -2,12 +2,11 @@
   <!--
     Qyl.Sdk entry point (props half).
 
-    Today the sample imports this file explicitly from a `Microsoft.NET.Sdk.Web` project:
-        <Import Project="../qyl.sdk/Sdk/Sdk.props" />   (first line of the project body)
-        <Import Project="../qyl.sdk/Sdk/Sdk.targets" /> (last line of the project body)
-
-    Packed as an MSBuild SDK the same two files become `<Project Sdk="Qyl.Sdk">`: the guarded
-    import below then pulls in Microsoft.NET.Sdk.Web itself, exactly like ANcpLua.NET.Sdk.Web does.
+    Two ways in, same files:
+      1. Packed:  <Project Sdk="Qyl.Sdk/0.1.0-alpha">   MSBuild imports Sdk/Sdk.props and Sdk/Sdk.targets from the package;
+                  the guarded import below pulls in Microsoft.NET.Sdk.Web itself, as ANcpLua.NET.Sdk.Web does.
+      2. In-repo: <Project Sdk="Microsoft.NET.Sdk.Web"> with explicit imports of this file (first line of the body)
+                  and Sdk.targets (last line); the sample does this so a fresh clone builds without a pack step.
   -->
   <PropertyGroup>
     <QylSdkRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))</QylSdkRoot>
@@ -16,5 +15,7 @@
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk.Web" Condition="'$(_QylMustImportMicrosoftNETSdk)' == 'true'" />
 
+  <!-- A repository that manages versions centrally imports this file from its Directory.Packages.props instead. -->
+  <Import Project="$(QylSdkRoot)Build/Qyl.Sdk.Packages.props" Condition="'$(_QylSdkPackagesImported)' != 'true'" />
   <Import Project="$(QylSdkRoot)Build/Qyl.Sdk.Api.props" />
 </Project>
