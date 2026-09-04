@@ -1,0 +1,6 @@
+<Project>
+  <!-- Qyl.Sdk entry point (targets half); see Sdk.props. -->
+  <Import Project="$(QylSdkRoot)Build/Qyl.Sdk.Api.targets" />
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk.Web" Condition="'$(_QylMustImportMicrosoftNETSdk)' == 'true'" />
+</Project>

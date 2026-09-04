@@ -1,0 +1,48 @@
+<Project>
+  <!--
+    Opinions of a Qyl API project. Every value is a default: a project (or Directory.Build.props)
+    that sets the property first wins, so nothing here is a lock-in.
+  -->
+  <PropertyGroup>
+    <QylSdkSourcesPath>$(QylSdkRoot)Sources/</QylSdkSourcesPath>
+    <QylSdkXmlGeneratorProject>$(QylSdkRoot)Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj</QylSdkXmlGeneratorProject>
+
+    <!-- Every HTTP boundary is produced at compile time; nothing is discovered by reflection at runtime. -->
+    <PublishAot Condition="'$(PublishAot)' == ''">true</PublishAot>
+    <InvariantGlobalization Condition="'$(InvariantGlobalization)' == ''">true</InvariantGlobalization>
+    <EnableRequestDelegateGenerator Condition="'$(EnableRequestDelegateGenerator)' == ''">true</EnableRequestDelegateGenerator>
+    <JsonSerializerIsReflectionEnabledByDefault Condition="'$(JsonSerializerIsReflectionEnabledByDefault)' == ''">false</JsonSerializerIsReflectionEnabledByDefault>
+
+    <!-- XML documentation comments are the source of OpenAPI summaries, so the file is not optional. -->
+    <GenerateDocumentationFile Condition="'$(GenerateDocumentationFile)' == ''">true</GenerateDocumentationFile>
+
+    <!--
+      The OpenAPI document is a committed build artefact: `dotnet build` rewrites it next to the project.
+      QylOpenApiVersion is the single source of truth for the document version: it is passed to the build-time tool
+      (which ignores the app's OpenApiOptions.OpenApiVersion, verified against SDK 10.0.400) and generated into the
+      compilation as Qyl.QylSdkBuild.OpenApiVersion, which AddQylApi applies at runtime. Value: a Microsoft.OpenApi.OpenApiSpecVersion member name.
+    -->
+    <QylOpenApiVersion Condition="'$(QylOpenApiVersion)' == ''">OpenApi3_1</QylOpenApiVersion>
+    <OpenApiGenerateDocumentsOptions>$(OpenApiGenerateDocumentsOptions) --openapi-version $(QylOpenApiVersion)</OpenApiGenerateDocumentsOptions>
+    <QylEmitOpenApiDocument Condition="'$(QylEmitOpenApiDocument)' == ''">true</QylEmitOpenApiDocument>
+    <QylOpenApiDocumentsDirectory Condition="'$(QylOpenApiDocumentsDirectory)' == ''">$(MSBuildProjectDirectory)/openapi</QylOpenApiDocumentsDirectory>
+    <!-- Set unconditionally: the ApiDescription.Server package already defaulted this to obj/ before this file was imported. -->
+    <OpenApiDocumentsDirectory>$(QylOpenApiDocumentsDirectory)</OpenApiDocumentsDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The DSL is available without a using directive, as Microsoft.AspNetCore.Builder is in a web project. -->
+    <Using Include="Qyl" />
+    <Using Include="Qyl.Xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The SDK ships as source, compiled into the consumer. This is deliberate, not a shortcut:
+      the .NET 10 validation and OpenAPI XML-comment generators intercept `AddValidation()` / `AddOpenApi()`
+      only inside the compilation that calls them, and only see that compilation's types and comments.
+      A compiled Qyl.Sdk.dll calling them would validate nothing and document nothing.
+    -->
+    <Compile Include="$(QylSdkSourcesPath)**/*.cs" Link="qyl.sdk/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

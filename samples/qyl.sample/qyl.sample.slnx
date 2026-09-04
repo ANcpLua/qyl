@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/build/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="compose.yaml" />
+    <File Path="verify.sh" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/qyl.sdk/">
+    <File Path="qyl.sdk/DECISIONS.md" />
+    <File Path="qyl.sdk/Sdk/Sdk.props" />
+    <File Path="qyl.sdk/Sdk/Sdk.targets" />
+    <File Path="qyl.sdk/Build/Qyl.Sdk.Api.props" />
+    <File Path="qyl.sdk/Build/Qyl.Sdk.Api.targets" />
+    <File Path="qyl.sdk/Build/Qyl.Sdk.Packages.props" />
+    <Project Path="qyl.sdk/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" />
+  </Folder>
+  <Folder Name="/qyl.sdk/Sources/">
+    <File Path="qyl.sdk/Sources/Microsoft.Extensions.DependencyInjection/QylApiServiceCollectionExtensions.cs" />
+    <File Path="qyl.sdk/Sources/Qyl/IQylApiBuilder.cs" />
+    <File Path="qyl.sdk/Sources/Qyl/QylProblemJsonContext.cs" />
+    <File Path="qyl.sdk/Sources/Qyl/QylResults.cs" />
+    <File Path="qyl.sdk/Sources/Qyl.Xml/GenerateXmlAttribute.cs" />
+    <File Path="qyl.sdk/Sources/Qyl.Xml/IXmlWritable.cs" />
+    <File Path="qyl.sdk/Sources/Qyl.Xml/XmlHttpResult.cs" />
+    <File Path="qyl.sdk/Sources/Qyl.Xml/XmlWritableExtensions.cs" />
+  </Folder>
+  <Project Path="qyl.sample/qyl.sample.csproj" />
+</Solution>

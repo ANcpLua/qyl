@@ -1,0 +1,56 @@
+<Project>
+  <ItemGroup>
+    <!-- Implicit references carry their own version (NU1009): the SDK owns them, the consumer's CPM file does not. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"
+                      VersionOverride="$(QylAspNetCoreOpenApiVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
+                      Condition="'$(QylEmitOpenApiDocument)' == 'true'"
+                      VersionOverride="$(QylApiDescriptionServerVersion)"
+                      PrivateAssets="all"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+                      IsImplicitlyDefined="true" />
+
+    <!-- [GenerateXml] generator; consumed as an analyzer only. A packed SDK ships it under analyzers/dotnet/cs instead. -->
+    <ProjectReference Include="$(QylSdkXmlGeneratorProject)"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+  <!--
+    Build-time values the SDK sources read at runtime, written before compilation so MSBuild, not code, owns them.
+    Properties are evaluated inside the target because IntermediateOutputPath is defined by Microsoft.Common.targets,
+    which imports after this file. Semicolons are escaped as %3B: WriteLinesToFile would otherwise split the source.
+  -->
+  <Target Name="QylGenerateSdkBuildInfo" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_QylSdkBuildInfoFile>$(IntermediateOutputPath)QylSdkBuild.g.cs</_QylSdkBuildInfoFile>
+      <_QylSdkBuildInfoSource>// &lt;auto-generated/&gt;
+// Written by Qyl.Sdk.Api.targets from MSBuild properties. Change the property, not this file.
+#nullable enable
+namespace Qyl
+{
+    /// &lt;summary&gt;Values fixed at build time by the Qyl SDK's MSBuild properties.&lt;/summary&gt;
+    internal static class QylSdkBuild
+    {
+        /// &lt;summary&gt;The OpenAPI specification version (`QylOpenApiVersion`), shared with the build-time document tool.&lt;/summary&gt;
+        public const global::Microsoft.OpenApi.OpenApiSpecVersion OpenApiVersion = global::Microsoft.OpenApi.OpenApiSpecVersion.$(QylOpenApiVersion)%3B
+    }
+}</_QylSdkBuildInfoSource>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_QylSdkBuildInfoFile)" Lines="$(_QylSdkBuildInfoSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+    <ItemGroup>
+      <Compile Include="$(_QylSdkBuildInfoFile)" Link="qyl.sdk/QylSdkBuild.g.cs" />
+      <FileWrites Include="$(_QylSdkBuildInfoFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Keep every generator's output inspectable under obj/generated. -->
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+</Project>

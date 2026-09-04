@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- Versions the Qyl SDK depends on are owned by the SDK, not by the consuming repository. -->
+  <Import Project="qyl.sdk/Build/Qyl.Sdk.Packages.props" />
+
+  <ItemGroup>
+    <!-- Roslyn matching the compiler shipped in SDK 10.0.400 (global.json); used by the XML generator only. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+  </ItemGroup>
+</Project>

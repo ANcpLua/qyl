@@ -1,0 +1,20 @@
+<Project>
+  <!--
+    Qyl.Sdk entry point (props half).
+
+    Today the sample imports this file explicitly from a `Microsoft.NET.Sdk.Web` project:
+        <Import Project="../qyl.sdk/Sdk/Sdk.props" />   (first line of the project body)
+        <Import Project="../qyl.sdk/Sdk/Sdk.targets" /> (last line of the project body)
+
+    Packed as an MSBuild SDK the same two files become `<Project Sdk="Qyl.Sdk">`: the guarded
+    import below then pulls in Microsoft.NET.Sdk.Web itself, exactly like ANcpLua.NET.Sdk.Web does.
+  -->
+  <PropertyGroup>
+    <QylSdkRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))</QylSdkRoot>
+    <_QylMustImportMicrosoftNETSdk Condition="'$(UsingMicrosoftNETSdk)' != 'true'">true</_QylMustImportMicrosoftNETSdk>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk.Web" Condition="'$(_QylMustImportMicrosoftNETSdk)' == 'true'" />
+
+  <Import Project="$(QylSdkRoot)Build/Qyl.Sdk.Api.props" />
+</Project>

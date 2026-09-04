@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Package versions pinned by the Qyl SDK. Consumers do not declare these; the SDK does.
+    Bumping a version here is the one place a runtime dependency of every Qyl API changes.
+  -->
+  <PropertyGroup>
+    <!-- Runtime OpenAPI document (+ the XML-comment source generator that ships inside the package) -->
+    <QylAspNetCoreOpenApiVersion>10.0.11</QylAspNetCoreOpenApiVersion>
+    <!-- Build-time OpenAPI document emission (dotnet build writes the committed contract) -->
+    <QylApiDescriptionServerVersion>10.0.11</QylApiDescriptionServerVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Transitive pin so the document model cannot drift underneath Microsoft.AspNetCore.OpenApi -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+  </ItemGroup>
+</Project>
