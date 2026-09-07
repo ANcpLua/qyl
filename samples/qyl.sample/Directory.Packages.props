@@ -11,5 +11,9 @@
     <!-- Roslyn matching the compiler shipped in SDK 10.0.400 (global.json); used by the XML generator only. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <!-- Generator tests: MSTest under VSTest. -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="MSTest.TestAdapter" Version="4.2.3" />
+    <PackageVersion Include="MSTest.TestFramework" Version="4.2.3" />
   </ItemGroup>
 </Project>

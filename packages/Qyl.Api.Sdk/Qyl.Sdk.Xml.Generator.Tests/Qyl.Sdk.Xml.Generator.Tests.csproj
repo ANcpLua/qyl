@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Proof for the generator itself, in three parts:
+      1. Parity: every model in Models/ is written by the generated code and by XmlSerializer; the strings must be identical.
+         XmlSerializer runs here, in the test, never in an app.
+      2. Snapshot and compile: the generated source for the sample's Todo is pinned; tree-shaped models compile without errors.
+      3. Incrementality: an edit in an unrelated file leaves the parsed model and the output cached.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Qyl.Sdk.Xml.Generator.Tests</RootNamespace>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="MSTest.TestAdapter" />
+    <PackageReference Include="MSTest.TestFramework" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Both roles: the analyzer that generates for Models/, and the assembly the driver tests instantiate. -->
+    <ProjectReference Include="../Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <!-- The compiled contract, exactly as a consumer references it. -->
+    <ProjectReference Include="../Qyl.Xml/Qyl.Xml.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The schema builder the SDK links into a consumer; tested here against the generated shapes. -->
+    <Compile Include="../Sources/Qyl/QylXmlSchema.cs" Link="Qyl/QylXmlSchema.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+</Project>

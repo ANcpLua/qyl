@@ -2,6 +2,9 @@
 
 One entry per decision, dated, with the reason. A decision is reversed by a new entry, not by editing an old one.
 
+qyl-sample-e4  ·  interactive  ·  busy  ·  pid 22631  ·  /Users/ancplua/repo-playground/qyl.sample  ·  session b75a0ace-a803-45f8-b96d-555537f5dc2a  ·  Claude Code 2.1.263
+has 2hour special rights and can adjust this file
+
 ## 2026-09-04 · The SDK compiles into the consumer as source, not as a DLL
 
 The .NET 10 validation generator (`Microsoft.Extensions.Validation`) and the OpenAPI XML-comment generator
@@ -77,3 +80,53 @@ published is decided after this alpha.
 Open: the id `Qyl.Sdk` on nuget.org is qyl's telemetry onboarding package (`builder.AddQyl()`, owner ANcpLua, 5.1.0 … 8.5.0,
 latest 2026-07-26). This API SDK is a different thing under the same id. `0.1.0-alpha` is local-only and must not be pushed;
 publishing needs a decision: a new id for the API SDK, or folding it into the existing package.
+
+## 2026-09-07 · The XML generator writes an element tree; parity with `XmlSerializer` or a compile error
+
+The first generator wrote flat models only and, measured against `XmlSerializer` for the same attributes, differed silently in
+three places: `Namespace = ""` on a member collapsed to "inherit", `[Flags]` enums and `[XmlEnum]` were ignored in favour of
+`Enum.ToString()`, and base-class properties were dropped. That contradicts the promise in `[GenerateXml]`'s documentation.
+
+Decision: the pipeline keeps its three stages (parser → value-equal spec → emitter, so unrelated edits stay cached), but the spec
+is a tree. A property is an attribute, an element, text, a nested `[GenerateXml]` model written under the parent's chosen name, or a
+collection of scalars or models with or without an `[XmlArray]` wrapper. `IXmlWritable` gains `WriteXml(writer, localName, ns)` for
+that nesting and a `static abstract RootElement` naming the document element. Enums become a generated `switch` that honours
+`[XmlEnum]` and writes flags the way `XmlSerializer` does (exact member first, then set members separated by spaces). Absent
+`Nullable<T>` elements and absent wrapped items are written as `xsi:nil`, absent strings and models are omitted, `IsNullable` on
+`XmlElement`, `XmlArray`, and `XmlArrayItem` overrides that. Base classes declared in the compilation are written first.
+
+Rule: every `System.Xml.Serialization` option is either implemented identically to `XmlSerializer` or a diagnostic (QYLXML006,
+008–011), including `XmlType`, `[DefaultValue]`, `ShouldSerializeX()`, and `XSpecified`. `Qyl.Sdk.Xml.Generator.Tests` enforces it:
+each model is serialized by the generated code and by `XmlSerializer` and the strings must be identical; a snapshot pins the
+generated source; a tracked-step test proves an edit elsewhere leaves the model and the output cached. Two deliberate extensions
+where `XmlSerializer` throws instead: read-only properties are written, and `Nullable<T>` attributes are omitted when absent.
+
+Open: the runtime contract (`IXmlWritable`, `[GenerateXml]`, `XmlHttpResult`) is still linked as source into every consumer, so a
+model library and its API would each carry their own copy of the interface. The interceptor argument for source linking only
+applies to `AddQylApi`; moving `Qyl.Xml` into a compiled assembly is a packaging decision for after this alpha.
+
+
+## 2026-09-07 · The XML contract is the compiled `Qyl.Xml` assembly; the package id is `Qyl.Api.Sdk`
+
+Supersedes "as source, not as a DLL" for the XML contract only. That entry's reason, the interceptors behind `AddValidation()` and
+`AddOpenApi()`, applies to `AddQylApi` and what it registers; those stay in `Sources/` and compile into the consumer. `[GenerateXml]`,
+`IXmlWritable`, `XmlShape`, and `XmlHttpResult` do not intercept anything, and as linked source every consumer assembly carried its
+own copy of the interface, so a model library and the API serving it could never share one. `qyl.sdk/Qyl.Xml/` is now a net10.0
+assembly depending on the shared framework only; the targets reference it as a project in the repository and as
+`lib/net10.0/Qyl.Xml.dll` from the package, next to the generator under `analyzers/dotnet/cs`.
+
+Decision, package id: `Qyl.Api.Sdk`. `Qyl.Sdk` on nuget.org stays qyl's telemetry onboarding package. The pack project and nuspec
+carry the new name; the MSBuild file names under `Build/` and the generator's name are internal and unchanged. `verify.sh` stage 8
+builds the consumer from `<Project Sdk="Qyl.Api.Sdk/0.1.0-alpha">` and checks that `Qyl.Xml.dll` reached its output.
+
+## 2026-09-07 · An `application/xml` response is described in the contract from the generated shape
+
+The contract said `type: string` for `GET /todos/{id}/xml`. The generator now emits, next to the writer, the same tree as data:
+`XmlShape`, with every node's XML name, namespace, scalar type, optionality, and nil behaviour, and enum names for non-flags enums.
+`XmlHttpResult<T>` adds it as `XmlResponseMetadata` to the endpoint; `AddQylApi` registers an operation transformer that replaces
+the string schema with a component `{TypeName}Xml` built from that data: `xml.name` and `xml.namespace` on the object, `xml.attribute`
+on attributes, `xml.wrapped` arrays with named items, nested models as `allOf` references so a model that refers to itself
+resolves, `type: [..., "null"]` where an absent value is written as `xsi:nil`, and `#text` for text content, which OpenAPI has no
+keyword for. The response type declared to ASP.NET Core stays `string` on purpose: the OpenAPI generator therefore never needs JSON
+type information for an XML-only model, which under `JsonSerializerIsReflectionEnabledByDefault=false` would fail the document.
+No reflection is involved at any point; the build-time and the runtime document are produced by the same transformer.

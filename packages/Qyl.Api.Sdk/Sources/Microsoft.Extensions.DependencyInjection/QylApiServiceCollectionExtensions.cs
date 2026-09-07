@@ -38,7 +38,7 @@ public static class QylApiServiceCollectionExtensions
     /// <item><description>JSON: <paramref name="contexts"/> first, then the SDK's problem-details context, ahead of the framework's resolvers.</description></item>
     /// <item><description>Validation of every Minimal API request against its DataAnnotations, via the generated resolver.</description></item>
     /// <item><description>Problem details, so validation failures are <c>400 application/problem+json</c> and match the contract.</description></item>
-    /// <item><description>The <c>v1</c> OpenAPI document, pinned to <see cref="OpenApiDocumentVersion"/>, populated from XML documentation comments.</description></item>
+    /// <item><description>The <c>v1</c> OpenAPI document, pinned to <see cref="OpenApiDocumentVersion"/>, populated from XML documentation comments, with every <c>application/xml</c> response described from its model's generated XML shape.</description></item>
     /// </list>
     /// <para>
     /// The generators behind steps 2 and 4 intercept the literal <c>AddValidation()</c> and <c>AddOpenApi(lambda)</c> calls in this
@@ -73,7 +73,13 @@ public static class QylApiServiceCollectionExtensions
 
         // Keep this call literal and its argument a lambda: the Microsoft.AspNetCore.OpenApi generator intercepts this overload
         // and registers the compile-time XML-comment cache.
-        services.AddOpenApi(OpenApiDocumentName, options => options.OpenApiVersion = OpenApiDocumentVersion);
+        services.AddOpenApi(OpenApiDocumentName, options =>
+        {
+            options.OpenApiVersion = OpenApiDocumentVersion;
+
+            // application/xml responses are described from the generated XmlShape, not from JSON type information.
+            options.AddOperationTransformer(new QylXmlResponseTransformer());
+        });
 
         return new QylApiBuilder(services);
     }
