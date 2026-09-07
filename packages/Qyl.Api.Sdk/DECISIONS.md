@@ -184,6 +184,7 @@ Build and proof: the generator's `ProjectReference` carries no `SetTargetFramewo
 second project instance whose `--no-incremental` rebuild deletes the first instance's output while another referrer (the tests)
 compiles against it. A class library writes `obj/generated` only if it sets `EmitCompilerGeneratedFiles` itself, which `Qyl.Api`
 does for the problem-details JSON context.
+
 ## 2026-09-07 · A Qyl API describes itself and observes itself; the agent is its first consumer
 
 `AddQylApi` and `AddQyl` were disjoint: an API built by this SDK described itself perfectly and could not be
@@ -248,3 +249,18 @@ and the literal becomes `QylAttributes.ApiContractRevision`. Until then
 the denial lists, which it resolves against the packages — that list gets the same
 `RequiredAttributeValues` validation with the pin bump, not before, because a gate that cannot pass is a gate
 that stops the catalog being regenerated at all.
+
+## 2026-09-07 · `qyl.api.contract.revision` is the registry's name, and the allow list is held to the registry
+
+Closes the "Open" paragraph of the entry above, in the same wave rather than after it.
+`Qyl.Telemetry.SemanticConventions` 9.2.0 registers `qyl.api.contract.revision` in the Weaver registry, so the
+pin in `Version.props` moves to 9.2.0 and `QylApiContract.RevisionAttributeName` is
+`QylAttributes.ApiContractRevision` from `Qyl.Telemetry.SemanticConventions.Incubating` — a compile-time
+`PrivateAssets="all"` reference consumed as a `const`, which puts a new row in the §2 edge table
+(`eng/build/BuildDependencyEdges.cs`) and nothing new in a consumer's output.
+
+With the key registered, `BuildCollectorSemanticCatalog` now resolves `qylResourceAttributeAllowList` through
+`RequiredAttributeValues`, as it already did for `sessionCorrelation` and the denial lists: a qyl-owned key the
+collector persists must exist in the pinned packages, or the vocabulary and the storage policy have drifted.
+That validation was deliberately not added before the pin — a gate that cannot pass does not protect the
+invariant, it stops the catalog being regenerated at all.

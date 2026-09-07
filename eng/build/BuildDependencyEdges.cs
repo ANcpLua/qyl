@@ -34,6 +34,12 @@ interface IDependencyEdges : IHazSourcePaths
             "Qyl.Telemetry.Hosting", "Qyl.Api.Contracts",
             "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
         ],
+        // The Qyl.Api.Sdk runtime publishes one registry name of its own, the resource attribute
+        // qyl.api.contract.revision, and takes it from the vocabulary rather than spelling it: the
+        // collector's ingest policy reads the same registry, and a literal on either side would be a
+        // second source of truth. Compile-time only (a const, PrivateAssets=all); the producer family
+        // reaches a Qyl API through the SDK's Qyl.Telemetry.Hosting reference, not through here.
+        ["packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj"] = ["Qyl.Telemetry.SemanticConventions.Incubating"],
         // G11: the CLI is a client of the collector API and owns none of it.
         ["packages/Qyl.Cli/Qyl.Cli.csproj"] = ["Qyl.Api.Contracts"],
         // The demo producer sets attributes through the pre-generated Activities classes;

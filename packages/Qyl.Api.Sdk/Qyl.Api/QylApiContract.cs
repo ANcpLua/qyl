@@ -1,3 +1,5 @@
+using Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl;
+
 namespace Qyl;
 
 /// <summary>The names a Qyl API and its consumers agree on, so neither side spells them twice.</summary>
@@ -8,7 +10,12 @@ public static class QylApiContract
     /// Every span a Qyl API exports is attributable to the exact contract the binary was compiled against;
     /// the value comes from MSBuild, not from anything the process can compute about itself at run time.
     /// </summary>
-    public const string RevisionAttributeName = "qyl.api.contract.revision";
+    /// <remarks>
+    /// The name is the registry's, not this repository's: it is generated into
+    /// <c>Qyl.Telemetry.SemanticConventions.Incubating</c> from the Weaver registry, so the collector's ingest
+    /// policy and the producer that writes it cannot drift apart by being spelled twice.
+    /// </remarks>
+    public const string RevisionAttributeName = QylAttributes.ApiContractRevision;
 
     /// <summary>
     /// The qyl session key. It is the <c>baggage</c> request-header member an agent sends and the span tag a Qyl

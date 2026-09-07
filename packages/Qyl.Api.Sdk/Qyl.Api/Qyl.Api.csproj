@@ -22,6 +22,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <!-- The version the SDK pins for every consumer; the assembly must bind to the same one. -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" VersionOverride="$(QylAspNetCoreOpenApiVersion)" />
+    <!-- The shared vocabulary, for the one name this assembly publishes (qyl.api.contract.revision).
+         Compile-time only: it is consumed as a const, so nothing of it reaches the consumer's output
+         through this reference, and the collector's ingest policy reads the same registry. -->
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all" />
     <ProjectReference Include="../Qyl.Xml/Qyl.Xml.csproj" />
   </ItemGroup>
 
