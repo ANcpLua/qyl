@@ -177,6 +177,15 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
 
         var sessionCorrelation = resolver.RequiredAttributeValues(policy.SessionCorrelation);
 
+        // The qyl-owned resource keys are held to the same rule as every other list here: a key the
+        // collector persists must exist in the pinned registry packages, or the vocabulary and the
+        // storage policy have drifted apart. Without this, a hand-added key in the policy JSON would
+        // reach storage with nothing upstream defining it.
+        var qylResourceAttributeAllowList = resolver
+            .RequiredAttributeValues(policy.QylResourceAttributeAllowList)
+            .OrderBy(static key => key, StringComparer.Ordinal)
+            .ToArray();
+
         var deniedExactKeys = ValuesWithPrefixes(allAttributeValues, policy.DeniedExactPrefixes, "deniedExactPrefixes")
             .Concat(resolver.RequiredAttributeValues(policy.DeniedExactKeys))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -227,7 +236,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         // partition key) must read these, because FrozenSet enumeration order is unspecified.
         WriteOrderedStringArray(builder, "SessionCorrelationPrecedence", sessionCorrelation, incubatingKeys);
         WriteOrderedStringArray(builder, "ProjectIdResourceKeyPrecedence", policy.ProjectIdResourceKeys, incubatingKeys);
-        WriteFrozenSet(builder, "QylResourceAttributeAllowList", policy.QylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "QylResourceAttributeAllowList", qylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "MetricAttributeAllowList", metricAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);

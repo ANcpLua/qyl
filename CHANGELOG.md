@@ -7,8 +7,9 @@ Breaking. Semantic conventions move to the Weaver-only architecture, and the
 
 ### Semantic conventions
 
-- `Qyl.Telemetry.SemanticConventions` and `.Incubating` are pinned at 9.1.0, the
-  release generated entirely by Weaver from registry YAML. The constants ship
+- `Qyl.Telemetry.SemanticConventions` and `.Incubating` are pinned at 9.2.0, the
+  Weaver-generated line, whose 9.2.0 release adds `qyl.api.contract.revision` for
+  the Qyl.Api.Sdk fusion below. The constants ship
   pre-built; nothing is generated at this repository's compile time any more.
 - `Qyl.Telemetry.SemanticConventions.SourceGeneration` is retired upstream and its
   reference is gone. `Qyl.Run.Workload` sets its attributes through the
@@ -50,7 +51,10 @@ Breaking. Semantic conventions move to the Weaver-only architecture, and the
   own run back through `list_sessions` / `get_trace`. Zero lines in the API.
 - Every span names its contract: the SHA-256 of the committed OpenAPI document is
   written into the compilation by `Qyl.Sdk.Api.targets` and exported as the
-  resource attribute `qyl.api.contract.revision`, which the collector persists.
+  resource attribute `qyl.api.contract.revision` — the registry's name, taken from
+  `QylAttributes.ApiContractRevision`, which the collector persists. The collector's
+  `qylResourceAttributeAllowList` is now resolved against the pinned packages like
+  every other list in the generated catalog.
 - `samples/qyl.sample` is the API it is proven against, still with no telemetry
   line of its own. The nine checks — the eight that were the sample repository's
   `verify.sh` plus the session stage, which runs a real collector and asserts an
