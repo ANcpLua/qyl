@@ -7,7 +7,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-The latest public qyl release is 4.0.0, which is also the `main` branch source line. The
+The latest public qyl release is 4.0.0; `main` is the 5.0.0 source line. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -54,17 +54,19 @@ instrument rather than stored unqueryable.
 
 qyl is one dependency graph with several independently released packages. Each line
 carries its own version — the 1.0.0 launch is an event, not a number every package
-adopts. The versions below are the source and dependency lines `main` builds against, and
-each is published. Package registries are authoritative for public availability.
+adopts. The versions below are the source and dependency lines `main` builds against; a
+dependency line is published, and this repository's own line is published once the
+release workflow runs for it. Package registries are authoritative for public
+availability.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 4.0.0 | this one |
+| `qyl` (dotnet tool) | 5.0.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 14.0.1 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 9.1.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
+| `Qyl.Telemetry.SemanticConventions*` | 9.2.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 10.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 4.0.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 4.0.0 | this one |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 5.0.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -128,7 +130,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/4.0.0">
+<Project Sdk="Qyl.Api.Sdk/5.0.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

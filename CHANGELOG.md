@@ -1,9 +1,11 @@
 # Changelog
 
-## 4.0.0 — 2026-09-07
+## 5.0.0 — 2026-09-07
 
-Breaking. Semantic conventions move to the Weaver-only architecture, and the
-`qyl.sample` repository is fused into this one.
+Breaking. Semantic conventions move to the Weaver-only architecture, the
+`qyl.sample` repository is fused into this one, and `AddQylApi` moves from
+`IServiceCollection` to `IHostApplicationBuilder` — a signature every Qyl API calls,
+which is what makes this line 5.0.0 rather than 4.1.0.
 
 ### Semantic conventions
 
