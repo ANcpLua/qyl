@@ -88,7 +88,7 @@ interface IDependencyEdges : IHazSourcePaths
             var seenProjects = new HashSet<string>(StringComparer.Ordinal);
 
             var projects = repoRoot.GlobFiles("services/**/*.csproj", "internal/**/*.csproj",
-                    "packages/**/*.csproj", "tests/**/*.csproj", "eng/**/*.csproj")
+                    "packages/**/*.csproj", "samples/**/*.csproj", "tests/**/*.csproj", "eng/**/*.csproj")
                 .Where(static p => !p.ToString().Contains("/node_modules/", StringComparison.Ordinal)
                                    && !p.ToString().Contains("/Artifacts/", StringComparison.Ordinal)
                                    && !p.ToString().Contains("/artifacts/", StringComparison.Ordinal));
