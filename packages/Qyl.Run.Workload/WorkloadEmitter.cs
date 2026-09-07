@@ -2,6 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Qyl.Telemetry.SemanticConventions.Activities;
+using Qyl.Telemetry.SemanticConventions.Incubating.Activities;
 
 namespace Qyl.Run.Workload;
 
@@ -95,7 +97,7 @@ internal sealed partial class WorkloadEmitter(
             return;
         }
 
-        root.SetHttpRequestMethod(HttpSpans.HttpRequestMethodValues.Post)
+        root.SetHttpRequestMethod(HttpActivityExtensions.HttpRequestMethodValues.Post)
             .SetHttpRoute(route)
             .SetServerAddress("127.0.0.1")
             .SetSessionId(sessionId);
@@ -141,10 +143,10 @@ internal sealed partial class WorkloadEmitter(
         var outputTokens = Random.Shared.Next(model.OutputMin, model.OutputMax);
 
         using var span = WorkloadTelemetry.Source.StartActivity($"chat {model.Model}", ActivityKind.Client);
-        span?.SetGenAiOperationName(GenAiSpans.GenAiOperationNameValues.Chat)
+        span?.SetGenAiOperationName(GenAiIncubatingActivityExtensions.GenAiOperationNameValues.Chat)
             .SetGenAiOutputType(route is "/api/search"
-                ? GenAiSpans.GenAiOutputTypeValues.Json
-                : GenAiSpans.GenAiOutputTypeValues.Text)
+                ? GenAiIncubatingActivityExtensions.GenAiOutputTypeValues.Json
+                : GenAiIncubatingActivityExtensions.GenAiOutputTypeValues.Text)
             .SetGenAiProviderName(model.Provider)
             .SetGenAiRequestModel(model.Model)
             .SetGenAiRequestTemperature(Math.Round(Random.Shared.NextDouble(), 2, MidpointRounding.AwayFromZero))
