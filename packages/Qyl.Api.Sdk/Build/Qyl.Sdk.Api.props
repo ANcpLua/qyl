@@ -49,6 +49,6 @@
       Everything else is compiled: the contract Qyl.Xml ([GenerateXml], IXmlWritable, XmlShape, XmlHttpResult) and the
       runtime Qyl.Api (builder, results, problem-details context, XML schema transformer), referenced from Qyl.Sdk.Api.targets.
     -->
-    <Compile Include="$(QylSdkSourcesPath)**/*.cs" Link="qyl.sdk/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="$(QylSdkSourcesPath)**/*.cs" Link="Qyl.Api.Sdk/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

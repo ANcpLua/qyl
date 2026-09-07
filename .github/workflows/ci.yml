@@ -64,7 +64,7 @@ jobs:
 
           for path in "${changed[@]}"; do
             case "$path" in
-              README.md|AGENTS.md|CLAUDE.md|docs/*)
+              README.md|CHANGELOG.md|docs/*)
                 ;;
               .github/*.md)
                 if [[ "${path#.github/}" == */* ]]; then

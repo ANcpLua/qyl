@@ -140,3 +140,28 @@ contains exactly the file that must be linked, and the props say why.
 Consequences: the builder class and the problem-details context are public, because the linked `AddQylApi` creates and registers
 them from another assembly. The package ships `lib/net10.0/Qyl.Api.dll` next to `Qyl.Xml.dll`; the targets reference both, as
 projects in the repository and as assemblies from the package. `verify.sh` stage 8 checks that both reached the consumer's output.
+
+## 2026-09-07 · The SDK ships from the qyl repository, on the qyl version line
+
+`qyl.sdk` was its own repository with its own build system, its own gate suite (`verify.sh`) and its own
+version (`0.1.0-alpha`, local-only, never pushed). One artifact set does not need two of any of those, so
+the history moved into `github.com/ANcpLua/qyl`: this directory is `packages/Qyl.Api.Sdk/`, the sample that
+proves it is `samples/qyl.sample/`, and both build with that repository's `Directory.Build.props`,
+`Directory.Packages.props` and analyzer settings. Every entry above still holds; only where the files live
+has changed, so the paths those entries name read `qyl.sdk/` where the tree now reads `packages/Qyl.Api.Sdk/`.
+
+The version is the repository's: `QylVersion` in `Version.props` makes this `Qyl.Api.Sdk 4.0.0`, published by
+the same trusted-publishing workflow as the `qyl` tool. The nuspec is gone — the project packs itself, and
+resolves the two libraries and the analyzer from the referenced projects' build output rather than from
+`bin/<configuration>/<tfm>` paths, which that repository's artifacts layout does not have. The packed
+`Build/Qyl.Sdk.Packages.props` is written at pack time with its versions resolved, because the committed one
+reads them from a `Version.props` a consumer does not have.
+
+The eight stages of `verify.sh` are Nuke targets in `eng/build/BuildApiSdk.cs`, reachable from the `Ci`
+target and run by a CI job, in the same order and asserting the same things — with the HTTP scenario written
+against the .NET stacks rather than curl, jq and xmllint, so a missing shell tool fails nothing silently.
+Wherever an entry above cites `verify.sh` stage *n*, read the target of that stage.
+
+`Microsoft.OpenApi` is now referenced directly rather than pinned transitively: a consumer without central
+package management resolved 2.7.5, the low end of the range `Microsoft.AspNetCore.OpenApi` accepts, against a
+`Qyl.Api` compiled for 2.12.2.
