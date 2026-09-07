@@ -2,31 +2,30 @@ using Microsoft.CodeAnalysis;
 
 namespace Qyl.Sdk.Xml.Generator.Tests;
 
-[TestClass]
 public sealed class GeneratorTests
 {
-    [TestMethod]
+    [Fact]
     public void TodoMatchesSnapshotAndCompiles()
     {
         var run = GeneratorHarness.Run(("Todo.cs", TestSources.Todo));
 
-        CollectionAssert.AreEqual(Array.Empty<string>(), run.DiagnosticIds);
-        CollectionAssert.AreEqual(Array.Empty<string>(), run.OutputErrors);
+        Assert.Empty(run.DiagnosticIds);
+        Assert.Empty(run.OutputErrors);
         Snapshot.Matches(run.GeneratedSource("Qyl_Sample_Todo.GenerateXml.g.cs"), "Qyl_Sample_Todo.GenerateXml.g.cs.txt");
     }
 
-    [TestMethod]
+    [Fact]
     public void TreeModelMatchesSnapshotAndCompiles()
     {
         var run = GeneratorHarness.Run(("Tree.cs", TestSources.Tree));
 
-        CollectionAssert.AreEqual(Array.Empty<string>(), run.DiagnosticIds);
-        CollectionAssert.AreEqual(Array.Empty<string>(), run.OutputErrors);
-        Assert.AreEqual(4, run.Result.GeneratedSources.Length);
+        Assert.Empty(run.DiagnosticIds);
+        Assert.Empty(run.OutputErrors);
+        Assert.Equal(4, run.Result.GeneratedSources.Length);
         Snapshot.Matches(run.GeneratedSource("Shop_Order.GenerateXml.g.cs"), "Shop_Order.GenerateXml.g.cs.txt");
     }
 
-    [TestMethod]
+    [Fact]
     public void DerivedModelHidesTheBaseImplementationAndCompiles()
     {
         const string source = """
@@ -50,15 +49,15 @@ public sealed class GeneratorTests
 
         var run = GeneratorHarness.Run(("Hierarchy.cs", source));
 
-        CollectionAssert.AreEqual(Array.Empty<string>(), run.DiagnosticIds);
-        CollectionAssert.AreEqual(Array.Empty<string>(), run.OutputErrors);
+        Assert.Empty(run.DiagnosticIds);
+        Assert.Empty(run.OutputErrors);
         var derived = run.GeneratedSource("Derived.GenerateXml.g.cs");
-        StringAssert.Contains(derived, "public new static global::Qyl.Xml.XmlShape XmlShape", StringComparison.Ordinal);
-        StringAssert.Contains(derived, "public new void WriteXml(global::System.Xml.XmlWriter writer)", StringComparison.Ordinal);
-        StringAssert.Contains(derived, "WriteStartElement(\"a\")", StringComparison.Ordinal);
+        Assert.Contains("public new static global::Qyl.Xml.XmlShape XmlShape", derived, StringComparison.Ordinal);
+        Assert.Contains("public new void WriteXml(global::System.Xml.XmlWriter writer)", derived, StringComparison.Ordinal);
+        Assert.Contains("WriteStartElement(\"a\")", derived, StringComparison.Ordinal);
     }
 
-    [TestMethod]
+    [Fact]
     public void UnrelatedEditLeavesModelAndOutputCached()
     {
         var first = GeneratorHarness.CreateCompilation(("Todo.cs", TestSources.Todo), ("Unrelated.cs", TestSources.Unrelated));
@@ -72,12 +71,12 @@ public sealed class GeneratorTests
         var modelReasons = result.TrackedSteps[XmlWriterGenerator.ModelsStepName].SelectMany(step => step.Outputs).Select(output => output.Reason).ToArray();
         var outputReasons = result.TrackedOutputSteps.Values.SelectMany(steps => steps).SelectMany(step => step.Outputs).Select(output => output.Reason).ToArray();
 
-        Assert.AreNotEqual(0, modelReasons.Length);
-        Assert.IsTrue(modelReasons.All(reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged), string.Join(", ", modelReasons));
-        Assert.IsTrue(outputReasons.All(reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged), string.Join(", ", outputReasons));
+        Assert.NotEmpty(modelReasons);
+        Assert.True(modelReasons.All(reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged), string.Join(", ", modelReasons));
+        Assert.True(outputReasons.All(reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged), string.Join(", ", outputReasons));
     }
 
-    [TestMethod]
+    [Fact]
     public void ModelEditRegeneratesOutput()
     {
         var first = GeneratorHarness.CreateCompilation(("Todo.cs", TestSources.Todo));
@@ -90,7 +89,7 @@ public sealed class GeneratorTests
         var result = driver.GetRunResult().Results[0];
         var modelReasons = result.TrackedSteps[XmlWriterGenerator.ModelsStepName].SelectMany(step => step.Outputs).Select(output => output.Reason).ToArray();
 
-        CollectionAssert.Contains(modelReasons, IncrementalStepRunReason.Modified);
-        StringAssert.Contains(result.GeneratedSources.Single().SourceText.ToString(), "WriteStartElement(\"name\")", StringComparison.Ordinal);
+        Assert.Contains(IncrementalStepRunReason.Modified, modelReasons);
+        Assert.Contains("WriteStartElement(\"name\")", result.GeneratedSources.Single().SourceText.ToString(), StringComparison.Ordinal);
     }
 }

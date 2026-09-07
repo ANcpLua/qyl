@@ -16,8 +16,10 @@ internal static class Snapshot
             return;
         }
 
-        Assert.IsTrue(File.Exists(path), $"Snapshot {path} is missing; run once with QYL_UPDATE_SNAPSHOTS=1 and review the file.");
+        Assert.True(File.Exists(path), $"Snapshot {path} is missing; run once with QYL_UPDATE_SNAPSHOTS=1 and review the file.");
         var expected = File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal);
-        Assert.AreEqual(expected, normalized, $"Generated source differs from {name}; review and rerun with QYL_UPDATE_SNAPSHOTS=1 to accept.");
+        Assert.True(
+            string.Equals(expected, normalized, StringComparison.Ordinal),
+            $"Generated source differs from {name}; review and rerun with QYL_UPDATE_SNAPSHOTS=1 to accept.");
     }
 }
