@@ -89,7 +89,7 @@ namespace Qyl
     <WriteLinesToFile File="$(_QylSdkBuildInfoFile)" Lines="$(_QylSdkBuildInfoSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 
     <ItemGroup>
-      <Compile Include="$(_QylSdkBuildInfoFile)" Link="qyl.sdk/QylSdkBuild.g.cs" />
+      <Compile Include="$(_QylSdkBuildInfoFile)" Link="Qyl.Api.Sdk/QylSdkBuild.g.cs" />
       <FileWrites Include="$(_QylSdkBuildInfoFile)" />
     </ItemGroup>
   </Target>
