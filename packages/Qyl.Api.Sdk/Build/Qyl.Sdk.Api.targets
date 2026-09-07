@@ -97,8 +97,13 @@
       <Output TaskParameter="Hash" PropertyName="_QylContractRevision" />
     </GetFileHash>
 
+    <!--
+      The value format is the registry's, not this file's: qyl.api.contract.revision is defined as
+      `sha256:<hex>`, the same spelling the collector already reports from /health, so the algorithm
+      travels with the digest and a future one is a value change rather than a silent reinterpretation.
+    -->
     <PropertyGroup Condition="'$(_QylContractRevision)' != ''">
-      <_QylContractRevision>$(_QylContractRevision.ToLowerInvariant())</_QylContractRevision>
+      <_QylContractRevision>sha256:$(_QylContractRevision.ToLowerInvariant())</_QylContractRevision>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -114,7 +119,7 @@ namespace Qyl
         /// &lt;summary&gt;The OpenAPI specification version (`QylOpenApiVersion`), shared with the build-time document tool.&lt;/summary&gt;
         public const global::Microsoft.OpenApi.OpenApiSpecVersion OpenApiVersion = global::Microsoft.OpenApi.OpenApiSpecVersion.$(QylOpenApiVersion)%3B
 
-        /// &lt;summary&gt;The SHA-256 of the committed OpenAPI document (`QylOpenApiDocumentFile`), lowercase hex.&lt;/summary&gt;
+        /// &lt;summary&gt;The digest of the committed OpenAPI document (`QylOpenApiDocumentFile`) as the registry spells it: `sha256:&lt;lowercase hex&gt;`.&lt;/summary&gt;
         public const string ContractRevision = "$(_QylContractRevision)"%3B
     }
 }</_QylSdkBuildInfoSource>
