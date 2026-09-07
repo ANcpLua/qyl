@@ -26,7 +26,7 @@
     <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.props" />
     <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.targets" />
     <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Packages.props" />
-    <File Path="packages/Qyl.Api.Sdk/Sources/Microsoft.Extensions.DependencyInjection/QylApiServiceCollectionExtensions.cs" />
+    <File Path="packages/Qyl.Api.Sdk/Sources/Microsoft.Extensions.Hosting/QylApiHostApplicationBuilderExtensions.cs" />
     <Project Path="packages/Qyl.Api.Sdk/Qyl.Api.Sdk.csproj" />
     <Project Path="packages/Qyl.Api.Sdk/Qyl.Xml/Qyl.Xml.csproj" />
     <Project Path="packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj" />
@@ -38,6 +38,7 @@
   </Folder>
 
   <Folder Name="/tests/">
+    <Project Path="tests/Qyl.Api.Tests/Qyl.Api.Tests.csproj" />
     <Project Path="tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj" />
     <Project Path="tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj" />
     <Project Path="tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj" />

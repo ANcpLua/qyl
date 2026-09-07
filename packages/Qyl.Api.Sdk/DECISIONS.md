@@ -184,3 +184,67 @@ Build and proof: the generator's `ProjectReference` carries no `SetTargetFramewo
 second project instance whose `--no-incremental` rebuild deletes the first instance's output while another referrer (the tests)
 compiles against it. A class library writes `obj/generated` only if it sets `EmitCompilerGeneratedFiles` itself, which `Qyl.Api`
 does for the problem-details JSON context.
+## 2026-09-07 · A Qyl API describes itself and observes itself; the agent is its first consumer
+
+`AddQylApi` and `AddQyl` were disjoint: an API built by this SDK described itself perfectly and could not be
+watched at all. Every argument for making validation mandatory applies to telemetry — an API nobody can observe
+is not finished, it is undelivered — so the fusion registers both from one call and offers no way to have one
+without the other.
+
+Decision, in five parts.
+
+**One call on the host builder.** `AddQylApi` extends `IHostApplicationBuilder`, not `IServiceCollection`, and
+registers, in a fixed order: the JSON contexts, validation, problem details, the `v1` OpenAPI document with its
+XML shapes, and `AddQyl()`. The `IServiceCollection` overload is deleted, not kept beside it; the sample's only
+change is dropping `.Services`. `Qyl.Telemetry.Hosting` is pinned by the SDK through `QylTelemetryVersion` and
+pulled implicitly, with its interceptor generator arriving as an analyzer through the package's own
+`buildTransitive` assets — the same shape as the `[GenerateXml]` generator. The telemetry family is *not* folded
+into `Qyl.Api.dll`: its major is a compile-time ABI on its own release line, and a package boundary is what lets
+the two move independently.
+
+**Telemetry is mandatory, with one exception that is not an opt-out.** There is no `WithTelemetry`, no options
+flag, no environment switch. The single conditional is `QylBuildTimeDocumentHost`: under
+`GetDocument.Insider`, the process that `Microsoft.Extensions.ApiDescription.Server` builds the host in and
+never starts, collector discovery is off. Discovery is four blocking TCP probes and a DNS lookup; paying them on
+every `dotnet build`, for telemetry that cannot be emitted because the host never runs, is waste — and on a
+machine with a collector up it would make the build's behaviour depend on it. Nothing else about `AddQyl()`
+changes there. Verified with a listener on 127.0.0.1:4318 and :4317 during a full `dotnet build` of the sample:
+zero connections, while starting the same binary for real connects immediately.
+
+**The agent contract is a header, not an API.** `Qyl.Api` reads the W3C `baggage` request header's `session.id`
+member and stamps it on the server span; `QylSessionSpanProcessor` already carries a tag from an in-process
+ancestor to its descendants, so one header groups everything the request caused. An agent sends
+`baggage: session.id=<id>` and afterwards finds its own run through MCP `list_sessions` / `get_trace`. The value
+is percent-decoded, capped at 128 characters and rejected if it carries a control character, because it becomes
+a storage key in the collector and a path segment in its read API; a longer id is ignored rather than truncated,
+since a truncated id would silently merge two agents' work. A request without the header is left alone — nothing
+is invented, and an untagged trace is grouped by trace id as before.
+
+The filter is registered *after* `AddQyl()`, which reads oddly and is load-bearing: `IStartupFilter`s wrap the
+pipeline in registration order, outermost first, and the server span being tagged is created by the middleware
+`AddQyl()`'s own filter installs. Registered ahead of it, this filter would run outside that span.
+
+**Every span names its contract.** The SHA-256 of the committed OpenAPI document, lowercase hex, is computed by
+MSBuild (`GetFileHash` in `Qyl.Sdk.Api.targets`) and written into the compilation as
+`QylSdkBuild.ContractRevision` by the same mechanism that already wrote `QylSdkBuild.OpenApiVersion`;
+`AddQylApi` exports it as the resource attribute `qyl.api.contract.revision`. It is MSBuild's to compute rather
+than the process's: a binary must report the contract it was compiled against, not one it reads off disk at
+start-up and can be lied to about. On a project's very first build no document is committed yet and the constant
+is empty — that is a fact about that binary, not a case to branch on, so the attribute is exported either way.
+
+**The proof gains a stage.** `ApiSdkSessionScenario` starts this repository's collector on free loopback ports,
+runs the Native AOT sample against it, drives three requests under one `baggage: session.id=…`, and asserts
+through the collector's own read API (`GET /api/v1/sessions/{id}/traces`, what MCP serves an agent) that the
+session holds exactly those three routed server spans — `/todos/` 400, `/todos/` 201, `/todos/{id:int}/xml` 200
+— and that every span in it carries the contract revision. The sample still contains no telemetry line; if the
+stage passes, the one call is the reason.
+
+Open, and owed by this wave: `qyl.api.contract.revision` is in the collector's
+`qylResourceAttributeAllowList` (`eng/config/collector-semantic-policy.json`) but is a string literal in
+`Qyl.Api/QylApiContract.cs`, because it is registered in the Weaver registry only from
+`Qyl.Telemetry.SemanticConventions` 9.2.0. When that version is on nuget.org the pin in `Version.props` moves
+and the literal becomes `QylAttributes.ApiContractRevision`. Until then
+`BuildCollectorSemanticCatalog.cs` writes `qylResourceAttributeAllowList` raw, unlike `sessionCorrelation` and
+the denial lists, which it resolves against the packages — that list gets the same
+`RequiredAttributeValues` validation with the pin bump, not before, because a gate that cannot pass is a gate
+that stops the catalog being regenerated at all.

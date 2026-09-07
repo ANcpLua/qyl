@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Proof for the Qyl.Api runtime that is not the XML generator: the agent contract. A request's
+    W3C `baggage` header carries `session.id`; the server span must carry it afterwards, and must
+    carry nothing when the header says nothing. The pipeline is built from the real startup filter
+    and driven with a real Activity, so the test fails the same way production would.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <NoWarn>$(NoWarn);CA1707;CA2007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj"/>
+  </ItemGroup>
+
+</Project>

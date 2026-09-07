@@ -33,10 +33,28 @@ Breaking. Semantic conventions move to the Weaver-only architecture, and the
 
 - `Qyl.Api.Sdk` is a new package published from this repository at the repository
   version: an MSBuild SDK for Native AOT ASP.NET Core APIs with compile-time
-  validation, `[GenerateXml]` XML output described in the OpenAPI contract, and a
-  committed OpenAPI document, all behind `AddQylApi()`.
-- `samples/qyl.sample` is the API it is proven against. The eight checks that were
-  the sample repository's `verify.sh` are Nuke targets under `eng/build` and run
+  validation, `[GenerateXml]` XML output described in the OpenAPI contract, a
+  committed OpenAPI document, and telemetry, all behind `AddQylApi()`.
+- Breaking: `AddQylApi` extends `IHostApplicationBuilder`, not `IServiceCollection`;
+  the `IServiceCollection` overload is deleted. `builder.Services.AddQylApi(ctx)`
+  becomes `builder.AddQylApi(ctx)`.
+- A Qyl API observes itself. `AddQylApi` ends in `AddQyl()` from
+  `Qyl.Telemetry.Hosting`, which the SDK pins at `QylTelemetryVersion` and pulls
+  implicitly with its interceptor generator. Telemetry is as mandatory as
+  validation: no `WithTelemetry`, no opt-out. The one exception is the build-time
+  OpenAPI document tool, where collector discovery is off — it builds the host and
+  never starts it.
+- An agent is a Qyl API's first consumer. `Qyl.Api` stamps the W3C `baggage`
+  request header's `session.id` member onto the server span, and the session
+  processor carries it to every span the request causes; the agent then reads its
+  own run back through `list_sessions` / `get_trace`. Zero lines in the API.
+- Every span names its contract: the SHA-256 of the committed OpenAPI document is
+  written into the compilation by `Qyl.Sdk.Api.targets` and exported as the
+  resource attribute `qyl.api.contract.revision`, which the collector persists.
+- `samples/qyl.sample` is the API it is proven against, still with no telemetry
+  line of its own. The nine checks — the eight that were the sample repository's
+  `verify.sh` plus the session stage, which runs a real collector and asserts an
+  agent's session through its read API — are Nuke targets under `eng/build` and run
   from `Ci`.
 
 ### Removed

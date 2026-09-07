@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -24,11 +25,13 @@ namespace Qyl.Build;
 
 /// <summary>
 /// The proof that Qyl.Api.Sdk builds the API it claims to: the sample is the API, and every check
-/// the SDK's own repository ran from a shell script runs here instead. Eight stages, in order —
+/// the SDK's own repository ran from a shell script runs here instead. Nine stages, in order —
 /// build and generator tests, committed contract unchanged, every compile-time generator ran,
 /// the HTTP scenario on the managed host, a Native AOT publish with no managed files beside the
-/// binary, the same scenario on the native host, the container image, and a consumer built from
-/// the packed SDK producing a byte-identical contract.
+/// binary, the same scenario on the native host, the container image, a consumer built from
+/// the packed SDK producing a byte-identical contract, and the session: a real collector, the
+/// native host exporting to it, and an agent's `baggage: session.id=…` header answered by the
+/// collector's read API.
 ///
 /// The scenario is written against the .NET HTTP and XML stacks rather than curl/jq/xmllint:
 /// the gate must run wherever the build runs, and three shell tools that have to be installed
@@ -77,7 +80,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     AbsolutePath ApiIntermediateDirectory => RootDirectory / "artifacts" / "obj" / "Qyl.Api";
 
     Target ApiSdk => d => d
-        .Description("Run every Qyl.Api.Sdk gate: build, contract, generators, managed, native, container, package")
+        .Description("Run every Qyl.Api.Sdk gate: build, contract, generators, managed, native, container, package, session")
         .DependsOn(ApiSdkBuildAndTest)
         .DependsOn(ApiSdkContractIsCommitted)
         .DependsOn(ApiSdkGeneratorsRan)
@@ -86,7 +89,8 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
         .DependsOn(ApiSdkNativeScenario)
         .DependsOn(ApiSdkContainerScenario)
         .DependsOn(ApiSdkPackagedConsumer)
-        .Executes(() => Log.Information("Qyl.Api.Sdk: eight stages green"));
+        .DependsOn(ApiSdkSessionScenario)
+        .Executes(() => Log.Information("Qyl.Api.Sdk: nine stages green"));
 
     /// <summary>Stage 1: the SDK, the sample and the generator's own proof build and pass.</summary>
     Target ApiSdkBuildAndTest => d => d
@@ -392,6 +396,48 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
             Log.Information(
                 "Qyl.Api.Sdk: <Project Sdk=\"Qyl.Api.Sdk/{Version}\"> builds the identical contract", version);
         });
+
+    /// <summary>
+    /// Stage 9: the API observes itself and an agent is its first consumer. A real collector, the native
+    /// sample exporting to it, three requests carrying one <c>baggage: session.id=…</c> header, and the
+    /// collector's own read API answering with exactly those requests — their routes, the validation 400,
+    /// the XML response, and the contract revision the binary was compiled against.
+    /// </summary>
+    /// <remarks>
+    /// The sample carries no telemetry line of its own; everything asserted here comes from
+    /// <c>AddQylApi</c>. The collector is the one in this repository, started on free loopback ports so a
+    /// developer's own <c>qyl up</c> stack on 4318 is neither needed nor disturbed.
+    /// </remarks>
+    Target ApiSdkSessionScenario => d => d
+        .Unlisted()
+        .DependsOn(ApiSdkPackagedConsumer)
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetBuild(s => s
+                .SetProjectFile(CollectorProject)
+                .SetConfiguration(Configuration));
+
+            var collector = (RootDirectory / "artifacts" / "bin" / "qyl.collector")
+                .GlobFiles("**/qyl.collector", "**/qyl.collector.exe")
+                .FirstOrDefault(file =>
+                    !file.ToString().Contains("/publish/", StringComparison.Ordinal) &&
+                    file.Parent.Name.Equals(Configuration.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (collector is null)
+                throw new FileNotFoundException("The collector host was not found under artifacts/bin/qyl.collector");
+
+            var native = ApiSdkNativeDirectory / "qyl.sample";
+            if (!native.FileExists())
+                native = ApiSdkNativeDirectory / "qyl.sample.exe";
+            if (!native.FileExists())
+                throw new FileNotFoundException("The native sample host is missing; run ApiSdkNativePublish first", native);
+
+            var data = ApiSdkArtifactsDirectory / "session";
+            data.CreateOrCleanDirectory();
+
+            ApiSdkSession.Run(collector, native, data, SampleContract);
+        });
+
+    AbsolutePath CollectorProject => RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj";
 
     private string SampleVersion()
     {
@@ -707,6 +753,415 @@ internal static class ApiSdkScenario
             }
             default:
                 return node.DeepClone();
+        }
+    }
+}
+
+/// <summary>
+/// The session proof: an agent's header in, the collector's read API out. Written against the .NET HTTP
+/// stack for the same reason the rest of the scenario is — a gate that needs a shell tool installed first
+/// is a gate that gets skipped instead of failed.
+/// </summary>
+internal static class ApiSdkSession
+{
+    /// <summary>The session an agent claims. Fixed per run so a leftover database cannot answer for it.</summary>
+    private static string NewSessionId() =>
+        $"apisdk-{Environment.ProcessId.ToString(CultureInfo.InvariantCulture)}-{DateTime.UtcNow.Ticks.ToString(CultureInfo.InvariantCulture)}";
+
+    private const string BaggageHeader = "baggage";
+    private const string ContractRevisionAttribute = "qyl.api.contract.revision";
+    private const string RouteAttribute = "http.route";
+    private const string MethodAttribute = "http.request.method";
+    private const string StatusAttribute = "http.response.status_code";
+
+    /// <summary>OTLP span kind 2, SPAN_KIND_SERVER, as the read contract writes it.</summary>
+    private const string ServerSpanKind = "2";
+
+    private static readonly TimeSpan s_startupTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan s_sessionTimeout = TimeSpan.FromSeconds(60);
+
+    public static void Run(AbsolutePath collector, AbsolutePath sample, AbsolutePath dataDirectory, AbsolutePath contract)
+    {
+        var apiPort = ApiSdkScenario.FreeLoopbackPort();
+        var otlpPort = ApiSdkScenario.FreeLoopbackPort();
+        var sessionId = NewSessionId();
+        var revision = Sha256Hex(contract);
+
+        var collectorLog = new StringBuilder();
+        var sampleLog = new StringBuilder();
+
+        using var collectorProcess = Start(
+            collector,
+            collectorLog,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["QYL_BIND_ADDRESS"] = "127.0.0.1",
+                ["QYL_PORT"] = apiPort.ToString(CultureInfo.InvariantCulture),
+                ["QYL_OTLP_PORT"] = otlpPort.ToString(CultureInfo.InvariantCulture),
+                // 0 disables the listener: the sample exports over OTLP/HTTP, and a second fixed port is one
+                // more way for a concurrent build on the same machine to collide.
+                ["QYL_GRPC_PORT"] = "0",
+                ["QYL_DATA_PATH"] = dataDirectory / "qyl.duckdb",
+                // A loopback development stack. The collector refuses to start in Production with no API keys.
+                ["QYL_OTLP_AUTH_MODE"] = "Unsecured",
+                ["ASPNETCORE_ENVIRONMENT"] = "Development",
+                // Inherited from the build's own environment this would point the collector at itself.
+                ["OTEL_EXPORTER_OTLP_ENDPOINT"] = string.Empty,
+                ["QYL_ENDPOINT"] = string.Empty,
+            });
+
+        try
+        {
+            var collectorAddress = new Uri($"http://127.0.0.1:{apiPort.ToString(CultureInfo.InvariantCulture)}");
+            using var collectorClient = new HttpClient { BaseAddress = collectorAddress, Timeout = TimeSpan.FromSeconds(30) };
+            WaitUntil(collectorClient, "/health", "collector", collectorProcess, collectorLog);
+
+            using var sampleProcess = Start(
+                sample,
+                sampleLog,
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development",
+                    ["OTEL_SERVICE_NAME"] = "qyl.sample",
+                    ["OTEL_EXPORTER_OTLP_ENDPOINT"] = $"http://127.0.0.1:{otlpPort.ToString(CultureInfo.InvariantCulture)}",
+                    ["OTEL_EXPORTER_OTLP_PROTOCOL"] = "http/protobuf",
+                    // The gate must not wait five seconds for the default batch delay after every request.
+                    ["OTEL_BSP_SCHEDULE_DELAY"] = "500",
+                },
+                $"http://127.0.0.1:{ApiSdkScenario.FreeLoopbackPort().ToString(CultureInfo.InvariantCulture)}",
+                out var sampleAddress);
+
+            try
+            {
+                using var sampleClient = new HttpClient { BaseAddress = sampleAddress, Timeout = TimeSpan.FromSeconds(30) };
+                WaitUntil(sampleClient, "/todos/", "native sample", sampleProcess, sampleLog);
+
+                Drive(sampleClient, sessionId);
+
+                var spans = AwaitSession(collectorClient, sessionId, collectorLog);
+                Assert(spans, revision, sessionId);
+            }
+            finally
+            {
+                StopAndLog(sampleProcess, "native sample", sampleLog);
+            }
+        }
+        catch
+        {
+            Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
+            throw;
+        }
+        finally
+        {
+            StopAndLog(collectorProcess, "collector", collectorLog);
+        }
+    }
+
+    /// <summary>
+    /// Three requests, one header. The sample has no telemetry line of its own; the header is the entire
+    /// agent-side contract.
+    /// </summary>
+    private static void Drive(HttpClient client, string sessionId)
+    {
+        using (var invalid = Post(client, "/todos/", """{"title":"no"}""", sessionId))
+        {
+            Expect(invalid.StatusCode is HttpStatusCode.BadRequest, "the session's invalid POST returns 400");
+        }
+
+        string id;
+        using (var created = Post(client, "/todos/", """{"title":"Observe the session","dueBy":"2026-09-05"}""", sessionId))
+        {
+            Expect(created.StatusCode is HttpStatusCode.Created, "the session's valid POST returns 201");
+            id = JsonNode.Parse(created.Content.ReadAsStringAsync().GetAwaiter().GetResult())?["id"]
+                     ?.GetValue<int>().ToString(CultureInfo.InvariantCulture)
+                 ?? throw new InvalidOperationException("the created todo carries no id");
+        }
+
+        using var xml = Get(client, $"/todos/{id}/xml", sessionId);
+        Expect(xml.StatusCode is HttpStatusCode.OK, "the session's XML read returns 200");
+        Expect(xml.Content.Headers.ContentType?.MediaType is "application/xml",
+            "the session's XML read answers application/xml");
+    }
+
+    /// <summary>
+    /// The collector's own read API is the oracle: <c>GET /api/v1/sessions/{id}/traces</c>, exactly what the
+    /// MCP <c>list_sessions</c> / <c>get_trace</c> tools serve an agent.
+    /// </summary>
+    private static List<JsonNode> AwaitSession(HttpClient collector, string sessionId, StringBuilder collectorLog)
+    {
+        var deadline = DateTime.UtcNow + s_sessionTimeout;
+        var lastBody = string.Empty;
+        while (DateTime.UtcNow < deadline)
+        {
+            using var response = collector
+                .GetAsync($"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/traces")
+                .GetAwaiter()
+                .GetResult();
+            lastBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+            if (response.StatusCode is HttpStatusCode.OK)
+            {
+                var spans = JsonNode.Parse(lastBody)?["items"]?.AsArray()
+                    .SelectMany(static trace => trace?["spans"]?.AsArray() ?? [])
+                    .Where(static span => span is not null)
+                    .Select(static span => span!)
+                    .ToList() ?? [];
+
+                if (spans.Count >= 3)
+                    return spans;
+            }
+
+            Thread.Sleep(250);
+        }
+
+        Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
+        throw new InvalidOperationException(
+            $"The collector did not answer for session '{sessionId}' within {s_sessionTimeout}. " +
+            $"Last body: {lastBody}");
+    }
+
+    private static void Assert(List<JsonNode> spans, string revision, string sessionId)
+    {
+        // The session holds every span of the traces the header opened, including the ASP.NET Core hosting
+        // activity that parents each request. The API's own server spans are the ones that carry http.route.
+        var routed = spans
+            .Select(static span => (
+                Span: span,
+                Route: Attribute(span, RouteAttribute),
+                Method: Attribute(span, MethodAttribute),
+                Status: Attribute(span, StatusAttribute),
+                Kind: AsText(span["kind"]),
+                Name: AsText(span["name"]) ?? "(unnamed)"))
+            .Where(static row => row.Route is not null)
+            .OrderBy(static row => row.Route, StringComparer.Ordinal)
+            .ThenBy(static row => row.Status, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var row in routed)
+            Log.Information("  session: {Name} — {Method} {Route} -> {Status}", row.Name, row.Method, row.Route, row.Status);
+
+        if (routed.Count is not 3)
+        {
+            Log.Error("session spans as the collector returned them:{NewLine}{Spans}",
+                Environment.NewLine,
+                string.Join(Environment.NewLine, spans.Select(static span => span.ToJsonString())));
+        }
+
+        Expect(routed.Count is 3,
+            $"the session holds exactly the three routed requests that carried the header, not {routed.Count.ToString(CultureInfo.InvariantCulture)}");
+
+        foreach (var row in routed)
+        {
+            Expect(row.Kind is ServerSpanKind, $"'{row.Name}' is a server span (kind {row.Kind})");
+            Expect(row.Route!.StartsWith("/todos", StringComparison.Ordinal),
+                $"every routed span in the session is under /todos (saw '{row.Route}')");
+        }
+
+        var calls = routed
+            .Select(static row => $"{row.Method} {row.Status}")
+            .OrderBy(static call => call, StringComparer.Ordinal)
+            .ToList();
+        Expect(calls.SequenceEqual(["GET 200", "POST 201", "POST 400"], StringComparer.Ordinal),
+            $"the session is the validation 400, the create 201 and the XML 200 (saw {string.Join(", ", calls)})");
+
+        var xml = routed.Where(static row => row.Route!.EndsWith("/xml", StringComparison.Ordinal)).ToList();
+        Expect(xml.Count is 1, "exactly one routed span in the session is the XML endpoint");
+        Expect(xml[0].Status is "200", $"the XML span reports 200 (saw '{xml[0].Status}')");
+
+        // The contract revision is on the resource, so it is on every span the process exported, not only the
+        // routed ones: an agent reading any span of the session can name the contract it was answered from.
+        foreach (var span in spans)
+        {
+            var observed = ResourceAttribute(span, ContractRevisionAttribute);
+            Expect(string.Equals(observed, revision, StringComparison.Ordinal),
+                $"every span carries {ContractRevisionAttribute}={revision} (saw '{observed}' on '{AsText(span["name"])}')");
+        }
+
+        Log.Information(
+            "Qyl.Api.Sdk: session '{Session}' answers with {Count} spans, its three routed server spans, and contract revision {Revision}",
+            sessionId, spans.Count, revision);
+    }
+
+    private static string? Attribute(JsonNode span, string key) => ReadAttribute(span["attributes"], key);
+
+    private static string? ResourceAttribute(JsonNode span, string key) =>
+        ReadAttribute(span["resource"]?["attributes"], key);
+
+    /// <summary>
+    /// Attributes reach the read API as <c>[{ "key": ..., "value": ... }]</c>; the value is the JSON the
+    /// producer sent, so a route is a string and a status code a number.
+    /// </summary>
+    private static string? ReadAttribute(JsonNode? attributes, string key)
+    {
+        if (attributes is not JsonArray array)
+            return null;
+
+        foreach (var attribute in array)
+        {
+            if (attribute is null || AsText(attribute["key"]) != key)
+                continue;
+
+            var value = attribute["value"];
+
+            // Non-string values arrive in the contract's typed form, {"type":"int","value":"400"}; a string
+            // arrives as itself. Both are compared as text, so unwrap the one that has an envelope.
+            if (value is JsonObject envelope && envelope.TryGetPropertyValue("value", out var inner))
+                return AsText(inner);
+
+            return AsText(value);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The read API returns attribute values as the JSON the producer sent, so a route arrives as a string
+    /// and a status code as a number. Both are compared as text here; nothing about the assertion depends on
+    /// which one the contract chose.
+    /// </summary>
+    private static string? AsText(JsonNode? node) =>
+        node switch
+        {
+            null => null,
+            JsonValue value => value.GetValueKind() switch
+            {
+                JsonValueKind.String => value.GetValue<string>(),
+                JsonValueKind.Null => null,
+                _ => value.ToJsonString(),
+            },
+            _ => node.ToJsonString(),
+        };
+
+    private static string Sha256Hex(AbsolutePath file)
+    {
+        using var stream = File.OpenRead(file);
+        return Convert.ToHexStringLower(SHA256.HashData(stream));
+    }
+
+    private static ProcessHandle Start(
+        AbsolutePath executable,
+        StringBuilder log,
+        Dictionary<string, string> environment) =>
+        Start(executable, log, environment, urls: null, out _);
+
+    private static ProcessHandle Start(
+        AbsolutePath executable,
+        StringBuilder log,
+        Dictionary<string, string> environment,
+        string? urls,
+        out Uri address)
+    {
+        var startInfo = new ProcessStartInfo(executable)
+        {
+            WorkingDirectory = executable.Parent,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        foreach (var (key, value) in environment)
+        {
+            if (value.Length is 0)
+                startInfo.Environment.Remove(key);
+            else
+                startInfo.Environment[key] = value;
+        }
+
+        if (urls is not null)
+        {
+            startInfo.ArgumentList.Add("--urls");
+            startInfo.ArgumentList.Add(urls);
+        }
+
+        address = urls is null ? new Uri("http://127.0.0.1") : new Uri(urls);
+
+        var process = Process.Start(startInfo)
+                      ?? throw new InvalidOperationException($"Could not start {executable}");
+        process.OutputDataReceived += (_, e) => Append(log, e.Data);
+        process.ErrorDataReceived += (_, e) => Append(log, e.Data);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        return new ProcessHandle(process);
+    }
+
+    private static void WaitUntil(HttpClient client, string path, string label, ProcessHandle process, StringBuilder log)
+    {
+        var deadline = DateTime.UtcNow + s_startupTimeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (process.HasExited)
+                throw new InvalidOperationException($"The {label} exited before it served:{Environment.NewLine}{log}");
+
+            try
+            {
+                using var response = client.GetAsync(path).GetAwaiter().GetResult();
+                if (response.IsSuccessStatusCode)
+                    return;
+            }
+            catch (HttpRequestException)
+            {
+                // Not listening yet.
+            }
+
+            Thread.Sleep(100);
+        }
+
+        throw new InvalidOperationException(
+            $"The {label} did not serve {path} within {s_startupTimeout}:{Environment.NewLine}{log}");
+    }
+
+    private static void StopAndLog(ProcessHandle process, string label, StringBuilder log)
+    {
+        process.Stop();
+        Log.Debug("{Label} output:{NewLine}{Output}", label, Environment.NewLine, log.ToString());
+    }
+
+    private static void Append(StringBuilder log, string? line)
+    {
+        if (line is null) return;
+        lock (log) log.AppendLine(line);
+    }
+
+    /// <summary>The agent's whole contribution: one header. Sent synchronously so the request outlives no task.</summary>
+    private static HttpResponseMessage Post(HttpClient client, string path, string json, string sessionId)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+        request.Headers.TryAddWithoutValidation(BaggageHeader, $"session.id={sessionId}");
+        return client.Send(request);
+    }
+
+    private static HttpResponseMessage Get(HttpClient client, string path, string sessionId)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.TryAddWithoutValidation(BaggageHeader, $"session.id={sessionId}");
+        return client.Send(request);
+    }
+
+    private static void Expect(bool condition, string what)
+    {
+        if (!condition)
+            throw new InvalidOperationException($"session: {what} — it did not");
+    }
+
+    private sealed class ProcessHandle(Process process) : IDisposable
+    {
+        public bool HasExited => process.HasExited;
+
+        public void Stop()
+        {
+            if (process.HasExited)
+                return;
+
+            process.Kill(entireProcessTree: true);
+            process.WaitForExit();
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            process.Dispose();
         }
     }
 }

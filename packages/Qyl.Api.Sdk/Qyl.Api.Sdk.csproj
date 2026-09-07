@@ -13,7 +13,7 @@
     <PackageId>Qyl.Api.Sdk</PackageId>
     <PackageType>MSBuildSdk</PackageType>
     <IsPackable>true</IsPackable>
-    <Description>MSBuild SDK for Qyl APIs: the ASP.NET Core Native AOT template plus compile-time validation, [GenerateXml] XML output with its shape in the OpenAPI contract, and a committed OpenAPI contract, behind AddQylApi(). Use with &lt;Project Sdk="Qyl.Api.Sdk/$(Version)"&gt;.</Description>
+    <Description>MSBuild SDK for Qyl APIs: the ASP.NET Core Native AOT template plus compile-time validation, [GenerateXml] XML output with its shape in the OpenAPI contract, a committed OpenAPI contract, and qyl telemetry with the contract revision on the resource and session.id read from the request baggage header, behind builder.AddQylApi(). Use with &lt;Project Sdk="Qyl.Api.Sdk/$(Version)"&gt;.</Description>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <IncludeSymbols>false</IncludeSymbols>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
@@ -58,6 +58,7 @@
     &lt;QylAspNetCoreOpenApiVersion&gt;$(QylAspNetCoreOpenApiVersion)&lt;/QylAspNetCoreOpenApiVersion&gt;
     &lt;QylApiDescriptionServerVersion&gt;$(QylApiDescriptionServerVersion)&lt;/QylApiDescriptionServerVersion&gt;
     &lt;QylOpenApiModelVersion&gt;$(QylOpenApiModelVersion)&lt;/QylOpenApiModelVersion&gt;
+    &lt;QylTelemetryVersion&gt;$(QylTelemetryVersion)&lt;/QylTelemetryVersion&gt;
   &lt;/PropertyGroup&gt;
 
   &lt;ItemGroup&gt;
@@ -68,8 +69,8 @@
 &lt;/Project&gt;</_QylResolvedPackagesSource>
     </PropertyGroup>
 
-    <Error Condition="'$(QylAspNetCoreOpenApiVersion)' == '' OR '$(QylApiDescriptionServerVersion)' == '' OR '$(QylOpenApiModelVersion)' == ''"
-           Text="Version.props must define QylAspNetCoreOpenApiVersion, QylApiDescriptionServerVersion and QylOpenApiModelVersion; the packed Build/Qyl.Sdk.Packages.props would otherwise ship empty versions." />
+    <Error Condition="'$(QylAspNetCoreOpenApiVersion)' == '' OR '$(QylApiDescriptionServerVersion)' == '' OR '$(QylOpenApiModelVersion)' == '' OR '$(QylTelemetryVersion)' == ''"
+           Text="Version.props must define QylAspNetCoreOpenApiVersion, QylApiDescriptionServerVersion, QylOpenApiModelVersion and QylTelemetryVersion; the packed Build/Qyl.Sdk.Packages.props would otherwise ship empty versions." />
 
     <WriteLinesToFile File="$(_QylResolvedPackagesFile)" Lines="$(_QylResolvedPackagesSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup>

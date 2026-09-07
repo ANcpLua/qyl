@@ -1,20 +1,24 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Validation;
 using Microsoft.OpenApi;
 using Qyl;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace Microsoft.Extensions.Hosting;
 
-/// <summary>Extension methods for setting up a Qyl API in an <see cref="IServiceCollection"/>.</summary>
+/// <summary>Extension methods for setting up a Qyl API on an <see cref="IHostApplicationBuilder"/>.</summary>
 // CA1515 reads this file as application code because it is compiled into the application. It is
-// the SDK's entry point, public in every consumer by design; the validation and OpenAPI
-// generators only intercept the calls it makes when it is compiled there, which is why it ships
-// as source rather than in Qyl.Api.dll.
+// the SDK's entry point, public in every consumer by design; the validation, OpenAPI and
+// auto-instrumentation generators only intercept the calls it makes when it is compiled there,
+// which is why it ships as source rather than in Qyl.Api.dll.
 [SuppressMessage("Design", "CA1515:Consider making public types internal",
     Justification = "The SDK's public entry point, linked into the consumer's compilation on purpose.")]
-public static class QylApiServiceCollectionExtensions
+public static class QylApiHostApplicationBuilderExtensions
 {
     /// <summary>The name of the OpenAPI document every Qyl API serves and commits.</summary>
     public const string OpenApiDocumentName = "v1";
@@ -32,7 +36,7 @@ public static class QylApiServiceCollectionExtensions
     public const OpenApiSpecVersion OpenApiDocumentVersion = QylSdkBuild.OpenApiVersion;
 
     /// <summary>Registers everything a Qyl API consists of. There is no smaller unit.</summary>
-    /// <param name="services">The service collection of the host.</param>
+    /// <param name="builder">The host builder of the API.</param>
     /// <param name="contexts">
     /// The source-generated <see cref="JsonSerializerContext"/> instances that describe every shape crossing the HTTP boundary,
     /// in resolution order. A Qyl API compiles with <c>JsonSerializerIsReflectionEnabledByDefault=false</c>, so a type reachable
@@ -46,19 +50,28 @@ public static class QylApiServiceCollectionExtensions
     /// <item><description>Validation of every Minimal API request against its DataAnnotations, via the generated resolver.</description></item>
     /// <item><description>Problem details, so validation failures are <c>400 application/problem+json</c> and match the contract.</description></item>
     /// <item><description>The <c>v1</c> OpenAPI document, pinned to <see cref="OpenApiDocumentVersion"/>, populated from XML documentation comments, with every <c>application/xml</c> response described from its model's generated XML shape.</description></item>
+    /// <item><description>Observability: <c>AddQyl()</c> — auto-instrumentation, ASP.NET Core spans, OTLP export — with the committed contract's revision on the resource, then the <c>baggage</c> request header's <c>session.id</c> member on the server span that call's own startup filter creates.</description></item>
     /// </list>
     /// <para>
-    /// The generators behind steps 2 and 4 intercept the literal <c>AddValidation()</c> and <c>AddOpenApi(lambda)</c> calls in this
-    /// method. That works because the SDK compiles into the consumer; the calls are in the consumer's compilation, whichever method
-    /// they sit in. Overrides use the framework's own mechanisms: <c>Configure&lt;ValidationOptions&gt;</c> and
-    /// <c>Configure&lt;OpenApiOptions&gt;("v1", ...)</c>, registered after this call; the document version alone is the MSBuild
-    /// property <c>QylOpenApiVersion</c>, for the reason given on <see cref="OpenApiDocumentVersion"/>.
+    /// The generators behind steps 2, 4 and 5 intercept the literal <c>AddValidation()</c>, <c>AddOpenApi(lambda)</c> and
+    /// <c>AddQyl(lambda)</c> calls in this method. That works because the SDK compiles into the consumer; the calls are in the
+    /// consumer's compilation, whichever method they sit in. Overrides use the framework's own mechanisms:
+    /// <c>Configure&lt;ValidationOptions&gt;</c> and <c>Configure&lt;OpenApiOptions&gt;("v1", ...)</c>, registered after this call;
+    /// the document version alone is the MSBuild property <c>QylOpenApiVersion</c>, for the reason given on
+    /// <see cref="OpenApiDocumentVersion"/>.
+    /// </para>
+    /// <para>
+    /// Telemetry is not a choice. A Qyl API that cannot be observed is not a Qyl API, so there is no <c>WithTelemetry</c> and no
+    /// way to opt out, exactly as there is no way to opt out of validation. The telemetry family keeps its own release line and
+    /// stays a package the SDK pins (<c>QylTelemetryVersion</c>) rather than being folded into <c>Qyl.Api.dll</c>.
     /// </para>
     /// </remarks>
-    public static IQylApiBuilder AddQylApi(this IServiceCollection services, params JsonSerializerContext[] contexts)
+    public static IQylApiBuilder AddQylApi(this IHostApplicationBuilder builder, params JsonSerializerContext[] contexts)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(contexts);
+
+        var services = builder.Services;
 
         services.ConfigureHttpJsonOptions(options =>
         {
@@ -87,6 +100,27 @@ public static class QylApiServiceCollectionExtensions
             // application/xml responses are described from the generated XmlShape, not from JSON type information.
             options.AddOperationTransformer(new QylXmlResponseTransformer());
         });
+
+        // Keep this call literal and its argument a lambda: the Qyl.Telemetry.AutoInstrumentation generator intercepts the
+        // source-visible calls this activates. The contract revision rides the resource, so every span the API exports names
+        // the exact OpenAPI document the binary was compiled against.
+        builder.AddQyl(options =>
+        {
+            // The build-time document tool builds this host and never starts it, so its four blocking collector probes
+            // would buy nothing and make `dotnet build` depend on what is listening locally. See QylBuildTimeDocumentHost.
+            options.EnableCollectorDiscovery = !QylBuildTimeDocumentHost.IsCurrentProcess;
+            options.ResourceAttributes.Add(
+                new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylSdkBuild.ContractRevision));
+        });
+
+        // The agent contract: `baggage: session.id=<id>` on the request becomes session.id on the server span, which the
+        // session processor then copies to every descendant span in the process. An agent that sends the header finds
+        // everything it triggered under that session in the collector.
+        //
+        // After AddQyl on purpose. Startup filters wrap the pipeline in registration order, outermost first, and the server
+        // span this stamps is created by the filter AddQyl registers — a filter registered ahead of it would run outside the
+        // span and tag the wrong activity, or none.
+        services.AddSingleton<IStartupFilter, QylSessionBaggageStartupFilter>();
 
         return new QylApiBuilder(services);
     }
