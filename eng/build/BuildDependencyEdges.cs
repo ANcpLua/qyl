@@ -36,8 +36,10 @@ interface IDependencyEdges : IHazSourcePaths
         ],
         // G11: the CLI is a client of the collector API and owns none of it.
         ["packages/Qyl.Cli/Qyl.Cli.csproj"] = ["Qyl.Api.Contracts"],
+        // The demo producer sets attributes through the pre-generated Activities classes;
+        // the retired SourceGeneration package generated them at compile time instead.
         ["packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj"] =
-            ["Qyl.Telemetry.SemanticConventions.SourceGeneration"],
+            ["Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating"],
         // Collector product function: generated contracts it serves. The producer stack
         // arrives only transitively through the collector-defaults layer (self-telemetry);
         // a direct producer-family reference here is the forbidden edge G7 exists to catch.

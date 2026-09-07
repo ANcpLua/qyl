@@ -18,7 +18,8 @@
   <ItemGroup>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
-    <PackageReference Include="Qyl.Telemetry.SemanticConventions.SourceGeneration" PrivateAssets="all"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating"/>
   </ItemGroup>
 
 </Project>
