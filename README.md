@@ -113,7 +113,7 @@ observable.
 | OpenAPI | `///` comments on handlers and contracts | the `Microsoft.AspNetCore.OpenApi` XML-comment generator, intercepting `AddOpenApi` |
 | Committed contract | `dotnet build` | `Microsoft.Extensions.ApiDescription.Server`, writing `samples/qyl.sample/openapi/qyl.sample.json` |
 | Contract revision | `dotnet build` | `Qyl.Sdk.Api.targets`, hashing that document into `QylSdkBuild.ContractRevision` and out as the resource attribute `qyl.api.contract.revision` |
-| Telemetry | nothing — there is no telemetry line in the sample | `Qyl.Telemetry.Hosting`, pinned by the SDK and its interceptor generator loaded as an analyzer |
+| Telemetry | nothing — there is no telemetry line in the sample | `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation`, both pinned by the SDK at `QylTelemetryVersion`; the interceptor generator ships in the second, under `analyzers/dotnet/cs`, and arrives through its `buildTransitive` assets |
 | Binding and JSON | method-group handlers, `AppJsonSerializerContext` | the Request Delegate Generator and the `System.Text.Json` generator |
 
 An agent gets its own trace back by naming it on the way in:

@@ -57,7 +57,22 @@ interface IDependencyEdges : IHazSourcePaths
             "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
         ],
         ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Telemetry.Hosting"],
+        // Every project built by the Qyl.Api.Sdk MSBuild SDK, which injects these from its own targets: the
+        // producer's onboarding surface and the package its interceptor generator ships in. A project moves
+        // into this row by naming that SDK, so the row is also what makes the move visible — a client-ring
+        // project could otherwise acquire the whole producer family by changing one attribute.
+        [QylApiSdkConsumer] = ["Qyl.Telemetry.AutoInstrumentation", "Qyl.Telemetry.Hosting"],
     };
+
+    /// <summary>The §2 row every project built by the Qyl.Api.Sdk MSBuild SDK is held to.</summary>
+    private const string QylApiSdkConsumer = "<Sdk=\"Qyl.Api.Sdk\">";
+
+    /// <summary>The MSBuild files the SDK injects its package references from, read as if they were the consumer's.</summary>
+    private static readonly string[] s_qylApiSdkBuildFiles =
+    [
+        "packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.props",
+        "packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.targets",
+    ];
 
     /// <summary>
     /// G11 on the project axis: the collector is reachable only via its API, so no project
@@ -90,6 +105,19 @@ interface IDependencyEdges : IHazSourcePaths
     private static bool IsForbidden(string reference, string forbidden) =>
         reference.Equals(forbidden, StringComparison.OrdinalIgnoreCase)
         || reference.StartsWith(forbidden + ".", StringComparison.OrdinalIgnoreCase);
+
+
+    /// <summary>
+    /// Whether a project is built by the Qyl.Api.Sdk, by either route it offers: <c>Sdk="Qyl.Api.Sdk/x"</c> on
+    /// the project, or the explicit <c>Sdk/Sdk.props</c> and <c>Sdk/Sdk.targets</c> imports the sample uses so a
+    /// fresh clone builds without a pack step.
+    /// </summary>
+    private static bool UsesQylApiSdk(XDocument document) =>
+        ((string?)document.Root?.Attribute("Sdk"))?.StartsWith("Qyl.Api.Sdk", StringComparison.OrdinalIgnoreCase) is true ||
+        document.Descendants("Import")
+            .Select(static import => (string?)import.Attribute("Project"))
+            .Any(static project => project?.Replace('\\', '/')
+                .Contains("Qyl.Api.Sdk/Sdk/Sdk.", StringComparison.OrdinalIgnoreCase) is true);
 
     Target VerifyDependencyEdges => d => d
         .Unlisted()
@@ -125,11 +153,26 @@ interface IDependencyEdges : IHazSourcePaths
                 .Where(static entry => entry.References.Count > 0)
                 .ToList();
 
+            // The Qyl.Api.Sdk injects PackageReferences from its own Build/*.props|targets, which no consumer's
+            // csproj mentions. Read once here and attributed to every project that names the SDK, so a project
+            // built by it is measured against what it actually gets.
+            var sdkInjectedReferences = s_qylApiSdkBuildFiles
+                .Select(file => repoRoot / file)
+                .Where(static file => file.FileExists())
+                .SelectMany(static file => XDocument.Load(file).Descendants()
+                    .Where(static e => e.Name.LocalName is "PackageReference")
+                    .Select(static r => (string?)r.Attribute("Include"))
+                    .Where(static include => include is not null)
+                    .Select(static include => include!))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             foreach (var project in projects)
             {
                 var relative = repoRoot.GetRelativePathTo(project).ToString().Replace('\\', '/');
                 seenProjects.Add(relative);
                 var document = XDocument.Load(project);
+                var usesQylApiSdk = UsesQylApiSdk(document);
                 var projectPath = project.ToString().Replace('\\', '/');
                 var references = document.Descendants("PackageReference")
                     .Select(static r => (string?)r.Attribute("Include"))
@@ -138,6 +181,7 @@ interface IDependencyEdges : IHazSourcePaths
                     .Concat(sharedReferences
                         .Where(entry => projectPath.StartsWith(entry.Directory + "/", StringComparison.Ordinal))
                         .SelectMany(static entry => entry.References))
+                    .Concat(usesQylApiSdk ? sdkInjectedReferences : [])
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
@@ -165,14 +209,16 @@ interface IDependencyEdges : IHazSourcePaths
                     .Where(static r => r.StartsWith("Qyl", StringComparison.OrdinalIgnoreCase))
                     .OrderBy(static r => r, StringComparer.Ordinal)
                     .ToArray();
-                var allowed = AllowedQylPackageEdges.TryGetValue(relative, out var edges)
+                var row = usesQylApiSdk ? QylApiSdkConsumer : relative;
+                seenProjects.Add(row);
+                var allowed = AllowedQylPackageEdges.TryGetValue(row, out var edges)
                     ? edges.OrderBy(static e => e, StringComparer.Ordinal).ToArray()
                     : [];
 
                 if (!qylReferences.SequenceEqual(allowed, StringComparer.Ordinal))
                 {
                     offenders.Add(
-                        $"{relative}: qyl package edges [{string.Join(", ", qylReferences)}] " +
+                        $"{relative} (row {row}): qyl package edges [{string.Join(", ", qylReferences)}] " +
                         $"do not equal the §2 table [{string.Join(", ", allowed)}]");
                 }
             }
