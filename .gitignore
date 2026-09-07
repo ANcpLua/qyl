@@ -32,6 +32,8 @@ project.lock.json
 .idea/
 *.sln.iml
 *.DotSettings.user
+riderModule.iml
+_ReSharper.Caches/
 
 .vs/
 *.vspscc
