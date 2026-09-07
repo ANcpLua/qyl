@@ -102,7 +102,7 @@ public sealed class SessionBaggageTests : IAsyncLifetime
     [Fact]
     public async Task The_propagator_in_use_injects()
     {
-        var propagator = await _client.GetStringAsync("/propagator");
+        var propagator = await _client.GetStringAsync("/propagator", TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("NoOutput", propagator, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(DistributedContextPropagator.Current.GetType().Name, propagator, StringComparer.Ordinal);
