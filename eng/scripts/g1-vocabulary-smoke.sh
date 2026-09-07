@@ -9,7 +9,7 @@
 # and generator-owned defaults live there, never in hand-written runtime source.
 #
 # Expected result: zero hits. A hit means hand-written vocabulary — move the name
-# into the registry (qyl-registry.json in the semconv repo) or a generator, and
+# into the registry (the YAML under registry/ in the semconv repo) or a generator, and
 # reference the generated constant. A missing scan scope is a failure, not a
 # clean result: after a rename moves these directories, the scope list must move
 # with them, or the smoke would go green over nothing.

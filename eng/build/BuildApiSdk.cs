@@ -23,8 +23,8 @@ using Serilog;
 namespace Qyl.Build;
 
 /// <summary>
-/// The proof that Qyl.Api.Sdk builds the API it claims to: the sample is the API, and every
-/// check the fused repository ran as verify.sh runs here instead. Eight stages, same order —
+/// The proof that Qyl.Api.Sdk builds the API it claims to: the sample is the API, and every check
+/// the SDK's own repository ran from a shell script runs here instead. Eight stages, in order —
 /// build and generator tests, committed contract unchanged, every compile-time generator ran,
 /// the HTTP scenario on the managed host, a Native AOT publish with no managed files beside the
 /// binary, the same scenario on the native host, the container image, and a consumer built from
