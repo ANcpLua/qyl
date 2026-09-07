@@ -35,6 +35,16 @@
     <ANcpLuaRoslynUtilitiesVersion>2.2.46</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
+  <!-- The versions the Qyl.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
+       SDK's own property names because eng/build writes this pair into the packed
+       Build/Qyl.Sdk.Packages.props, where a consumer outside this repository reads them. -->
+  <PropertyGroup Label="Qyl.Api.Sdk-owned">
+    <!-- Runtime OpenAPI document, plus the XML-comment source generator that ships inside it. -->
+    <QylAspNetCoreOpenApiVersion>$(DotNetRuntimeVersion)</QylAspNetCoreOpenApiVersion>
+    <!-- Build-time OpenAPI document emission: dotnet build writes the committed contract. -->
+    <QylApiDescriptionServerVersion>$(DotNetRuntimeVersion)</QylApiDescriptionServerVersion>
+  </PropertyGroup>
+
   <PropertyGroup Label="Telemetry and wire">
     <OpenTelemetryVersion>1.18.0</OpenTelemetryVersion>
     <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
