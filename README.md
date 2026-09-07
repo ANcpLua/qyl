@@ -71,9 +71,18 @@ successors.
 
 ## Architecture
 
-`ARCHITECTURE-1.0.0.md` is the normative document: component taxonomy, boundary law, the
-dependency-edge list, the generated loops, and the gates. `docs/component-taxonomy.html`
-is a view of the same content. On conflict the Markdown wins.
+One wire, two generated loops, many independently shipped artifacts. The wire is OTLP: a
+producer stack runs inside the customer's process and ends at an exporter, the collector is
+a separate process that begins where that exporter ends, and no package crosses between
+them. Loop 1 is the vocabulary — one Weaver registry generates the producer's constants and
+the collector's ingest catalog, so qyl cannot emit telemetry its own collector does not
+recognise. Loop 2 is the contract — one TypeSpec repository generates the collector's API
+surface and every first-party client of it, so no client holds a shadow contract.
+
+Every rule is owned by a compiler, an analyzer, a generator, or a gate. The gates live in
+`eng/build` and run from the `Verify` and `Ci` targets; the package edge list they enforce
+is the table in `eng/build/BuildDependencyEdges.cs`. `docs/component-taxonomy.html` is a
+diagram view of the same graph.
 
 One graph, one truth, many artifacts.
 
