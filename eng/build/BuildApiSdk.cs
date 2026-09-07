@@ -91,6 +91,9 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// <summary>Stage 1: the SDK, the sample and the generator's own proof build and pass.</summary>
     Target ApiSdkBuildAndTest => d => d
         .Unlisted()
+        // Ordering only, so a Clean in the same run cannot delete the build output these stages
+        // read; standalone, ApiSdk still needs nothing but itself.
+        .After<ICompile>(static x => x.Compile)
         .Executes(() =>
         {
             ApiSdkArtifactsDirectory.CreateOrCleanDirectory();
