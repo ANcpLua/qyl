@@ -320,3 +320,43 @@ enriched by qyl, each named `{method} {route}`, each carrying the `sha256:` cont
 the session is the `session.id` assertion — the collector keys a span into a session by that tag and refuses
 to store it as an attribute, so a span the session endpoint returned carries the id the agent sent. A fourth
 span now fails the stage, which is what should have happened the first time.
+
+## 2026-09-07 · The route template is the contract's path, and the session proof needs a control
+
+Four corrections from the second refutation of the fusion.
+
+**A generated documentation comment is XML in someone else's compilation.** `QylSdkBuild.g.cs` carried
+`` `sha256:<lowercase hex>` `` in a `<summary>`, which is invalid XML: three `CS1570` in every build of every
+Qyl API, and a hard failure for a consumer with `TreatWarningsAsErrors`. It survived here because the sample's
+builds were incremental and the warning only appears when the file is recompiled. An angle bracket in that
+file now needs both escapes at once — `&amp;lt%3B` in the targets, XML-decoded and then MSBuild-unescaped —
+and `ApiSdkPackagedConsumer` builds the synthesized consumer with `-warnaserror`, which is the only build in
+this repository that compiles the SDK's sources without any of this repository's settings.
+
+**The span and the contract must name the endpoint identically.** `MapGroup("/todos")` with a relative `"/"`
+produces the route template `/todos/`, which is what `http.route` reports, while the OpenAPI document spells
+the same endpoint `/todos`; `""` produces `/todos/` too, because the group keeps the separator. An agent
+correlating a span to the contract would have had to know that. The todo endpoints are therefore mapped at
+their full paths, and the session stage asserts that every span's `http.route`, with its route constraints
+stripped the way ASP.NET Core's OpenAPI generator strips them, is a path key of the committed document. The
+committed document did not change: it always said `/todos`.
+
+**Membership in a session does not prove a span was tagged.** `GetSpansBySessionAsync` returns whole traces
+once any span of one matched, so the old assertion — "these spans came back from the session endpoint,
+therefore they carry `session.id`" — was true only because each request happens to be a single-span trace.
+The stage now drives a fourth request with no `baggage` header, waits for it in the collector's unfiltered
+trace list, and asserts it is absent from the session. What the header did is the difference between the two,
+which is the thing worth asserting.
+
+**A test that matches its own literal is not a test.** `ContractRevisionTests` pinned `sha256:…` against a
+constant it declared itself, so reverting the targets to a bare digest left all of it green. The value cannot
+be asserted from `Qyl.Api.Tests` — it is compiled into a consumer, and that project is not built by the SDK —
+so it is asserted where it can be, off a real span in `ApiSdkSessionScenario`, whose oracle spells the format
+independently of the targets. Only the attribute key stays a unit test, because it comes from the registry
+package and a rename there should fail here.
+
+Two smaller ones: the "still in the global packages folder" check moved inside the `finally` so it is verified
+on the failure path too, and throws only on the success path, where it cannot replace the reason the stage
+failed; and `AwaitSession` now requires two further polls to agree before believing a count, because a
+duplicate span arriving in a later export batch would otherwise pass an "exactly three" assertion that had
+already returned.

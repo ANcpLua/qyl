@@ -77,6 +77,9 @@
     Build-time values the SDK sources read at runtime, written before compilation so MSBuild, not code, owns them.
     Properties are evaluated inside the target because IntermediateOutputPath is defined by Microsoft.Common.targets,
     which imports after this file. Semicolons are escaped as %3B: WriteLinesToFile would otherwise split the source.
+    An angle bracket inside a generated documentation comment therefore needs both escapes at once —
+    `&amp;lt%3B` is XML-decoded to `&lt%3B` and unescaped to `&lt;` — because an unescaped one is invalid XML in the
+    consumer's own compilation (CS1570 in every build of every Qyl API) and a bare `;` would cut the file in half.
   -->
   <Target Name="QylGenerateSdkBuildInfo" BeforeTargets="CoreCompile">
     <PropertyGroup>
@@ -119,7 +122,7 @@ namespace Qyl
         /// &lt;summary&gt;The OpenAPI specification version (`QylOpenApiVersion`), shared with the build-time document tool.&lt;/summary&gt;
         public const global::Microsoft.OpenApi.OpenApiSpecVersion OpenApiVersion = global::Microsoft.OpenApi.OpenApiSpecVersion.$(QylOpenApiVersion)%3B
 
-        /// &lt;summary&gt;The digest of the committed OpenAPI document (`QylOpenApiDocumentFile`) as the registry spells it: `sha256:&lt;lowercase hex&gt;`.&lt;/summary&gt;
+        /// &lt;summary&gt;The digest of the committed OpenAPI document (`QylOpenApiDocumentFile`) as the registry spells it: `sha256:&amp;lt%3Blowercase hex&amp;gt%3B`.&lt;/summary&gt;
         public const string ContractRevision = "$(_QylContractRevision)"%3B
     }
 }</_QylSdkBuildInfoSource>
