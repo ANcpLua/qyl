@@ -219,6 +219,8 @@ jobs:
           mkdir -p "$PACKAGES"
           dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
             -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
+          dotnet pack packages/Qyl.Api.Sdk/Qyl.Api.Sdk.csproj --configuration Release --output "$PACKAGES" \
+            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
 
       - name: Assemble RID packages from matching platform runners
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -242,6 +244,7 @@ jobs:
               "qyl.linux-x64", "qyl.linux-arm64",
               "qyl.osx-x64", "qyl.osx-arm64",
               "qyl.win-x64", "qyl.win-arm64",
+              "Qyl.Api.Sdk",
           }
           native = {
               "linux-x64": "libduckdb.so", "linux-arm64": "libduckdb.so",
@@ -356,7 +359,7 @@ jobs:
         run: |
           ids=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            qyl
+            qyl Qyl.Api.Sdk
           )
           for id in "${ids[@]}"; do
             lower_id="${id,,}"
@@ -400,7 +403,7 @@ jobs:
         run: |
           packages=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            qyl
+            qyl Qyl.Api.Sdk
           )
           for id in "${packages[@]}"; do
             package="artifacts/${id}.${VERSION}.nupkg"
@@ -419,13 +422,16 @@ jobs:
         run: |
           ids=(
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
-            qyl
+            qyl Qyl.Api.Sdk
           )
           deadline=$((SECONDS + 900))
           while true; do
             pending=()
             for id in "${ids[@]}"; do
-              url="https://api.nuget.org/v3-flatcontainer/${id}/${VERSION}/${id}.${VERSION}.nupkg"
+              # The flat container addresses packages by lowercase id; Qyl.Api.Sdk is the one
+              # shipped id that is not already lowercase, and an uncased URL 404s forever.
+              lower_id="${id,,}"
+              url="https://api.nuget.org/v3-flatcontainer/${lower_id}/${VERSION}/${lower_id}.${VERSION}.nupkg"
               if ! curl --fail --silent --show-error --output /dev/null "$url"; then
                 pending+=("$id")
               fi
