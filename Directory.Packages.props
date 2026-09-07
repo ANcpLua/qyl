@@ -6,6 +6,12 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!-- The Qyl.Api.Sdk MSBuild SDK owns the versions of the packages it puts into every API it
+       builds. Importing its file here is the documented central-management path (Sdk/Sdk.props
+       imports it only when a repository has not), so those versions are declared exactly once
+       whether a project reaches the SDK through this repository or through the package. -->
+  <Import Project="$(MSBuildThisFileDirectory)packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Packages.props"/>
+
   <!-- Every entry resolves through a property from Version.props. A literal version here is a bug:
        it hides the bump from the one file that owns versions, and two packages on one release line
        drift the moment their versions are typed separately. -->
@@ -33,11 +39,10 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
-    <!-- Transitive-only pin; see the hold note on MicrosoftOpenApiVersion in Version.props. -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="$(MicrosoftOpenApiVersion)"/>
   </ItemGroup>
 
   <ItemGroup Label="Roslyn">
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)"/>
     <!-- Transitive-only pin. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="$(RoslynPublicApiAnalyzersVersion)"/>
