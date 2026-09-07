@@ -463,17 +463,29 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         return tree.GetCompilationUnitRoot();
     }
 
+    /// <summary>The one semantic-convention namespace the runtime policy may name.</summary>
+    private const string GeneratedMappingNamespace = "Qyl.Telemetry.SemanticConventions.Incubating.Mapping";
+
     /// <summary>
     /// The rule is "no handwired semantic-convention lists in the policy", not "no package
     /// reference": <c>Incubating.Mapping.AttributeMapping</c> is generated from the same registry
     /// as this catalog, so consuming its vendor and rename tables is the behaviour this gate
     /// exists to require. Everything else, the <c>Attributes</c> namespaces above all, stays out.
+    /// A qualified name contributes its own prefixes as nodes, so a prefix of the allowed
+    /// namespace is allowed too; the full name of anything else is still reported.
     /// </summary>
-    private static bool IsForbiddenSemanticConventionReference(string? text) =>
-        text is not null &&
-        text.Contains("Qyl.Telemetry.SemanticConventions", StringComparison.Ordinal) &&
-        !text.Contains("Qyl.Telemetry.SemanticConventions.Incubating.Mapping", StringComparison.Ordinal) &&
-        text is not "AttributeMapping";
+    private static bool IsForbiddenSemanticConventionReference(string? text)
+    {
+        if (text is null || !text.Contains("Qyl.Telemetry.SemanticConventions", StringComparison.Ordinal))
+            return false;
+
+        var normalized = text.StartsWith("global::", StringComparison.Ordinal)
+            ? text["global::".Length..]
+            : text;
+
+        return !normalized.StartsWith(GeneratedMappingNamespace, StringComparison.Ordinal)
+               && !GeneratedMappingNamespace.StartsWith(normalized, StringComparison.Ordinal);
+    }
 
     private static bool IsReflectionReference(string text)
     {
