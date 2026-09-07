@@ -225,6 +225,19 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.kafka.message.offset",
         "messaging.kafka.message.tombstone", // incubating
         "messaging.kafka.offset", // incubating
+        "messaging.masstransit.begin_state", // incubating
+        "messaging.masstransit.consumer_type", // incubating
+        "messaging.masstransit.correlation_id", // incubating
+        "messaging.masstransit.destination_address", // incubating
+        "messaging.masstransit.end_state", // incubating
+        "messaging.masstransit.initiator_id", // incubating
+        "messaging.masstransit.input_address", // incubating
+        "messaging.masstransit.message_id", // incubating
+        "messaging.masstransit.message_types", // incubating
+        "messaging.masstransit.request_id", // incubating
+        "messaging.masstransit.saga_id", // incubating
+        "messaging.masstransit.source_address", // incubating
+        "messaging.masstransit.tracking_number", // incubating
         "messaging.message.body.size", // incubating
         "messaging.message.conversation_id", // incubating
         "messaging.message.envelope.size", // incubating
@@ -232,6 +245,7 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.operation",
         "messaging.operation.name", // incubating
         "messaging.operation.type", // incubating
+        "messaging.rabbitmq.delivery_tag", // incubating
         "messaging.rabbitmq.destination.routing_key", // incubating
         "messaging.rabbitmq.message.delivery_tag", // incubating
         "messaging.rocketmq.client_group",
@@ -444,6 +458,19 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.kafka.message.offset",
         "messaging.kafka.message.tombstone", // incubating
         "messaging.kafka.offset", // incubating
+        "messaging.masstransit.begin_state", // incubating
+        "messaging.masstransit.consumer_type", // incubating
+        "messaging.masstransit.correlation_id", // incubating
+        "messaging.masstransit.destination_address", // incubating
+        "messaging.masstransit.end_state", // incubating
+        "messaging.masstransit.initiator_id", // incubating
+        "messaging.masstransit.input_address", // incubating
+        "messaging.masstransit.message_id", // incubating
+        "messaging.masstransit.message_types", // incubating
+        "messaging.masstransit.request_id", // incubating
+        "messaging.masstransit.saga_id", // incubating
+        "messaging.masstransit.source_address", // incubating
+        "messaging.masstransit.tracking_number", // incubating
         "messaging.message.body.size", // incubating
         "messaging.message.conversation_id", // incubating
         "messaging.message.envelope.size", // incubating
@@ -451,6 +478,7 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.operation",
         "messaging.operation.name", // incubating
         "messaging.operation.type", // incubating
+        "messaging.rabbitmq.delivery_tag", // incubating
         "messaging.rabbitmq.destination.routing_key", // incubating
         "messaging.rabbitmq.message.delivery_tag", // incubating
         "messaging.rocketmq.client_group",
@@ -682,6 +710,19 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.kafka.message.offset",
         "messaging.kafka.message.tombstone", // incubating
         "messaging.kafka.offset", // incubating
+        "messaging.masstransit.begin_state", // incubating
+        "messaging.masstransit.consumer_type", // incubating
+        "messaging.masstransit.correlation_id", // incubating
+        "messaging.masstransit.destination_address", // incubating
+        "messaging.masstransit.end_state", // incubating
+        "messaging.masstransit.initiator_id", // incubating
+        "messaging.masstransit.input_address", // incubating
+        "messaging.masstransit.message_id", // incubating
+        "messaging.masstransit.message_types", // incubating
+        "messaging.masstransit.request_id", // incubating
+        "messaging.masstransit.saga_id", // incubating
+        "messaging.masstransit.source_address", // incubating
+        "messaging.masstransit.tracking_number", // incubating
         "messaging.message.body.size", // incubating
         "messaging.message.conversation_id", // incubating
         "messaging.message.envelope.size", // incubating
@@ -689,6 +730,7 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.operation",
         "messaging.operation.name", // incubating
         "messaging.operation.type", // incubating
+        "messaging.rabbitmq.delivery_tag", // incubating
         "messaging.rabbitmq.destination.routing_key", // incubating
         "messaging.rabbitmq.message.delivery_tag", // incubating
         "messaging.rocketmq.client_group",
@@ -939,9 +981,6 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.reasoning.output_tokens" // incubating
     );
 
-    internal const string DbQueryText = "db.query.text";
-    internal const string DbStatementDeprecated = "db.statement";
-    internal const string DbSystemDeprecated = "db.system";
     internal const string DbSystemName = "db.system.name";
     internal const string GenAiCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"; // incubating
     internal const string GenAiCacheWriteInputTokens = "gen_ai.usage.cache_write.input_tokens"; // incubating
@@ -956,10 +995,9 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiToolCallId = "gen_ai.tool.call.id"; // incubating
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
-    internal const string HttpUrlDeprecated = "http.url";
+    internal const string QylAttributeNamespace = "qyl.attribute.namespace"; // incubating
     internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.44.0";
     internal const string ServiceName = "service.name";
-    internal const string UrlFull = "url.full";
 
     internal static class GenAiOperationNameValues
     {

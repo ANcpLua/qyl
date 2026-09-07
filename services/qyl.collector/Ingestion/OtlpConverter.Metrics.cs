@@ -1,5 +1,6 @@
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
+using Qyl.Collector.Telemetry;
 using ProtoExponentialHistogramDataPoint = OpenTelemetry.Proto.Metrics.V1.ExponentialHistogramDataPoint;
 using ProtoHistogramDataPoint = OpenTelemetry.Proto.Metrics.V1.HistogramDataPoint;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
@@ -345,7 +346,11 @@ internal static partial class OtlpConverter
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.IsSafeMetricAttribute(key)) continue;
+            if (!AttributeKeySets.IsSafeMetricAttribute(key))
+            {
+                QylCollectorMetrics.AttributeDropped(key);
+                continue;
+            }
 
             SetNormalizedAttribute(dict, key, ConvertProtoAnyValue(attr.Value), renamed);
         }

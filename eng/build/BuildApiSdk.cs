@@ -17,6 +17,7 @@ using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
+using Nuke.Components;
 using Serilog;
 
 namespace Qyl.Build;
@@ -301,9 +302,9 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 
             var consumer = ApiSdkConsumerDirectory / "qyl.sample";
             consumer.CreateDirectory();
-            foreach (var name in new[] { "Program.cs", "AppJsonSerializerContext.cs", "appsettings.json" })
-                FileSystemTasks.CopyFile(SampleDirectory / name, consumer / name);
-            FileSystemTasks.CopyDirectoryRecursively(SampleDirectory / "Todos", consumer / "Todos");
+            foreach (var name in ApiSdkScenario.ConsumerSourceFiles)
+                (SampleDirectory / name).Copy(consumer / name);
+            (SampleDirectory / "Todos").Copy(consumer / "Todos");
 
             (consumer / "qyl.sample.csproj").WriteAllText(
                 $"""
@@ -344,14 +345,13 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
             DotNetTasks.DotNetBuild(s => s
                 .SetProjectFile(consumer / "qyl.sample.csproj")
                 .SetConfiguration(Configuration)
-                .DisableProcessOutputLogging()
-                .SetProcessArgumentConfigurator(static a => a.Add("--disable-build-servers")));
+                .SetProcessAdditionalArguments("--disable-build-servers"));
 
             var generated = consumer.GlobFiles("**/Qyl_Sample_Todo.GenerateXml.g.cs").FirstOrDefault();
             if (generated is null)
                 throw new InvalidOperationException("The packaged generator did not run in the consumer");
 
-            foreach (var assembly in new[] { "Qyl.Xml.dll", "Qyl.Api.dll" })
+            foreach (var assembly in ApiSdkScenario.PackagedAssemblies)
             {
                 if (consumer.GlobFiles($"bin/**/{assembly}").Count == 0)
                     throw new InvalidOperationException($"The packaged {assembly} was not referenced by the consumer");
@@ -377,6 +377,13 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 internal static class ApiSdkScenario
 {
     private static readonly TimeSpan s_startupTimeout = TimeSpan.FromSeconds(60);
+
+    /// <summary>The sample sources a packaged consumer is rebuilt from, verbatim.</summary>
+    internal static readonly string[] ConsumerSourceFiles =
+        ["Program.cs", "AppJsonSerializerContext.cs", "appsettings.json"];
+
+    /// <summary>The assemblies the package must put on a consumer's reference list.</summary>
+    internal static readonly string[] PackagedAssemblies = ["Qyl.Xml.dll", "Qyl.Api.dll"];
 
     public static void Run(AbsolutePath executable, string label, AbsolutePath contract)
     {
@@ -438,7 +445,7 @@ internal static class ApiSdkScenario
 
     public static int FreeLoopbackPort()
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();

@@ -1,3 +1,5 @@
+using Qyl.Telemetry.SemanticConventions.Incubating.Mapping;
+
 namespace Qyl.Collector.Ingestion;
 
 internal static class AttributeKeySets
@@ -19,16 +21,24 @@ internal static class AttributeKeySets
 
     internal static bool IsSafeSpanAttribute(string key) =>
         CollectorSemanticAttributeCatalog.SafeHttpSpanHeaderAttributeKeys.Contains(key) ||
-        !IsDenied(key) && CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key);
+        !IsDenied(key) &&
+        (CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key) || IsVendorTag(key));
 
     internal static bool IsSafeLogAttribute(string key) =>
-        !IsDenied(key) && CollectorSemanticAttributeCatalog.LogAttributeAllowList.Contains(key);
+        !IsDenied(key) &&
+        (CollectorSemanticAttributeCatalog.LogAttributeAllowList.Contains(key) || IsVendorTag(key));
 
     // Metric attributes are the series identity, so an unregistered key would fork every
     // series it appears on and make the catalog unreadable. They pass exactly the same
     // registry-backed policy as span and log attributes.
     internal static bool IsSafeMetricAttribute(string key) =>
-        !IsDenied(key) && CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key);
+        !IsDenied(key) &&
+        (CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key) || IsVendorTag(key));
+
+    // A key a pinned third-party library emits is a tag, not vocabulary: it is forwarded exactly
+    // as it arrived and never rewritten. The privacy denial above still applies to it — a vendor
+    // is no more entitled to write a credential into storage than an application is.
+    private static bool IsVendorTag(string key) => AttributeMapping.IsVendorPassThrough(key);
 
     internal static bool IsSafeResourceAttribute(string key) =>
         !IsDenied(key) &&

@@ -66,6 +66,10 @@
 
   <ItemGroup>
     <PackageReference Include="Qyl.Api.Contracts"/>
+    <!-- Ingest normalization: the generated attribute mapping table and the metric definition
+         for the dropped-attribute counter. Vocabulary, not the producer stack. -->
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
