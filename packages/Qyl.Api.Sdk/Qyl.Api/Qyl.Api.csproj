@@ -11,9 +11,9 @@
     <RootNamespace>Qyl</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Keep the problem-details JSON context inspectable under obj/generated, as the SDK does for every consumer. -->
+    <!-- Keep the problem-details JSON context inspectable, as the SDK does for every consumer. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

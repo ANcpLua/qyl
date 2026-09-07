@@ -83,9 +83,15 @@ namespace Qyl
     </ItemGroup>
   </Target>
 
-  <!-- Keep every generator's output inspectable under obj/generated. -->
+  <!--
+    Keep every generator's output inspectable. The path is scoped by configuration and target
+    framework because BaseIntermediateOutputPath is per project, not per build: a repository that
+    redirects it (this one points it at artifacts/obj/<project>/) would otherwise have a Debug and
+    a Release build overwrite each other's generated sources in one directory. IntermediateOutputPath
+    itself is not usable here — Microsoft.Common.targets defines it after this file is imported.
+  -->
   <PropertyGroup>
     <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    <CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 </Project>

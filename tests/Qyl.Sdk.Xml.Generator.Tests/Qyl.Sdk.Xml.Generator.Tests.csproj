@@ -18,7 +18,7 @@
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
     <NoWarn>$(NoWarn);CA1707;CA2007;CS1591</NoWarn>
   </PropertyGroup>
 
