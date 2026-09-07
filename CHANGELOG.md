@@ -7,7 +7,7 @@ Breaking. Semantic conventions move to the Weaver-only architecture, and the
 
 ### Semantic conventions
 
-- `Qyl.Telemetry.SemanticConventions` and `.Incubating` are pinned at 9.0.0, the
+- `Qyl.Telemetry.SemanticConventions` and `.Incubating` are pinned at 9.1.0, the
   release generated entirely by Weaver from registry YAML. The constants ship
   pre-built; nothing is generated at this repository's compile time any more.
 - `Qyl.Telemetry.SemanticConventions.SourceGeneration` is retired upstream and its
