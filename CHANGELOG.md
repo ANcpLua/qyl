@@ -47,6 +47,12 @@ which is what makes this line 5.0.0 rather than 4.1.0.
   validation: no `WithTelemetry`, no opt-out. The one exception is the build-time
   OpenAPI document tool, where collector discovery is off — it builds the host and
   never starts it.
+- The producer family is pinned at 14.1.0, where the qyl ASP.NET Core middleware no
+  longer opens a server span of its own: the `Microsoft.AspNetCore` hosting activity is
+  the one `SERVER` span per request, enriched in place with `http.request.method`,
+  `url.*`, `http.route`, `http.response.status_code`, `error.type`,
+  `qyl.instrumentation.domain` and the name `{method} {route}`. A request is one span
+  again instead of two, and the session stage asserts exactly that.
 - An agent is a Qyl API's first consumer. `Qyl.Api` stamps the W3C `baggage`
   request header's `session.id` member onto the server span, and the session
   processor carries it to every span the request causes; the agent then reads its

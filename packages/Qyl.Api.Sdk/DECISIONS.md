@@ -300,3 +300,23 @@ documents and the one `Sdk/Sdk.props` names in its header comment, the CHANGELOG
 `ApiSdkPackagedConsumer` gate packs and resolves — that last one reads `QylVersion` directly, so it needed no
 edit and could not have been forgotten. The earlier entries above cite `Qyl.Api.Sdk/4.0.0` because that is
 what they verified at the time; they are history and stay as written.
+
+## 2026-09-07 · One request is one span: the proof stops tolerating the second one
+
+The first session run answered with six spans for three requests. Both were `SERVER`: the ASP.NET Core hosting
+activity, and a second span the qyl middleware opened inside it. The gate accepted that by filtering on
+`http.route`, which only the qyl span carried — an assertion written around a defect instead of against it.
+
+`Qyl.Telemetry.Hosting` 14.1.0 deletes the second span. The hosting activity is the server span and the
+startup-filter middleware enriches it in place with `http.request.method`, `url.*`, `http.route`,
+`http.response.status_code`, `error.type`, `qyl.instrumentation.domain=aspnetcore.server` and the name
+`{method} {route}`; the server-span scope becomes `Microsoft.AspNetCore`. Nothing in this repository had to
+change for the session filter: it is registered after `AddQyl()`, so `Activity.Current` in it is the span the
+exporter will ship either way.
+
+So the pin moves to 14.1.0 and `ApiSdkSessionScenario` asserts the shape rather than filtering for it: exactly
+three spans in the session, one per request, each `SERVER`, each with an `http.route` under `/todos`, each
+enriched by qyl, each named `{method} {route}`, each carrying the `sha256:` contract revision. Membership in
+the session is the `session.id` assertion — the collector keys a span into a session by that tag and refuses
+to store it as an attribute, so a span the session endpoint returned carries the id the agent sent. A fourth
+span now fails the stage, which is what should have happened the first time.

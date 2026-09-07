@@ -30,7 +30,7 @@
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property.
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
-    <QylTelemetryVersion>14.0.1</QylTelemetryVersion>
+    <QylTelemetryVersion>14.1.0</QylTelemetryVersion>
     <QylSemanticConventionsVersion>9.2.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>10.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->

@@ -793,6 +793,10 @@ internal static class ApiSdkSession
     private const string RouteAttribute = "http.route";
     private const string MethodAttribute = "http.request.method";
     private const string StatusAttribute = "http.response.status_code";
+    private const string DomainAttribute = "qyl.instrumentation.domain";
+
+    /// <summary>The value qyl stamps on the ASP.NET Core server span it enriches.</summary>
+    private const string AspNetCoreServerDomain = "aspnetcore.server";
 
     /// <summary>OTLP span kind 2, SPAN_KIND_SERVER, as the read contract writes it.</summary>
     private const string ServerSpanKind = "2";
@@ -942,64 +946,66 @@ internal static class ApiSdkSession
 
     private static void Assert(List<JsonNode> spans, string revision, string sessionId)
     {
-        // The session holds every span of the traces the header opened, including the ASP.NET Core hosting
-        // activity that parents each request. The API's own server spans are the ones that carry http.route.
-        var routed = spans
+        // One SERVER span per request and nothing else. Since Qyl.Telemetry.Hosting 14.1.0 the ASP.NET Core
+        // hosting activity is that span, enriched in place, rather than the parent of a second qyl span; a
+        // fourth span here means a request is being reported twice again.
+        //
+        // Being in this list is the session.id assertion. The collector keys a span into a session by that tag
+        // and refuses to store it as an attribute, so a span that came back from
+        // /api/v1/sessions/<id>/traces carries the id the agent sent, and nothing else could have put it here.
+        var observed = spans
             .Select(static span => (
-                Span: span,
                 Route: Attribute(span, RouteAttribute),
                 Method: Attribute(span, MethodAttribute),
                 Status: Attribute(span, StatusAttribute),
+                Domain: Attribute(span, DomainAttribute),
                 Kind: AsText(span["kind"]),
-                Name: AsText(span["name"]) ?? "(unnamed)"))
-            .Where(static row => row.Route is not null)
+                Name: AsText(span["name"]) ?? "(unnamed)",
+                Revision: ResourceAttribute(span, ContractRevisionAttribute)))
             .OrderBy(static row => row.Route, StringComparer.Ordinal)
             .ThenBy(static row => row.Status, StringComparer.Ordinal)
             .ToList();
 
-        foreach (var row in routed)
+        foreach (var row in observed)
             Log.Information("  session: {Name} — {Method} {Route} -> {Status}", row.Name, row.Method, row.Route, row.Status);
 
-        if (routed.Count is not 3)
+        if (observed.Count is not 3)
         {
             Log.Error("session spans as the collector returned them:{NewLine}{Spans}",
                 Environment.NewLine,
                 string.Join(Environment.NewLine, spans.Select(static span => span.ToJsonString())));
         }
 
-        Expect(routed.Count is 3,
-            $"the session holds exactly the three routed requests that carried the header, not {routed.Count.ToString(CultureInfo.InvariantCulture)}");
+        Expect(observed.Count is 3,
+            $"the session holds exactly one span per request that carried the header, not {observed.Count.ToString(CultureInfo.InvariantCulture)}");
 
-        foreach (var row in routed)
+        foreach (var row in observed)
         {
-            Expect(row.Kind is ServerSpanKind, $"'{row.Name}' is a server span (kind {row.Kind})");
-            Expect(row.Route!.StartsWith("/todos", StringComparison.Ordinal),
-                $"every routed span in the session is under /todos (saw '{row.Route}')");
+            Expect(row.Kind is ServerSpanKind, $"'{row.Name}' is a SERVER span (kind {row.Kind})");
+            Expect(row.Route?.StartsWith("/todos", StringComparison.Ordinal) is true,
+                $"every span in the session carries an http.route under /todos (saw '{row.Route}')");
+            Expect(row.Domain is AspNetCoreServerDomain,
+                $"'{row.Name}' was enriched by qyl ({DomainAttribute}={AspNetCoreServerDomain}, saw '{row.Domain}')");
+            Expect(string.Equals(row.Name, $"{row.Method} {row.Route}", StringComparison.Ordinal),
+                $"the span is named '{{method}} {{route}}' (saw '{row.Name}')");
+            Expect(string.Equals(row.Revision, revision, StringComparison.Ordinal),
+                $"every span carries {ContractRevisionAttribute}={revision} (saw '{row.Revision}')");
         }
 
-        var calls = routed
+        var calls = observed
             .Select(static row => $"{row.Method} {row.Status}")
             .OrderBy(static call => call, StringComparer.Ordinal)
             .ToList();
         Expect(calls.SequenceEqual(["GET 200", "POST 201", "POST 400"], StringComparer.Ordinal),
             $"the session is the validation 400, the create 201 and the XML 200 (saw {string.Join(", ", calls)})");
 
-        var xml = routed.Where(static row => row.Route!.EndsWith("/xml", StringComparison.Ordinal)).ToList();
-        Expect(xml.Count is 1, "exactly one routed span in the session is the XML endpoint");
+        var xml = observed.Where(static row => row.Route!.EndsWith("/xml", StringComparison.Ordinal)).ToList();
+        Expect(xml.Count is 1, "exactly one span in the session is the XML endpoint");
         Expect(xml[0].Status is "200", $"the XML span reports 200 (saw '{xml[0].Status}')");
 
-        // The contract revision is on the resource, so it is on every span the process exported, not only the
-        // routed ones: an agent reading any span of the session can name the contract it was answered from.
-        foreach (var span in spans)
-        {
-            var observed = ResourceAttribute(span, ContractRevisionAttribute);
-            Expect(string.Equals(observed, revision, StringComparison.Ordinal),
-                $"every span carries {ContractRevisionAttribute}={revision} (saw '{observed}' on '{AsText(span["name"])}')");
-        }
-
         Log.Information(
-            "Qyl.Api.Sdk: session '{Session}' answers with {Count} spans, its three routed server spans, and contract revision {Revision}",
-            sessionId, spans.Count, revision);
+            "Qyl.Api.Sdk: session '{Session}' answers with exactly its three SERVER spans and contract revision {Revision}",
+            sessionId, revision);
     }
 
     private static string? Attribute(JsonNode span, string key) => ReadAttribute(span["attributes"], key);
