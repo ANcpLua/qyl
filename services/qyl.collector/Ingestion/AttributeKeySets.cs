@@ -36,8 +36,9 @@ internal static class AttributeKeySets
         (CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key) || IsVendorTag(key));
 
     // A key a pinned third-party library emits is a tag, not vocabulary: it is forwarded exactly
-    // as it arrived and never rewritten. The privacy denial above still applies to it — a vendor
-    // is no more entitled to write a credential into storage than an application is.
+    // as it arrived and never rewritten. The prefix and exact denials above still apply to it — a
+    // vendor is no more entitled to write a credential into storage than an application is — and
+    // only the blunt substring rule steps aside for it (see IsDenied).
     private static bool IsVendorTag(string key) => AttributeMapping.IsVendorPassThrough(key);
 
     internal static bool IsSafeResourceAttribute(string key) =>
@@ -79,8 +80,13 @@ internal static class AttributeKeySets
         }
 
         // The substring rule is deliberately blunt, so allowlisted keys that merely contain a
-        // denied token (db.query.summary, gen_ai.token.type) opt out of it by exact name.
-        if (CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key))
+        // denied token (db.query.summary, gen_ai.token.type) opt out of it by exact name, and so
+        // does every vendor pass-through key: the vendor spells its own tags, and twelve of them
+        // (messaging.masstransit.message_id, nservicebus.message_intent, execution.result and the
+        // rest) contain a denied token while carrying nothing the token exists to catch. Only the
+        // token rule is waived. The header/enduser/user prefixes and the exact denials above are
+        // privacy rules and run ahead of this for a vendor key exactly as for any other key.
+        if (CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key) || IsVendorTag(key))
             return false;
 
         foreach (var token in CollectorSemanticAttributeCatalog.DeniedKeyTokens)

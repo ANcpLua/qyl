@@ -19,6 +19,13 @@ Breaking. Semantic conventions move to the Weaver-only architecture, and the
   through unchanged, and every dropped key increments
   `qyl.collector.attributes.dropped` with the namespace it came from. Entries the
   mapping now covers are gone from `eng/config/collector-semantic-policy.json`.
+- A vendor pass-through key is exempt from the denied-substring rule, which the
+  vendor keys never opted into by name: twelve of the ninety-seven pinned vendor
+  keys spell `message` or `result` (`messaging.masstransit.message_id`,
+  `nservicebus.message_intent`, `execution.result` and the rest) and were dropped
+  before they reached the vendor check. The header, `enduser.` and `user.`
+  prefixes and the exact denials are privacy rules and still run ahead of the
+  vendor check, for a vendor key exactly as for any other.
 - A gate rejects a `qyl.` or `messaging.system` string literal anywhere in
   `services/qyl.collector` outside generated code.
 
