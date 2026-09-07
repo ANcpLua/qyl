@@ -41,17 +41,18 @@ static async Task<IResult> RunConformanceAsync(
         lifetime);
 
     var inbound = Activity.Current;
-    // The registry (scope_names -> QylTelemetryNames.Scopes) is the source of this string,
-    // and this assertion is what proves the published package actually emits what the
-    // registry declares.
+    // Since Qyl.Telemetry.AutoInstrumentation 14.1.0 there is one SERVER span per request and it is
+    // ASP.NET Core's own: qyl enriches that activity instead of starting a second one. So the proof
+    // that AddQyl() did its inbound work is no longer a qyl-owned span, which deliberately no longer
+    // exists — it is the framework's span carrying qyl's domain. The tag is the load-bearing half:
+    // asserting the source alone would pass even if AddQyl() had done nothing at all, because
+    // ASP.NET Core creates that activity on its own.
     if (inbound is null ||
-        !string.Equals(
-            inbound.Source.Name,
-            "Qyl.Telemetry.AutoInstrumentation",
-            StringComparison.Ordinal))
+        !string.Equals(inbound.Source.Name, "Microsoft.AspNetCore", StringComparison.Ordinal) ||
+        inbound.GetTagItem("qyl.instrumentation.domain") is not "aspnetcore.server")
     {
         throw new InvalidOperationException(
-            "builder.AddQyl() did not create the qyl-owned inbound server span.");
+            "builder.AddQyl() did not enrich ASP.NET Core's inbound server span with the qyl domain.");
     }
 
     var stub = LoopbackHttpStub.Start();
