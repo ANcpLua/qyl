@@ -43,6 +43,9 @@
     <QylAspNetCoreOpenApiVersion>$(DotNetRuntimeVersion)</QylAspNetCoreOpenApiVersion>
     <!-- Build-time OpenAPI document emission: dotnet build writes the committed contract. -->
     <QylApiDescriptionServerVersion>$(DotNetRuntimeVersion)</QylApiDescriptionServerVersion>
+    <!-- The document model itself, pinned so it cannot drift underneath Microsoft.AspNetCore.OpenApi
+         and load a different assembly version into a consumer than Qyl.Api was compiled against. -->
+    <QylOpenApiModelVersion>$(MicrosoftOpenApiVersion)</QylOpenApiModelVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">

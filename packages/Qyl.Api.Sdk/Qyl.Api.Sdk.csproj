@@ -57,18 +57,19 @@
     &lt;_QylSdkPackagesImported&gt;true&lt;/_QylSdkPackagesImported&gt;
     &lt;QylAspNetCoreOpenApiVersion&gt;$(QylAspNetCoreOpenApiVersion)&lt;/QylAspNetCoreOpenApiVersion&gt;
     &lt;QylApiDescriptionServerVersion&gt;$(QylApiDescriptionServerVersion)&lt;/QylApiDescriptionServerVersion&gt;
+    &lt;QylOpenApiModelVersion&gt;$(QylOpenApiModelVersion)&lt;/QylOpenApiModelVersion&gt;
   &lt;/PropertyGroup&gt;
 
-  &lt;!-- Honoured under Central Package Management only; a consumer without CPM gets the package's own dependency range. --&gt;
   &lt;ItemGroup&gt;
-    &lt;!-- Transitive pin so the document model cannot drift underneath Microsoft.AspNetCore.OpenApi --&gt;
-    &lt;PackageVersion Include="Microsoft.OpenApi" Version="$(MicrosoftOpenApiVersion)" /&gt;
+    &lt;!-- The central version for the document model; Qyl.Sdk.Api.targets references it directly as
+         well, so a consumer without central package management is pinned to the same one. --&gt;
+    &lt;PackageVersion Include="Microsoft.OpenApi" Version="$(QylOpenApiModelVersion)" /&gt;
   &lt;/ItemGroup&gt;
 &lt;/Project&gt;</_QylResolvedPackagesSource>
     </PropertyGroup>
 
-    <Error Condition="'$(QylAspNetCoreOpenApiVersion)' == '' OR '$(QylApiDescriptionServerVersion)' == '' OR '$(MicrosoftOpenApiVersion)' == ''"
-           Text="Version.props must define QylAspNetCoreOpenApiVersion, QylApiDescriptionServerVersion and MicrosoftOpenApiVersion; the packed Build/Qyl.Sdk.Packages.props would otherwise ship empty versions." />
+    <Error Condition="'$(QylAspNetCoreOpenApiVersion)' == '' OR '$(QylApiDescriptionServerVersion)' == '' OR '$(QylOpenApiModelVersion)' == ''"
+           Text="Version.props must define QylAspNetCoreOpenApiVersion, QylApiDescriptionServerVersion and QylOpenApiModelVersion; the packed Build/Qyl.Sdk.Packages.props would otherwise ship empty versions." />
 
     <WriteLinesToFile File="$(_QylResolvedPackagesFile)" Lines="$(_QylResolvedPackagesSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup>
