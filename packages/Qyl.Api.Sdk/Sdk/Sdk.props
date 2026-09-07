@@ -3,7 +3,7 @@
     Qyl.Api.Sdk entry point (props half).
 
     Two ways in, same files:
-      1. Packed:  <Project Sdk="Qyl.Api.Sdk/4.0.0">        MSBuild imports Sdk/Sdk.props and Sdk/Sdk.targets from the package;
+      1. Packed:  <Project Sdk="Qyl.Api.Sdk/5.0.0">        MSBuild imports Sdk/Sdk.props and Sdk/Sdk.targets from the package;
                   the guarded import below pulls in Microsoft.NET.Sdk.Web itself, as ANcpLua.NET.Sdk.Web does.
       2. In-repo: <Project Sdk="Microsoft.NET.Sdk.Web"> with explicit imports of this file (first line of the body)
                   and Sdk.targets (last line); the sample does this so a fresh clone builds without a pack step.

@@ -286,3 +286,17 @@ did so *before* the build, so the run ended with a gate artifact sitting under t
 version — different content, same coordinates — which every later restore on the machine, in any repository,
 would silently prefer. The purge now also runs in a `finally`, so a failed stage leaves nothing behind either,
 and the stage asserts the directory is gone before it reports success.
+
+## 2026-09-07 · The fusion is 5.0.0, not 4.1.0
+
+`AddQylApi` moved from `IServiceCollection` to `IHostApplicationBuilder` and the old overload was deleted
+rather than kept beside it, so every existing Qyl API fails to compile until one line changes. That is a
+major by the only definition that matters to a consumer, whatever else the release carries; a minor would
+have said "your code still builds" and it does not.
+
+`QylVersion` in `Version.props` is therefore 5.0.0, and everything derived from it moves with it in this one
+edit: the packed `Qyl.Api.Sdk` and the `qyl` tool, the `<Project Sdk="Qyl.Api.Sdk/5.0.0">` line the README
+documents and the one `Sdk/Sdk.props` names in its header comment, the CHANGELOG heading, and the version the
+`ApiSdkPackagedConsumer` gate packs and resolves — that last one reads `QylVersion` directly, so it needed no
+edit and could not have been forgotten. The earlier entries above cite `Qyl.Api.Sdk/4.0.0` because that is
+what they verified at the time; they are history and stay as written.
