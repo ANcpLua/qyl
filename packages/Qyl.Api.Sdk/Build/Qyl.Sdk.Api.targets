@@ -7,17 +7,20 @@
     <QylSdkPackaged Condition="'$(QylSdkPackaged)' == '' and Exists('$(_QylSdkPackagedGenerator)')">true</QylSdkPackaged>
   </PropertyGroup>
 
-  <!-- Implicit references carry their own version: the SDK owns them (NU1009 forbids a PackageVersion for an implicit reference). -->
+  <!--
+    The SDK owns these versions, so under central package management it states them as a
+    VersionOverride: that satisfies NU1010 without the consuming repository declaring a
+    PackageVersion, and unlike IsImplicitlyDefined it does not collide (NU1009) with a
+    repository that declares one for its own projects.
+  -->
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"
-                      VersionOverride="$(QylAspNetCoreOpenApiVersion)"
-                      IsImplicitlyDefined="true" />
+                      VersionOverride="$(QylAspNetCoreOpenApiVersion)" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
                       Condition="'$(QylEmitOpenApiDocument)' == 'true'"
                       VersionOverride="$(QylApiDescriptionServerVersion)"
                       PrivateAssets="all"
-                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-                      IsImplicitlyDefined="true" />
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"

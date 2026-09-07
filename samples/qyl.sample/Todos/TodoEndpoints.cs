@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace Qyl.Sample;
 
 /// <summary>HTTP surface for todos. Handlers are method groups so the Request Delegate Generator binds them at compile time.</summary>
-public static class TodoEndpoints
+internal static class TodoEndpoints
 {
     /// <summary>Maps the <c>/todos</c> endpoints.</summary>
     /// <param name="endpoints">The route builder of the host.</param>

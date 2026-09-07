@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Validation;
@@ -7,6 +8,12 @@ using Qyl;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>Extension methods for setting up a Qyl API in an <see cref="IServiceCollection"/>.</summary>
+// CA1515 reads this file as application code because it is compiled into the application. It is
+// the SDK's entry point, public in every consumer by design; the validation and OpenAPI
+// generators only intercept the calls it makes when it is compiled there, which is why it ships
+// as source rather than in Qyl.Api.dll.
+[SuppressMessage("Design", "CA1515:Consider making public types internal",
+    Justification = "The SDK's public entry point, linked into the consumer's compilation on purpose.")]
 public static class QylApiServiceCollectionExtensions
 {
     /// <summary>The name of the OpenAPI document every Qyl API serves and commits.</summary>
