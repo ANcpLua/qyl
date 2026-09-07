@@ -161,3 +161,26 @@ against the .NET stacks rather than curl, jq and xmllint, so a missing shell too
 `Microsoft.OpenApi` is now referenced directly rather than pinned transitively: a consumer without central
 package management resolved 2.7.5, the low end of the range `Microsoft.AspNetCore.OpenApi` accepts, against a
 `Qyl.Api` compiled for 2.12.2.
+
+## 2026-09-07 · Facts behind the XML parity and the proof, recorded so they are not rediscovered
+
+Not decisions themselves, but each shaped one above and would cost a scratch project or a failed proof run to re-derive.
+
+`XmlSerializer` on SDK 10.0.400, verified with a scratch console app: an absent `Nullable<T>` element and an absent item of an
+`[XmlArray]` collection are written as an empty element with `xsi:nil="true"` under a writer-generated prefix (`p2`, `p3`, by
+depth); an absent string, class member, or `[XmlText]` writes nothing; an absent item of an `[XmlElement]`-flattened collection
+is skipped; `IsNullable` on `XmlElement`, `XmlArray`, and `XmlArrayItem` overrides each of these. `[Flags]` enums first match one
+member exactly, so a composite member such as `All = 7` wins over its parts, then the set members are joined with spaces in
+declaration order; `[XmlEnum]` renames; an unknown value throws "Instance validation error: '{value}' is not a valid value for
+{ShortName}.". `DateOnly` is written as `yyyy-MM-dd`, `TimeOnly` as `HH:mm:ss.FFFFFFF`. A `Nullable<T>` attribute and a positional
+record throw during reflection. The generator matches all of it; the two places where it deliberately does more are recorded above
+(read-only properties are written, `Nullable<T>` attributes are omitted when absent).
+
+On the wire: a todo without a due date is now `<due-by p2:nil="true" xmlns:p2="http://www.w3.org/2001/XMLSchema-instance" />`
+instead of no element; `[XmlElement("due-by", IsNullable = false)]` restores the omission. In the OpenAPI schema, text content is
+the property `#text`, because the `xml` object of OpenAPI has no keyword for it.
+
+Build and proof: the generator's `ProjectReference` carries no `SetTargetFramework`; on a single-target project it creates a
+second project instance whose `--no-incremental` rebuild deletes the first instance's output while another referrer (the tests)
+compiles against it. A class library writes `obj/generated` only if it sets `EmitCompilerGeneratedFiles` itself, which `Qyl.Api`
+does for the problem-details JSON context.
