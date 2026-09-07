@@ -31,6 +31,18 @@ services:
       retries: 3
       start_period: 10s
 
+  # The Qyl.Api.Sdk sample: Native AOT inside the SDK image, served from a runtime-deps
+  # image with no .NET runtime at all. Independent of the collector, in the same file
+  # because this repository has one Compose stack.
+  qyl.sample:
+    build:
+      context: ..
+      dockerfile: samples/qyl.sample/Dockerfile
+    container_name: qyl.sample
+    ports:
+      - "127.0.0.1:5062:8080"
+    restart: unless-stopped
+
 volumes:
   qyl-data:
     driver: local

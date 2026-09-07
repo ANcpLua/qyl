@@ -8,11 +8,5 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
-    <ItemGroup>
-        <Content Include="..\.dockerignore">
-            <Link>.dockerignore</Link>
-        </Content>
-    </ItemGroup>
-
     <Import Project="../qyl.sdk/Sdk/Sdk.targets" />
 </Project>

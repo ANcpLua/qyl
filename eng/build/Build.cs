@@ -32,6 +32,7 @@ sealed class Build : NukeBuild,
     IConfigurationKnobs,
     IHousekeeping,
     IPack,
+    IApiSdk,
     ICiCoverage
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
@@ -98,6 +99,8 @@ sealed class Build : NukeBuild,
         // only gate that sees IL2026/IL3050. Omitting it here is what let a trim regression reach
         // main past a green local run.
         .DependsOn<IPack>(static x => x.PackSmoke)
+        // The SDK's own eight-stage proof: it ships from here, so its gates are this gate.
+        .DependsOn<IApiSdk>(static x => x.ApiSdk)
         .DependsOn<ICiCoverage>(static x => x.G1VocabularySmoke);
 
     Target Test => d => d
