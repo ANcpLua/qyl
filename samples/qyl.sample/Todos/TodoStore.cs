@@ -1,9 +1,13 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Qyl.Sample;
 
 /// <summary>In-memory todo storage, seeded with the todos the project template ships with.</summary>
-public sealed class TodoStore
+// CA1812 cannot see instantiation through AddSingleton<T>'s type argument.
+[SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes",
+    Justification = "Instantiated by the DI container via AddSingleton<TodoStore>().")]
+internal sealed class TodoStore
 {
     private readonly ConcurrentDictionary<int, Todo> _todos = new();
     private int _lastId;

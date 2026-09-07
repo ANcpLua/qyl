@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Qyl.Sample;
 
 /// <summary>Request body for creating a todo. The DataAnnotations are enforced by the generated validation resolver before the handler runs.</summary>
-public sealed class CreateTodoRequest
+internal sealed class CreateTodoRequest
 {
     /// <summary>What has to be done.</summary>
     [Required]

@@ -9,7 +9,7 @@ namespace Qyl.Sample;
 /// <param name="IsComplete">Whether it is done.</param>
 [GenerateXml]
 [XmlRoot("todo")]
-public sealed partial record Todo(
+internal sealed partial record Todo(
     [property: XmlAttribute("id")] int Id,
     [property: XmlElement("title")] string? Title,
     [property: XmlElement("due-by")] DateOnly? DueBy = null,

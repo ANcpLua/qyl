@@ -80,8 +80,9 @@ public sealed class SchemaTests
         var reference = QylXmlSchema.Reference(document, Node.XmlShape);
 
         Assert.Equal("NodeXml", reference.Reference.Id);
-        Assert.Equal(1, document.Components!.Schemas!.Count);
-        var node = (OpenApiSchema)document.Components.Schemas["NodeXml"];
+        var schemas = document.Components!.Schemas!;
+        Assert.Single(schemas);
+        var node = (OpenApiSchema)schemas["NodeXml"];
         var child = (OpenApiSchema)node.Properties!["child"];
         Assert.Equal("NodeXml", ((OpenApiSchemaReference)child.AllOf![0]).Reference.Id);
     }

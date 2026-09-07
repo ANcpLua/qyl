@@ -19,7 +19,10 @@
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
-    <NoWarn>$(NoWarn);CA1707;CA2007;CS1591</NoWarn>
+    <!-- XmlSerializer is the oracle these tests compare against and it serializes public types
+         with settable collection properties only, so the models in Models/ cannot be internal
+         (CA1515) and cannot expose read-only collections (CA2227). -->
+    <NoWarn>$(NoWarn);CA1707;CA2007;CS1591;CA1515;CA2227</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

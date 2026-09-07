@@ -61,11 +61,11 @@ public sealed class GeneratorTests
     public void UnrelatedEditLeavesModelAndOutputCached()
     {
         var first = GeneratorHarness.CreateCompilation(("Todo.cs", TestSources.Todo), ("Unrelated.cs", TestSources.Unrelated));
-        var driver = GeneratorHarness.CreateDriver().RunGenerators(first);
+        var driver = GeneratorHarness.CreateDriver().RunGenerators(first, TestContext.Current.CancellationToken);
 
         var unrelated = first.SyntaxTrees.Single(tree => tree.FilePath == "Unrelated.cs");
         var second = first.ReplaceSyntaxTree(unrelated, unrelated.WithChangedText(Microsoft.CodeAnalysis.Text.SourceText.From(TestSources.UnrelatedEdited)));
-        driver = driver.RunGenerators(second);
+        driver = driver.RunGenerators(second, TestContext.Current.CancellationToken);
 
         var result = driver.GetRunResult().Results[0];
         var modelReasons = result.TrackedSteps[XmlWriterGenerator.ModelsStepName].SelectMany(step => step.Outputs).Select(output => output.Reason).ToArray();
@@ -80,11 +80,13 @@ public sealed class GeneratorTests
     public void ModelEditRegeneratesOutput()
     {
         var first = GeneratorHarness.CreateCompilation(("Todo.cs", TestSources.Todo));
-        var driver = GeneratorHarness.CreateDriver().RunGenerators(first);
+        var driver = GeneratorHarness.CreateDriver().RunGenerators(first, TestContext.Current.CancellationToken);
 
         var todo = first.SyntaxTrees.Single();
         var edited = TestSources.Todo.Replace("[property: XmlElement(\"title\")]", "[property: XmlElement(\"name\")]", StringComparison.Ordinal);
-        driver = driver.RunGenerators(first.ReplaceSyntaxTree(todo, todo.WithChangedText(Microsoft.CodeAnalysis.Text.SourceText.From(edited))));
+        driver = driver.RunGenerators(
+            first.ReplaceSyntaxTree(todo, todo.WithChangedText(Microsoft.CodeAnalysis.Text.SourceText.From(edited))),
+            TestContext.Current.CancellationToken);
 
         var result = driver.GetRunResult().Results[0];
         var modelReasons = result.TrackedSteps[XmlWriterGenerator.ModelsStepName].SelectMany(step => step.Outputs).Select(output => output.Reason).ToArray();
