@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Proof for the [GenerateXml] generator, in three parts:
+      1. Parity: every model in Models/ is written by the generated code and by XmlSerializer; the strings must be identical.
+         XmlSerializer runs here, in the test, never in an app.
+      2. Snapshot and compile: the generated source for the sample's Todo is pinned; tree-shaped models compile without errors.
+      3. Incrementality: an edit in an unrelated file leaves the parsed model and the output cached.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.OpenApi"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Both roles: the analyzer that generates for Models/, and the assembly the driver tests instantiate. -->
+    <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true"/>
+    <!-- The compiled contract and runtime, exactly as a consumer references them; the schema builder is internal to Qyl.Api. -->
+    <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Xml/Qyl.Xml.csproj"/>
+    <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj"/>
+  </ItemGroup>
+
+</Project>
