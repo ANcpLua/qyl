@@ -52,7 +52,8 @@ Breaking. Semantic conventions move to the Weaver-only architecture, and the
 - Every span names its contract: the SHA-256 of the committed OpenAPI document is
   written into the compilation by `Qyl.Sdk.Api.targets` and exported as the
   resource attribute `qyl.api.contract.revision` — the registry's name, taken from
-  `QylAttributes.ApiContractRevision`, which the collector persists. The collector's
+  `QylAttributes.ApiContractRevision`, in the registry's value format `sha256:<hex>`,
+  which the collector persists. The collector's
   `qylResourceAttributeAllowList` is now resolved against the pinned packages like
   every other list in the generated catalog.
 - `samples/qyl.sample` is the API it is proven against, still with no telemetry

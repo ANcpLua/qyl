@@ -264,3 +264,25 @@ With the key registered, `BuildCollectorSemanticCatalog` now resolves `qylResour
 collector persists must exist in the pinned packages, or the vocabulary and the storage policy have drifted.
 That validation was deliberately not added before the pin — a gate that cannot pass does not protect the
 invariant, it stops the catalog being regenerated at all.
+
+## 2026-09-07 · The revision value is `sha256:<hex>`, and the gate stops shadowing the published package
+
+Two corrections from the refutation of the fusion, folded in before merge rather than filed.
+
+**The value carries its algorithm.** The first cut emitted a bare lowercase hex digest. The registry row for
+`qyl.api.contract.revision` defines the value as `sha256:<hex>` — "SHA-256 of the committed OpenAPI document
+the API was built from, as `sha256:<hex>`" — and the collector already reports its own revision that way from
+`/health`. A digest without its algorithm is a value that has to be reinterpreted the day the algorithm
+changes, instead of simply differing. `Qyl.Sdk.Api.targets` now writes the prefix.
+
+The gate could not have caught this: `ApiSdkSessionScenario`'s oracle hashed the same file the same way, so
+both sides were wrong together. The oracle now spells the format itself (`ContractRevisionValue`), so the
+assertion compares two independent statements of the value rather than one statement with itself, and
+`ContractRevisionTests` pins the shape in a third place — the only three that can disagree.
+
+**The proof cleans up after itself.** `ApiSdkPackagedConsumer` packs a `Qyl.Api.Sdk` with the repository's
+current version and drops that version from the global packages folder so the consumer resolves it. It only
+did so *before* the build, so the run ended with a gate artifact sitting under the published package's id and
+version — different content, same coordinates — which every later restore on the machine, in any repository,
+would silently prefer. The purge now also runs in a `finally`, so a failed stage leaves nothing behind either,
+and the stage asserts the directory is gone before it reports success.

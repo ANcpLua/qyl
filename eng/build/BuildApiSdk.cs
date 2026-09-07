@@ -362,39 +362,59 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 
                  """);
 
-            // The SDK resolver caches by id and version in the global packages folder; drop this
-            // version so the package that was just built is the one the consumer resolves.
+            // The SDK resolver caches by id and version in the global packages folder, and this stage's
+            // package is not the published one: same id, same version, different content. Dropped before the
+            // build so the consumer resolves what was just packed, and again afterwards — including when the
+            // stage fails — because leaving it there makes every later restore on this machine, in any
+            // repository, silently prefer a gate artifact over nuget.org's Qyl.Api.Sdk.
             var packages = Environment.GetEnvironmentVariable("NUGET_PACKAGES")
                            ?? Path.Combine(
                                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                                ".nuget",
                                "packages");
             AbsolutePath cached = Path.Combine(packages, "qyl.api.sdk", version);
-            if (cached.DirectoryExists())
-                cached.DeleteDirectory();
 
-            DotNetTasks.DotNetBuild(s => s
-                .SetProjectFile(consumer / "qyl.sample.csproj")
-                .SetConfiguration(Configuration)
-                .SetProcessAdditionalArguments("--disable-build-servers"));
-
-            var generated = consumer.GlobFiles("**/Qyl_Sample_Todo.GenerateXml.g.cs").FirstOrDefault();
-            if (generated is null)
-                throw new InvalidOperationException("The packaged generator did not run in the consumer");
-
-            foreach (var assembly in ApiSdkScenario.PackagedAssemblies)
+            try
             {
-                if (consumer.GlobFiles($"bin/**/{assembly}").Count == 0)
-                    throw new InvalidOperationException($"The packaged {assembly} was not referenced by the consumer");
+                if (cached.DirectoryExists())
+                    cached.DeleteDirectory();
+
+                DotNetTasks.DotNetBuild(s => s
+                    .SetProjectFile(consumer / "qyl.sample.csproj")
+                    .SetConfiguration(Configuration)
+                    .SetProcessAdditionalArguments("--disable-build-servers"));
+
+                var generated = consumer.GlobFiles("**/Qyl_Sample_Todo.GenerateXml.g.cs").FirstOrDefault();
+                if (generated is null)
+                    throw new InvalidOperationException("The packaged generator did not run in the consumer");
+
+                foreach (var assembly in ApiSdkScenario.PackagedAssemblies)
+                {
+                    if (consumer.GlobFiles($"bin/**/{assembly}").Count == 0)
+                        throw new InvalidOperationException($"The packaged {assembly} was not referenced by the consumer");
+                }
+
+                ApiSdkScenario.AssertSameContract(
+                    SampleContract.ReadAllText(),
+                    (consumer / "openapi" / "qyl.sample.json").ReadAllText(),
+                    "the consumer built from the Qyl.Api.Sdk package");
+            }
+            finally
+            {
+                if (cached.DirectoryExists())
+                    cached.DeleteDirectory();
             }
 
-            ApiSdkScenario.AssertSameContract(
-                SampleContract.ReadAllText(),
-                (consumer / "openapi" / "qyl.sample.json").ReadAllText(),
-                "the consumer built from the Qyl.Api.Sdk package");
+            if (cached.DirectoryExists())
+            {
+                throw new InvalidOperationException(
+                    $"The gate's Qyl.Api.Sdk {version} is still in the global packages folder ({cached}). " +
+                    "It shadows the published package for every restore on this machine; remove it.");
+            }
 
             Log.Information(
-                "Qyl.Api.Sdk: <Project Sdk=\"Qyl.Api.Sdk/{Version}\"> builds the identical contract", version);
+                "Qyl.Api.Sdk: <Project Sdk=\"Qyl.Api.Sdk/{Version}\"> builds the identical contract, and the gate's copy left the global packages folder",
+                version);
         });
 
     /// <summary>
@@ -785,7 +805,7 @@ internal static class ApiSdkSession
         var apiPort = ApiSdkScenario.FreeLoopbackPort();
         var otlpPort = ApiSdkScenario.FreeLoopbackPort();
         var sessionId = NewSessionId();
-        var revision = Sha256Hex(contract);
+        var revision = ContractRevisionValue(contract);
 
         var collectorLog = new StringBuilder();
         var sampleLog = new StringBuilder();
@@ -1032,10 +1052,15 @@ internal static class ApiSdkSession
             _ => node.ToJsonString(),
         };
 
-    private static string Sha256Hex(AbsolutePath file)
+    /// <summary>
+    /// The oracle for qyl.api.contract.revision, in the value format the registry defines and the
+    /// collector's /health already reports: <c>sha256:&lt;lowercase hex&gt;</c>. Spelled here rather than
+    /// re-derived from the SDK's own MSBuild, so a change to either side is what this gate catches.
+    /// </summary>
+    private static string ContractRevisionValue(AbsolutePath file)
     {
         using var stream = File.OpenRead(file);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
+        return "sha256:" + Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     private static ProcessHandle Start(

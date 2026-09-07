@@ -18,6 +18,14 @@ public static class QylApiContract
     public const string RevisionAttributeName = QylAttributes.ApiContractRevision;
 
     /// <summary>
+    /// The algorithm prefix every <see cref="RevisionAttributeName"/> value carries. The registry defines the value
+    /// as <c>sha256:&lt;lowercase hex&gt;</c>, and the collector reports its own revision the same way, so the digest
+    /// never travels without the algorithm that produced it: a future algorithm changes the value rather than
+    /// silently reinterpreting the old one. <c>Qyl.Sdk.Api.targets</c> writes it; this names it.
+    /// </summary>
+    public const string RevisionAlgorithmPrefix = "sha256:";
+
+    /// <summary>
     /// The qyl session key. It is the <c>baggage</c> request-header member an agent sends and the span tag a Qyl
     /// API stamps from it — one name on purpose, because the wire and the span are the same fact.
     /// </summary>
