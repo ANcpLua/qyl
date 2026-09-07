@@ -134,7 +134,7 @@
             "content": {
               "application/xml": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/TodoXml"
                 }
               }
             }
@@ -256,6 +256,49 @@
           }
         },
         "description": "A todo item. JSON through AppJsonSerializerContext; XML through the generated IXmlWritable implementation."
+      },
+      "TodoXml": {
+        "required": [
+          "id",
+          "due-by",
+          "is-complete"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "xml": {
+              "name": "id",
+              "attribute": true
+            }
+          },
+          "title": {
+            "type": "string",
+            "xml": {
+              "name": "title"
+            }
+          },
+          "due-by": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "xml": {
+              "name": "due-by"
+            }
+          },
+          "is-complete": {
+            "type": "boolean",
+            "xml": {
+              "name": "is-complete"
+            }
+          }
+        },
+        "xml": {
+          "name": "todo"
+        }
       }
     }
   },

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The XML contract of a Qyl API as a compiled assembly: [GenerateXml], IXmlWritable, the XmlShape a generated model exposes,
+    and the application/xml HTTP result. Compiled rather than linked as source so a model library and the API that serves it
+    share one interface (DECISIONS.md, 2026-09-07). It depends on the shared framework only.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Qyl.Xml</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

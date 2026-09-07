@@ -12,8 +12,6 @@ public static class QylResults
     public static XmlHttpResult<TValue> Xml<TValue>(TValue value)
         where TValue : IXmlWritable
     {
-        ArgumentNullException.ThrowIfNull(value);
-
         return new XmlHttpResult<TValue>(value);
     }
 }

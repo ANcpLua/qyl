@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Proves the qyl.sdk template extension end to end:
-#   build → every compile-time generator produced its output → committed OpenAPI contract is current →
+#   build + generator tests → every compile-time generator produced its output → committed OpenAPI contract is current →
 #   managed app passes the HTTP scenario → Native AOT publish → native binary passes the same scenario and serves the same contract →
 #   (when Docker is available) the container image builds with Native AOT and passes the scenario too →
-#   qyl.sdk packs as the Qyl.Sdk MSBuild SDK and a consumer using <Project Sdk="Qyl.Sdk/version"> builds the identical contract.
+#   qyl.sdk packs as the Qyl.Api.Sdk MSBuild SDK and a consumer using <Project Sdk="Qyl.Api.Sdk/version"> builds the identical contract.
 set -euo pipefail
 
 root_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 solution="$root_dir/qyl.sample.slnx"
 project="$root_dir/qyl.sample/qyl.sample.csproj"
 contract="$root_dir/qyl.sample/openapi/qyl.sample.json"
+generator_tests="$root_dir/qyl.sdk/Qyl.Sdk.Xml.Generator.Tests/Qyl.Sdk.Xml.Generator.Tests.csproj"
 scratch_dir="$(mktemp -d /tmp/qyl-verify.XXXXXX)"
 api_pid=""
 
@@ -113,7 +114,11 @@ run_scenario() {
     [[ "$(jq -r '.paths["/todos"].post.summary' "$scratch_dir/$label-openapi.json")" == "Creates a todo." ]] || fail "$label: XML-comment summary missing"
     [[ "$(jq -r '.paths["/todos"].post.responses["400"].content | keys[0]' "$scratch_dir/$label-openapi.json")" == "application/problem+json" ]] || fail "$label: 400 metadata mismatch"
     [[ "$(jq -r '.paths["/todos/{id}/xml"].get.responses["200"].content | keys[0]' "$scratch_dir/$label-openapi.json")" == "application/xml" ]] || fail "$label: application/xml metadata missing"
-    pass "OpenAPI = committed contract" "XML comments, 400 problem, application/xml"
+    [[ "$(jq -r '.paths["/todos/{id}/xml"].get.responses["200"].content["application/xml"].schema["$ref"]' "$scratch_dir/$label-openapi.json")" == "#/components/schemas/TodoXml" ]] || fail "$label: application/xml is not described by the generated TodoXml schema"
+    [[ "$(jq -r '.components.schemas.TodoXml.xml.name' "$scratch_dir/$label-openapi.json")" == "todo" ]] || fail "$label: TodoXml lacks the document element name"
+    [[ "$(jq -r '.components.schemas.TodoXml.properties.id.xml.attribute' "$scratch_dir/$label-openapi.json")" == "true" ]] || fail "$label: TodoXml does not mark id as an attribute"
+    [[ "$(jq -r '.components.schemas.TodoXml.properties["due-by"].format' "$scratch_dir/$label-openapi.json")" == "date" ]] || fail "$label: TodoXml due-by is not a date"
+    pass "OpenAPI = committed contract" "XML comments, 400 problem, application/xml as TodoXml"
 }
 
 require_generated() {
@@ -125,10 +130,13 @@ require_generated() {
 
 cd "$root_dir"
 
-echo "[1/8] Build the solution into a scratch artifacts directory"
+echo "[1/8] Build the solution into a scratch artifacts directory and run the generator tests"
 [[ -f "$contract" ]] || fail "committed contract $contract is missing: run dotnet build once and commit the result"
 cp "$contract" "$scratch_dir/contract-before-build.json"
 dotnet build "$solution" --configuration Release --artifacts-path "$scratch_dir/managed" --disable-build-servers --no-incremental -p:UseSharedCompilation=false
+# The generator's own proof: XmlSerializer parity, pinned snapshots, diagnostics, and incremental caching.
+dotnet test "$generator_tests" --configuration Release --no-build -p:ArtifactsPath="$scratch_dir/managed"
+pass "generator tests (XmlSerializer parity, snapshots, caching)" "dotnet test"
 
 echo "[2/8] Confirm the committed OpenAPI contract is what the build produced"
 # Compared against a copy taken before the build (not git diff), so the check also holds for files not yet committed.
@@ -138,7 +146,7 @@ echo "[3/8] Confirm every compile-time generator ran"
 require_generated "validation resolver"     "CreateTodoRequest"              "ValidatableInfoResolver.g.cs"
 require_generated "request delegates"       "MapPost"                        "GeneratedRouteBuilderExtensions.g.cs"
 require_generated "OpenAPI comment cache"   "Creates a todo."                "OpenApiXmlCommentSupport.generated.cs"
-require_generated "XML writer"              'WriteStartElement("todo")'      "Qyl_Sample_Todo.GenerateXml.g.cs"
+require_generated "XML writer"              'WriteXml(writer, "todo", null)' "Qyl_Sample_Todo.GenerateXml.g.cs"
 require_generated "JSON context"            "CreateTodoRequest"              "AppJsonSerializerContext.CreateTodoRequest.g.cs"
 require_generated "problem JSON context"    "HttpValidationProblemDetails"   "QylProblemJsonContext.HttpValidationProblemDetails.g.cs"
 require_generated "public Program"          "public partial class Program"   "PublicTopLevelProgram.Generated.g.cs"
@@ -199,18 +207,18 @@ else
     fi
 fi
 
-echo "[8/8] Pack qyl.sdk as the Qyl.Sdk MSBuild SDK and build a consumer from the package"
-sdk_version="$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' "$root_dir/qyl.sdk/Qyl.Sdk.csproj")"
-[[ -n "$sdk_version" ]] || fail "could not read the SDK version from qyl.sdk/Qyl.Sdk.csproj"
+echo "[8/8] Pack qyl.sdk as the Qyl.Api.Sdk MSBuild SDK and build a consumer from the package"
+sdk_version="$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' "$root_dir/qyl.sdk/Qyl.Api.Sdk.csproj")"
+[[ -n "$sdk_version" ]] || fail "could not read the SDK version from qyl.sdk/Qyl.Api.Sdk.csproj"
 feed="$scratch_dir/feed"
-dotnet pack "$root_dir/qyl.sdk/Qyl.Sdk.csproj" --configuration Release --output "$feed" --disable-build-servers -p:UseSharedCompilation=false
-[[ -f "$feed/Qyl.Sdk.$sdk_version.nupkg" ]] || fail "Qyl.Sdk.$sdk_version.nupkg was not produced"
-# The same sources as the sample, but the project reads <Project Sdk="Qyl.Sdk/version">: no imports, no generator reference, no CPM.
+dotnet pack "$root_dir/qyl.sdk/Qyl.Api.Sdk.csproj" --configuration Release --output "$feed" --disable-build-servers -p:UseSharedCompilation=false
+[[ -f "$feed/Qyl.Api.Sdk.$sdk_version.nupkg" ]] || fail "Qyl.Api.Sdk.$sdk_version.nupkg was not produced"
+# The same sources as the sample, but the project reads <Project Sdk="Qyl.Api.Sdk/version">: no imports, no generator reference, no CPM.
 consumer="$scratch_dir/consumer/qyl.sample"
 mkdir -p "$consumer"
 cp -R "$root_dir/qyl.sample/Program.cs" "$root_dir/qyl.sample/AppJsonSerializerContext.cs" "$root_dir/qyl.sample/Todos" "$root_dir/qyl.sample/appsettings.json" "$consumer/"
 cat >"$consumer/qyl.sample.csproj" <<PROJECT
-<Project Sdk="Qyl.Sdk/$sdk_version">
+<Project Sdk="Qyl.Api.Sdk/$sdk_version">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -229,15 +237,16 @@ cat >"$consumer/nuget.config" <<NUGET
 </configuration>
 NUGET
 # The SDK resolver caches by id and version in the global packages folder; drop this version so the fresh package is used.
-rm -rf "${NUGET_PACKAGES:-$HOME/.nuget/packages}/qyl.sdk/$sdk_version"
+rm -rf "${NUGET_PACKAGES:-$HOME/.nuget/packages}/qyl.api.sdk/$sdk_version"
 dotnet build "$consumer/qyl.sample.csproj" --configuration Release --disable-build-servers -p:UseSharedCompilation=false
 [[ -f "$consumer/obj/generated/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.XmlWriterGenerator/Qyl_Sample_Todo.GenerateXml.g.cs" ]] || fail "packaged generator did not run in the consumer"
+find "$consumer/bin" -name 'Qyl.Xml.dll' -print -quit | grep -q . || fail "the packaged Qyl.Xml assembly was not referenced by the consumer"
 jq -S 'del(.servers)' "$consumer/openapi/qyl.sample.json" >"$scratch_dir/consumer-openapi.json"
 diff -q "$scratch_dir/contract.json" "$scratch_dir/consumer-openapi.json" >/dev/null || {
     diff "$scratch_dir/contract.json" "$scratch_dir/consumer-openapi.json" >&2 || true
-    fail "the consumer built from the Qyl.Sdk package produced a different contract"
+    fail "the consumer built from the Qyl.Api.Sdk package produced a different contract"
 }
-pass "Qyl.Sdk $sdk_version package" "<Project Sdk=\"Qyl.Sdk/$sdk_version\"> builds the identical contract"
+pass "Qyl.Api.Sdk $sdk_version package" "<Project Sdk=\"Qyl.Api.Sdk/$sdk_version\"> builds the identical contract"
 
 completed=1
 echo "All generator, validation, XML, OpenAPI, Native AOT, container, and package checks passed."
