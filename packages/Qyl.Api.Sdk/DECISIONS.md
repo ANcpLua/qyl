@@ -2,9 +2,6 @@
 
 One entry per decision, dated, with the reason. A decision is reversed by a new entry, not by editing an old one.
 
-qyl-sample-e4  ·  interactive  ·  busy  ·  pid 22631  ·  /Users/ancplua/repo-playground/qyl.sample  ·  session b75a0ace-a803-45f8-b96d-555537f5dc2a  ·  Claude Code 2.1.263
-has 2hour special rights and can adjust this file
-
 ## 2026-09-04 · The SDK compiles into the consumer as source, not as a DLL
 
 The .NET 10 validation generator (`Microsoft.Extensions.Validation`) and the OpenAPI XML-comment generator
