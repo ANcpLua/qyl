@@ -360,3 +360,56 @@ on the failure path too, and throws only on the success path, where it cannot re
 failed; and `AwaitSession` now requires two further polls to agree before believing a count, because a
 duplicate span arriving in a later export batch would otherwise pass an "exactly three" assertion that had
 already returned.
+
+## 2026-09-07 · The header is attacker input, the contract is enforced for everyone, and the gate owns its environment
+
+The fusion's review found fifteen things. The ones that changed a decision rather than a line:
+
+**A session id is an allow-list, and the runtime does the parsing.** The first cut wrote its own W3C `baggage`
+parser and rejected a deny-list of characters. Both were wrong. ASP.NET Core already parses the header when it
+starts the server span, so `Activity.GetBaggageItem` is the value — one parser, and the two no longer disagree
+about `;`-separated member properties (the runtime leaves them in the value; the filter cuts at the separator,
+because W3C says the value ends there). And the value is written by whoever is calling: it becomes a storage
+key in the collector and a path segment in its read API, so it is `^(?!\.+$)[A-Za-z0-9._~-]{1,128}$` and
+everything else is ignored — `/`, `..`, `%`, `%2e%2e%2f%2e%2e%2fadmin`, the Unicode line and bidi separators
+that make two different ids print identically. The dot is allowed inside an id and a value of nothing but dots
+is not. Nothing is trimmed after decoding: the spec's optional whitespace was already handled by the runtime,
+and trimming again would collapse `%20abc%20` and `abc` into one session.
+
+**Only the ASP.NET Core server span is stamped.** `Activity.Current` in a middleware is whatever the pipeline
+above left there, and three reachable states are not the span the collector receives: the legacy
+`HttpRequestIn` activity with no source, a non-recording propagation-only activity when the incoming
+`traceparent` says `sampled=0`, and any activity from a startup filter registered ahead of `AddQylApi`. The
+guard is `{ Kind: Server, IsAllDataRequested: true }` with `Source.Name == "Microsoft.AspNetCore"`, the same one
+Qyl.Telemetry.Hosting's own filter uses.
+
+**Session propagation is the runtime's, not ours.** The value stays in the activity's baggage and
+`System.Net.Http` injects the current activity's baggage into every outbound request, so a Qyl API calling
+another Qyl API hands the session on with no code on either side. Verified in a host-level test over real HTTP:
+the second service reads `agent-42` out of what it received, and the BCL spells the member `session.id =
+agent-42`. Nothing in Qyl.Telemetry.AutoInstrumentation 14.1.0 touches `DistributedContextPropagator.Current`
+(checked in its source), which is the one thing that would turn the hop into a silent no-op; the test names the
+propagator in use and fails on the no-output one. What is not yet proven is the same hop under the full
+`AddQyl` composition in two separate processes; that is a gate stage, not a claim, and it is not built here.
+
+**Contract-is-committed is now the SDK's rule, not the sample's gate.** The revision is the committed
+document's digest, and `Microsoft.Extensions.ApiDescription.Server` regenerates that document *after* the
+compilation that carries it — so a contract change used to compile the previous document's digest and ship a
+binary naming a contract it does not serve. `QylVerifyContractRevision` compares the regenerated document with
+the compiled-in revision and fails with `QYLSDK0001`, naming the file to commit; the second build is green.
+Every consumer gets this, and the first build of a new project fails once, by design, with the document
+written. `AddQylApi` additionally refuses to run with an empty revision. The document is located by project
+name, not assembly name, because that is what the tool names it after.
+
+**The gate owns its inputs and touches nothing global.** The sample is started with every `OTEL_*` and `QYL_*`
+variable removed and exactly the keys the stage needs, so a developer's shell cannot satisfy an assertion. The
+packaged consumer restores into a per-run packages folder instead of the machine's: the previous fix deleted
+`qyl.api.sdk/<version>` out of the global folder afterwards, which is a folder a sibling checkout may be
+restoring from at that moment. Nothing outside the run's own directory is written, which also closes the
+shadow-copy item for good. Reading a child process's output takes the lock its writer holds.
+
+Two smaller ones worth naming: a generated documentation comment is XML in someone else's compilation, so the
+packaged consumer now builds with `-warnaserror`; and the collector's `qyl.instrumentation.domain`,
+`http.route`, `session.id` and `qyl.api.contract.revision` in the gate come from the registry packages, so a
+rename upstream breaks the gate at compile time. The one deliberate literal left is `sha256:` — the gate is the
+second opinion about the value format, and a shared constant would make it one opinion twice.

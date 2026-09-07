@@ -27,10 +27,16 @@
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- Telemetry is as mandatory as validation: AddQylApi ends in AddQyl(). The family keeps its own
-         release line, so it stays a pinned package reference rather than being folded into Qyl.Api.dll;
-         its interceptor generator reaches the consumer as an analyzer through the package's own
-         buildTransitive assets, the same way the [GenerateXml] generator reaches it from this SDK. -->
+         release line, so it stays a pinned package reference rather than being folded into Qyl.Api.dll.
+         Qyl.Telemetry.Hosting ships lib only; the interceptor generator ships under analyzers/dotnet/cs in
+         Qyl.Telemetry.AutoInstrumentation and reaches the consumer through that package's buildTransitive
+         assets, two hops down (Hosting -> AutoInstrumentation.Hosting -> AutoInstrumentation, include="All").
+         Named directly as well because those hops are minimum-version dependencies, not exact ones: a
+         consumer resolving the graph on its own could land the compile-time half above QylTelemetryVersion
+         while the runtime half stays pinned. One property, both halves, no range to drift through. -->
     <PackageReference Include="Qyl.Telemetry.Hosting"
+                      VersionOverride="$(QylTelemetryVersion)" />
+    <PackageReference Include="Qyl.Telemetry.AutoInstrumentation"
                       VersionOverride="$(QylTelemetryVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
@@ -47,6 +53,9 @@
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
                       IsImplicitlyDefined="true" />
     <PackageReference Include="Qyl.Telemetry.Hosting"
+                      Version="$(QylTelemetryVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Qyl.Telemetry.AutoInstrumentation"
                       Version="$(QylTelemetryVersion)"
                       IsImplicitlyDefined="true" />
   </ItemGroup>
@@ -83,7 +92,10 @@
   -->
   <Target Name="QylGenerateSdkBuildInfo" BeforeTargets="CoreCompile">
     <PropertyGroup>
-      <QylOpenApiDocumentFile Condition="'$(QylOpenApiDocumentFile)' == ''">$(QylOpenApiDocumentsDirectory)/$(AssemblyName).json</QylOpenApiDocumentFile>
+      <!-- The tool names the file from the project, not the assembly: Microsoft.Extensions.ApiDescription.Server
+           passes the project name as its own argument and never a file name. A project whose AssemblyName
+           differs from its project name would otherwise hash a path that never exists. -->
+      <QylOpenApiDocumentFile Condition="'$(QylOpenApiDocumentFile)' == ''">$(QylOpenApiDocumentsDirectory)/$(MSBuildProjectName).json</QylOpenApiDocumentFile>
     </PropertyGroup>
 
     <!--
@@ -134,6 +146,34 @@ namespace Qyl
       <Compile Include="$(_QylSdkBuildInfoFile)" Link="Qyl.Api.Sdk/QylSdkBuild.g.cs" />
       <FileWrites Include="$(_QylSdkBuildInfoFile)" />
     </ItemGroup>
+  </Target>
+
+  <!--
+    The revision is the committed document's digest by definition, and the document is regenerated after the
+    compilation that carries it (the tool runs on the built assembly). So a contract change compiles a digest of
+    the *previous* document and would ship a binary naming a contract it does not serve. Rather than let that
+    through, the build fails and asks for the regenerated document to be committed: the second build is green.
+    This is the check `ApiSdkContractIsCommitted` runs for the sample, moved into the SDK so it holds for every
+    consumer — including the first build of a new project, where the document appears for the first time.
+  -->
+  <Target Name="QylVerifyContractRevision"
+          AfterTargets="GenerateOpenApiDocuments"
+          Condition="'$(QylEmitOpenApiDocument)' == 'true'">
+    <Error Condition="!Exists('$(QylOpenApiDocumentFile)')"
+           Code="QYLSDK0002"
+           Text="The Qyl API's OpenAPI document was not produced at $(QylOpenApiDocumentFile). It is a committed build artifact and the contract revision every span carries is its digest; a Qyl API cannot be built without it." />
+
+    <GetFileHash Files="$(QylOpenApiDocumentFile)" Algorithm="SHA256" HashEncoding="hex">
+      <Output TaskParameter="Hash" PropertyName="_QylBuiltContractRevision" />
+    </GetFileHash>
+
+    <PropertyGroup>
+      <_QylBuiltContractRevision>sha256:$(_QylBuiltContractRevision.ToLowerInvariant())</_QylBuiltContractRevision>
+    </PropertyGroup>
+
+    <Error Condition="'$(_QylBuiltContractRevision)' != '$(_QylContractRevision)'"
+           Code="QYLSDK0001"
+           Text="The OpenAPI contract changed: this build compiled the revision '$(_QylContractRevision)' and produced '$(_QylBuiltContractRevision)'. $(QylOpenApiDocumentFile) has been rewritten; commit it and build again, so the binary reports the contract it serves." />
   </Target>
 
   <!--

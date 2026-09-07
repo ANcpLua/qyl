@@ -58,9 +58,21 @@ which is what makes this line 5.0.0 rather than 4.1.0.
   while the contract spells it `/todos`, and the span and the document have to name an
   endpoint the same way. The committed document is unchanged.
 - An agent is a Qyl API's first consumer. `Qyl.Api` stamps the W3C `baggage`
-  request header's `session.id` member onto the server span, and the session
-  processor carries it to every span the request causes; the agent then reads its
-  own run back through `list_sessions` / `get_trace`. Zero lines in the API.
+  request header's `session.id` member onto the ASP.NET Core server span, and the
+  session processor carries it to every span the request causes; the agent then
+  reads its own run back through `list_sessions` / `get_trace`. Zero lines in the
+  API. The member is admitted by an allow-list —
+  `^(?!\.+$)[A-Za-z0-9._~-]{1,128}$` — because it becomes a storage key and a path
+  segment; anything else is ignored. The header itself is parsed by ASP.NET Core,
+  not by qyl, which is a behaviour change against reading the raw header: an
+  application that installs `DistributedContextPropagator.CreateNoOutputPropagator`
+  extracts no baggage, and is therefore no longer tagged.
+- Breaking, sample only: the todo endpoints are mapped at their full paths instead
+  of through `MapGroup("/todos")`, so `http.route` is `/todos` — the path the
+  contract spells — rather than `/todos/`.
+- The SDK enforces contract-is-committed for every consumer: `QYLSDK0001` fails the
+  build when the regenerated OpenAPI document differs from the revision compiled
+  into it, naming the file to commit. `AddQylApi` refuses to run without a revision.
 - Every span names its contract: the SHA-256 of the committed OpenAPI document is
   written into the compilation by `Qyl.Sdk.Api.targets` and exported as the
   resource attribute `qyl.api.contract.revision` — the registry's name, taken from

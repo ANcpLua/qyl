@@ -41,6 +41,14 @@ services:
     container_name: qyl.sample
     ports:
       - "127.0.0.1:5062:8080"
+    # Collector discovery probes localhost and the host name `qyl`; the collector here is `qyl-collector`,
+    # so without this the sample finds nothing and the agent round-trip in the README silently records no
+    # spans. QYL_ENDPOINT rather than OTEL_EXPORTER_OTLP_ENDPOINT: it names a collector for the qyl exporters
+    # instead of redirecting every OTLP exporter in the process.
+    environment:
+      - QYL_ENDPOINT=http://qyl-collector:4318
+    depends_on:
+      - qyl-collector
     restart: unless-stopped
 
 volumes:

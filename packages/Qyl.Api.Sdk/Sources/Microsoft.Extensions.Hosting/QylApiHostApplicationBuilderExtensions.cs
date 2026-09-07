@@ -53,9 +53,10 @@ public static class QylApiHostApplicationBuilderExtensions
     /// <item><description>Observability: <c>AddQyl()</c> — auto-instrumentation, ASP.NET Core spans, OTLP export — with the committed contract's revision on the resource, then the <c>baggage</c> request header's <c>session.id</c> member on the server span that call's own startup filter creates.</description></item>
     /// </list>
     /// <para>
-    /// The generators behind steps 2, 4 and 5 intercept the literal <c>AddValidation()</c>, <c>AddOpenApi(lambda)</c> and
-    /// <c>AddQyl(lambda)</c> calls in this method. That works because the SDK compiles into the consumer; the calls are in the
-    /// consumer's compilation, whichever method they sit in. Overrides use the framework's own mechanisms:
+    /// The generators behind steps 2 and 4 intercept the literal <c>AddValidation()</c> and <c>AddOpenApi(lambda)</c> calls in
+    /// this method. That works because the SDK compiles into the consumer; the calls are in the consumer's compilation,
+    /// whichever method they sit in. <c>AddQyl()</c> is not intercepted — the auto-instrumentation generator rewrites the
+    /// instrumented call sites in the consumer's compilation, not the registration. Overrides use the framework's own mechanisms:
     /// <c>Configure&lt;ValidationOptions&gt;</c> and <c>Configure&lt;OpenApiOptions&gt;("v1", ...)</c>, registered after this call;
     /// the document version alone is the MSBuild property <c>QylOpenApiVersion</c>, for the reason given on
     /// <see cref="OpenApiDocumentVersion"/>.
@@ -101,14 +102,28 @@ public static class QylApiHostApplicationBuilderExtensions
             options.AddOperationTransformer(new QylXmlResponseTransformer());
         });
 
-        // Keep this call literal and its argument a lambda: the Qyl.Telemetry.AutoInstrumentation generator intercepts the
-        // source-visible calls this activates. The contract revision rides the resource, so every span the API exports names
-        // the exact OpenAPI document the binary was compiled against.
+        // A binary that cannot name the contract it was built from must not run. The SDK's targets fail the build when the
+        // committed document is missing or stale, so this is the case that survives a tampered-with build rather than a
+        // routine one — an empty revision on the resource would be a span claiming a contract it cannot identify.
+        if (QylSdkBuild.ContractRevision.Length is 0)
+        {
+            throw new InvalidOperationException(
+                "This Qyl API was compiled without a contract revision, which means it was built without its committed " +
+                "OpenAPI document. Rebuild the project; the SDK writes the document and fails the build until it is committed.");
+        }
+
+        // Unlike AddValidation and AddOpenApi above, nothing intercepts this call: the auto-instrumentation generator
+        // rewrites the instrumented call sites in the compilation (database commands, forwarded client calls), not this one.
+        // It is last because it is the composition step — everything above is registered by the time telemetry is wired.
         builder.AddQyl(options =>
         {
-            // The build-time document tool builds this host and never starts it, so its four blocking collector probes
-            // would buy nothing and make `dotnet build` depend on what is listening locally. See QylBuildTimeDocumentHost.
+            // Under the build-time document tool this host is built and never started, so the tracer and meter
+            // providers are never materialised — but the OpenTelemetry logger provider is, at Build(), and it flushes
+            // into a collector on dispose. These three lines are the whole difference and none of them is an opt-out
+            // for a process that serves requests. See QylBuildTimeDocumentHost.
             options.EnableCollectorDiscovery = !QylBuildTimeDocumentHost.IsCurrentProcess;
+            options.EnableLogExport = !QylBuildTimeDocumentHost.IsCurrentProcess;
+            options.RequireConfiguredEndpoint = QylBuildTimeDocumentHost.IsCurrentProcess;
             options.ResourceAttributes.Add(
                 new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylSdkBuild.ContractRevision));
         });

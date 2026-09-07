@@ -21,6 +21,9 @@ using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Components;
 using Serilog;
+using HttpAttributes = Qyl.Telemetry.SemanticConventions.Attributes.Http.HttpAttributes;
+using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
+using SessionAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Session.SessionAttributes;
 
 namespace Qyl.Build;
 
@@ -61,6 +64,8 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 
     AbsolutePath GeneratorTestsProject =>
         RootDirectory / "tests" / "Qyl.Sdk.Xml.Generator.Tests" / "Qyl.Sdk.Xml.Generator.Tests.csproj";
+
+    AbsolutePath ApiTestsProject => RootDirectory / "tests" / "Qyl.Api.Tests" / "Qyl.Api.Tests.csproj";
 
     AbsolutePath ApiSdkArtifactsDirectory => ArtifactsDirectory / "api-sdk";
 
@@ -107,11 +112,14 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                 .SetProjectFile(SampleProject)
                 .SetConfiguration(Configuration));
 
-            DotNetTasks.DotNetTest(s => s
-                .SetProjectFile(GeneratorTestsProject)
-                .SetConfiguration(Configuration));
+            foreach (var project in new[] { GeneratorTestsProject, ApiTestsProject })
+            {
+                DotNetTasks.DotNetTest(s => s
+                    .SetProjectFile(project)
+                    .SetConfiguration(Configuration));
+            }
 
-            Log.Information("Qyl.Api.Sdk: sample builds, generator tests pass");
+            Log.Information("Qyl.Api.Sdk: sample builds, generator and runtime tests pass");
         });
 
     /// <summary>
@@ -272,6 +280,8 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                 return;
             }
 
+            AssertComposeGivesTheSampleACollector();
+
             if (!ApiSdkScenario.DockerEngineIsRunning())
             {
                 throw new InvalidOperationException(
@@ -363,24 +373,16 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 
                  """);
 
-            // The SDK resolver caches by id and version in the global packages folder, and this stage's
-            // package is not the published one: same id, same version, different content. Dropped before the
-            // build so the consumer resolves what was just packed, and again afterwards — including when the
-            // stage fails — because leaving it there makes every later restore on this machine, in any
-            // repository, silently prefer a gate artifact over nuget.org's Qyl.Api.Sdk.
-            var packages = Environment.GetEnvironmentVariable("NUGET_PACKAGES")
-                           ?? Path.Combine(
-                               Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                               ".nuget",
-                               "packages");
-            AbsolutePath cached = Path.Combine(packages, "qyl.api.sdk", version);
+            // This stage's package is not the published one: same id, same version, different content. Rather
+            // than delete it out of the machine's global packages folder afterwards — a folder a sibling
+            // checkout may be restoring from at the same moment — the consumer gets a packages folder of its
+            // own for the run. Nothing outside this directory is written, so there is nothing to clean up
+            // anywhere else and nothing for a concurrent restore to lose.
+            var packages = ApiSdkConsumerDirectory / "packages";
+            packages.CreateOrCleanDirectory();
 
-            var completed = false;
             try
             {
-                if (cached.DirectoryExists())
-                    cached.DeleteDirectory();
-
                 // -warnaserror: this is the only build in the repository that compiles the SDK's linked and
                 // generated sources without any of this repository's settings, so it is where a warning the SDK
                 // emits into someone else's compilation shows up. A consumer with TreatWarningsAsErrors has to
@@ -388,6 +390,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                 DotNetTasks.DotNetBuild(s => s
                     .SetProjectFile(consumer / "qyl.sample.csproj")
                     .SetConfiguration(Configuration)
+                    .SetProcessEnvironmentVariable("NUGET_PACKAGES", packages)
                     .SetProcessAdditionalArguments("--disable-build-servers", "-warnaserror"));
 
                 var generated = consumer.GlobFiles("**/Qyl_Sample_Todo.GenerateXml.g.cs").FirstOrDefault();
@@ -404,30 +407,23 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                     SampleContract.ReadAllText(),
                     (consumer / "openapi" / "qyl.sample.json").ReadAllText(),
                     "the consumer built from the Qyl.Api.Sdk package");
-                completed = true;
+
+                // The revision is the digest of the document the consumer carries, and it copied the sample's.
+                // Two projects, two builds, one contract: the same value or the SDK is hashing something local.
+                var consumerRevision = ReadGeneratedContractRevision(consumer);
+                ApiSdkHost.Expect(
+                    string.Equals(consumerRevision, ApiSdkSession.ContractRevisionValue(SampleContract), StringComparison.Ordinal),
+                    $"the packaged consumer compiled the sample's contract revision (saw '{consumerRevision}')");
+
+                AssertStaleContractFailsTheBuild(consumer, packages);
             }
             finally
             {
-                if (cached.DirectoryExists())
-                    cached.DeleteDirectory();
-
-                if (cached.DirectoryExists())
-                {
-                    var leftover =
-                        $"The gate's Qyl.Api.Sdk {version} is still in the global packages folder ({cached}). " +
-                        "It shadows the published package for every restore on this machine; remove it.";
-
-                    // Checked on both paths and thrown on only one: raising this over a failure already on its
-                    // way out would replace the reason the stage failed with a consequence of it.
-                    if (completed)
-                        throw new InvalidOperationException(leftover);
-
-                    Log.Error("{Leftover}", leftover);
-                }
+                packages.DeleteDirectory();
             }
 
             Log.Information(
-                "Qyl.Api.Sdk: <Project Sdk=\"Qyl.Api.Sdk/{Version}\"> builds the identical contract, and the gate's copy left the global packages folder",
+                "Qyl.Api.Sdk: <Project Sdk=\"Qyl.Api.Sdk/{Version}\"> builds the identical contract and revision, and a stale one fails the build",
                 version);
         });
 
@@ -471,6 +467,121 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
             ApiSdkSession.Run(collector, native, data, SampleContract);
         });
 
+
+    /// <summary>The revision the consumer's own build compiled in, read from the source the SDK generated for it.</summary>
+    private static string ReadGeneratedContractRevision(AbsolutePath consumer)
+    {
+        var generated = consumer.GlobFiles("**/QylSdkBuild.g.cs").FirstOrDefault()
+                        ?? throw new FileNotFoundException($"The SDK generated no QylSdkBuild.g.cs under {consumer}");
+        var match = Regex.Match(
+            generated.ReadAllText(),
+            @"ContractRevision\s*=\s*""(?<revision>[^""]*)""",
+            RegexOptions.None,
+            TimeSpan.FromSeconds(1));
+
+        return match.Success ? match.Groups["revision"].Value : string.Empty;
+    }
+
+    /// <summary>
+    /// The SDK enforces contract-is-committed for every consumer, not only for the sample: change an endpoint
+    /// and the build fails with QYLSDK0001 rather than shipping a binary that names the previous contract.
+    /// Proven by changing one, expecting the failure, and restoring — the same shape the mistake has in real use.
+    /// </summary>
+    /// <summary>
+    /// The SDK enforces contract-is-committed for every consumer, not only for the sample: change an endpoint
+    /// and the build fails with QYLSDK0001 rather than shipping a binary that names the previous contract.
+    /// </summary>
+    /// <remarks>
+    /// On a copy of the consumer rather than on the consumer itself. Mutating and restoring in place leaves the
+    /// project's incremental state describing a build that no longer exists, and the assertion then measures
+    /// MSBuild's memory instead of the SDK's rule.
+    /// </remarks>
+    private void AssertStaleContractFailsTheBuild(AbsolutePath consumer, AbsolutePath packages)
+    {
+        var stale = consumer.Parent / "qyl.sample.stale";
+        stale.CreateOrCleanDirectory();
+        var sources = consumer.GlobFiles("**/*")
+            .Where(static file => !file.ToString().Contains("/obj/", StringComparison.Ordinal)
+                                  && !file.ToString().Contains("/bin/", StringComparison.Ordinal));
+        foreach (var file in sources)
+        {
+            var destination = stale / consumer.GetRelativePathTo(file);
+            destination.Parent.CreateDirectory();
+            file.Copy(destination, ExistsPolicy.FileOverwrite);
+        }
+
+        var endpoints = stale / "Todos" / "TodoEndpoints.cs";
+        endpoints.WriteAllText(endpoints.ReadAllText().Replace(
+            "<summary>Lists every todo.</summary>",
+            "<summary>Lists every todo, and this summary is not in the committed contract.</summary>",
+            StringComparison.Ordinal));
+
+        // System.Diagnostics rather than the build's process helpers: a non-zero exit is the assertion here,
+        // and every one of them treats it as a failure of the gate.
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = stale,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        startInfo.ArgumentList.Add("build");
+        startInfo.ArgumentList.Add(stale / "qyl.sample.csproj");
+        startInfo.ArgumentList.Add("--configuration");
+        startInfo.ArgumentList.Add(Configuration);
+        startInfo.ArgumentList.Add("--disable-build-servers");
+        startInfo.Environment["NUGET_PACKAGES"] = packages;
+
+        string output;
+        int exitCode;
+        using (var build = Process.Start(startInfo)
+                           ?? throw new InvalidOperationException("Could not start the stale consumer's build"))
+        {
+            output = build.StandardOutput.ReadToEnd() + build.StandardError.ReadToEnd();
+            build.WaitForExit();
+            exitCode = build.ExitCode;
+        }
+
+        ApiSdkHost.Expect(exitCode != 0, "a changed contract fails the consumer's build");
+        ApiSdkHost.Expect(output.Contains("QYLSDK0001", StringComparison.Ordinal),
+            $"the failure names QYLSDK0001{Environment.NewLine}{output}");
+
+        stale.DeleteDirectory();
+        Log.Information("Qyl.Api.Sdk: a consumer whose contract changed fails its own build with QYLSDK0001");
+    }
+
+    /// <summary>
+    /// The compose stack is the README's agent round-trip, and it only works if the sample can reach the
+    /// collector. Discovery probes <c>localhost</c> and the host name <c>qyl</c>; the collector's service name
+    /// is <c>qyl-collector</c>, so without an endpoint of its own the sample finds nothing and records nothing
+    /// — silently, because a missing collector is not an error to an exporter. Asserted on the file rather than
+    /// by running the stack: what broke was the configuration, and the export path itself is proven end to end
+    /// by ApiSdkSessionScenario against a real collector.
+    /// </summary>
+    private void AssertComposeGivesTheSampleACollector()
+    {
+        var compose = ComposeFile.ReadAllLines();
+        var service = compose
+            .SkipWhile(static line => !line.StartsWith("  qyl.sample:", StringComparison.Ordinal))
+            .Skip(1)
+            .TakeWhile(static line => line.Length is 0 || line.StartsWith("    ", StringComparison.Ordinal) || line.StartsWith("      ", StringComparison.Ordinal))
+            .ToList();
+
+        if (service.Count is 0)
+            throw new InvalidOperationException($"{RootDirectory.GetRelativePathTo(ComposeFile)} declares no qyl.sample service");
+
+        var endpoint = service.FirstOrDefault(static line =>
+            (line.Contains("QYL_ENDPOINT=", StringComparison.Ordinal) ||
+             line.Contains("OTEL_EXPORTER_OTLP_ENDPOINT=", StringComparison.Ordinal)) &&
+            line.Contains("qyl-collector", StringComparison.Ordinal));
+
+        ApiSdkHost.Expect(endpoint is not null,
+            "the compose sample names the collector as its OTLP endpoint (discovery probes localhost and 'qyl', not 'qyl-collector')");
+        ApiSdkHost.Expect(service.Any(static line => line.Contains("depends_on", StringComparison.Ordinal)),
+            "the compose sample declares depends_on the collector");
+
+        Log.Information("Qyl.Api.Sdk: the compose sample exports to {Endpoint}", endpoint!.Trim().TrimStart('-', ' '));
+    }
+
     AbsolutePath CollectorProject => RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj";
 
     private string SampleVersion()
@@ -481,13 +592,110 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 }
 
 /// <summary>The HTTP proof, identical for the managed host, the native host, and the container.</summary>
+/// <summary>
+/// What both halves of the proof need from a child process: a scrubbed environment, its output captured without
+/// racing the reader, and a stop that does not depend on the process being cooperative.
+/// </summary>
+internal sealed class ApiSdkHost : IDisposable
+{
+    private readonly Process _process;
+    private readonly StringBuilder _log = new();
+
+    private ApiSdkHost(Process process) => _process = process;
+
+    internal bool HasExited => _process.HasExited;
+
+    /// <summary>The output so far, read under the same lock the reader writes with.</summary>
+    internal string Snapshot()
+    {
+        lock (_log) return _log.ToString();
+    }
+
+    /// <summary>
+    /// Starts <paramref name="executable"/> with an environment scrubbed of every OTEL_ and QYL_ variable, then
+    /// exactly <paramref name="environment"/>. The gate's own shell decides nothing about the run: an inherited
+    /// OTEL_RESOURCE_ATTRIBUTES, OTEL_TRACES_SAMPLER or OTEL_BSP_* would satisfy or skew the assertions.
+    /// </summary>
+    internal static ApiSdkHost Start(
+        AbsolutePath executable,
+        IReadOnlyDictionary<string, string>? environment = null,
+        string? urls = null)
+    {
+        var startInfo = new ProcessStartInfo(executable)
+        {
+            WorkingDirectory = executable.Parent,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        foreach (var name in startInfo.Environment.Keys
+                     .Where(static key =>
+                         key.StartsWith("OTEL_", StringComparison.OrdinalIgnoreCase) ||
+                         key.StartsWith("QYL_", StringComparison.OrdinalIgnoreCase))
+                     .ToList())
+        {
+            startInfo.Environment.Remove(name);
+        }
+
+        foreach (var (key, value) in environment ?? new Dictionary<string, string>(StringComparer.Ordinal))
+            startInfo.Environment[key] = value;
+
+        if (urls is not null)
+        {
+            startInfo.ArgumentList.Add("--urls");
+            startInfo.ArgumentList.Add(urls);
+        }
+
+        var process = Process.Start(startInfo)
+                      ?? throw new InvalidOperationException($"Could not start {executable}");
+        var host = new ApiSdkHost(process);
+        process.OutputDataReceived += (_, e) => host.Append(e.Data);
+        process.ErrorDataReceived += (_, e) => host.Append(e.Data);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        return host;
+    }
+
+    internal void Stop()
+    {
+        if (_process.HasExited)
+            return;
+
+        _process.Kill(entireProcessTree: true);
+        _process.WaitForExit();
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        _process.Dispose();
+    }
+
+    private void Append(string? line)
+    {
+        if (line is null) return;
+        lock (_log) _log.AppendLine(line);
+    }
+
+    /// <summary>Every assertion in the proof, so a failure reads the same wherever it came from.</summary>
+    internal static void Expect(bool condition, string what)
+    {
+        if (!condition)
+            throw new InvalidOperationException($"{what} — it did not");
+    }
+}
+
 internal static class ApiSdkScenario
 {
     private static readonly TimeSpan s_startupTimeout = TimeSpan.FromSeconds(60);
 
-    /// <summary>The sample sources a packaged consumer is rebuilt from, verbatim.</summary>
+    /// <summary>
+    /// The sample sources a packaged consumer is rebuilt from, verbatim — the committed contract included.
+    /// Without it the consumer would be a project building its API for the first time, which is the one case
+    /// where there is no revision to compile in.
+    /// </summary>
     internal static readonly string[] ConsumerSourceFiles =
-        ["Program.cs", "AppJsonSerializerContext.cs", "appsettings.json"];
+        ["Program.cs", "AppJsonSerializerContext.cs", "appsettings.json", "openapi/qyl.sample.json"];
 
     /// <summary>The assemblies the package must put on a consumer's reference list.</summary>
     internal static readonly string[] PackagedAssemblies = ["Qyl.Xml.dll", "Qyl.Api.dll"];
@@ -495,45 +703,24 @@ internal static class ApiSdkScenario
     public static void Run(AbsolutePath executable, string label, AbsolutePath contract)
     {
         var port = FreeLoopbackPort();
-        var log = new StringBuilder();
-        var startInfo = new ProcessStartInfo(executable)
-        {
-            WorkingDirectory = executable.Parent,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        startInfo.ArgumentList.Add("--urls");
-        startInfo.ArgumentList.Add($"http://127.0.0.1:{port}");
-        // The template maps /openapi/v1.json in Development only, and the scenario compares that document.
-        startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-
-        using var process = Process.Start(startInfo)
-                            ?? throw new InvalidOperationException($"Could not start the {label} host");
-        process.OutputDataReceived += (_, e) => Append(log, e.Data);
-        process.ErrorDataReceived += (_, e) => Append(log, e.Data);
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        using var host = ApiSdkHost.Start(
+            executable,
+            // The template maps /openapi/v1.json in Development only, and the scenario compares that document.
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["ASPNETCORE_ENVIRONMENT"] = "Development" },
+            $"http://127.0.0.1:{port.ToString(CultureInfo.InvariantCulture)}");
 
         try
         {
-            RunAgainst(new Uri($"http://127.0.0.1:{port}"), label, contract, () =>
+            RunAgainst(new Uri($"http://127.0.0.1:{port.ToString(CultureInfo.InvariantCulture)}"), label, contract, () =>
             {
-                if (process.HasExited)
-                    throw new InvalidOperationException($"The {label} host exited before it served:{Environment.NewLine}{log}");
+                if (host.HasExited)
+                    throw new InvalidOperationException($"The {label} host exited before it served:{Environment.NewLine}{host.Snapshot()}");
             });
         }
         catch
         {
-            Log.Error("{Label} host output:{NewLine}{Output}", label, Environment.NewLine, log.ToString());
+            Log.Error("{Label} host output:{NewLine}{Output}", label, Environment.NewLine, host.Snapshot());
             throw;
-        }
-        finally
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-                process.WaitForExit();
-            }
         }
     }
 
@@ -622,12 +809,6 @@ internal static class ApiSdkScenario
                 $"{Environment.NewLine}committed:{Environment.NewLine}{expected}" +
                 $"{Environment.NewLine}produced:{Environment.NewLine}{actual}");
         }
-    }
-
-    private static void Append(StringBuilder log, string? line)
-    {
-        if (line is null) return;
-        lock (log) log.AppendLine(line);
     }
 
     private static void WaitUntilServing(HttpClient client, string label, Action assertAlive)
@@ -742,11 +923,8 @@ internal static class ApiSdkScenario
     private static JsonNode? ReadJson(HttpResponseMessage response) =>
         JsonNode.Parse(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
 
-    private static void Expect(string label, bool condition, string what)
-    {
-        if (!condition)
-            throw new InvalidOperationException($"{label}: {what} — it did not");
-    }
+    private static void Expect(string label, bool condition, string what) =>
+        ApiSdkHost.Expect(condition, $"{label}: {what}");
 
     /// <summary>
     /// Both documents with their <c>servers</c> array removed and their members ordered, so the
@@ -803,14 +981,20 @@ internal static class ApiSdkSession
         $"apisdk-{Environment.ProcessId.ToString(CultureInfo.InvariantCulture)}-{DateTime.UtcNow.Ticks.ToString(CultureInfo.InvariantCulture)}";
 
     private const string BaggageHeader = "baggage";
-    private const string ContractRevisionAttribute = "qyl.api.contract.revision";
-    private const string RouteAttribute = "http.route";
-    private const string MethodAttribute = "http.request.method";
-    private const string StatusAttribute = "http.response.status_code";
-    private const string DomainAttribute = "qyl.instrumentation.domain";
+
+    // The vocabulary is the registry's, read from the same packages the collector's ingest policy is generated
+    // from. A rename upstream breaks this gate at compile time instead of leaving it asserting a key nobody
+    // writes any more. The one deliberate literal is the `sha256:` value format below: the gate is the second
+    // opinion about it, and a constant shared with the producer would make it one opinion twice.
+    private const string ContractRevisionAttribute = QylAttributes.ApiContractRevision;
+    private const string SessionIdName = SessionAttributes.Id;
+    private const string RouteAttribute = HttpAttributes.Route;
+    private const string MethodAttribute = HttpAttributes.RequestMethod;
+    private const string StatusAttribute = HttpAttributes.ResponseStatusCode;
+    private const string DomainAttribute = QylAttributes.InstrumentationDomain;
 
     /// <summary>The value qyl stamps on the ASP.NET Core server span it enriches.</summary>
-    private const string AspNetCoreServerDomain = "aspnetcore.server";
+    private const string AspNetCoreServerDomain = QylAttributes.InstrumentationDomainValues.AspNetCoreServer;
 
     /// <summary>OTLP span kind 2, SPAN_KIND_SERVER, as the read contract writes it.</summary>
     private const string ServerSpanKind = "2";
@@ -823,15 +1007,12 @@ internal static class ApiSdkSession
     {
         var apiPort = ApiSdkScenario.FreeLoopbackPort();
         var otlpPort = ApiSdkScenario.FreeLoopbackPort();
+        var samplePort = ApiSdkScenario.FreeLoopbackPort();
         var sessionId = NewSessionId();
         var revision = ContractRevisionValue(contract);
 
-        var collectorLog = new StringBuilder();
-        var sampleLog = new StringBuilder();
-
-        using var collectorProcess = Start(
+        using var collectorHost = ApiSdkHost.Start(
             collector,
-            collectorLog,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["QYL_BIND_ADDRESS"] = "127.0.0.1",
@@ -844,20 +1025,17 @@ internal static class ApiSdkSession
                 // A loopback development stack. The collector refuses to start in Production with no API keys.
                 ["QYL_OTLP_AUTH_MODE"] = "Unsecured",
                 ["ASPNETCORE_ENVIRONMENT"] = "Development",
-                // Inherited from the build's own environment this would point the collector at itself.
-                ["OTEL_EXPORTER_OTLP_ENDPOINT"] = string.Empty,
-                ["QYL_ENDPOINT"] = string.Empty,
             });
 
         try
         {
             var collectorAddress = new Uri($"http://127.0.0.1:{apiPort.ToString(CultureInfo.InvariantCulture)}");
             using var collectorClient = new HttpClient { BaseAddress = collectorAddress, Timeout = TimeSpan.FromSeconds(30) };
-            WaitUntil(collectorClient, "/health", "collector", collectorProcess, collectorLog);
+            WaitUntil(collectorClient, "/health", "collector", collectorHost);
 
-            using var sampleProcess = Start(
+            var sampleAddress = new Uri($"http://127.0.0.1:{samplePort.ToString(CultureInfo.InvariantCulture)}");
+            using var sampleHost = ApiSdkHost.Start(
                 sample,
-                sampleLog,
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["ASPNETCORE_ENVIRONMENT"] = "Development",
@@ -867,33 +1045,30 @@ internal static class ApiSdkSession
                     // The gate must not wait five seconds for the default batch delay after every request.
                     ["OTEL_BSP_SCHEDULE_DELAY"] = "500",
                 },
-                $"http://127.0.0.1:{ApiSdkScenario.FreeLoopbackPort().ToString(CultureInfo.InvariantCulture)}",
-                out var sampleAddress);
+                $"http://127.0.0.1:{samplePort.ToString(CultureInfo.InvariantCulture)}");
 
             try
             {
                 using var sampleClient = new HttpClient { BaseAddress = sampleAddress, Timeout = TimeSpan.FromSeconds(30) };
-                WaitUntil(sampleClient, "/todos", "native sample", sampleProcess, sampleLog);
+                WaitUntil(sampleClient, "/todos", "native sample", sampleHost);
 
                 Drive(sampleClient, sessionId);
 
-                AwaitControl(collectorClient, collectorLog);
-                var spans = AwaitSession(collectorClient, sessionId, collectorLog);
+                AwaitControl(collectorClient, collectorHost);
+                var spans = AwaitSession(collectorClient, sessionId, collectorHost);
                 Assert(spans, revision, sessionId, contract);
             }
-            finally
+            catch
             {
-                StopAndLog(sampleProcess, "native sample", sampleLog);
+                // The sample's stderr is where an export failure is written; it is the first thing worth reading.
+                Log.Error("native sample output:{NewLine}{Output}", Environment.NewLine, sampleHost.Snapshot());
+                throw;
             }
         }
         catch
         {
-            Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
+            Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorHost.Snapshot());
             throw;
-        }
-        finally
-        {
-            StopAndLog(collectorProcess, "collector", collectorLog);
         }
     }
 
@@ -943,7 +1118,7 @@ internal static class ApiSdkSession
     /// poll that reaches three could be three of four — and "exactly three" would then pass on a duplicate that
     /// simply had not arrived yet. Two further polls must agree before the answer is used.
     /// </remarks>
-    private static List<JsonNode> AwaitSession(HttpClient collector, string sessionId, StringBuilder collectorLog)
+    private static List<JsonNode> AwaitSession(HttpClient collector, string sessionId, ApiSdkHost collectorHost)
     {
         const int settledPollsRequired = 2;
         var deadline = DateTime.UtcNow + s_sessionTimeout;
@@ -970,7 +1145,7 @@ internal static class ApiSdkSession
             Thread.Sleep(s_settleDelay);
         }
 
-        Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
+        Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorHost.Snapshot());
         throw new InvalidOperationException(
             $"The collector did not settle on an answer for session '{sessionId}' within {s_sessionTimeout}. " +
             $"Last body: {lastBody}");
@@ -991,7 +1166,7 @@ internal static class ApiSdkSession
     /// The untagged control, read back from the collector's unfiltered trace list. It proves the exclusion
     /// asserted below is an exclusion: the request was recorded, and it is still not in the session.
     /// </summary>
-    private static void AwaitControl(HttpClient collector, StringBuilder collectorLog)
+    private static void AwaitControl(HttpClient collector, ApiSdkHost collectorHost)
     {
         var deadline = DateTime.UtcNow + s_sessionTimeout;
         var lastBody = string.Empty;
@@ -1006,7 +1181,7 @@ internal static class ApiSdkSession
         }
 
         Log.Error("last /api/v1/traces answer:{NewLine}{Body}", Environment.NewLine, lastBody);
-        Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
+        Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorHost.Snapshot());
         throw new InvalidOperationException(
             $"The untagged control request ({s_control.Method} {s_control.Route}) never reached the collector, " +
             "so its absence from the session would prove nothing.");
@@ -1165,64 +1340,19 @@ internal static class ApiSdkSession
     /// collector's /health already reports: <c>sha256:&lt;lowercase hex&gt;</c>. Spelled here rather than
     /// re-derived from the SDK's own MSBuild, so a change to either side is what this gate catches.
     /// </summary>
-    private static string ContractRevisionValue(AbsolutePath file)
+    internal static string ContractRevisionValue(AbsolutePath file)
     {
         using var stream = File.OpenRead(file);
         return "sha256:" + Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
-    private static ProcessHandle Start(
-        AbsolutePath executable,
-        StringBuilder log,
-        Dictionary<string, string> environment) =>
-        Start(executable, log, environment, urls: null, out _);
-
-    private static ProcessHandle Start(
-        AbsolutePath executable,
-        StringBuilder log,
-        Dictionary<string, string> environment,
-        string? urls,
-        out Uri address)
-    {
-        var startInfo = new ProcessStartInfo(executable)
-        {
-            WorkingDirectory = executable.Parent,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        foreach (var (key, value) in environment)
-        {
-            if (value.Length is 0)
-                startInfo.Environment.Remove(key);
-            else
-                startInfo.Environment[key] = value;
-        }
-
-        if (urls is not null)
-        {
-            startInfo.ArgumentList.Add("--urls");
-            startInfo.ArgumentList.Add(urls);
-        }
-
-        address = urls is null ? new Uri("http://127.0.0.1") : new Uri(urls);
-
-        var process = Process.Start(startInfo)
-                      ?? throw new InvalidOperationException($"Could not start {executable}");
-        process.OutputDataReceived += (_, e) => Append(log, e.Data);
-        process.ErrorDataReceived += (_, e) => Append(log, e.Data);
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        return new ProcessHandle(process);
-    }
-
-    private static void WaitUntil(HttpClient client, string path, string label, ProcessHandle process, StringBuilder log)
+    private static void WaitUntil(HttpClient client, string path, string label, ApiSdkHost host)
     {
         var deadline = DateTime.UtcNow + s_startupTimeout;
         while (DateTime.UtcNow < deadline)
         {
-            if (process.HasExited)
-                throw new InvalidOperationException($"The {label} exited before it served:{Environment.NewLine}{log}");
+            if (host.HasExited)
+                throw new InvalidOperationException($"The {label} exited before it served:{Environment.NewLine}{host.Snapshot()}");
 
             try
             {
@@ -1239,19 +1369,7 @@ internal static class ApiSdkSession
         }
 
         throw new InvalidOperationException(
-            $"The {label} did not serve {path} within {s_startupTimeout}:{Environment.NewLine}{log}");
-    }
-
-    private static void StopAndLog(ProcessHandle process, string label, StringBuilder log)
-    {
-        process.Stop();
-        Log.Debug("{Label} output:{NewLine}{Output}", label, Environment.NewLine, log.ToString());
-    }
-
-    private static void Append(StringBuilder log, string? line)
-    {
-        if (line is null) return;
-        lock (log) log.AppendLine(line);
+            $"The {label} did not serve {path} within {s_startupTimeout}:{Environment.NewLine}{host.Snapshot()}");
     }
 
     /// <summary>The agent's whole contribution: one header. Sent synchronously so the request outlives no task.</summary>
@@ -1261,40 +1379,16 @@ internal static class ApiSdkSession
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json"),
         };
-        request.Headers.TryAddWithoutValidation(BaggageHeader, $"session.id={sessionId}");
+        request.Headers.TryAddWithoutValidation(BaggageHeader, $"{SessionIdName}={sessionId}");
         return client.Send(request);
     }
 
     private static HttpResponseMessage Get(HttpClient client, string path, string sessionId)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
-        request.Headers.TryAddWithoutValidation(BaggageHeader, $"session.id={sessionId}");
+        request.Headers.TryAddWithoutValidation(BaggageHeader, $"{SessionIdName}={sessionId}");
         return client.Send(request);
     }
 
-    private static void Expect(bool condition, string what)
-    {
-        if (!condition)
-            throw new InvalidOperationException($"session: {what} — it did not");
-    }
-
-    private sealed class ProcessHandle(Process process) : IDisposable
-    {
-        public bool HasExited => process.HasExited;
-
-        public void Stop()
-        {
-            if (process.HasExited)
-                return;
-
-            process.Kill(entireProcessTree: true);
-            process.WaitForExit();
-        }
-
-        public void Dispose()
-        {
-            Stop();
-            process.Dispose();
-        }
-    }
+    private static void Expect(bool condition, string what) => ApiSdkHost.Expect(condition, $"session: {what}");
 }

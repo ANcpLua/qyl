@@ -186,6 +186,11 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
 
+        // The project-id keys decide which project a row is filed under, so a key that has drifted out of the
+        // registry does not fail loudly, it misfiles data. Order is the policy's, because the lookup is
+        // first-match; only membership is validated here.
+        var projectIdResourceKeys = resolver.RequiredAttributeValues(policy.ProjectIdResourceKeys);
+
         var deniedExactKeys = ValuesWithPrefixes(allAttributeValues, policy.DeniedExactPrefixes, "deniedExactPrefixes")
             .Concat(resolver.RequiredAttributeValues(policy.DeniedExactKeys))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -229,13 +234,13 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         builder.AppendLine();
 
         WriteFrozenSet(builder, "SessionCorrelation", sessionCorrelation, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "ProjectIdResourceKeys", policy.ProjectIdResourceKeys, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "ProjectIdResourceKeys", projectIdResourceKeys, "StringComparer.Ordinal", incubatingKeys);
 
         // Precedence arrays preserve the order declared in collector-semantic-policy.json. The
         // FrozenSets above answer membership only; first-match lookups (session id, project-id
         // partition key) must read these, because FrozenSet enumeration order is unspecified.
         WriteOrderedStringArray(builder, "SessionCorrelationPrecedence", sessionCorrelation, incubatingKeys);
-        WriteOrderedStringArray(builder, "ProjectIdResourceKeyPrecedence", policy.ProjectIdResourceKeys, incubatingKeys);
+        WriteOrderedStringArray(builder, "ProjectIdResourceKeyPrecedence", projectIdResourceKeys, incubatingKeys);
         WriteFrozenSet(builder, "QylResourceAttributeAllowList", qylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
