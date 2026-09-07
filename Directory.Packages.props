@@ -56,7 +56,6 @@
     <PackageVersion Include="Qyl.Telemetry.Hosting" Version="$(QylTelemetryVersion)"/>
     <PackageVersion Include="Qyl.Telemetry.SemanticConventions" Version="$(QylSemanticConventionsVersion)"/>
     <PackageVersion Include="Qyl.Telemetry.SemanticConventions.Incubating" Version="$(QylSemanticConventionsVersion)"/>
-    <PackageVersion Include="Qyl.Telemetry.SemanticConventions.SourceGeneration" Version="$(QylSemanticConventionsVersion)"/>
     <PackageVersion Include="Qyl.Api.Contracts" Version="$(QylApiContractsVersion)"/>
   </ItemGroup>
 
