@@ -130,3 +130,16 @@ resolves, `type: [..., "null"]` where an absent value is written as `xsi:nil`, a
 keyword for. The response type declared to ASP.NET Core stays `string` on purpose: the OpenAPI generator therefore never needs JSON
 type information for an XML-only model, which under `JsonSerializerIsReflectionEnabledByDefault=false` would fail the document.
 No reflection is involved at any point; the build-time and the runtime document are produced by the same transformer.
+
+## 2026-09-07 · Only `AddQylApi` is linked source; the runtime is the compiled `Qyl.Api` assembly
+
+Supersedes "as source, not as a DLL" (2026-09-04) for everything except one file. That entry's reason was correct and still
+holds, but it was applied too broadly: the interceptors need the literal `AddValidation()` and `AddOpenApi(lambda)` calls in the
+consumer's compilation, and those calls sit in `QylApiServiceCollectionExtensions.cs`. Nothing else in `Sources/` depended on
+being compiled by the consumer. `IQylApiBuilder`, `QylResults`, `QylProblemJsonContext`, and the XML schema transformer are now
+`qyl.sdk/Qyl.Api/`, a net10.0 assembly that references `Qyl.Xml` and the pinned `Microsoft.AspNetCore.OpenApi`. `Sources/`
+contains exactly the file that must be linked, and the props say why.
+
+Consequences: the builder class and the problem-details context are public, because the linked `AddQylApi` creates and registers
+them from another assembly. The package ships `lib/net10.0/Qyl.Api.dll` next to `Qyl.Xml.dll`; the targets reference both, as
+projects in the repository and as assemblies from the package. `verify.sh` stage 8 checks that both reached the consumer's output.

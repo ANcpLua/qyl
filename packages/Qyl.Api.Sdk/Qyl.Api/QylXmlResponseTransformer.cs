@@ -9,8 +9,9 @@ namespace Qyl;
 /// Describes every <c>application/xml</c> response an endpoint declares through <see cref="XmlResponseMetadata"/> with the
 /// component schema built from the model's generated <see cref="XmlShape"/>, replacing the placeholder string schema.
 /// </summary>
-internal sealed class QylXmlResponseTransformer : IOpenApiOperationTransformer
+public sealed class QylXmlResponseTransformer : IOpenApiOperationTransformer
 {
+    /// <inheritdoc />
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(operation);

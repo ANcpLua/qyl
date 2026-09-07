@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The runtime of a Qyl API as a compiled assembly: the builder AddQylApi returns, the typed results, the problem-details JSON
+    context, and the OpenAPI transformer that describes application/xml responses from the generated XmlShape. Everything that
+    does not have to sit in the consumer's compilation lives here; only AddQylApi itself stays linked source, because the
+    validation and OpenAPI generators intercept the calls it makes (DECISIONS.md, 2026-09-07).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Qyl</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Keep the problem-details JSON context inspectable under obj/generated, as the SDK does for every consumer. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- The version the SDK pins for every consumer; the assembly must bind to the same one. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" VersionOverride="$(QylAspNetCoreOpenApiVersion)" />
+    <ProjectReference Include="../Qyl.Xml/Qyl.Xml.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Qyl.Sdk.Xml.Generator.Tests" />
+  </ItemGroup>
+</Project>
