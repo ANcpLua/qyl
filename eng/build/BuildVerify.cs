@@ -643,6 +643,45 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.Telemetry.SemanticConventions and consume it there.");
         });
 
+    /// <summary>
+    /// G1's compile-time half. The vocabulary smoke script proves the collector recognises the
+    /// keys the producer emits; this proves the collector never authors one. Two families are
+    /// gone from its source entirely: a qyl-owned key, which the registry names and the generated
+    /// catalog exposes as a constant, and a messaging.system value, which is a library's identity
+    /// and belongs to whatever emitted the span — the collector reads it and never writes it.
+    /// Generated code is exempt: it is where those strings are supposed to appear.
+    /// </summary>
+    Target VerifyCollectorAuthorsNoVocabulary => d => d
+        .Unlisted()
+        .Description("Verify the collector types no qyl-owned key and no messaging.system value")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var messagingSystems = ResolveWellKnownValues("Messaging.MessagingAttributes+SystemValues");
+            var offenders = CollectorSourceFiles()
+                .Where(static file => !file.ToString().EndsWith(".g.cs", StringComparison.Ordinal))
+                .Where(static file => !file.ToString()
+                    .Contains($"{Path.DirectorySeparatorChar}Generated{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                .SelectMany(file => VocabularyLiteralOffenders(file, messagingSystems))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information(
+                    "Collector authors no qyl-owned key and none of the {Count} messaging.system values",
+                    messagingSystems.Count);
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  {Kind} at {File}:{Line}: {Text}",
+                    offender.Kind, offender.File, offender.Line, offender.Text);
+
+            throw new InvalidOperationException(
+                "The collector must not author vocabulary. A qyl-owned key comes from the generated " +
+                "CollectorSemanticAttributeCatalog; a messaging.system value comes from the span being ingested.");
+        });
+
     Target VerifyCollectorTelemetryUsesBuildVersion => d => d
         .Unlisted()
         .Description("Verify collector telemetry source versions use the generated build version")
@@ -2632,6 +2671,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyCollectorEndpointLimitsMatchOpenApi)
         .DependsOn(VerifyCollectorRoutesMatchOpenApi)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
+        .DependsOn(VerifyCollectorAuthorsNoVocabulary)
         .DependsOn(VerifyCollectorTelemetryUsesBuildVersion)
         .DependsOn(VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
@@ -2688,6 +2728,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             Log.Information("  Collector HTTP JSON context serializes contract models only");
             Log.Information("  Collector endpoint responses are contract-backed");
             Log.Information("  Collector semantic keys use generated constants");
+            Log.Information("  Collector authors no qyl-owned key and no messaging.system value");
             Log.Information("  Collector telemetry source versions use generated build version");
             Log.Information("  Collector and instrumentation runtime code avoid direct ANcpLua.Roslyn.Utilities usage");
             Log.Information("  Collector semantic attribute catalog matches package references");
@@ -3125,6 +3166,34 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 yield return new ForbiddenEndpointMapper(relativePath, NodeLine(method), NodePreview(method));
             }
         }
+    }
+
+    private IEnumerable<SemanticUsageOffender> VocabularyLiteralOffenders(
+        AbsolutePath file,
+        IReadOnlySet<string> messagingSystems)
+    {
+        var root = ParseCompilationUnit(file);
+        var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+
+        foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+        {
+            if (!literal.IsKind(SyntaxKind.StringLiteralExpression))
+                continue;
+
+            if (Classify(literal.Token.ValueText) is { } kind)
+                yield return new SemanticUsageOffender(relativePath, NodeLine(literal), kind, NodePreview(literal));
+        }
+
+        foreach (var interpolatedText in root.DescendantNodes().OfType<InterpolatedStringTextSyntax>())
+        {
+            if (Classify(interpolatedText.TextToken.ValueText) is { } kind)
+                yield return new SemanticUsageOffender(relativePath, NodeLine(interpolatedText), kind, NodePreview(interpolatedText));
+        }
+
+        string? Classify(string value) =>
+            value.StartsWith("qyl.", StringComparison.Ordinal) ? "Authored qyl-owned key"
+            : messagingSystems.Contains(value) ? "Authored messaging.system value"
+            : null;
     }
 
     private IEnumerable<SemanticUsageOffender> SemanticUsageOffenders(
