@@ -127,6 +127,16 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             new SemConvAttributeResolver(ReadResolvedPackageAssemblies()).AllAttributeValues(),
             StringComparer.Ordinal);
 
+    /// <summary>
+    /// The values of one registry value class, e.g. <c>Messaging.MessagingAttributes+SystemValues</c>,
+    /// read from the pinned packages rather than restated in a gate.
+    /// </summary>
+    IReadOnlySet<string> ResolveWellKnownValues(string typePath) =>
+        new HashSet<string>(
+            new SemConvAttributeResolver(ReadResolvedPackageAssemblies())
+                .WellKnownValues(typePath).Values.Select(static value => value.Value),
+            StringComparer.Ordinal);
+
     string GenerateCollectorSemanticAttributeCatalogText()
     {
         var resolver = new SemConvAttributeResolver(ReadResolvedPackageAssemblies());
