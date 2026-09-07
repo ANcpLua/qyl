@@ -40,10 +40,16 @@ interface IDependencyEdges : IHazSourcePaths
         // the retired SourceGeneration package generated them at compile time instead.
         ["packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj"] =
             ["Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating"],
-        // Collector product function: generated contracts it serves. The producer stack
-        // arrives only transitively through the collector-defaults layer (self-telemetry);
-        // a direct producer-family reference here is the forbidden edge G7 exists to catch.
-        ["services/qyl.collector/qyl.collector.csproj"] = ["Qyl.Api.Contracts"],
+        // Collector product function: generated contracts it serves, plus the vocabulary it
+        // normalizes ingested attributes against (the generated mapping table and the metric
+        // definitions). The producer stack arrives only transitively through the
+        // collector-defaults layer (self-telemetry); a direct producer-family reference here
+        // is the forbidden edge G7 exists to catch.
+        ["services/qyl.collector/qyl.collector.csproj"] =
+        [
+            "Qyl.Api.Contracts",
+            "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
+        ],
         ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Telemetry.Hosting"],
     };
 

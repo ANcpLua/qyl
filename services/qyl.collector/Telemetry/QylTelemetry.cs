@@ -1,10 +1,12 @@
-
+using Qyl.Telemetry.SemanticConventions.Names;
 
 namespace Qyl.Collector.Telemetry;
 
 internal static class QylTelemetry
 {
-    public const string ServiceName = "Qyl.Collector";
+    // The registry's own name for this scope, so the ActivitySource, the Meter and the collector's
+    // ingest catalog cannot disagree about what the collector calls itself.
+    public const string ServiceName = QylTelemetryNames.Scopes.QylCollector;
 
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {

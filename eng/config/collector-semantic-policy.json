@@ -223,12 +223,7 @@
     "gen_ai.tool.name"
   ],
   "projectionConstants": {
-    "DbQueryText": "db.query.text",
-    "DbStatementDeprecated": "db.statement",
-    "DbSystemDeprecated": "db.system",
     "DbSystemName": "db.system.name",
-    "HttpUrlDeprecated": "http.url",
-    "UrlFull": "url.full",
     "GenAiToolCallId": "gen_ai.tool.call.id",
     "GenAiProviderName": "gen_ai.provider.name",
     "GenAiOperationName": "gen_ai.operation.name",
@@ -242,7 +237,8 @@
     "GenAiReasoningTokens": "gen_ai.usage.reasoning.output_tokens",
     "HttpRequestMethod": "http.request.method",
     "HttpRoute": "http.route",
-    "ServiceName": "service.name"
+    "ServiceName": "service.name",
+    "QylAttributeNamespace": "qyl.attribute.namespace"
   },
   "wellKnownValueClasses": {
     "GenAiOperationNameValues": "GenAi.GenAiAttributes+OperationNameValues",

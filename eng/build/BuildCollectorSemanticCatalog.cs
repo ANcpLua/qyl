@@ -453,9 +453,17 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         return tree.GetCompilationUnitRoot();
     }
 
+    /// <summary>
+    /// The rule is "no handwired semantic-convention lists in the policy", not "no package
+    /// reference": <c>Incubating.Mapping.AttributeMapping</c> is generated from the same registry
+    /// as this catalog, so consuming its vendor and rename tables is the behaviour this gate
+    /// exists to require. Everything else, the <c>Attributes</c> namespaces above all, stays out.
+    /// </summary>
     private static bool IsForbiddenSemanticConventionReference(string? text) =>
         text is not null &&
-        text.Contains("Qyl.Telemetry.SemanticConventions", StringComparison.Ordinal);
+        text.Contains("Qyl.Telemetry.SemanticConventions", StringComparison.Ordinal) &&
+        !text.Contains("Qyl.Telemetry.SemanticConventions.Incubating.Mapping", StringComparison.Ordinal) &&
+        text is not "AttributeMapping";
 
     private static bool IsReflectionReference(string text)
     {

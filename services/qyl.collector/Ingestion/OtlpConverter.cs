@@ -3,6 +3,7 @@ using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using Qyl.Collector.Telemetry;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
@@ -118,6 +119,7 @@ internal static partial class OtlpConverter
                 (!entityReferencedKeys.Contains(attr.Key) ||
                  !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
             {
+                QylCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
@@ -241,7 +243,11 @@ internal static partial class OtlpConverter
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key))
+            {
+                QylCollectorMetrics.AttributeDropped(key);
+                continue;
+            }
 
             var value = ConvertProtoAnyValue(attr.Value);
             SetNormalizedAttribute(attributes, key, value, renamed);
@@ -258,7 +264,11 @@ internal static partial class OtlpConverter
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key))
+            {
+                QylCollectorMetrics.AttributeDropped(key);
+                continue;
+            }
 
             var value = ConvertProtoAnyValue(attr.Value);
             SetNormalizedAttribute(attributes, key, value, renamed);
@@ -463,6 +473,7 @@ internal static partial class OtlpConverter
             if (!AttributeKeySets.IsSafeLogAttribute(key) &&
                 !key.IsAny(AttributeKeySets.SessionCorrelation))
             {
+                QylCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
