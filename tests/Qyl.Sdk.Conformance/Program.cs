@@ -32,6 +32,12 @@ static async Task<IResult> RunConformanceAsync(
     IHttpClientFactory httpClientFactory,
     CancellationToken cancellationToken)
 {
+    // Spelled out rather than taken from QylApiContract on purpose: this harness compiles against the
+    // released Qyl.Telemetry.Hosting package alone, the surface a consumer actually gets. A constant
+    // borrowed from the SDK's own compilation would only prove the two halves agree with themselves.
+    const string SessionBaggageKey = "session.id";
+    const string SessionBaggageValue = "qyl-sdk-conformance-session";
+
     context.Response.OnCompleted(
         static async state =>
         {
@@ -55,6 +61,14 @@ static async Task<IResult> RunConformanceAsync(
             "builder.AddQyl() did not enrich ASP.NET Core's inbound server span with the qyl domain.");
     }
 
+    // The agent contract's second half: a session put on the current activity reaches the next service.
+    // Nothing in qyl injects it — the BCL does, through DistributedContextPropagator.Current — so the only
+    // thing worth proving is that this composition leaves that propagator able to write. A host that swapped
+    // in the no-output propagator, or an instrumentation package that injected from its own baggage store
+    // instead of the activity's, would turn the hop into a silent no-op that no sender-side assertion sees.
+    // Hence the claim is measured on the wire below, from the bytes the receiver actually got.
+    inbound.AddBaggage(SessionBaggageKey, SessionBaggageValue);
+
     var stub = LoopbackHttpStub.Start();
     try
     {
@@ -66,7 +80,17 @@ static async Task<IResult> RunConformanceAsync(
         if (!string.Equals(body, LoopbackHttpStub.ResponseBody, StringComparison.Ordinal))
             throw new InvalidOperationException($"Local HTTP stub returned an unexpected body: {body}");
 
-        await stub.Completion.ConfigureAwait(false);
+        var requestHeaders = await stub.Completion.ConfigureAwait(false);
+
+        // Asserted as the runtime spells it, not as a hand-written form: the propagator emits the member with
+        // the optional whitespace W3C allows, so the key and the value are checked, never the whole line.
+        if (requestHeaders.IndexOf(SessionBaggageKey, StringComparison.Ordinal) < 0 ||
+            requestHeaders.IndexOf(SessionBaggageValue, StringComparison.Ordinal) < 0)
+        {
+            throw new InvalidOperationException(
+                $"builder.AddQyl() left no propagator able to carry the session: the outbound request reached the " +
+                $"next service without a '{SessionBaggageKey}' baggage member. Request headers seen: {requestHeaders}");
+        }
     }
     finally
     {
@@ -103,7 +127,11 @@ internal sealed class LoopbackHttpStub
 
     internal Uri Uri { get; }
 
-    internal Task Completion { get; }
+    /// <summary>
+    /// The request line and headers the stub actually received, joined by newlines. Returned rather than
+    /// stored so the caller cannot read them before the request arrived.
+    /// </summary>
+    internal Task<string> Completion { get; }
 
     internal static LoopbackHttpStub Start()
     {
@@ -114,14 +142,16 @@ internal sealed class LoopbackHttpStub
 
     internal void Stop() => _listener.Stop();
 
-    private static async Task ServeOnceAsync(TcpListener listener)
+    private static async Task<string> ServeOnceAsync(TcpListener listener)
     {
         using var client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
         await using var stream = client.GetStream();
         using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
 
-        while (await reader.ReadLineAsync().ConfigureAwait(false) is { Length: > 0 })
+        var request = new StringBuilder();
+        while (await reader.ReadLineAsync().ConfigureAwait(false) is { Length: > 0 } line)
         {
+            request.AppendLine(line);
         }
 
         var body = Encoding.UTF8.GetBytes(ResponseBody);
@@ -129,5 +159,7 @@ internal sealed class LoopbackHttpStub
             $"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {body.Length}\r\nConnection: close\r\n\r\n");
         await stream.WriteAsync(headers).ConfigureAwait(false);
         await stream.WriteAsync(body).ConfigureAwait(false);
+
+        return request.ToString();
     }
 }
