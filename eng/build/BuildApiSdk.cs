@@ -64,7 +64,13 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
 
     AbsolutePath ApiSdkFeedDirectory => ApiSdkArtifactsDirectory / "feed";
 
-    AbsolutePath ApiSdkConsumerDirectory => ApiSdkArtifactsDirectory / "consumer";
+    /// <summary>
+    /// Outside the repository on purpose. The consumer must reach the SDK through the package
+    /// alone; built anywhere under this tree it would inherit Directory.Build.props,
+    /// Directory.Packages.props and nuget.config, which is exactly the help it is proving it
+    /// does not need.
+    /// </summary>
+    AbsolutePath ApiSdkConsumerDirectory => (AbsolutePath)Path.Combine(Path.GetTempPath(), "qyl-api-sdk-consumer");
 
     AbsolutePath SampleIntermediateDirectory => RootDirectory / "artifacts" / "obj" / "qyl.sample";
 
@@ -106,6 +112,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// </summary>
     Target ApiSdkContractIsCommitted => d => d
         .Unlisted()
+        .DependsOn(ApiSdkBuildAndTest)
         .Executes(() =>
         {
             if (!SampleContract.FileExists())
@@ -134,7 +141,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// </summary>
     Target ApiSdkGeneratorsRan => d => d
         .Unlisted()
-        .DependsOn(ApiSdkBuildAndTest)
+        .DependsOn(ApiSdkContractIsCommitted)
         .Executes(() =>
         {
             (AbsolutePath Root, string Description, string FileName, string Marker)[] expectations =
@@ -171,15 +178,20 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// <summary>Stage 4: the HTTP scenario against the managed host.</summary>
     Target ApiSdkManagedScenario => d => d
         .Unlisted()
-        .DependsOn(ApiSdkBuildAndTest)
+        .DependsOn(ApiSdkGeneratorsRan)
         .Executes(() =>
         {
-            var host = (RootDirectory / "artifacts" / "bin" / "qyl.sample")
-                .GlobFiles($"**/{Configuration}/**/qyl.sample", $"**/{Configuration}/**/qyl.sample.exe")
-                .FirstOrDefault(static file => !file.ToString().Contains("/publish/", StringComparison.Ordinal));
+            // The artifacts layout writes bin/<project>/<configuration>/, lowercased, with no
+            // framework segment; the configuration is matched case-insensitively for that reason.
+            var outputRoot = RootDirectory / "artifacts" / "bin" / "qyl.sample";
+            var host = outputRoot
+                .GlobFiles("**/qyl.sample", "**/qyl.sample.exe")
+                .FirstOrDefault(file =>
+                    !file.ToString().Contains("/publish/", StringComparison.Ordinal) &&
+                    file.Parent.Name.Equals(Configuration.ToString(), StringComparison.OrdinalIgnoreCase));
 
             if (host is null)
-                throw new FileNotFoundException("The managed sample host was not found under artifacts/bin/qyl.sample");
+                throw new FileNotFoundException($"The managed sample host was not found under {outputRoot}");
 
             ApiSdkScenario.Run(host, "managed", SampleContract);
         });
@@ -190,6 +202,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// </summary>
     Target ApiSdkNativePublish => d => d
         .Unlisted()
+        .DependsOn(ApiSdkManagedScenario)
         .Executes(() =>
         {
             var runtime = NativeRuntime ?? RuntimeInformation.RuntimeIdentifier;
@@ -242,6 +255,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// </summary>
     Target ApiSdkContainerScenario => d => d
         .Unlisted()
+        .DependsOn(ApiSdkNativeScenario)
         .Executes(() =>
         {
             if (SkipContainer == true)
@@ -285,6 +299,7 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
     /// </summary>
     Target ApiSdkPackagedConsumer => d => d
         .Unlisted()
+        .DependsOn(ApiSdkContainerScenario)
         .Executes(() =>
         {
             var version = SampleVersion();
@@ -327,6 +342,15 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                      <add key="qyl-local" value="{ApiSdkFeedDirectory}" />
                      <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
                    </packageSources>
+                   <packageSourceMapping>
+                     <clear />
+                     <packageSource key="qyl-local">
+                       <package pattern="Qyl.Api.Sdk" />
+                     </packageSource>
+                     <packageSource key="nuget.org">
+                       <package pattern="*" />
+                     </packageSource>
+                   </packageSourceMapping>
                  </configuration>
 
                  """);

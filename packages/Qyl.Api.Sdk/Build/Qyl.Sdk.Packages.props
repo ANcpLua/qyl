@@ -9,9 +9,9 @@
     <_QylSdkPackagesImported>true</_QylSdkPackagesImported>
   </PropertyGroup>
 
-  <!-- Honoured under Central Package Management only; a consumer without CPM gets the package's own dependency range. -->
   <ItemGroup>
-    <!-- Transitive pin so the document model cannot drift underneath Microsoft.AspNetCore.OpenApi -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="$(MicrosoftOpenApiVersion)" />
+    <!-- The central version for the document model; Qyl.Sdk.Api.targets references it directly as
+         well, so a consumer without central package management is pinned to the same one. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="$(QylOpenApiModelVersion)" />
   </ItemGroup>
 </Project>

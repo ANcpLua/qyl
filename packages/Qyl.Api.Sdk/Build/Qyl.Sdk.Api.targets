@@ -16,6 +16,11 @@
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"
                       VersionOverride="$(QylAspNetCoreOpenApiVersion)" />
+    <!-- Direct, not transitive: Microsoft.AspNetCore.OpenApi accepts [2.7.5, 3.0.0) and a
+         consumer left on the low end loads a different Microsoft.OpenApi than Qyl.Api was
+         compiled against (MSB3277 at build, a binding failure at runtime). -->
+    <PackageReference Include="Microsoft.OpenApi"
+                      VersionOverride="$(QylOpenApiModelVersion)" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
                       Condition="'$(QylEmitOpenApiDocument)' == 'true'"
                       VersionOverride="$(QylApiDescriptionServerVersion)"
@@ -25,6 +30,9 @@
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"
                       Version="$(QylAspNetCoreOpenApiVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.OpenApi"
+                      Version="$(QylOpenApiModelVersion)"
                       IsImplicitlyDefined="true" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
                       Condition="'$(QylEmitOpenApiDocument)' == 'true'"
