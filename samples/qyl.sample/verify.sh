@@ -121,9 +121,11 @@ run_scenario() {
     pass "OpenAPI = committed contract" "XML comments, 400 problem, application/xml as TodoXml"
 }
 
+# require_generated <description> <marker> <pattern> [project]: scoped to one project (default: the sample), because the generator
+# tests reference Qyl.Api and the OpenAPI generators run there too, with nothing to record.
 require_generated() {
-    local description="$1" marker="$2" pattern="$3"
-    local file; file="$(find "$scratch_dir/managed/obj" -type f -name "$pattern" -print -quit)"
+    local description="$1" marker="$2" pattern="$3" project="${4:-qyl.sample}"
+    local file; file="$(find "$scratch_dir/managed/obj/$project" -type f -name "$pattern" -print -quit)"
     [[ -n "$file" && -f "$file" ]] || fail "generated $description is missing ($pattern)"
     grep -Fq "$marker" "$file" || fail "generated $description does not contain '$marker': $file"
 }
@@ -148,7 +150,7 @@ require_generated "request delegates"       "MapPost"                        "Ge
 require_generated "OpenAPI comment cache"   "Creates a todo."                "OpenApiXmlCommentSupport.generated.cs"
 require_generated "XML writer"              'WriteXml(writer, "todo", null)' "Qyl_Sample_Todo.GenerateXml.g.cs"
 require_generated "JSON context"            "CreateTodoRequest"              "AppJsonSerializerContext.CreateTodoRequest.g.cs"
-require_generated "problem JSON context"    "HttpValidationProblemDetails"   "QylProblemJsonContext.HttpValidationProblemDetails.g.cs"
+require_generated "problem JSON context"    "HttpValidationProblemDetails"   "QylProblemJsonContext.HttpValidationProblemDetails.g.cs" Qyl.Api
 require_generated "public Program"          "public partial class Program"   "PublicTopLevelProgram.Generated.g.cs"
 echo "  All generators produced their output."
 
@@ -241,6 +243,7 @@ rm -rf "${NUGET_PACKAGES:-$HOME/.nuget/packages}/qyl.api.sdk/$sdk_version"
 dotnet build "$consumer/qyl.sample.csproj" --configuration Release --disable-build-servers -p:UseSharedCompilation=false
 [[ -f "$consumer/obj/generated/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.XmlWriterGenerator/Qyl_Sample_Todo.GenerateXml.g.cs" ]] || fail "packaged generator did not run in the consumer"
 find "$consumer/bin" -name 'Qyl.Xml.dll' -print -quit | grep -q . || fail "the packaged Qyl.Xml assembly was not referenced by the consumer"
+find "$consumer/bin" -name 'Qyl.Api.dll' -print -quit | grep -q . || fail "the packaged Qyl.Api assembly was not referenced by the consumer"
 jq -S 'del(.servers)' "$consumer/openapi/qyl.sample.json" >"$scratch_dir/consumer-openapi.json"
 diff -q "$scratch_dir/contract.json" "$scratch_dir/consumer-openapi.json" >/dev/null || {
     diff "$scratch_dir/contract.json" "$scratch_dir/consumer-openapi.json" >&2 || true

@@ -19,6 +19,8 @@
     <file src="Sources/**/*.cs" target="Sources/" />
     <file src="Qyl.Xml/bin/$configuration$/net10.0/Qyl.Xml.dll" target="lib/net10.0/" />
     <file src="Qyl.Xml/bin/$configuration$/net10.0/Qyl.Xml.xml" target="lib/net10.0/" />
+    <file src="Qyl.Api/bin/$configuration$/net10.0/Qyl.Api.dll" target="lib/net10.0/" />
+    <file src="Qyl.Api/bin/$configuration$/net10.0/Qyl.Api.xml" target="lib/net10.0/" />
     <file src="Qyl.Sdk.Xml.Generator/bin/$configuration$/netstandard2.0/Qyl.Sdk.Xml.Generator.dll" target="analyzers/dotnet/cs/" />
     <file src="DECISIONS.md" target="" />
   </files>

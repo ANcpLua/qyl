@@ -48,8 +48,9 @@ qyl.sdk/
   Build/Qyl.Sdk.Api.props             the opinions (AOT, RDG, reflection-free JSON, XML docs, contract directory, OpenAPI version)
   Build/Qyl.Sdk.Api.targets           implicit package references, generator reference, build-info generation, generated-file emission
   Build/Qyl.Sdk.Packages.props        the versions the SDK owns
-  Sources/                            AddQylApi, IQylApiBuilder, QylResults, the XML schema transformer; compiled into the consumer
+  Sources/                            AddQylApi alone; compiled into the consumer because the generators intercept its calls
   Qyl.Xml/                            the XML contract as an assembly: [GenerateXml], IXmlWritable, XmlShape, XmlHttpResult
+  Qyl.Api/                            the runtime as an assembly: IQylApiBuilder, QylResults, problem-details JSON, XML schema transformer
   Qyl.Sdk.Xml.Generator/              Roslyn incremental generator behind [GenerateXml]: parser → cacheable tree spec → emitter
   Qyl.Sdk.Xml.Generator.Tests/        XmlSerializer parity, pinned snapshots, diagnostics, incremental caching (dotnet test)
   DECISIONS.md                        dated decisions with reasons
@@ -137,8 +138,8 @@ single-call API) is recorded with date and reason in [`qyl.sdk/DECISIONS.md`](qy
 ## `Qyl.Api.Sdk`, the package
 
 `qyl.sdk/Qyl.Api.Sdk.csproj` packs the same files as an MSBuild SDK (the `ANcpLua.NET.Sdk.Web` layout): `Sdk/*` as entry points,
-`Build/*` as-is, `Sources/**` as content the props keep linking into the consumer, `Qyl.Xml.dll` under `lib/net10.0` as a
-reference, the generator under `analyzers/dotnet/cs`.
+`Build/*` as-is, `Sources/**` (the one `AddQylApi` file) as content the props keep linking into the consumer, `Qyl.Xml.dll` and
+`Qyl.Api.dll` under `lib/net10.0` as references, the generator under `analyzers/dotnet/cs`.
 
 ```sh
 dotnet pack qyl.sdk/Qyl.Api.Sdk.csproj -o ./feed

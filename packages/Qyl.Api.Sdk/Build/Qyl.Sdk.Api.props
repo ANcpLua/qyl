@@ -7,6 +7,7 @@
     <QylSdkSourcesPath>$(QylSdkRoot)Sources/</QylSdkSourcesPath>
     <QylSdkXmlGeneratorProject>$(QylSdkRoot)Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj</QylSdkXmlGeneratorProject>
     <QylSdkXmlProject>$(QylSdkRoot)Qyl.Xml/Qyl.Xml.csproj</QylSdkXmlProject>
+    <QylSdkApiProject>$(QylSdkRoot)Qyl.Api/Qyl.Api.csproj</QylSdkApiProject>
 
     <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
 
@@ -41,12 +42,12 @@
 
   <ItemGroup>
     <!--
-      AddQylApi and what it registers ship as source, compiled into the consumer. This is deliberate, not a shortcut:
+      One file ships as source, compiled into the consumer: AddQylApi. This is deliberate, not a shortcut:
       the .NET 10 validation and OpenAPI XML-comment generators intercept `AddValidation()` / `AddOpenApi()`
       only inside the compilation that calls them, and only see that compilation's types and comments.
       A compiled assembly calling them would validate nothing and document nothing.
-      The XML contract ([GenerateXml], IXmlWritable, XmlShape, XmlHttpResult) is the compiled Qyl.Xml assembly instead,
-      referenced from Qyl.Sdk.Api.targets, so a model library and its API share one interface.
+      Everything else is compiled: the contract Qyl.Xml ([GenerateXml], IXmlWritable, XmlShape, XmlHttpResult) and the
+      runtime Qyl.Api (builder, results, problem-details context, XML schema transformer), referenced from Qyl.Sdk.Api.targets.
     -->
     <Compile Include="$(QylSdkSourcesPath)**/*.cs" Link="qyl.sdk/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
