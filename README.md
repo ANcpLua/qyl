@@ -82,8 +82,7 @@ surface and every first-party client of it, so no client holds a shadow contract
 
 Every rule is owned by a compiler, an analyzer, a generator, or a gate. The gates live in
 `eng/build` and run from the `Verify` and `Ci` targets; the package edge list they enforce
-is the table in `eng/build/BuildDependencyEdges.cs`. `docs/component-taxonomy.html` is a
-diagram view of the same graph.
+is the table in `eng/build/BuildDependencyEdges.cs`.
 
 One graph, one truth, many artifacts.
 

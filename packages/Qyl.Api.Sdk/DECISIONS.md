@@ -1,4 +1,4 @@
-# qyl.sdk decisions
+# Qyl.Api.Sdk decisions
 
 One entry per decision, dated, with the reason. A decision is reversed by a new entry, not by editing an old one.
 
@@ -17,7 +17,7 @@ Without an `IProblemDetailsService`, the .NET 10 validation filter (`ValidationE
 `HttpValidationProblemDetails` object, which the pipeline writes as `application/json`; the endpoint metadata from
 `ProducesValidationProblem()` says `application/problem+json`. With the service registered the wire matches the contract.
 The SDK additionally appends `QylProblemJsonContext` to the JSON resolver chain so the fallback path (a client whose `Accept`
-excludes JSON) serializes without reflection under Native AOT. Both paths are exercised by `verify.sh`.
+excludes JSON) serializes without reflection under Native AOT. Both paths are exercised by the `ApiSdk` gate.
 
 ## 2026-09-04 · OpenAPI 3.1, pinned once, in code
 
@@ -60,23 +60,18 @@ Decision: the MSBuild property `QylOpenApiVersion` (default `OpenApi3_1`) is pas
 written into the compilation as `Qyl.QylSdkBuild.OpenApiVersion` before `CoreCompile`; `AddQylApi` applies that constant. A
 consumer overrides the version with `<QylOpenApiVersion>OpenApi3_0</QylOpenApiVersion>` and both documents move together.
 `Configure<OpenApiOptions>("v1", ...)` remains the mechanism for everything else (transformers, `ShouldInclude`, ...);
-`verify.sh` fails if the served document ever differs from the committed one.
+`ApiSdkContractIsCommitted` fails if the served document ever differs from the committed one.
 
 ## 2026-09-04 · Packed as an MSBuild SDK; the sample keeps explicit imports
 
-`Qyl.Sdk.csproj` + `Qyl.Sdk.nuspec` pack `Sdk/`, `Build/`, `Sources/**` and the generator (`analyzers/dotnet/cs`) as the
+`Qyl.Api.Sdk.csproj` packs `Sdk/`, `Build/`, `Sources/**` and the generator (`analyzers/dotnet/cs`) as the
 `Qyl.Sdk` MSBuild SDK (`packageType` `MSBuildSdk`). The targets detect the packed form by the presence of that analyzer and switch
 from the `ProjectReference` to an `<Analyzer>`; implicit package references carry `Version` without CPM and `VersionOverride`
-with it. Verified by `verify.sh` stage 8: a consumer reading `<Project Sdk="Qyl.Sdk/0.1.0-alpha">` from a scratch feed, with the
-sample's sources and an unchanged `Program.cs`, produces the byte-identical contract.
+with it. Verified by `ApiSdkPackagedConsumer`: a consumer reading `<Project Sdk="Qyl.Api.Sdk/4.0.0">` from a scratch feed, with
+the sample's sources and an unchanged `Program.cs`, produces the byte-identical contract.
 
 The sample in this repository stays on the explicit `Sdk.props` / `Sdk.targets` imports: a fresh clone must build in Rider or
-with `dotnet build` without a pack step and without a local feed. Whether the sample later moves into qyl or only the SDK is
-published is decided after this alpha.
-
-Open: the id `Qyl.Sdk` on nuget.org is qyl's telemetry onboarding package (`builder.AddQyl()`, owner ANcpLua, 5.1.0 … 8.5.0,
-latest 2026-07-26). This API SDK is a different thing under the same id. `0.1.0-alpha` is local-only and must not be pushed;
-publishing needs a decision: a new id for the API SDK, or folding it into the existing package.
+with `dotnet build` without a pack step and without a local feed.
 
 ## 2026-09-07 · The XML generator writes an element tree; parity with `XmlSerializer` or a compile error
 
@@ -108,13 +103,14 @@ applies to `AddQylApi`; moving `Qyl.Xml` into a compiled assembly is a packaging
 Supersedes "as source, not as a DLL" for the XML contract only. That entry's reason, the interceptors behind `AddValidation()` and
 `AddOpenApi()`, applies to `AddQylApi` and what it registers; those stay in `Sources/` and compile into the consumer. `[GenerateXml]`,
 `IXmlWritable`, `XmlShape`, and `XmlHttpResult` do not intercept anything, and as linked source every consumer assembly carried its
-own copy of the interface, so a model library and the API serving it could never share one. `qyl.sdk/Qyl.Xml/` is now a net10.0
+own copy of the interface, so a model library and the API serving it could never share one. `Qyl.Xml/` is now a net10.0
 assembly depending on the shared framework only; the targets reference it as a project in the repository and as
 `lib/net10.0/Qyl.Xml.dll` from the package, next to the generator under `analyzers/dotnet/cs`.
 
-Decision, package id: `Qyl.Api.Sdk`. `Qyl.Sdk` on nuget.org stays qyl's telemetry onboarding package. The pack project and nuspec
-carry the new name; the MSBuild file names under `Build/` and the generator's name are internal and unchanged. `verify.sh` stage 8
-builds the consumer from `<Project Sdk="Qyl.Api.Sdk/0.1.0-alpha">` and checks that `Qyl.Xml.dll` reached its output.
+Decision, package id: `Qyl.Api.Sdk`. `Qyl.Sdk` on nuget.org stays qyl's telemetry onboarding package. The pack project carries
+the new name; the MSBuild file names under `Build/` and the generator's name are internal and unchanged.
+`ApiSdkPackagedConsumer` builds the consumer from `<Project Sdk="Qyl.Api.Sdk/4.0.0">` and checks that `Qyl.Xml.dll` reached its
+output.
 
 ## 2026-09-07 · An `application/xml` response is described in the contract from the generated shape
 
@@ -134,33 +130,33 @@ Supersedes "as source, not as a DLL" (2026-09-04) for everything except one file
 holds, but it was applied too broadly: the interceptors need the literal `AddValidation()` and `AddOpenApi(lambda)` calls in the
 consumer's compilation, and those calls sit in `QylApiServiceCollectionExtensions.cs`. Nothing else in `Sources/` depended on
 being compiled by the consumer. `IQylApiBuilder`, `QylResults`, `QylProblemJsonContext`, and the XML schema transformer are now
-`qyl.sdk/Qyl.Api/`, a net10.0 assembly that references `Qyl.Xml` and the pinned `Microsoft.AspNetCore.OpenApi`. `Sources/`
+`Qyl.Api/`, a net10.0 assembly that references `Qyl.Xml` and the pinned `Microsoft.AspNetCore.OpenApi`. `Sources/`
 contains exactly the file that must be linked, and the props say why.
 
 Consequences: the builder class and the problem-details context are public, because the linked `AddQylApi` creates and registers
 them from another assembly. The package ships `lib/net10.0/Qyl.Api.dll` next to `Qyl.Xml.dll`; the targets reference both, as
-projects in the repository and as assemblies from the package. `verify.sh` stage 8 checks that both reached the consumer's output.
+projects in the repository and as assemblies from the package. `ApiSdkPackagedConsumer` checks that both reached the consumer's
+output.
 
 ## 2026-09-07 · The SDK ships from the qyl repository, on the qyl version line
 
-`qyl.sdk` was its own repository with its own build system, its own gate suite (`verify.sh`) and its own
-version (`0.1.0-alpha`, local-only, never pushed). One artifact set does not need two of any of those, so
-the history moved into `github.com/ANcpLua/qyl`: this directory is `packages/Qyl.Api.Sdk/`, the sample that
+This SDK was its own repository, with its own build system, its own shell gate suite and a local-only
+alpha version that was never pushed. One artifact set does not need two of any of those, so the
+history moved into `github.com/ANcpLua/qyl`: this directory is `packages/Qyl.Api.Sdk/`, the sample that
 proves it is `samples/qyl.sample/`, and both build with that repository's `Directory.Build.props`,
-`Directory.Packages.props` and analyzer settings. Every entry above still holds; only where the files live
-has changed, so the paths those entries name read `qyl.sdk/` where the tree now reads `packages/Qyl.Api.Sdk/`.
+`Directory.Packages.props` and analyzer settings. Every entry above still holds; the paths and gate names
+they cite are the ones this tree has.
 
 The version is the repository's: `QylVersion` in `Version.props` makes this `Qyl.Api.Sdk 4.0.0`, published by
-the same trusted-publishing workflow as the `qyl` tool. The nuspec is gone — the project packs itself, and
-resolves the two libraries and the analyzer from the referenced projects' build output rather than from
-`bin/<configuration>/<tfm>` paths, which that repository's artifacts layout does not have. The packed
+the same trusted-publishing workflow as the `qyl` tool. The project packs itself instead of listing files in
+a nuspec, and resolves the two libraries and the analyzer from the referenced projects' build output rather
+than from `bin/<configuration>/<tfm>` paths, which that repository's artifacts layout does not have. The packed
 `Build/Qyl.Sdk.Packages.props` is written at pack time with its versions resolved, because the committed one
 reads them from a `Version.props` a consumer does not have.
 
-The eight stages of `verify.sh` are Nuke targets in `eng/build/BuildApiSdk.cs`, reachable from the `Ci`
-target and run by a CI job, in the same order and asserting the same things — with the HTTP scenario written
+The eight-stage proof is `eng/build/BuildApiSdk.cs`, reachable from the `Ci` target and run by a CI job, in
+the same order and asserting the same things as the shell script it replaces — with the HTTP scenario written
 against the .NET stacks rather than curl, jq and xmllint, so a missing shell tool fails nothing silently.
-Wherever an entry above cites `verify.sh` stage *n*, read the target of that stage.
 
 `Microsoft.OpenApi` is now referenced directly rather than pinned transitively: a consumer without central
 package management resolved 2.7.5, the low end of the range `Microsoft.AspNetCore.OpenApi` accepts, against a
