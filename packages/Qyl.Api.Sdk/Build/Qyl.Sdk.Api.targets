@@ -26,6 +26,12 @@
                       VersionOverride="$(QylApiDescriptionServerVersion)"
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <!-- Telemetry is as mandatory as validation: AddQylApi ends in AddQyl(). The family keeps its own
+         release line, so it stays a pinned package reference rather than being folded into Qyl.Api.dll;
+         its interceptor generator reaches the consumer as an analyzer through the package's own
+         buildTransitive assets, the same way the [GenerateXml] generator reaches it from this SDK. -->
+    <PackageReference Include="Qyl.Telemetry.Hosting"
+                      VersionOverride="$(QylTelemetryVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"
@@ -39,6 +45,9 @@
                       Version="$(QylApiDescriptionServerVersion)"
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Qyl.Telemetry.Hosting"
+                      Version="$(QylTelemetryVersion)"
                       IsImplicitlyDefined="true" />
   </ItemGroup>
 
@@ -71,6 +80,28 @@
   -->
   <Target Name="QylGenerateSdkBuildInfo" BeforeTargets="CoreCompile">
     <PropertyGroup>
+      <QylOpenApiDocumentFile Condition="'$(QylOpenApiDocumentFile)' == ''">$(QylOpenApiDocumentsDirectory)/$(AssemblyName).json</QylOpenApiDocumentFile>
+    </PropertyGroup>
+
+    <!--
+      The contract revision is the SHA-256 of the committed OpenAPI document, taken before the compilation that
+      the build-time document tool then re-emits. It is MSBuild's to compute, not the process's: a binary must
+      report the contract it was compiled against, not one it reads off disk at start-up and could be lied to about.
+      The value is empty on a project's very first build, which is the one build where no contract is committed yet;
+      that is a fact about the binary, not a case to branch on, so the attribute is still exported.
+    -->
+    <GetFileHash Files="$(QylOpenApiDocumentFile)"
+                 Algorithm="SHA256"
+                 HashEncoding="hex"
+                 Condition="Exists('$(QylOpenApiDocumentFile)')">
+      <Output TaskParameter="Hash" PropertyName="_QylContractRevision" />
+    </GetFileHash>
+
+    <PropertyGroup Condition="'$(_QylContractRevision)' != ''">
+      <_QylContractRevision>$(_QylContractRevision.ToLowerInvariant())</_QylContractRevision>
+    </PropertyGroup>
+
+    <PropertyGroup>
       <_QylSdkBuildInfoFile>$(IntermediateOutputPath)QylSdkBuild.g.cs</_QylSdkBuildInfoFile>
       <_QylSdkBuildInfoSource>// &lt;auto-generated/&gt;
 // Written by Qyl.Sdk.Api.targets from MSBuild properties. Change the property, not this file.
@@ -82,6 +113,9 @@ namespace Qyl
     {
         /// &lt;summary&gt;The OpenAPI specification version (`QylOpenApiVersion`), shared with the build-time document tool.&lt;/summary&gt;
         public const global::Microsoft.OpenApi.OpenApiSpecVersion OpenApiVersion = global::Microsoft.OpenApi.OpenApiSpecVersion.$(QylOpenApiVersion)%3B
+
+        /// &lt;summary&gt;The SHA-256 of the committed OpenAPI document (`QylOpenApiDocumentFile`), lowercase hex.&lt;/summary&gt;
+        public const string ContractRevision = "$(_QylContractRevision)"%3B
     }
 }</_QylSdkBuildInfoSource>
     </PropertyGroup>

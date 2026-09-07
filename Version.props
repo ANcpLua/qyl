@@ -27,7 +27,9 @@
 
   <PropertyGroup Label="qyl-owned packages">
     <!-- The producer family ships from the Qyl.OpenTelemetry.AutoInstrumentation repo on one
-         release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property. -->
+         release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property.
+         Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
+         written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
     <QylTelemetryVersion>14.0.1</QylTelemetryVersion>
     <QylSemanticConventionsVersion>9.1.0</QylSemanticConventionsVersion>
     <QylApiContractsVersion>10.0.0</QylApiContractsVersion>

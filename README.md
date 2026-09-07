@@ -94,12 +94,15 @@ SDK this repository publishes from `packages/Qyl.Api.Sdk`. It is the JetBrains R
 has comes from the SDK, and every part of it is produced at compile time.
 
 ```csharp
-builder.Services.AddQylApi(AppJsonSerializerContext.Default);
+builder.AddQylApi(AppJsonSerializerContext.Default);
 ```
 
 One call registers, in a fixed order: the given JSON contexts and the SDK's problem-details
-context, validation, problem details, and the `v1` OpenAPI document. None of them is optional
-in a Qyl API, so none is a `With*` step.
+context, validation, problem details, the `v1` OpenAPI document, and telemetry — `AddQyl()`,
+with the committed contract's SHA-256 on the resource, followed by the filter that reads
+`session.id` off the request's W3C `baggage` header onto the server span. None of them is
+optional in a Qyl API, so none is a `With*` step and there is no way to opt out of being
+observable.
 
 | Concern | Trigger in the sample | Produced by |
 | --- | --- | --- |
@@ -107,7 +110,18 @@ in a Qyl API, so none is a `With*` step.
 | XML | `[GenerateXml]` and the `System.Xml.Serialization` attributes on `partial record Todo` | `Qyl.Sdk.Xml.Generator`, which emits `WriteXml` as plain `XmlWriter` calls and the same tree as `XmlShape` data |
 | OpenAPI | `///` comments on handlers and contracts | the `Microsoft.AspNetCore.OpenApi` XML-comment generator, intercepting `AddOpenApi` |
 | Committed contract | `dotnet build` | `Microsoft.Extensions.ApiDescription.Server`, writing `samples/qyl.sample/openapi/qyl.sample.json` |
+| Contract revision | `dotnet build` | `Qyl.Sdk.Api.targets`, hashing that document into `QylSdkBuild.ContractRevision` and out as the resource attribute `qyl.api.contract.revision` |
+| Telemetry | nothing — there is no telemetry line in the sample | `Qyl.Telemetry.Hosting`, pinned by the SDK and its interceptor generator loaded as an analyzer |
 | Binding and JSON | method-group handlers, `AppJsonSerializerContext` | the Request Delegate Generator and the `System.Text.Json` generator |
+
+An agent gets its own trace back by naming it on the way in:
+
+```bash
+curl -H 'baggage: session.id=my-agent-run' http://localhost:5062/todos/
+```
+
+Everything that request touched is then one session in the collector — `list_sessions` and
+`get_trace` over MCP, `GET /api/v1/sessions/my-agent-run/traces` over HTTP.
 
 The sample reaches the SDK by importing `packages/Qyl.Api.Sdk/Sdk/Sdk.props` and `Sdk.targets`,
 so a fresh clone builds without a pack step. A consumer outside this repository needs neither

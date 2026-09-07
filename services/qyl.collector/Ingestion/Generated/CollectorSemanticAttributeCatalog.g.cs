@@ -46,6 +46,7 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> QylResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "qyl.api.contract.revision",
         "qyl.capability.id", // incubating
         "qyl.capability.kind" // incubating
     );

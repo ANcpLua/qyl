@@ -103,6 +103,7 @@
     ]
   },
   "qylResourceAttributeAllowList": [
+    "qyl.api.contract.revision",
     "qyl.capability.id",
     "qyl.capability.kind"
   ],
