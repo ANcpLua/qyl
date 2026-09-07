@@ -1,7 +1,7 @@
 @qyl.sample_HostAddress = http://localhost:5062
 
 ### All todos (template)
-GET {{qyl.sample_HostAddress}}/todos/
+GET {{qyl.sample_HostAddress}}/todos
 Accept: application/json
 
 ### One todo as JSON (template)
@@ -13,7 +13,7 @@ GET {{qyl.sample_HostAddress}}/todos/1/xml
 Accept: application/xml
 
 ### Invalid request: the generated validation resolver answers 400 application/problem+json
-POST {{qyl.sample_HostAddress}}/todos/
+POST {{qyl.sample_HostAddress}}/todos
 Content-Type: application/json
 
 {
@@ -22,7 +22,7 @@ Content-Type: application/json
 
 ### Valid request: 201 with Location: /todos/{id}
 # @name create
-POST {{qyl.sample_HostAddress}}/todos/
+POST {{qyl.sample_HostAddress}}/todos
 Content-Type: application/json
 
 {

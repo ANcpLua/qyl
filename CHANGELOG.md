@@ -53,6 +53,10 @@ which is what makes this line 5.0.0 rather than 4.1.0.
   `url.*`, `http.route`, `http.response.status_code`, `error.type`,
   `qyl.instrumentation.domain` and the name `{method} {route}`. A request is one span
   again instead of two, and the session stage asserts exactly that.
+- The sample's todo endpoints are mapped at their full paths instead of through
+  `MapGroup("/todos")`: a group's collection endpoint has the route template `/todos/`,
+  while the contract spells it `/todos`, and the span and the document have to name an
+  endpoint the same way. The committed document is unchanged.
 - An agent is a Qyl API's first consumer. `Qyl.Api` stamps the W3C `baggage`
   request header's `session.id` member onto the server span, and the session
   processor carries it to every span the request causes; the agent then reads its

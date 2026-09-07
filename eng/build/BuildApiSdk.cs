@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -374,15 +375,20 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                                "packages");
             AbsolutePath cached = Path.Combine(packages, "qyl.api.sdk", version);
 
+            var completed = false;
             try
             {
                 if (cached.DirectoryExists())
                     cached.DeleteDirectory();
 
+                // -warnaserror: this is the only build in the repository that compiles the SDK's linked and
+                // generated sources without any of this repository's settings, so it is where a warning the SDK
+                // emits into someone else's compilation shows up. A consumer with TreatWarningsAsErrors has to
+                // be able to build against the package.
                 DotNetTasks.DotNetBuild(s => s
                     .SetProjectFile(consumer / "qyl.sample.csproj")
                     .SetConfiguration(Configuration)
-                    .SetProcessAdditionalArguments("--disable-build-servers"));
+                    .SetProcessAdditionalArguments("--disable-build-servers", "-warnaserror"));
 
                 var generated = consumer.GlobFiles("**/Qyl_Sample_Todo.GenerateXml.g.cs").FirstOrDefault();
                 if (generated is null)
@@ -398,18 +404,26 @@ interface IApiSdk : IHazSourcePaths, IHazConfiguration
                     SampleContract.ReadAllText(),
                     (consumer / "openapi" / "qyl.sample.json").ReadAllText(),
                     "the consumer built from the Qyl.Api.Sdk package");
+                completed = true;
             }
             finally
             {
                 if (cached.DirectoryExists())
                     cached.DeleteDirectory();
-            }
 
-            if (cached.DirectoryExists())
-            {
-                throw new InvalidOperationException(
-                    $"The gate's Qyl.Api.Sdk {version} is still in the global packages folder ({cached}). " +
-                    "It shadows the published package for every restore on this machine; remove it.");
+                if (cached.DirectoryExists())
+                {
+                    var leftover =
+                        $"The gate's Qyl.Api.Sdk {version} is still in the global packages folder ({cached}). " +
+                        "It shadows the published package for every restore on this machine; remove it.";
+
+                    // Checked on both paths and thrown on only one: raising this over a failure already on its
+                    // way out would replace the reason the stage failed with a consequence of it.
+                    if (completed)
+                        throw new InvalidOperationException(leftover);
+
+                    Log.Error("{Leftover}", leftover);
+                }
             }
 
             Log.Information(
@@ -624,7 +638,7 @@ internal static class ApiSdkScenario
             assertAlive();
             try
             {
-                using var response = client.GetAsync("/todos/").GetAwaiter().GetResult();
+                using var response = client.GetAsync("/todos").GetAwaiter().GetResult();
                 return;
             }
             catch (HttpRequestException)
@@ -638,7 +652,7 @@ internal static class ApiSdkScenario
 
     private static void AssertValidationProblem(HttpClient client, string label)
     {
-        using var response = Post(client, "/todos/", """{"title":"no"}""");
+        using var response = Post(client, "/todos", """{"title":"no"}""");
         Expect(label, response.StatusCode is HttpStatusCode.BadRequest, "an invalid POST returns 400");
         Expect(label, response.Content.Headers.ContentType?.MediaType is "application/problem+json",
             "the validation problem is application/problem+json");
@@ -651,7 +665,7 @@ internal static class ApiSdkScenario
 
     private static string AssertCreate(HttpClient client, string label)
     {
-        using var response = Post(client, "/todos/", """{"title":"Read obj/generated","dueBy":"2026-09-05"}""");
+        using var response = Post(client, "/todos", """{"title":"Read obj/generated","dueBy":"2026-09-05"}""");
         Expect(label, response.StatusCode is HttpStatusCode.Created, "a valid POST returns 201");
 
         var id = ReadJson(response)?["id"]?.GetValue<int>().ToString(CultureInfo.InvariantCulture);
@@ -803,6 +817,7 @@ internal static class ApiSdkSession
 
     private static readonly TimeSpan s_startupTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan s_sessionTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan s_settleDelay = TimeSpan.FromMilliseconds(400);
 
     public static void Run(AbsolutePath collector, AbsolutePath sample, AbsolutePath dataDirectory, AbsolutePath contract)
     {
@@ -858,12 +873,13 @@ internal static class ApiSdkSession
             try
             {
                 using var sampleClient = new HttpClient { BaseAddress = sampleAddress, Timeout = TimeSpan.FromSeconds(30) };
-                WaitUntil(sampleClient, "/todos/", "native sample", sampleProcess, sampleLog);
+                WaitUntil(sampleClient, "/todos", "native sample", sampleProcess, sampleLog);
 
                 Drive(sampleClient, sessionId);
 
+                AwaitControl(collectorClient, collectorLog);
                 var spans = AwaitSession(collectorClient, sessionId, collectorLog);
-                Assert(spans, revision, sessionId);
+                Assert(spans, revision, sessionId, contract);
             }
             finally
             {
@@ -881,19 +897,23 @@ internal static class ApiSdkSession
         }
     }
 
+    /// <summary>The untagged control: same API, same collector, no <c>baggage</c> header.</summary>
+    private static readonly (string Method, string Route, string Status) s_control = ("GET", "/todos", "200");
+
     /// <summary>
-    /// Three requests, one header. The sample has no telemetry line of its own; the header is the entire
-    /// agent-side contract.
+    /// Three requests under one header, and a fourth with none. The sample has no telemetry line of its own;
+    /// the header is the entire agent-side contract, and the control is how the gate knows the header is what
+    /// put the other three in the session.
     /// </summary>
     private static void Drive(HttpClient client, string sessionId)
     {
-        using (var invalid = Post(client, "/todos/", """{"title":"no"}""", sessionId))
+        using (var invalid = Post(client, "/todos", """{"title":"no"}""", sessionId))
         {
             Expect(invalid.StatusCode is HttpStatusCode.BadRequest, "the session's invalid POST returns 400");
         }
 
         string id;
-        using (var created = Post(client, "/todos/", """{"title":"Observe the session","dueBy":"2026-09-05"}""", sessionId))
+        using (var created = Post(client, "/todos", """{"title":"Observe the session","dueBy":"2026-09-05"}""", sessionId))
         {
             Expect(created.StatusCode is HttpStatusCode.Created, "the session's valid POST returns 201");
             id = JsonNode.Parse(created.Content.ReadAsStringAsync().GetAwaiter().GetResult())?["id"]
@@ -901,58 +921,116 @@ internal static class ApiSdkSession
                  ?? throw new InvalidOperationException("the created todo carries no id");
         }
 
-        using var xml = Get(client, $"/todos/{id}/xml", sessionId);
-        Expect(xml.StatusCode is HttpStatusCode.OK, "the session's XML read returns 200");
-        Expect(xml.Content.Headers.ContentType?.MediaType is "application/xml",
-            "the session's XML read answers application/xml");
+        using (var xml = Get(client, $"/todos/{id}/xml", sessionId))
+        {
+            Expect(xml.StatusCode is HttpStatusCode.OK, "the session's XML read returns 200");
+            Expect(xml.Content.Headers.ContentType?.MediaType is "application/xml",
+                "the session's XML read answers application/xml");
+        }
+
+        // No header. It reaches the same collector over the same connection and must not reach the session.
+        using var request = new HttpRequestMessage(HttpMethod.Get, s_control.Route);
+        using var control = client.Send(request);
+        Expect(control.StatusCode is HttpStatusCode.OK, "the untagged control request returns 200");
     }
 
     /// <summary>
     /// The collector's own read API is the oracle: <c>GET /api/v1/sessions/{id}/traces</c>, exactly what the
     /// MCP <c>list_sessions</c> / <c>get_trace</c> tools serve an agent.
     /// </summary>
+    /// <remarks>
+    /// A count is only believed once it stops moving. Spans leave the process in export batches, so the first
+    /// poll that reaches three could be three of four — and "exactly three" would then pass on a duplicate that
+    /// simply had not arrived yet. Two further polls must agree before the answer is used.
+    /// </remarks>
     private static List<JsonNode> AwaitSession(HttpClient collector, string sessionId, StringBuilder collectorLog)
+    {
+        const int settledPollsRequired = 2;
+        var deadline = DateTime.UtcNow + s_sessionTimeout;
+        var lastBody = string.Empty;
+        List<JsonNode>? candidate = null;
+        var settled = 0;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            var spans = ReadSessionSpans(collector, sessionId, out lastBody);
+            if (spans is { Count: >= 3 })
+            {
+                settled = candidate is not null && candidate.Count == spans.Count ? settled + 1 : 0;
+                candidate = spans;
+                if (settled >= settledPollsRequired)
+                    return spans;
+            }
+            else
+            {
+                settled = 0;
+                candidate = null;
+            }
+
+            Thread.Sleep(s_settleDelay);
+        }
+
+        Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
+        throw new InvalidOperationException(
+            $"The collector did not settle on an answer for session '{sessionId}' within {s_sessionTimeout}. " +
+            $"Last body: {lastBody}");
+    }
+
+    private static List<JsonNode>? ReadSessionSpans(HttpClient collector, string sessionId, out string body)
+    {
+        using var response = collector
+            .GetAsync($"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/traces")
+            .GetAwaiter()
+            .GetResult();
+        body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+        return response.StatusCode is HttpStatusCode.OK ? Spans(body) : null;
+    }
+
+    /// <summary>
+    /// The untagged control, read back from the collector's unfiltered trace list. It proves the exclusion
+    /// asserted below is an exclusion: the request was recorded, and it is still not in the session.
+    /// </summary>
+    private static void AwaitControl(HttpClient collector, StringBuilder collectorLog)
     {
         var deadline = DateTime.UtcNow + s_sessionTimeout;
         var lastBody = string.Empty;
         while (DateTime.UtcNow < deadline)
         {
-            using var response = collector
-                .GetAsync($"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/traces")
-                .GetAwaiter()
-                .GetResult();
+            using var response = collector.GetAsync("/api/v1/traces").GetAwaiter().GetResult();
             lastBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            if (response.StatusCode is HttpStatusCode.OK && (Spans(lastBody) ?? []).Any(IsControl))
+                return;
 
-            if (response.StatusCode is HttpStatusCode.OK)
-            {
-                var spans = JsonNode.Parse(lastBody)?["items"]?.AsArray()
-                    .SelectMany(static trace => trace?["spans"]?.AsArray() ?? [])
-                    .Where(static span => span is not null)
-                    .Select(static span => span!)
-                    .ToList() ?? [];
-
-                if (spans.Count >= 3)
-                    return spans;
-            }
-
-            Thread.Sleep(250);
+            Thread.Sleep(s_settleDelay);
         }
 
+        Log.Error("last /api/v1/traces answer:{NewLine}{Body}", Environment.NewLine, lastBody);
         Log.Error("collector output:{NewLine}{Output}", Environment.NewLine, collectorLog.ToString());
         throw new InvalidOperationException(
-            $"The collector did not answer for session '{sessionId}' within {s_sessionTimeout}. " +
-            $"Last body: {lastBody}");
+            $"The untagged control request ({s_control.Method} {s_control.Route}) never reached the collector, " +
+            "so its absence from the session would prove nothing.");
     }
 
-    private static void Assert(List<JsonNode> spans, string revision, string sessionId)
+    private static bool IsControl(JsonNode span) =>
+        Attribute(span, MethodAttribute) == s_control.Method &&
+        Attribute(span, RouteAttribute) == s_control.Route &&
+        Attribute(span, StatusAttribute) == s_control.Status;
+
+    private static List<JsonNode>? Spans(string body) =>
+        JsonNode.Parse(body)?["items"]?.AsArray()
+            .SelectMany(static trace => trace?["spans"]?.AsArray() ?? [])
+            .Where(static span => span is not null)
+            .Select(static span => span!)
+            .ToList();
+
+    private static void Assert(List<JsonNode> spans, string revision, string sessionId, AbsolutePath contract)
     {
+        var paths = ContractPaths(contract);
+
         // One SERVER span per request and nothing else. Since Qyl.Telemetry.Hosting 14.1.0 the ASP.NET Core
         // hosting activity is that span, enriched in place, rather than the parent of a second qyl span; a
         // fourth span here means a request is being reported twice again.
-        //
-        // Being in this list is the session.id assertion. The collector keys a span into a session by that tag
-        // and refuses to store it as an attribute, so a span that came back from
-        // /api/v1/sessions/<id>/traces carries the id the agent sent, and nothing else could have put it here.
         var observed = spans
             .Select(static span => (
                 Route: Attribute(span, RouteAttribute),
@@ -979,17 +1057,27 @@ internal static class ApiSdkSession
         Expect(observed.Count is 3,
             $"the session holds exactly one span per request that carried the header, not {observed.Count.ToString(CultureInfo.InvariantCulture)}");
 
+        // The session query returns whole traces once any span of one matched, so membership alone would not
+        // say the header did anything. The untagged control went to the same API on the same connection and
+        // reached the collector (AwaitControl); its absence here is what the header is responsible for.
+        Expect(!spans.Any(IsControl),
+            $"the untagged control ({s_control.Method} {s_control.Route}) stayed out of the session");
+
         foreach (var row in observed)
         {
             Expect(row.Kind is ServerSpanKind, $"'{row.Name}' is a SERVER span (kind {row.Kind})");
-            Expect(row.Route?.StartsWith("/todos", StringComparison.Ordinal) is true,
-                $"every span in the session carries an http.route under /todos (saw '{row.Route}')");
             Expect(row.Domain is AspNetCoreServerDomain,
                 $"'{row.Name}' was enriched by qyl ({DomainAttribute}={AspNetCoreServerDomain}, saw '{row.Domain}')");
             Expect(string.Equals(row.Name, $"{row.Method} {row.Route}", StringComparison.Ordinal),
                 $"the span is named '{{method}} {{route}}' (saw '{row.Name}')");
             Expect(string.Equals(row.Revision, revision, StringComparison.Ordinal),
                 $"every span carries {ContractRevisionAttribute}={revision} (saw '{row.Revision}')");
+
+            // The span and the document must name the same endpoint. A route template carries its constraints
+            // and the OpenAPI path does not, so the span's route is compared the way the document spells it.
+            var documented = WithoutRouteConstraints(row.Route);
+            Expect(documented is not null && paths.Contains(documented),
+                $"http.route '{row.Route}' is a path of the committed contract (as '{documented}'; it has {string.Join(", ", paths)})");
         }
 
         var calls = observed
@@ -1004,9 +1092,23 @@ internal static class ApiSdkSession
         Expect(xml[0].Status is "200", $"the XML span reports 200 (saw '{xml[0].Status}')");
 
         Log.Information(
-            "Qyl.Api.Sdk: session '{Session}' answers with exactly its three SERVER spans and contract revision {Revision}",
+            "Qyl.Api.Sdk: session '{Session}' answers with exactly its three SERVER spans, every route a path of the committed contract, and contract revision {Revision}",
             sessionId, revision);
     }
+
+    private static HashSet<string> ContractPaths(AbsolutePath contract)
+    {
+        var document = JsonNode.Parse(contract.ReadAllText())
+                       ?? throw new InvalidOperationException("The committed OpenAPI document is not JSON");
+        return [.. document["paths"]!.AsObject().Select(static path => path.Key)];
+    }
+
+    /// <summary>
+    /// A route template with its parameter constraints removed — <c>/todos/{id:int}/xml</c> becomes
+    /// <c>/todos/{id}/xml</c> — which is how ASP.NET Core's OpenAPI generator writes the path key.
+    /// </summary>
+    private static string? WithoutRouteConstraints(string? route) =>
+        route is null ? null : Regex.Replace(route, @"\{([^:?*}]+)[^}]*\}", "{$1}", RegexOptions.None, TimeSpan.FromSeconds(1));
 
     private static string? Attribute(JsonNode span, string key) => ReadAttribute(span["attributes"], key);
 

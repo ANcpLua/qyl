@@ -11,18 +11,23 @@ internal static class TodoEndpoints
     /// <returns>The supplied route builder for chaining calls.</returns>
     public static IEndpointRouteBuilder MapTodos(this IEndpointRouteBuilder endpoints)
     {
-        var todos = endpoints.MapGroup("/todos").WithTags("Todos");
+        // Mapped at their full paths rather than through MapGroup("/todos"). The route template is what
+        // http.route reports on the server span, and a group's collection endpoint is /todos/ whether the
+        // relative pattern is "/" or "": RoutePattern.RawText keeps the separator, while the OpenAPI document
+        // spells the same endpoint /todos. The span and the contract have to name an endpoint identically —
+        // ApiSdkSessionScenario asserts it — so the template is written the way the contract reads.
+        var todos = endpoints.MapGroup("").WithTags("Todos");
 
-        todos.MapGet("/", GetTodos)
+        todos.MapGet("/todos", GetTodos)
             .WithName("GetTodos");
 
-        todos.MapGet("/{id:int}", GetTodoById)
+        todos.MapGet("/todos/{id:int}", GetTodoById)
             .WithName("GetTodoById");
 
-        todos.MapGet("/{id:int}/xml", GetTodoXml)
+        todos.MapGet("/todos/{id:int}/xml", GetTodoXml)
             .WithName("GetTodoXml");
 
-        todos.MapPost("/", CreateTodo)
+        todos.MapPost("/todos", CreateTodo)
             .WithName("CreateTodo")
             .ProducesValidationProblem();
 
