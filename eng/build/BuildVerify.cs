@@ -714,6 +714,80 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Collector telemetry version has one source of truth: the generated BuildVersion.InformationalVersion constant.");
         });
 
+    // Version.props holds the qyl-owned dependency lines; the README "Artifacts and release lines"
+    // table restates three of them by hand and says of itself that it lists "the source and
+    // dependency lines `main` builds against". Two texts, one claim, and nothing connected them.
+    // The table stays hand-written prose — this only checks it, and names both places when it drifts.
+    Target VerifyReadmeVersionsMatchVersionProps => d => d
+        .Unlisted()
+        .Description("Verify the README release-line table restates Version.props exactly")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var versionsFile = RootDirectory / "Version.props";
+            var readmeFile = RootDirectory / "README.md";
+
+            (string Package, string Property)[] rows =
+            [
+                ("Qyl.Telemetry.Hosting", "QylTelemetryVersion"),
+                ("Qyl.Telemetry.SemanticConventions*", "QylSemanticConventionsVersion"),
+                ("Qyl.Api.Contracts", "QylApiContractsVersion")
+            ];
+
+            var versionDocument = XDocument.Load(versionsFile);
+            var readmeLines = File.ReadAllLines(readmeFile);
+            var mismatches = new List<string>();
+
+            foreach (var (package, property) in rows)
+            {
+                var declared = versionDocument.Descendants(property)
+                    .Select(static element => element.Value.Trim())
+                    .SingleOrDefault();
+
+                if (string.IsNullOrWhiteSpace(declared))
+                {
+                    mismatches.Add($"Version.props declares no single {property}");
+                    continue;
+                }
+
+                var rowIndex = Array.FindIndex(
+                    readmeLines,
+                    line => line.StartsWith($"| `{package}`", StringComparison.Ordinal));
+
+                if (rowIndex < 0)
+                {
+                    mismatches.Add(
+                        $"README.md has no release-line row for `{package}`, which restates " +
+                        $"Version.props {property} ({declared})");
+                    continue;
+                }
+
+                var cells = readmeLines[rowIndex].Split('|');
+                var documented = cells.Length > 2 ? cells[2].Trim() : string.Empty;
+                if (string.Equals(documented, declared, StringComparison.Ordinal))
+                    continue;
+
+                mismatches.Add(
+                    $"README.md:{rowIndex + 1} row `{package}` says {documented}, but " +
+                    $"Version.props {property} says {declared}");
+            }
+
+            if (mismatches.Count is 0)
+            {
+                Log.Information(
+                    "README release-line table restates all {Count} qyl-owned Version.props lines",
+                    rows.Length);
+                return;
+            }
+
+            foreach (var mismatch in mismatches)
+                Log.Error("  {Mismatch}", mismatch);
+
+            throw new InvalidOperationException(
+                "README.md and Version.props state the same three qyl-owned versions: the release-line " +
+                "table in README.md must repeat Version.props exactly. Fix whichever one is wrong.");
+        });
+
     Target VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage => d => d
         .Unlisted()
         .Description("Verify collector and instrumentation runtime code do not directly use ANcpLua.Roslyn.Utilities")
@@ -2673,6 +2747,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorAuthorsNoVocabulary)
         .DependsOn(VerifyCollectorTelemetryUsesBuildVersion)
+        .DependsOn(VerifyReadmeVersionsMatchVersionProps)
         .DependsOn(VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
@@ -2730,6 +2805,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector authors no qyl-owned key and no messaging.system value");
             Log.Information("  Collector telemetry source versions use generated build version");
+            Log.Information("  README release lines restate Version.props");
             Log.Information("  Collector and instrumentation runtime code avoid direct ANcpLua.Roslyn.Utilities usage");
             Log.Information("  Collector semantic attribute catalog matches package references");
             Log.Information("  Collector semantic policy is backed by the generated catalog");
