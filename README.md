@@ -150,11 +150,12 @@ dotnet run --project samples/qyl.sample     # or docker compose -f eng/compose.y
 dotnet run --project eng/build/build.csproj -- ApiSdk
 ```
 
-`ApiSdk` is the proof, in eight stages: build and generator tests, the committed contract
+`ApiSdk` is the proof, in nine stages: build and generator tests, the committed contract
 unchanged, every compile-time generator's output present, the HTTP scenario against the managed
 host, a Native AOT publish carrying no managed files beside the binary, the same scenario
-against the native executable, the container image, and a consumer built from the packed SDK
-producing the identical contract. `Ci` runs it.
+against the native executable, the container image, a consumer built from the packed SDK
+producing the identical contract, and the API observing itself against a real collector while an
+agent is its first consumer. `Ci` runs it.
 
 ## Build and verify
 
