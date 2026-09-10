@@ -102,10 +102,18 @@ public static class QylApiHostApplicationBuilderExtensions
             options.AddOperationTransformer(new QylXmlResponseTransformer());
         });
 
-        // A binary that cannot name the contract it was built from must not run. The SDK's targets fail the build when the
-        // committed document is missing or stale, so this is the case that survives a tampered-with build rather than a
-        // routine one — an empty revision on the resource would be a span claiming a contract it cannot identify.
-        if (QylSdkBuild.ContractRevision.Length is 0)
+        // A binary that cannot name the contract it was built from must not run: an empty revision on the resource would be
+        // a span claiming a contract it cannot identify. Exactly one process legitimately has no revision yet — the
+        // build-time document tool, which exists to produce the document whose digest becomes that revision.
+        //
+        // Without that exclusion a project with no committed document could not be built at all. The tool ran the host, the
+        // host threw here, the document was never written, and the next build hit the same wall; the message told the reader
+        // to rebuild, and rebuilding changed nothing. Verified against the published Qyl.Api.Sdk 5.0.0 on 2026-09-10: three
+        // consecutive builds of a fresh project failed identically and produced no openapi/ directory.
+        //
+        // The first build of a fresh project now fails in QylVerifyContractRevision instead, which says to commit the
+        // document the tool has just written — advice that works, because the second build reads its digest.
+        if (QylSdkBuild.ContractRevision.Length is 0 && !QylBuildTimeDocumentHost.IsCurrentProcess)
         {
             throw new InvalidOperationException(
                 "This Qyl API was compiled without a contract revision, which means it was built without its committed " +
