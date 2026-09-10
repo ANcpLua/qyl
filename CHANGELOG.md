@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.0.1 — 2026-09-11
+
+- `Qyl.Api.Sdk` 5.0.0 could not build a project that had no committed OpenAPI
+  document: the document tool ran the API's host, `AddQylApi` threw on the empty
+  contract revision, the document was never written, and every rebuild repeated
+  it. The first build of a fresh project now writes the document and fails with
+  `QYLSDK0001` asking for a commit; the second build succeeds. The publish
+  workflow proves this against the published package (#611).
+- The producer pins move to what the registries hold: `Qyl.Telemetry.Hosting`
+  and `Qyl.Telemetry.AutoInstrumentation*` from 14.1.0 to 21.0.1,
+  `Qyl.Telemetry.SemanticConventions*` from 9.2.0 to 9.3.0. `Qyl.Api.Sdk` pins
+  `Qyl.Telemetry.Hosting` for every API it builds, so an API built with this SDK
+  version moves to the 21.0.1 line; see the
+  [AutoInstrumentation changelog](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation/blob/main/CHANGELOG.md)
+  for what changed between those majors. The pins had trailed for no reason
+  other than nobody moving them; the README no longer claims otherwise.
+- The build SDK is 10.0.401.
+
 ## 5.0.0 — 2026-09-07
 
 Breaking. Semantic conventions move to the Weaver-only architecture, the
