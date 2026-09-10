@@ -12,7 +12,7 @@ RUN npm run build && \
     test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
 # DuckDB.NET ships glibc native assets; the AOT SDK supplies clang and zlib for ILC.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.400-noble-aot@sha256:74edbceabfc6d1a7e4a5764be034fd744a07f60d26703232e74f6a5edc04e8ba AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401-noble-aot@sha256:3c40ebc0c8852d35977ca28137136505fc4ca8794b62fdc94609082ccdc14769 AS build
 
 WORKDIR /src
 
