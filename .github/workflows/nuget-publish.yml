@@ -466,6 +466,89 @@ jobs:
           dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- \
             --installed "$tool/qyl" --version "$VERSION"
 
+      # The step above exercises the published `qyl` tool and nothing else, so nothing here ever
+      # built an API from the published Qyl.Api.Sdk. Qyl.Api.Sdk 5.0.0 shipped unable to build a
+      # project that had no committed OpenAPI document: the document tool ran the API's host, the
+      # host threw on the empty contract revision, the document was never written, and every rebuild
+      # repeated it. The in-repo sample never caught it because its document is committed.
+      #
+      # Both halves are asserted. The first build must fail *and leave the document behind*, because
+      # a failure with no document is the deadlock again. The second build must then succeed.
+      - name: Build a fresh API from the published Qyl.Api.Sdk (first build, then commit, then build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          export NUGET_PACKAGES="$RUNNER_TEMP/sdk-consumer-packages"
+          fresh="$RUNNER_TEMP/sdk-consumer"
+          rm -rf "$fresh"; mkdir -p "$fresh"
+
+          cat > "$fresh/nuget.config" <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+            </packageSources>
+          </configuration>
+          XML
+
+          cat > "$fresh/freshapi.csproj" <<XML
+          <Project Sdk="Qyl.Api.Sdk/$VERSION">
+            <PropertyGroup>
+              <TargetFramework>net10.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>enable</Nullable>
+              <RootNamespace>FreshApi</RootNamespace>
+            </PropertyGroup>
+          </Project>
+          XML
+
+          cat > "$fresh/Program.cs" <<'CS'
+          using System.Text.Json.Serialization;
+          using FreshApi;
+
+          var builder = WebApplication.CreateSlimBuilder(args);
+          builder.AddQylApi(AppJsonSerializerContext.Default);
+          var app = builder.Build();
+          app.MapGet("/ping", () => new Pong("ok"));
+          app.Run();
+
+          namespace FreshApi
+          {
+              /// <summary>A trivial response so the document has one shape to describe.</summary>
+              /// <param name="Message">Any text.</param>
+              public sealed record Pong(string Message);
+
+              [JsonSerializable(typeof(Pong))]
+              internal sealed partial class AppJsonSerializerContext : JsonSerializerContext;
+          }
+          CS
+
+          echo "::group::first build (no committed document)"
+          if dotnet build "$fresh/freshapi.csproj" -c Release --nologo > "$fresh/first.log" 2>&1; then
+            echo "::error::the first build of a document-less project succeeded; it must fail asking for the document to be committed"
+            exit 1
+          fi
+          cat "$fresh/first.log"
+          echo "::endgroup::"
+
+          if ! grep -q "QYLSDK0001" "$fresh/first.log"; then
+            echo "::error::the first build failed for the wrong reason; expected QYLSDK0001 (contract changed, commit it)"
+            exit 1
+          fi
+
+          # The deadlock's signature: it failed and produced nothing to commit.
+          doc="$(find "$fresh/openapi" -name '*.json' -print -quit 2>/dev/null || true)"
+          if [ -z "$doc" ]; then
+            echo "::error::the first build wrote no OpenAPI document, so no rebuild can ever succeed" >&2
+            exit 1
+          fi
+          echo "first build wrote $doc"
+
+          echo "::group::second build (document now in place)"
+          dotnet build "$fresh/freshapi.csproj" -c Release --nologo
+          echo "::endgroup::"
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
