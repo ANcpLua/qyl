@@ -1,5 +1,22 @@
 # Changelog
 
+## 5.1.0 — 2026-09-11
+
+- The producer pins move with their lines: `Qyl.Telemetry.Hosting` and
+  `Qyl.Telemetry.AutoInstrumentation*` 21.0.1 → 21.1.0,
+  `Qyl.Telemetry.SemanticConventions*` 9.3.0 → 9.4.0, `Qyl.Api.Contracts` and
+  `@ancplua/qyl-api-schema` 10.0.0 → 10.0.1. The contract's revision changes
+  with 10.0.1 (`sha256:264a9e4f1d70289a` → `sha256:cd69d9c37a41916c`), so the
+  collector's health response now advertises the new revision and
+  `qyl-mcp-server` 5.1.0 is the line that handshakes with it; an older server
+  refuses this collector with a legible `-32022`. `Qyl.Api.Sdk` pins
+  `Qyl.Telemetry.Hosting` for every API it builds, so an API built with this
+  SDK moves to 21.1.0, whose semantic-convention schema URL resolves at
+  `https://qyl.at/schemas/9.4.0`.
+- The publish workflow waits up to 30 minutes for nuget.org to index the
+  release set, not 15; both 5.0.x releases needed a manual re-run because
+  `qyl.win-x64` validated for longer than the old deadline.
+
 ## 5.0.2 — 2026-09-11
 
 - `qyl` and `Qyl.Api.Sdk` ship their own READMEs. Both packages, and the six
