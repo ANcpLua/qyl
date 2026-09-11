@@ -714,10 +714,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Collector telemetry version has one source of truth: the generated BuildVersion.InformationalVersion constant.");
         });
 
-    // Version.props holds the qyl-owned dependency lines; the README "Artifacts and release lines"
-    // table restates three of them by hand and says of itself that it lists "the source and
-    // dependency lines `main` builds against". Two texts, one claim, and nothing connected them.
-    // The table stays hand-written prose — this only checks it, and names both places when it drifts.
+    // Version.props holds QylVersion and the qyl-owned dependency lines; the README "Artifacts and
+    // release lines" table restates five of them by hand, the consumer example restates QylVersion
+    // once more as `<Project Sdk="Qyl.Api.Sdk/x">`, and the table says of itself that it lists "the
+    // source and dependency lines `main` builds against". Two texts, one claim, and nothing connected
+    // them: 5.1.0 moved QylVersion and left the consumer line at 5.0.0. The prose stays hand-written —
+    // this only checks it, and names both places when it drifts.
     Target VerifyReadmeVersionsMatchVersionProps => d => d
         .Unlisted()
         .Description("Verify the README release-line table restates Version.props exactly")
@@ -729,6 +731,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             (string Package, string Property)[] rows =
             [
+                ("qyl", "QylVersion"),
+                ("Qyl.Api.Sdk", "QylVersion"),
                 ("Qyl.Telemetry.Hosting", "QylTelemetryVersion"),
                 ("Qyl.Telemetry.SemanticConventions*", "QylSemanticConventionsVersion"),
                 ("Qyl.Api.Contracts", "QylApiContractsVersion")
@@ -772,10 +776,41 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     $"Version.props {property} says {declared}");
             }
 
+            const string consumerLinePrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
+            var productVersion = versionDocument.Descendants("QylVersion")
+                .Select(static element => element.Value.Trim())
+                .SingleOrDefault();
+            var consumerLineIndex = Array.FindIndex(
+                readmeLines,
+                line => line.StartsWith(consumerLinePrefix, StringComparison.Ordinal));
+
+            if (string.IsNullOrWhiteSpace(productVersion))
+            {
+                mismatches.Add("Version.props declares no single QylVersion");
+            }
+            else if (consumerLineIndex < 0)
+            {
+                mismatches.Add(
+                    $"README.md has no `{consumerLinePrefix}…\">` consumer line, which restates " +
+                    $"Version.props QylVersion ({productVersion})");
+            }
+            else
+            {
+                var consumerLine = readmeLines[consumerLineIndex].Trim();
+                var expectedLine = $"{consumerLinePrefix}{productVersion}\">";
+                if (!string.Equals(consumerLine, expectedLine, StringComparison.Ordinal))
+                {
+                    mismatches.Add(
+                        $"README.md:{consumerLineIndex + 1} consumer line says {consumerLine}, but " +
+                        $"Version.props QylVersion says {productVersion}");
+                }
+            }
+
             if (mismatches.Count is 0)
             {
                 Log.Information(
-                    "README release-line table restates all {Count} qyl-owned Version.props lines",
+                    "README release-line table restates all {Count} qyl-owned Version.props lines, " +
+                    "and the consumer line restates QylVersion",
                     rows.Length);
                 return;
             }
@@ -784,8 +819,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 Log.Error("  {Mismatch}", mismatch);
 
             throw new InvalidOperationException(
-                "README.md and Version.props state the same three qyl-owned versions: the release-line " +
-                "table in README.md must repeat Version.props exactly. Fix whichever one is wrong.");
+                "README.md and Version.props state the same qyl-owned versions: the release-line " +
+                "table and the `<Project Sdk=\"Qyl.Api.Sdk/x\">` consumer line in README.md must repeat " +
+                "Version.props exactly. Fix whichever one is wrong.");
         });
 
     Target VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage => d => d
