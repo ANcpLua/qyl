@@ -430,7 +430,7 @@ jobs:
             qyl.linux-x64 qyl.linux-arm64 qyl.osx-x64 qyl.osx-arm64 qyl.win-x64 qyl.win-arm64
             qyl Qyl.Api.Sdk
           )
-          deadline=$((SECONDS + 900))
+          deadline=$((SECONDS + 1800))
           while true; do
             pending=()
             for id in "${ids[@]}"; do
