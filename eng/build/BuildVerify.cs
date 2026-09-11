@@ -17,7 +17,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
-using Nuke.Common.Tools.Npm;
 using Serilog;
 
 namespace Qyl.Build;
@@ -35,9 +34,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            NpmTasks.NpmRun(s => s
-                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
-                .SetCommand("typecheck"));
+            ProcessTasks.StartProcess("bun", "run typecheck", DashboardDirectory, logOutput: true).AssertZeroExitCode();
             Log.Information("Product dashboard TypeScript types: VALID");
         });
 
@@ -62,12 +59,15 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new InvalidOperationException(
                     $"{DashboardDirectory} must pin {packageName} to one exact stable version; found '{version}'.");
 
-            var lockFile = DashboardDirectory / "package-lock.json";
-            using var lockDocument = JsonDocument.Parse(File.ReadAllText(lockFile));
-            var lockedVersion = lockDocument.RootElement.GetProperty("packages")
-                .GetProperty($"node_modules/{packageName}")
-                .GetProperty("version")
-                .GetString();
+            // bun.lock is JSONC; each package entry is an array whose first element is "<name>@<version>".
+            var lockFile = DashboardDirectory / "bun.lock";
+            using var lockDocument = JsonDocument.Parse(
+                File.ReadAllText(lockFile),
+                new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+            var lockedSpec = lockDocument.RootElement.GetProperty("packages")
+                .GetProperty(packageName)[0]
+                .GetString() ?? string.Empty;
+            var lockedVersion = lockedSpec[(lockedSpec.LastIndexOf('@') + 1)..];
             if (!string.Equals(version, lockedVersion, StringComparison.Ordinal))
                 throw new InvalidOperationException(
                     $"{DashboardDirectory} lock file resolves {packageName} {lockedVersion}, expected {version}.");

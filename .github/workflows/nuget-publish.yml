@@ -133,14 +133,17 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Build embedded dashboard
         working-directory: services/qyl.dashboard
         run: |
-          npm ci
-          npm run build
+          bun install --frozen-lockfile
+          bun run build
 
       - name: Test runner contracts
         run: dotnet test tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj --configuration Release -p:Version="$VERSION"
@@ -203,14 +206,17 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Build embedded dashboard
         working-directory: services/qyl.dashboard
         run: |
-          npm ci
-          npm run build
+          bun install --frozen-lockfile
+          bun run build
 
       - name: Pack all release packages
         shell: bash
