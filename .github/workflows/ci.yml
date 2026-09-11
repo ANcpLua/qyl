@@ -121,6 +121,11 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
+
       - name: Restore
         run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
@@ -183,6 +188,11 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
+
       - name: Execute native collector and MCP gates
         run: ./eng/build.sh NativeAot
 
@@ -201,6 +211,11 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           global-json-file: global.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Build, prove and pack the API SDK
         run: ./eng/build.sh ApiSdk --Configuration Release
