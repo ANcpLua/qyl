@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 
-FROM node:24-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS dashboard
+FROM oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61 AS dashboard
 
 WORKDIR /dashboard
 
-COPY services/qyl.dashboard/package.json services/qyl.dashboard/package-lock.json ./
-RUN npm ci --prefer-offline
+COPY services/qyl.dashboard/package.json services/qyl.dashboard/bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY services/qyl.dashboard/ ./
-RUN npm run build && \
+RUN bun run build && \
     test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
 # DuckDB.NET ships glibc native assets; the AOT SDK supplies clang and zlib for ILC.

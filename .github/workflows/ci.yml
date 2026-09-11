@@ -121,6 +121,11 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
+
       - name: Restore
         run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
@@ -158,8 +163,11 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Pack and smoke the qyl tool
         run: ./eng/build.sh PackSmoke --Configuration Release
@@ -180,6 +188,11 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
+
       - name: Execute native collector and MCP gates
         run: ./eng/build.sh NativeAot
 
@@ -198,6 +211,11 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           global-json-file: global.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Build, prove and pack the API SDK
         run: ./eng/build.sh ApiSdk --Configuration Release
@@ -221,31 +239,34 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Install
         working-directory: services/qyl.dashboard
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
         working-directory: services/qyl.dashboard
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Lint
         working-directory: services/qyl.dashboard
-        run: npm run lint
+        run: bun run lint
 
       - name: Build
         working-directory: services/qyl.dashboard
-        run: npm run build
+        run: bun run build
 
       - name: Verify generated contract consumption
         run: ./eng/build.sh VerifyFrontendApiTypes --Configuration Release
 
       - name: Coverage
         working-directory: services/qyl.dashboard
-        run: npm run test:coverage
+        run: bun run test:coverage
 
       - name: Upload coverage report
         if: always() && hashFiles('services/qyl.dashboard/coverage/**') != ''
@@ -278,14 +299,17 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Build dashboard
         working-directory: services/qyl.dashboard
         run: |
-          npm ci
-          npm run build
+          bun install --frozen-lockfile
+          bun run build
 
       - name: Restore collector
         run: dotnet restore services/qyl.collector/qyl.collector.csproj --configfile nuget.config -p:TreatWarningsAsErrors=false
@@ -295,11 +319,11 @@ jobs:
 
       - name: Install Chromium
         working-directory: services/qyl.dashboard
-        run: npx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium
 
       - name: Run product smoke
         working-directory: services/qyl.dashboard
-        run: npm run e2e
+        run: bun run e2e
 
   dependency-audit:
     name: Dependency Audit
@@ -322,8 +346,12 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Setup Bun
+        if: needs.changes.outputs.frontend == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: services/qyl.dashboard/package.json
 
       - name: Restore
         if: needs.changes.outputs.backend == 'true'
@@ -348,5 +376,5 @@ jobs:
         if: needs.changes.outputs.frontend == 'true'
         working-directory: services/qyl.dashboard
         run: |
-          npm ci
-          npm audit --audit-level=moderate
+          bun install --frozen-lockfile
+          bun audit --audit-level=moderate
