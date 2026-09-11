@@ -32,4 +32,7 @@ accept = ["200..=299", "429"]
 # runs). The spec URLs are stable; excluding beats a flaky red check.
 exclude = [
   '^https?://opentelemetry\.io',
+  # npmjs.com answers automated clients with 403 regardless of UA; the package pages are
+  # stable and the packages are proven by the publish workflow that installs them.
+  '^https?://www\.npmjs\.com',
 ]
