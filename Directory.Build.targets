@@ -2,15 +2,6 @@
   <!-- Materializes an opted-in base64 signing key only in intermediate output. -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/StrongName.targets"/>
 
-  <!-- Each packable project ships its own consumer README (packages/<name>/README.md); the
-       repository README is the repository's, not a package's. -->
-  <ItemGroup Condition="'$(IsPackable)' == 'true' and Exists('$(MSBuildProjectDirectory)/README.md')">
-    <None Include="$(MSBuildProjectDirectory)/README.md"
-          Pack="true"
-          PackagePath="README.md"
-          Visible="false"/>
-  </ItemGroup>
-
   <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <_QylInformationalVersion>$(InformationalVersion)</_QylInformationalVersion>
