@@ -59,7 +59,7 @@ dependency line is published, and this repository's own line is published once t
 release workflow runs for it. Package registries are authoritative for public
 availability.
 
-The three qyl-owned rows are held to `Version.props` by `BuildVerify`, so a pin bump is a two-file change and CI goes red on one alone; the `qyl-mcp-server` row is outside that gate.
+The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are held to `Version.props` by `BuildVerify`, so a bump is a two-file change and CI goes red on one alone. The `qyl-mcp-server` row is outside that gate: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp), not in this repository, and the row moves with the release wave that ships both.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ The three qyl-owned rows are held to `Version.props` by `BuildVerify`, so a pin 
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 21.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 9.4.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 10.0.1 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
-| `qyl-mcp-server` | 5.0.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
+| `qyl-mcp-server` | 5.1.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 | `Qyl.Api.Sdk` (MSBuild SDK) | 5.1.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
@@ -132,7 +132,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/5.0.0">
+<Project Sdk="Qyl.Api.Sdk/5.1.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
