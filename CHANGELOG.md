@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.0.2 — 2026-09-11
+
+- `qyl` and `Qyl.Api.Sdk` ship their own READMEs. Both packages, and the six
+  `qyl.<rid>` packages behind the tool, carried the whole repository README as
+  their nuget.org readme. `packages/Qyl.Cli/README.md` and
+  `packages/Qyl.Api.Sdk/README.md` are consumer pages now: what the package is,
+  the install line, the first call, and links out. `Directory.Build.targets`
+  packs `$(MSBuildProjectDirectory)/README.md`. No code change.
+- The dashboard is built with Bun (`bun.lock`, `packageManager: bun@1.4.2`);
+  every CI job and the collector Dockerfile follow.
+
 ## 5.0.1 — 2026-09-11
 
 - `Qyl.Api.Sdk` 5.0.0 could not build a project that had no committed OpenAPI
