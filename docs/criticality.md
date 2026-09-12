@@ -1,6 +1,6 @@
 # OpenSSF Criticality Score evidence
 
-**Score: 0.44969** (`default_score`, official implementation) · measured 2026-08-21 · threshold context: ≥ 0.40
+**Score: 0.45348** (`default_score`, official implementation) · measured 2026-09-12 · threshold context: ≥ 0.40
 
 This page exists so the score can be verified by anyone, including reviewers who
 do not run code. Three independent verification paths, strongest first.
@@ -23,7 +23,7 @@ repository (the `/issues` endpoint stopped emitting the `rel="last"` pagination
 header the tool relied on, verified against golang/go: reported 0 vs a true
 4,034). Both bugs only ever deflate or destroy scores; the fixes restore
 signals, they do not invent them. With only the crash worked around, the broken
-tool reports 0.36 for this repository; fixed, 0.44969.
+tool reports 0.36 for this repository; fixed, 0.45348 (0.44969 on 2026-08-21).
 
 ## 2. Spot-check every input in the browser
 
@@ -34,14 +34,14 @@ Lookback windows move daily, so expect small drift from the measured values.
 | Signal | Measured | Check it yourself |
 | --- | ---: | --- |
 | updated_since | 0 months | [Repository](https://github.com/ANcpLua/qyl) shows the last commit date |
-| created_since | 8 months | First commit December 2025, visible in the [commit history](https://github.com/ANcpLua/qyl/commits/main) |
-| commit_frequency | 33.5 / week | [Commit activity graph](https://github.com/ANcpLua/qyl/graphs/commit-activity) |
+| created_since | 9 months | First commit December 2025, visible in the [commit history](https://github.com/ANcpLua/qyl/commits/main) |
+| commit_frequency | 35.7 / week | [Commit activity graph](https://github.com/ANcpLua/qyl/graphs/commit-activity) |
 | contributor_count | 7 | [Contributors graph](https://github.com/ANcpLua/qyl/graphs/contributors) |
-| recent_release_count | 23 | [Releases](https://github.com/ANcpLua/qyl/releases), count those in the last 12 months |
-| updated_issues_count | 207 | [Search: updated since 2026-05-23](https://github.com/search?q=repo%3AANcpLua%2Fqyl+updated%3A%3E%3D2026-05-23&type=issues), sum the Issues and Pull requests tabs |
-| closed_issues_count | 204 | [Search: closed since 2026-05-23](https://github.com/search?q=repo%3AANcpLua%2Fqyl+closed%3A%3E%3D2026-05-23&type=issues), sum both tabs |
-| issue_comment_frequency | 1.37 | Comments per updated issue over the same window |
-| github_mention_count | 37 | [Commit search for "ANcpLua/qyl"](https://github.com/search?q=%22ANcpLua%2Fqyl%22&type=commits) |
+| recent_release_count | 31 | [Releases](https://github.com/ANcpLua/qyl/releases), count those in the last 12 months |
+| updated_issues_count | 228 | [Search: updated since 2026-06-14](https://github.com/search?q=repo%3AANcpLua%2Fqyl+updated%3A%3E%3D2026-06-14&type=issues), sum the Issues and Pull requests tabs |
+| closed_issues_count | 227 | [Search: closed since 2026-06-14](https://github.com/search?q=repo%3AANcpLua%2Fqyl+closed%3A%3E%3D2026-06-14&type=issues), sum both tabs |
+| issue_comment_frequency | 0.96 | Comments per updated issue over the same window |
+| github_mention_count | 51 | [Commit search for "ANcpLua/qyl"](https://github.com/search?q=%22ANcpLua%2Fqyl%22&type=commits) |
 | org_count | 1 | Contributor company affiliations |
 
 Formula: each signal is clamped at its documented threshold, normalized as
@@ -53,16 +53,16 @@ thresholds are in the
 | Signal | Normalized | Weight | Contribution |
 | --- | ---: | ---: | ---: |
 | updated_since | 1.0000 | 1.0 | +0.0952 |
-| github_mention_count | 0.2772 | 2.0 | +0.0528 |
-| commit_frequency | 0.5126 | 1.0 | +0.0488 |
+| github_mention_count | 0.3011 | 2.0 | +0.0574 |
+| commit_frequency | 0.5214 | 1.0 | +0.0497 |
+| recent_release_count | 1.0000 | 0.5 | +0.0476 |
 | contributor_count | 0.2441 | 2.0 | +0.0465 |
-| recent_release_count | 0.9643 | 0.5 | +0.0459 |
-| created_since | 0.4582 | 1.0 | +0.0436 |
-| updated_issues_count | 0.6267 | 0.5 | +0.0298 |
-| closed_issues_count | 0.6250 | 0.5 | +0.0298 |
-| issue_comment_frequency | 0.3112 | 1.0 | +0.0296 |
+| created_since | 0.4801 | 1.0 | +0.0457 |
+| updated_issues_count | 0.6380 | 0.5 | +0.0304 |
+| closed_issues_count | 0.6374 | 0.5 | +0.0304 |
 | org_count | 0.2891 | 1.0 | +0.0275 |
-| **default_score** | | **Σw = 10.5** | **0.44969** |
+| issue_comment_frequency | 0.2427 | 1.0 | +0.0231 |
+| **default_score** | | **Σw = 10.5** | **0.45348** |
 
 ## 3. Reproduce it exactly (for reviewers who do run code)
 
