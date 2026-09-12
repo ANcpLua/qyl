@@ -2,12 +2,8 @@
 
 ## 6.0.0 — unreleased
 
-- `Qyl.Api.Sdk`'s `Sdk/Sdk.props` and `Sdk/Sdk.targets` carry no prose. The
-  header that named `Qyl.Api.Sdk/5.0.0` shipped unchanged in 5.1.0; a comment
-  is the one place MSBuild cannot resolve, so nothing there names a version
-  now. In its place `Sdk.props` sets `UsingQylApiSdk=true`, the marker every
-  Microsoft MSBuild SDK sets, so a project can test for the SDK instead of
-  reading about it.
+- `Qyl.Api.Sdk`: `Sdk/Sdk.props` sets `UsingQylApiSdk=true`; neither entry
+  point carries a comment or a version any more.
 
 ## 5.1.0 — 2026-09-11
 
