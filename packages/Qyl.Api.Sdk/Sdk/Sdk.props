@@ -1,10 +1,6 @@
 <Project>
-  <!--
-    Qyl.Api.Sdk entry point (props half). Packed, <Project Sdk="Qyl.Api.Sdk/<version>"> imports this file and
-    Sdk.targets from the package and the guarded import below pulls in Microsoft.NET.Sdk.Web. In-repo, a project
-    on Microsoft.NET.Sdk.Web imports this file first and Sdk.targets last, so a fresh clone builds without a pack step.
-  -->
   <PropertyGroup>
+    <UsingQylApiSdk>true</UsingQylApiSdk>
     <QylSdkRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))</QylSdkRoot>
     <_QylMustImportMicrosoftNETSdk Condition="'$(UsingMicrosoftNETSdk)' != 'true'">true</_QylMustImportMicrosoftNETSdk>
   </PropertyGroup>
