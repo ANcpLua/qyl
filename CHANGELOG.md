@@ -1,6 +1,6 @@
 # Changelog
 
-## 6.0.0 — unreleased
+## 6.0.0 — 2026-09-12
 
 - `Qyl.Api.Sdk`: `Sdk/Sdk.props` sets `UsingQylApiSdk=true`; neither entry
   point carries a comment or a version any more.

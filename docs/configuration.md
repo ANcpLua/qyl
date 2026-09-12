@@ -4,7 +4,6 @@ The complete `QYL_*` environment contract bound by product, developer, acceptanc
 and CI code in this repository. Standard `OTEL_*`, `PORT`, and `VITE_*` settings
 retain their upstream semantics and are not duplicated here.
 
-This table moved out of `README.md` when that file became an architecture summary.
 `VerifyConfigurationKnobs` (`eng/build/BuildConfigurationKnobs.cs`) reads it and fails
 the build when a row has no code binding or a code binding has no row — so the table
 cannot rot into decoration.
