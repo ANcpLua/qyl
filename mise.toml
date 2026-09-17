@@ -3,3 +3,9 @@
 [tools]
 "dotnet" = "10.0.401"
 "bun" = "1.4.2"
+
+[tasks.check]
+description = "The gate: the Nuke Ci target CI runs"
+run = [
+  "./eng/build.sh Ci --Configuration Release",
+]
