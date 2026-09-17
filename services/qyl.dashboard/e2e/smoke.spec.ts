@@ -108,7 +108,9 @@ test.describe('qyl executable product surface', () => {
             );
             expect(response.status()).toBe(200);
             const logs = generatedPageItems(parseLogContract, await response.json());
-            return logs.find(log => log.resource.service_name === serviceName)?.body.string_value;
+            // A plain string body is a bare JSON string on the wire since contract 11.
+            const body = logs.find(log => log.resource.service_name === serviceName)?.body;
+            return typeof body === 'string' ? body : undefined;
         }, {timeout: 20_000}).toMatch(/^(?!sha256:).+\S.*$/);
     });
 
