@@ -5,7 +5,11 @@
     },
     "ignorePatterns": [
         "dist",
-        "node_modules"
+        "node_modules",
+        "playwright-report",
+        "test-results",
+        "coverage",
+        "**/*.d.ts"
     ],
     "rules": {
         "typescript/no-unused-vars": [
