@@ -9,19 +9,19 @@ import type {
     LogStreamEvent,
     ProblemDetails,
 } from '@ancplua/qyl-api-schema/types';
-import {publishedContractSchema} from '@ancplua/qyl-api-schema/zod';
+import {contractSchema} from '@ancplua/qyl-api-schema/zod';
 import {z} from 'zod';
 
-const healthReportSchema = publishedContractSchema<HealthReport>('Operations.health_ready.Response.200');
-const sessionPageSchema = publishedContractSchema<CursorPageSessionEntity>('Operations.SessionsApi_list.Response.200');
-const tracePageSchema = publishedContractSchema<CursorPageTrace>('Operations.TracesApi_list.Response.200');
-const sessionTracePageSchema = publishedContractSchema<CursorPageTrace>('Operations.SessionsApi_getTraces.Response.200');
-const spanPageSchema = publishedContractSchema<CursorPageSpan>('Operations.TracesApi_getSpans.Response.200');
-const metricPageSchema = publishedContractSchema<CursorPageMetricDescriptor>('Operations.MetricsApi_list.Response.200');
-const metricQuerySchema = publishedContractSchema<MetricQueryResult>('Operations.MetricsApi_query.Response.200');
-const logStreamEventSchema = publishedContractSchema<LogStreamEvent>('Streaming.LogStreamEvent');
-const heartbeatEventSchema = publishedContractSchema<HeartbeatEvent>('Streaming.HeartbeatEvent');
-const problemDetailsSchema = publishedContractSchema<ProblemDetails>('Common.Errors.ProblemDetails');
+const healthReportSchema = contractSchema('Operations.health_ready.Response.200');
+const sessionPageSchema = contractSchema('Operations.SessionsApi_list.Response.200');
+const tracePageSchema = contractSchema('Operations.TracesApi_list.Response.200');
+const sessionTracePageSchema = contractSchema('Operations.SessionsApi_getTraces.Response.200');
+const spanPageSchema = contractSchema('Operations.TracesApi_getSpans.Response.200');
+const metricPageSchema = contractSchema('Operations.MetricsApi_list.Response.200');
+const metricQuerySchema = contractSchema('Operations.MetricsApi_query.Response.200');
+const logStreamEventSchema = contractSchema('Streaming.LogStreamEvent');
+const heartbeatEventSchema = contractSchema('Streaming.HeartbeatEvent');
+const problemDetailsSchema = contractSchema('Common.Errors.ProblemDetails');
 
 export function parseContract<T>(schema: z.ZodType<T>, value: unknown, context: string): T {
     const result = schema.safeParse(value);

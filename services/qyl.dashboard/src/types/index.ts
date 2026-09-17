@@ -20,26 +20,12 @@ export function nsToMs(ns: number): number {
     return ns / 1_000_000;
 }
 
-/** Exact nanosecond delta between two absolute wire timestamps. */
-export function nsDelta(fromNs: string, toNs: string): number {
-    return Number(BigInt(toNs) - BigInt(fromNs));
-}
-
-/** Ascending comparator for absolute wire timestamps, exact at nanosecond resolution. */
-export function compareNs(a: string, b: string): number {
-    const left = BigInt(a);
-    const right = BigInt(b);
-    return left < right ? -1 : left > right ? 1 : 0;
-}
-
-/** Absolute wire timestamp to epoch milliseconds, floored in BigInt so no precision is assumed. */
-export function nsToEpochMs(ns: string): number {
-    return Number(BigInt(ns) / 1_000_000n);
-}
-
-export function nanoToIso(nanos: string): string {
-    return new Date(nsToEpochMs(nanos)).toISOString();
-}
+export {
+    compareUnixNanos as compareNs,
+    unixNanosDelta as nsDelta,
+    unixNanosToEpochMs as nsToEpochMs,
+    unixNanosToIso as nanoToIso,
+} from '@ancplua/qyl-api-schema/runtime';
 
 export function getAttributesRecord(span: Span): Record<string, AttributeValue> {
     if (!span.attributes) return {};
