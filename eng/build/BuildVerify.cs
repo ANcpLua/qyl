@@ -714,114 +714,52 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Collector telemetry version has one source of truth: the generated BuildVersion.InformationalVersion constant.");
         });
 
-    // Version.props holds QylVersion and the qyl-owned dependency lines; the README "Artifacts and
-    // release lines" table restates five of them by hand, the consumer example restates QylVersion
-    // once more as `<Project Sdk="Qyl.Api.Sdk/x">`, and the table says of itself that it lists "the
-    // source and dependency lines `main` builds against". Two texts, one claim, and nothing connected
-    // them: 5.1.0 moved QylVersion and left the consumer line at 5.0.0. The prose stays hand-written —
-    // this only checks it, and names both places when it drifts.
-    Target VerifyReadmeVersionsMatchVersionProps => d => d
+    // Version.props is the one source for the qyl-owned release lines. The README's release-line
+    // table rows and the consumer `<Project Sdk="Qyl.Api.Sdk/x">` line are rendered from it: locally
+    // the target rewrites them, on CI it fails when the committed text differs from the rendering.
+    // The `qyl-mcp-server` row is not rendered; its version lives in qyl.mcp and pins.sh watches it.
+    Target RenderReadmeVersions => d => d
         .Unlisted()
-        .Description("Verify the README release-line table restates Version.props exactly")
+        .Description("Render the README release-line rows and consumer line from Version.props")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var versionsFile = RootDirectory / "Version.props";
-            var readmeFile = RootDirectory / "README.md";
-
-            (string Package, string Property)[] rows =
+            var versions = XDocument.Load(RootDirectory / "Version.props");
+            string Version(string property) =>
+                versions.Descendants(property).Select(static e => e.Value.Trim()).SingleOrDefault()
+                ?? throw new InvalidOperationException($"Version.props declares no single {property}");
+            (string RowPrefix, string Property)[] rows =
             [
-                ("qyl", "QylVersion"),
-                ("Qyl.Api.Sdk", "QylVersion"),
-                ("Qyl.Telemetry.Hosting", "QylTelemetryVersion"),
-                ("Qyl.Telemetry.SemanticConventions*", "QylSemanticConventionsVersion"),
-                ("Qyl.Api.Contracts", "QylApiContractsVersion")
+                ("| `qyl` (dotnet tool) |", "QylVersion"),
+                ("| `Qyl.Api.Sdk` (MSBuild SDK) |", "QylVersion"),
+                ("| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` |", "QylTelemetryVersion"),
+                ("| `Qyl.Telemetry.SemanticConventions*` |", "QylSemanticConventionsVersion"),
+                ("| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` |", "QylApiContractsVersion")
             ];
-
-            var versionDocument = XDocument.Load(versionsFile);
-            var readmeLines = File.ReadAllLines(readmeFile);
-            var mismatches = new List<string>();
-
-            foreach (var (package, property) in rows)
+            var readme = RootDirectory / "README.md";
+            var lines = File.ReadAllLines(readme);
+            var rendered = (string[])lines.Clone();
+            foreach (var (prefix, property) in rows)
             {
-                var declared = versionDocument.Descendants(property)
-                    .Select(static element => element.Value.Trim())
-                    .SingleOrDefault();
-
-                if (string.IsNullOrWhiteSpace(declared))
-                {
-                    mismatches.Add($"Version.props declares no single {property}");
-                    continue;
-                }
-
-                var rowIndex = Array.FindIndex(
-                    readmeLines,
-                    line => line.StartsWith($"| `{package}`", StringComparison.Ordinal));
-
-                if (rowIndex < 0)
-                {
-                    mismatches.Add(
-                        $"README.md has no release-line row for `{package}`, which restates " +
-                        $"Version.props {property} ({declared})");
-                    continue;
-                }
-
-                var cells = readmeLines[rowIndex].Split('|');
-                var documented = cells.Length > 2 ? cells[2].Trim() : string.Empty;
-                if (string.Equals(documented, declared, StringComparison.Ordinal))
-                    continue;
-
-                mismatches.Add(
-                    $"README.md:{rowIndex + 1} row `{package}` says {documented}, but " +
-                    $"Version.props {property} says {declared}");
+                var index = Array.FindIndex(lines, line => line.StartsWith(prefix, StringComparison.Ordinal));
+                if (index < 0) throw new InvalidOperationException($"README.md has no release-line row starting `{prefix}`");
+                var cells = lines[index].Split('|');
+                cells[2] = $" {Version(property)} ";
+                rendered[index] = string.Join('|', cells);
             }
-
-            const string consumerLinePrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
-            var productVersion = versionDocument.Descendants("QylVersion")
-                .Select(static element => element.Value.Trim())
-                .SingleOrDefault();
-            var consumerLineIndex = Array.FindIndex(
-                readmeLines,
-                line => line.StartsWith(consumerLinePrefix, StringComparison.Ordinal));
-
-            if (string.IsNullOrWhiteSpace(productVersion))
+            const string consumerPrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
+            var consumer = Array.FindIndex(lines, line => line.StartsWith(consumerPrefix, StringComparison.Ordinal));
+            if (consumer < 0) throw new InvalidOperationException("README.md has no `<Project Sdk=\"Qyl.Api.Sdk/…\">` consumer line");
+            rendered[consumer] = $"{consumerPrefix}{Version("QylVersion")}\">";
+            if (rendered.SequenceEqual(lines))
             {
-                mismatches.Add("Version.props declares no single QylVersion");
-            }
-            else if (consumerLineIndex < 0)
-            {
-                mismatches.Add(
-                    $"README.md has no `{consumerLinePrefix}…\">` consumer line, which restates " +
-                    $"Version.props QylVersion ({productVersion})");
-            }
-            else
-            {
-                var consumerLine = readmeLines[consumerLineIndex].Trim();
-                var expectedLine = $"{consumerLinePrefix}{productVersion}\">";
-                if (!string.Equals(consumerLine, expectedLine, StringComparison.Ordinal))
-                {
-                    mismatches.Add(
-                        $"README.md:{consumerLineIndex + 1} consumer line says {consumerLine}, but " +
-                        $"Version.props QylVersion says {productVersion}");
-                }
-            }
-
-            if (mismatches.Count is 0)
-            {
-                Log.Information(
-                    "README release-line table restates all {Count} qyl-owned Version.props lines, " +
-                    "and the consumer line restates QylVersion",
-                    rows.Length);
+                Log.Information("README release lines already match Version.props");
                 return;
             }
-
-            foreach (var mismatch in mismatches)
-                Log.Error("  {Mismatch}", mismatch);
-
-            throw new InvalidOperationException(
-                "README.md and Version.props state the same qyl-owned versions: the release-line " +
-                "table and the `<Project Sdk=\"Qyl.Api.Sdk/x\">` consumer line in README.md must repeat " +
-                "Version.props exactly. Fix whichever one is wrong.");
+            if (IsServerBuild)
+                throw new InvalidOperationException("README.md release lines differ from Version.props: run ./eng/build.sh RenderReadmeVersions and commit.");
+            File.WriteAllLines(readme, rendered);
+            Log.Information("README release lines rendered from Version.props");
         });
 
     Target VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage => d => d
@@ -2783,7 +2721,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorAuthorsNoVocabulary)
         .DependsOn(VerifyCollectorTelemetryUsesBuildVersion)
-        .DependsOn(VerifyReadmeVersionsMatchVersionProps)
+        .DependsOn(RenderReadmeVersions)
         .DependsOn(VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)

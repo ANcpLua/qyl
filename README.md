@@ -59,7 +59,7 @@ dependency line is published, and this repository's own line is published once t
 release workflow runs for it. Package registries are authoritative for public
 availability.
 
-The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are held to `Version.props` by `VerifyReadmeVersionsMatchVersionProps`, which CI runs as part of `./eng/build.sh VerifyBackend`, so a bump is a two-file change and CI goes red on one alone. The `qyl-mcp-server` row is outside that gate: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp), not in this repository, and the row moves with the release wave that ships both.
+The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs: locally it rewrites them, on CI it fails when the committed text differs. The `qyl-mcp-server` row is not rendered: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp), and `tools/pins.sh` in the workspace watches it.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
