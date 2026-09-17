@@ -40,9 +40,12 @@ export function decodeAttributeValue(value: AttributeValue): unknown {
 
 export function formatAttributeValue(value: AttributeValue): string {
     const decoded = decodeAttributeValue(value);
-    if (decoded === null) return 'null';
-    if (typeof decoded === 'object') return JSON.stringify(decoded);
-    return String(decoded);
+    if (decoded === null || decoded === undefined) return 'null';
+    if (typeof decoded === 'string') return decoded;
+    if (typeof decoded === 'number' || typeof decoded === 'boolean' || typeof decoded === 'bigint') {
+        return String(decoded);
+    }
+    return JSON.stringify(decoded);
 }
 
 export function attributeString(value: AttributeValue | undefined): string | undefined {

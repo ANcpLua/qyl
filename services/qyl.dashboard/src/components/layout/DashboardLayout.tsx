@@ -17,7 +17,7 @@ export function DashboardLayout() {
     const {isModalOpen, setModalOpen} = keyboard;
 
     const handleRefresh = useCallback(() => {
-        queryClient.invalidateQueries({queryKey: telemetryKeys.all});
+        void queryClient.invalidateQueries({queryKey: telemetryKeys.all});
         window.dispatchEvent(new CustomEvent('qyl:refresh'));
     }, [queryClient]);
 
