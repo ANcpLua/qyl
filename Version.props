@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>7.0.0</QylVersion>
+    <QylVersion>7.1.0</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -32,7 +32,7 @@
          written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
     <QylTelemetryVersion>21.1.0</QylTelemetryVersion>
     <QylSemanticConventionsVersion>9.4.0</QylSemanticConventionsVersion>
-    <QylApiContractsVersion>11.1.0</QylApiContractsVersion>
+    <QylApiContractsVersion>11.2.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.46</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>

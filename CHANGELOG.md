@@ -1,5 +1,13 @@
 # Changelog
 
+## 7.1.0 — 2026-09-17
+
+- `Qyl.Api.Contracts` 11.0.1 → 11.2.0. Series and resource identity are the
+  contract's `AttributeValue.ToStableString()`, the same string the TypeScript
+  runtime computes; the collector's own `ToIdentityString` and its
+  format are gone. Stored series ids change with it (the database is
+  exchanged, not migrated).
+
 ## 7.0.0 — 2026-09-17
 
 - `Qyl.Api.Contracts` 10.0.1 → 11.0.1 (revision `sha256:5c1aa27ccdf48067`).

@@ -218,7 +218,7 @@ internal static partial class OtlpConverter
         foreach (var key in entityRef.IdKeys)
         {
             AppendCanonicalSegment(builder, key);
-            AppendCanonicalSegment(builder, resourceAttributes[key].ToIdentityString());
+            AppendCanonicalSegment(builder, resourceAttributes[key].ToStableString());
         }
 
         return builder.ToString();

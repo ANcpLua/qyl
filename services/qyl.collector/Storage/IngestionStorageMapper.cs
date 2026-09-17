@@ -264,7 +264,7 @@ internal static class IngestionStorageMapper
                 }
 
                 AppendIdentityPart(identity, key);
-                AppendIdentityPart(identity, value.ToIdentityString());
+                AppendIdentityPart(identity, value.ToStableString());
             }
             identities.Add(identity.ToString());
         }
