@@ -65,7 +65,7 @@ describe('generated Collector contract validation', () => {
                 time_unix_nano: '1000000000',
                 observed_time_unix_nano: '1000000001',
                 severity_number: 9,
-                body: {string_value: 'MCP JSON-RPC request completed'},
+                body: 'MCP JSON-RPC request completed',
                 event_name: 'mcp.request',
                 trace_id: '22222222222222222222222222222222',
                 span_id: '1111111111111111',
@@ -75,7 +75,7 @@ describe('generated Collector contract validation', () => {
 
         expect(event.data).toMatchObject({
             event_name: 'mcp.request',
-            body: {string_value: 'MCP JSON-RPC request completed'},
+            body: 'MCP JSON-RPC request completed',
             trace_id: '22222222222222222222222222222222',
             span_id: '1111111111111111',
         });
@@ -116,7 +116,7 @@ describe('wire timestamp shapes the collector actually emits', () => {
                 time_unix_nano: '1000000000',
                 observed_time_unix_nano: '1000000001',
                 severity_number: 9,
-                body: {string_value: 'offset timestamp'},
+                body: 'offset timestamp',
                 resource: {service_name: 'dashboard-test'},
             },
         }).timestamp).toBe(OFFSET_TIMESTAMP);
@@ -150,7 +150,7 @@ describe('wire timestamp shapes the collector actually emits', () => {
                 time_unix_nano: '1000000000',
                 observed_time_unix_nano: '1000000001',
                 severity_number: 9,
-                body: {string_value: 'offset timestamp'},
+                body: 'offset timestamp',
                 resource: {service_name: 'dashboard-test'},
             },
         })).toThrow(/Collector contract mismatch/);

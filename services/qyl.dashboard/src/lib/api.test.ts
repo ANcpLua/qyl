@@ -43,7 +43,7 @@ describe('consumeSse', () => {
                 observed_time_unix_nano: '1000000000',
                 severity_number: 9,
                 severity_text: 'INFO',
-                body: {string_value: 'ready'},
+                body: 'ready',
                 resource: {service_name: 'dashboard-test'},
             },
             timestamp: '2026-07-15T00:00:00Z',

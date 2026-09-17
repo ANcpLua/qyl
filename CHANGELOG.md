@@ -1,5 +1,17 @@
 # Changelog
 
+## 7.0.0 — 2026-09-17
+
+- `Qyl.Api.Contracts` 10.0.1 → 11.0.1 (revision `sha256:5c1aa27ccdf48067`).
+  Attribute values and log bodies are the contract's `AttributeValue` on the
+  API, not `object?`: the collector's 200-line hand parser and its own tagged
+  encoder are gone, and storage writes the same bytes through the contract's
+  converter. A log body is persisted as its value, not flattened to text at
+  ingest; a plain string body is a bare JSON string on the wire, and the three
+  `LogBody` shapes the collector never produced no longer exist.
+- The dashboard decodes attribute values through
+  `@ancplua/qyl-api-schema/runtime` instead of a local copy.
+
 ## 6.0.0 — 2026-09-12
 
 - `Qyl.Api.Sdk`: `Sdk/Sdk.props` sets `UsingQylApiSdk=true`; neither entry

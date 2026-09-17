@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 
 namespace Qyl.Collector.Storage;
 
@@ -79,7 +80,7 @@ internal static class IngestionStorageMapper
             : log.SeverityText;
         var severityNumber = (byte)Math.Clamp(log.SeverityNumber, 0, 24);
         var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelationPrecedence);
-        var body = ToPersistedLogBody(log.BodyText);
+        var body = ToPersistedLogBody(log.Body);
         var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
             log.ResourceAttributes,
@@ -163,11 +164,31 @@ internal static class IngestionStorageMapper
     private static void AppendIdentityPart(StringBuilder builder, ulong? value) =>
         AppendIdentityPart(builder, value?.ToString(CultureInfo.InvariantCulture));
 
-    private static string? ToPersistedLogBody(string? raw)
+    /// <summary>
+    /// The stored body is the canonical AttributeValue JSON, so a reader decodes it with the
+    /// contract's converter. A string body is truncated before encoding; any other body that
+    /// exceeds the limit is stored as its truncated text rendering, so the column always holds
+    /// valid JSON.
+    /// </summary>
+    private static string? ToPersistedLogBody(OtlpAttributeValue body)
     {
-        if (string.IsNullOrEmpty(raw))
-            return raw;
+        if (body.Kind is OtlpAttributeValueKind.Empty)
+            return null;
 
+        if (body.AsString() is { } text)
+            return EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(text)));
+
+        var encoded = EncodeBody(body);
+        return Encoding.UTF8.GetByteCount(encoded) <= MaxPersistedLogBodyUtf8Bytes
+            ? encoded
+            : EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(body.ToStableString())));
+    }
+
+    private static string EncodeBody(OtlpAttributeValue body) =>
+        JsonSerializer.Serialize(body.ToContract(), QylSerializerContext.Default.AttributeValue);
+
+    private static string TruncateBodyText(string raw)
+    {
         if (Encoding.UTF8.GetByteCount(raw) <= MaxPersistedLogBodyUtf8Bytes)
             return raw;
 

@@ -306,15 +306,8 @@ public sealed class MetricApiTests
         };
     }
 
-    // Attribute.value is an open `unknown`-shaped contract value, so a round-tripped
-    // attribute carries a JsonElement rather than the string the collector wrote.
     private static string? AttributeString(Qyl.Api.Contracts.Common.Attribute attribute) =>
-        attribute.Value switch
-        {
-            JsonElement { ValueKind: JsonValueKind.String } element => element.GetString(),
-            string value => value,
-            _ => null
-        };
+        attribute.Value is Qyl.Api.Contracts.Common.AttributeValue.StringValue { Value: var text } ? text : null;
 
     // MetricBucket.value is a `float64 | null` union, which the C# emitter lands on `object`;
     // over the wire it is a JSON number, so a round-tripped bucket carries a JsonElement.

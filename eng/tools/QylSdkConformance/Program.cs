@@ -339,8 +339,8 @@ internal static class SdkConformance
     private static bool HasAttribute(ContractSpan span, string key, string expected)
     {
         var attribute = span.Attributes?.FirstOrDefault(item => string.Equals(item.Key, key, StringComparison.Ordinal));
-        return attribute?.Value is JsonElement { ValueKind: JsonValueKind.String } value &&
-               string.Equals(value.GetString(), expected, StringComparison.Ordinal);
+        return attribute?.Value is Qyl.Api.Contracts.Common.AttributeValue.StringValue { Value: var value } &&
+               string.Equals(value, expected, StringComparison.Ordinal);
     }
 
     private static void RequireService(ContractSpan span, string serviceName)
@@ -450,10 +450,8 @@ internal sealed class QylApiContractClient(HttpClient http, Uri apiBase)
 [JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.SpanStatus))]
 [JsonSerializable(typeof(CursorPageLogRecord))]
 [JsonSerializable(typeof(LogRecord))]
-[JsonSerializable(typeof(LogBodyString))]
-[JsonSerializable(typeof(LogBodyKvList))]
-[JsonSerializable(typeof(LogBodyArray))]
-[JsonSerializable(typeof(LogBodyBytes))]
+[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeValue))]
+[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeObjectValue))]
 [JsonSerializable(typeof(ContractResource))]
 [JsonSerializable(typeof(Qyl.Api.Contracts.Common.EntityRef), TypeInfoPropertyName = "CommonEntityRef")]
 [JsonSerializable(typeof(Qyl.Api.Contracts.Common.InstrumentationScope))]

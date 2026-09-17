@@ -61,7 +61,7 @@ internal sealed record LogIngestionRecord
     public ulong? ObservedTimeUnixNano { get; init; }
     public required int SeverityNumber { get; init; }
     public string? SeverityText { get; init; }
-    public string? BodyText { get; init; }
+    public required OtlpAttributeValue Body { get; init; }
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }

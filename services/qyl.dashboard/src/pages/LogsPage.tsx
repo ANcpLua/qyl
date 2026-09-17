@@ -26,7 +26,7 @@ import {isStructuredContent, TextVisualizer} from '@/components/ui/text-visualiz
 import {OnboardingHint} from '@/components/OnboardingHint';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
-import {formatAttributeValue} from '@/lib/attribute-value';
+import {formatAttributeValue} from '@ancplua/qyl-api-schema/runtime';
 import type {AttributeValue, LogRecord} from '@ancplua/qyl-api-schema/types';
 
 const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
@@ -106,10 +106,7 @@ export function normalizeSeverity(severityText: LogRecord['severity_text'], seve
 }
 
 function normalizeBody(body: LogRecord['body']): string {
-    if ('string_value' in body) return body.string_value;
-    if ('bytes_value' in body) return body.bytes_value;
-    if ('array_value' in body) return JSON.stringify(body.array_value);
-    return JSON.stringify(Object.fromEntries(body.kv_list_value.map(attribute => [attribute.key, attribute.value])));
+    return formatAttributeValue(body);
 }
 
 function normalizeAttributes(

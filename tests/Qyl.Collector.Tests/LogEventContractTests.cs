@@ -81,7 +81,10 @@ public sealed class LogEventContractTests
         Assert.Equal(eventName, converted.EventName);
         Assert.Equal(traceId, converted.TraceId);
         Assert.Equal(spanId, converted.SpanId);
-        Assert.Equal(logBody, converted.Body);
+        // The stored body is the value's canonical JSON, so a string body carries its quotes.
+        Assert.Equal(
+            JsonSerializer.Serialize(new Qyl.Api.Contracts.Common.AttributeValue.StringValue(logBody), QylSerializerContext.Default.AttributeValue),
+            converted.Body);
         Assert.Contains(
             "\"web.vital.value\":{\"type\":\"int\",\"value\":\"778\"}",
             converted.AttributesJson,

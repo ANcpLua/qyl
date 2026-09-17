@@ -455,7 +455,7 @@ internal static partial class OtlpConverter
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
-            BodyText = ConvertProtoAnyValue(log.Body).ToStableString(),
+            Body = ConvertProtoAnyValue(log.Body),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,

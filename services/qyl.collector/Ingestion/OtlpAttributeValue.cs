@@ -1,4 +1,7 @@
 using System.Text;
+using System.Text.Json;
+using ContractValue = Qyl.Api.Contracts.Common.AttributeValue;
+using Qyl.Api.Contracts.Common;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -78,84 +81,35 @@ internal sealed class OtlpAttributeValue
         return builder.ToString();
     }
 
-    public void WriteJsonValue(Utf8JsonWriter writer)
-    {
-        switch (Kind)
+    /// <summary>
+    /// The generated contract value. This is the only encoder: storage and the API both write
+    /// it through the contract's own converter, so the persisted bytes are the wire bytes.
+    /// </summary>
+    public ContractValue? ToContract() =>
+        Kind switch
         {
-            case OtlpAttributeValueKind.Empty:
-                writer.WriteNullValue();
-                break;
-            case OtlpAttributeValueKind.String:
-                writer.WriteStringValue((string)value);
-                break;
-            case OtlpAttributeValueKind.Bool:
-                writer.WriteBooleanValue((bool)value);
-                break;
-            case OtlpAttributeValueKind.Int:
-                writer.WriteStartObject();
-                writer.WriteString("type", "int");
-                writer.WriteString("value", ((long)value).ToString(CultureInfo.InvariantCulture));
-                writer.WriteEndObject();
-                break;
-            case OtlpAttributeValueKind.Double:
-                writer.WriteStartObject();
-                writer.WriteString("type", "double");
-                writer.WritePropertyName("value");
-                WriteDouble(writer, (double)value);
-                writer.WriteEndObject();
-                break;
-            case OtlpAttributeValueKind.Bytes:
-                writer.WriteStartObject();
-                writer.WriteString("type", "bytes");
-                writer.WriteString("base64", Convert.ToBase64String((byte[])value));
-                writer.WriteEndObject();
-                break;
-            case OtlpAttributeValueKind.Array:
-                writer.WriteStartArray();
-                foreach (var item in (IReadOnlyList<OtlpAttributeValue>)value)
-                    item.WriteJsonValue(writer);
-                writer.WriteEndArray();
-                break;
-            case OtlpAttributeValueKind.KeyValueList:
-                writer.WriteStartObject();
-                writer.WriteString("type", "kvlist");
-                writer.WritePropertyName("values");
-                writer.WriteStartObject();
-                foreach (var (key, nestedValue) in ((IReadOnlyDictionary<string, OtlpAttributeValue>)value)
-                         .OrderBy(static item => item.Key, StringComparer.Ordinal))
-                {
-                    writer.WritePropertyName(key);
-                    nestedValue.WriteJsonValue(writer);
-                }
-                writer.WriteEndObject();
-                writer.WriteEndObject();
-                break;
-            default:
-                throw new InvalidOperationException($"Unknown OTLP attribute value kind '{Kind}'.");
-        }
-    }
+            OtlpAttributeValueKind.Empty => null,
+            OtlpAttributeValueKind.String => new ContractValue.StringValue((string)value),
+            OtlpAttributeValueKind.Bool => new ContractValue.BoolValue((bool)value),
+            OtlpAttributeValueKind.Int => new ContractValue.ObjectValue(new AttributeIntValue { Value = (long)value }),
+            OtlpAttributeValueKind.Double => new ContractValue.ObjectValue(new AttributeDoubleValue { Value = (double)value }),
+            OtlpAttributeValueKind.Bytes => new ContractValue.ObjectValue(new AttributeBytesValue { Base64 = (byte[])value }),
+            OtlpAttributeValueKind.Array => new ContractValue.ArrayValue(
+                ((IReadOnlyList<OtlpAttributeValue>)value).Select(static item => item.ToContract()).ToArray()),
+            OtlpAttributeValueKind.KeyValueList => new ContractValue.ObjectValue(new AttributeKeyValueListValue
+            {
+                Values = ((IReadOnlyDictionary<string, OtlpAttributeValue>)value)
+                    .OrderBy(static item => item.Key, StringComparer.Ordinal)
+                    .ToDictionary(static item => item.Key, static item => item.Value.ToContract(), StringComparer.Ordinal)
+            }),
+            _ => throw new InvalidOperationException($"Unknown OTLP attribute value kind '{Kind}'.")
+        };
 
-    private static void WriteDouble(Utf8JsonWriter writer, double value)
-    {
-        if (double.IsFinite(value))
-        {
-            writer.WriteNumberValue(value);
-            return;
-        }
+    public void WriteJsonValue(Utf8JsonWriter writer) =>
+        JsonSerializer.Serialize(writer, ToContract(), QylSerializerContext.Default.AttributeValue);
 
-        writer.WriteStringValue(value.ToString("R", CultureInfo.InvariantCulture));
-    }
-
-    private string WriteJsonToString()
-    {
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            WriteJsonValue(writer);
-        }
-
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
-    }
+    private string WriteJsonToString() =>
+        JsonSerializer.Serialize(ToContract(), QylSerializerContext.Default.AttributeValue);
 
     private void AppendIdentityTo(StringBuilder builder)
     {

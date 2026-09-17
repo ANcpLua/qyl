@@ -32,7 +32,7 @@ import {
 } from '@/hooks/use-telemetry';
 import type {Span} from '@/types';
 import {getStatusLabel} from '@/types';
-import {attributeNumber, attributeString, formatAttributeValue} from '@/lib/attribute-value';
+import {attributeNumber, attributeString, formatAttributeValue} from '@ancplua/qyl-api-schema/runtime';
 
 function getServiceName(span: Span): string {
     return span.resource.service_name;

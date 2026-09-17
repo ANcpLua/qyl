@@ -157,9 +157,9 @@ public sealed class ResourceEntityRefProjectionTests
         var attributes = Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
             span.Resource.Attributes);
         Assert.Contains(attributes, static attribute =>
-            attribute.Key == "custom.entity.id" && Equals(attribute.Value, "custom-1"));
+            attribute.Key == "custom.entity.id" && attribute.Value is Qyl.Api.Contracts.Common.AttributeValue.StringValue { Value: "custom-1" });
         Assert.Contains(attributes, static attribute =>
-            attribute.Key == "custom.entity.description" && Equals(attribute.Value, "Custom entity"));
+            attribute.Key == "custom.entity.description" && attribute.Value is Qyl.Api.Contracts.Common.AttributeValue.StringValue { Value: "Custom entity" });
         Assert.DoesNotContain(attributes, static attribute => attribute.Key == "custom.unreferenced");
 
         var denied = BuildResource();

@@ -6,6 +6,7 @@ using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Traces;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
+using ContractValue = Qyl.Api.Contracts.Common.AttributeValue;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
 using TraceContract = Qyl.Api.Contracts.OTel.Traces.Trace;
 using ContractMetricKind = Qyl.Api.Contracts.OTel.Metrics.MetricKind;
@@ -41,8 +42,12 @@ internal static class ContractJson
             var keys = new HashSet<string>(StringComparer.Ordinal);
             foreach (var property in document.RootElement.EnumerateObject())
             {
-                if (!keys.Add(property.Name) || !TryReadValue(property.Value, out var value)) return false;
-                parsed.Add(new ContractAttribute { Key = property.Name, Value = value });
+                if (!keys.Add(property.Name)) return false;
+                parsed.Add(new ContractAttribute
+                {
+                    Key = property.Name,
+                    Value = property.Value.Deserialize(QylSerializerContext.Default.AttributeValue)
+                });
             }
 
             attributes = parsed;
@@ -54,177 +59,20 @@ internal static class ContractJson
         }
     }
 
-    private static bool TryReadValue(JsonElement value, out object? result)
+    /// <summary>A stored body or single value, decoded with the contract's own converter.</summary>
+    public static ContractValue? ParseAttributeValue(string? json)
     {
-        switch (value.ValueKind)
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
         {
-            case JsonValueKind.String:
-                result = value.GetString() ?? "";
-                return true;
-            case JsonValueKind.True:
-                result = true;
-                return true;
-            case JsonValueKind.False:
-                result = false;
-                return true;
-            case JsonValueKind.Null:
-                // Attribute.Value is required even for an empty OTLP AnyValue. Keeping an explicit
-                // null JsonElement prevents the context-wide WhenWritingNull policy from omitting it.
-                result = value.Clone();
-                return true;
-            case JsonValueKind.Array:
-            {
-                var items = new object?[value.GetArrayLength()];
-                var index = 0;
-                foreach (var item in value.EnumerateArray())
-                {
-                    if (!TryReadValue(item, out items[index]))
-                    {
-                        result = null;
-                        return false;
-                    }
-
-                    index++;
-                }
-
-                result = items;
-                return true;
-            }
-            case JsonValueKind.Object:
-                return TryReadTaggedValue(value, out result);
-            default:
-                // Untagged JSON numbers are ambiguous: an OTLP int64 and a finite double can have
-                // the same JSON token. The generated contract therefore requires tagged wrappers.
-                result = null;
-                return false;
+            return JsonSerializer.Deserialize(json, QylSerializerContext.Default.AttributeValue);
         }
-    }
-
-    private static bool TryReadTaggedValue(JsonElement value, out object? result)
-    {
-        result = null;
-        if (!value.TryGetProperty("type", out var typeProperty) ||
-            typeProperty.ValueKind is not JsonValueKind.String)
+        catch (JsonException exception)
         {
-            return false;
+            throw new InvalidDataException("Stored value does not match the generated AttributeValue contract.", exception);
         }
-
-        switch (typeProperty.GetString())
-        {
-            case "bytes":
-                if (!HasExactProperties(value, "type", "base64") ||
-                    !value.TryGetProperty("base64", out var base64Property) ||
-                    base64Property.ValueKind is not JsonValueKind.String)
-                {
-                    return false;
-                }
-
-                try
-                {
-                    result = new AttributeBytesValue
-                    {
-                        Type = "bytes",
-                        Base64 = Convert.FromBase64String(base64Property.GetString() ?? "")
-                    };
-                    return true;
-                }
-                catch (FormatException)
-                {
-                    return false;
-                }
-
-            case "int":
-                if (!HasExactProperties(value, "type", "value") ||
-                    !value.TryGetProperty("value", out var integerProperty) ||
-                    integerProperty.ValueKind is not JsonValueKind.String ||
-                    !long.TryParse(
-                        integerProperty.GetString(),
-                        NumberStyles.AllowLeadingSign,
-                        CultureInfo.InvariantCulture,
-                        out var integer))
-                {
-                    return false;
-                }
-
-                result = new AttributeIntValue { Type = "int", Value = integer };
-                return true;
-
-            case "double":
-                if (!HasExactProperties(value, "type", "value") ||
-                    !value.TryGetProperty("value", out var doubleProperty) ||
-                    !TryReadDouble(doubleProperty, out var number))
-                {
-                    return false;
-                }
-
-                result = new AttributeDoubleValue { Type = "double", Value = number };
-                return true;
-
-            case "kvlist":
-                if (!HasExactProperties(value, "type", "values") ||
-                    !value.TryGetProperty("values", out var valuesProperty) ||
-                    valuesProperty.ValueKind is not JsonValueKind.Object ||
-                    !TryReadValueDictionary(valuesProperty, out var values))
-                {
-                    return false;
-                }
-
-                result = new AttributeKeyValueListValue { Type = "kvlist", Values = values };
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    private static bool TryReadValueDictionary(
-        JsonElement value,
-        out IReadOnlyDictionary<string, object?> values)
-    {
-        var parsed = new Dictionary<string, object?>(StringComparer.Ordinal);
-        foreach (var property in value.EnumerateObject())
-        {
-            if (!parsed.TryAdd(property.Name, null) || !TryReadValue(property.Value, out var item))
-            {
-                values = null!;
-                return false;
-            }
-
-            parsed[property.Name] = item;
-        }
-
-        values = parsed;
-        return true;
-    }
-
-    private static bool TryReadDouble(JsonElement value, out double number)
-    {
-        if (value.ValueKind is JsonValueKind.Number && value.TryGetDouble(out number)) return true;
-        if (value.ValueKind is JsonValueKind.String)
-        {
-            number = value.GetString() switch
-            {
-                "NaN" => double.NaN,
-                "Infinity" => double.PositiveInfinity,
-                "-Infinity" => double.NegativeInfinity,
-                _ => 0
-            };
-            return value.GetString() is "NaN" or "Infinity" or "-Infinity";
-        }
-
-        number = 0;
-        return false;
-    }
-
-    private static bool HasExactProperties(JsonElement value, params string[] expected)
-    {
-        var names = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var property in value.EnumerateObject())
-        {
-            if (!names.Add(property.Name)) return false;
-        }
-
-        return names.SetEquals(expected);
     }
 }
 
@@ -483,7 +331,7 @@ internal static class LogMapper
             ObservedTimeUnixNano = record.ObservedTimeUnixNano ?? record.TimeUnixNano,
             SeverityNumber = MapSeverityNumber(record.SeverityNumber),
             SeverityText = MapSeverityText(record.SeverityText, record.SeverityNumber),
-            Body = new LogBodyString { StringValue = record.Body ?? "" },
+            Body = ContractJson.ParseAttributeValue(record.Body),
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             TraceId = record.TraceId,
             SpanId = record.SpanId,

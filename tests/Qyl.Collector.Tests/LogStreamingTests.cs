@@ -132,7 +132,7 @@ public sealed class LogStreamingTests
             TimeUnixNano = eventTime,
             SeverityNumber = 9,
             SeverityText = "info",
-            Body = id,
+            Body = JsonSerializer.Serialize(new Qyl.Api.Contracts.Common.AttributeValue.StringValue(id), QylSerializerContext.Default.AttributeValue),
             ServiceName = "stream-regression"
         };
 

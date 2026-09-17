@@ -18,6 +18,8 @@ namespace Qyl.Collector;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     NumberHandling = JsonNumberHandling.AllowReadingFromString |
                      JsonNumberHandling.AllowNamedFloatingPointLiterals,
+    // The AttributeObjectValue tag is a plain wire property; producers do not promise its position.
+    AllowOutOfOrderMetadataProperties = true,
     WriteIndented = false)]
 [JsonSerializable(typeof(Span))]
 [JsonSerializable(typeof(Span[]))]
@@ -30,10 +32,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(CursorPageTrace))]
 [JsonSerializable(typeof(LogRecord))]
 [JsonSerializable(typeof(LogRecord[]))]
-[JsonSerializable(typeof(LogBodyString))]
-[JsonSerializable(typeof(LogBodyKvList))]
-[JsonSerializable(typeof(LogBodyArray))]
-[JsonSerializable(typeof(LogBodyBytes))]
+[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeValue))]
+[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeObjectValue))]
 [JsonSerializable(typeof(CursorPageLogRecord))]
 [JsonSerializable(typeof(MetricDescriptor))]
 [JsonSerializable(typeof(MetricDescriptor[]))]
