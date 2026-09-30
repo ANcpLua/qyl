@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.2.0 — 2026-09-30
+
+- `qyl.dashboard.esproj` restores, builds and tests with Bun
+  (`bun install --frozen-lockfile`, `bun run build`, `bun run test`), the same
+  commands Fallout and CI run. `bun.lock` is the only lockfile; npm is no
+  longer part of the build.
+
 ## 7.1.0 — 2026-09-17
 
 - `Qyl.Api.Contracts` 11.0.1 → 11.2.0. Series and resource identity are the
