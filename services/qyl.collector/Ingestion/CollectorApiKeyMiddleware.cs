@@ -3,7 +3,7 @@ namespace Qyl.Collector.Ingestion;
 /// <summary>
 /// API-key boundary for the collector's HTTP surface. In ApiKey mode it
 /// guards both the OTLP ingest routes (<c>/v1/*</c>) and the read API (<c>/api/v1/*</c>) with
-/// one collector credential sent as the generated contract's <c>x-otlp-api-key</c> header.
+/// a project-bound credential sent as the generated contract's <c>x-otlp-api-key</c> header.
 /// <c>/health</c>, <c>/alive</c>, and
 /// the SPA stay open: liveness must be probeable without credentials, and the dashboard shell
 /// carries no data.
@@ -31,7 +31,8 @@ internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKey
 
         var apiKey = context.Request.Headers[OtlpConstants.ApiKeyHeaderName].FirstOrDefault();
 
-        if (!OtlpApiKeyValidator.IsValid(apiKey, options))
+        var projectId = OtlpApiKeyValidator.ResolveProject(apiKey, options);
+        if (projectId is null)
         {
             var challenge = $"{OtlpConstants.ApiKeyHeaderName} realm=\"qyl-otlp\"";
             context.Response.Headers.WWWAuthenticate = challenge;
@@ -56,6 +57,22 @@ internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKey
             return;
         }
 
+        var requestedProject = context.Request.Headers["X-Qyl-Project"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(requestedProject) &&
+            !string.Equals(ProjectScope.Normalize(requestedProject), projectId, StringComparison.Ordinal))
+        {
+            if (isReadApi)
+                await ContractErrorResults.WriteValidationAsync(
+                    context.Response, "X-Qyl-Project", "Project does not match the API key.",
+                    "project.mismatch", cancellationToken: context.RequestAborted).ConfigureAwait(false);
+            else
+                await OtlpHttpResult.Failure(
+                    StatusCodes.Status400BadRequest, DetectEncoding(context.Request.ContentType),
+                    "Project does not match the API key.").ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        AuthenticatedProjectScope.Set(context, projectId);
         await next(context).ConfigureAwait(false);
     }
 

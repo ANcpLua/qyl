@@ -2,7 +2,7 @@ using OpenTelemetry.Proto.Collector.Metrics.V1;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class MetricsServiceImpl(IQylStore store)
+internal sealed class MetricsServiceImpl(IQylStore store, OtlpApiKeyOptions? options = null)
     : MetricsService.MetricsServiceBase
 {
     public override Task<ExportMetricsServiceResponse> Export(
@@ -11,7 +11,8 @@ internal sealed class MetricsServiceImpl(IQylStore store)
         GrpcExport.ExecuteAsync(async () =>
         {
             var batch = OtlpConverter.ConvertMetrics(request);
-            var write = MetricStorageMapper.ToStorageRows(batch);
+            var write = MetricStorageMapper.ToStorageRows(
+                batch, AuthenticatedProjectScope.ForGrpcIngest(context, options));
 
             if (write.Points.Count > 0)
             {

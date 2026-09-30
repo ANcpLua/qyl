@@ -20,7 +20,7 @@ services:
       - ASPNETCORE_URLS=http://+:5100
       # Dev stack: without this the collector fails closed at boot (Production defaults
       # OTLP auth to ApiKey and refuses to start with no keys configured). Set real keys
-      # via QYL_OTLP_PRIMARY_API_KEY instead when exposing this stack beyond localhost.
+      # via QYL_OTLP_PROJECT_KEYS instead when exposing this stack beyond localhost.
       - QYL_OTLP_AUTH_MODE=Unsecured
     restart: unless-stopped
     healthcheck:

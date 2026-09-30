@@ -2,7 +2,7 @@ using OpenTelemetry.Proto.Collector.Logs.V1;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class LogsServiceImpl(IQylStore store)
+internal sealed class LogsServiceImpl(IQylStore store, OtlpApiKeyOptions? options = null)
     : LogsService.LogsServiceBase
 {
     public override Task<ExportLogsServiceResponse> Export(
@@ -11,7 +11,8 @@ internal sealed class LogsServiceImpl(IQylStore store)
         GrpcExport.ExecuteAsync(async () =>
         {
             var logBatch = OtlpConverter.ConvertLogs(request);
-            var logs = IngestionStorageMapper.ToLogStorageRows(logBatch);
+            var logs = IngestionStorageMapper.ToLogStorageRows(
+                logBatch, AuthenticatedProjectScope.ForGrpcIngest(context, options));
 
             if (logs.Count <= 0) return new ExportLogsServiceResponse();
 
