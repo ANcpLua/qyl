@@ -42,7 +42,7 @@
 
   <Target Name="QylRequireDashboardForToolPackage" BeforeTargets="GenerateNuspec"
           Condition="'$(RuntimeIdentifier)' == '' AND !Exists('$(_QylDashboardIndex)')">
-    <Error Text="The qyl tool packages the embedded product dashboard, but services/qyl.dashboard/dist/index.html is missing. Run npm ci and npm run build in services/qyl.dashboard before packing."/>
+    <Error Text="The qyl tool packages the embedded product dashboard, but services/qyl.dashboard/dist/index.html is missing. Run bun install --frozen-lockfile and bun run build in services/qyl.dashboard before packing."/>
   </Target>
 
   <!-- The SDK packs RID tool implementations in parallel. Restore the collector graphs serially

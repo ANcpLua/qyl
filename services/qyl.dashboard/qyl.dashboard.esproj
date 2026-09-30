@@ -3,25 +3,25 @@
     <PropertyGroup>
         <FrontendRoot>$(MSBuildThisFileDirectory)</FrontendRoot>
 
-        <NpmExe Condition="'$(NpmExe)' == ''">npm</NpmExe>
+        <BunExe Condition="'$(BunExe)' == ''">bun</BunExe>
 
         <DistDir>$(FrontendRoot)dist</DistDir>
         <NodeModulesDir>$(FrontendRoot)node_modules</NodeModulesDir>
     </PropertyGroup>
 
     <Target Name="Restore">
-        <Message Text="[Frontend] Restoring dependencies from package-lock.json (npm ci)..." Importance="high"/>
-        <Exec Command="$(NpmExe) ci" WorkingDirectory="$(FrontendRoot)"/>
+        <Message Text="[Frontend] Restoring dependencies from bun.lock (bun install --frozen-lockfile)..." Importance="high"/>
+        <Exec Command="$(BunExe) install --frozen-lockfile" WorkingDirectory="$(FrontendRoot)"/>
     </Target>
 
     <Target Name="Build" DependsOnTargets="Restore">
         <Message Text="[Frontend] Building Vite application..." Importance="high"/>
-        <Exec Command="$(NpmExe) run build" WorkingDirectory="$(FrontendRoot)"/>
+        <Exec Command="$(BunExe) run build" WorkingDirectory="$(FrontendRoot)"/>
     </Target>
 
     <Target Name="Test" DependsOnTargets="Restore">
         <Message Text="[Frontend] Running Vitest..." Importance="high"/>
-        <Exec Command="$(NpmExe) test -- --run" WorkingDirectory="$(FrontendRoot)" ContinueOnError="false"/>
+        <Exec Command="$(BunExe) run test -- --run" WorkingDirectory="$(FrontendRoot)" ContinueOnError="false"/>
     </Target>
 
     <Target Name="Clean">
