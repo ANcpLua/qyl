@@ -43,7 +43,7 @@ export default defineRailway(() => {
       QYL_GRPC_PORT: preserve(),
       QYL_OTLP_AUTH_MODE: preserve(),
       QYL_OTLP_PORT: preserve(),
-      QYL_OTLP_PRIMARY_API_KEY: preserve(),
+      QYL_OTLP_PROJECT_KEYS: preserve(),
       QYL_PORT: preserve(),
       QYL_RETENTION_DAYS: preserve(),
     },
