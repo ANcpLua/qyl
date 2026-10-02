@@ -64,8 +64,8 @@
          timing has shifted between patch releases before. -->
     <DuckDBVersion>1.5.5</DuckDBVersion>
     <GoogleProtobufVersion>3.36.1</GoogleProtobufVersion>
-    <GrpcAspNetCoreVersion>2.83.0</GrpcAspNetCoreVersion>
-    <GrpcToolsVersion>2.83.0</GrpcToolsVersion>
+    <GrpcAspNetCoreVersion>2.84.0</GrpcAspNetCoreVersion>
+    <GrpcToolsVersion>2.84.0</GrpcToolsVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Build and test tooling">
