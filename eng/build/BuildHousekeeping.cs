@@ -16,6 +16,7 @@ interface IHousekeeping : IHasSourcePaths
     string? SdkVersion => TryGetValue(() => SdkVersion);
 
     Target VerifySdkVersions => d => d
+        .ProceedAfterFailure()
         .Description("Verify pinned .NET SDK versions in workflows and dockerfiles match global.json")
         .Executes(() =>
             DotNetTasks.DotNet(

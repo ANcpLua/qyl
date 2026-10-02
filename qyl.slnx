@@ -47,6 +47,8 @@
 
   <Folder Name="/services/">
     <Project Path="services/qyl.collector/qyl.collector.csproj" />
+    <Project Path="services/qyl.collector.ingestion/qyl.collector.ingestion.csproj" />
+    <Project Path="services/qyl.collector.storage/qyl.collector.storage.csproj" />
     <Project Path="services/qyl.dashboard/qyl.dashboard.esproj" />
   </Folder>
 

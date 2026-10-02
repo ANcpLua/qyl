@@ -56,6 +56,12 @@ interface IDependencyEdges : IHasSourcePaths
             "Qyl.Api.Contracts",
             "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
         ],
+        // OTLP decoding normalizes against the same vocabulary and writes the contract AttributeValue.
+        ["services/qyl.collector.ingestion/qyl.collector.ingestion.csproj"] =
+        [
+            "Qyl.Api.Contracts",
+            "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
+        ],
         ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Telemetry.Hosting"],
         // Every project built by the Qyl.Api.Sdk MSBuild SDK, which injects these from its own targets: the
         // producer's onboarding surface and the package its interceptor generator ships in. A project moves
@@ -84,6 +90,30 @@ interface IDependencyEdges : IHasSourcePaths
     /// </summary>
     private static readonly string[] s_collectorProjectReferenceExemptions =
     [
+        "tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj",
+    ];
+
+    private const string CollectorStorageProject = "services/qyl.collector.storage/qyl.collector.storage.csproj";
+
+    /// <summary>
+    /// The collector's layering, held by the project graph: decoding references no storage and no
+    /// host, storage references no host, and each library is referenced only by the projects listed.
+    /// The compiler then refuses what a text scan used to look for.
+    /// </summary>
+    private static Dictionary<string, string[]> AllowedCollectorLibraryReferrers => new(StringComparer.Ordinal)
+    {
+        ["services/qyl.collector.ingestion/qyl.collector.ingestion.csproj"] =
+            [CollectorStorageProject, "services/qyl.collector/qyl.collector.csproj"],
+        [CollectorStorageProject] = ["services/qyl.collector/qyl.collector.csproj"],
+    };
+
+    /// <summary>
+    /// DuckDB is a storage detail. The collector tests seed and inspect database files directly, so
+    /// they carry their own reference; storage keeps its compile assets private from everything else.
+    /// </summary>
+    private static readonly string[] s_duckDbProjects =
+    [
+        CollectorStorageProject,
         "tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj",
     ];
 
@@ -120,6 +150,7 @@ interface IDependencyEdges : IHasSourcePaths
                 .Contains("Qyl.Api.Sdk/Sdk/Sdk.", StringComparison.OrdinalIgnoreCase) is true);
 
     Target VerifyDependencyEdges => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Executes(() =>
         {
@@ -197,6 +228,31 @@ interface IDependencyEdges : IHasSourcePaths
                     offenders.AddRange(collectorEdges.Select(edge =>
                         $"{relative}: ProjectReference on the collector ({edge}) — G11: the " +
                         "collector is reachable only via its API"));
+                }
+
+                foreach (var include in document.Descendants("ProjectReference")
+                             .Select(static r => (string?)r.Attribute("Include"))
+                             .Where(static include => include is not null))
+                {
+                    var target = repoRoot.GetRelativePathTo(project.Parent / include!.Replace('\\', '/'))
+                        .ToString().Replace('\\', '/');
+                    if (AllowedCollectorLibraryReferrers.TryGetValue(target, out var referrers) &&
+                        !referrers.Contains(relative, StringComparer.Ordinal))
+                    {
+                        offenders.Add($"{relative}: ProjectReference on {target}, which only " +
+                                      $"[{string.Join(", ", referrers)}] may reference");
+                    }
+                }
+
+                foreach (var duckDb in document.Descendants("PackageReference")
+                             .Where(static r => ((string?)r.Attribute("Include"))?
+                                 .StartsWith("DuckDB.NET", StringComparison.OrdinalIgnoreCase) is true))
+                {
+                    if (!s_duckDbProjects.Contains(relative, StringComparer.Ordinal))
+                        offenders.Add($"{relative}: references {(string?)duckDb.Attribute("Include")}; DuckDB is a storage detail");
+                    else if (relative == CollectorStorageProject &&
+                             !string.Equals((string?)duckDb.Attribute("PrivateAssets"), "compile", StringComparison.OrdinalIgnoreCase))
+                        offenders.Add($"{relative}: DuckDB must keep PrivateAssets=\"compile\" so the host cannot compile against it");
                 }
 
                 foreach (var reference in references)

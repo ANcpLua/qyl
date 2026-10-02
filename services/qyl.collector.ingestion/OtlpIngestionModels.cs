@@ -1,3 +1,5 @@
+using Qyl.Collector.Primitives;
+
 namespace Qyl.Collector.Ingestion;
 
 internal sealed record TraceIngestionBatch(IReadOnlyList<SpanIngestionRecord> Spans);

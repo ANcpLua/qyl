@@ -15,6 +15,7 @@ namespace Qyl.Build;
 interface IConfigurationKnobs : IHasSourcePaths
 {
     Target VerifyConfigurationKnobs => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify every QYL_* code binding has exactly one docs/configuration.md row")
         .Executes(() => ConfigurationKnobInventory.Verify(RootDirectory));

@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Ingestion;
+namespace Qyl.Collector.ApiKeys;
 
 internal sealed class OtlpApiKeyOptions
 {

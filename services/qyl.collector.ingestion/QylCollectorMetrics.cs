@@ -2,6 +2,7 @@ using System.Diagnostics.Metrics;
 using Qyl.Collector.Ingestion;
 using Qyl.Telemetry.SemanticConventions.Incubating.Mapping;
 using Qyl.Telemetry.SemanticConventions.Incubating.Metrics;
+using Qyl.Telemetry.SemanticConventions.Names;
 
 namespace Qyl.Collector.Telemetry;
 
@@ -13,7 +14,7 @@ namespace Qyl.Collector.Telemetry;
 /// </summary>
 internal static class QylCollectorMetrics
 {
-    private static readonly Meter s_meter = new(QylTelemetry.ServiceName, BuildVersion.InformationalVersion);
+    private static readonly Meter s_meter = new(QylTelemetryNames.Scopes.QylCollector, BuildVersion.InformationalVersion);
 
     private static readonly Counter<long> s_attributesDropped = s_meter.CreateCounter<long>(
         QylIncubatingMetricDefinitions.QylCollectorAttributesDropped.Name,

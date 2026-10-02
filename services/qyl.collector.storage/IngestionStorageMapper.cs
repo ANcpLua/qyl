@@ -134,7 +134,7 @@ internal static class IngestionStorageMapper
         appendParts(builder);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
-        return prefix + "_" + Convert.ToHexString(hash.AsSpan(0, 16)).ToLowerInvariant();
+        return prefix + "_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
     }
 
     private static void AppendIdentityPart(StringBuilder builder, string? value)
@@ -185,7 +185,7 @@ internal static class IngestionStorageMapper
     }
 
     private static string EncodeBody(OtlpAttributeValue body) =>
-        JsonSerializer.Serialize(body.ToContract(), QylSerializerContext.Default.AttributeValue);
+        JsonSerializer.Serialize(body.ToContract(), OtlpAttributeJsonContext.Default.AttributeValue);
 
     private static string TruncateBodyText(string raw)
     {

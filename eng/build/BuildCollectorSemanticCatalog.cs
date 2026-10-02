@@ -21,7 +21,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
     const string IncubatingPackageId = "Qyl.Telemetry.SemanticConventions.Incubating";
 
     AbsolutePath CollectorSemanticCatalogFile =>
-        CollectorDirectory / "Ingestion" / "Generated" / "CollectorSemanticAttributeCatalog.g.cs";
+        CollectorIngestionDirectory / "Generated" / "CollectorSemanticAttributeCatalog.g.cs";
 
     AbsolutePath CollectorSemanticPolicyFile =>
         RootDirectory / "eng" / "config" / "collector-semantic-policy.json";
@@ -44,6 +44,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         });
 
     Target VerifyCollectorSemanticAttributeCatalog => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector semantic attribute catalog is generated from package references")
         .Executes(() =>
@@ -68,11 +69,12 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         });
 
     Target VerifyCollectorSemanticPolicyIsCatalogBacked => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector runtime semantic policy uses the generated catalog")
         .Executes(() =>
         {
-            var policyFile = CollectorDirectory / "Ingestion" / "AttributeKeySets.cs";
+            var policyFile = CollectorIngestionDirectory / "AttributeKeySets.cs";
             if (!policyFile.FileExists())
                 throw new FileNotFoundException("Missing collector semantic policy", policyFile.ToString());
 

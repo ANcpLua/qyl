@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Qyl.Collector.Retention;
+using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Health;
 

@@ -1,5 +1,6 @@
 using Qyl.Collector.Health;
 using Qyl.Collector.Retention;
+using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Hosting;
 

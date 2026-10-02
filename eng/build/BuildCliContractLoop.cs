@@ -60,6 +60,7 @@ interface ICliContractLoop : IHasSourcePaths
     ];
 
     Target VerifyCliSerializesContractsOnly => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify Qyl.Cli JSON serializer contexts register only Qyl.Api.Contracts types")
         .Executes(() =>

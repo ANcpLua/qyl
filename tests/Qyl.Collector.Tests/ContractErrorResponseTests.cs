@@ -6,6 +6,7 @@ using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
 using RpcStatus = Google.Rpc.Status;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Tests;
 

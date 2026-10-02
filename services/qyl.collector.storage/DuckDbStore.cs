@@ -1003,7 +1003,7 @@ internal sealed partial class DuckDbStore : IQylStore
         static string Normalize(string value) => string.Concat(
             value.Where(static character => !char.IsWhiteSpace(character)))
             .Trim('(', ')')
-            .ToLowerInvariant()
+            .ToUpperInvariant()
             .Replace("\"", "", StringComparison.Ordinal)
             .Replace("cast(uuid()asvarchar)", "uuid()::varchar", StringComparison.Ordinal);
 

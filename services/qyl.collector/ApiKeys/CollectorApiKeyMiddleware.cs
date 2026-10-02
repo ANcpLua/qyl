@@ -1,6 +1,6 @@
 using Qyl.Collector.Primitives;
 
-namespace Qyl.Collector.Ingestion;
+namespace Qyl.Collector.ApiKeys;
 
 /// <summary>
 /// API-key boundary for the collector's HTTP surface. In ApiKey mode it

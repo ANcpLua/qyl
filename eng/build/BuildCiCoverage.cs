@@ -35,6 +35,7 @@ interface ICiCoverage : IHasSourcePaths
         });
 
     Target VerifyCiTargetCoversWorkflow => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify every target and script CI invokes is reachable from the Ci target")
         .Executes(() =>

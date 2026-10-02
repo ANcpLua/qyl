@@ -30,6 +30,7 @@ using OtlpResourceLogs = OpenTelemetry.Proto.Logs.V1.ResourceLogs;
 using OtlpScopeLogs = OpenTelemetry.Proto.Logs.V1.ScopeLogs;
 using RpcStatus = Google.Rpc.Status;
 using GrpcStatus = Grpc.Core.Status;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Tests;
 

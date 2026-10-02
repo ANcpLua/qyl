@@ -1,4 +1,5 @@
 using System.Text;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Storage;
 
@@ -101,7 +102,7 @@ internal static class MetricStorageMapper
         AppendIdentityPart(builder, resourceJson);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
-        return "ms_" + Convert.ToHexString(hash.AsSpan(0, 16)).ToLowerInvariant();
+        return "ms_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
     }
 
     private static void AppendIdentityPart(StringBuilder builder, string? value)
