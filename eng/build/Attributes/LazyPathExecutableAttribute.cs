@@ -2,8 +2,8 @@
 
 using System;
 using System.Reflection;
-using Nuke.Common.Tooling;
-using Nuke.Common.ValueInjection;
+using Fallout.Common.Tooling;
+using Fallout.Common.ValueInjection;
 
 namespace Qyl.Build;
 

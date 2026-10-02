@@ -1,14 +1,14 @@
 
 using System;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Components;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
+using Fallout.Components;
 
 namespace Qyl.Build;
 
 
-interface IHazSourcePaths : IHazSolution, IHazArtifacts
+interface IHasSourcePaths : IHasSolution, IHasArtifacts
 {
     new AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
     AbsolutePath ServicesDirectory => RootDirectory / "services";
@@ -39,7 +39,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     ];
 }
 
-interface IVersionize : IHazSourcePaths
+interface IVersionize : IHasSourcePaths
 {
     [PathVariable]
     Tool Versionize => TryGetValue(() => Versionize)

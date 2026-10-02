@@ -15,11 +15,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Xml.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
-using Nuke.Components;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
+using Fallout.Common.Tools.DotNet;
+using Fallout.Components;
 using Serilog;
 using HttpAttributes = Qyl.Telemetry.SemanticConventions.Attributes.Http.HttpAttributes;
 using QylAttributes = Qyl.Telemetry.SemanticConventions.Incubating.Attributes.Qyl.QylAttributes;
@@ -42,7 +42,7 @@ namespace Qyl.Build;
 /// first are three ways for it to be skipped instead of failed.
 /// </summary>
 [ParameterPrefix(nameof(IApiSdk))]
-interface IApiSdk : IHazSourcePaths, IHazConfiguration
+interface IApiSdk : IHasSourcePaths, IHasConfiguration
 {
     [Parameter("Skip the Qyl.Api.Sdk container stage (it needs a running Docker or OrbStack engine)")]
     bool? SkipContainer => TryGetValue<bool?>(() => SkipContainer);

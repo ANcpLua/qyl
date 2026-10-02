@@ -1,14 +1,14 @@
 // Targets adapted from open-telemetry/opentelemetry-dotnet-instrumentation (Apache-2.0).
 
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
+using Fallout.Common.Tools.DotNet;
 
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IHousekeeping))]
-interface IHousekeeping : IHazSourcePaths
+interface IHousekeeping : IHasSourcePaths
 {
     AbsolutePath ToolsDirectory => RootDirectory / "eng" / "tools";
 

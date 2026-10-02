@@ -142,7 +142,6 @@ dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
 # Non-C# generated outputs — skip Rider/ReSharper cleanup & reformat.
-# These emit from `nuke Generate` (TypeSpec → openapi → DuckDB DDL).
 [*.g.{sql,tsp,ts}]
 generated_code = true
 
@@ -150,7 +149,7 @@ generated_code = true
 generated_code = true
 
 [eng/build/**/*.cs]
-# Nuke injects fields and uses a top-level build type, so its generated conventions require these suppressions.
+# Fallout injects fields and uses a top-level build type, so its generated conventions require these suppressions.
 dotnet_diagnostic.CA1822.severity = none
 dotnet_diagnostic.CS0649.severity = none
 dotnet_diagnostic.CS0169.severity = none
