@@ -142,7 +142,6 @@ dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
 # Non-C# generated outputs — skip Rider/ReSharper cleanup & reformat.
-# These emit from `./eng/build.sh Generate` (TypeSpec → openapi → DuckDB DDL).
 [*.g.{sql,tsp,ts}]
 generated_code = true
 
