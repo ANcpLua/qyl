@@ -90,6 +90,6 @@ internal sealed class OtlpAttributeValue
         };
 
     public void WriteJsonValue(Utf8JsonWriter writer) =>
-        JsonSerializer.Serialize(writer, ToContract(), QylSerializerContext.Default.AttributeValue);
+        JsonSerializer.Serialize(writer, ToContract(), OtlpAttributeJsonContext.Default.AttributeValue);
 
 }

@@ -9,6 +9,8 @@ using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
+using Qyl.Collector.Primitives;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Tests;
 

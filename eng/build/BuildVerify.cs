@@ -28,6 +28,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
 
     Target VerifyFrontendTypes => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify frontend TypeScript types compile")
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
@@ -39,6 +40,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyFrontendApiTypes => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify the product dashboard consumes the exact generated API-contract package")
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
@@ -110,6 +112,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector does not publish source-generator discovered endpoint modules")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -135,6 +138,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorHasNoUnexpectedPublicTypes => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector does not expose public types outside the ASP.NET Program hook")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -161,6 +165,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorHasNoPublicLocalModels => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector-local DTO models do not become public API")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -209,6 +214,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorHasNoLocalHttpDtos => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector HTTP DTOs come from Qyl.Api.Contracts")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -241,6 +247,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorHasNoLocalApiModels => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector does not define API-facing local models")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -291,9 +298,11 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 return IsApiShapedName(declaration.Name);
             }
 
+            // Decoding and persistence types live in their own projects; their shapes are internals
+            // by construction, whatever their names suggest.
             static bool IsStorageOrIngestionInternal(string path) =>
-                path.Contains("/Storage/", StringComparison.Ordinal) ||
-                path.Contains("/Ingestion/", StringComparison.Ordinal);
+                path.Contains("services/qyl.collector.storage/", StringComparison.Ordinal) ||
+                path.Contains("services/qyl.collector.ingestion/", StringComparison.Ordinal);
 
             static bool IsInfrastructureType(string name) =>
                 name.EndsWith("Middleware", StringComparison.Ordinal) ||
@@ -324,6 +333,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorHttpJsonContextUsesOnlyContracts => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector HTTP JSON context does not expose local models")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -407,6 +417,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorEndpointResponsesUseContracts => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector endpoints do not return storage DTOs directly")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -421,8 +432,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 .Where(static file =>
                 {
                     var path = file.ToString().Replace('\\', '/');
-                    return path.Contains("/Storage/", StringComparison.Ordinal) ||
-                           path.Contains("/Ingestion/", StringComparison.Ordinal);
+                    return path.Contains("services/qyl.collector.storage/", StringComparison.Ordinal) ||
+                           path.Contains("services/qyl.collector.ingestion/", StringComparison.Ordinal);
                 })
                 .SelectMany(DeclaredTypes)
                 .Select(static declaration => declaration.Name)
@@ -449,6 +460,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorEndpointLimitsMatchOpenApi => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector endpoint pagination limits match qyl-api-schema OpenAPI")
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
@@ -544,6 +556,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     }
 
     Target VerifyCollectorRoutesMatchOpenApi => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify every qyl-api-schema product route is explicitly mapped by the collector")
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
@@ -617,6 +630,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorUsesSemanticConstants => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector semantic attribute keys flow through generated constants")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -652,6 +666,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     /// Generated code is exempt: it is where those strings are supposed to appear.
     /// </summary>
     Target VerifyCollectorAuthorsNoVocabulary => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify the collector types no qyl-owned key and no messaging.system value")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -683,6 +698,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorTelemetryUsesBuildVersion => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector telemetry source versions use the generated build version")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -767,6 +783,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorRuntimeHasNoDirectRoslynUtilityUsage => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector and instrumentation runtime code do not directly use ANcpLua.Roslyn.Utilities")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -854,12 +871,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorLatencyTagsAreBounded => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector latency tag names stay bounded")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+            var offenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -903,6 +921,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorExceptionTelemetryIsBounded => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector logs do not promote raw exception type names into dimensions")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -947,6 +966,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorLogStreamingUsesStorageOrdering => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify log streaming does not allocate local sort buffers per poll")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -957,7 +977,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new FileNotFoundException("Missing collector endpoint mapping", endpointFile.ToString());
 
             var endpointText = File.ReadAllText(endpointFile);
-            var storageFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var storageFile = CollectorStorageDirectory / "DuckDbStore.cs";
             if (!storageFile.FileExists())
                 throw new FileNotFoundException("Missing collector storage implementation", storageFile.ToString());
             var storageText = File.ReadAllText(storageFile);
@@ -1003,6 +1023,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorSessionFacetsAreBounded => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector session summaries do not aggregate unbounded distinct facets")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -1016,7 +1037,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "GROUP_CONCAT(DISTINCT"
             ];
 
-            var sessionsFile = CollectorDirectory / "Storage" / "DuckDbStore.Sessions.cs";
+            var sessionsFile = CollectorStorageDirectory / "DuckDbStore.Sessions.cs";
             var text = sessionsFile.FileExists() ? File.ReadAllText(sessionsFile) : "";
             var offenders = forbiddenSessionFacetTokens
                 .Where(token => text.Contains(token, StringComparison.OrdinalIgnoreCase))
@@ -1039,6 +1060,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyInstrumentationHasNoStorageTenantKnowledge => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify instrumentation packages stay storage- and tenant-blind")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -1095,6 +1117,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyInstrumentationTelemetryIsBoundedAndRedacted => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify instrumentation telemetry avoids raw exception content and unbounded span names")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -1152,14 +1175,15 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorStorageReadsAreProjectScoped => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector storage reads stay scoped by project_id")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var projectIdentityFile = CollectorDirectory / "Primitives" / "ProjectIdentity.cs";
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
-            var sessionsFile = CollectorDirectory / "Storage" / "DuckDbStore.Sessions.cs";
+            var projectIdentityFile = CollectorIngestionDirectory / "Primitives" / "ProjectIdentity.cs";
+            var storeFile = CollectorStorageDirectory / "DuckDbStore.cs";
+            var sessionsFile = CollectorStorageDirectory / "DuckDbStore.Sessions.cs";
 
             var projectIdentityText = projectIdentityFile.FileExists() ? File.ReadAllText(projectIdentityFile) : "";
             var storeText = storeFile.FileExists() ? File.ReadAllText(storeFile) : "";
@@ -1236,18 +1260,17 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorDuckDbAccessIsStorageOnly => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector DuckDB access stays behind storage intent methods")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
+            // DuckDB.NET's own types are the compiler's job: the storage project keeps their compile
+            // assets private. What it cannot see is the host reaching past IQylStore into storage
+            // internals it may legally name, so those stay listed here.
             string[] forbiddenDuckDbTokens =
             [
-                "DuckDB.NET.Data",
-                "DuckDBConnection",
-                "DuckDBCommand",
-                "DuckDBParameter",
-                "DuckDBException",
                 "DuckDbStore",
                 "DbCommand",
                 "DbDataReader",
@@ -1256,7 +1279,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "ExecuteWriteAsync"
             ];
 
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+            var offenders = new[] { CollectorDirectory, CollectorIngestionDirectory }.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -1279,28 +1302,28 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             }
 
             foreach (var offender in offenders)
-                Log.Error("  DuckDB storage detail '{Token}' found outside Storage in {File}", offender.Token, offender.File);
+                Log.Error("  DuckDB storage detail '{Token}' found outside qyl.collector.storage in {File}", offender.Token, offender.File);
 
             throw new InvalidOperationException(
-                "Do not pass DuckDB connections, commands, readers, or raw ExecuteRead/ExecuteWrite hooks outside Storage. " +
+                "Do not pass DuckDB connections, commands, readers, or raw ExecuteRead/ExecuteWrite hooks outside qyl.collector.storage. " +
                 "Expose intent methods on IQylStore and keep DuckDbStore behind the storage composition root.");
 
             static bool IsAllowedDuckDbDetailFile(string relativePath)
             {
                 var normalizedPath = relativePath.Replace('\\', '/');
-                return normalizedPath.Contains("services/qyl.collector/Storage/", StringComparison.Ordinal) ||
-                       normalizedPath.EndsWith("services/qyl.collector/Hosting/CollectorStorageExtensions.cs",
+                return normalizedPath.EndsWith("services/qyl.collector/Hosting/CollectorStorageExtensions.cs",
                            StringComparison.Ordinal);
             }
         });
 
     Target VerifyCollectorStorageReadsUseGeneratedColumnLists => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify storage row reads use generated DuckDB column lists")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var storeFile = CollectorStorageDirectory / "DuckDbStore.cs";
             if (!storeFile.FileExists())
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
 
@@ -1338,12 +1361,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorStorageTablesUseGeneratedDdl => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify generated DuckDB schema identity owns storage lifecycle")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var storeFile = CollectorStorageDirectory / "DuckDbStore.cs";
             if (!storeFile.FileExists())
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
 
@@ -1366,7 +1390,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             ];
 
             var storageAndGeneratorText = string.Join('\n',
-                (CollectorDirectory / "Storage").GlobFiles("*.cs")
+                CollectorStorageDirectory.GlobFiles("*.cs")
                     .Concat((RootDirectory / "internal" / "qyl.collector.storage.generators")
                         .GlobFiles("*.cs"))
                     .Select(static file => File.ReadAllText(file.ToString())));
@@ -1403,12 +1427,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify generated DuckDB hot paths use the correct 1.5.5 APIs")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var storeFile = CollectorStorageDirectory / "DuckDbStore.cs";
             var emitterFile = RootDirectory / "internal" / "qyl.collector.storage.generators" / "DuckDbEmitter.cs";
             if (!storeFile.FileExists())
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
@@ -1458,12 +1483,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyOtlpProtoSourcesPinned => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify vendored protocol inputs derive from immutable upstream files")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var protoRoot = CollectorDirectory / "Protos";
+            var protoRoot = CollectorIngestionDirectory / "Protos";
             var lockFile = protoRoot / "upstream.lock.json";
             if (!lockFile.FileExists())
                 throw new FileNotFoundException("Missing OTLP protobuf provenance lock", lockFile.ToString());
@@ -1558,6 +1584,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyNoHandwrittenOtlpWireParser => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify OTLP wire contracts use generated protobuf types")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -1603,7 +1630,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
 
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+            var offenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
                 .Where(static f =>
                 {
                     var path = f.ToString();
@@ -1633,12 +1660,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyOtlpConverterHotPath => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify OTLP converter hot path avoids removed allocation patterns")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
+            var converterFile = CollectorIngestionDirectory / "OtlpConverter.cs";
             if (!converterFile.FileExists())
                 throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
 
@@ -1677,12 +1705,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyOtlpAttributesPreserveAnyValueTypes => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify OTLP attributes are not collapsed to string-only dictionaries")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var ingestionFiles = (CollectorDirectory / "Ingestion").GlobFiles("**/*.cs")
+            var ingestionFiles = CollectorIngestionDirectory.GlobFiles("**/*.cs")
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -1694,7 +1723,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     Text: File.ReadAllText(file)))
                 .ToList();
 
-            var storageFiles = (CollectorDirectory / "Storage").GlobFiles("*.cs")
+            var storageFiles = CollectorStorageDirectory.GlobFiles("*.cs")
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -1720,7 +1749,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var converterText = ingestionFiles.Single(static file => file.File.EndsWith("Ingestion/OtlpConverter.cs", StringComparison.Ordinal)).Text;
+            var converterText = ingestionFiles.Single(static file => file.File.EndsWith("qyl.collector.ingestion/OtlpConverter.cs", StringComparison.Ordinal)).Text;
             string[] converterRequired =
             [
                 "ProtoAnyValue.ValueOneofCase.BytesValue",
@@ -1734,7 +1763,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 .Where(token => !converterText.Contains(token, StringComparison.Ordinal))
                 .ToList();
 
-            var attributeValueText = ingestionFiles.Single(static file => file.File.EndsWith("Ingestion/OtlpAttributeValue.cs", StringComparison.Ordinal)).Text;
+            var attributeValueText = ingestionFiles.Single(static file => file.File.EndsWith("qyl.collector.ingestion/OtlpAttributeValue.cs", StringComparison.Ordinal)).Text;
             string[] attributeValueRequired =
             [
                 "OtlpAttributeValueKind.Bytes",
@@ -1747,7 +1776,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 .Where(token => !attributeValueText.Contains(token, StringComparison.Ordinal))
                 .ToList();
 
-            var persistedPolicyText = storageFiles.Single(static file => file.File.EndsWith("Storage/PersistedAttributePolicy.cs", StringComparison.Ordinal)).Text;
+            var persistedPolicyText = storageFiles.Single(static file => file.File.EndsWith("qyl.collector.storage/PersistedAttributePolicy.cs", StringComparison.Ordinal)).Text;
             var missingJsonWriter = !persistedPolicyText.Contains("value.WriteJsonValue(writer)", StringComparison.Ordinal);
 
             if (offenders.Count is 0 &&
@@ -1778,13 +1807,14 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyOtlpUnixNanoValuesStayUnsigned => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify OTLP UnixNano values stay unsigned through ingestion, storage, and contract mapping")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var ingestionModelsFile = CollectorDirectory / "Ingestion" / "OtlpIngestionModels.cs";
-            var storageRowsFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
+            var ingestionModelsFile = CollectorIngestionDirectory / "OtlpIngestionModels.cs";
+            var storageRowsFile = CollectorStorageDirectory / "DuckDbReaderExtensions.cs";
             var mappersFile = CollectorDirectory / "Mapping" / "Mappers.cs";
 
             foreach (var file in new[] { ingestionModelsFile, storageRowsFile, mappersFile })
@@ -1864,17 +1894,18 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyOtlpConverterUsesCentralizedSemanticProjection => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify OTLP decoding stays storage-independent and storage projection stays centralized")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
+            var converterFile = CollectorIngestionDirectory / "OtlpConverter.cs";
             if (!converterFile.FileExists())
                 throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
 
             var converterText = File.ReadAllText(converterFile);
-            var storageMapperFile = CollectorDirectory / "Storage" / "IngestionStorageMapper.cs";
+            var storageMapperFile = CollectorStorageDirectory / "IngestionStorageMapper.cs";
             if (!storageMapperFile.FileExists())
                 throw new FileNotFoundException("Missing ingestion storage mapper", storageMapperFile.ToString());
 
@@ -1890,12 +1921,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "ExtractGenAiAttributes",
                 "private static bool ShouldConvertSpanAttribute",
                 "readonly record struct GenAiData",
-                "ProjectScope",
-                "SpanStorageRow",
-                "LogStorageRow",
                 "SpanBatch",
-                "PersistedAttributePolicy",
-                "ShouldPersist",
                 "SHA256",
                 "Encoding.UTF8"
             ];
@@ -1916,7 +1942,6 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             string[] storageMapperRequired =
             [
-                "ProjectScope.ForIngest",
                 "StorageAttributeProjection.ExtractSpanHotAttributes",
                 "PersistedAttributePolicy.SerializeSpanAttributes",
                 "PersistedAttributePolicy.SerializeLogAttributes",
@@ -1951,70 +1976,18 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             throw new InvalidOperationException(
                 "Do not handwire storage rows, tenant/project stamping, or persisted payload formats in OtlpConverter. " +
-                "Decode OTLP into ingestion records, then materialize storage rows in Storage/IngestionStorageMapper.cs.");
-        });
-
-    Target VerifyCollectorIngestionHasNoStorageSchemaKnowledge => d => d
-        .Unlisted()
-        .Description("Verify collector OTLP ingestion stays storage-schema blind")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            string[] forbiddenTokens =
-            [
-                "DuckDB",
-                "DuckDb",
-                "StorageRow",
-                "SpanStorage",
-                "LogStorage",
-                "ProjectScope",
-                "PersistedAttributePolicy",
-                "ShouldPersist",
-                "project_id",
-                "CREATE TABLE",
-                "INSERT INTO",
-                "SELECT "
-            ];
-
-            var offenders = (CollectorDirectory / "Ingestion").GlobFiles("**/*.cs")
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
-                .SelectMany(file => forbiddenTokens
-                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
-                    .Select(token => (file.File, Token: token)))
-                .ToList();
-
-            if (offenders.Count is 0)
-            {
-                Log.Information("Collector OTLP ingestion is storage-schema blind");
-                return;
-            }
-
-            foreach (var offender in offenders)
-                Log.Error("  Storage schema token '{Token}' found in ingestion file {File}",
-                    offender.Token,
-                    offender.File);
-
-            throw new InvalidOperationException(
-                "Do not put storage rows, DuckDB schema details, project_id columns, or persisted JSON policy into OTLP ingestion. " +
-                "Decode OTLP in Ingestion, then stamp project_id and materialize storage rows in Storage/IngestionStorageMapper.cs.");
+                "Decode OTLP into ingestion records, then materialize storage rows in qyl.collector.storage/IngestionStorageMapper.cs.");
         });
 
     Target VerifyCollectorSpanIdentityIsComposite => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify span storage identity is project- and trace-scoped")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var spanStorageRowFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var spanStorageRowFile = CollectorStorageDirectory / "DuckDbReaderExtensions.cs";
+            var storeFile = CollectorStorageDirectory / "DuckDbStore.cs";
 
             var missingRequired = new List<string>();
             var spanIdentity = ReadSpanStorageIdentity(spanStorageRowFile);
@@ -2078,16 +2051,17 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyCollectorStorageWritesAreReplayIdempotent => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector log storage writes are replay-idempotent")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var storageRowsFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
-            var storageMapperFile = CollectorDirectory / "Storage" / "IngestionStorageMapper.cs";
-            var persistedPolicyFile = CollectorDirectory / "Storage" / "PersistedAttributePolicy.cs";
-            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
-            var attributeValueFile = CollectorDirectory / "Ingestion" / "OtlpAttributeValue.cs";
+            var storageRowsFile = CollectorStorageDirectory / "DuckDbReaderExtensions.cs";
+            var storageMapperFile = CollectorStorageDirectory / "IngestionStorageMapper.cs";
+            var persistedPolicyFile = CollectorStorageDirectory / "PersistedAttributePolicy.cs";
+            var converterFile = CollectorIngestionDirectory / "OtlpConverter.cs";
+            var attributeValueFile = CollectorIngestionDirectory / "OtlpAttributeValue.cs";
 
             foreach (var file in new[] { storageRowsFile, storageMapperFile, persistedPolicyFile, converterFile, attributeValueFile })
             {
@@ -2187,6 +2161,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         });
 
     Target VerifyNoRemovedBuildSurface => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify removed local build surfaces stay removed")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -2555,6 +2530,10 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "services" / "qyl.collector" / "Observe",
                 RootDirectory / "services" / "qyl.collector" / "Alerts",
                 RootDirectory / "services" / "qyl.collector" / "Auth",
+                // Decoding and persistence are their own projects now; folders of that name inside the
+                // host would put them back under its references.
+                RootDirectory / "services" / "qyl.collector" / "Ingestion",
+                RootDirectory / "services" / "qyl.collector" / "Storage",
                 RootDirectory / "services" / "qyl.collector" / "Analytics",
                 RootDirectory / "services" / "qyl.collector" / "Artifacts",
                 RootDirectory / "services" / "qyl.collector" / "Conversations",
@@ -2620,7 +2599,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var collectorOffenders = CollectorDirectory.GlobFiles("**/*.cs")
+            var collectorOffenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -2635,7 +2614,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var collectorQueryOffenders = CollectorDirectory.GlobFiles("**/*.cs")
+            var collectorQueryOffenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -2748,7 +2727,6 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyOtlpAttributesPreserveAnyValueTypes)
         .DependsOn(VerifyOtlpUnixNanoValuesStayUnsigned)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
-        .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
         .DependsOn<IConfigurationKnobs>(static x => x.VerifyConfigurationKnobs)
@@ -3134,7 +3112,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     }
 
     private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
-        CollectorDirectory.GlobFiles("**/*.cs")
+        CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
             .Where(static file =>
             {
                 var path = file.ToString();
@@ -3437,7 +3415,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     private IReadOnlyList<DuckDbTableDdlInfo> ReadDuckDbTableDdlInfos()
     {
         var tables = new List<DuckDbTableDdlInfo>();
-        foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
+        foreach (var file in CollectorStorageDirectory.GlobFiles("*.cs"))
         {
             var root = ParseCompilationUnit(file);
             foreach (var declaration in root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
@@ -3485,7 +3463,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     private IEnumerable<ManualSelectOffender> ManualStorageRowSelectOffenders(
         IReadOnlyList<DuckDbTableDdlInfo> tableInfos)
     {
-        foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
+        foreach (var file in CollectorStorageDirectory.GlobFiles("*.cs"))
         {
             var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
             var root = ParseCompilationUnit(file);
@@ -3525,7 +3503,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     private IEnumerable<ManualDdlOffender> ManualStorageDdlOffenders()
     {
-        foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
+        foreach (var file in CollectorStorageDirectory.GlobFiles("*.cs"))
         {
             var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
             var root = ParseCompilationUnit(file);
@@ -3648,8 +3626,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     private IEnumerable<UnsafeSqlOffender> UnsafeSpanIdentitySqlFragments()
     {
-        var sourceFiles = CollectorDirectory.GlobFiles("**/*.cs")
-            .Concat(CollectorDirectory.GlobFiles("**/*.sql"))
+        var sourceFiles = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
+            .Concat(CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.sql")))
             .Where(static file =>
             {
                 var path = file.ToString();

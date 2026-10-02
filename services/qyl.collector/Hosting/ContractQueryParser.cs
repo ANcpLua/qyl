@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Primitives;
+using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Hosting;
 

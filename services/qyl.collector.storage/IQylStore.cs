@@ -1,8 +1,8 @@
 namespace Qyl.Collector.Storage;
 
-internal sealed class QylStoreUnavailableException(string message) : Exception(message);
+internal sealed class QylStoreUnavailableException(string message) : InvalidOperationException(message);
 
-internal sealed class QylSchemaMismatchException(string message) : Exception(message);
+internal sealed class QylSchemaMismatchException(string message) : InvalidOperationException(message);
 
 internal readonly record struct TracePageCursor(ulong ActivityUnixNano, string TraceId);
 

@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Ingestion;
+namespace Qyl.Collector.ApiKeys;
 
 /// <summary>
 /// Resolve the project bound to a credential for both transports.

@@ -54,11 +54,11 @@ internal sealed class OtlpHttpResult : IResult
 }
 
 internal sealed class OtlpUnsupportedMediaTypeException(string? contentType)
-    : Exception($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.")
+    : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.")
 {
 }
 
 internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding)
-    : Exception($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.")
+    : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.")
 {
 }

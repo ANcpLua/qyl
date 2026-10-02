@@ -5,6 +5,7 @@ using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Traces;
+using Qyl.Collector.Storage;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using ContractValue = Qyl.Api.Contracts.Common.AttributeValue;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
@@ -13,8 +14,8 @@ using ContractMetricKind = Qyl.Api.Contracts.OTel.Metrics.MetricKind;
 using ContractMetricTemporality = Qyl.Api.Contracts.OTel.Metrics.MetricTemporality;
 using ContractMetricAggregation = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation;
 using StorageMetricAggregation = Qyl.Collector.Storage.MetricAggregation;
-using StorageMetricKind = Qyl.Collector.Storage.MetricKind;
-using StorageMetricTemporality = Qyl.Collector.Storage.MetricTemporality;
+using StorageMetricKind = Qyl.Collector.Primitives.MetricKind;
+using StorageMetricTemporality = Qyl.Collector.Primitives.MetricTemporality;
 
 namespace Qyl.Collector.Mapping;
 

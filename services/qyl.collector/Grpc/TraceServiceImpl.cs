@@ -1,4 +1,6 @@
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using Qyl.Collector.Storage;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Grpc;
 

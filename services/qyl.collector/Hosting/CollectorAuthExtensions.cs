@@ -1,3 +1,5 @@
+using Qyl.Collector.ApiKeys;
+
 namespace Qyl.Collector.Hosting;
 
 internal static class CollectorAuthExtensions

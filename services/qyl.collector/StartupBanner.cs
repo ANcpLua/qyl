@@ -1,3 +1,5 @@
+using Qyl.Collector.ApiKeys;
+
 namespace Qyl.Collector;
 
 internal static class StartupBanner

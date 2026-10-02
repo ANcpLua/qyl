@@ -392,7 +392,7 @@ internal static partial class OtlpConverter
                 $"OTLP field '{field}' must be {requiredBytes} bytes; got {value.Length}.");
         }
 
-        return Convert.ToHexString(value.Span).ToLowerInvariant();
+        return Convert.ToHexStringLower(value.Span);
     }
 
     private static string? RequireIdOrAbsent(ByteString value, int requiredBytes, string field) =>

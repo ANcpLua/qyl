@@ -7,6 +7,7 @@ using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 using ProtoNumberDataPoint = OpenTelemetry.Proto.Metrics.V1.NumberDataPoint;
 using ProtoTemporality = OpenTelemetry.Proto.Metrics.V1.AggregationTemporality;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 

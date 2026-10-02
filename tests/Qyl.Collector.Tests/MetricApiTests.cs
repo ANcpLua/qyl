@@ -11,6 +11,7 @@ using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Tests;
 

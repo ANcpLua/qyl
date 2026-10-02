@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Qyl.Collector.Primitives;
 
-namespace Qyl.Collector.Ingestion;
+namespace Qyl.Collector.ApiKeys;
 
 internal static class AuthenticatedProject
 {

@@ -15,6 +15,11 @@ interface IHasSourcePaths : IHasSolution, IHasArtifacts
     AbsolutePath PackagesDirectory => RootDirectory / "packages";
     AbsolutePath InternalDirectory => RootDirectory / "internal";
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
+    AbsolutePath CollectorIngestionDirectory => ServicesDirectory / "qyl.collector.ingestion";
+    AbsolutePath CollectorStorageDirectory => ServicesDirectory / "qyl.collector.storage";
+
+    /// <summary>The collector's three projects. A check about "the collector" scans all of them.</summary>
+    AbsolutePath[] CollectorProjectDirectories => [CollectorDirectory, CollectorIngestionDirectory, CollectorStorageDirectory];
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
     AbsolutePath QylToolSmokeProject => RootDirectory / "eng" / "tools" / "QylToolSmoke" / "QylToolSmoke.csproj";
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";

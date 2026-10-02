@@ -1,10 +1,11 @@
 using Grpc.Core.Interceptors;
 using Qyl.Collector.Primitives;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Grpc;
 
 /// <summary>
-/// The gRPC mirror of <see cref="Qyl.Collector.Ingestion.CollectorApiKeyMiddleware"/>: in ApiKey
+/// The gRPC mirror of <see cref="Qyl.Collector.ApiKeys.CollectorApiKeyMiddleware"/>: in ApiKey
 /// mode every OTLP export call must carry a valid <c>x-otlp-api-key</c> metadata entry — the
 /// same project bindings and fixed-time validation, <c>Unauthenticated</c> instead of 401, and
 /// <c>InvalidArgument</c> instead of 400 when <c>x-qyl-project</c> names another project.

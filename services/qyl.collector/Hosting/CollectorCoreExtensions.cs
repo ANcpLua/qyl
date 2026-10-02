@@ -1,4 +1,5 @@
 using Qyl.Collector.Grpc;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Hosting;
 

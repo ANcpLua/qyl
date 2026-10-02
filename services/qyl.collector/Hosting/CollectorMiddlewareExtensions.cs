@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Qyl.Collector;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Telemetry;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Hosting;
 

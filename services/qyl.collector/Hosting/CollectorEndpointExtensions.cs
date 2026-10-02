@@ -25,6 +25,8 @@ using ExportMetricsServiceRequest = global::OpenTelemetry.Proto.Collector.Metric
 using ExportMetricsServiceResponse = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceRequest = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
+using Qyl.Collector.Storage;
+using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Hosting;
 
