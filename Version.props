@@ -69,16 +69,16 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Build and test tooling">
-    <NukeVersion>10.1.0</NukeVersion>
+    <FalloutVersion>10.4.0</FalloutVersion>
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <VersionizeVersion>2.7.0</VersionizeVersion>
     <XunitVersion>4.0.0</XunitVersion>
     <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
-    <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
+    <!-- Fallout.ProjectModel requires this floor under transitive pinning. -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
-    <!-- Keeps Nuke's NuGet train patched and aligned with .NET SDK 10.0.400. -->
+    <!-- Keeps Fallout's NuGet train patched and aligned with .NET SDK 10.0.400. -->
     <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
   </PropertyGroup>
 </Project>

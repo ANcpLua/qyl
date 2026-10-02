@@ -14,15 +14,15 @@ using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
 using Serilog;
 
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IVerify))]
-interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKnobs
+interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKnobs
 {
     [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
@@ -2214,7 +2214,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             string[] removedTokens =
             [
-                "Nuke.OpenTelemetry.Conventions",
+                "Fallout.OpenTelemetry.Conventions",
                 "Qyl.Client",
                 "Scalar.Kiota",
                 "core/specs",

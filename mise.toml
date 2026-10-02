@@ -5,7 +5,7 @@
 "bun" = "1.4.2"
 
 [tasks.check]
-description = "The gate: the Nuke Ci target CI runs"
+description = "The gate: the Fallout Ci target CI runs"
 run = [
   "./eng/build.sh Ci --Configuration Release",
 ]

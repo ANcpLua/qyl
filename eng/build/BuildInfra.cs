@@ -1,16 +1,16 @@
 
 using System;
 using System.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.Docker;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
+using Fallout.Common.Tools.Docker;
 using Serilog;
 
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IDocker))]
-interface IDocker : IHazSourcePaths
+interface IDocker : IHasSourcePaths
 {
     [PathVariable]
     Tool Docker => TryGetValue(() => Docker)
@@ -73,7 +73,7 @@ interface IDocker : IHazSourcePaths
             Log.Information("  Dashboard:    http://localhost:5100");
             Log.Information("  OTLP HTTP:    http://localhost:4318/v1/traces");
             Log.Information("  OTLP gRPC:    http://localhost:4317");
-            Log.Information("  Frontend dev: nuke FrontendDev");
+            Log.Information("  Frontend dev: ./eng/build.sh FrontendDev");
         });
 
     Target DockerDown => d => d

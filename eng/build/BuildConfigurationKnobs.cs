@@ -6,13 +6,13 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Nuke.Common;
-using Nuke.Common.IO;
+using Fallout.Common;
+using Fallout.Common.IO;
 using Serilog;
 
 namespace Qyl.Build;
 
-interface IConfigurationKnobs : IHazSourcePaths
+interface IConfigurationKnobs : IHasSourcePaths
 {
     Target VerifyConfigurationKnobs => d => d
         .Unlisted()

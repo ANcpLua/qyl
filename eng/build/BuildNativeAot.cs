@@ -1,9 +1,9 @@
-using Nuke.Common;
-using Nuke.Common.Tooling;
+using Fallout.Common;
+using Fallout.Common.Tooling;
 
 namespace Qyl.Build;
 
-interface INativeAot : IHazSourcePaths
+interface INativeAot : IHasSourcePaths
 {
     Target NativeAot => d => d
         .Description("Publish and execute the collector NativeAOT smoke")

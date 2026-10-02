@@ -73,8 +73,8 @@ dist-extension/
 ehthumbs.db
 Thumbs.db
 
-.nuke/temp/
-.nuke/build.schema.json
+.fallout/temp/
+.fallout/build.schema.json
 
 *.duckdb
 *.duckdb.wal

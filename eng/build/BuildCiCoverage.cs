@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
 using Serilog;
 
 namespace Qyl.Build;
@@ -18,7 +18,7 @@ namespace Qyl.Build;
 /// must be reachable from <c>Ci</c>, so adding a CI step without wiring it in fails the build.
 /// The reverse direction is deliberately unconstrained: <c>Ci</c> may run more than CI does.
 /// </summary>
-interface ICiCoverage : IHazSourcePaths
+interface ICiCoverage : IHasSourcePaths
 {
     AbsolutePath CiWorkflowFile => RootDirectory / ".github" / "workflows" / "ci.yml";
 
@@ -96,7 +96,7 @@ interface ICiCoverage : IHazSourcePaths
 
     /// <summary>
     /// Maps each target name to its <c>Target X =&gt; d =&gt; d ...</c> source block, spanning from its
-    /// declaration to the next one. Text-scanned rather than resolved through Nuke's model because
+    /// declaration to the next one. Text-scanned rather than resolved through Fallout's model because
     /// the target graph is only materialised for the invoked target, and this gate must see all of it.
     /// </summary>
     private Dictionary<string, string> ReadTargetBlocks()

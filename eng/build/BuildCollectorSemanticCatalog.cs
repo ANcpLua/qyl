@@ -9,13 +9,13 @@ using System.Text.Json.Serialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Nuke.Common;
-using Nuke.Common.IO;
+using Fallout.Common;
+using Fallout.Common.IO;
 using Serilog;
 
 namespace Qyl.Build;
 
-interface ICollectorSemanticCatalog : IHazSourcePaths
+interface ICollectorSemanticCatalog : IHasSourcePaths
 {
     const string StablePackageId = "Qyl.Telemetry.SemanticConventions";
     const string IncubatingPackageId = "Qyl.Telemetry.SemanticConventions.Incubating";
