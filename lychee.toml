@@ -24,8 +24,9 @@ retry_wait_time = 2
 # user agents; a browser UA keeps genuine links from flaking the build.
 user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
-# 429 = rate-limited, not dead. Everything else outside 2xx fails the check.
-accept = ["200..=299", "429"]
+# 429 and 503 both mean "ask again later", not a broken link: github.com answers bursts of
+# automated requests with either. Rot shows up as 404/410, which still fails.
+accept = ["200..=299", "429", "503"]
 
 # opentelemetry.io's CDN intermittently resets connections from GitHub
 # Actions IPs even with a browser UA (same link set passes and fails across
