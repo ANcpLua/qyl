@@ -11,17 +11,22 @@
        shared lines (a runtime, a release train) cannot drift apart by being typed twice. -->
 
   <PropertyGroup Label="Platform">
+    <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
     <DotNetRuntimeVersion>10.0.11</DotNetRuntimeVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
     <MicrosoftExtensionsVersion>10.9.0</MicrosoftExtensionsVersion>
     <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.11 declares Microsoft.OpenApi
          [2.7.5, 3.0.0), and its source generator fails to compile against 3.x with CS0012
          (the type it emits lives in an assembly the generated code does not reference).
          3.x arrives with the .NET release that widens the declared range. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.OpenApi -->
     <MicrosoftOpenApiVersion>2.12.2</MicrosoftOpenApiVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.CSharp -->
     <RoslynVersion>5.9.0</RoslynVersion>
     <!-- Microsoft.CodeAnalysis.PublicApiAnalyzers ships on its own cadence and has no 5.9.0
          (5.6.0 is its newest, checked on nuget.org 2026-09-02). Feeding it $(RoslynVersion) fails
          restore with NU1102 the moment the compiler packages move ahead, so it gets its own property. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.PublicApiAnalyzers -->
     <RoslynPublicApiAnalyzersVersion>5.6.0</RoslynPublicApiAnalyzersVersion>
   </PropertyGroup>
 
@@ -30,10 +35,14 @@
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property.
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
+    <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
     <QylTelemetryVersion>21.1.0</QylTelemetryVersion>
+    <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>9.4.0</QylSemanticConventionsVersion>
+    <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <QylApiContractsVersion>11.2.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
+    <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.46</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
@@ -51,6 +60,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">
+    <!-- renovate: datasource=nuget depName=OpenTelemetry -->
     <OpenTelemetryVersion>1.18.0</OpenTelemetryVersion>
     <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
          it (2026-07-26). Retention's space reuse rides the experimental
@@ -62,23 +72,36 @@
          RetentionTests.Repeated_retention_cycles_bound_the_database_file_at_a_steady_state;
          run it after any DuckDB bump because the option is experimental and its trigger
          timing has shifted between patch releases before. -->
+    <!-- renovate: datasource=nuget depName=DuckDB.NET.Data.Full -->
     <DuckDBVersion>1.5.5</DuckDBVersion>
+    <!-- renovate: datasource=nuget depName=Google.Protobuf -->
     <GoogleProtobufVersion>3.36.1</GoogleProtobufVersion>
+    <!-- renovate: datasource=nuget depName=Grpc.AspNetCore -->
     <GrpcAspNetCoreVersion>2.84.0</GrpcAspNetCoreVersion>
+    <!-- renovate: datasource=nuget depName=Grpc.Tools -->
     <GrpcToolsVersion>2.84.0</GrpcToolsVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Build and test tooling">
+    <!-- renovate: datasource=nuget depName=Fallout.Common -->
     <FalloutVersion>10.4.0</FalloutVersion>
+    <!-- renovate: datasource=nuget depName=Spectre.Console -->
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
+    <!-- renovate: datasource=nuget depName=Versionize -->
     <VersionizeVersion>2.7.0</VersionizeVersion>
+    <!-- renovate: datasource=nuget depName=xunit.v3.mtp-v2 -->
     <XunitVersion>4.0.0</XunitVersion>
+    <!-- renovate: datasource=nuget depName=Valleysoft.DockerfileModel -->
     <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
+    <!-- renovate: datasource=nuget depName=YamlDotNet -->
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.NETFramework.ReferenceAssemblies -->
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
     <!-- Fallout.ProjectModel requires this floor under transitive pinning. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.Build -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
     <!-- Keeps Fallout's NuGet train patched and aligned with .NET SDK 10.0.400. -->
+    <!-- renovate: datasource=nuget depName=NuGet.Packaging -->
     <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
   </PropertyGroup>
 </Project>
