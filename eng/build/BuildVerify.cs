@@ -299,10 +299,12 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             }
 
             // Decoding and persistence types live in their own projects; their shapes are internals
-            // by construction, whatever their names suggest.
+            // by construction, whatever their names suggest. Primitives are shapes the host may return,
+            // so they are held to the same rule they met while they lived in the host.
             static bool IsStorageOrIngestionInternal(string path) =>
                 path.Contains("services/qyl.collector.storage/", StringComparison.Ordinal) ||
-                path.Contains("services/qyl.collector.ingestion/", StringComparison.Ordinal);
+                (path.Contains("services/qyl.collector.ingestion/", StringComparison.Ordinal) &&
+                 !path.Contains("services/qyl.collector.ingestion/Primitives/", StringComparison.Ordinal));
 
             static bool IsInfrastructureType(string name) =>
                 name.EndsWith("Middleware", StringComparison.Ordinal) ||
@@ -735,6 +737,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     // the target rewrites them, on CI it fails when the committed text differs from the rendering.
     // The `qyl-mcp-server` row is not rendered; its version lives in qyl.mcp and pins.sh watches it.
     Target RenderReadmeVersions => d => d
+        .ProceedAfterFailure()
         .Unlisted()
         .Description("Render the README release-line rows and consumer line from Version.props")
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -794,6 +797,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             (string Component, AbsolutePath File)[] runtimeProjectFiles =
             [
                 ("Collector", CollectorDirectory / "qyl.collector.csproj"),
+                ("Collector ingestion", CollectorIngestionDirectory / "qyl.collector.ingestion.csproj"),
+                ("Collector storage", CollectorStorageDirectory / "qyl.collector.storage.csproj"),
                 ("Instrumentation", instrumentationDirectory / "qyl.instrumentation.csproj")
             ];
 
@@ -877,13 +882,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var offenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
+            var offenders = CollectorSourceFiles()
                 .SelectMany(file =>
                 {
                     var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
@@ -1279,7 +1278,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "ExecuteWriteAsync"
             ];
 
-            var offenders = new[] { CollectorDirectory, CollectorIngestionDirectory }.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
+            var offenders = CollectorSourceFiles().Where(file => !CollectorStorageDirectory.Contains(file))
                 .Where(static file =>
                 {
                     var path = file.ToString();
@@ -1630,13 +1629,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
 
-            var offenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
-                .Where(static f =>
-                {
-                    var path = f.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
+            var offenders = CollectorSourceFiles()
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
@@ -1979,6 +1972,49 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Decode OTLP into ingestion records, then materialize storage rows in qyl.collector.storage/IngestionStorageMapper.cs.");
         });
 
+    Target VerifyCollectorIngestionHasNoStorageLiterals => d => d
+        .ProceedAfterFailure()
+        .Unlisted()
+        .Description("Verify OTLP decoding writes no SQL or storage column names as text")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            // The project graph keeps ingestion away from storage types. What a reference cannot show
+            // is storage knowledge written as text, so this reads string literals only: a type or
+            // member name never trips it.
+            string[] forbiddenFragments = ["CREATE TABLE", "INSERT INTO", "SELECT ", "project_id"];
+
+            var offenders = CollectorSourceFiles()
+                .Where(file => CollectorIngestionDirectory.Contains(file))
+                .SelectMany(file => ParseCompilationUnit(file).DescendantTokens()
+                    .Where(static token =>
+                        token.IsKind(SyntaxKind.StringLiteralToken) ||
+                        token.IsKind(SyntaxKind.Utf8StringLiteralToken) ||
+                        token.IsKind(SyntaxKind.InterpolatedStringTextToken) ||
+                        token.IsKind(SyntaxKind.SingleLineRawStringLiteralToken) ||
+                        token.IsKind(SyntaxKind.MultiLineRawStringLiteralToken))
+                    .SelectMany(token => forbiddenFragments
+                        .Where(fragment => token.ValueText.Contains(fragment, StringComparison.Ordinal))
+                        .Select(fragment => (
+                            File: RootDirectory.GetRelativePathTo(file).ToString(),
+                            Line: token.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
+                            Fragment: fragment))))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector OTLP decoding writes no SQL or storage column names");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Storage text '{Fragment}' in {File}:{Line}", offender.Fragment, offender.File, offender.Line);
+
+            throw new InvalidOperationException(
+                "Keep SQL and storage column names out of qyl.collector.ingestion. Decode OTLP there, then stamp " +
+                "project_id and build rows in qyl.collector.storage/IngestionStorageMapper.cs.");
+        });
+
     Target VerifyCollectorSpanIdentityIsComposite => d => d
         .ProceedAfterFailure()
         .Unlisted()
@@ -2183,6 +2219,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 buildDirectory / "BuildPaths.cs",
                 RootDirectory / "services" / "qyl.collector" / "Dockerfile",
                 RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj",
+                CollectorIngestionDirectory / "qyl.collector.ingestion.csproj",
+                CollectorStorageDirectory / "qyl.collector.storage.csproj",
                 RootDirectory / "internal" / "qyl.instrumentation" / "qyl.instrumentation.csproj",
                 RootDirectory / "internal" / "qyl.instrumentation.generators" / "ServiceDefaultsSourceGenerator.cs",
                 buildDirectory / "BuildInfra.cs",
@@ -2551,19 +2589,30 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "services" / "qyl.collector" / "Workflow",
                 RootDirectory / "services" / "qyl.collector" / "Native",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "WorkflowStorageModels.cs",
+                CollectorStorageDirectory / "WorkflowStorageModels.cs",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbStore.Workflow.cs",
+                CollectorStorageDirectory / "DuckDbStore.Workflow.cs",
                 RootDirectory / "services" / "qyl.collector" / "Hosting" / "WorkflowEndpointExtensions.cs",
                 RootDirectory / "packages" / "Qyl.Cli" / "Codex",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "Migrations",
+                CollectorStorageDirectory / "Migrations",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.cs",
+                CollectorStorageDirectory / "DuckDbSchema.g.cs",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.sql",
+                CollectorStorageDirectory / "DuckDbSchema.g.sql",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
+                CollectorStorageDirectory / "promoted-columns.g.sql",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "SpanRowMapper.cs",
+                CollectorStorageDirectory / "SpanRowMapper.cs",
                 RootDirectory / "services" / "qyl.collector" / "SpanEndpoints.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "LogSourceEnricher.cs",
+                CollectorIngestionDirectory / "LogSourceEnricher.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "PdbSourceResolver.cs",
+                CollectorIngestionDirectory / "PdbSourceResolver.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocation.cs",
+                CollectorIngestionDirectory / "SourceLocation.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocationCache.cs",
+                CollectorIngestionDirectory / "SourceLocationCache.cs",
                 RootDirectory / "services" / "qyl.collector" / "railway.toml",
                 RootDirectory / "services" / "qyl.dashboard" / "railway.toml",
                 RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
@@ -2599,13 +2648,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var collectorOffenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
+            var collectorOffenders = CollectorSourceFiles()
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
@@ -2614,13 +2657,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var collectorQueryOffenders = CollectorProjectDirectories.SelectMany(static directory => directory.GlobFiles("**/*.cs"))
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
+            var collectorQueryOffenders = CollectorSourceFiles()
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
@@ -2727,6 +2764,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyOtlpAttributesPreserveAnyValueTypes)
         .DependsOn(VerifyOtlpUnixNanoValuesStayUnsigned)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
+        .DependsOn(VerifyCollectorIngestionHasNoStorageLiterals)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
         .DependsOn<IConfigurationKnobs>(static x => x.VerifyConfigurationKnobs)
@@ -2746,6 +2784,9 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
         .DependsOn(VerifyFrontendApiTypes)
         .DependsOn(VerifyFrontendTypes)
+        // The checks proceed after a failure so one run reports all of them; the banner below
+        // claims every one passed, so it runs only when that is true.
+        .OnlyWhenDynamic(() => IsSucceeding)
         .Executes(() =>
         {
             Log.Information("═══════════════════════════════════════════════════════════════");

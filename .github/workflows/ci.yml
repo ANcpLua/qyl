@@ -82,7 +82,7 @@ jobs:
                 frontend=true
                 product_e2e=true
                 ;;
-              services/qyl.collector/*)
+              services/qyl.collector/*|services/qyl.collector.*/*)
                 backend=true
                 product_e2e=true
                 ;;

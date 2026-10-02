@@ -80,28 +80,20 @@ interface IDependencyEdges : IHasSourcePaths
         "packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.targets",
     ];
 
-    /// <summary>
-    /// G11 on the project axis: the collector is reachable only via its API, so no project
-    /// may take a compile-time <c>ProjectReference</c> on it. Only the collector's own test
-    /// project is exempt — it hosts the service in-process to drive it. Without this, a
-    /// client-ring project could reach the collector's internals while its
-    /// <c>PackageReference</c> list still equalled the §2 table exactly and the package-axis
-    /// assertion below stayed green.
-    /// </summary>
-    private static readonly string[] s_collectorProjectReferenceExemptions =
-    [
-        "tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj",
-    ];
 
     private const string CollectorStorageProject = "services/qyl.collector.storage/qyl.collector.storage.csproj";
 
     /// <summary>
-    /// The collector's layering, held by the project graph: decoding references no storage and no
-    /// host, storage references no host, and each library is referenced only by the projects listed.
-    /// The compiler then refuses what a text scan used to look for.
+    /// Who may hold a <c>ProjectReference</c> on each collector project, exhaustively. The host is
+    /// reachable only through its API (G11): only its own tests reference it, to host it in-process;
+    /// without that a client-ring project could reach the collector's internals while its package
+    /// list still matched the §2 table. Inside the collector, decoding references neither storage
+    /// nor the host and storage does not reference the host, so the compiler refuses what a text
+    /// scan used to look for.
     /// </summary>
-    private static Dictionary<string, string[]> AllowedCollectorLibraryReferrers => new(StringComparer.Ordinal)
+    private static Dictionary<string, string[]> AllowedCollectorProjectReferrers => new(StringComparer.Ordinal)
     {
+        ["services/qyl.collector/qyl.collector.csproj"] = ["tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj"],
         ["services/qyl.collector.ingestion/qyl.collector.ingestion.csproj"] =
             [CollectorStorageProject, "services/qyl.collector/qyl.collector.csproj"],
         [CollectorStorageProject] = ["services/qyl.collector/qyl.collector.csproj"],
@@ -216,19 +208,6 @@ interface IDependencyEdges : IHasSourcePaths
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
-                if (!s_collectorProjectReferenceExemptions.Contains(relative, StringComparer.Ordinal))
-                {
-                    var collectorEdges = document.Descendants("ProjectReference")
-                        .Select(static r => (string?)r.Attribute("Include"))
-                        .Where(static include => include is not null)
-                        .Select(static include => include!.Replace('\\', '/'))
-                        .Where(static include => include.EndsWith(
-                            "services/qyl.collector/qyl.collector.csproj", StringComparison.Ordinal));
-
-                    offenders.AddRange(collectorEdges.Select(edge =>
-                        $"{relative}: ProjectReference on the collector ({edge}) — G11: the " +
-                        "collector is reachable only via its API"));
-                }
 
                 foreach (var include in document.Descendants("ProjectReference")
                              .Select(static r => (string?)r.Attribute("Include"))
@@ -236,22 +215,30 @@ interface IDependencyEdges : IHasSourcePaths
                 {
                     var target = repoRoot.GetRelativePathTo(project.Parent / include!.Replace('\\', '/'))
                         .ToString().Replace('\\', '/');
-                    if (AllowedCollectorLibraryReferrers.TryGetValue(target, out var referrers) &&
+                    if (AllowedCollectorProjectReferrers.TryGetValue(target, out var referrers) &&
                         !referrers.Contains(relative, StringComparer.Ordinal))
                     {
                         offenders.Add($"{relative}: ProjectReference on {target}, which only " +
-                                      $"[{string.Join(", ", referrers)}] may reference");
+                                      $"[{string.Join(", ", referrers)}] may reference (G11 for the host)");
                     }
                 }
 
-                foreach (var duckDb in document.Descendants("PackageReference")
-                             .Where(static r => ((string?)r.Attribute("Include"))?
-                                 .StartsWith("DuckDB.NET", StringComparison.OrdinalIgnoreCase) is true))
+                foreach (var duckDb in references.Where(static r => r.StartsWith("DuckDB.NET", StringComparison.OrdinalIgnoreCase)))
                 {
                     if (!s_duckDbProjects.Contains(relative, StringComparer.Ordinal))
-                        offenders.Add($"{relative}: references {(string?)duckDb.Attribute("Include")}; DuckDB is a storage detail");
-                    else if (relative == CollectorStorageProject &&
-                             !string.Equals((string?)duckDb.Attribute("PrivateAssets"), "compile", StringComparison.OrdinalIgnoreCase))
+                        offenders.Add($"{relative}: references {duckDb}; DuckDB is a storage detail");
+                }
+
+                if (relative == CollectorStorageProject)
+                {
+                    // PrivateAssets may be written as an attribute or as a child element.
+                    var hidesCompileAssets = document.Descendants("PackageReference")
+                        .Where(static r => ((string?)r.Attribute("Include"))?
+                            .StartsWith("DuckDB.NET", StringComparison.OrdinalIgnoreCase) is true)
+                        .All(static r => string.Equals(
+                            ((string?)r.Attribute("PrivateAssets") ?? (string?)r.Element("PrivateAssets"))?.Trim(),
+                            "compile", StringComparison.OrdinalIgnoreCase));
+                    if (!hidesCompileAssets)
                         offenders.Add($"{relative}: DuckDB must keep PrivateAssets=\"compile\" so the host cannot compile against it");
                 }
 

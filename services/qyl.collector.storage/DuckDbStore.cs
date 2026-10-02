@@ -995,17 +995,20 @@ internal sealed partial class DuckDbStore : IQylStore
         };
     }
 
-    private static bool DefaultsMatch(string? actual, string? expected)
+    internal static bool DefaultsMatch(string? actual, string? expected)
     {
         if (actual is null || expected is null)
             return actual is null && expected is null;
 
+        // The rewrite runs before the parentheses are trimmed: trimming first cut the closing
+        // parenthesis off CAST(...) so the rewrite could never match.
         static string Normalize(string value) => string.Concat(
             value.Where(static character => !char.IsWhiteSpace(character)))
-            .Trim('(', ')')
             .ToUpperInvariant()
             .Replace("\"", "", StringComparison.Ordinal)
-            .Replace("cast(uuid()asvarchar)", "uuid()::varchar", StringComparison.Ordinal);
+            // DuckDB reports a uuid()::varchar default as CAST(uuid() AS VARCHAR).
+            .Replace("CAST(UUID()ASVARCHAR)", "UUID()::VARCHAR", StringComparison.Ordinal)
+            .Trim('(', ')');
 
         return string.Equals(Normalize(actual), Normalize(expected), StringComparison.Ordinal);
     }

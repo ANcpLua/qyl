@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using DuckDB.NET.Data;
+using Qyl.Collector.Storage;
 using Qyl.Collector.Storage.Generators;
 
 namespace Qyl.Collector.Tests;
@@ -131,4 +133,36 @@ public sealed class DuckDbStorageGeneratorTests
                 .OrderBy(static generated => generated.HintName, StringComparer.Ordinal)
                 .Select(static generated => generated.SourceText.ToString()));
     }
+
+    [Fact]
+    public async Task A_uuid_default_matches_the_form_DuckDB_reports_for_it()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var connection = new DuckDBConnection("Data Source=:memory:");
+        await connection.OpenAsync(ct);
+        await using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE defaults_probe (id VARCHAR DEFAULT uuid()::varchar)";
+            await create.ExecuteNonQueryAsync(ct);
+        }
+
+        await using var read = connection.CreateCommand();
+        read.CommandText = "SELECT column_default FROM duckdb_columns() WHERE table_name = 'defaults_probe'";
+        var reported = (string?)await read.ExecuteScalarAsync(ct);
+
+        Assert.True(DuckDbStore.DefaultsMatch(reported, "uuid()::varchar"), reported);
+    }
+
+    [Theory]
+    [InlineData("nextval('logs_ingest_sequence')", "nextval('logs_ingest_sequence')")]
+    [InlineData("(0)", "0")]
+    public void Live_defaults_match_their_declared_form(string reported, string declared) =>
+        Assert.True(DuckDbStore.DefaultsMatch(reported, declared));
+
+    [Theory]
+    [InlineData("nextval('other_sequence')", "nextval('logs_ingest_sequence')")]
+    [InlineData("1", "0")]
+    [InlineData(null, "0")]
+    public void Different_defaults_do_not_match(string? reported, string declared) =>
+        Assert.False(DuckDbStore.DefaultsMatch(reported, declared));
 }
