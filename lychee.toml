@@ -36,4 +36,7 @@ exclude = [
   # npmjs.com answers automated clients with 403 regardless of UA; the package pages are
   # stable and the packages are proven by the publish workflow that installs them.
   '^https?://www\.npmjs\.com',
+  # A github.com search is a live query, not a document: it cannot rot, and GitHub throttles
+  # unauthenticated searches with 429/5xx at random.
+  '^https?://github\.com/search\?',
 ]
