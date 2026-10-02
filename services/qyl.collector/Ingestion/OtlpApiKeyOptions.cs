@@ -13,10 +13,11 @@ internal sealed class OtlpApiKeyOptions
                 nameof(value));
     } = "Unsecured";
 
-    public string? PrimaryApiKey { get; set; }
-
-    public string? SecondaryApiKey { get; set; }
+    // Each credential belongs to exactly one project. Multiple credentials can rotate within a project.
+    public IReadOnlyList<ProjectApiKey> Keys { get; set; } = [];
 
     public bool IsApiKeyMode =>
         string.Equals(AuthMode, "ApiKey", StringComparison.OrdinalIgnoreCase);
 }
+
+internal sealed record ProjectApiKey(string ProjectId, string ApiKey);

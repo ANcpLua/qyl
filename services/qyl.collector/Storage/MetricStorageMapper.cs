@@ -13,14 +13,14 @@ internal static class MetricStorageMapper
         IReadOnlyList<MetricSeriesRow> Series,
         IReadOnlyList<MetricPointRow> Points);
 
-    public static MetricWriteSet ToStorageRows(MetricIngestionBatch batch)
+    public static MetricWriteSet ToStorageRows(MetricIngestionBatch batch, string? authenticatedProjectId = null)
     {
         var series = new Dictionary<(string ProjectId, string SeriesId), MetricSeriesRow>();
         var points = new Dictionary<(string ProjectId, string SeriesId, ulong Time), MetricPointRow>();
 
         foreach (var record in batch.Points)
         {
-            var projectId = ProjectScope.Normalize(record.ProjectIdHint);
+            var projectId = ProjectScope.ForIngest(record.ProjectIdHint, authenticatedProjectId);
             var attributesJson = PersistedAttributePolicy.SerializeMetricAttributes(record.Attributes);
             var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
                 record.ResourceAttributes,

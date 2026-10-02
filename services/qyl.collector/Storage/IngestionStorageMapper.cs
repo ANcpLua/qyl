@@ -8,27 +8,27 @@ internal static class IngestionStorageMapper
     private const int MaxPersistedLogBodyUtf8Bytes = 64 * 1024;
     private const string TruncatedLogBodySuffix = "...[truncated]";
 
-    public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch)
+    public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch, string? authenticatedProjectId = null)
     {
         var rows = new List<SpanStorageRow>(batch.Spans.Count);
 
         foreach (var span in batch.Spans)
-            rows.Add(ToSpanStorageRow(span));
+            rows.Add(ToSpanStorageRow(span, authenticatedProjectId));
 
         return rows;
     }
 
-    public static List<LogStorageRow> ToLogStorageRows(LogIngestionBatch batch)
+    public static List<LogStorageRow> ToLogStorageRows(LogIngestionBatch batch, string? authenticatedProjectId = null)
     {
         var rows = new List<LogStorageRow>(batch.Logs.Count);
 
         foreach (var log in batch.Logs)
-            rows.Add(ToLogStorageRow(log));
+            rows.Add(ToLogStorageRow(log, authenticatedProjectId));
 
         return rows;
     }
 
-    private static SpanStorageRow ToSpanStorageRow(SpanIngestionRecord span)
+    private static SpanStorageRow ToSpanStorageRow(SpanIngestionRecord span, string? authenticatedProjectId)
     {
         var durationNs = span.EndTimeUnixNano >= span.StartTimeUnixNano
             ? span.EndTimeUnixNano - span.StartTimeUnixNano
@@ -38,7 +38,7 @@ internal static class IngestionStorageMapper
 
         return new SpanStorageRow
         {
-            ProjectId = ProjectScope.Normalize(span.ProjectIdHint),
+            ProjectId = ProjectScope.ForIngest(span.ProjectIdHint, authenticatedProjectId),
             SpanId = span.SpanId,
             TraceId = span.TraceId,
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
@@ -72,9 +72,9 @@ internal static class IngestionStorageMapper
         };
     }
 
-    private static LogStorageRow ToLogStorageRow(LogIngestionRecord log)
+    private static LogStorageRow ToLogStorageRow(LogIngestionRecord log, string? authenticatedProjectId)
     {
-        var projectId = ProjectScope.Normalize(log.ProjectIdHint);
+        var projectId = ProjectScope.ForIngest(log.ProjectIdHint, authenticatedProjectId);
         var severityText = string.IsNullOrEmpty(log.SeverityText)
             ? SeverityNumberToText(log.SeverityNumber)
             : log.SeverityText;

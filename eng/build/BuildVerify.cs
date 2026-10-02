@@ -1157,15 +1157,15 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var projectScopeFile = CollectorDirectory / "Storage" / "ProjectScope.cs";
+            var projectIdentityFile = CollectorDirectory / "Primitives" / "ProjectIdentity.cs";
             var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
             var sessionsFile = CollectorDirectory / "Storage" / "DuckDbStore.Sessions.cs";
 
-            var projectScopeText = projectScopeFile.FileExists() ? File.ReadAllText(projectScopeFile) : "";
+            var projectIdentityText = projectIdentityFile.FileExists() ? File.ReadAllText(projectIdentityFile) : "";
             var storeText = storeFile.FileExists() ? File.ReadAllText(storeFile) : "";
             var sessionsText = sessionsFile.FileExists() ? File.ReadAllText(sessionsFile) : "";
 
-            string[] requiredProjectScopeTokens =
+            string[] requiredProjectIdentityTokens =
             [
                 "public const string DefaultProjectId = \"default\";",
                 "public static string Normalize(string? projectId)"
@@ -1191,9 +1191,9 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             var missing = new List<string>();
             var forbidden = new List<string>();
 
-            foreach (var token in requiredProjectScopeTokens)
-                if (!projectScopeText.Contains(token, StringComparison.Ordinal))
-                    missing.Add($"{RootDirectory.GetRelativePathTo(projectScopeFile)} missing token: {token}");
+            foreach (var token in requiredProjectIdentityTokens)
+                if (!projectIdentityText.Contains(token, StringComparison.Ordinal))
+                    missing.Add($"{RootDirectory.GetRelativePathTo(projectIdentityFile)} missing token: {token}");
 
             foreach (var token in requiredStoreTokens)
                 if (!storeText.Contains(token, StringComparison.Ordinal))
@@ -1206,7 +1206,9 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             string[] forbiddenReadScopeTokens =
             [
                 "projectId = ProjectScope.DefaultProjectId",
-                "ProjectScope.Normalize(projectId)"
+                "projectId = ProjectIdentity.DefaultProjectId",
+                "ProjectScope.Normalize(projectId)",
+                "ProjectIdentity.Normalize(projectId)"
             ];
 
             foreach (var token in forbiddenReadScopeTokens)
@@ -1914,7 +1916,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             string[] storageMapperRequired =
             [
-                "ProjectScope.Normalize",
+                "ProjectScope.ForIngest",
                 "StorageAttributeProjection.ExtractSpanHotAttributes",
                 "PersistedAttributePolicy.SerializeSpanAttributes",
                 "PersistedAttributePolicy.SerializeLogAttributes",

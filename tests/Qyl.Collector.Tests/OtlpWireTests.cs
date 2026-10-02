@@ -20,6 +20,7 @@ using Qyl.Collector.Ingestion;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Mapping;
 using Qyl.Collector.Hosting;
+using Qyl.Collector.Primitives;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
@@ -55,6 +56,119 @@ public sealed class OtlpWireTests
 
         var options = provider.GetRequiredService<IOptions<GrpcServiceOptions>>().Value;
         Assert.Contains(options.Interceptors, registration => registration.Type == typeof(OtlpApiKeyInterceptor));
+    }
+
+    [Fact]
+    public async Task Grpc_interceptor_resolves_project_from_key_and_rejects_unknown_credentials()
+    {
+        var options = new OtlpApiKeyOptions
+        {
+            AuthMode = "ApiKey",
+            Keys = [new ProjectApiKey("alpha", "a1")]
+        };
+        var interceptor = new OtlpApiKeyInterceptor(options);
+        var context = new TestServerCallContext(TestContext.Current.CancellationToken);
+        context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
+
+        var project = await interceptor.UnaryServerHandler(
+            "request", context,
+            (_, call) => Task.FromResult(AuthenticatedProject.ForGrpcIngest(call, options)!));
+        Assert.Equal("alpha", project);
+
+        var rejected = new TestServerCallContext(TestContext.Current.CancellationToken);
+        rejected.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "unknown");
+        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+            "request", rejected, (_, _) => Task.FromResult("should not run")));
+        Assert.Equal(StatusCode.Unauthenticated, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task Grpc_interceptor_rejects_project_metadata_that_conflicts_with_the_key()
+    {
+        var options = new OtlpApiKeyOptions
+        {
+            AuthMode = "ApiKey",
+            Keys = [new ProjectApiKey("alpha", "a1")]
+        };
+        var interceptor = new OtlpApiKeyInterceptor(options);
+
+        var conflicting = new TestServerCallContext(TestContext.Current.CancellationToken);
+        conflicting.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
+        conflicting.RequestHeaders.Add("X-Qyl-Project", "beta");
+        var continued = false;
+        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+            "request", conflicting, (_, _) =>
+            {
+                continued = true;
+                return Task.FromResult("should not run");
+            }));
+        Assert.Equal(StatusCode.InvalidArgument, error.StatusCode);
+        Assert.False(continued);
+
+        var matching = new TestServerCallContext(TestContext.Current.CancellationToken);
+        matching.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
+        matching.RequestHeaders.Add(ProjectIdentity.HeaderName, " alpha ");
+        var project = await interceptor.UnaryServerHandler(
+            "request", matching,
+            (_, call) => Task.FromResult(AuthenticatedProject.ForGrpcIngest(call, options)!));
+        Assert.Equal("alpha", project);
+    }
+
+    [Fact]
+    public async Task Grpc_export_rejects_a_resource_project_outside_the_credentials_scope()
+    {
+        var options = new OtlpApiKeyOptions
+        {
+            AuthMode = "ApiKey",
+            Keys = [new ProjectApiKey("alpha", "a1")]
+        };
+        var request = new ExportTraceServiceRequest
+        {
+            ResourceSpans =
+            {
+                new ResourceSpans
+                {
+                    Resource = new Resource
+                    {
+                        Attributes =
+                        {
+                            new KeyValue
+                            {
+                                Key = "qyl.project.id",
+                                Value = new AnyValue { StringValue = "beta" }
+                            }
+                        }
+                    },
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Spans =
+                            {
+                                new Span
+                                {
+                                    TraceId = ByteString.CopyFrom(new byte[16]),
+                                    SpanId = ByteString.CopyFrom(new byte[8]),
+                                    Name = "cross-project",
+                                    StartTimeUnixNano = 1,
+                                    EndTimeUnixNano = 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        var context = new TestServerCallContext(TestContext.Current.CancellationToken);
+        context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
+        await using var store = new DuckDbStore(":memory:");
+
+        var error = await Assert.ThrowsAsync<RpcException>(() =>
+            new OtlpApiKeyInterceptor(options).UnaryServerHandler(
+                request, context, (message, call) => new TraceServiceImpl(store, options).Export(message, call)));
+        Assert.Equal(StatusCode.InvalidArgument, error.StatusCode);
+        Assert.Empty(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
+        Assert.Empty(await store.GetSpansAsync("beta", ct: TestContext.Current.CancellationToken));
     }
 
     [Theory]
