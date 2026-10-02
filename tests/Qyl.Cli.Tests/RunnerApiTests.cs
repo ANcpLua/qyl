@@ -150,7 +150,16 @@ public sealed class RunnerApiTests
             crossOrigin.Headers.Add("Sec-Fetch-Site", "cross-site");
             crossOrigin.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
             using var crossOriginResponse = await securityClient.SendAsync(crossOrigin, lifetime.Token);
-            Assert.Equal(HttpStatusCode.Forbidden, crossOriginResponse.StatusCode);
+            // Seen once on Linux CI (PR #632): 200 here, which this runner's handler cannot produce for a
+            // cross-site POST. On a recurrence the message records what actually answered.
+            if (crossOriginResponse.StatusCode != HttpStatusCode.Forbidden)
+            {
+                var unexpectedBody = await crossOriginResponse.Content.ReadAsStringAsync(lifetime.Token);
+                Assert.Fail(
+                    $"Cross-site POST to port {port} answered {(int)crossOriginResponse.StatusCode} " +
+                    $"({crossOriginResponse.Content.Headers.ContentType}); headers: {crossOriginResponse.Headers}; " +
+                    $"body: {unexpectedBody}");
+            }
             Assert.Equal(ProblemDetailsMediaType.Value, crossOriginResponse.Content.Headers.ContentType?.MediaType);
             var forbidden = await crossOriginResponse.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ForbiddenError, lifetime.Token);
             var forbiddenError = Assert.IsType<ForbiddenError>(forbidden);
