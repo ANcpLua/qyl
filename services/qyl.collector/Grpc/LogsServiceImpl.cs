@@ -12,7 +12,7 @@ internal sealed class LogsServiceImpl(IQylStore store, OtlpApiKeyOptions? option
         {
             var logBatch = OtlpConverter.ConvertLogs(request);
             var logs = IngestionStorageMapper.ToLogStorageRows(
-                logBatch, AuthenticatedProjectScope.ForGrpcIngest(context, options));
+                logBatch, AuthenticatedProject.ForGrpcIngest(context, options));
 
             if (logs.Count <= 0) return new ExportLogsServiceResponse();
 

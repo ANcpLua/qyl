@@ -12,7 +12,7 @@ internal sealed class TraceServiceImpl(IQylStore store, OtlpApiKeyOptions? optio
         {
             var traceBatch = OtlpConverter.ConvertTraceRequest(request);
             var spans = IngestionStorageMapper.ToSpanStorageRows(
-                traceBatch, AuthenticatedProjectScope.ForGrpcIngest(context, options));
+                traceBatch, AuthenticatedProject.ForGrpcIngest(context, options));
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 

@@ -1,3 +1,5 @@
+using Qyl.Collector.Primitives;
+
 namespace Qyl.Collector.Ingestion;
 
 /// <summary>
@@ -57,13 +59,11 @@ internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKey
             return;
         }
 
-        var requestedProject = context.Request.Headers["X-Qyl-Project"].FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(requestedProject) &&
-            !string.Equals(ProjectScope.Normalize(requestedProject), projectId, StringComparison.Ordinal))
+        if (ProjectIdentity.Conflicts(context.Request.Headers[ProjectIdentity.HeaderName].FirstOrDefault(), projectId))
         {
             if (isReadApi)
                 await ContractErrorResults.WriteValidationAsync(
-                    context.Response, "X-Qyl-Project", "Project does not match the API key.",
+                    context.Response, ProjectIdentity.HeaderName, "Project does not match the API key.",
                     "project.mismatch", cancellationToken: context.RequestAborted).ConfigureAwait(false);
             else
                 await OtlpHttpResult.Failure(
@@ -72,7 +72,7 @@ internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKey
             return;
         }
 
-        AuthenticatedProjectScope.Set(context, projectId);
+        AuthenticatedProject.Set(context, projectId);
         await next(context).ConfigureAwait(false);
     }
 

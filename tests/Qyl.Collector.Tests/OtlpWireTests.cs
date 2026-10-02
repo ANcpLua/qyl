@@ -20,6 +20,7 @@ using Qyl.Collector.Ingestion;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Mapping;
 using Qyl.Collector.Hosting;
+using Qyl.Collector.Primitives;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
@@ -71,7 +72,7 @@ public sealed class OtlpWireTests
 
         var project = await interceptor.UnaryServerHandler(
             "request", context,
-            (_, call) => Task.FromResult(AuthenticatedProjectScope.ForGrpcIngest(call, options)!));
+            (_, call) => Task.FromResult(AuthenticatedProject.ForGrpcIngest(call, options)!));
         Assert.Equal("alpha", project);
 
         var rejected = new TestServerCallContext(TestContext.Current.CancellationToken);
@@ -79,6 +80,38 @@ public sealed class OtlpWireTests
         var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
             "request", rejected, (_, _) => Task.FromResult("should not run")));
         Assert.Equal(StatusCode.Unauthenticated, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task Grpc_interceptor_rejects_project_metadata_that_conflicts_with_the_key()
+    {
+        var options = new OtlpApiKeyOptions
+        {
+            AuthMode = "ApiKey",
+            Keys = [new ProjectApiKey("alpha", "a1")]
+        };
+        var interceptor = new OtlpApiKeyInterceptor(options);
+
+        var conflicting = new TestServerCallContext(TestContext.Current.CancellationToken);
+        conflicting.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
+        conflicting.RequestHeaders.Add("X-Qyl-Project", "beta");
+        var continued = false;
+        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+            "request", conflicting, (_, _) =>
+            {
+                continued = true;
+                return Task.FromResult("should not run");
+            }));
+        Assert.Equal(StatusCode.InvalidArgument, error.StatusCode);
+        Assert.False(continued);
+
+        var matching = new TestServerCallContext(TestContext.Current.CancellationToken);
+        matching.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
+        matching.RequestHeaders.Add(ProjectIdentity.HeaderName, " alpha ");
+        var project = await interceptor.UnaryServerHandler(
+            "request", matching,
+            (_, call) => Task.FromResult(AuthenticatedProject.ForGrpcIngest(call, options)!));
+        Assert.Equal("alpha", project);
     }
 
     [Fact]

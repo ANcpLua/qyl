@@ -1,8 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 
-internal static class AuthenticatedProjectScope
+internal static class AuthenticatedProject
 {
     private static readonly object s_httpKey = new();
     private static readonly object s_grpcKey = new();
@@ -12,7 +13,7 @@ internal static class AuthenticatedProjectScope
     public static string? ForHttpIngest(HttpContext context) => FromHttp(context);
 
     public static string ForHttpRead(HttpContext context) =>
-        FromHttp(context) ?? ProjectScope.Normalize(context.Request.Headers["X-Qyl-Project"].FirstOrDefault());
+        FromHttp(context) ?? ProjectIdentity.Normalize(context.Request.Headers[ProjectIdentity.HeaderName].FirstOrDefault());
 
     private static string? FromHttp(HttpContext context)
     {

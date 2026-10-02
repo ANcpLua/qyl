@@ -135,7 +135,7 @@ public sealed class ContractErrorResultsTests
 
         Assert.True(nextInvoked);
         Assert.Equal("private, no-store", context.Response.Headers.CacheControl.ToString());
-        Assert.Equal("tenant-a", AuthenticatedProjectScope.ForHttpRead(context));
+        Assert.Equal("tenant-a", AuthenticatedProject.ForHttpRead(context));
     }
 
     [Fact]

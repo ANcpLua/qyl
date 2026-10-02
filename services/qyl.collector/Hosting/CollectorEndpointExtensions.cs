@@ -111,7 +111,7 @@ internal static partial class CollectorEndpointExtensions
 
             var traceBatch = OtlpConverter.ConvertTraceRequest(otlpData);
             var spans = IngestionStorageMapper.ToSpanStorageRows(
-                traceBatch, AuthenticatedProjectScope.ForHttpIngest(context));
+                traceBatch, AuthenticatedProject.ForHttpIngest(context));
 
             if (spans.Count is 0)
                 return OtlpHttpResult.Success(
@@ -196,7 +196,7 @@ internal static partial class CollectorEndpointExtensions
 
             var logBatch = OtlpConverter.ConvertLogs(otlpData);
             var logs = IngestionStorageMapper.ToLogStorageRows(
-                logBatch, AuthenticatedProjectScope.ForHttpIngest(context));
+                logBatch, AuthenticatedProject.ForHttpIngest(context));
 
             if (logs.Count is 0)
                 return OtlpHttpResult.Success(
@@ -279,7 +279,7 @@ internal static partial class CollectorEndpointExtensions
 
             var batch = OtlpConverter.ConvertMetrics(otlpData);
             var write = MetricStorageMapper.ToStorageRows(
-                batch, AuthenticatedProjectScope.ForHttpIngest(context));
+                batch, AuthenticatedProject.ForHttpIngest(context));
 
             if (write.Points.Count > 0)
                 await store.InsertMetricsAsync(write.Series, write.Points, ct);
@@ -856,7 +856,7 @@ internal static partial class CollectorEndpointExtensions
             limit?.ToString(CultureInfo.InvariantCulture));
 
     private static string ResolveProjectScope(HttpContext httpContext) =>
-        AuthenticatedProjectScope.ForHttpRead(httpContext);
+        AuthenticatedProject.ForHttpRead(httpContext);
 
     private static Task FallbackHandler(HttpContext context)
     {

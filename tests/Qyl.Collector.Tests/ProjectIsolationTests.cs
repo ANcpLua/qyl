@@ -50,7 +50,7 @@ public sealed class ProjectIsolationTests
         var middleware = new CollectorApiKeyMiddleware(
             context =>
             {
-                reachedProject = AuthenticatedProjectScope.ForHttpRead(context);
+                reachedProject = AuthenticatedProject.ForHttpRead(context);
                 return Task.CompletedTask;
             }, options);
         var context = Context(options);

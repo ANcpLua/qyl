@@ -12,7 +12,7 @@ internal sealed class MetricsServiceImpl(IQylStore store, OtlpApiKeyOptions? opt
         {
             var batch = OtlpConverter.ConvertMetrics(request);
             var write = MetricStorageMapper.ToStorageRows(
-                batch, AuthenticatedProjectScope.ForGrpcIngest(context, options));
+                batch, AuthenticatedProject.ForGrpcIngest(context, options));
 
             if (write.Points.Count > 0)
             {

@@ -1,17 +1,15 @@
+using Qyl.Collector.Primitives;
+
 namespace Qyl.Collector.Storage;
 
 internal static class ProjectScope
 {
-    public const string DefaultProjectId = "default";
-
-    public static string Normalize(string? projectId) =>
-        string.IsNullOrWhiteSpace(projectId) ? DefaultProjectId : projectId.Trim();
+    public const string DefaultProjectId = ProjectIdentity.DefaultProjectId;
 
     public static string ForIngest(string? projectIdHint, string? authenticatedProjectId)
     {
-        if (authenticatedProjectId is null) return Normalize(projectIdHint);
-        if (!string.IsNullOrWhiteSpace(projectIdHint) &&
-            !string.Equals(Normalize(projectIdHint), authenticatedProjectId, StringComparison.Ordinal))
+        if (authenticatedProjectId is null) return ProjectIdentity.Normalize(projectIdHint);
+        if (ProjectIdentity.Conflicts(projectIdHint, authenticatedProjectId))
             throw new InvalidDataException("OTLP project does not match the authenticated project.");
 
         return authenticatedProjectId;
