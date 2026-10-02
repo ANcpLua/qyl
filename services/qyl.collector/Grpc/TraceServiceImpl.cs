@@ -2,7 +2,7 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class TraceServiceImpl(IQylStore store)
+internal sealed class TraceServiceImpl(IQylStore store, OtlpApiKeyOptions? options = null)
     : TraceService.TraceServiceBase
 {
     public override Task<ExportTraceServiceResponse> Export(
@@ -11,7 +11,8 @@ internal sealed class TraceServiceImpl(IQylStore store)
         GrpcExport.ExecuteAsync(async () =>
         {
             var traceBatch = OtlpConverter.ConvertTraceRequest(request);
-            var spans = IngestionStorageMapper.ToSpanStorageRows(traceBatch);
+            var spans = IngestionStorageMapper.ToSpanStorageRows(
+                traceBatch, AuthenticatedProject.ForGrpcIngest(context, options));
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 

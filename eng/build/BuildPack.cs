@@ -6,16 +6,16 @@
 using System;
 using System.IO;
 using System.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
-using Nuke.Components;
+using Fallout.Common;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
+using Fallout.Common.Tools.DotNet;
+using Fallout.Components;
 using Serilog;
 
 namespace Qyl.Build;
 
-interface IPack : IHazSourcePaths, IHazConfiguration
+interface IPack : IHasSourcePaths, IHasConfiguration
 {
     AbsolutePath NuGetArtifactsDirectory => ArtifactsDirectory / "nuget";
 

@@ -1,22 +1,27 @@
 namespace Qyl.Collector.Ingestion;
 
 /// <summary>
-/// The one key check both transports share: the HTTP middleware and the gRPC interceptor
-/// validate the same primary/secondary pair with the same fixed-time comparison.
+/// Resolve the project bound to a credential for both transports.
 /// </summary>
 internal static class OtlpApiKeyValidator
 {
-    public static bool IsValid(string? candidate, OtlpApiKeyOptions options)
+    public static string? ResolveProject(string? candidate, OtlpApiKeyOptions options)
     {
-        if (string.IsNullOrWhiteSpace(candidate)) return false;
+        if (string.IsNullOrWhiteSpace(candidate)) return null;
 
-        return FixedTimeEquals(candidate, options.PrimaryApiKey) ||
-               FixedTimeEquals(candidate, options.SecondaryApiKey);
+        string? projectId = null;
+        foreach (var entry in options.Keys)
+        {
+            if (FixedTimeEquals(candidate, entry.ApiKey))
+                projectId = entry.ProjectId;
+        }
+
+        return projectId;
     }
 
-    private static bool FixedTimeEquals(string candidate, string? expected)
+    private static bool FixedTimeEquals(string candidate, string expected)
     {
-        if (string.IsNullOrWhiteSpace(expected) || candidate.Length != expected.Length)
+        if (candidate.Length != expected.Length)
             return false;
 
         var diff = 0;

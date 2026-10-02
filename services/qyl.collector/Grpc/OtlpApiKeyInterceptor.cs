@@ -1,11 +1,13 @@
 using Grpc.Core.Interceptors;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Grpc;
 
 /// <summary>
 /// The gRPC mirror of <see cref="Qyl.Collector.Ingestion.CollectorApiKeyMiddleware"/>: in ApiKey
 /// mode every OTLP export call must carry a valid <c>x-otlp-api-key</c> metadata entry — the
-/// same key pair, the same fixed-time validation, <c>Unauthenticated</c> instead of 401.
+/// same project bindings and fixed-time validation, <c>Unauthenticated</c> instead of 401, and
+/// <c>InvalidArgument</c> instead of 400 when <c>x-qyl-project</c> names another project.
 /// All OTLP export methods are unary, so the unary handler is the whole boundary.
 /// </summary>
 internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interceptor
@@ -15,12 +17,17 @@ internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interce
         ServerCallContext context,
         UnaryServerMethod<TRequest, TResponse> continuation)
     {
-        if (options.IsApiKeyMode &&
-            !OtlpApiKeyValidator.IsValid(
-                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName),
-                options))
+        if (options.IsApiKeyMode)
         {
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
+            var projectId = OtlpApiKeyValidator.ResolveProject(
+                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), options);
+            if (projectId is null)
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
+
+            if (ProjectIdentity.Conflicts(context.RequestHeaders.GetValue(ProjectIdentity.HeaderName), projectId))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Project does not match the API key."));
+
+            AuthenticatedProject.Set(context, projectId);
         }
 
         return continuation(request, context);

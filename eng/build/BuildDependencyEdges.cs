@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
+using Fallout.Common;
+using Fallout.Common.IO;
 using Serilog;
 
 namespace Qyl.Build;
@@ -16,7 +16,7 @@ namespace Qyl.Build;
 /// never a quiet csproj addition. The table speaks the published Qyl.Telemetry.* identities,
 /// rewritten in the same commits as the pin bumps that consumed them.
 /// </summary>
-interface IDependencyEdges : IHazSourcePaths
+interface IDependencyEdges : IHasSourcePaths
 {
     /// <summary>qyl-family package references each project may carry, exhaustively.</summary>
     private static Dictionary<string, string[]> AllowedQylPackageEdges => new(StringComparer.Ordinal)
@@ -123,7 +123,7 @@ interface IDependencyEdges : IHazSourcePaths
         .Unlisted()
         .Executes(() =>
         {
-            var repoRoot = NukeBuild.RootDirectory;
+            var repoRoot = FalloutBuild.RootDirectory;
             var offenders = new List<string>();
             var seenProjects = new HashSet<string>(StringComparer.Ordinal);
 

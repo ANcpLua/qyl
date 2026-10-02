@@ -46,7 +46,7 @@ public sealed class ContractErrorResultsTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            PrimaryApiKey = "programmatic-test-key"
+            Keys = [new ProjectApiKey("tenant-a", "programmatic-test-key")]
         };
         var middleware = new CollectorApiKeyMiddleware(
             _ =>
@@ -83,7 +83,7 @@ public sealed class ContractErrorResultsTests
     {
         var middleware = new CollectorApiKeyMiddleware(
             _ => throw new InvalidOperationException("Rejected OTLP request reached the endpoint."),
-            new OtlpApiKeyOptions { AuthMode = "ApiKey", PrimaryApiKey = "real-key" });
+            new OtlpApiKeyOptions { AuthMode = "ApiKey", Keys = [new ProjectApiKey("tenant-a", "real-key")] });
         var context = CreateContext();
         context.Request.Path = "/v1/traces";
         context.Request.ContentType = contentType;
@@ -108,16 +108,15 @@ public sealed class ContractErrorResultsTests
     }
 
     [Fact]
-    public async Task Product_api_cache_is_private_and_whitespace_secondary_keys_are_never_credentials()
+    public async Task Product_api_cache_is_private_and_whitespace_keys_are_never_credentials()
     {
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            PrimaryApiKey = "real-key",
-            SecondaryApiKey = "   "
+            Keys = [new ProjectApiKey("tenant-a", "real-key")]
         };
-        Assert.False(OtlpApiKeyValidator.IsValid("   ", options));
-        Assert.True(OtlpApiKeyValidator.IsValid("real-key", options));
+        Assert.Null(OtlpApiKeyValidator.ResolveProject("   ", options));
+        Assert.Equal("tenant-a", OtlpApiKeyValidator.ResolveProject("real-key", options));
 
         var nextInvoked = false;
         var middleware = new CollectorApiKeyMiddleware(
@@ -130,12 +129,13 @@ public sealed class ContractErrorResultsTests
             options);
         var context = CreateContext();
         context.Request.Path = "/api/v1/logs";
-        context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = options.PrimaryApiKey;
+        context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "real-key";
 
         await middleware.InvokeAsync(context);
 
         Assert.True(nextInvoked);
         Assert.Equal("private, no-store", context.Response.Headers.CacheControl.ToString());
+        Assert.Equal("tenant-a", AuthenticatedProject.ForHttpRead(context));
     }
 
     [Fact]

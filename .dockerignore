@@ -115,8 +115,8 @@ venv
 **/venv
 .DS_Store
 **/.DS_Store
-.nuke
-**/.nuke
+.fallout
+**/.fallout
 Artifacts
 **/Artifacts
 artifacts

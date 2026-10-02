@@ -5,8 +5,8 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Nuke.Common;
-using Nuke.Common.IO;
+using Fallout.Common;
+using Fallout.Common.IO;
 using Serilog;
 
 namespace Qyl.Build;
@@ -34,7 +34,7 @@ namespace Qyl.Build;
 /// generated contracts use <c>object?</c> for an explicitly open JSON value, and source-generated
 /// serialization needs metadata for the runtime carrier without making it a CLI-owned wire model.
 /// </summary>
-interface ICliContractLoop : IHazSourcePaths
+interface ICliContractLoop : IHasSourcePaths
 {
     private const string ContractNamespacePrefix = "Qyl.Api.Contracts.";
     private const string OpenJsonValueCarrier = "System.Text.Json.JsonElement";
@@ -64,7 +64,7 @@ interface ICliContractLoop : IHazSourcePaths
         .Description("Verify Qyl.Cli JSON serializer contexts register only Qyl.Api.Contracts types")
         .Executes(() =>
         {
-            var repoRoot = NukeBuild.RootDirectory;
+            var repoRoot = FalloutBuild.RootDirectory;
             var cliDirectory = repoRoot / "packages" / "Qyl.Cli";
             var sources = cliDirectory.GlobFiles("**/*.cs")
                 .Where(IsCliSource)

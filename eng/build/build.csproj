@@ -6,10 +6,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace></RootNamespace>
-    <NukeRootDirectory>..</NukeRootDirectory>
-    <NukeScriptDirectory>..</NukeScriptDirectory>
-    <NukeTelemetryVersion>1</NukeTelemetryVersion>
-    <NukeExcludeConfig>True</NukeExcludeConfig>
+    <FalloutRootDirectory>..</FalloutRootDirectory>
+    <FalloutScriptDirectory>..</FalloutScriptDirectory>
+    <FalloutExcludeConfig>True</FalloutExcludeConfig>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -25,12 +24,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-    <PackageReference Include="Nuke.Common"/>
-    <PackageReference Include="Nuke.Components"/>
+    <PackageReference Include="Fallout.Common"/>
+    <PackageReference Include="Fallout.Components"/>
     <!-- BuildCollectorSemanticCatalog reflects these assemblies. -->
     <PackageReference Include="Qyl.Telemetry.SemanticConventions" PrivateAssets="all"/>
     <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
-    <!-- Override vulnerable Nuke.Common transitives. -->
+    <!-- Override vulnerable Fallout.Common transitives. -->
     <PackageReference Include="NuGet.Packaging"/>
     <!-- Pin transitive dependency to a patched version to avoid the NU1903 audit error for
       System.Security.Cryptography.Xml 10.0.6 (GHSA-23rf-6693-g89p and related advisories). -->

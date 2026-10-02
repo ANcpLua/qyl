@@ -25,8 +25,7 @@ cannot rot into decoration.
 | `QYL_OTLP_CORS_ALLOWED_HEADERS` | Collector | Optional comma-separated additions to `content-type` and `x-otlp-api-key`. |
 | `QYL_OTLP_CORS_ALLOWED_ORIGINS` | Collector | Comma-separated OTLP/HTTP browser origins (`*` allowed); unset disables OTLP CORS. |
 | `QYL_OTLP_PORT` | Collector | OTLP/HTTP listener; defaults to `4318`, and `0` disables it. |
-| `QYL_OTLP_PRIMARY_API_KEY` | Collector | Primary `x-otlp-api-key`; at least one key is required in `ApiKey` mode. |
-| `QYL_OTLP_SECONDARY_API_KEY` | Collector | Optional rotation key accepted alongside the primary key. |
+| `QYL_OTLP_PROJECT_KEYS` | Collector | JSON object mapping each project ID to an array of `x-otlp-api-key` credentials, for example `{"acme":["key-one","key-two"]}`. Required in `ApiKey` mode. Keys must be unique across projects; rotate by adding a second key to the same project. In this mode, reads and OTLP writes use the authenticated project, and conflicting project headers or resource attributes are rejected. |
 | `QYL_PORT` | Collector | Product API/dashboard listener; falls back to `PORT`, then `5100`. |
 | `QYL_RETENTION_DAYS` | Collector | Trace/log age bound in days; defaults to `30`, and `0` disables retention. |
 | `QYL_RETENTION_INTERVAL_MINUTES` | Collector | Retention and disk-pressure check interval; defaults to `60`. |
@@ -36,3 +35,7 @@ cannot rot into decoration.
 | `QYL_SMOKE_PLATFORM` | NativeAOT smoke | Docker build/run platform; defaults to `linux/amd64`. |
 | `QYL_STORAGE_MIN_FREE_MB` | Collector | Free-space threshold for degraded `/health`; defaults to `2048`, and `0` disables the threshold. |
 | `QYL_WORKLOAD_ONESHOT` | Synthetic workload | `1` emits one acceptance turn and exits; unset runs continuously. |
+
+`Unsecured` mode is intended for local development. It continues to accept caller-provided
+project IDs and does not isolate customers. Use `ApiKey` mode with project-bound keys for
+customer data.

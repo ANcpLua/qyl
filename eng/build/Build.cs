@@ -1,12 +1,12 @@
 using System;
 using System.Linq;
-using Nuke.Common;
-using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Tools.Git;
-using Nuke.Components;
+using Fallout.Common;
+using Fallout.Common.CI.GitHubActions;
+using Fallout.Common.IO;
+using Fallout.Common.Tooling;
+using Fallout.Common.Tools.DotNet;
+using Fallout.Common.Tools.Git;
+using Fallout.Components;
 using Serilog;
 
 namespace Qyl.Build;
@@ -19,7 +19,7 @@ namespace Qyl.Build;
     OnPullRequestBranches = ["main"],
     InvokedTargets = ["Ci"],
     FetchDepth = 0)]
-sealed class Build : NukeBuild,
+sealed class Build : FalloutBuild,
     ICompile,
     IVersionize,
     IDocker,
@@ -63,7 +63,7 @@ sealed class Build : NukeBuild,
                            && !path.StartsWith(buildScriptArtifacts, pathComparison);
                 })
                 .DeleteDirectories();
-            From<IHazArtifacts>().ArtifactsDirectory.CreateOrCleanDirectory();
+            From<IHasArtifacts>().ArtifactsDirectory.CreateOrCleanDirectory();
         });
 
     public Target Print => d => d
@@ -74,11 +74,11 @@ sealed class Build : NukeBuild,
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  qyl Build - AI Observability Platform");
             Log.Information("═══════════════════════════════════════════════════════════════");
-            Log.Information("  Configuration : {Configuration}", From<IHazConfiguration>().Configuration);
+            Log.Information("  Configuration : {Configuration}", From<IHasConfiguration>().Configuration);
             Log.Information("  Version       : {Version}", VersionLabel);
             Log.Information("  Branch        : {Branch}", BranchLabel);
             Log.Information("  Commit        : {Sha}", CommitLabel);
-            Log.Information("  Solution      : {Solution}", From<IHazSolution>().Solution.FileName);
+            Log.Information("  Solution      : {Solution}", From<IHasSolution>().Solution.FileName);
             Log.Information("  IsServerBuild : {IsServer}", IsServerBuild);
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
@@ -107,8 +107,8 @@ sealed class Build : NukeBuild,
         .Description("Run every .NET test project in the solution")
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => DotNetTasks.DotNetTest(s => s
-            .SetProjectFile(From<IHazSolution>().Solution)
-            .SetConfiguration(From<IHazConfiguration>().Configuration)
+            .SetProjectFile(From<IHasSolution>().Solution)
+            .SetConfiguration(From<IHasConfiguration>().Configuration)
             .EnableNoBuild()
             .EnableNoRestore()));
 
@@ -120,23 +120,23 @@ sealed class Build : NukeBuild,
         {
             Log.Information(
                 "Development environment ready ({Configuration}, {Version})",
-                From<IHazConfiguration>().Configuration,
+                From<IHasConfiguration>().Configuration,
                 VersionLabel);
             Log.Information("  Dashboard:  http://localhost:5100");
             Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
             Log.Information("  OTLP gRPC:  http://localhost:4317");
             Log.Information("  Vite Dev:   http://localhost:5173");
-            Log.Information("  Run 'nuke FrontendDev' in another terminal for hot reload");
+            Log.Information("  Run './eng/build.sh FrontendDev' in another terminal for hot reload");
         });
 
-    AbsolutePath IHazArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
+    AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
 
     Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
         .SetDeterministic(IsServerBuild)
         .SetContinuousIntegrationBuild(IsServerBuild)
         .SetProperty("QylAot", false);
 
-    T From<T>() where T : INukeBuild => (T)(object)this;
+    T From<T>() where T : IFalloutBuild => (T)(object)this;
 
     private static string GitScalar(string args, string fallback)
     {
