@@ -100,7 +100,7 @@
     <!-- Fallout.ProjectModel requires this floor under transitive pinning. -->
     <!-- renovate: datasource=nuget depName=Microsoft.Build -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
-    <!-- Keeps Fallout's NuGet train patched and aligned with .NET SDK 10.0.400. -->
+    <!-- The NuGet the .NET SDK ships; Fallout.Common 10.4.0 alone brings 6.14.3. -->
     <!-- renovate: datasource=nuget depName=NuGet.Packaging -->
     <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
   </PropertyGroup>

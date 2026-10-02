@@ -29,11 +29,9 @@
     <!-- BuildCollectorSemanticCatalog reflects these assemblies. -->
     <PackageReference Include="Qyl.Telemetry.SemanticConventions" PrivateAssets="all"/>
     <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
-    <!-- Override vulnerable Fallout.Common transitives. -->
+    <!-- The .NET SDK's NuGet (7.9.0), not the 6.14.3 Fallout.Common 10.4.0 brings; Fallout's own
+         build moved the same way (Fallout-build/Fallout#677). -->
     <PackageReference Include="NuGet.Packaging"/>
-    <!-- Pin transitive dependency to a patched version to avoid the NU1903 audit error for
-      System.Security.Cryptography.Xml 10.0.6 (GHSA-23rf-6693-g89p and related advisories). -->
-    <PackageReference Include="System.Security.Cryptography.Xml"/>
   </ItemGroup>
 
 </Project>
