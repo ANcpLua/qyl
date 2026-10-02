@@ -38,4 +38,18 @@ public sealed class AttributeJsonContextTests
             JsonSerializer.Serialize(contract, QylSerializerContext.Default.AttributeValue),
             JsonSerializer.Serialize(contract, OtlpAttributeJsonContext.Default.AttributeValue));
     }
+
+    [Fact]
+    public void Ingestion_context_carries_the_http_context_options()
+    {
+        var http = QylSerializerContext.Default.Options;
+        var ingestion = OtlpAttributeJsonContext.Default.Options;
+
+        Assert.Equal(http.PropertyNamingPolicy, ingestion.PropertyNamingPolicy);
+        Assert.Equal(http.DefaultIgnoreCondition, ingestion.DefaultIgnoreCondition);
+        Assert.Equal(http.NumberHandling, ingestion.NumberHandling);
+        Assert.Equal(http.AllowOutOfOrderMetadataProperties, ingestion.AllowOutOfOrderMetadataProperties);
+        Assert.Equal(http.WriteIndented, ingestion.WriteIndented);
+        Assert.Equal(http.Converters.Count, ingestion.Converters.Count);
+    }
 }

@@ -16,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-scopes=(services/qyl.collector internal/qyl.instrumentation)
+scopes=(services/qyl.collector services/qyl.collector.ingestion services/qyl.collector.storage internal/qyl.instrumentation)
 for scope in "${scopes[@]}"; do
   if [[ ! -d "$scope" ]]; then
     echo "G1 vocabulary smoke FAILED — scan scope missing: $scope (move this list with the rename)" >&2
