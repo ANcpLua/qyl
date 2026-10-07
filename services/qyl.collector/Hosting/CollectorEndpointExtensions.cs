@@ -646,9 +646,9 @@ internal static partial class CollectorEndpointExtensions
     internal static async Task<IResult> GetLogsAsync(
         HttpContext httpContext,
         IQylStore store,
-        string? sessionId,
-        string? traceId,
-        string? serviceName,
+        [FromQuery(Name = "session_id")] string? sessionId,
+        [FromQuery(Name = "trace_id")] string? traceId,
+        [FromQuery(Name = "service_name")] string? serviceName,
         string? level,
         string? query,
         CancellationToken ct)
@@ -665,7 +665,7 @@ internal static partial class CollectorEndpointExtensions
         if (typedQuery.SeverityMin is < ContractLimits.MinimumLogSeverity or > ContractLimits.MaximumLogSeverity)
         {
             return ContractErrorResults.Validation(
-                "severityMin",
+                "severity_min",
                 $"Severity must be between {ContractLimits.MinimumLogSeverity} and {ContractLimits.MaximumLogSeverity}.",
                 "severity.out_of_range",
                 typedQuery.SeverityMin.Value.ToString(CultureInfo.InvariantCulture));
@@ -694,7 +694,7 @@ internal static partial class CollectorEndpointExtensions
         HttpContext context,
         IQylStore store,
         CollectorStreamCapacity streamCapacity,
-        string? serviceName,
+        [FromQuery(Name = "service_name")] string? serviceName,
         string? query,
         CancellationToken ct)
     {
@@ -708,7 +708,7 @@ internal static partial class CollectorEndpointExtensions
         {
             await ContractErrorResults.WriteValidationAsync(
                 context.Response,
-                "minSeverity",
+                "min_severity",
                 $"Severity must be between {ContractLimits.MinimumStreamSeverity} and {ContractLimits.MaximumLogSeverity}.",
                 "severity.out_of_range",
                 minSeverity.Value.ToString(CultureInfo.InvariantCulture),

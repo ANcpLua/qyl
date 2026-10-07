@@ -42,7 +42,7 @@ internal readonly record struct ParsedMetricQueryParameters(
 
 internal static class ContractQueryParser
 {
-    // Metric query parameters carry their OpenAPI wire names verbatim: the contract is
+    // Query parameters carry their OpenAPI wire names verbatim: the contract is
     // what an agent or the dashboard codes against, and a name that only the collector
     // knows is a name no generated client can send.
     internal static IResult? ParseMetrics(HttpRequest request, out ParsedMetricsParameters parsed)
@@ -144,9 +144,9 @@ internal static class ContractQueryParser
     {
         parsed = default;
         var reader = new QueryReader(request.Query);
-        if (reader.ReadBoolean("isActive", out var isActive) is { } error) return error;
-        if (reader.ReadDateTime("startTime", out var startTime) is { } startError) return startError;
-        if (reader.ReadDateTime("endTime", out var endTime) is { } endError) return endError;
+        if (reader.ReadBoolean("is_active", out var isActive) is { } error) return error;
+        if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
 
         parsed = new ParsedSessionsParameters(isActive, startTime, endTime, limit);
@@ -157,8 +157,8 @@ internal static class ContractQueryParser
     {
         parsed = default;
         var reader = new QueryReader(request.Query);
-        if (reader.ReadDateTime("startTime", out var startTime) is { } startError) return startError;
-        if (reader.ReadDateTime("endTime", out var endTime) is { } endError) return endError;
+        if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
 
         parsed = new ParsedSessionStatsParameters(startTime, endTime);
         return null;
@@ -179,9 +179,9 @@ internal static class ContractQueryParser
     {
         parsed = default;
         var reader = new QueryReader(request.Query);
-        if (reader.ReadInteger("severityMin", out var severityMin) is { } severityError) return severityError;
-        if (reader.ReadDateTime("startTime", out var startTime) is { } startError) return startError;
-        if (reader.ReadDateTime("endTime", out var endTime) is { } endError) return endError;
+        if (reader.ReadInteger("severity_min", out var severityMin) is { } severityError) return severityError;
+        if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
 
         parsed = new ParsedLogsParameters(severityMin, startTime, endTime, limit);
@@ -189,7 +189,7 @@ internal static class ContractQueryParser
     }
 
     internal static IResult? ParseLogStream(HttpRequest request, out int? minSeverity) =>
-        new QueryReader(request.Query).ReadInteger("minSeverity", out minSeverity);
+        new QueryReader(request.Query).ReadInteger("min_severity", out minSeverity);
 
     private readonly struct QueryReader(IQueryCollection query)
     {
