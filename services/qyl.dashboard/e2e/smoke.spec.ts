@@ -104,7 +104,7 @@ test.describe('qyl executable product surface', () => {
 
         await expect.poll(async () => {
             const response = await request.get(
-                `/api/v1/logs?serviceName=${encodeURIComponent(serviceName)}&limit=100`,
+                `/api/v1/logs?service_name=${encodeURIComponent(serviceName)}&limit=100`,
             );
             expect(response.status()).toBe(200);
             const logs = generatedPageItems(parseLogContract, await response.json());
@@ -149,9 +149,9 @@ test.describe('qyl executable product surface', () => {
 
     test('malformed typed queries use the generated validation contract', async ({request}) => {
         for (const [path, field, code] of [
-            ['/api/v1/sessions?isActive=perhaps', 'isActive', 'query.invalid_boolean'],
+            ['/api/v1/sessions?is_active=perhaps', 'is_active', 'query.invalid_boolean'],
             ['/api/v1/traces?limit=many', 'limit', 'query.invalid_integer'],
-            ['/api/v1/logs?startTime=yesterday', 'startTime', 'query.invalid_date_time'],
+            ['/api/v1/logs?start_time=yesterday', 'start_time', 'query.invalid_date_time'],
         ] as const) {
             const response = await request.get(path);
             expect(response.status()).toBe(400);

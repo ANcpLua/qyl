@@ -146,7 +146,7 @@ internal static class CollectorSmoke
         AssertLogsSuccess(logsResponse);
         await VerifyJsonValuesAsync(
                 http,
-                new Uri(apiBase, $"api/v1/logs?serviceName={Uri.EscapeDataString(GrpcLogService)}"),
+                new Uri(apiBase, $"api/v1/logs?service_name={Uri.EscapeDataString(GrpcLogService)}"),
                 GrpcLogService,
                 GrpcLogEvent,
                 GrpcTraceId,

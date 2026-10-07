@@ -272,7 +272,7 @@ internal static class SdkConformance
 
         throw new InvalidOperationException(
             $"Missing {WorkCompletedEventName} log record correlated to trace {traceId} " +
-            $"from /api/v1/logs?traceId={traceId}.");
+            $"from /api/v1/logs?trace_id={traceId}.");
     }
 
     private static ConformanceEvidence AssertEvidence(
@@ -411,7 +411,7 @@ internal sealed class QylApiContractClient(HttpClient http, Uri apiBase)
 
     internal async Task<CursorPageLogRecord> GetLogsAsync(string traceId)
     {
-        var path = $"api/v1/logs?traceId={Uri.EscapeDataString(traceId)}&limit=100";
+        var path = $"api/v1/logs?trace_id={Uri.EscapeDataString(traceId)}&limit=100";
         using var response = await http.GetAsync(new Uri(apiBase, path)).ConfigureAwait(false);
         return await ReadContractAsync(response, path, ContractJsonContext.Default.CursorPageLogRecord)
             .ConfigureAwait(false);

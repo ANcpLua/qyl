@@ -12,19 +12,19 @@ public sealed class ContractQueryParserTests
     public static TheoryData<QueryEndpoint, string, string, string> MalformedTypedQueries =>
         new()
         {
-            { QueryEndpoint.Sessions, "isActive", "not-a-boolean", "query.invalid_boolean" },
-            { QueryEndpoint.Sessions, "startTime", "yesterday", "query.invalid_date_time" },
-            { QueryEndpoint.Sessions, "endTime", "2026-07-13", "query.invalid_date_time" },
+            { QueryEndpoint.Sessions, "is_active", "not-a-boolean", "query.invalid_boolean" },
+            { QueryEndpoint.Sessions, "start_time", "yesterday", "query.invalid_date_time" },
+            { QueryEndpoint.Sessions, "end_time", "2026-07-13", "query.invalid_date_time" },
             { QueryEndpoint.Sessions, "limit", "many", "query.invalid_integer" },
-            { QueryEndpoint.SessionStats, "startTime", "now", "query.invalid_date_time" },
-            { QueryEndpoint.SessionStats, "endTime", "later", "query.invalid_date_time" },
+            { QueryEndpoint.SessionStats, "start_time", "now", "query.invalid_date_time" },
+            { QueryEndpoint.SessionStats, "end_time", "later", "query.invalid_date_time" },
             { QueryEndpoint.Traces, "limit", "1.5", "query.invalid_integer" },
             { QueryEndpoint.Traces, "cursor", "not-a-qyl-cursor", "cursor.invalid" },
-            { QueryEndpoint.Logs, "severityMin", "info", "query.invalid_integer" },
-            { QueryEndpoint.Logs, "startTime", "13/07/2026", "query.invalid_date_time" },
-            { QueryEndpoint.Logs, "endTime", "2026-07-13T10:00:00", "query.invalid_date_time" },
+            { QueryEndpoint.Logs, "severity_min", "info", "query.invalid_integer" },
+            { QueryEndpoint.Logs, "start_time", "13/07/2026", "query.invalid_date_time" },
+            { QueryEndpoint.Logs, "end_time", "2026-07-13T10:00:00", "query.invalid_date_time" },
             { QueryEndpoint.Logs, "limit", "0x10", "query.invalid_integer" },
-            { QueryEndpoint.LogStream, "minSeverity", "warning", "query.invalid_integer" }
+            { QueryEndpoint.LogStream, "min_severity", "warning", "query.invalid_integer" }
         };
 
     public static TheoryData<QueryEndpoint, string, string, string> OutOfRangeQueries =>
@@ -32,9 +32,9 @@ public sealed class ContractQueryParserTests
         {
             { QueryEndpoint.Sessions, "limit", "0", "limit.out_of_range" },
             { QueryEndpoint.Traces, "limit", "1001", "limit.out_of_range" },
-            { QueryEndpoint.Logs, "severityMin", "25", "severity.out_of_range" },
+            { QueryEndpoint.Logs, "severity_min", "25", "severity.out_of_range" },
             { QueryEndpoint.Logs, "limit", "10001", "limit.out_of_range" },
-            { QueryEndpoint.LogStream, "minSeverity", "0", "severity.out_of_range" }
+            { QueryEndpoint.LogStream, "min_severity", "0", "severity.out_of_range" }
         };
 
     [Theory]
@@ -95,9 +95,9 @@ public sealed class ContractQueryParserTests
         var populated = CreateContext();
         populated.Request.QueryString = QueryString.Create(
         [
-            new KeyValuePair<string, string?>("isActive", "true"),
-            new KeyValuePair<string, string?>("startTime", "2026-07-13T10:11:12.1234567Z"),
-            new KeyValuePair<string, string?>("endTime", "2026-07-13T12:11:12+02:00"),
+            new KeyValuePair<string, string?>("is_active", "true"),
+            new KeyValuePair<string, string?>("start_time", "2026-07-13T10:11:12.1234567Z"),
+            new KeyValuePair<string, string?>("end_time", "2026-07-13T12:11:12+02:00"),
             new KeyValuePair<string, string?>("limit", "50")
         ]);
 
