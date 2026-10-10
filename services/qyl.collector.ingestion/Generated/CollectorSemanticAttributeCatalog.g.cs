@@ -115,6 +115,9 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.evaluation.score.label", // incubating
         "gen_ai.evaluation.score.value", // incubating
         "gen_ai.input.messages", // incubating
+        "gen_ai.main_agent.description", // incubating
+        "gen_ai.main_agent.id", // incubating
+        "gen_ai.main_agent.name", // incubating
         "gen_ai.memory.query.text", // incubating
         "gen_ai.memory.record.count", // incubating
         "gen_ai.memory.record.id", // incubating
@@ -150,7 +153,12 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
         "gen_ai.retrieval.top_k", // incubating
+        "gen_ai.skill.description", // incubating
+        "gen_ai.skill.name", // incubating
+        "gen_ai.skill.resource.name", // incubating
+        "gen_ai.skill.source.uri", // incubating
         "gen_ai.system_instructions", // incubating
+        "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
         "gen_ai.tool.call.id", // incubating
@@ -167,7 +175,11 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.image.cache_read.input_tokens", // incubating
         "gen_ai.usage.image.input_tokens", // incubating
         "gen_ai.usage.image.output_tokens", // incubating
+        "gen_ai.usage.input_audio_tokens", // incubating
+        "gen_ai.usage.input_text_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
+        "gen_ai.usage.output_audio_tokens", // incubating
+        "gen_ai.usage.output_text_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
         "gen_ai.usage.text.cache_read.input_tokens", // incubating
@@ -351,6 +363,9 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.evaluation.score.label", // incubating
         "gen_ai.evaluation.score.value", // incubating
         "gen_ai.input.messages", // incubating
+        "gen_ai.main_agent.description", // incubating
+        "gen_ai.main_agent.id", // incubating
+        "gen_ai.main_agent.name", // incubating
         "gen_ai.memory.query.text", // incubating
         "gen_ai.memory.record.count", // incubating
         "gen_ai.memory.record.id", // incubating
@@ -386,7 +401,12 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
         "gen_ai.retrieval.top_k", // incubating
+        "gen_ai.skill.description", // incubating
+        "gen_ai.skill.name", // incubating
+        "gen_ai.skill.resource.name", // incubating
+        "gen_ai.skill.source.uri", // incubating
         "gen_ai.system_instructions", // incubating
+        "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
         "gen_ai.tool.call.id", // incubating
@@ -403,7 +423,11 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.image.cache_read.input_tokens", // incubating
         "gen_ai.usage.image.input_tokens", // incubating
         "gen_ai.usage.image.output_tokens", // incubating
+        "gen_ai.usage.input_audio_tokens", // incubating
+        "gen_ai.usage.input_text_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
+        "gen_ai.usage.output_audio_tokens", // incubating
+        "gen_ai.usage.output_text_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
         "gen_ai.usage.text.cache_read.input_tokens", // incubating
@@ -603,6 +627,9 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.evaluation.score.label", // incubating
         "gen_ai.evaluation.score.value", // incubating
         "gen_ai.input.messages", // incubating
+        "gen_ai.main_agent.description", // incubating
+        "gen_ai.main_agent.id", // incubating
+        "gen_ai.main_agent.name", // incubating
         "gen_ai.memory.query.text", // incubating
         "gen_ai.memory.record.count", // incubating
         "gen_ai.memory.record.id", // incubating
@@ -638,7 +665,12 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
         "gen_ai.retrieval.top_k", // incubating
+        "gen_ai.skill.description", // incubating
+        "gen_ai.skill.name", // incubating
+        "gen_ai.skill.resource.name", // incubating
+        "gen_ai.skill.source.uri", // incubating
         "gen_ai.system_instructions", // incubating
+        "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
         "gen_ai.tool.call.id", // incubating
@@ -655,7 +687,11 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.image.cache_read.input_tokens", // incubating
         "gen_ai.usage.image.input_tokens", // incubating
         "gen_ai.usage.image.output_tokens", // incubating
+        "gen_ai.usage.input_audio_tokens", // incubating
+        "gen_ai.usage.input_text_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
+        "gen_ai.usage.output_audio_tokens", // incubating
+        "gen_ai.usage.output_text_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
         "gen_ai.usage.text.cache_read.input_tokens", // incubating
@@ -884,6 +920,8 @@ internal static class CollectorSemanticAttributeCatalog
         "enduser.scope",
         "exception.message",
         "exception.stacktrace",
+        "executor.input", // incubating
+        "executor.output", // incubating
         "gen_ai.agent.description", // incubating
         "gen_ai.agent.id", // incubating
         "gen_ai.agent.name", // incubating
@@ -912,6 +950,7 @@ internal static class CollectorSemanticAttributeCatalog
         "http.response.header",
         "mcp.resource.uri", // incubating
         "mcp.session.id", // incubating
+        "message.content", // incubating
         "rpc.request.metadata", // incubating
         "rpc.response.metadata", // incubating
         "service.instance.id",

@@ -1,5 +1,30 @@
 # Changelog
 
+## 8.0.0 — 2026-10-10
+
+- `Qyl.Telemetry.SemanticConventions*` 9.4.0 → 9.6.0. Upstream
+  semantic-conventions-genai dropped `gen_ai.client.token.usage` and
+  `gen_ai.token.type` for `gen_ai.client.inference.usage.*` and
+  `gen_ai.token.modality`; Microsoft.Extensions.AI 10.10.0 and Agent Framework
+  1.24.0 still emit the old pair, so 9.6.0 declares them as vendor rows, together
+  with the sixteen `workflow.*`, `executor.*`, `message.*` and `edge_group.*` keys
+  the workflow runtime writes. The regenerated collector catalog passes all of
+  them through instead of counting them as dropped; `executor.input`,
+  `executor.output` and `message.content` join `deniedExactKeys` beside
+  `gen_ai.input.messages`, because they are the message bodies. The workflow
+  runtime's `message.type` stays dropped: it is upstream's obsoleted RPC key, and
+  the registry cannot redeclare a key its catalog has. The schema URL the
+  collector advertises is `https://qyl.at/schemas/9.6.0`.
+- `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 21.1.0 →
+  22.0.0, the line built on that registry, Microsoft.Agents.AI 1.24.0,
+  Microsoft.Extensions.AI 10.10.0 and OpenTelemetry 1.19.1. `Qyl.Api.Sdk` pins
+  `Qyl.Telemetry.Hosting` for every API it builds, so an API built with this SDK
+  moves with it.
+- Platform pins: the .NET runtime packages 10.0.12, Microsoft.Extensions 10.10.0,
+  OpenTelemetry 1.19.1.
+- The README's `qyl-mcp-server` row says 7.1.1, the version npm has had since the
+  2026-10-07 wave; it said 7.0.0.
+
 ## 7.2.0 — 2026-09-30
 
 - `qyl.dashboard.esproj` restores, builds and tests with Bun

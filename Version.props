@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>7.2.0</QylVersion>
+    <QylVersion>8.0.0</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -12,10 +12,10 @@
 
   <PropertyGroup Label="Platform">
     <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
-    <DotNetRuntimeVersion>10.0.11</DotNetRuntimeVersion>
+    <DotNetRuntimeVersion>10.0.12</DotNetRuntimeVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
-    <MicrosoftExtensionsVersion>10.9.0</MicrosoftExtensionsVersion>
-    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.11 declares Microsoft.OpenApi
+    <MicrosoftExtensionsVersion>10.10.0</MicrosoftExtensionsVersion>
+    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.12 declares Microsoft.OpenApi
          [2.7.5, 3.0.0), and its source generator fails to compile against 3.x with CS0012
          (the type it emits lives in an assembly the generated code does not reference).
          3.x arrives with the .NET release that widens the declared range. -->
@@ -36,9 +36,9 @@
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>21.1.0</QylTelemetryVersion>
+    <QylTelemetryVersion>22.0.0</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
-    <QylSemanticConventionsVersion>9.4.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>9.6.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <QylApiContractsVersion>11.3.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
@@ -61,7 +61,7 @@
 
   <PropertyGroup Label="Telemetry and wire">
     <!-- renovate: datasource=nuget depName=OpenTelemetry -->
-    <OpenTelemetryVersion>1.18.0</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.19.1</OpenTelemetryVersion>
     <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
          it (2026-07-26). Retention's space reuse rides the experimental
          vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
