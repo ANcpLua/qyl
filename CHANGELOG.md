@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.1.0 — unreleased
+## 9.1.0 — 2026-10-11
 
 - `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 23.0.0 → 23.1.0;
   `Qyl.Api.Sdk` pins `Qyl.Telemetry.Hosting`, so an API built with this SDK moves with it.
@@ -11,13 +11,18 @@
   `--openapi-version` argument is appended only when `OpenApiGenerateDocumentsOptions` does not
   already carry one; the `QylEmitOpenApiDocument` property is gone (setting it to `false` only
   made `AddQylApi` throw at start-up).
-- Collector: the logs and metrics lists compute `has_more` from a `limit + 1` read, as the
-  sessions list does, and an unknown `/api/*` route answers `404` as `application/problem+json`.
+- Collector: the logs, metrics and metric-series lists compute `has_more` from a `limit + 1`
+  read, as the sessions list does, so a page that exactly fills the limit no longer reports
+  more; an unknown `/api/*` route answers `404` as `application/problem+json`.
 - The `qyl` tool no longer references `OpenTelemetry` or
   `OpenTelemetry.Exporter.OpenTelemetryProtocol`, which it never used.
 - Build: the Versionize `Release` and `Changelog` targets are gone; a release is the
   `v<QylVersion>` tag. `RenderReadmeVersions` is listed. README and `docs/configuration.md`
-  changes run the backend lane on CI.
+  changes run the backend lane on CI. `mise.toml` pins Node 24.21.0 instead of the `24` line.
+- Repository: `AGENTS.md` carries the release ripple across the qyl-dev repos (#660, #662);
+  the README's `qyl-mcp-server` row says 7.2.3 and its build section runs through `mise` and
+  `./eng/build.sh`; `SECURITY.md` patches the latest release line; `docs/dagger.md` is gone;
+  `github/codeql-action` 4.38.3 (#657).
 
 ## 9.0.0 — 2026-10-10
 
