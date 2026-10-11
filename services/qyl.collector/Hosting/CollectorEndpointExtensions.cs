@@ -99,6 +99,17 @@ internal static partial class CollectorEndpointExtensions
         {
             throw;
         }
+        catch (OtlpPayloadTooLargeException ex)
+        {
+            // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpTracesEndpoint");
+            OtlpTracesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status413PayloadTooLarge,
+                encoding,
+                OtlpPayloadParser.PayloadTooLargeMessage);
+        }
         catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
@@ -184,6 +195,17 @@ internal static partial class CollectorEndpointExtensions
         {
             throw;
         }
+        catch (OtlpPayloadTooLargeException ex)
+        {
+            // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpLogsEndpoint");
+            OtlpLogsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status413PayloadTooLarge,
+                encoding,
+                OtlpPayloadParser.PayloadTooLargeMessage);
+        }
         catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
@@ -268,6 +290,17 @@ internal static partial class CollectorEndpointExtensions
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OtlpPayloadTooLargeException ex)
+        {
+            // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpMetricsEndpoint");
+            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status413PayloadTooLarge,
+                encoding,
+                OtlpPayloadParser.PayloadTooLargeMessage);
         }
         catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
         {

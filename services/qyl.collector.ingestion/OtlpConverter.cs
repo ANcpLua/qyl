@@ -318,6 +318,10 @@ internal static partial class OtlpConverter
             ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue),
             ProtoAnyValue.ValueOneofCase.KvlistValue => ConvertProtoKeyValueList(value.KvlistValue),
             ProtoAnyValue.ValueOneofCase.None => OtlpAttributeValue.Empty,
+            // Alpha, profiles-only (opentelemetry-proto 1.10+): an index into a string table no other
+            // signal carries. The proto asks non-profiling receivers to treat it as absent, which is what
+            // it was while the field was unknown.
+            ProtoAnyValue.ValueOneofCase.StringValueStrindex => OtlpAttributeValue.Empty,
             _ => throw new InvalidDataException("OTLP AnyValue contains an unknown value kind.")
         };
     }

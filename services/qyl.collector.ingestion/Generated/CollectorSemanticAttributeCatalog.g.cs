@@ -210,6 +210,8 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
+        "jsonrpc.protocol.version", // incubating
+        "jsonrpc.request.id", // incubating
         "mcp.method.name", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
@@ -455,6 +457,8 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
+        "jsonrpc.protocol.version", // incubating
+        "jsonrpc.request.id", // incubating
         "mcp.method.name", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
@@ -719,6 +723,8 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
+        "jsonrpc.protocol.version", // incubating
+        "jsonrpc.request.id", // incubating
         "mcp.method.name", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating

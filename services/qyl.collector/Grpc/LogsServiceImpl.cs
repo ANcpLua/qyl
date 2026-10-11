@@ -5,9 +5,8 @@ using Qyl.Collector.ApiKeys;
 namespace Qyl.Collector.Grpc;
 
 internal sealed class LogsServiceImpl(IQylStore store, OtlpApiKeyOptions? options = null)
-    : LogsService.LogsServiceBase
 {
-    public override Task<ExportLogsServiceResponse> Export(
+    public Task<ExportLogsServiceResponse> Export(
         ExportLogsServiceRequest request,
         ServerCallContext context) =>
         GrpcExport.ExecuteAsync(async () =>

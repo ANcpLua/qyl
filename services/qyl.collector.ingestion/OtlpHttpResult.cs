@@ -62,3 +62,12 @@ internal sealed class OtlpUnsupportedContentEncodingException(string? contentEnc
     : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.")
 {
 }
+
+/// <summary>
+/// The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
+/// requires 413 Content Too Large, which the endpoint handlers answer for this exception.
+/// </summary>
+internal sealed class OtlpPayloadTooLargeException()
+    : IOException(OtlpPayloadParser.PayloadTooLargeMessage)
+{
+}

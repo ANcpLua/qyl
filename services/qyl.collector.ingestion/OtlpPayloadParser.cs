@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Google.Protobuf.Reflection;
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -14,6 +15,12 @@ internal static class OtlpPayloadParser
         new(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
     internal const string ProtobufContentType = "application/x-protobuf";
     internal const string JsonContentType = "application/json";
+
+    /// <summary>
+    /// The OTLP status message for a body over <see cref="MaxPayloadBytes"/>; OTLP 1.11 (request
+    /// size limits) makes that a 413 Content Too Large, which the endpoint handlers answer.
+    /// </summary>
+    internal const string PayloadTooLargeMessage = "OTLP payload exceeds the 16 MiB limit after decompression.";
 
     public static OtlpPayloadEncoding GetEncoding(string? contentType)
     {
@@ -34,7 +41,7 @@ internal static class OtlpPayloadParser
         OtlpPayloadEncoding encoding,
         CancellationToken ct = default) =>
         encoding is OtlpPayloadEncoding.Protobuf
-            ? ParseProtobufAsync(request, ExportTraceServiceRequest.Parser, ct)
+            ? ParseProtobufAsync(request, ExportTraceServiceRequest.Parser, ExportTraceServiceRequest.Descriptor, ct)
             : ParseJsonAsync<ExportTraceServiceRequest>(request, ct);
 
     public static Task<ExportLogsServiceRequest> ParseLogsRequestAsync(
@@ -42,7 +49,7 @@ internal static class OtlpPayloadParser
         OtlpPayloadEncoding encoding,
         CancellationToken ct = default) =>
         encoding is OtlpPayloadEncoding.Protobuf
-            ? ParseProtobufAsync(request, ExportLogsServiceRequest.Parser, ct)
+            ? ParseProtobufAsync(request, ExportLogsServiceRequest.Parser, ExportLogsServiceRequest.Descriptor, ct)
             : ParseJsonAsync<ExportLogsServiceRequest>(request, ct);
 
     public static Task<ExportMetricsServiceRequest> ParseMetricsRequestAsync(
@@ -50,17 +57,50 @@ internal static class OtlpPayloadParser
         OtlpPayloadEncoding encoding,
         CancellationToken ct = default) =>
         encoding is OtlpPayloadEncoding.Protobuf
-            ? ParseProtobufAsync(request, ExportMetricsServiceRequest.Parser, ct)
+            ? ParseProtobufAsync(request, ExportMetricsServiceRequest.Parser, ExportMetricsServiceRequest.Descriptor, ct)
             : ParseJsonAsync<ExportMetricsServiceRequest>(request, ct);
+
+    /// <summary>
+    /// The strict parse first; when it fails and the payload holds an invalid UTF-8 sequence in a
+    /// <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is
+    /// parsed again. A failure that no replacement explains stands.
+    /// </summary>
+    internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, ReadOnlySpan<byte> payload)
+        where T : IMessage<T>
+    {
+        try
+        {
+            return parser.ParseFrom(payload);
+        }
+        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor, out var replaced))
+        {
+            return parser.ParseFrom(replaced);
+        }
+    }
+
+    /// <inheritdoc cref="ParseProtobuf{T}(MessageParser{T}, MessageDescriptor, ReadOnlySpan{byte})"/>
+    internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, in ReadOnlySequence<byte> payload)
+        where T : IMessage<T>
+    {
+        try
+        {
+            return parser.ParseFrom(payload);
+        }
+        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload.ToArray(), descriptor, out var replaced))
+        {
+            return parser.ParseFrom(replaced);
+        }
+    }
 
     private static async Task<T> ParseProtobufAsync<T>(
         HttpRequest request,
         MessageParser<T> parser,
+        MessageDescriptor descriptor,
         CancellationToken ct)
         where T : IMessage<T>
     {
         await using var payload = await ReadBoundedPayloadAsync(request, ct).ConfigureAwait(false);
-        return parser.ParseFrom(payload);
+        return ParseProtobuf(parser, descriptor, payload.GetBuffer().AsSpan(0, (int)payload.Length));
     }
 
     private static async Task<T> ParseJsonAsync<T>(HttpRequest request, CancellationToken ct)
@@ -84,7 +124,7 @@ internal static class OtlpPayloadParser
             throw new OtlpUnsupportedContentEncodingException(contentEncoding);
 
         if (isIdentity && request.ContentLength is > MaxPayloadBytes)
-            throw new InvalidDataException("OTLP payload exceeds the configured maximum size.");
+            throw new OtlpPayloadTooLargeException();
 
         try
         {
@@ -125,7 +165,7 @@ internal static class OtlpPayloadParser
 
                 totalBytes += read;
                 if (totalBytes > MaxPayloadBytes)
-                    throw new InvalidDataException("OTLP payload exceeds the configured maximum size.");
+                    throw new OtlpPayloadTooLargeException();
 
                 payload.Write(buffer, 0, read);
             }

@@ -13,6 +13,7 @@
     "incubatingPrefixes": [
       "gen_ai.",
       "graphql.",
+      "jsonrpc.",
       "mcp.",
       "messaging.",
       "rpc.",
@@ -29,6 +30,7 @@
     ],
     "incubatingPrefixes": [
       "gen_ai.",
+      "jsonrpc.",
       "mcp.",
       "messaging.",
       "rpc."
@@ -46,6 +48,7 @@
     ],
     "incubatingPrefixes": [
       "gen_ai.",
+      "jsonrpc.",
       "mcp.",
       "messaging.",
       "rpc.",

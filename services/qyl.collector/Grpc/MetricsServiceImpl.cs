@@ -5,9 +5,8 @@ using Qyl.Collector.ApiKeys;
 namespace Qyl.Collector.Grpc;
 
 internal sealed class MetricsServiceImpl(IQylStore store, OtlpApiKeyOptions? options = null)
-    : MetricsService.MetricsServiceBase
 {
-    public override Task<ExportMetricsServiceResponse> Export(
+    public Task<ExportMetricsServiceResponse> Export(
         ExportMetricsServiceRequest request,
         ServerCallContext context) =>
         GrpcExport.ExecuteAsync(async () =>
