@@ -18,6 +18,12 @@
       "matchDepNames": ["js-yaml"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "The collector image's runtime-deps base follows the TargetFramework every qyl project builds for (net10.0): runtime-deps:11.0 carries the .NET 11 native dependencies and not the .NET 10 ones, so the .NET 10 collector published onto it does not start. #658 moved the base to 11.0 while the projects stayed on net10.0; the major moves only in the PR that moves the TargetFramework. Minor and digest updates stay on.",
+      "matchDepNames": ["mcr.microsoft.com/dotnet/runtime-deps"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }

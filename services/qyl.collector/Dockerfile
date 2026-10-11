@@ -36,7 +36,7 @@ RUN set -e; \
         exit 1; \
     fi
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:11.0@sha256:131d4eb2184f0318f1e85c6eadb499e0b8aa93c6e81b5c7b08852ddf0d6e1771 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:12dd273c196e92aa91542749b8df0996f497f812811abba9e6613b484f681dd0 AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
