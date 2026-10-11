@@ -65,7 +65,7 @@ consumer overrides the version with `<QylOpenApiVersion>OpenApi3_0</QylOpenApiVe
 ## 2026-09-04 · Packed as an MSBuild SDK; the sample keeps explicit imports
 
 `Qyl.Api.Sdk.csproj` packs `Sdk/`, `Build/`, `Sources/**` and the generator (`analyzers/dotnet/cs`) as the
-`Qyl.Sdk` MSBuild SDK (`packageType` `MSBuildSdk`). The targets detect the packed form by the presence of that analyzer and switch
+`Qyl.Api.Sdk` MSBuild SDK (`packageType` `MSBuildSdk`). The targets detect the packed form by the presence of that analyzer and switch
 from the `ProjectReference` to an `<Analyzer>`; implicit package references carry `Version` without CPM and `VersionOverride`
 with it. Verified by `ApiSdkPackagedConsumer`: a consumer reading `<Project Sdk="Qyl.Api.Sdk/4.0.0">` from a scratch feed, with
 the sample's sources and an unchanged `Program.cs`, produces the byte-identical contract.
@@ -107,7 +107,7 @@ own copy of the interface, so a model library and the API serving it could never
 assembly depending on the shared framework only; the targets reference it as a project in the repository and as
 `lib/net10.0/Qyl.Xml.dll` from the package, next to the generator under `analyzers/dotnet/cs`.
 
-Decision, package id: `Qyl.Api.Sdk`. `Qyl.Sdk` on nuget.org stays qyl's telemetry onboarding package. The pack project carries
+Decision, package id: `Qyl.Api.Sdk`. `Qyl.Sdk` on nuget.org is taken by the retired telemetry onboarding package (frozen at 8.5.0, succeeded by `Qyl.Telemetry.Hosting`). The pack project carries
 the new name; the MSBuild file names under `Build/` and the generator's name are internal and unchanged.
 `ApiSdkPackagedConsumer` builds the consumer from `<Project Sdk="Qyl.Api.Sdk/4.0.0">` and checks that `Qyl.Xml.dll` reached its
 output.

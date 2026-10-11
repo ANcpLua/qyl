@@ -1,5 +1,26 @@
 # Changelog
 
+## 9.0.0 — 2026-10-10
+
+- `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 22.0.0 → 23.0.0,
+  the line on which every instrumented library is at its newest stable release:
+  Microsoft.Data.SqlClient 7.1.1, MongoDB.Driver 3.12.0, Quartz 4.4.0,
+  StackExchange.Redis 3.4.0, Confluent.Kafka 2.16.0, Grpc.Net.Client 2.84.0,
+  Elastic.Clients.Elasticsearch 9.5.3, Azure.Core 1.63.0, ODP.NET 23.26.301,
+  MassTransit 8.5.11. `Qyl.Api.Sdk` pins `Qyl.Telemetry.Hosting` for every API it
+  builds, so an API built with this SDK moves with it.
+- `Qyl.Telemetry.SemanticConventions*` 9.6.0 → 9.7.0, whose vendor models were
+  re-read at exactly those releases. Quartz 4.4.0 writes three new keys,
+  `quartz.job.result`, `quartz.jobstore.lock` and
+  `quartz.jobstore.trigger.fired_on_acquire`; the collector passes them through
+  as vendor keys, through the package's `AttributeMapping.IsVendorPassThrough`,
+  so the generated catalog itself is unchanged. The schema URL the collector
+  advertises is
+  `https://qyl.at/schemas/9.7.0`.
+- `Qyl.Api.Contracts` 11.3.0 → 11.5.0: TypeSpec 1.17 and contract revision
+  `sha256:3605ae27d2edf632` arrive with 11.4.0 (#651, #653); 11.5.0 changes only
+  qyl-api-schema's toolchain.
+
 ## 8.0.0 — 2026-10-10
 
 - `Qyl.Telemetry.SemanticConventions*` 9.4.0 → 9.6.0. Upstream
