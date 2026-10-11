@@ -16,6 +16,9 @@
     the whole trace; follow `next_cursor` for the rest. `series_limit` on the metric query keeps
     1 to 500, 50 by default.
   - `next_cursor` is present exactly when `has_more` is true; the last page omits it.
+- Collector image: the base is `runtime-deps:10.0` again, the runtime the `net10.0` collector is
+  published for; Renovate #658 had moved it to 11.0 on its own. The major of that image no longer
+  gets proposed; it moves with the TargetFramework (#674).
 
 ## 10.0.0 — 2026-10-11
 
