@@ -140,6 +140,11 @@ internal sealed class QylAppBuilder
             options.RequireConfiguredEndpoint = true;
             options.CollectorEndpoint = selfTelemetryEndpoint;
         });
+        // The exporters' HttpClients log every batch through the host logger, which is the runner's
+        // interactive console; export failures surface through OpenTelemetry's own diagnostics, and
+        // the last batches at shutdown always miss the already-stopped sink. Keep them off the console.
+        foreach (var exporter in new[] { "OtlpTraceExporter", "OtlpLogExporter", "OtlpMetricExporter" })
+            _host.Logging.AddFilter($"System.Net.Http.HttpClient.{exporter}", Microsoft.Extensions.Logging.LogLevel.None);
 
         _host.Services.AddSingleton(_options);
         _host.Services.AddSingleton(TimeProvider.System);
