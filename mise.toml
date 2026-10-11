@@ -3,6 +3,9 @@
 [tools]
 "dotnet" = "10.0.401"
 "bun" = "1.4.2"
+# bun installs and builds the dashboard; node runs the tooling its scripts call
+# (tsc, vite, vitest, playwright, check-ui-discipline.mjs), inside its engines.node range.
+"node" = "24"
 
 [tasks.check]
 description = "The gate: the Fallout Ci target CI runs"
