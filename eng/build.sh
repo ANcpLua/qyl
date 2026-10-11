@@ -20,7 +20,12 @@ function FirstJsonValue {
 }
 
 if [ -x "$(command -v dotnet)" ] && dotnet --version &>/dev/null; then
-    export DOTNET_EXE="$(command -v dotnet)"
+    DOTNET_EXE="$(command -v dotnet)"
+    # Git Bash on Windows resolves dotnet.exe without its extension, and Fallout rejects a DOTNET_EXE that does not exist.
+    if [[ -f "$DOTNET_EXE.exe" ]]; then
+        DOTNET_EXE="$DOTNET_EXE.exe"
+    fi
+    export DOTNET_EXE
 else
     DOTNET_INSTALL_FILE="$TEMP_DIRECTORY/dotnet-install.sh"
     mkdir -p "$TEMP_DIRECTORY"
@@ -46,5 +51,6 @@ fi
 
 echo "Microsoft (R) .NET SDK version $("$DOTNET_EXE" --version)"
 
-"$DOTNET_EXE" build "$BUILD_PROJECT_FILE" /nodeReuse:false /p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet
+# Dash-form switches: Git Bash on the Windows release legs rewrites an argument that starts with / as a path.
+"$DOTNET_EXE" build "$BUILD_PROJECT_FILE" -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet
 "$DOTNET_EXE" run --project "$BUILD_PROJECT_FILE" --no-build -- "$@"

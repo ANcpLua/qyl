@@ -19,6 +19,64 @@ interface IPack : IHasSourcePaths, IHasConfiguration
 {
     AbsolutePath NuGetArtifactsDirectory => ArtifactsDirectory / "nuget";
 
+    /// <summary>Where a release workflow platform leg packs its <c>qyl.&lt;rid&gt;</c> package.</summary>
+    AbsolutePath PlatformPackagesDirectory => ArtifactsDirectory / "qyl-packages";
+
+    [Parameter("Package version PackPlatform and PackRelease stamp (the release workflow passes Version.props' QylVersion)")]
+    string? PackageVersion => TryGetValue(() => PackageVersion);
+
+    [Parameter("Commit PackPlatform and PackRelease stamp as RepositoryCommit and SourceRevisionId")]
+    string? RepositoryCommit => TryGetValue(() => RepositoryCommit);
+
+    [Parameter("Runtime identifier PackPlatform packs the qyl tool for; it must be the one the host dotnet reports")]
+    string? ToolRuntimeIdentifier => TryGetValue(() => ToolRuntimeIdentifier);
+
+    /// <summary>
+    /// What both release packs share. Neither builds the dashboard nor compiles the solution first:
+    /// the release workflow builds the embedded dashboard in its own step, and each pack builds its project.
+    /// </summary>
+    private Configure<DotNetPackSettings> ReleasePackSettings => s => s
+        .SetConfiguration(Configuration)
+        .SetVersion(PackageVersion)
+        .SetProperty("RepositoryCommit", RepositoryCommit!)
+        .SetProperty("SourceRevisionId", RepositoryCommit!);
+
+    Target PackPlatform => d => d
+        .Description("Pack the qyl tool for the host runtime into Artifacts/qyl-packages (release workflow platform leg)")
+        .Requires(() => PackageVersion, () => RepositoryCommit, () => ToolRuntimeIdentifier)
+        .Executes(() =>
+        {
+            // The first ` RID:` line of `dotnet --info`, as the workflow's awk read it: a runner whose
+            // dotnet reports another runtime (an x64 SDK on an arm64 host) would pack the wrong package.
+            var hostRuntime = DotNetTasks.DotNet("--info", RootDirectory, logOutput: false)
+                .Select(static line => line.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                .Where(static fields => fields.Length > 1 && fields[0] == "RID:")
+                .Select(static fields => fields[1])
+                .FirstOrDefault();
+            if (hostRuntime != ToolRuntimeIdentifier)
+                throw new InvalidOperationException($"Runner resolved RID '{hostRuntime}', expected '{ToolRuntimeIdentifier}'.");
+
+            PlatformPackagesDirectory.CreateDirectory();
+            DotNetTasks.DotNetPack(s => s
+                .Apply(ReleasePackSettings)
+                .SetProject(CliPackProject)
+                .SetOutputDirectory(PlatformPackagesDirectory)
+                .SetProperty("ToolPackageRuntimeIdentifiers", ToolRuntimeIdentifier!));
+        });
+
+    Target PackRelease => d => d
+        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk) into a clean Artifacts/nuget (release workflow pack job)")
+        .Requires(() => PackageVersion, () => RepositoryCommit)
+        .Executes(() =>
+        {
+            NuGetArtifactsDirectory.CreateOrCleanDirectory();
+            DotNetTasks.DotNetPack(s => s
+                .Apply(ReleasePackSettings)
+                .SetOutputDirectory(NuGetArtifactsDirectory)
+                .CombineWith(ShippablePackProjects, static (settings, project) => settings
+                    .SetProject(project)));
+        });
+
     Target Pack => d => d
         .Description("Pack the shippable packages into Artifacts/nuget")
         .DependsOn<IPipeline>(static x => x.FrontendBuild)

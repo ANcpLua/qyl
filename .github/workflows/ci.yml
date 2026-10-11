@@ -122,12 +122,16 @@ jobs:
 
       - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
 
-      - name: Restore
-        run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
+      # Compile runs Restore first and then builds with --no-restore. --BackendLane gives them this
+      # lane's settings: restore with nuget.config only and -p:TreatWarningsAsErrors=false, build
+      # with -p:QylAot=false and without the CI build properties Compile sets on other runners.
+      - name: Restore and build
+        run: ./eng/build.sh Compile --BackendLane --Configuration Release
 
-      - name: Build
-        run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config -p:QylAot=false
-
+      # Stays raw: GNU timeout signals the whole test process group (TERM, then KILL 30 s later).
+      # A Fallout target would have to shell out to the same binary, and the Ci target must reach
+      # every target this workflow calls, so the local gate on macOS, which has no GNU timeout,
+      # would fail. VerifyCiTargetCoversWorkflow asserts this line.
       - name: Test
         run: timeout --signal=TERM --kill-after=30s 5m dotnet test qyl.slnx --configuration Release --no-build --no-restore
 
@@ -135,7 +139,7 @@ jobs:
         run: ./eng/build.sh VerifyBackend --Configuration Release
 
       - name: G1 vocabulary smoke
-        run: bash eng/scripts/g1-vocabulary-smoke.sh
+        run: ./eng/build.sh G1VocabularySmoke
 
   # Packaging is exercised on every main push, not first by the release tag: a
   # commit that breaks tool packing must go red here, while the version is still

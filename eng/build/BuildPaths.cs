@@ -24,10 +24,13 @@ interface IHasSourcePaths : IHasSolution, IHasArtifacts
     AbsolutePath QylToolSmokeProject => RootDirectory / "eng" / "tools" / "QylToolSmoke" / "QylToolSmoke.csproj";
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
 
+    /// <summary>The qyl tool: the outer <c>qyl</c> package and, packed per runtime, its <c>qyl.&lt;rid&gt;</c> packages.</summary>
+    AbsolutePath CliPackProject => PackagesDirectory / "Qyl.Cli" / "Qyl.Cli.csproj";
+
     /// <summary>Projects with IsPackable=true — the packages qyl actually ships.</summary>
     AbsolutePath[] ShippablePackProjects =>
     [
-        PackagesDirectory / "Qyl.Cli" / "Qyl.Cli.csproj",
+        CliPackProject,
         PackagesDirectory / "Qyl.Api.Sdk" / "Qyl.Api.Sdk.csproj"
     ];
 

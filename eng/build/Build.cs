@@ -130,10 +130,28 @@ sealed class Build : FalloutBuild,
 
     AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
 
-    Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
-        .SetDeterministic(IsServerBuild)
-        .SetContinuousIntegrationBuild(IsServerBuild)
-        .SetProperty("QylAot", false);
+    /// <summary>
+    /// ci.yml's backend lane restores and builds differently from every other <c>Compile</c> caller:
+    /// it restores against nuget.config alone with NuGet warnings kept as warnings, and builds without
+    /// the CI build properties. The flag reproduces exactly those two commands; without it nothing changes.
+    /// </summary>
+    [Parameter("Restore and compile as ci.yml's backend lane does: nuget.config only, NuGet warnings stay warnings, no CI build properties")]
+    readonly bool BackendLane = false;
+
+    Configure<DotNetRestoreSettings> IRestore.RestoreSettings => s => BackendLane
+        ? s
+            .SetConfigFile(RootDirectory / "nuget.config")
+            .SetProperty("TreatWarningsAsErrors", "false")
+        : s;
+
+    Configure<DotNetBuildSettings> ICompile.CompileSettings => s => BackendLane
+        ? s
+            .ResetContinuousIntegrationBuild()
+            .SetProperty("QylAot", "false")
+        : s
+            .SetDeterministic(IsServerBuild)
+            .SetContinuousIntegrationBuild(IsServerBuild)
+            .SetProperty("QylAot", false);
 
     T From<T>() where T : IFalloutBuild => (T)(object)this;
 
