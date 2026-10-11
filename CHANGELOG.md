@@ -19,6 +19,8 @@
 - Build: the Versionize `Release` and `Changelog` targets are gone; a release is the
   `v<QylVersion>` tag. `RenderReadmeVersions` is listed. README and `docs/configuration.md`
   changes run the backend lane on CI. `mise.toml` pins Node 24.21.0 instead of the `24` line.
+- The collector container image runs on `mcr.microsoft.com/dotnet/runtime-deps:11.0`, not
+  `10.0` (#658).
 - Repository: `AGENTS.md` carries the release ripple across the qyl-dev repos (#660, #662);
   the README's `qyl-mcp-server` row says 7.2.3 and its build section runs through `mise` and
   `./eng/build.sh`; `SECURITY.md` patches the latest release line; `docs/dagger.md` is gone;
