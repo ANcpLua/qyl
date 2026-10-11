@@ -30,6 +30,7 @@ say "checks"
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "working tree not clean"
 git fetch -q origin main
 [[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]] || die "main differs from origin/main"
+release_commit=$(git rev-parse HEAD)
 if [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
   (( dry )) || die "tag v$version already exists"; echo "warning: tag v$version already exists; the real run refuses"
 fi
@@ -45,12 +46,15 @@ expected=$(printf '%s\n' "qyl.$version.nupkg" "Qyl.Api.Sdk.$version.nupkg" $(for
 echo "expected package set: $(echo "$expected" | wc -l | tr -d ' ') packages"
 
 say "pack (Fallout PackRelease)"
-./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$(git rev-parse HEAD)"
+./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$release_commit"
 actual=$(find "$OUT" -maxdepth 1 -name '*.nupkg' -exec basename {} \; | sort)
 [[ $actual == "$expected" ]] || { echo "expected:"; echo "$expected"; echo "packed:"; echo "$actual"; die "package set mismatch"; }
 
 say "smoke the tool packages on this host"
 dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- "$OUT"
+
+[[ $(git rev-parse HEAD) == "$release_commit" ]] || die "HEAD changed during packing; rerun from the intended release commit"
+[[ -z $(git status --porcelain --untracked-files=no) ]] || die "tracked files changed during packing; commit them and rerun"
 
 say "NuGet push"
 probe_dir=$(mktemp -d); trap 'rm -rf "$probe_dir"' EXIT
@@ -68,7 +72,7 @@ for p in "$OUT"/*.nupkg; do
 done
 
 say "tag and GitHub release"
-git tag -a "v$version" -m "v$version"
+git tag -a "v$version" "$release_commit" -m "v$version"
 git push -q origin "v$version"
 gh release create "v$version" --title "v$version" --generate-notes "$OUT"/*.nupkg
 

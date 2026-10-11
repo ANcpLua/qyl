@@ -46,7 +46,7 @@ sealed class Build : FalloutBuild,
         .Before<IPipeline>(static x => x.FrontendInstall)
         .Executes(() =>
         {
-            var buildScriptArtifacts = (RootDirectory / "eng" / "build" / "artifacts")
+            var buildScriptDirectory = (RootDirectory / "eng" / "build")
                 .ToString()
                 .Replace('\\', '/') + "/";
             var pathComparison = OperatingSystem.IsWindows()
@@ -59,7 +59,7 @@ sealed class Build : FalloutBuild,
                     var path = directory.ToString().Replace('\\', '/') + "/";
                     return !path.Contains("/node_modules/", StringComparison.Ordinal)
                            // The running build, its lazy dependencies, and its assets graph live here.
-                           && !path.StartsWith(buildScriptArtifacts, pathComparison);
+                           && !path.StartsWith(buildScriptDirectory, pathComparison);
                 })
                 .DeleteDirectories();
             From<IHasArtifacts>().ArtifactsDirectory.CreateOrCleanDirectory();
