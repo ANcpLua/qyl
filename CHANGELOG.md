@@ -1,8 +1,15 @@
 # Changelog
 
-## 9.2.0 — unreleased
+## 10.0.0 — unreleased
 
-- `Qyl.Api.Contracts` and `@ancplua/qyl-api-schema` 11.5.0 → 11.6.0-rc.1 (contract revision
+- `qyl` runner: a request still in flight when the runner shuts down, or accepted while it drains,
+  is answered `503` `application/problem+json` with `reason: runner.shutting_down` instead of an
+  empty `200`. Shutdown cancels the handlers, waits up to 2 seconds for them to answer, and only
+  then stops the listener (QYL-F1).
+
+## 9.2.0 — 2026-10-11
+
+- `Qyl.Api.Contracts` and `@ancplua/qyl-api-schema` 11.5.0 → 11.6.0 (contract revision
   `sha256:d926c3c6ab829cbf`). The collector serves the Contract 11.6.0 surface:
   - Every paged list (traces, a trace's spans, sessions, a session's traces, logs, metrics,
     metric series, annotations, saved queries) takes `cursor` and returns `next_cursor` from a
@@ -25,6 +32,11 @@
   stored schema identity equals the identity of its telemetry tables alone; every other schema
   difference still fails closed while data exists. Retention expires annotations with the
   telemetry window, counted from their last change, and idempotency keys after 24 hours.
+
+- Collector: gRPC request messages are decompressed into a buffer bounded by
+  `MaxReceiveMessageSize` (4 MiB by default); a message that expands beyond it fails with
+  `ResourceExhausted` before the API-key interceptor runs. Before, only the compressed size was
+  bounded.
 
 ## 9.1.0 — 2026-10-11
 

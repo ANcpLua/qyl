@@ -24,6 +24,9 @@ using ContractResourceState = Qyl.Api.Contracts.Runner.RunnerResourceState;
 namespace Qyl.Cli.Runtime;
 
 // Loopback, Host, origin, and content-type checks protect mutable routes from rebinding and cross-site POSTs.
+// Every response ends with an explicit status: on the managed HttpListener (Linux, macOS) a response that is
+// closed, aborted or cut off by HttpListener.Stop() before its headers went out is written as the default
+// "200 OK", which would report a request the runner never performed as a success.
 internal sealed partial class QylRunnerApi(
     QylResourceRegistry registry,
     QylLogStore logStore,
@@ -34,9 +37,14 @@ internal sealed partial class QylRunnerApi(
     internal const int MaxConcurrentRequests = 32;
     internal const int MaxConcurrentStreams = 8;
 
+    // How long shutdown waits for the in-flight requests to answer before the listener is stopped.
+    internal static readonly TimeSpan ShutdownGracePeriod = TimeSpan.FromSeconds(2);
+
     private readonly HttpListener _listener = new();
+    private readonly TaskCompletionSource _inFlightDrained = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _activeRequests;
     private int _activeStreams;
+    private int _draining;
 
     public override Task StartAsync(CancellationToken cancellationToken)
     {
@@ -59,20 +67,50 @@ internal sealed partial class QylRunnerApi(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await using var stopRegistration = stoppingToken.Register(_listener.Stop).ConfigureAwait(false);
+        // Handlers observe requestCancellation, not stoppingToken. Shutdown cancels it first, so in-flight
+        // requests answer 503, waits for them, and only then stops the listener: HttpListener.Stop() writes
+        // a bare "200 OK" to every connection whose response has not been sent yet.
+        using var requestCancellation = new CancellationTokenSource();
+        var stopRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var stopRegistration = stoppingToken
+            .Register(static state => ((TaskCompletionSource)state!).TrySetResult(), stopRequested)
+            .ConfigureAwait(false);
 
+        var accepting = AcceptAsync(requestCancellation.Token);
+        if (await Task.WhenAny(accepting, stopRequested.Task).ConfigureAwait(false) == accepting)
+        {
+            // The accept loop ended on its own (the listener failed or was disposed): surface that.
+            await accepting.ConfigureAwait(false);
+            return;
+        }
+
+        await requestCancellation.CancelAsync().ConfigureAwait(false);
+        await WaitForInFlightRequestsAsync().ConfigureAwait(false);
+        _listener.Stop();
+        await accepting.ConfigureAwait(false);
+    }
+
+    public override void Dispose()
+    {
+        _listener.Close();
+        base.Dispose();
+    }
+
+    private async Task AcceptAsync(CancellationToken requestToken)
+    {
         // Each accepted connection is handled concurrently (SSE streams are long-lived, so we cannot await
         // inline). Handler tasks are tracked — never discarded — and drained on shutdown; HandleAsync is
-        // non-throwing, so a tracked task never faults.
+        // non-throwing, so a tracked task never faults. A request accepted while shutdown drains the
+        // in-flight ones is answered 503 by HandleAsync.
         var handlers = new List<Task>();
-        while (!stoppingToken.IsCancellationRequested)
+        while (true)
         {
             HttpListenerContext context;
             try
             {
                 context = await _listener.GetContextAsync().ConfigureAwait(false);
             }
-            catch (Exception) when (stoppingToken.IsCancellationRequested)
+            catch (Exception) when (requestToken.IsCancellationRequested)
             {
                 break;
             }
@@ -88,7 +126,8 @@ internal sealed partial class QylRunnerApi(
                             context,
                             isStream
                                 ? "runner.stream_capacity"
-                                : "runner.request_capacity")
+                                : "runner.request_capacity",
+                            "The runner has reached its bounded concurrent request capacity. Retry after a request completes.")
                         .ConfigureAwait(false);
                 }
                 catch (Exception)
@@ -99,31 +138,42 @@ internal sealed partial class QylRunnerApi(
                 continue;
             }
 
-            handlers.Add(HandleWithCapacityLeaseAsync(context, isStream, stoppingToken));
+            handlers.Add(HandleWithCapacityLeaseAsync(context, isStream, requestToken));
         }
 
         await Task.WhenAll(handlers).ConfigureAwait(false);
     }
 
-    public override void Dispose()
+    private async Task WaitForInFlightRequestsAsync()
     {
-        _listener.Close();
-        base.Dispose();
+        // Full fence on both sides: either this read sees the last request's release, or that release sees
+        // the flag and completes the drain itself.
+        Interlocked.Exchange(ref _draining, 1);
+        if (Volatile.Read(ref _activeRequests) == 0) _inFlightDrained.TrySetResult();
+
+        try
+        {
+            await _inFlightDrained.Task.WaitAsync(ShutdownGracePeriod).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            // Whatever is still in flight is cut off by the listener stop.
+        }
     }
 
     private async Task HandleWithCapacityLeaseAsync(
         HttpListenerContext context,
         bool isStream,
-        CancellationToken stoppingToken)
+        CancellationToken requestToken)
     {
         try
         {
-            await HandleAsync(context, stoppingToken).ConfigureAwait(false);
+            await HandleAsync(context, requestToken).ConfigureAwait(false);
         }
         finally
         {
             if (isStream) Interlocked.Decrement(ref _activeStreams);
-            Interlocked.Decrement(ref _activeRequests);
+            ReleaseRequestSlot();
         }
     }
 
@@ -132,8 +182,14 @@ internal sealed partial class QylRunnerApi(
         if (!TryIncrementBounded(ref _activeRequests, MaxConcurrentRequests)) return false;
         if (!isStream || TryIncrementBounded(ref _activeStreams, MaxConcurrentStreams)) return true;
 
-        Interlocked.Decrement(ref _activeRequests);
+        ReleaseRequestSlot();
         return false;
+    }
+
+    private void ReleaseRequestSlot()
+    {
+        if (Interlocked.Decrement(ref _activeRequests) == 0 && Volatile.Read(ref _draining) == 1)
+            _inFlightDrained.TrySetResult();
     }
 
     private static bool TryIncrementBounded(ref int value, int maximum)
@@ -154,10 +210,16 @@ internal sealed partial class QylRunnerApi(
                path.EndsWith("/logs/stream", StringComparison.Ordinal);
     }
 
-    private async Task HandleAsync(HttpListenerContext context, CancellationToken stoppingToken)
+    private async Task HandleAsync(HttpListenerContext context, CancellationToken requestToken)
     {
         try
         {
+            if (requestToken.IsCancellationRequested)
+            {
+                await RespondShuttingDownAsync(context).ConfigureAwait(false);
+                return;
+            }
+
             if (!IsTrustedLocalRequest(context.Request))
             {
                 await RespondForbiddenAsync(context,
@@ -190,7 +252,7 @@ internal sealed partial class QylRunnerApi(
                     return;
                 case "stream":
                     if (!RequireMethod(context, "GET")) return;
-                    await StreamAsync(context, stoppingToken).ConfigureAwait(false);
+                    await StreamAsync(context, requestToken).ConfigureAwait(false);
                     return;
             }
 
@@ -203,20 +265,20 @@ internal sealed partial class QylRunnerApi(
             else if (segments is [var streamResource, "logs", "stream"])
             {
                 if (!RequireMethod(context, "GET")) return;
-                await LogStreamAsync(context, DecodePathSegment(streamResource), stoppingToken).ConfigureAwait(false);
+                await LogStreamAsync(context, DecodePathSegment(streamResource), requestToken).ConfigureAwait(false);
             }
             else if (segments is [var restartResource, "restart"])
             {
                 if (!RequireMethod(context, "POST")) return;
                 await ResourceActionAsync(
-                    context, DecodePathSegment(restartResource), QylResourceAction.Restart, stoppingToken)
+                    context, DecodePathSegment(restartResource), QylResourceAction.Restart, requestToken)
                     .ConfigureAwait(false);
             }
             else if (segments is [var stopResource, "stop"])
             {
                 if (!RequireMethod(context, "POST")) return;
                 await ResourceActionAsync(
-                    context, DecodePathSegment(stopResource), QylResourceAction.Stop, stoppingToken)
+                    context, DecodePathSegment(stopResource), QylResourceAction.Stop, requestToken)
                     .ConfigureAwait(false);
             }
             else
@@ -224,9 +286,18 @@ internal sealed partial class QylRunnerApi(
                 NotFound(context);
             }
         }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (requestToken.IsCancellationRequested)
         {
-            AbortResponse(context);
+            // Shutdown interrupted the request before its response went out. Say so: aborting here would
+            // reach the client as "200 OK" on the managed HttpListener.
+            try
+            {
+                await RespondShuttingDownAsync(context).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                AbortResponse(context);
+            }
         }
         catch (Exception ex)
         {
@@ -250,6 +321,8 @@ internal sealed partial class QylRunnerApi(
         }
     }
 
+    // Only after a failed problem write, whose status is already set: on the managed HttpListener, Abort()
+    // still writes the status line and headers when nothing has gone out yet, and an unset status is 200.
     private static void AbortResponse(HttpListenerContext context)
     {
         try
@@ -365,7 +438,7 @@ internal sealed partial class QylRunnerApi(
         context.Response.Close();
     }
 
-    private async Task LogStreamAsync(HttpListenerContext context, string resource, CancellationToken stoppingToken)
+    private async Task LogStreamAsync(HttpListenerContext context, string resource, CancellationToken requestToken)
     {
         if (!registry.Contains(resource))
         {
@@ -388,18 +461,18 @@ internal sealed partial class QylRunnerApi(
                 var contract = QylRunnerContractMapper.ToContract(line);
                 await WriteFrameAsync(stream,
                     JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), line.Sequence,
-                    stoppingToken)
+                    requestToken)
                     .ConfigureAwait(false);
                 lastSequence = line.Sequence;
             }
 
-            await foreach (var line in subscription.Events.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            await foreach (var line in subscription.Events.ReadAllAsync(requestToken).ConfigureAwait(false))
             {
                 if (line.Sequence <= lastSequence) continue;
                 var contract = QylRunnerContractMapper.ToContract(line);
                 await WriteFrameAsync(stream,
                     JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), line.Sequence,
-                    stoppingToken)
+                    requestToken)
                     .ConfigureAwait(false);
                 lastSequence = line.Sequence;
             }
@@ -432,7 +505,7 @@ internal sealed partial class QylRunnerApi(
         context.Response.Close();
     }
 
-    private async Task StreamAsync(HttpListenerContext context, CancellationToken stoppingToken)
+    private async Task StreamAsync(HttpListenerContext context, CancellationToken requestToken)
     {
         context.Response.ContentType = "text/event-stream";
         context.Response.Headers["Cache-Control"] = "no-cache";
@@ -447,13 +520,13 @@ internal sealed partial class QylRunnerApi(
         {
             foreach (var state in SortedContractSnapshot())
             {
-                await WriteEventAsync(stream, state, stoppingToken).ConfigureAwait(false);
+                await WriteEventAsync(stream, state, requestToken).ConfigureAwait(false);
             }
 
-            await foreach (var _ in subscription.Events.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            await foreach (var _ in subscription.Events.ReadAllAsync(requestToken).ConfigureAwait(false))
             {
                 foreach (var state in SortedContractSnapshot())
-                    await WriteEventAsync(stream, state, stoppingToken).ConfigureAwait(false);
+                    await WriteEventAsync(stream, state, requestToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or IOException)
@@ -547,7 +620,13 @@ internal sealed partial class QylRunnerApi(
             },
             QylRunnerJsonContext.Default.InternalServerError);
 
-    private static Task RespondServiceUnavailableAsync(HttpListenerContext context, string reason) =>
+    private static Task RespondShuttingDownAsync(HttpListenerContext context) =>
+        RespondServiceUnavailableAsync(
+            context,
+            "runner.shutting_down",
+            "The runner is shutting down; the request was not performed.");
+
+    private static Task RespondServiceUnavailableAsync(HttpListenerContext context, string reason, string detail) =>
         RespondProblemAsync(
             context,
             HttpStatusCode.ServiceUnavailable,
@@ -556,7 +635,7 @@ internal sealed partial class QylRunnerApi(
                 ProblemType = new Uri("about:blank"),
                 Title = "Service Unavailable",
                 Status = (int)HttpStatusCode.ServiceUnavailable,
-                Detail = "The runner has reached its bounded concurrent request capacity. Retry after a request completes.",
+                Detail = detail,
                 Reason = reason
             },
             QylRunnerJsonContext.Default.ServiceUnavailableError);
