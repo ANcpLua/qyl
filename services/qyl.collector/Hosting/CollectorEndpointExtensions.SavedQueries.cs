@@ -98,9 +98,9 @@ internal static partial class CollectorEndpointExtensions
             return queryError;
 
         if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.SavedQueryMaxLimit, out var boundedLimit))
+                ContractLimits.MaxPageLimit, out var boundedLimit))
         {
-            return InvalidLimit(query.Limit, ContractLimits.SavedQueryMaxLimit);
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
         string? afterName = null;
@@ -228,9 +228,9 @@ internal static partial class CollectorEndpointExtensions
             return bodyError;
 
         if (!ContractLimits.TryResolve(request!.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.SavedQueryRunMaxLimit, out var boundedLimit))
+                ContractLimits.MaxPageLimit, out var boundedLimit))
         {
-            return InvalidLimit(request.Limit, ContractLimits.SavedQueryRunMaxLimit);
+            return InvalidLimit(request.Limit, ContractLimits.MaxPageLimit);
         }
 
         var projectId = ResolveProjectScope(httpContext);

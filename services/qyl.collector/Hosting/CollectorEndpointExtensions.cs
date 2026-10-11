@@ -372,10 +372,10 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseMetrics(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.MetricDefaultLimit,
-                ContractLimits.MetricMaxLimit, out var boundedLimit))
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
+                ContractLimits.MaxPageLimit, out var boundedLimit))
         {
-            return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
         string? afterName = null;
@@ -414,10 +414,10 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseMetricSeries(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.MetricDefaultLimit,
-                ContractLimits.MetricMaxLimit, out var boundedLimit))
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
+                ContractLimits.MaxPageLimit, out var boundedLimit))
         {
-            return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
         MetricSeriesPageCursor? cursor = null;
@@ -551,10 +551,10 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseSessions(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.SessionMaxLimit,
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
                 out var boundedLimit))
         {
-            return InvalidLimit(query.Limit, ContractLimits.SessionMaxLimit);
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
         SessionPageCursor? cursor = null;
@@ -634,9 +634,9 @@ internal static partial class CollectorEndpointExtensions
             return queryError;
 
         if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.SessionTraceMaxLimit, out var boundedLimit))
+                ContractLimits.MaxPageLimit, out var boundedLimit))
         {
-            return InvalidLimit(query.Limit, ContractLimits.SessionTraceMaxLimit);
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
         TracePageCursor? cursor = null;
@@ -669,10 +669,10 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseTraces(httpContext.Request, out var parameters) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(parameters.Limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit,
+        if (!ContractLimits.TryResolve(parameters.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
                 out var boundedLimit))
         {
-            return InvalidLimit(parameters.Limit, ContractLimits.TraceMaxLimit);
+            return InvalidLimit(parameters.Limit, ContractLimits.MaxPageLimit);
         }
 
         TracePageCursor? cursor = null;
@@ -716,10 +716,11 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParsePage(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        // Omitted, the limit stays unbounded: the contract serves every span of the trace in one
-        // page then, exactly as before the parameter existed.
-        if (query.Limit is { } requested && requested is < 1 or > ContractLimits.SpanMaxLimit)
-            return InvalidLimit(requested, ContractLimits.SpanMaxLimit);
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
+        }
 
         SpanPageCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -735,7 +736,7 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var projectId = ResolveProjectScope(httpContext);
-        var spans = await store.GetTraceSpanPageAsync(traceId, projectId, cursor, query.Limit + 1, ct)
+        var spans = await store.GetTraceSpanPageAsync(traceId, projectId, cursor, boundedLimit + 1, ct)
             .ConfigureAwait(false);
         if (spans.Count is 0 &&
             (cursor is null || !await store.TraceExistsAsync(projectId, traceId, ct).ConfigureAwait(false)))
@@ -743,8 +744,8 @@ internal static partial class CollectorEndpointExtensions
             return ContractErrorResults.NotFound("trace", traceId);
         }
 
-        var hasMore = query.Limit is { } limit && spans.Count > limit;
-        IReadOnlyList<SpanStorageRow> page = hasMore ? [.. spans.Take(query.Limit!.Value)] : spans;
+        var hasMore = spans.Count > boundedLimit;
+        IReadOnlyList<SpanStorageRow> page = hasMore ? [.. spans.Take(boundedLimit)] : spans;
         return Results.Ok(new CursorPageSpan
         {
             Items = SpanMapper.ToContracts(page),
@@ -785,10 +786,10 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseLogs(httpContext.Request, out var typedQuery) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(typedQuery.Limit, ContractLimits.DefaultPageLimit, ContractLimits.LogMaxLimit,
+        if (!ContractLimits.TryResolve(typedQuery.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
                 out var boundedLimit))
         {
-            return InvalidLimit(typedQuery.Limit, ContractLimits.LogMaxLimit);
+            return InvalidLimit(typedQuery.Limit, ContractLimits.MaxPageLimit);
         }
 
         if (typedQuery.SeverityMin is < ContractLimits.MinimumLogSeverity or > ContractLimits.MaximumLogSeverity)
@@ -1087,17 +1088,10 @@ internal static partial class CollectorEndpointExtensions
 
     internal static class ContractLimits
     {
+        // Contract 12.0.0 has one PageLimit for every list route and for SavedQueryRunRequest.limit:
+        // 1 to 1000, 100 when omitted. Only series_limit on the metric query keeps its own range.
         public const int DefaultPageLimit = 100;
-        public const int SessionMaxLimit = 1_000;
-        public const int SessionTraceMaxLimit = 1_000;
-        public const int TraceMaxLimit = 1_000;
-        public const int SpanMaxLimit = 10_000;
-        public const int LogMaxLimit = 10_000;
-        public const int AnnotationMaxLimit = 1_000;
-        public const int SavedQueryMaxLimit = 1_000;
-        public const int SavedQueryRunMaxLimit = 1_000;
-        public const int MetricDefaultLimit = 200;
-        public const int MetricMaxLimit = 1_000;
+        public const int MaxPageLimit = 1_000;
         public const int MetricSeriesDefaultLimit = 50;
         public const int MetricSeriesMaxLimit = 500;
         public const long MetricDefaultStepMs = 60_000;

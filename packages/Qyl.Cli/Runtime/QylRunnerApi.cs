@@ -16,7 +16,9 @@ using ContractConflictError = Qyl.Api.Contracts.Common.Errors.ConflictError;
 using ContractForbiddenError = Qyl.Api.Contracts.Common.Errors.ForbiddenError;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 using ContractNotFoundError = Qyl.Api.Contracts.Common.Errors.NotFoundError;
+using ContractProblemCode = Qyl.Api.Contracts.Common.Errors.ProblemCode;
 using ContractProblemDetailsMediaType = Qyl.Api.Contracts.Common.Errors.ProblemDetailsMediaType;
+using ContractProblemType = Qyl.Api.Contracts.Common.Errors.ProblemType;
 using ContractServiceUnavailableError = Qyl.Api.Contracts.Common.Errors.ServiceUnavailableError;
 using ContractLogLine = Qyl.Api.Contracts.Runner.RunnerLogLine;
 using ContractResourceState = Qyl.Api.Contracts.Runner.RunnerResourceState;
@@ -566,7 +568,8 @@ internal sealed partial class QylRunnerApi(
             HttpStatusCode.NotFound,
             new ContractNotFoundError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ContractProblemType.NotFound,
+                Code = ContractProblemCode.NotFound,
                 Title = "Not Found",
                 Status = (int)HttpStatusCode.NotFound,
                 Detail = $"No runner resource named '{resource}' exists.",
@@ -581,7 +584,8 @@ internal sealed partial class QylRunnerApi(
             HttpStatusCode.Forbidden,
             new ContractForbiddenError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ContractProblemType.Forbidden,
+                Code = ContractProblemCode.Forbidden,
                 Title = "Forbidden",
                 Status = (int)HttpStatusCode.Forbidden,
                 Detail = detail,
@@ -595,7 +599,8 @@ internal sealed partial class QylRunnerApi(
             HttpStatusCode.Conflict,
             new ContractConflictError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ContractProblemType.Conflict,
+                Code = ContractProblemCode.Conflict,
                 Title = "Conflict",
                 Status = (int)HttpStatusCode.Conflict,
                 Detail = detail,
@@ -612,11 +617,11 @@ internal sealed partial class QylRunnerApi(
             HttpStatusCode.InternalServerError,
             new ContractInternalServerError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ContractProblemType.InternalError,
+                Code = ContractProblemCode.InternalError,
                 Title = "Internal Server Error",
                 Status = (int)HttpStatusCode.InternalServerError,
-                Detail = detail,
-                ErrorCode = errorCode
+                Detail = detail ?? errorCode
             },
             QylRunnerJsonContext.Default.InternalServerError);
 
@@ -632,7 +637,8 @@ internal sealed partial class QylRunnerApi(
             HttpStatusCode.ServiceUnavailable,
             new ContractServiceUnavailableError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ContractProblemType.ServiceUnavailable,
+                Code = ContractProblemCode.ServiceUnavailable,
                 Title = "Service Unavailable",
                 Status = (int)HttpStatusCode.ServiceUnavailable,
                 Detail = detail,

@@ -462,6 +462,20 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Map storage internals to Qyl.Api.Contracts in Mapping/Mappers.cs before returning.");
         });
 
+    // The product list routes whose `limit` is the contract's shared PageLimit.
+    private static readonly string[] SharedPageLimitRoutes =
+    [
+        "/api/v1/sessions",
+        "/api/v1/sessions/{session_id}/traces",
+        "/api/v1/traces",
+        "/api/v1/traces/{trace_id}/spans",
+        "/api/v1/logs",
+        "/api/v1/metrics",
+        "/api/v1/metrics/{metric_name}/series",
+        "/api/v1/annotations",
+        "/api/v1/saved-queries"
+    ];
+
     Target VerifyCollectorEndpointLimitsMatchOpenApi => d => d
         .ProceedAfterFailure()
         .Unlisted()
@@ -486,55 +500,36 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             var constants = ReadContractLimitConstants(endpointFile);
             using var document = JsonDocument.Parse(File.ReadAllText(openApiFile));
 
-            var expectedDefault = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "default");
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/traces", expectedDefault);
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/sessions/{session_id}/traces", expectedDefault);
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/annotations", expectedDefault);
-            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/saved-queries", expectedDefault);
-            var runLimit = document.RootElement.GetProperty("components").GetProperty("schemas")
-                .GetProperty("SavedQueries.SavedQueryRunRequest").GetProperty("properties").GetProperty("limit");
-            if (runLimit.GetProperty("default").GetInt32() != expectedDefault)
+            // Contract 12.0.0 has one PageLimit: every list route's `limit` and SavedQueryRunRequest.limit
+            // reference the same schema (1 to 1000) with the same default (100). The collector keeps that
+            // pair once, so every route is held to the first one; only the metric query's series_limit and
+            // step_ms carry their own ranges.
+            var shared = ReadOpenApiQueryBounds(document, SharedPageLimitRoutes[0], "limit");
+            foreach (var route in SharedPageLimitRoutes.Skip(1))
+            {
+                var bounds = ReadOpenApiQueryBounds(document, route, "limit");
+                if (bounds != shared)
+                    throw new InvalidOperationException(
+                        $"{route} limit bounds {bounds} differ from {SharedPageLimitRoutes[0]}'s {shared}; the collector keeps one PageLimit.");
+            }
+
+            var runLimit = ResolveOpenApiSchema(document, document.RootElement.GetProperty("components").GetProperty("schemas")
+                .GetProperty("SavedQueries.SavedQueryRunRequest").GetProperty("properties").GetProperty("limit"));
+            if (runLimit != shared)
                 throw new InvalidOperationException(
-                    $"SavedQueryRunRequest.limit default must be the shared page default {expectedDefault}.");
+                    $"SavedQueryRunRequest.limit bounds {runLimit} must be the shared PageLimit {shared}.");
+
+            var seriesLimit = ReadOpenApiQueryBounds(document, "/api/v1/metrics/{metric_name}/query", "series_limit");
+            var stepMs = ReadOpenApiQueryBounds(document, "/api/v1/metrics/{metric_name}/query", "step_ms");
             var expected = new Dictionary<string, int>(StringComparer.Ordinal)
             {
-                ["DefaultPageLimit"] = expectedDefault,
-                ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
-                ["SessionTraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(
-                    document, "/api/v1/sessions/{session_id}/traces", "limit", "maximum"),
-                ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
-                // Omitted, the span limit stays unbounded (the whole trace in one page), so it has no default.
-                ["SpanMaxLimit"] = ReadOpenApiIntegerSchemaValue(
-                    document, "/api/v1/traces/{trace_id}/spans", "limit", "maximum"),
-                ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
-                ["AnnotationMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/annotations", "limit", "maximum"),
-                ["SavedQueryMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/saved-queries", "limit", "maximum"),
-                ["SavedQueryRunMaxLimit"] = runLimit.GetProperty("maximum").GetInt32(),
-                // The metric routes carry their own default and maximum rather than the shared
-                // page limit: a metric catalog is a small, dense list and a range query returns
-                // streams, not rows, so neither is bounded by the same number as a span page.
-                ["MetricDefaultLimit"] =
-                    ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "default"),
-                ["MetricMaxLimit"] =
-                    ReadOpenApiIntegerSchemaValue(document, "/api/v1/metrics", "limit", "maximum"),
-                ["MetricSeriesDefaultLimit"] = ReadOpenApiIntegerSchemaValue(
-                    document, "/api/v1/metrics/{metric_name}/query", "series_limit", "default"),
-                ["MetricSeriesMaxLimit"] = ReadOpenApiIntegerSchemaValue(
-                    document, "/api/v1/metrics/{metric_name}/query", "series_limit", "maximum"),
-                ["MetricDefaultStepMs"] = ReadOpenApiIntegerSchemaValue(
-                    document, "/api/v1/metrics/{metric_name}/query", "step_ms", "default"),
-                ["MetricMaxStepMs"] = ReadOpenApiIntegerSchemaValue(
-                    document, "/api/v1/metrics/{metric_name}/query", "step_ms", "maximum")
+                ["DefaultPageLimit"] = shared.Default,
+                ["MaxPageLimit"] = shared.Maximum,
+                ["MetricSeriesDefaultLimit"] = seriesLimit.Default,
+                ["MetricSeriesMaxLimit"] = seriesLimit.Maximum,
+                ["MetricDefaultStepMs"] = stepMs.Default,
+                ["MetricMaxStepMs"] = stepMs.Maximum
             };
-
-            // The series-listing limit shares the catalog's bounds; assert that rather than
-            // duplicating a constant that would then be free to drift from it.
-            EnsureOpenApiLimitBoundsMatch(
-                document,
-                "/api/v1/metrics/{metric_name}/series",
-                expected["MetricDefaultLimit"],
-                expected["MetricMaxLimit"]);
 
             var mismatches = expected
                 .Where(pair => !constants.TryGetValue(pair.Key, out var actual) || actual != pair.Value)
@@ -557,22 +552,6 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             throw new InvalidOperationException(
                 "Collector endpoint limits must match qyl-api-schema OpenAPI. Update qyl-api-schema first, regenerate/publish contracts, then update ContractLimits.");
         });
-
-    private static void EnsureOpenApiLimitBoundsMatch(
-        JsonDocument document,
-        string path,
-        int expectedDefault,
-        int expectedMaximum)
-    {
-        var actualDefault = ReadOpenApiIntegerSchemaValue(document, path, "limit", "default");
-        var actualMaximum = ReadOpenApiIntegerSchemaValue(document, path, "limit", "maximum");
-        if (actualDefault != expectedDefault || actualMaximum != expectedMaximum)
-        {
-            throw new InvalidOperationException(
-                $"{path} limit bounds ({actualDefault}/{actualMaximum}) must match the metric catalog's " +
-                $"({expectedDefault}/{expectedMaximum}).");
-        }
-    }
 
     Target VerifyCollectorRoutesMatchOpenApi => d => d
         .ProceedAfterFailure()
@@ -3820,11 +3799,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         return constants;
     }
 
-    private static int ReadOpenApiIntegerSchemaValue(
-        JsonDocument document,
-        string path,
-        string parameterName,
-        string schemaProperty)
+    /// <summary>Default and maximum of an integer schema, with a <c>$ref</c> to a components schema resolved.</summary>
+    private readonly record struct OpenApiIntegerBounds(int Default, int Maximum)
+    {
+        public override string ToString() => $"default {Default}, maximum {Maximum}";
+    }
+
+    private static OpenApiIntegerBounds ReadOpenApiQueryBounds(JsonDocument document, string path, string parameterName)
     {
         var parameters = document.RootElement
             .GetProperty("paths")
@@ -3837,18 +3818,35 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             if (!parameter.TryGetProperty("name", out var name) || name.GetString() != parameterName)
                 continue;
 
-            return parameter.GetProperty("schema").GetProperty(schemaProperty).GetInt32();
+            return ResolveOpenApiSchema(document, parameter.GetProperty("schema"));
         }
 
         throw new InvalidOperationException($"OpenAPI path '{path}' does not define parameter '{parameterName}'.");
     }
 
-    private static void EnsureOpenApiLimitDefaultMatches(JsonDocument document, string path, int expectedDefault)
+    // A parameter or property schema may carry its `default` inline and reference a shared scalar
+    // (`$ref: #/components/schemas/Common.Pagination.PageLimit`) for the range; either side may hold either.
+    private static OpenApiIntegerBounds ResolveOpenApiSchema(JsonDocument document, JsonElement schema)
     {
-        var actualDefault = ReadOpenApiIntegerSchemaValue(document, path, "limit", "default");
-        if (actualDefault != expectedDefault)
-            throw new InvalidOperationException(
-                $"{path} limit default is {actualDefault}; collector currently expects one shared default {expectedDefault}.");
+        JsonElement? referenced = null;
+        if (schema.TryGetProperty("$ref", out var reference))
+        {
+            const string prefix = "#/components/schemas/";
+            var target = reference.GetString() ?? "";
+            if (!target.StartsWith(prefix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Unsupported OpenAPI $ref '{target}'.");
+            referenced = document.RootElement.GetProperty("components").GetProperty("schemas")
+                .GetProperty(target[prefix.Length..]);
+        }
+
+        return new OpenApiIntegerBounds(ReadInteger("default"), ReadInteger("maximum"));
+
+        int ReadInteger(string property)
+        {
+            if (schema.TryGetProperty(property, out var inline)) return inline.GetInt32();
+            if (referenced is { } shared && shared.TryGetProperty(property, out var value)) return value.GetInt32();
+            throw new InvalidOperationException($"OpenAPI schema declares no '{property}'.");
+        }
     }
 
     private static string ReadNamedStringAttributeArgument(AttributeSyntax attribute, string name)
