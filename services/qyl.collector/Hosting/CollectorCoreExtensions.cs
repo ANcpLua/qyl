@@ -1,3 +1,4 @@
+using Grpc.AspNetCore.Server;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.ApiKeys;
 
@@ -28,6 +29,19 @@ internal static class CollectorCoreExtensions
             options.Interceptors.Add<OtlpApiKeyInterceptor>();
         });
         services.AddSingleton<OtlpApiKeyInterceptor>();
+
+        // grpc-dotnet decompresses a request into an unbounded buffer before any interceptor runs, so every
+        // decompression provider is wrapped to stop at the receive limit. PostConfigure sees the final list,
+        // including the defaults gRPC adds and any provider registered after this call.
+        services.PostConfigure<GrpcServiceOptions>(static options =>
+        {
+            var limit = options.MaxReceiveMessageSize ?? BoundedDecompressionProvider.DefaultMaxReceiveMessageSize;
+            for (var i = 0; i < options.CompressionProviders.Count; i++)
+            {
+                if (options.CompressionProviders[i] is not BoundedDecompressionProvider)
+                    options.CompressionProviders[i] = new BoundedDecompressionProvider(options.CompressionProviders[i], limit);
+            }
+        });
 
         return ports;
     }
