@@ -1,7 +1,4 @@
 <Project>
-  <!-- Materializes an opted-in base64 signing key only in intermediate output. -->
-  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/StrongName.targets"/>
-
   <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <_QylInformationalVersion>$(InformationalVersion)</_QylInformationalVersion>
