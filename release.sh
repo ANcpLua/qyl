@@ -30,8 +30,9 @@ say "checks"
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "working tree not clean"
 git fetch -q origin main
 [[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]] || die "main differs from origin/main"
-[[ -z $(git ls-remote --tags origin "refs/tags/v$version") ]] || die "tag v$version already on origin"
-git rev-parse -q --verify "refs/tags/v$version" >/dev/null && die "tag v$version already exists locally"
+if [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+  (( dry )) || die "tag v$version already exists"; echo "warning: tag v$version already exists; the real run refuses"
+fi
 qv=$(sed -n 's:.*<QylVersion>\([^<]*\)</QylVersion>.*:\1:p' Version.props)
 [[ $qv == "$version" ]] || die "Version.props QylVersion is $qv, not $version; bump it in its own commit first"
 for id in qyl qyl.api.sdk; do
