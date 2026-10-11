@@ -76,8 +76,8 @@ interface IDependencyEdges : IHasSourcePaths
     /// <summary>The MSBuild files the SDK injects its package references from, read as if they were the consumer's.</summary>
     private static readonly string[] s_qylApiSdkBuildFiles =
     [
-        "packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.props",
-        "packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.targets",
+        "packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.props",
+        "packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.targets",
     ];
 
 

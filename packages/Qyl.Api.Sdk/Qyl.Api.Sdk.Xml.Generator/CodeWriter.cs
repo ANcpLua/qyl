@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Qyl.Sdk.Xml.Generator;
+namespace Qyl.Api.Sdk.Xml.Generator;
 
 /// <summary>A line-oriented builder with block indentation; writes "\n" so output is identical on every platform.</summary>
 internal sealed class CodeWriter

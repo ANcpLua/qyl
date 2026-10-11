@@ -1,7 +1,7 @@
 using Microsoft.OpenApi;
-using Qyl.Sdk.Xml.Generator.Tests.Models;
+using Qyl.Api.Sdk.Xml.Generator.Tests.Models;
 
-namespace Qyl.Sdk.Xml.Generator.Tests;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>The OpenAPI schema a Qyl API publishes for an application/xml response, built from the generated shape.</summary>
 public sealed class SchemaTests

@@ -2,7 +2,7 @@ using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Qyl.Sdk.Xml.Generator;
+namespace Qyl.Api.Sdk.Xml.Generator;
 
 /// <summary>How a scalar is turned into XML text.</summary>
 internal enum ValueKind

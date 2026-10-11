@@ -23,14 +23,14 @@
     <File Path="packages/Qyl.Api.Sdk/DECISIONS.md" />
     <File Path="packages/Qyl.Api.Sdk/Sdk/Sdk.props" />
     <File Path="packages/Qyl.Api.Sdk/Sdk/Sdk.targets" />
-    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.props" />
-    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Api.targets" />
-    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Packages.props" />
+    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.props" />
+    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.targets" />
+    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.Packages.props" />
     <File Path="packages/Qyl.Api.Sdk/Sources/Microsoft.Extensions.Hosting/QylApiHostApplicationBuilderExtensions.cs" />
     <Project Path="packages/Qyl.Api.Sdk/Qyl.Api.Sdk.csproj" />
     <Project Path="packages/Qyl.Api.Sdk/Qyl.Xml/Qyl.Xml.csproj" />
     <Project Path="packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj" />
-    <Project Path="packages/Qyl.Api.Sdk/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" />
+    <Project Path="packages/Qyl.Api.Sdk/Qyl.Api.Sdk.Xml.Generator/Qyl.Api.Sdk.Xml.Generator.csproj" />
   </Folder>
 
   <Folder Name="/samples/">
@@ -42,7 +42,7 @@
     <Project Path="tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj" />
     <Project Path="tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj" />
     <Project Path="tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj" />
-    <Project Path="tests/Qyl.Sdk.Xml.Generator.Tests/Qyl.Sdk.Xml.Generator.Tests.csproj" />
+    <Project Path="tests/Qyl.Api.Sdk.Xml.Generator.Tests/Qyl.Api.Sdk.Xml.Generator.Tests.csproj" />
   </Folder>
 
   <Folder Name="/services/">

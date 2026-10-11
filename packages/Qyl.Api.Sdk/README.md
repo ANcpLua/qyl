@@ -48,6 +48,31 @@ build-time document tool takes it as its own argument. Any other value fails the
 - `[GenerateXml]` generates an `XmlWriter` implementation for a type, with no `XmlSerializer` and
   no runtime reflection, and `QylResults.Xml(todo)` puts the XML shape into the contract.
 
+## MSBuild names
+
+A name says what it governs. The SDK's own wiring is `QylApiSdk*`, its files are
+`Qyl.Api.Sdk.*`, and a knob of the OpenAPI document is `QylOpenApi*`, after the
+`OpenApi*` property of `Microsoft.Extensions.ApiDescription.Server` it feeds. A name that starts
+with `_` is private and can change in any release.
+
+| Property | Governs | Default |
+| --- | --- | --- |
+| `QylOpenApiVersion` | the document's OpenAPI version, passed to the build-time tool as `--openapi-version` and compiled in as `QylApiSdkBuild.OpenApiVersion` | `OpenApi3_1` |
+| `QylOpenApiDocumentsDirectory` | where the committed document is written; `OpenApiDocumentsDirectory` always follows it | `$(MSBuildProjectDirectory)/openapi` |
+| `QylOpenApiDocumentFile` | the document the contract revision is hashed from | `$(QylOpenApiDocumentsDirectory)/$(MSBuildProjectName).json` |
+| `QylApiSdkPackaged` | `true` when the SDK runs from its package (assemblies and generator from the package) rather than from this repository (project references) | detected |
+| `QylApiSdkRoot`, `QylApiSdkSourcesPath`, `QylApiSdkXmlProject`, `QylApiSdkApiProject`, `QylApiSdkXmlGeneratorProject` | where the SDK and its parts are; read them, don't set them | set by the SDK |
+| `UsingQylApiSdk` | `true` in every project the SDK builds, in the `Using<Sdk>` form of `UsingMicrosoftNETSdk` | `true` |
+
+The files are `Sdk/Sdk.props` and `Sdk/Sdk.targets` (the entry points), `Build/Qyl.Api.Sdk.props`,
+`Build/Qyl.Api.Sdk.targets` and `Build/Qyl.Api.Sdk.Packages.props`, which a repository with
+central package management imports from its `Directory.Packages.props`. The generator is
+`Qyl.Api.Sdk.Xml.Generator`, and the class compiled into every API is `Qyl.QylApiSdkBuild`.
+`QylAspNetCoreOpenApiVersion`, `QylApiDescriptionServerVersion`, `QylOpenApiModelVersion` and
+`QylTelemetryVersion` are the dependency versions the SDK pins. Each names the package it pins, and
+the SDK writes them into the package. Diagnostic IDs (`QYLSDK0001`–`QYLSDK0003`, `QYLXML001`–`QYLXML011`)
+never change once they ship, because a consumer's `NoWarn` names them.
+
 ## More
 
 - The worked example: [`samples/qyl.sample`](https://github.com/ANcpLua/qyl/tree/main/samples/qyl.sample)

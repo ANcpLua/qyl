@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Qyl.Sdk.Xml.Generator.Tests;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>Compares generated text with a file under Snapshots/; <c>QYL_UPDATE_SNAPSHOTS=1</c> rewrites the file instead.</summary>
 internal static class Snapshot

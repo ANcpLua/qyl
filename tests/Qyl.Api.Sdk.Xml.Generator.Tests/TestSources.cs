@@ -1,4 +1,4 @@
-namespace Qyl.Sdk.Xml.Generator.Tests;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>Sources the driver tests compile; the first is the sample's Todo, verbatim.</summary>
 internal static class TestSources

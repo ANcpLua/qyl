@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Qyl.Sdk.Xml.Generator;
+namespace Qyl.Api.Sdk.Xml.Generator;
 
 /// <summary>
 /// Implements <c>Qyl.Xml.IXmlWritable</c> on every <c>partial</c> type marked <c>[Qyl.Xml.GenerateXml]</c> by emitting plain

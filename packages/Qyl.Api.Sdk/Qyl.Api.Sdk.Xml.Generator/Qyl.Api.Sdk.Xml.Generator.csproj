@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <RootNamespace>Qyl.Sdk.Xml.Generator</RootNamespace>
+    <RootNamespace>Qyl.Api.Sdk.Xml.Generator</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

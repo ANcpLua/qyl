@@ -6,10 +6,10 @@
     OpenApiDocumentsDirectory always follows QylOpenApiDocumentsDirectory.
   -->
   <PropertyGroup>
-    <QylSdkSourcesPath>$(QylSdkRoot)Sources/</QylSdkSourcesPath>
-    <QylSdkXmlGeneratorProject>$(QylSdkRoot)Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj</QylSdkXmlGeneratorProject>
-    <QylSdkXmlProject>$(QylSdkRoot)Qyl.Xml/Qyl.Xml.csproj</QylSdkXmlProject>
-    <QylSdkApiProject>$(QylSdkRoot)Qyl.Api/Qyl.Api.csproj</QylSdkApiProject>
+    <QylApiSdkSourcesPath>$(QylApiSdkRoot)Sources/</QylApiSdkSourcesPath>
+    <QylApiSdkXmlGeneratorProject>$(QylApiSdkRoot)Qyl.Api.Sdk.Xml.Generator/Qyl.Api.Sdk.Xml.Generator.csproj</QylApiSdkXmlGeneratorProject>
+    <QylApiSdkXmlProject>$(QylApiSdkRoot)Qyl.Xml/Qyl.Xml.csproj</QylApiSdkXmlProject>
+    <QylApiSdkApiProject>$(QylApiSdkRoot)Qyl.Api/Qyl.Api.csproj</QylApiSdkApiProject>
 
     <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
 
@@ -26,7 +26,7 @@
       The OpenAPI document is a committed build artefact: `dotnet build` rewrites it next to the project.
       QylOpenApiVersion is the single source of truth for the document version: it is passed to the build-time tool
       (which ignores the app's OpenApiOptions.OpenApiVersion, verified against SDK 10.0.400) and generated into the
-      compilation as Qyl.QylSdkBuild.OpenApiVersion, which AddQylApi applies at runtime. Value: a Microsoft.OpenApi.OpenApiSpecVersion member name.
+      compilation as Qyl.QylApiSdkBuild.OpenApiVersion, which AddQylApi applies at runtime. Value: a Microsoft.OpenApi.OpenApiSpecVersion member name.
     -->
     <QylOpenApiVersion Condition="'$(QylOpenApiVersion)' == ''">OpenApi3_1</QylOpenApiVersion>
     <!-- Appended, not defaulted, and only once: a project that already passes the flag keeps its own. -->
@@ -49,8 +49,8 @@
       only inside the compilation that calls them, and only see that compilation's types and comments.
       A compiled assembly calling them would validate nothing and document nothing.
       Everything else is compiled: the contract Qyl.Xml ([GenerateXml], IXmlWritable, XmlShape, XmlHttpResult) and the
-      runtime Qyl.Api (builder, results, problem-details context, XML schema transformer), referenced from Qyl.Sdk.Api.targets.
+      runtime Qyl.Api (builder, results, problem-details context, XML schema transformer), referenced from Qyl.Api.Sdk.targets.
     -->
-    <Compile Include="$(QylSdkSourcesPath)**/*.cs" Link="Qyl.Api.Sdk/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="$(QylApiSdkSourcesPath)**/*.cs" Link="Qyl.Api.Sdk/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

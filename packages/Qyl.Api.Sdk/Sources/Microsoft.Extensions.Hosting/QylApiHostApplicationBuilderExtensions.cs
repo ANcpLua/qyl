@@ -25,7 +25,7 @@ public static class QylApiHostApplicationBuilderExtensions
 
     /// <summary>
     /// The OpenAPI specification version every Qyl API document is written in, at runtime and at build time alike:
-    /// the MSBuild property <c>QylOpenApiVersion</c> (default <c>OpenApi3_1</c>), generated into <see cref="QylSdkBuild"/>.
+    /// the MSBuild property <c>QylOpenApiVersion</c> (default <c>OpenApi3_1</c>), generated into <see cref="QylApiSdkBuild"/>.
     /// </summary>
     /// <remarks>
     /// Pinned on purpose: .NET 10 defaults to 3.1 and .NET 11 moves the default to 3.2. A committed contract must not change
@@ -33,7 +33,7 @@ public static class QylApiHostApplicationBuilderExtensions
     /// document tool takes the version as its own argument and ignores <see cref="OpenApiOptions.OpenApiVersion"/>; one property
     /// feeds both. Overriding it at runtime alone would make the served document diverge from the committed one.
     /// </remarks>
-    public const OpenApiSpecVersion OpenApiDocumentVersion = QylSdkBuild.OpenApiVersion;
+    public const OpenApiSpecVersion OpenApiDocumentVersion = QylApiSdkBuild.OpenApiVersion;
 
     /// <summary>Registers everything a Qyl API consists of. There is no smaller unit.</summary>
     /// <param name="builder">The host builder of the API.</param>
@@ -113,7 +113,7 @@ public static class QylApiHostApplicationBuilderExtensions
         //
         // The first build of a fresh project now fails in QylVerifyContractRevision instead, which says to commit the
         // document the tool has just written — advice that works, because the second build reads its digest.
-        if (QylSdkBuild.ContractRevision.Length is 0 && !QylBuildTimeDocumentHost.IsCurrentProcess)
+        if (QylApiSdkBuild.ContractRevision.Length is 0 && !QylBuildTimeDocumentHost.IsCurrentProcess)
         {
             throw new InvalidOperationException(
                 "This Qyl API was compiled without a contract revision, which means it was built without its committed " +
@@ -133,7 +133,7 @@ public static class QylApiHostApplicationBuilderExtensions
             options.EnableLogExport = !QylBuildTimeDocumentHost.IsCurrentProcess;
             options.RequireConfiguredEndpoint = QylBuildTimeDocumentHost.IsCurrentProcess;
             options.ResourceAttributes.Add(
-                new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylSdkBuild.ContractRevision));
+                new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylApiSdkBuild.ContractRevision));
         });
 
         // The agent contract: `baggage: session.id=<id>` on the request becomes session.id on the server span, which the

@@ -34,9 +34,9 @@
     <!-- The producer family ships from the Qyl.OpenTelemetry.AutoInstrumentation repo on one
          release line (Qyl.Telemetry.* package IDs since 9.0.0), so its packages share one property.
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
-         written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
+         written into the packed Build/Qyl.Api.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>23.1.0</QylTelemetryVersion>
+    <QylTelemetryVersion>24.0.0</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>9.8.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
@@ -47,8 +47,8 @@
   </PropertyGroup>
 
   <!-- The versions the Qyl.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
-       SDK's own property names because eng/build writes this pair into the packed
-       Build/Qyl.Sdk.Packages.props, where a consumer outside this repository reads them. -->
+       SDK's own property names because Qyl.Api.Sdk.csproj writes them into the packed
+       Build/Qyl.Api.Sdk.Packages.props, where a consumer outside this repository reads them. -->
   <PropertyGroup Label="Qyl.Api.Sdk-owned">
     <!-- Runtime OpenAPI document, plus the XML-comment source generator that ships inside it. -->
     <QylAspNetCoreOpenApiVersion>$(DotNetRuntimeVersion)</QylAspNetCoreOpenApiVersion>

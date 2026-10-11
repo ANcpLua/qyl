@@ -64,7 +64,7 @@ The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.A
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
 | `qyl` (dotnet tool) | 10.0.0 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 23.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 24.0.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 9.8.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 11.6.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 7.4.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
@@ -111,10 +111,10 @@ observable.
 | Concern | Trigger in the sample | Produced by |
 | --- | --- | --- |
 | Validation | DataAnnotations on `CreateTodoRequest` | the `Microsoft.Extensions.Validation` generator, intercepting `AddValidation` |
-| XML | `[GenerateXml]` and the `System.Xml.Serialization` attributes on `partial record Todo` | `Qyl.Sdk.Xml.Generator`, which emits `WriteXml` as plain `XmlWriter` calls and the same tree as `XmlShape` data |
+| XML | `[GenerateXml]` and the `System.Xml.Serialization` attributes on `partial record Todo` | `Qyl.Api.Sdk.Xml.Generator`, which emits `WriteXml` as plain `XmlWriter` calls and the same tree as `XmlShape` data |
 | OpenAPI | `///` comments on handlers and contracts | the `Microsoft.AspNetCore.OpenApi` XML-comment generator, intercepting `AddOpenApi` |
 | Committed contract | `dotnet build` | `Microsoft.Extensions.ApiDescription.Server`, writing `samples/qyl.sample/openapi/qyl.sample.json` |
-| Contract revision | `dotnet build` | `Qyl.Sdk.Api.targets`, hashing that document into `QylSdkBuild.ContractRevision` and out as the resource attribute `qyl.api.contract.revision` |
+| Contract revision | `dotnet build` | `Qyl.Api.Sdk.targets`, hashing that document into `QylApiSdkBuild.ContractRevision` and out as the resource attribute `qyl.api.contract.revision` |
 | Telemetry | nothing — there is no telemetry line in the sample | `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation`, both pinned by the SDK at `QylTelemetryVersion`; the interceptor generator ships in the second, under `analyzers/dotnet/cs`, and arrives through its `buildTransitive` assets |
 | Binding and JSON | method-group handlers, `AppJsonSerializerContext` | the Request Delegate Generator and the `System.Text.Json` generator |
 

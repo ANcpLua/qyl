@@ -413,3 +413,37 @@ packaged consumer now builds with `-warnaserror`; and the collector's `qyl.instr
 `http.route`, `session.id` and `qyl.api.contract.revision` in the gate come from the registry packages, so a
 rename upstream breaks the gate at compile time. The one deliberate literal left is `sha256:` — the gate is the
 second opinion about the value format, and a shared constant would make it one opinion twice.
+
+## 2026-10-11 · One name for the SDK: `QylApiSdk*` and `Qyl.Api.Sdk.*` (reverses "the MSBuild file names under `Build/` and the generator's name are internal and unchanged")
+
+The 2026-09-07 package-id entry kept `Build/Qyl.Sdk.Api.props`, `Build/Qyl.Sdk.Api.targets`, the
+`QylSdk*` properties and `Qyl.Sdk.Xml.Generator` because it called them internal. Most of them
+are not internal. A consumer reads `$(QylSdkRoot)`, can set `QylSdkPackaged`, can call
+`QylSdkBuild.ContractRevision` from its own code, and, with central package management, imports
+`Build/Qyl.Sdk.Packages.props` by path. The generator's name is the analyzer path in the package,
+the `obj/generated` folder its output lands in, and the first line of every file it writes. So
+the retired `Qyl.Sdk` id showed up wherever a consumer looked, alongside `UsingQylApiSdk` and
+`QylOpenApi*`. The 2026-10-11 qyl-dev audit (row QYL-A9) decided this is a major change for
+`Qyl.Api.Sdk` 10.0.0.
+
+Decision: a name says what it governs. The SDK's own wiring is `QylApiSdk*` (`QylApiSdkRoot`,
+`QylApiSdkSourcesPath`, `QylApiSdkXmlProject`, `QylApiSdkApiProject`,
+`QylApiSdkXmlGeneratorProject`, `QylApiSdkPackaged`), and its files and assemblies are
+`Qyl.Api.Sdk.*` (`Build/Qyl.Api.Sdk.props`, `.targets`, `.Packages.props`,
+`Qyl.Api.Sdk.Xml.Generator`). The compiled-in class is `QylApiSdkBuild`. The OpenAPI knobs stay
+`QylOpenApi*`: each is `Qyl` plus the `Microsoft.Extensions.ApiDescription.Server` property it
+feeds, and consumers already set them, so renaming them would break a consumer for no benefit.
+`UsingQylApiSdk` stays, because `Using<Sdk>` is the form every MSBuild SDK uses for its marker.
+Four other groups stay too. The dependency pins (`Qyl<Package>Version`) are owned by
+`Version.props`. The diagnostic IDs stay because a consumer's `NoWarn` names them. The telemetry
+names and the contract are outside the SDK's naming.
+
+No aliases. An old property name that set the new one would keep the retired id in every build
+log and leave two spellings of one knob. The break is also visible without an alias: a stale
+`$(QylSdkRoot)` resolves to an empty path, `QylSdkBuild` is `CS0103`, and an import of
+`Build/Qyl.Sdk.Packages.props` is `MSB4019`. The one silent case is a project that sets
+`QylSdkPackaged`, which then falls back to detection. The CHANGELOG lists it.
+
+The generator was renamed, not kept. No consumer names it. The SDK's targets add it as an
+analyzer, from the package path or the in-repository project, and both are in this tree.
+`ApiSdkPackagedConsumer` builds a consumer from the packed SDK and asserts the generator ran.
