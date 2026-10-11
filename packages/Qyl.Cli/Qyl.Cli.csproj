@@ -23,6 +23,9 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <PackageReference Include="Qyl.Api.Contracts"/>
+    <!-- The runner's own telemetry (health probes, orchestration logs, failures) goes through the
+         published producer stack to the diagnostics collector it starts; see QylAppBuilder.Build. -->
+    <PackageReference Include="Qyl.Telemetry.Hosting"/>
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 

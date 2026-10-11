@@ -10,6 +10,13 @@ internal static class QylConstants
         public const string Banner = "qyl";
         public const string Version = BuildVersion.ProductVersion;
         public const string Tagline = "qyl distributed-app runner";
+
+        /// <summary>
+        /// The <c>service.name</c> the runner process reports for itself. The collectors it launches
+        /// report their resource names (<c>collector</c>, <c>diagnostics</c>); this one names the
+        /// process that launches them.
+        /// </summary>
+        public const string RunnerServiceName = "qyl-runner";
     }
 
     public static class Ports

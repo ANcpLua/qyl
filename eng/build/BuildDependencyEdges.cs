@@ -40,8 +40,10 @@ interface IDependencyEdges : IHasSourcePaths
         // second source of truth. Compile-time only (a const, PrivateAssets=all); the producer family
         // reaches a Qyl API through the SDK's Qyl.Telemetry.Hosting reference, not through here.
         ["packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj"] = ["Qyl.Telemetry.SemanticConventions.Incubating"],
-        // G11: the CLI is a client of the collector API and owns none of it.
-        ["packages/Qyl.Cli/Qyl.Cli.csproj"] = ["Qyl.Api.Contracts"],
+        // G11: the CLI is a client of the collector API and owns none of it. It observes itself the
+        // way every qyl process does, through the published producer stack (AddQyl), exporting only to
+        // the diagnostics collector it starts; the product collector never receives runner telemetry.
+        ["packages/Qyl.Cli/Qyl.Cli.csproj"] = ["Qyl.Api.Contracts", "Qyl.Telemetry.Hosting"],
         // The demo producer sets attributes through the pre-generated Activities classes;
         // the retired compile-time generator package emitted them into the assembly instead.
         ["packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj"] =
