@@ -89,6 +89,10 @@ Act at once, before continuing your own work, so both agents keep moving:
 - A qyl-api-schema release that changes the contract revision: re-pin and push qyl first, wait
   until `https://api.qyl.at/health` serves the new revision, then qyl.mcp re-pins; mcp.qyl.at
   refuses a Collector on another revision.
+- Deployment state, from this Mac: `railway deployment list --json` in this clone (linked to
+  project qyl, service `qyl-collector`, environment `production`); the newest entry must show
+  `status: SUCCESS` and `meta.commitHash` equal to the pushed commit. `curl -fsSL
+  https://api.qyl.at/health` shows the served contract revision.
 - SemanticConventions and AutoInstrumentation both feed this repo: wait until both are indexed
   and re-pin them in one commit.
 - qyl.at lists a version only after the index confirms it.
