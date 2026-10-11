@@ -1,7 +1,7 @@
 # qyl configuration
 
-The complete `QYL_*` environment contract bound by product, developer, acceptance,
-and CI code in this repository. Standard `OTEL_*`, `PORT`, and `VITE_*` settings
+The complete `QYL_*` environment contract bound by product, developer, acceptance
+and smoke-tool code in this repository. Standard `OTEL_*`, `PORT`, and `VITE_*` settings
 retain their upstream semantics and are not duplicated here.
 
 `VerifyConfigurationKnobs` (`eng/build/BuildConfigurationKnobs.cs`) reads it and fails

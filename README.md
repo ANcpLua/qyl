@@ -55,11 +55,11 @@ instrument rather than stored unqueryable.
 qyl is one dependency graph with several independently released packages. Each line
 carries its own version — the 1.0.0 launch is an event, not a number every package
 adopts. The versions below are the source and dependency lines `main` builds against; a
-dependency line is published, and this repository's own line is published once the
-release workflow runs for it. Package registries are authoritative for public
-availability.
+dependency line is published, and this repository's own line is published when
+`./release.sh <version>` runs on the developer's machine (see `SKILL.md`). Package
+registries are authoritative for public availability.
 
-The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs: locally it rewrites them, on CI it fails when the committed text differs. The `qyl-mcp-server` row is not rendered: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp).
+The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs and which rewrites them; commit the rendered text. The `qyl-mcp-server` row is not rendered: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp).
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
