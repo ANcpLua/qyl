@@ -14,9 +14,9 @@ tests and packs run through Fallout (`./eng/build.sh <Target>`) and `mise run ch
   (`qyl-collector`, api.qyl.at, Railway).
 - Version source: `Version.props` `QylVersion`. Bump it in its own commit before the first
   package-affecting change after a release; the tag names the commit that carries it.
-- Release command: `./release.sh <x.y.z> --dry-run`, then `./release.sh <x.y.z>` (packs with
-  Fallout `PackRelease`, smokes the tool packages, pushes the eight packages, tags, creates the
-  GitHub release, waits for indexing).
+- Release command: `./release.sh <x.y.z>` (optional `--dry-run` first; packs with
+  Fallout `PackRelease`, smokes the tool packages, publishes and indexes the six runtime packages
+  before the SDK and tool pointer, tags, creates the GitHub release, and verifies all eight indexes).
 - Key: `vitals keys` entry "qyl-dev manual publish and release (NuGet)", file
   `~/.config/vitals/nuget-qyl-manual-publish-key`. The script reads it; never print, paste,
   commit or log a key. If the entry is missing or its note's expiry date has passed, stop and
@@ -43,14 +43,17 @@ tests and packs run through Fallout (`./eng/build.sh <Target>`) and `mise run ch
 
 ## Releasing
 
+`python3 eng/scripts/test-release-publish-order.py` checks success, delayed indexing, and
+upload failure without network access. Keep this focused check green when changing `release.sh`.
+
 1. Land the version-bump commit on `main` (`Version.props` `QylVersion`).
 2. `./release.sh <x.y.z> --dry-run` only when a step is new or unsure; otherwise go straight to
    the release, the script refuses before it publishes when anything is off.
 3. `./release.sh <x.y.z>`.
-4. Watch indexing: the script polls the flat-container index for `qyl` and `Qyl.Api.Sdk`. If it
-   ends with "not indexed yet", keep polling those URLs every 30 s. Until both are indexed, do
-   nothing else about this release.
-5. The moment both are indexed: stop watching and notify each consumer (section "Notify").
+4. Watch indexing: runtime packages must be indexed before the tool pointer publishes. The
+   script then checks all eight package indexes. If indexing is incomplete, keep polling every
+   30 s; do not notify consumers while any runtime package is unavailable.
+5. The moment all eight are indexed: stop watching and notify each consumer (section "Notify").
 6. Record the published version in
    `/Users/alexandernachtmann/Downloads/qyl-codex-claude/qyl-handoff-for-codex.md` and run
    `/Users/alexandernachtmann/Downloads/qyl-codex-claude/refresh-published-versions.sh`, which rewrites

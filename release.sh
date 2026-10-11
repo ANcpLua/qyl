@@ -24,6 +24,31 @@ say() { printf '\n== %s\n' "$*"; }
 die() { echo "release: $*" >&2; exit 1; }
 indexed() { curl -fsSL "$NUGET_FLAT/$1/index.json" 2>/dev/null | grep -q "\"$2\""; }
 
+wait_for_indexed() {
+  local attempt package ready
+  for attempt in $(seq 1 20); do
+    ready=1
+    for package in "$@"; do indexed "$package" "$version" || ready=0; done
+    (( ready )) && return 0
+    sleep 30
+  done
+  return 1
+}
+
+publish_release_set() {
+  local runtime package
+  local runtime_ids=()
+  for runtime in $rids; do
+    runtime_ids+=("qyl.$runtime")
+    dotnet nuget push "$OUT/qyl.$runtime.$version.nupkg" --api-key "$(<"$NUGET_KEY_FILE")" --source "$NUGET_SOURCE" || return 1
+  done
+  say "wait for all runtime package indexes before publishing the tool pointer"
+  wait_for_indexed "${runtime_ids[@]}" || return 1
+  for package in Qyl.Api.Sdk qyl; do
+    dotnet nuget push "$OUT/$package.$version.nupkg" --api-key "$(<"$NUGET_KEY_FILE")" --source "$NUGET_SOURCE" || return 1
+  done
+}
+
 say "checks"
 [[ -r $NUGET_KEY_FILE ]] || die "NuGet key missing: $NUGET_KEY_FILE (vitals keys)"
 [[ $(git branch --show-current) == main ]] || die "not on main"
@@ -67,21 +92,17 @@ if (( dry )); then
   git status --short --untracked-files=no
   exit 0
 fi
-for p in "$OUT"/*.nupkg; do
-  dotnet nuget push "$p" --api-key "$(<"$NUGET_KEY_FILE")" --source "$NUGET_SOURCE"
-done
+publish_release_set || die "package publication incomplete; runtime packages must be indexed before the tool pointer can publish"
 
 say "tag and GitHub release"
 git tag -a "v$version" "$release_commit" -m "v$version"
 git push -q origin "v$version"
 gh release create "v$version" --title "v$version" --generate-notes "$OUT"/*.nupkg
 
-say "verify indexing (qyl and Qyl.Api.Sdk)"
-for _ in $(seq 1 20); do
-  indexed qyl "$version" && indexed qyl.api.sdk "$version" && { echo "indexed: qyl $version, Qyl.Api.Sdk $version"; break; }
-  sleep 30
-done
-indexed qyl "$version" || echo "qyl $version pushed, not indexed yet"
-indexed qyl.api.sdk "$version" || echo "Qyl.Api.Sdk $version pushed, not indexed yet"
+say "verify indexing (all eight packages)"
+package_ids=(qyl qyl.api.sdk)
+for runtime in $rids; do package_ids+=("qyl.$runtime"); done
+wait_for_indexed "${package_ids[@]}" || die "packages pushed, but not all eight are indexed yet; keep checking the indexes before notifying consumers"
+echo "all eight packages indexed at $version"
 
 say "next (SKILL.md): notify qyl.at once indexed (src/data/site.ts); pushing main already deployed api.qyl.at"
