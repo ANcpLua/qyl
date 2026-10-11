@@ -1,10 +1,10 @@
 <Project>
   <PropertyGroup>
     <!-- Packed form: the generator ships under analyzers/dotnet/cs; in-repo form: it is a project next to this file. -->
-    <_QylSdkPackagedGenerator>$(QylSdkRoot)analyzers/dotnet/cs/Qyl.Sdk.Xml.Generator.dll</_QylSdkPackagedGenerator>
-    <_QylSdkPackagedXml>$(QylSdkRoot)lib/net10.0/Qyl.Xml.dll</_QylSdkPackagedXml>
-    <_QylSdkPackagedApi>$(QylSdkRoot)lib/net10.0/Qyl.Api.dll</_QylSdkPackagedApi>
-    <QylSdkPackaged Condition="'$(QylSdkPackaged)' == '' and Exists('$(_QylSdkPackagedGenerator)')">true</QylSdkPackaged>
+    <_QylApiSdkPackagedGenerator>$(QylApiSdkRoot)analyzers/dotnet/cs/Qyl.Api.Sdk.Xml.Generator.dll</_QylApiSdkPackagedGenerator>
+    <_QylApiSdkPackagedXml>$(QylApiSdkRoot)lib/net10.0/Qyl.Xml.dll</_QylApiSdkPackagedXml>
+    <_QylApiSdkPackagedApi>$(QylApiSdkRoot)lib/net10.0/Qyl.Api.dll</_QylApiSdkPackagedApi>
+    <QylApiSdkPackaged Condition="'$(QylApiSdkPackaged)' == '' and Exists('$(_QylApiSdkPackagedGenerator)')">true</QylApiSdkPackaged>
   </PropertyGroup>
 
   <!--
@@ -59,23 +59,23 @@
   </ItemGroup>
 
   <!-- The compiled SDK: the Qyl.Xml contract and the Qyl.Api runtime as references, the [GenerateXml] generator as an analyzer only. -->
-  <ItemGroup Condition="'$(QylSdkPackaged)' == 'true'">
+  <ItemGroup Condition="'$(QylApiSdkPackaged)' == 'true'">
     <Reference Include="Qyl.Xml">
-      <HintPath>$(_QylSdkPackagedXml)</HintPath>
+      <HintPath>$(_QylApiSdkPackagedXml)</HintPath>
     </Reference>
     <Reference Include="Qyl.Api">
-      <HintPath>$(_QylSdkPackagedApi)</HintPath>
+      <HintPath>$(_QylApiSdkPackagedApi)</HintPath>
     </Reference>
-    <Analyzer Include="$(_QylSdkPackagedGenerator)" />
+    <Analyzer Include="$(_QylApiSdkPackagedGenerator)" />
   </ItemGroup>
-  <ItemGroup Condition="'$(QylSdkPackaged)' != 'true'">
-    <ProjectReference Include="$(QylSdkXmlProject)" />
-    <ProjectReference Include="$(QylSdkApiProject)" />
+  <ItemGroup Condition="'$(QylApiSdkPackaged)' != 'true'">
+    <ProjectReference Include="$(QylApiSdkXmlProject)" />
+    <ProjectReference Include="$(QylApiSdkApiProject)" />
     <!--
       No SetTargetFramework: the generator has one target framework, and forcing it as a global property would build a second
       instance of the project, whose rebuild races the first instance's output away from other referrers (the tests).
     -->
-    <ProjectReference Include="$(QylSdkXmlGeneratorProject)"
+    <ProjectReference Include="$(QylApiSdkXmlGeneratorProject)"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
@@ -88,7 +88,7 @@
     `&amp;lt%3B` is XML-decoded to `&lt%3B` and unescaped to `&lt;` — because an unescaped one is invalid XML in the
     consumer's own compilation (CS1570 in every build of every Qyl API) and a bare `;` would cut the file in half.
   -->
-  <Target Name="QylGenerateSdkBuildInfo" BeforeTargets="CoreCompile">
+  <Target Name="QylGenerateApiSdkBuildInfo" BeforeTargets="CoreCompile">
     <!-- The value becomes a Microsoft.OpenApi.OpenApiSpecVersion member and a tool argument; an unknown one would
          otherwise surface as CS0117 in generated code or a tool failure after compilation. -->
     <Error Condition="'$(QylOpenApiVersion)' != 'OpenApi2_0' and '$(QylOpenApiVersion)' != 'OpenApi3_0' and '$(QylOpenApiVersion)' != 'OpenApi3_1'"
@@ -125,14 +125,14 @@
     </PropertyGroup>
 
     <PropertyGroup>
-      <_QylSdkBuildInfoFile>$(IntermediateOutputPath)QylSdkBuild.g.cs</_QylSdkBuildInfoFile>
-      <_QylSdkBuildInfoSource>// &lt;auto-generated/&gt;
-// Written by Qyl.Sdk.Api.targets from MSBuild properties. Change the property, not this file.
+      <_QylApiSdkBuildInfoFile>$(IntermediateOutputPath)QylApiSdkBuild.g.cs</_QylApiSdkBuildInfoFile>
+      <_QylApiSdkBuildInfoSource>// &lt;auto-generated/&gt;
+// Written by Qyl.Api.Sdk.targets from MSBuild properties. Change the property, not this file.
 #nullable enable
 namespace Qyl
 {
-    /// &lt;summary&gt;Values fixed at build time by the Qyl SDK's MSBuild properties.&lt;/summary&gt;
-    internal static class QylSdkBuild
+    /// &lt;summary&gt;Values fixed at build time by the Qyl.Api.Sdk MSBuild properties.&lt;/summary&gt;
+    internal static class QylApiSdkBuild
     {
         /// &lt;summary&gt;The OpenAPI specification version (`QylOpenApiVersion`), shared with the build-time document tool.&lt;/summary&gt;
         public const global::Microsoft.OpenApi.OpenApiSpecVersion OpenApiVersion = global::Microsoft.OpenApi.OpenApiSpecVersion.$(QylOpenApiVersion)%3B
@@ -140,14 +140,14 @@ namespace Qyl
         /// &lt;summary&gt;The digest of the committed OpenAPI document (`QylOpenApiDocumentFile`) as the registry spells it: `sha256:&amp;lt%3Blowercase hex&amp;gt%3B`.&lt;/summary&gt;
         public const string ContractRevision = "$(_QylContractRevision)"%3B
     }
-}</_QylSdkBuildInfoSource>
+}</_QylApiSdkBuildInfoSource>
     </PropertyGroup>
 
-    <WriteLinesToFile File="$(_QylSdkBuildInfoFile)" Lines="$(_QylSdkBuildInfoSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(_QylApiSdkBuildInfoFile)" Lines="$(_QylApiSdkBuildInfoSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 
     <ItemGroup>
-      <Compile Include="$(_QylSdkBuildInfoFile)" Link="Qyl.Api.Sdk/QylSdkBuild.g.cs" />
-      <FileWrites Include="$(_QylSdkBuildInfoFile)" />
+      <Compile Include="$(_QylApiSdkBuildInfoFile)" Link="Qyl.Api.Sdk/QylApiSdkBuild.g.cs" />
+      <FileWrites Include="$(_QylApiSdkBuildInfoFile)" />
     </ItemGroup>
   </Target>
 

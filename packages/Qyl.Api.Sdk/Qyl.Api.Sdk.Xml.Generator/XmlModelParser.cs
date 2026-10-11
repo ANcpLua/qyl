@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Qyl.Sdk.Xml.Generator;
+namespace Qyl.Api.Sdk.Xml.Generator;
 
 /// <summary>
 /// Turns a <c>[GenerateXml]</c> type into a cacheable <see cref="XmlModelSpec"/>, or into diagnostics. Every

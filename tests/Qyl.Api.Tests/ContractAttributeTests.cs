@@ -7,7 +7,7 @@ namespace Qyl.Api.Tests;
 /// </summary>
 /// <remarks>
 /// The value is not testable here and is deliberately not faked. It is written by MSBuild into the consumer's
-/// own compilation (<c>QylSdkBuild.ContractRevision</c>, which this project does not have, because it is not
+/// own compilation (<c>QylApiSdkBuild.ContractRevision</c>, which this project does not have, because it is not
 /// built by the SDK), and read back off a real span by <c>ApiSdkSessionScenario</c>, whose oracle spells the
 /// <c>sha256:</c> format independently of the targets that produce it. A test here could only restate a literal
 /// and match itself, which would stay green through exactly the regression the gate exists to catch.

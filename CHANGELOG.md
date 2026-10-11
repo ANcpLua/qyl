@@ -6,6 +6,20 @@
   is answered `503` `application/problem+json` with `reason: runner.shutting_down` instead of an
   empty `200`. Shutdown cancels the handlers, waits up to 2 seconds for them to answer, and only
   then stops the listener (QYL-F1).
+- Breaking, `Qyl.Api.Sdk`: names that still used `Qyl.Sdk` (now retired) say `Qyl.Api.Sdk`
+  instead, and the old names are gone with no aliases. The properties are `QylApiSdkRoot`,
+  `QylApiSdkSourcesPath`, `QylApiSdkXmlProject`, `QylApiSdkApiProject`,
+  `QylApiSdkXmlGeneratorProject` and `QylApiSdkPackaged` (previously `QylSdk*`). The files are
+  `Build/Qyl.Api.Sdk.props`, `Build/Qyl.Api.Sdk.targets` and `Build/Qyl.Api.Sdk.Packages.props`
+  (previously `Build/Qyl.Sdk.Api.*` and `Build/Qyl.Sdk.Packages.props`). The generated class is
+  `Qyl.QylApiSdkBuild` (previously `QylSdkBuild`), the target is `QylGenerateApiSdkBuildInfo`
+  (previously `QylGenerateSdkBuildInfo`), and the generator is `Qyl.Api.Sdk.Xml.Generator`
+  (previously `Qyl.Sdk.Xml.Generator`). `QylOpenApiVersion`, `QylOpenApiDocumentsDirectory`,
+  `QylOpenApiDocumentFile`, `UsingQylApiSdk`, the diagnostic IDs, the telemetry names and the
+  contract are unchanged. The naming rule is in `packages/Qyl.Api.Sdk/README.md`. To migrate,
+  a repository with central package management imports `Build/Qyl.Api.Sdk.Packages.props`. Code
+  that reads `QylSdkBuild` now reads `QylApiSdkBuild`. A project that sets `QylSdkPackaged`
+  sets `QylApiSdkPackaged` instead, because the SDK ignores the old name and gives no error.
 
 ## 9.2.0 — 2026-10-11
 

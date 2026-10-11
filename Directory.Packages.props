@@ -10,7 +10,7 @@
        builds. Importing its file here is the documented central-management path (Sdk/Sdk.props
        imports it only when a repository has not), so those versions are declared exactly once
        whether a project reaches the SDK through this repository or through the package. -->
-  <Import Project="$(MSBuildThisFileDirectory)packages/Qyl.Api.Sdk/Build/Qyl.Sdk.Packages.props"/>
+  <Import Project="$(MSBuildThisFileDirectory)packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.Packages.props"/>
 
   <!-- Every entry resolves through a property from Version.props. A literal version here is a bug:
        it hides the bump from the one file that owns versions, and two packages on one release line

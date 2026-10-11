@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Xml;
 
-namespace Qyl.Sdk.Xml.Generator.Tests;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>Runs the generator over in-memory sources against the real runtime and the linked <c>Qyl.Xml</c> contract.</summary>
 internal static class GeneratorHarness

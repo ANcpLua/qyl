@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Qyl.Sdk.Xml.Generator;
+namespace Qyl.Api.Sdk.Xml.Generator;
 
 /// <summary>An immutable array with structural equality, so pipeline models stay cacheable across incremental runs.</summary>
 internal readonly struct EquatableArray<T>(ImmutableArray<T> array) : IEquatable<EquatableArray<T>>, IReadOnlyList<T>

@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace Qyl.Sdk.Xml.Generator;
+namespace Qyl.Api.Sdk.Xml.Generator;
 
 internal static class Diagnostics
 {

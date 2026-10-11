@@ -1,7 +1,7 @@
 using System.Xml.Serialization;
 using Qyl.Xml;
 
-namespace Qyl.Sdk.Xml.Generator.Tests.Models;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests.Models;
 
 // Every type here is written twice in the parity tests: by the generated IXmlWritable and by XmlSerializer.
 // XmlSerializer needs public types with public setters and List<T> or array collections.

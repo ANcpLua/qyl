@@ -1,9 +1,9 @@
 using System.Xml;
 using System.Xml.Serialization;
-using Qyl.Sdk.Xml.Generator.Tests.Models;
+using Qyl.Api.Sdk.Xml.Generator.Tests.Models;
 using Qyl.Xml;
 
-namespace Qyl.Sdk.Xml.Generator.Tests;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>XmlSerializer is the oracle: the generated writer must produce the same document for the same attributes.</summary>
 public sealed class ParityTests

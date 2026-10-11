@@ -1,4 +1,4 @@
-namespace Qyl.Sdk.Xml.Generator.Tests;
+namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 public sealed class DiagnosticTests
 {

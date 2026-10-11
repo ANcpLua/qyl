@@ -37,7 +37,7 @@
 
   <ItemGroup>
     <!-- Both roles: the analyzer that generates for Models/, and the assembly the driver tests instantiate. -->
-    <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Sdk.Xml.Generator/Qyl.Sdk.Xml.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true"/>
+    <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Api.Sdk.Xml.Generator/Qyl.Api.Sdk.Xml.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true"/>
     <!-- The compiled contract and runtime, exactly as a consumer references them; the schema builder is internal to Qyl.Api. -->
     <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Xml/Qyl.Xml.csproj"/>
     <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj"/>

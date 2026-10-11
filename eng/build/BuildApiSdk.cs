@@ -63,7 +63,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
     AbsolutePath SampleContract => SampleDirectory / "openapi" / "qyl.sample.json";
 
     AbsolutePath GeneratorTestsProject =>
-        RootDirectory / "tests" / "Qyl.Sdk.Xml.Generator.Tests" / "Qyl.Sdk.Xml.Generator.Tests.csproj";
+        RootDirectory / "tests" / "Qyl.Api.Sdk.Xml.Generator.Tests" / "Qyl.Api.Sdk.Xml.Generator.Tests.csproj";
 
     AbsolutePath ApiTestsProject => RootDirectory / "tests" / "Qyl.Api.Tests" / "Qyl.Api.Tests.csproj";
 
@@ -471,8 +471,8 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
     /// <summary>The revision the consumer's own build compiled in, read from the source the SDK generated for it.</summary>
     private static string ReadGeneratedContractRevision(AbsolutePath consumer)
     {
-        var generated = consumer.GlobFiles("**/QylSdkBuild.g.cs").FirstOrDefault()
-                        ?? throw new FileNotFoundException($"The SDK generated no QylSdkBuild.g.cs under {consumer}");
+        var generated = consumer.GlobFiles("**/QylApiSdkBuild.g.cs").FirstOrDefault()
+                        ?? throw new FileNotFoundException($"The SDK generated no QylApiSdkBuild.g.cs under {consumer}");
         var match = Regex.Match(
             generated.ReadAllText(),
             @"ContractRevision\s*=\s*""(?<revision>[^""]*)""",
@@ -482,11 +482,6 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
         return match.Success ? match.Groups["revision"].Value : string.Empty;
     }
 
-    /// <summary>
-    /// The SDK enforces contract-is-committed for every consumer, not only for the sample: change an endpoint
-    /// and the build fails with QYLSDK0001 rather than shipping a binary that names the previous contract.
-    /// Proven by changing one, expecting the failure, and restoring — the same shape the mistake has in real use.
-    /// </summary>
     /// <summary>
     /// The SDK enforces contract-is-committed for every consumer, not only for the sample: change an endpoint
     /// and the build fails with QYLSDK0001 rather than shipping a binary that names the previous contract.
