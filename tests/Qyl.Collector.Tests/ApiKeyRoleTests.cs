@@ -15,7 +15,7 @@ public sealed class ApiKeyRoleTests
     {
         var options = Parse(CollectorApiTestHost.ProjectKeys);
 
-        Assert.Equal((ApiKeyRoles.Ingest | ApiKeyRoles.Read), Resolve(options, "ingest-reader").Roles);
+        Assert.Equal(ApiKeyRoles.Ingest | ApiKeyRoles.Read, Resolve(options, "ingest-reader").Roles);
         Assert.Equal(ApiKeyRoles.Read, Resolve(options, "reader").Roles);
         Assert.Equal(ApiKeyRoles.Read | ApiKeyRoles.Write, Resolve(options, "writer").Roles);
         Assert.Equal(ApiKeyRoles.Delete, Resolve(options, "deleter").Roles);
@@ -24,6 +24,22 @@ public sealed class ApiKeyRoleTests
         Assert.Equal(
             ApiKeyRoles.Ingest | ApiKeyRoles.Read | ApiKeyRoles.Write | ApiKeyRoles.Delete,
             Resolve(options, "beta-all").Roles);
+    }
+
+    [Fact]
+    public void Accepted_roles_match_the_shared_contract()
+    {
+        var contractRoles = Enum.GetNames<Qyl.Api.Contracts.Common.CollectorKeyRole>()
+            .Select(static name => name.ToLowerInvariant())
+            .Order()
+            .ToArray();
+        var collectorRoles = new[]
+        {
+            ApiKeyRoleNames.Ingest, ApiKeyRoleNames.Read, ApiKeyRoleNames.Write, ApiKeyRoleNames.Delete
+        }.Order().ToArray();
+
+        Assert.Equal(contractRoles, collectorRoles);
+        Assert.All(contractRoles, name => Assert.True(ApiKeyRoleNames.TryParse(name, out _)));
     }
 
     [Theory]

@@ -7,7 +7,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-The latest public qyl release is 11.1.0. The
+This checkout targets qyl 12.0.0. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -63,12 +63,12 @@ The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.A
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 11.1.0 | this one |
+| `qyl` (dotnet tool) | 12.0.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 24.0.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 9.8.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 7.6.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 11.1.0 | this one |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 12.0.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -79,10 +79,12 @@ successors.
 One wire, two generated loops, many independently shipped artifacts. The wire is OTLP: a
 producer stack runs inside the customer's process and ends at an exporter, the collector is
 a separate process that begins where that exporter ends, and no package crosses between
-them. Loop 1 is the vocabulary — one Weaver registry generates the producer's constants and
-the collector's ingest catalog, so qyl cannot emit telemetry its own collector does not
-recognise. Loop 2 is the contract — one TypeSpec repository generates the collector's API
-surface and every first-party client of it, so no client holds a shadow contract.
+them. Loop 1 is the vocabulary — one qyl-owned Weaver registry generates C# and TypeScript
+convention bindings. qyl's .NET instrumentation and MCP instrumentation consume those bindings;
+the collector derives its ingest catalog from the same registry. Official OpenTelemetry SDKs
+and exporters carry the signals over OTLP. Loop 2 is the product API contract — the separate
+TypeSpec repository generates the collector's API surface and every first-party client of it.
+Sharing telemetry definitions does not add a telemetry dependency to the API contracts.
 
 Every rule is owned by a compiler, an analyzer, a generator, or a gate. The gates live in
 `eng/build` and run from the `Verify` and `Ci` targets; the package edge list they enforce
@@ -132,7 +134,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/11.1.0">
+<Project Sdk="Qyl.Api.Sdk/12.0.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

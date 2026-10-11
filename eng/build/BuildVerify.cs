@@ -804,10 +804,10 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 cells[2] = $" {Version(property)} ";
                 rendered[index] = string.Join('|', cells);
             }
-            const string latestPrefix = "The latest public qyl release is ";
+            const string latestPrefix = "This checkout targets qyl ";
             var latest = Array.FindIndex(lines, line => line.StartsWith(latestPrefix, StringComparison.Ordinal));
-            if (latest < 0) throw new InvalidOperationException("README.md has no `The latest public qyl release is …` sentence");
-            rendered[latest] = System.Text.RegularExpressions.Regex.Replace(lines[latest], @"^The latest public qyl release is [0-9]+(\.[0-9]+)*", $"{latestPrefix}{Version("QylVersion")}");
+            if (latest < 0) throw new InvalidOperationException("README.md has no `This checkout targets qyl …` sentence");
+            rendered[latest] = System.Text.RegularExpressions.Regex.Replace(lines[latest], @"^This checkout targets qyl [0-9]+(\.[0-9]+)*", $"{latestPrefix}{Version("QylVersion")}");
             const string consumerPrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
             var consumer = Array.FindIndex(lines, line => line.StartsWith(consumerPrefix, StringComparison.Ordinal));
             if (consumer < 0) throw new InvalidOperationException("README.md has no `<Project Sdk=\"Qyl.Api.Sdk/…\">` consumer line");

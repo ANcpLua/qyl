@@ -1,5 +1,16 @@
 # Changelog
 
+## 12.0.0 — Unreleased
+
+- Breaking configuration change: every `QYL_OTLP_PROJECT_KEYS` entry must be an object with
+  `key` and a nonempty `roles` array. Plain strings and implicit roles are removed. Allowed
+  roles are `ingest`, `read`, `write` and `delete`; invalid or duplicate roles, duplicate object
+  properties, and reused credentials across projects fail startup. Existing explicit credentials
+  keep their configured permissions. See `docs/configuration.md` for the final format.
+- Update DuckDB, protobuf and build/test dependencies to their current compatible releases.
+- Keep the running build tool and its dependencies intact during `Clean`, so later verification
+  can load Roslyn and NuGet assemblies.
+
 ## 11.1.0 — 2026-10-11
 
 - `qyl up`: the runner process observes itself. `AddQyl()` from `Qyl.Telemetry.Hosting` runs in the
