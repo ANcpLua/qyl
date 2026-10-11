@@ -2,7 +2,7 @@
 # locally `mise install` does the same. dotnet also keeps global.json, which dotnet itself reads.
 [tools]
 "dotnet" = "10.0.401"
-"bun" = "1.4.2"
+"bun" = "1.4.3"
 # bun installs and builds the dashboard; node runs the tooling its scripts call
 # (tsc, vite, vitest, playwright, check-ui-discipline.mjs), inside its engines.node range.
 "node" = "24"
