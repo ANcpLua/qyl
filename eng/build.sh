@@ -46,5 +46,6 @@ fi
 
 echo "Microsoft (R) .NET SDK version $("$DOTNET_EXE" --version)"
 
-"$DOTNET_EXE" build "$BUILD_PROJECT_FILE" /nodeReuse:false /p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet
+# Dash-form switches: Git Bash on the Windows release legs rewrites an argument that starts with / as a path.
+"$DOTNET_EXE" build "$BUILD_PROJECT_FILE" -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet
 "$DOTNET_EXE" run --project "$BUILD_PROJECT_FILE" --no-build -- "$@"

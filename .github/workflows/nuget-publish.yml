@@ -134,17 +134,12 @@ jobs:
       - name: Test runner contracts
         run: dotnet test tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj --configuration Release -p:Version="$VERSION"
 
+      # PackPlatform checks that dotnet reports the matrix RID, then packs Qyl.Cli for it into
+      # Artifacts/qyl-packages ($PACKAGES) with Version, RepositoryCommit and SourceRevisionId.
       - name: Pack current platform
-        run: |
-          RID="$(dotnet --info | awk '/ RID:/ { print $2; exit }')"
-          if [ "$RID" != "${{ matrix.rid }}" ]; then
-            echo "Runner resolved RID '$RID', expected '${{ matrix.rid }}'." >&2
-            exit 1
-          fi
-          mkdir -p "$PACKAGES"
-          dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA" \
-            -p:ToolPackageRuntimeIdentifiers="${{ matrix.rid }}"
+        run: >-
+          ./eng/build.sh PackPlatform --Configuration Release --PackageVersion "$VERSION"
+          --RepositoryCommit "$GITHUB_SHA" --ToolRuntimeIdentifier "${{ matrix.rid }}"
 
       - name: Install and exercise the packed tool
         # The smoke's internal phase timeouts cap it well under 5 minutes; the step limit
@@ -191,15 +186,11 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
+      # PackRelease empties Artifacts/nuget ($PACKAGES) and packs Qyl.Cli, then Qyl.Api.Sdk, with
+      # Version, RepositoryCommit and SourceRevisionId.
       - name: Pack all release packages
         shell: bash
-        run: |
-          rm -rf "$PACKAGES"
-          mkdir -p "$PACKAGES"
-          dotnet pack packages/Qyl.Cli/Qyl.Cli.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
-          dotnet pack packages/Qyl.Api.Sdk/Qyl.Api.Sdk.csproj --configuration Release --output "$PACKAGES" \
-            -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:SourceRevisionId="$GITHUB_SHA"
+        run: ./eng/build.sh PackRelease --Configuration Release --PackageVersion "$VERSION" --RepositoryCommit "$GITHUB_SHA"
 
       - name: Assemble RID packages from matching platform runners
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
