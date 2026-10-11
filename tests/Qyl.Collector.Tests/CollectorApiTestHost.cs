@@ -25,11 +25,11 @@ namespace Qyl.Collector.Tests;
 /// </summary>
 internal sealed class CollectorApiTestHost : IAsyncDisposable
 {
-    // One credential per role combination the tests need, in both configuration forms.
+    // One explicitly scoped credential per role combination the tests need.
     internal const string ProjectKeys = """
         {
           "alpha": [
-            "legacy",
+            { "key": "ingest-reader", "roles": ["ingest", "read"] },
             { "key": "reader", "roles": ["read"] },
             { "key": "writer", "roles": ["read", "write"] },
             { "key": "deleter", "roles": ["delete"] },

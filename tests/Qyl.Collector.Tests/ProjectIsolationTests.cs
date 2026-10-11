@@ -26,12 +26,12 @@ public sealed class ProjectIsolationTests
 
         Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddQylCollectorAuth(
             Config(("QYL_OTLP_AUTH_MODE", "ApiKey"),
-                ("QYL_OTLP_PROJECT_KEYS", "{\"alpha\":[\"same\"],\"beta\":[\"same\"]}")),
+                ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"same","roles":["read"]}],"beta":[{"key":"same","roles":["read"]}]}""")),
             environment));
 
         services = new ServiceCollection().AddQylCollectorAuth(
             Config(("QYL_OTLP_AUTH_MODE", "ApiKey"),
-                ("QYL_OTLP_PROJECT_KEYS", "{\"alpha\":[\"a1\",\"a2\"],\"beta\":[\"b1\"]}")),
+                ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"a1","roles":["ingest","read"]},{"key":"a2","roles":["ingest","read"]}],"beta":[{"key":"b1","roles":["ingest","read"]}]}""")),
             environment);
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<OtlpApiKeyOptions>();
@@ -46,7 +46,7 @@ public sealed class ProjectIsolationTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         string? reachedProject = null;
         var middleware = new CollectorApiKeyMiddleware(
@@ -115,7 +115,7 @@ public sealed class ProjectIsolationTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead), new ProjectApiKey("beta", "b1", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read)), new ProjectApiKey("beta", "b1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var empty = new Dictionary<string, OtlpAttributeValue>();
         var log = new LogIngestionRecord
@@ -156,7 +156,7 @@ public sealed class ProjectIsolationTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var export = new ExportTraceServiceRequest
         {

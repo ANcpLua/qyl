@@ -65,7 +65,7 @@ public sealed class OtlpWireTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
         var context = new TestServerCallContext(TestContext.Current.CancellationToken);
@@ -106,7 +106,7 @@ public sealed class OtlpWireTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
 
@@ -138,7 +138,7 @@ public sealed class OtlpWireTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var request = new ExportTraceServiceRequest
         {

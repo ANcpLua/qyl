@@ -42,13 +42,7 @@ internal enum ApiKeyRoles
     Write = 4,
 
     /// <summary>Deleting annotations and saved queries. Telemetry is never deleted through the API.</summary>
-    Delete = 8,
-
-    /// <summary>
-    /// The roles of a credential configured as a bare string, which is every credential that
-    /// existed before roles: it keeps exactly the surface it had.
-    /// </summary>
-    IngestAndRead = Ingest | Read
+    Delete = 8
 }
 
 internal static class ApiKeyRoleNames

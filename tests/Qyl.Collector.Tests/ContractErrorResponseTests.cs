@@ -47,7 +47,7 @@ public sealed class ContractErrorResultsTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("tenant-a", "programmatic-test-key", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("tenant-a", "programmatic-test-key", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var middleware = new CollectorApiKeyMiddleware(
             _ =>
@@ -84,7 +84,7 @@ public sealed class ContractErrorResultsTests
     {
         var middleware = new CollectorApiKeyMiddleware(
             _ => throw new InvalidOperationException("Rejected OTLP request reached the endpoint."),
-            new OtlpApiKeyOptions { AuthMode = "ApiKey", Keys = [new ProjectApiKey("tenant-a", "real-key", ApiKeyRoles.IngestAndRead)] });
+            new OtlpApiKeyOptions { AuthMode = "ApiKey", Keys = [new ProjectApiKey("tenant-a", "real-key", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))] });
         var context = CreateContext();
         context.Request.Path = "/v1/traces";
         context.Request.ContentType = contentType;
@@ -114,7 +114,7 @@ public sealed class ContractErrorResultsTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("tenant-a", "real-key", ApiKeyRoles.IngestAndRead)]
+            Keys = [new ProjectApiKey("tenant-a", "real-key", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         Assert.Null(OtlpApiKeyValidator.Resolve("   ", options)?.ProjectId);
         Assert.Equal("tenant-a", OtlpApiKeyValidator.Resolve("real-key", options)?.ProjectId);

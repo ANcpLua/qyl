@@ -138,7 +138,7 @@ start_container() {
   )
 
   if [[ "$auth_mode" == "ApiKey" ]]; then
-    docker_args+=(--env "QYL_OTLP_PROJECT_KEYS={\"default\":[\"$AUTH_KEY\"]}")
+    docker_args+=(--env "QYL_OTLP_PROJECT_KEYS={\"default\":[{\"key\":\"$AUTH_KEY\",\"roles\":[\"ingest\",\"read\"]}]}")
   fi
 
   docker_args+=("$IMAGE_NAME")

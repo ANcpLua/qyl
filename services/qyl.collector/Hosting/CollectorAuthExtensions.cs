@@ -27,7 +27,7 @@ internal static class CollectorAuthExtensions
         {
             throw new InvalidOperationException(
                 "OTLP auth mode is 'ApiKey' but no project keys are configured. " +
-                "Set QYL_OTLP_PROJECT_KEYS to a JSON object mapping project IDs to arrays of API keys.");
+                "Set QYL_OTLP_PROJECT_KEYS to a JSON object mapping project IDs to arrays of {\"key\": string, \"roles\": [...]} objects.");
         }
 
         services.AddSingleton(otlpApiKeyOptions);
@@ -78,27 +78,18 @@ internal static class CollectorAuthExtensions
         }
     }
 
-    // A bare string is a credential from before roles and keeps ingest and read (QYL-A2), so no
-    // deployed key changes meaning. An object names its roles explicitly:
-    // {"key":"...","roles":["read","write","delete"]}.
+    // Every credential declares its permissions; no implicit roles are granted.
     private static (string Key, ApiKeyRoles Roles) ParseCredential(JsonElement entry)
     {
-        if (entry.ValueKind is JsonValueKind.String)
-        {
-            var bare = entry.GetString();
-            return string.IsNullOrWhiteSpace(bare)
-                ? throw new InvalidOperationException("QYL_OTLP_PROJECT_KEYS has an invalid or duplicate credential.")
-                : (bare, ApiKeyRoles.IngestAndRead);
-        }
-
         if (entry.ValueKind is not JsonValueKind.Object ||
             !entry.TryGetProperty("key", out var keyElement) || keyElement.ValueKind is not JsonValueKind.String ||
             string.IsNullOrWhiteSpace(keyElement.GetString()) ||
             !entry.TryGetProperty("roles", out var rolesElement) || rolesElement.ValueKind is not JsonValueKind.Array ||
+            entry.EnumerateObject().Count() is not 2 ||
             entry.EnumerateObject().Any(static property => property.Name is not ("key" or "roles")))
         {
             throw new InvalidOperationException(
-                "QYL_OTLP_PROJECT_KEYS credentials must be strings or {\"key\": string, \"roles\": [...]} objects.");
+                "QYL_OTLP_PROJECT_KEYS credentials must be {\"key\": string, \"roles\": [...]} objects.");
         }
 
         var roles = ApiKeyRoles.None;

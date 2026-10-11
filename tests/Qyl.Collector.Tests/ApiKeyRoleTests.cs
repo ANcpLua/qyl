@@ -11,11 +11,11 @@ namespace Qyl.Collector.Tests;
 public sealed class ApiKeyRoleTests
 {
     [Fact]
-    public void Bare_string_keys_keep_ingest_and_read_and_objects_name_their_roles()
+    public void Every_key_declares_its_roles_explicitly()
     {
         var options = Parse(CollectorApiTestHost.ProjectKeys);
 
-        Assert.Equal(ApiKeyRoles.IngestAndRead, Resolve(options, "legacy").Roles);
+        Assert.Equal((ApiKeyRoles.Ingest | ApiKeyRoles.Read), Resolve(options, "ingest-reader").Roles);
         Assert.Equal(ApiKeyRoles.Read, Resolve(options, "reader").Roles);
         Assert.Equal(ApiKeyRoles.Read | ApiKeyRoles.Write, Resolve(options, "writer").Roles);
         Assert.Equal(ApiKeyRoles.Delete, Resolve(options, "deleter").Roles);
@@ -35,14 +35,22 @@ public sealed class ApiKeyRoleTests
     [InlineData("""{"alpha":[{"key":"k","roles":["read"],"scope":"all"}]}""")]
     [InlineData("""{"alpha":[{"key":"k","roles":["read"]},"k"]}""")]
     [InlineData("""{"alpha":[42]}""")]
+    [InlineData("""{"alpha":["k"]}""")]
+    [InlineData("""{"alpha":[{"key":"k","roles":null}]}""")]
+    [InlineData("""{"alpha":[{"key":"k","roles":"read"}]}""")]
+    [InlineData("""{"alpha":[{"key":"k","roles":["Read"]}]}""")]
+    [InlineData("""{"alpha":[{"key":"k","roles":[1]}]}""")]
+    [InlineData("""{"alpha":[{"key":"first","key":"second","roles":["read"]}]}""")]
+    [InlineData("""{"alpha":[{"key":"k","roles":["read"],"roles":["write"]}]}""")]
+    [InlineData("""{"alpha":[{"key":"k","roles":["read"]}],"beta":[{"key":"k","roles":["write"]}]}""")]
     public void Malformed_role_credentials_fail_start_up(string keys) =>
         Assert.Throws<InvalidOperationException>(() => Parse(keys));
 
     [Theory]
-    // A credential that predates roles keeps exactly the surface it had.
-    [InlineData("GET", "/api/v1/traces", "legacy", HttpStatusCode.OK)]
-    [InlineData("POST", "/api/v1/annotations", "legacy", HttpStatusCode.Forbidden)]
-    [InlineData("DELETE", "/api/v1/annotations/missing", "legacy", HttpStatusCode.Forbidden)]
+    // A combined ingest/read credential cannot write or delete.
+    [InlineData("GET", "/api/v1/traces", "ingest-reader", HttpStatusCode.OK)]
+    [InlineData("POST", "/api/v1/annotations", "ingest-reader", HttpStatusCode.Forbidden)]
+    [InlineData("DELETE", "/api/v1/annotations/missing", "ingest-reader", HttpStatusCode.Forbidden)]
     // Roles are independent: an ingest key reads nothing, a delete key creates nothing.
     [InlineData("GET", "/api/v1/traces", "ingester", HttpStatusCode.Forbidden)]
     [InlineData("GET", "/api/v1/saved-queries", "deleter", HttpStatusCode.Forbidden)]
