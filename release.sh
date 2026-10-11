@@ -34,8 +34,9 @@ git fetch -q origin main
 git rev-parse -q --verify "refs/tags/v$version" >/dev/null && die "tag v$version already exists locally"
 qv=$(sed -n 's:.*<QylVersion>\([^<]*\)</QylVersion>.*:\1:p' Version.props)
 [[ $qv == "$version" ]] || die "Version.props QylVersion is $qv, not $version; bump it in its own commit first"
-indexed qyl "$version" && die "qyl $version is already on NuGet"
-indexed qyl.api.sdk "$version" && die "Qyl.Api.Sdk $version is already on NuGet"
+for id in qyl qyl.api.sdk; do
+  if indexed "$id" "$version"; then (( dry )) || die "$id $version is already on NuGet"; echo "warning: $id $version is already on NuGet; the real run refuses"; fi
+done
 gh auth status >/dev/null 2>&1 || die "gh is not logged in"
 rids=$(sed -n 's:.*<QylToolRuntimeIdentifiers>\([^<]*\)</QylToolRuntimeIdentifiers>.*:\1:p' packages/Qyl.Cli/Qyl.Cli.csproj | tr ';' ' ')
 [[ -n $rids ]] || die "QylToolRuntimeIdentifiers not found in packages/Qyl.Cli/Qyl.Cli.csproj"
