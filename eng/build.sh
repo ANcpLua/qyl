@@ -20,7 +20,12 @@ function FirstJsonValue {
 }
 
 if [ -x "$(command -v dotnet)" ] && dotnet --version &>/dev/null; then
-    export DOTNET_EXE="$(command -v dotnet)"
+    DOTNET_EXE="$(command -v dotnet)"
+    # Git Bash on Windows resolves dotnet.exe without its extension, and Fallout rejects a DOTNET_EXE that does not exist.
+    if [[ -f "$DOTNET_EXE.exe" ]]; then
+        DOTNET_EXE="$DOTNET_EXE.exe"
+    fi
+    export DOTNET_EXE
 else
     DOTNET_INSTALL_FILE="$TEMP_DIRECTORY/dotnet-install.sh"
     mkdir -p "$TEMP_DIRECTORY"
