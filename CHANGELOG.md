@@ -1,6 +1,6 @@
 # Changelog
 
-## 11.1.0 — unreleased
+## 11.1.0 — 2026-10-11
 
 - `qyl up`: the runner process observes itself. `AddQyl()` from `Qyl.Telemetry.Hosting` runs in the
   runner (service `qyl-runner`), so its health-probe HTTP calls, logs and meters are exported, and only
