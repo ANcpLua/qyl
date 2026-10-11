@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup Label="qyl Product Version">
-    <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
+    <!-- The manual release script reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
     <QylVersion>12.0.0</QylVersion>
     <Version>$(QylVersion)</Version>
@@ -73,9 +73,9 @@
          run it after any DuckDB bump because the option is experimental and its trigger
          timing has shifted between patch releases before. -->
     <!-- renovate: datasource=nuget depName=DuckDB.NET.Data.Full -->
-    <DuckDBVersion>1.5.5</DuckDBVersion>
+    <DuckDBVersion>1.5.6</DuckDBVersion>
     <!-- renovate: datasource=nuget depName=Google.Protobuf -->
-    <GoogleProtobufVersion>3.36.1</GoogleProtobufVersion>
+    <GoogleProtobufVersion>3.36.2</GoogleProtobufVersion>
     <!-- renovate: datasource=nuget depName=Grpc.AspNetCore -->
     <GrpcAspNetCoreVersion>2.84.0</GrpcAspNetCoreVersion>
     <!-- renovate: datasource=nuget depName=Grpc.Tools -->
@@ -84,21 +84,22 @@
 
   <PropertyGroup Label="Build and test tooling">
     <!-- renovate: datasource=nuget depName=Fallout.Common -->
-    <FalloutVersion>10.4.0</FalloutVersion>
+    <FalloutVersion>11.0.18</FalloutVersion>
     <!-- renovate: datasource=nuget depName=Spectre.Console -->
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <!-- renovate: datasource=nuget depName=xunit.v3.mtp-v2 -->
-    <XunitVersion>4.0.0</XunitVersion>
+    <XunitVersion>4.0.2</XunitVersion>
     <!-- renovate: datasource=nuget depName=Valleysoft.DockerfileModel -->
-    <DockerfileModelVersion>2.0.0</DockerfileModelVersion>
+    <DockerfileModelVersion>4.0.0</DockerfileModelVersion>
     <!-- renovate: datasource=nuget depName=YamlDotNet -->
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.NETFramework.ReferenceAssemblies -->
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
-    <!-- Fallout.ProjectModel requires this floor under transitive pinning. -->
+    <!-- Latest MSBuild line with net10.0 assets. 18.10.1 targets net11.0 and net472,
+         so a net10.0 host otherwise falls back to .NET Framework assets (NU1701). -->
     <!-- renovate: datasource=nuget depName=Microsoft.Build -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
-    <!-- The NuGet the .NET SDK ships; Fallout.Common 10.4.0 alone brings 6.14.3. -->
+    <!-- Match the NuGet libraries used by the pinned .NET SDK. -->
     <!-- renovate: datasource=nuget depName=NuGet.Packaging -->
     <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
   </PropertyGroup>
