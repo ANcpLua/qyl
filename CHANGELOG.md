@@ -25,6 +25,19 @@
   `QylHostApplicationBuilderExtensions` and `EnableSessionPropagation` to
   `EnableSessionTagInheritance`. qyl uses none of the renamed names; the pin, the `README.md` row and
   the `Build/Qyl.Api.Sdk.Packages.props` an API consumer imports move with it.
+- Collector: an OTLP export whose `string` field holds an invalid UTF-8 sequence is accepted, the
+  sequence decoded as U+FFFD, on OTLP/HTTP protobuf, OTLP/gRPC and OTLP/JSON (opentelemetry-proto
+  1.11.1 "UTF-8 String Handling"); an OTLP/JSON escape of an unpaired surrogate decodes the same
+  way. Before, each path refused the whole export (OTLP-1).
+- Collector: an OTLP/HTTP body over the 16 MiB decompressed bound answers `413 Content Too Large`
+  with the OTLP status envelope in the request's encoding instead of `400` (OTLP 1.11 request size
+  limits; the gRPC half shipped in 9.2.0) (OTLP-2).
+- Collector: the vendored OTLP definitions move from opentelemetry-proto v1.8.0 to v1.11.1. The
+  Alpha profiles-only `AnyValue.string_value_strindex` converts to an absent value and
+  `KeyValue.key_strindex` is ignored, as both were while unknown fields (OTLP-3).
+- Collector: `jsonrpc.*` span, log and metric attributes are stored (`jsonrpc.protocol.version`
+  and `jsonrpc.request.id`, into which the deprecated `rpc.jsonrpc.request_id` is renamed); they
+  were dropped as unknown keys (QYL-U1).
 
 ## 9.2.0 — 2026-10-11
 

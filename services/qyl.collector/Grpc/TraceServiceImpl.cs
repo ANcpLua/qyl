@@ -5,9 +5,8 @@ using Qyl.Collector.ApiKeys;
 namespace Qyl.Collector.Grpc;
 
 internal sealed class TraceServiceImpl(IQylStore store, OtlpApiKeyOptions? options = null)
-    : TraceService.TraceServiceBase
 {
-    public override Task<ExportTraceServiceResponse> Export(
+    public Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,
         ServerCallContext context) =>
         GrpcExport.ExecuteAsync(async () =>

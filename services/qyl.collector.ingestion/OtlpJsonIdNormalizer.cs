@@ -13,11 +13,17 @@ namespace Qyl.Collector.Ingestion;
 /// decodes to the wrong bytes — mangled, unjoinable ids. The contract is strict spec-hex: a
 /// non-hex or wrong-length id throws <see cref="InvalidDataException"/>, which the ingest
 /// endpoints surface as a 400, never a mangled row.
+/// <para>
+/// Strings are read the way OTLP 1.11.1 asks a decoder to: an invalid UTF-8 sequence and an
+/// escape of an unpaired surrogate become U+FFFD, where <see cref="Utf8JsonReader.GetString"/>
+/// would refuse the whole payload.
+/// </para>
 /// </remarks>
 internal static class OtlpJsonIdNormalizer
 {
     private const int TraceIdBytes = 16;
     private const int SpanIdBytes = 8;
+    private const int ReplacementCharacter = 0xFFFD;
 
     public static string NormalizeIdsToProtoJson(ReadOnlySpan<byte> utf8Json)
     {
@@ -45,19 +51,20 @@ internal static class OtlpJsonIdNormalizer
             switch (reader.TokenType)
             {
                 case JsonTokenType.PropertyName:
-                    var name = reader.GetString()!;
+                    var name = ReadString(ref reader);
                     writer.WritePropertyName(name);
                     pendingProperty = name;
                     continue;
 
                 case JsonTokenType.String:
+                    var value = ReadString(ref reader);
                     var expectedBytes = pendingProperty is { } property
                         ? ExpectedIdByteLength(path, property)
                         : 0;
                     if (expectedBytes > 0)
-                        WriteIdAsBase64(writer, reader.GetString()!, expectedBytes, pendingProperty!);
+                        WriteIdAsBase64(writer, value, expectedBytes, pendingProperty!);
                     else
-                        writer.WriteStringValue(reader.GetString());
+                        writer.WriteStringValue(value);
                     break;
 
                 case JsonTokenType.Number:
@@ -103,6 +110,77 @@ internal static class OtlpJsonIdNormalizer
         writer.Flush();
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
+
+    // The reader runs over one span, so the token's bytes are always in ValueSpan. Encoding.UTF8
+    // decodes each maximal invalid subsequence as one U+FFFD.
+    private static string ReadString(ref Utf8JsonReader reader) =>
+        reader.ValueIsEscaped
+            ? Unescape(reader.ValueSpan)
+            : Encoding.UTF8.GetString(reader.ValueSpan);
+
+    private static string Unescape(ReadOnlySpan<byte> escaped)
+    {
+        // Unescaping never grows the text: \uXXXX (6 bytes) encodes to at most 3, a pair (12) to 4.
+        Span<byte> unescaped = escaped.Length <= 512 ? stackalloc byte[512] : new byte[escaped.Length];
+        var written = 0;
+        for (var i = 0; i < escaped.Length; i++)
+        {
+            if (escaped[i] is not (byte)'\\')
+            {
+                unescaped[written++] = escaped[i];
+                continue;
+            }
+
+            // The reader validated every escape before handing the token over.
+            switch (escaped[++i])
+            {
+                case (byte)'b':
+                    unescaped[written++] = (byte)'\b';
+                    break;
+                case (byte)'f':
+                    unescaped[written++] = (byte)'\f';
+                    break;
+                case (byte)'n':
+                    unescaped[written++] = (byte)'\n';
+                    break;
+                case (byte)'r':
+                    unescaped[written++] = (byte)'\r';
+                    break;
+                case (byte)'t':
+                    unescaped[written++] = (byte)'\t';
+                    break;
+                case (byte)'u':
+                    var scalar = ReadHex(escaped.Slice(i + 1, 4));
+                    i += 4;
+                    if (char.IsHighSurrogate((char)scalar) &&
+                        escaped.Length - i > 6 &&
+                        escaped[i + 1] is (byte)'\\' &&
+                        escaped[i + 2] is (byte)'u' &&
+                        ReadHex(escaped.Slice(i + 3, 4)) is var low &&
+                        char.IsLowSurrogate((char)low))
+                    {
+                        scalar = char.ConvertToUtf32((char)scalar, (char)low);
+                        i += 6;
+                    }
+                    else if (char.IsSurrogate((char)scalar))
+                    {
+                        scalar = ReplacementCharacter;
+                    }
+
+                    written += new Rune(scalar).EncodeToUtf8(unescaped[written..]);
+                    break;
+                default:
+                    // \" \\ and \/ stand for themselves.
+                    unescaped[written++] = escaped[i];
+                    break;
+            }
+        }
+
+        return Encoding.UTF8.GetString(unescaped[..written]);
+    }
+
+    private static int ReadHex(ReadOnlySpan<byte> utf8Hex) =>
+        int.Parse(utf8Hex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
 
     private static void PushContainerPath(
         List<string> path,

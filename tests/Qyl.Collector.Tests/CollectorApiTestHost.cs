@@ -1,9 +1,11 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Qyl.Collector.ApiKeys;
@@ -17,7 +19,9 @@ namespace Qyl.Collector.Tests;
 /// <summary>
 /// The collector's real HTTP composition — core services, ApiKey auth parsed from
 /// <c>QYL_OTLP_PROJECT_KEYS</c>, the role-enforcing middleware and every mapped route — over an
-/// in-memory store, on a loopback port.
+/// in-memory store, on two loopback ports: HTTP/1.1 for the routes and, as the collector's own
+/// gRPC port, an HTTP/2-only one for OTLP/gRPC (cleartext Kestrel serves HTTP/1.1 unless the
+/// endpoint is HTTP/2-only).
 /// </summary>
 internal sealed class CollectorApiTestHost : IAsyncDisposable
 {
@@ -39,16 +43,20 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
 
     private readonly WebApplication _app;
 
-    private CollectorApiTestHost(WebApplication app, DuckDbStore store, HttpClient client)
+    private CollectorApiTestHost(WebApplication app, DuckDbStore store, HttpClient client, string grpcAddress)
     {
         _app = app;
         Store = store;
         Client = client;
+        GrpcAddress = grpcAddress;
     }
 
     public DuckDbStore Store { get; }
 
     public HttpClient Client { get; }
+
+    /// <summary>The HTTP/2-only loopback address for <c>GrpcChannel.ForAddress</c>.</summary>
+    public string GrpcAddress { get; }
 
     public static async Task<CollectorApiTestHost> StartAsync(CancellationToken ct)
     {
@@ -61,7 +69,11 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
             })
             .Build();
         var builder = WebApplication.CreateSlimBuilder();
-        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.WebHost.ConfigureKestrel(static options =>
+        {
+            options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http1AndHttp2);
+            options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http2);
+        });
         builder.Services.AddQylCollectorCore(config);
         builder.Services.AddQylCollectorAuth(config, builder.Environment);
         builder.Services.AddSingleton<IQylStore>(store);
@@ -69,7 +81,10 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
         app.UseMiddleware<CollectorApiKeyMiddleware>(app.Services.GetRequiredService<OtlpApiKeyOptions>());
         app.MapQylCollectorEndpoints();
         await app.StartAsync(ct);
-        return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) });
+        // Kestrel binds the endpoints in the order they were listed.
+        var urls = app.Urls.ToArray();
+        Assert.Equal(2, urls.Length);
+        return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(urls[0]) }, urls[1]);
     }
 
     public async Task<HttpResponseMessage> SendAsync(

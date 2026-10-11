@@ -32,7 +32,7 @@ public sealed class OtlpRequestSizeTests
         Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
         Assert.Equal(OtlpPayloadParser.ProtobufContentType, context.Response.ContentType);
         var status = RpcStatus.Parser.ParseFrom(ResponseBytes(context));
-        Assert.Equal("OTLP payload exceeds the 16 MiB limit after decompression.", status.Message);
+        Assert.Equal(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
         Assert.Empty(await store.GetSpansAsync(Qyl.Collector.Storage.ProjectScope.DefaultProjectId, ct: TestContext.Current.CancellationToken));
     }
 
@@ -52,7 +52,7 @@ public sealed class OtlpRequestSizeTests
         Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
         Assert.Equal(OtlpPayloadParser.JsonContentType, context.Response.ContentType);
         var status = JsonParser.Default.Parse<RpcStatus>(Encoding.UTF8.GetString(ResponseBytes(context)));
-        Assert.Equal("OTLP payload exceeds the 16 MiB limit after decompression.", status.Message);
+        Assert.Equal(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
     }
 
     [Fact]
@@ -67,21 +67,6 @@ public sealed class OtlpRequestSizeTests
         await result.ExecuteAsync(context);
 
         Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-    }
-
-    [Fact]
-    public async Task The_parser_throws_the_distinct_exception_and_records_the_refusal_on_the_request()
-    {
-        var context = NewOtlpEndpointContext(OtlpPayloadParser.ProtobufContentType, new byte[16]);
-        context.Request.ContentLength = MaxPayloadBytes + 1L;
-
-        var error = await Assert.ThrowsAsync<OtlpPayloadTooLargeException>(() =>
-            OtlpPayloadParser.ParseTraceRequestAsync(
-                context.Request, OtlpPayloadEncoding.Protobuf, TestContext.Current.CancellationToken));
-
-        Assert.Equal(MaxPayloadBytes, error.MaxPayloadBytes);
-        Assert.IsAssignableFrom<IOException>(error);
-        Assert.NotNull(context.Features.Get<OtlpPayloadTooLargeFeature>());
     }
 
     private static byte[] Gzip(byte[] payload)
