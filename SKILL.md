@@ -44,7 +44,8 @@ tests and packs run through Fallout (`./eng/build.sh <Target>`) and `mise run ch
 ## Releasing
 
 1. Land the version-bump commit on `main` (`Version.props` `QylVersion`).
-2. `./release.sh <x.y.z> --dry-run`; fix whatever it refuses.
+2. `./release.sh <x.y.z> --dry-run` only when a step is new or unsure; otherwise go straight to
+   the release, the script refuses before it publishes when anything is off.
 3. `./release.sh <x.y.z>`.
 4. Watch indexing: the script polls the flat-container index for `qyl` and `Qyl.Api.Sdk`. If it
    ends with "not indexed yet", keep polling those URLs every 30 s. Until both are indexed, do
