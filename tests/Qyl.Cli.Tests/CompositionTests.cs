@@ -46,6 +46,36 @@ public sealed class CompositionTests
     }
 
     [Fact]
+    public void Runner_self_telemetry_targets_the_dedicated_diagnostics_collector_only()
+    {
+        var builder = QylAppBuilder.Create();
+        Assert.Null(builder.SelfTelemetryEndpoint);
+
+        builder.AddCollector(
+            "collector",
+            "dotnet",
+            ["/work/qyl.collector.dll"],
+            port: 55110,
+            selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", 55111));
+
+        var diagnostics = builder.Resources.Single(static resource => resource.Name == "diagnostics");
+        Assert.Equal(new Uri($"http://127.0.0.1:{diagnostics.OtlpHttpPort}"), builder.SelfTelemetryEndpoint);
+        // The same dead end the collector exports to: its own exporter is blanked, so no loop can form.
+        Assert.Equal(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+    }
+
+    [Fact]
+    public async Task Runner_host_builds_with_its_telemetry_pipeline_and_without_a_sink_exports_nothing()
+    {
+        var builder = QylAppBuilder.Create();
+        builder.AddCollector("collector", "dotnet", ["/work/qyl.collector.dll"], port: 55120);
+        Assert.Null(builder.SelfTelemetryEndpoint);
+
+        await using var app = builder.Build();
+        Assert.NotNull(app);
+    }
+
+    [Fact]
     public void Collector_composition_pins_every_unauthenticated_listener_to_loopback()
     {
         var builder = QylAppBuilder.Create();

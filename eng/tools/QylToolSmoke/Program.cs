@@ -187,7 +187,9 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
             throw new InvalidOperationException("The packaged collector did not serve the embedded dashboard.");
 
         await VerifyIngestAndReadbackAsync(client);
-        Progress("live: ingest and readback verified, shutting down");
+        Progress("live: ingest and readback verified");
+        await VerifyRunnerSelfTelemetryAsync(client);
+        Progress("live: runner self-telemetry readable from the diagnostics collector, shutting down");
     }
     finally
     {
@@ -294,6 +296,32 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
         var body = await response.Content.ReadAsStringAsync();
         return body.Contains(traceId, StringComparison.Ordinal) && body.Contains("qyl-tool-smoke", StringComparison.Ordinal);
     }, TimeSpan.FromSeconds(20), "OTLP trace was not readable from the product API");
+}
+
+// The runner process exports its own telemetry (AddQyl: the health-probe HttpClient spans, logs,
+// meters) to the diagnostics collector and nowhere else. The product collector's trace list must
+// not know the runner's service; the diagnostics collector's must.
+static async Task VerifyRunnerSelfTelemetryAsync(HttpClient client)
+{
+    const string runnerService = "qyl-runner";
+    await WaitUntilAsync(async () =>
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            $"http://127.0.0.1:5200/api/v1/traces?limit=100&service_name={runnerService}");
+        request.Headers.Add("X-Qyl-Project", "default");
+        using var response = await client.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return false;
+        var body = await response.Content.ReadAsStringAsync();
+        return body.Contains(runnerService, StringComparison.Ordinal);
+    }, TimeSpan.FromSeconds(45), "the runner's own spans were not readable from the diagnostics collector");
+
+    using var productRequest = new HttpRequestMessage(HttpMethod.Get,
+        $"http://127.0.0.1:5100/api/v1/traces?limit=100&service_name={runnerService}");
+    productRequest.Headers.Add("X-Qyl-Project", "default");
+    using var productResponse = await client.SendAsync(productRequest);
+    var productBody = await productResponse.Content.ReadAsStringAsync();
+    if (productBody.Contains(runnerService, StringComparison.Ordinal))
+        throw new InvalidOperationException("The product collector received the runner's own telemetry; it belongs to the diagnostics collector only.");
 }
 
 static async Task<bool> IsHealthyAsync(HttpClient client, string uri)

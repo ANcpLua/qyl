@@ -1,6 +1,15 @@
 # Changelog
 
-## 11.0.0 — unreleased
+## 11.1.0 — unreleased
+
+- `qyl up`: the runner process observes itself. `AddQyl()` from `Qyl.Telemetry.Hosting` runs in the
+  runner (service `qyl-runner`), so its health-probe HTTP calls, logs and meters are exported, and only
+  to the diagnostics collector on `:5200`, the dead end the product collector's self-telemetry already
+  uses. The product collector on `:5100` never receives runner telemetry; without a diagnostics
+  collector nothing is exported. The packaging smoke reads the runner's spans back from the
+  diagnostics collector and checks the product collector has none.
+
+## 11.0.0 — 2026-10-11
 
 - `Qyl.Api.Contracts` and `@ancplua/qyl-api-schema` 11.6.0 → 12.0.0 (contract revision
   `sha256:b29439eba28e752b`). The collector and the `qyl` runner serve the Contract 12.0.0 surface,

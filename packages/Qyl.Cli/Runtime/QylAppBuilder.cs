@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Qyl;
 
 namespace Qyl.Cli.Runtime;
 
@@ -13,6 +14,7 @@ internal sealed class QylAppBuilder
     private readonly HostApplicationBuilder _host;
     private readonly QylAppOptions _options;
     private readonly List<QylResource> _resources = [];
+    private QylResourceBuilder? _selfTelemetrySink;
 
     private QylAppBuilder(HostApplicationBuilder host, QylAppOptions options)
     {
@@ -21,6 +23,21 @@ internal sealed class QylAppBuilder
     }
 
     internal IReadOnlyList<QylResource> Resources => _resources;
+
+    /// <summary>
+    /// The OTLP/HTTP endpoint the runner process exports its own telemetry to: the first dedicated
+    /// diagnostics collector of the composition, or null when there is none (then nothing is exported).
+    /// </summary>
+    internal Uri? SelfTelemetryEndpoint => _selfTelemetrySink?.GetOtlpHttpEndpoint();
+
+    // The first dedicated diagnostics collector becomes the runner's own sink as well. It is a
+    // guaranteed dead end (its exporter is force-blanked), so the runner can never form a loop
+    // through it, and the product collector never receives runner noise.
+    internal void RegisterSelfTelemetrySink(QylResourceBuilder sink)
+    {
+        ArgumentNullException.ThrowIfNull(sink);
+        _selfTelemetrySink ??= sink;
+    }
 
     internal static QylAppBuilder Create(QylAppOptions? options = null)
     {
@@ -107,6 +124,23 @@ internal sealed class QylAppBuilder
     internal QylApp Build()
     {
         ValidateWaitForGraph();
+
+        // The runner observes itself the way every qyl process does: AddQyl() from Qyl.Telemetry.Hosting,
+        // which brings the AutoInstrumentation runtime (the health-probe HttpClient calls become client
+        // spans, ILogger output and the qyl meters are exported). It exports only to the dedicated
+        // diagnostics collector: discovery is off and RequireConfiguredEndpoint stops the exporter's
+        // localhost default, because that default is the product collector and a user's product data
+        // must stay free of runner telemetry. Without a dedicated sink, nothing leaves the process.
+        var selfTelemetryEndpoint = SelfTelemetryEndpoint;
+        _host.AddQyl(options =>
+        {
+            options.ServiceName = QylConstants.Product.RunnerServiceName;
+            options.ServiceVersion = QylConstants.Product.Version;
+            options.EnableCollectorDiscovery = false;
+            options.RequireConfiguredEndpoint = true;
+            options.CollectorEndpoint = selfTelemetryEndpoint;
+        });
+
         _host.Services.AddSingleton(_options);
         _host.Services.AddSingleton(TimeProvider.System);
         _host.Services.AddSingleton<IReadOnlyList<QylResource>>(new ReadOnlyCollection<QylResource>([.. _resources]));

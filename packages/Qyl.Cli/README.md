@@ -14,6 +14,10 @@ qyl up
 stored under `~/.qyl/`, never in the working directory. All five ports are checked up front, so a
 conflict fails the command instead of leaving a half-bound stack.
 
+The runner observes itself the way every qyl process does: its own telemetry (service `qyl-runner`:
+health probes, orchestration logs, meters) goes to the diagnostics collector on `:5200`, next to the
+product collector's self-telemetry, and never into the product collector on `:5100`.
+
 The tool is a NativeAOT binary per platform: the `qyl` package selects the matching
 `qyl.<rid>` package for linux, macOS and Windows on x64 and arm64.
 

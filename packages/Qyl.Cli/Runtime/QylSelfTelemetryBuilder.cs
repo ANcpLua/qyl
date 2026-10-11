@@ -54,6 +54,8 @@ internal sealed class QylSelfTelemetryBuilder
             .DisableSelfTelemetryExport()
             .WithEnvironment(QylConstants.Env.QylOtlpAuthMode, QylConstants.Collector.UnsecuredAuthMode);
 
+        // The runner's own telemetry lands in the same dead end, next to the collector's.
+        _app.RegisterSelfTelemetrySink(_target);
         return this;
     }
 
