@@ -17,10 +17,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <InjectSharedThrow>false</InjectSharedThrow>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>10.0</AnalysisLevel>
