@@ -12,7 +12,7 @@ RUN bun run build && \
     test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
 # DuckDB.NET ships glibc native assets; the AOT SDK supplies clang and zlib for ILC.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.401-noble-aot@sha256:3c40ebc0c8852d35977ca28137136505fc4ca8794b62fdc94609082ccdc14769 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401-noble-aot@sha256:88446bc2708f037046d48ef2bd77c437e981ca01229d7005ac2016ec42e05347 AS build
 
 WORKDIR /src
 
@@ -36,7 +36,7 @@ RUN set -e; \
         exit 1; \
     fi
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:851e6e04fff95d33a02c725373dc0ac624734986f2dc9028887077347ecffa96 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:12dd273c196e92aa91542749b8df0996f497f812811abba9e6613b484f681dd0 AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
