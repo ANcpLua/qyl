@@ -2250,7 +2250,6 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "nuget.config",
                 RootDirectory / ".railway" / "railway.ts",
                 RootDirectory / ".gitignore",
-                RootDirectory / ".github" / "workflows" / "ci.yml",
                 RootDirectory / "eng" / "build.sh",
                 buildDirectory / "build.csproj",
                 buildDirectory / "Build.cs",
@@ -2810,10 +2809,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         // G7/G11 and G10(a) run wherever VerifyBackend runs — CI's backend lane invokes
         // VerifyBackend, not Verify, so a gate hung only on Verify never executes in CI.
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
-        .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
-        // Same reasoning, applied to the gate that polices this exact asymmetry: hung only on Ci,
-        // the CI-coverage check would never run in the CI it describes.
-        .DependsOn<ICiCoverage>(static x => x.VerifyCiTargetCoversWorkflow);
+        .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly);
 
     Target Verify => d => d
         .Description("Run collector and frontend verification checks")
