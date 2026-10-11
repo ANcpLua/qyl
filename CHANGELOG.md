@@ -20,6 +20,11 @@
   a repository with central package management imports `Build/Qyl.Api.Sdk.Packages.props`. Code
   that reads `QylSdkBuild` now reads `QylApiSdkBuild`. A project that sets `QylSdkPackaged`
   sets `QylApiSdkPackaged` instead, because the SDK ignores the old name and gives no error.
+- `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 23.1.0 → 24.0.0, the release
+  that renames `QylSdkOptions` to `QylTelemetryOptions`, `QylSdkHostApplicationBuilderExtensions` to
+  `QylHostApplicationBuilderExtensions` and `EnableSessionPropagation` to
+  `EnableSessionTagInheritance`. qyl uses none of the renamed names; the pin, the `README.md` row and
+  the `Build/Qyl.Api.Sdk.Packages.props` an API consumer imports move with it.
 
 ## 9.2.0 — 2026-10-11
 

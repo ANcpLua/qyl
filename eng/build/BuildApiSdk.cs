@@ -41,7 +41,7 @@ namespace Qyl.Build;
 /// the gate must run wherever the build runs, and three shell tools that have to be installed
 /// first are three ways for it to be skipped instead of failed.
 /// </summary>
-[ParameterPrefix(nameof(IApiSdk))]
+[ParameterPrefix("ApiSdk")]
 interface IApiSdk : IHasSourcePaths, IHasConfiguration
 {
     [Parameter("Skip the Qyl.Api.Sdk container stage (it needs a running Docker or OrbStack engine)")]
@@ -276,7 +276,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
         {
             if (SkipContainer == true)
             {
-                Log.Warning("Qyl.Api.Sdk: container stage skipped by --apisdk-skip-container");
+                Log.Warning("Qyl.Api.Sdk: container stage skipped by --api-sdk-skip-container");
                 return;
             }
 
@@ -286,7 +286,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
             {
                 throw new InvalidOperationException(
                     "The Qyl.Api.Sdk container stage needs a running Docker or OrbStack engine. " +
-                    "Start it, or pass --apisdk-skip-container to record the stage as skipped.");
+                    "Start it, or pass --api-sdk-skip-container to record the stage as skipped.");
             }
 
             var tag = $"qyl.sample:verify-{Environment.ProcessId.ToString(CultureInfo.InvariantCulture)}";
