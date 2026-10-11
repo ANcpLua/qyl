@@ -1,7 +1,7 @@
 # CANONICAL-DEPARTURE: multi-stage release pipeline with per-RID package, provenance, indexing, and published-consumer gates
 name: NuGet trusted publishing
 
-# Publishing requires a human act (architecture §5): the publish lane triggers on
+# Publishing requires a human act (README.md, Artifacts and release lines; AGENTS.md, Release ripple): the publish lane triggers on
 # version tags only. A push to main builds and verifies through ci.yml, never
 # publishes. The v<version> tag must name the commit whose Version.props carries
 # that exact version.

@@ -735,10 +735,9 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     // Version.props is the one source for the qyl-owned release lines. The README's release-line
     // table rows and the consumer `<Project Sdk="Qyl.Api.Sdk/x">` line are rendered from it: locally
     // the target rewrites them, on CI it fails when the committed text differs from the rendering.
-    // The `qyl-mcp-server` row is not rendered; its version lives in qyl.mcp and pins.sh watches it.
+    // The `qyl-mcp-server` row is not rendered; its version lives in qyl.mcp.
     Target RenderReadmeVersions => d => d
         .ProceedAfterFailure()
-        .Unlisted()
         .Description("Render the README release-line rows and consumer line from Version.props")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>

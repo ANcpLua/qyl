@@ -31,7 +31,10 @@ contexts, the problem-details context, validation, the `v1` OpenAPI document, an
 which wires automatic instrumentation, ASP.NET Core spans and OTLP export. Reflection is off under
 NativeAOT, so the serializer context is a parameter rather than a setting. Overrides go through the
 framework's own options, `Configure<ValidationOptions>` and `Configure<OpenApiOptions>("v1", …)`,
-after the call.
+after the call, with one exception: the OpenAPI specification version is the MSBuild property
+`QylOpenApiVersion` (`OpenApi2_0`, `OpenApi3_0` or the default `OpenApi3_1`), because the
+build-time document tool takes it as its own argument. Any other value fails the build with
+`QYLSDK0003`.
 
 ## What the build does
 

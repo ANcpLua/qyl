@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The NuGet trusted-publishing workflow reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>9.0.0</QylVersion>
+    <QylVersion>9.1.0</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -36,14 +36,14 @@
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>23.0.0</QylTelemetryVersion>
+    <QylTelemetryVersion>23.1.0</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
-    <QylSemanticConventionsVersion>9.7.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>9.8.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <QylApiContractsVersion>11.5.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.46</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.47</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
   <!-- The versions the Qyl.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
@@ -87,8 +87,6 @@
     <FalloutVersion>10.4.0</FalloutVersion>
     <!-- renovate: datasource=nuget depName=Spectre.Console -->
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
-    <!-- renovate: datasource=nuget depName=Versionize -->
-    <VersionizeVersion>2.7.0</VersionizeVersion>
     <!-- renovate: datasource=nuget depName=xunit.v3.mtp-v2 -->
     <XunitVersion>4.0.0</XunitVersion>
     <!-- renovate: datasource=nuget depName=Valleysoft.DockerfileModel -->

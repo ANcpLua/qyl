@@ -45,6 +45,18 @@ internal static class ContractErrorResults
             statusCode: StatusCodes.Status503ServiceUnavailable,
             contentType: ProblemDetailsMediaType.Value);
 
+    internal static Task WriteNotFoundAsync(
+        HttpResponse response,
+        string resourceType,
+        string resourceId,
+        CancellationToken cancellationToken = default) =>
+        WriteAsync(
+            response,
+            CreateNotFound(resourceType, resourceId),
+            QylSerializerContext.Default.NotFoundError,
+            StatusCodes.Status404NotFound,
+            cancellationToken);
+
     internal static Task WriteValidationAsync(
         HttpResponse response,
         string field,

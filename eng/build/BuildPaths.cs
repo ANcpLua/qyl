@@ -43,21 +43,3 @@ interface IHasSourcePaths : IHasSolution, IHasArtifacts
         "Qyl.Api.Sdk"
     ];
 }
-
-interface IVersionize : IHasSourcePaths
-{
-    [PathVariable]
-    Tool Versionize => TryGetValue(() => Versionize)
-                       ?? throw new InvalidOperationException(
-                           "Versionize tool not found. Install: dotnet tool install -g Versionize");
-
-    Target Changelog => d => d
-        .Unlisted()
-        .Description("Generate CHANGELOG from conventional commits (Release runs this)")
-        .Executes(() => Versionize("--dry-run", RootDirectory));
-
-    Target Release => d => d
-        .Description("Bump version, update CHANGELOG, create tag")
-        .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() => Versionize(null, RootDirectory));
-}

@@ -7,7 +7,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-The latest public qyl release is 9.0.0. The
+The latest public qyl release is 9.1.0. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -59,16 +59,16 @@ dependency line is published, and this repository's own line is published once t
 release workflow runs for it. Package registries are authoritative for public
 availability.
 
-The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs: locally it rewrites them, on CI it fails when the committed text differs. The `qyl-mcp-server` row is not rendered: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp), and `tools/pins.sh` in the workspace watches it.
+The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs: locally it rewrites them, on CI it fails when the committed text differs. The `qyl-mcp-server` row is not rendered: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp).
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 9.0.0 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 23.0.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 9.7.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
+| `qyl` (dotnet tool) | 9.1.0 | this one |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 23.1.0 | [Qyl.OpenTelemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.SemanticConventions*` | 9.8.0 | [Qyl.OpenTelemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.OpenTelemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 11.5.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
-| `qyl-mcp-server` | 7.2.2 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 9.0.0 | this one |
+| `qyl-mcp-server` | 7.2.3 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 9.1.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -132,7 +132,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/9.0.0">
+<Project Sdk="Qyl.Api.Sdk/9.1.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -144,12 +144,14 @@ Overrides use the framework's own mechanisms after `AddQylApi` — `ValidationOp
 `OpenApiOptions` for the `v1` document — with one exception: the OpenAPI specification version
 is the MSBuild property `QylOpenApiVersion`, because the build-time document tool takes it as
 its own argument. Every SDK default is conditional on the property being empty, so a project
-that sets it first wins. The reasons behind each of these choices are dated in
+that sets it first wins, with two exceptions: `OpenApiGenerateDocumentsOptions` gains
+`--openapi-version $(QylOpenApiVersion)` unless it already carries that flag, and
+`OpenApiDocumentsDirectory` always follows `QylOpenApiDocumentsDirectory`. The reasons behind each of these choices are dated in
 `packages/Qyl.Api.Sdk/DECISIONS.md`.
 
 ```bash
 dotnet run --project samples/qyl.sample     # or docker compose -f eng/compose.yaml up qyl.sample
-dotnet run --project eng/build/build.csproj -- ApiSdk
+./eng/build.sh ApiSdk
 ```
 
 `ApiSdk` is the proof, in nine stages: build and generator tests, the committed contract
@@ -161,15 +163,14 @@ agent is its first consumer. `Ci` runs it.
 
 ## Build and verify
 
-Requires the .NET SDK pinned in `global.json`.
+`mise.toml` pins the toolchain (dotnet, bun, node); `mise run check` runs the `Ci` target.
 
 ```bash
-dotnet run --project eng/build/build.csproj -- Ci
+mise install && mise run check
 ```
 
-`Ci` builds and tests the backend, builds and tests the dashboard, runs its Release-product
-Playwright smoke, verifies the generated contract package, and checks the collector
-semantic catalog.
+Single targets run through `./eng/build.sh <Target>`. `Ci` is the full gate; `./eng/build.sh --help`
+lists every target it depends on.
 
 ## License
 

@@ -5,7 +5,7 @@
 "bun" = "1.4.3"
 # bun installs and builds the dashboard; node runs the tooling its scripts call
 # (tsc, vite, vitest, playwright, check-ui-discipline.mjs), inside its engines.node range.
-"node" = "24"
+"node" = "24.21.0"
 
 [tasks.check]
 description = "The gate: the Fallout Ci target CI runs"

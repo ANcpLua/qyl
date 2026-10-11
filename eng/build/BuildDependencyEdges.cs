@@ -10,7 +10,7 @@ using Serilog;
 namespace Qyl.Build;
 
 /// <summary>
-/// G7/G11: the actual qyl package graph equals the architecture's §2 edge list exactly,
+/// G7/G11: the actual qyl package graph equals the AllowedQylPackageEdges table exactly,
 /// for every project in the repository, <c>internal/</c> included. Anything not listed is
 /// forbidden — a new edge is a deliberate table change reviewed against the architecture,
 /// never a quiet csproj addition. The table speaks the published Qyl.Telemetry.* identities,
@@ -70,7 +70,7 @@ interface IDependencyEdges : IHasSourcePaths
         [QylApiSdkConsumer] = ["Qyl.Telemetry.AutoInstrumentation", "Qyl.Telemetry.Hosting"],
     };
 
-    /// <summary>The §2 row every project built by the Qyl.Api.Sdk MSBuild SDK is held to.</summary>
+    /// <summary>The edge-table row every project built by the Qyl.Api.Sdk MSBuild SDK is held to.</summary>
     private const string QylApiSdkConsumer = "<Sdk=\"Qyl.Api.Sdk\">";
 
     /// <summary>The MSBuild files the SDK injects its package references from, read as if they were the consumer's.</summary>
@@ -87,7 +87,7 @@ interface IDependencyEdges : IHasSourcePaths
     /// Who may hold a <c>ProjectReference</c> on each collector project, exhaustively. The host is
     /// reachable only through its API (G11): only its own tests reference it, to host it in-process;
     /// without that a client-ring project could reach the collector's internals while its package
-    /// list still matched the §2 table. Inside the collector, decoding references neither storage
+    /// list still matched the edge table. Inside the collector, decoding references neither storage
     /// nor the host and storage does not reference the host, so the compiler refuses what a text
     /// scan used to look for.
     /// </summary>
@@ -262,7 +262,7 @@ interface IDependencyEdges : IHasSourcePaths
                 {
                     offenders.Add(
                         $"{relative} (row {row}): qyl package edges [{string.Join(", ", qylReferences)}] " +
-                        $"do not equal the §2 table [{string.Join(", ", allowed)}]");
+                        $"do not equal the edge table [{string.Join(", ", allowed)}]");
                 }
             }
 
@@ -272,10 +272,10 @@ interface IDependencyEdges : IHasSourcePaths
             if (offenders.Count > 0)
             {
                 throw new InvalidOperationException(
-                    "Dependency edges diverge from the architecture §2 edge list:" + Environment.NewLine +
+                    "Dependency edges diverge from the AllowedQylPackageEdges table (README.md, Architecture):" + Environment.NewLine +
                     string.Join(Environment.NewLine, offenders));
             }
 
-            Log.Information("Dependency edges match the §2 table across {Count} projects", seenProjects.Count);
+            Log.Information("Dependency edges match the AllowedQylPackageEdges table across {Count} projects", seenProjects.Count);
         });
 }

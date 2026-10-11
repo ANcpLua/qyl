@@ -1,5 +1,24 @@
 # Changelog
 
+## 9.1.0 — unreleased
+
+- `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 23.0.0 → 23.1.0;
+  `Qyl.Api.Sdk` pins `Qyl.Telemetry.Hosting`, so an API built with this SDK moves with it.
+- `Qyl.Telemetry.SemanticConventions*` 9.7.0 → 9.8.0.
+- `ANcpLua.Roslyn.Utilities.Sources` 2.2.46 → 2.2.47, the version `global.json` already pins
+  for the `ANcpLua.Roslyn.Utilities` MSBuild SDK of the same release line.
+- `Qyl.Api.Sdk`: an unknown `QylOpenApiVersion` fails the build with `QYLSDK0003`; the
+  `--openapi-version` argument is appended only when `OpenApiGenerateDocumentsOptions` does not
+  already carry one; the `QylEmitOpenApiDocument` property is gone (setting it to `false` only
+  made `AddQylApi` throw at start-up).
+- Collector: the logs and metrics lists compute `has_more` from a `limit + 1` read, as the
+  sessions list does, and an unknown `/api/*` route answers `404` as `application/problem+json`.
+- The `qyl` tool no longer references `OpenTelemetry` or
+  `OpenTelemetry.Exporter.OpenTelemetryProtocol`, which it never used.
+- Build: the Versionize `Release` and `Changelog` targets are gone; a release is the
+  `v<QylVersion>` tag. `RenderReadmeVersions` is listed. README and `docs/configuration.md`
+  changes run the backend lane on CI.
+
 ## 9.0.0 — 2026-10-10
 
 - `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 22.0.0 → 23.0.0,
