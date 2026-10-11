@@ -2,7 +2,7 @@
   "sources": [
     {
       "repository": "https://github.com/open-telemetry/opentelemetry-proto",
-      "revision": "c0a98a1847d3124ac5f9ecd02d0e2d2732bbb590",
+      "revision": "b3f75588eb23c5fca62264edd05d382de49beb1a",
       "files": [
         {
           "path": "opentelemetry/proto/collector/logs/v1/logs_service.proto",
@@ -16,16 +16,10 @@
         },
         {
           "path": "opentelemetry/proto/common/v1/common.proto",
-          "upstreamSha256": "f9eba928880a84964aedf178c34d0ac6245eb4a520d7cab383f932b4bcbca4ad",
-          "vendoredSha256": "834024b91719782e52b5d09f8aae692489552352e133f267ec4aefbfe981203a",
+          "upstreamSha256": "0429795169e29089cc53490b541a0ae89fa7c80492ac58ed2b3c4171cce4ecee",
+          "vendoredSha256": "df792418c7907005769f3a4f8f11779c50f9118998175f103f2a06f7b8860c09",
           "canonicalization": {
-            "justification": "Preserve qyl's shorter generated-documentation comment and add a POSIX final newline; protobuf declarations are otherwise byte-identical.",
-            "replaceLineComments": [
-              {
-                "upstream": "// Entity represents an object of interest associated with produced telemetry: e.g spans, metrics, profiles, or logs.",
-                "vendored": "// Entity represents an object of interest associated with produced telemetry, such as spans or logs."
-              }
-            ],
+            "justification": "Add the POSIX final newline .editorconfig requires (upstream ends without one); protobuf declarations and comments are otherwise byte-identical.",
             "appendTrailingLineFeeds": 1
           }
         },
@@ -36,23 +30,23 @@
         },
         {
           "path": "opentelemetry/proto/logs/v1/logs.proto",
-          "upstreamSha256": "91e42ca14a09f7de338a7870583319445fcf5b9d9e7090effa4a52958f603ca8",
-          "vendoredSha256": "91e42ca14a09f7de338a7870583319445fcf5b9d9e7090effa4a52958f603ca8"
+          "upstreamSha256": "0c9d0c45eea723d38ef28ee13135ff61c037387f41cacc476ccac3485d6c138a",
+          "vendoredSha256": "0c9d0c45eea723d38ef28ee13135ff61c037387f41cacc476ccac3485d6c138a"
         },
         {
           "path": "opentelemetry/proto/metrics/v1/metrics.proto",
-          "upstreamSha256": "a85af48c114554504e7df1524821bb1a3a9bd341b9fc9b3743663998cb2b6318",
-          "vendoredSha256": "a85af48c114554504e7df1524821bb1a3a9bd341b9fc9b3743663998cb2b6318"
+          "upstreamSha256": "9663b2670f980041e73a71a7c09fdf4fe0bc64056be762f2fcbd2642c4d112a3",
+          "vendoredSha256": "9663b2670f980041e73a71a7c09fdf4fe0bc64056be762f2fcbd2642c4d112a3"
         },
         {
           "path": "opentelemetry/proto/resource/v1/resource.proto",
-          "upstreamSha256": "db731e855e7af150259639f3a1288ebd74c7e621f4a0f13e4d11734d7ce6ca58",
-          "vendoredSha256": "db731e855e7af150259639f3a1288ebd74c7e621f4a0f13e4d11734d7ce6ca58"
+          "upstreamSha256": "34fe1c26b8959f09d97656348ae03b105d15a5f07ada0f8f1614ef5dff7d1569",
+          "vendoredSha256": "34fe1c26b8959f09d97656348ae03b105d15a5f07ada0f8f1614ef5dff7d1569"
         },
         {
           "path": "opentelemetry/proto/trace/v1/trace.proto",
-          "upstreamSha256": "be3014cf9a3aedc61d045621106a1643f2c9df5d4d13e2ba8c274ccc9d59ee36",
-          "vendoredSha256": "be3014cf9a3aedc61d045621106a1643f2c9df5d4d13e2ba8c274ccc9d59ee36"
+          "upstreamSha256": "45a33961142210add67d583cc525702fb985afdbae181e6daf2143929bad0613",
+          "vendoredSha256": "45a33961142210add67d583cc525702fb985afdbae181e6daf2143929bad0613"
         }
       ]
     },

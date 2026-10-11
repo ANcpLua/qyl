@@ -34,19 +34,32 @@ internal sealed class OtlpHttpResult : IResult
 
     public async Task ExecuteAsync(HttpContext httpContext)
     {
-        httpContext.Response.StatusCode = _statusCode;
+        var statusCode = _statusCode;
+        var message = _message;
+
+        // The endpoint handlers answer every decode failure with 400. When the parser refused the body
+        // for its size, OTLP 1.11 requires 413 Content Too Large instead; the parser recorded that on
+        // the request, so the failure is rewritten here rather than in the handlers.
+        if (statusCode is StatusCodes.Status400BadRequest &&
+            httpContext.Features.Get<OtlpPayloadTooLargeFeature>() is { } tooLarge)
+        {
+            statusCode = StatusCodes.Status413PayloadTooLarge;
+            message = new RpcStatus { Message = tooLarge.Message };
+        }
+
+        httpContext.Response.StatusCode = statusCode;
 
         if (_encoding is OtlpPayloadEncoding.Protobuf)
         {
             httpContext.Response.ContentType = OtlpPayloadParser.ProtobufContentType;
-            var payload = _message.ToByteArray();
+            var payload = message.ToByteArray();
             httpContext.Response.ContentLength = payload.Length;
             await httpContext.Response.Body.WriteAsync(payload, httpContext.RequestAborted).ConfigureAwait(false);
             return;
         }
 
         httpContext.Response.ContentType = OtlpPayloadParser.JsonContentType;
-        var json = JsonFormatter.Default.Format(_message);
+        var json = JsonFormatter.Default.Format(message);
         var jsonPayload = Encoding.UTF8.GetBytes(json);
         httpContext.Response.ContentLength = jsonPayload.Length;
         await httpContext.Response.Body.WriteAsync(jsonPayload, httpContext.RequestAborted).ConfigureAwait(false);
@@ -61,4 +74,27 @@ internal sealed class OtlpUnsupportedMediaTypeException(string? contentType)
 internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding)
     : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.")
 {
+}
+
+/// <summary>
+/// The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits) requires
+/// 413 Content Too Large for this case; the parser records <see cref="OtlpPayloadTooLargeFeature"/>
+/// on the request so <see cref="OtlpHttpResult"/> answers 413 even though the endpoint handlers map
+/// every parser failure to 400.
+/// </summary>
+internal sealed class OtlpPayloadTooLargeException(long maxPayloadBytes)
+    : IOException(OtlpPayloadTooLargeFeature.MessageFor(maxPayloadBytes))
+{
+    public long MaxPayloadBytes { get; } = maxPayloadBytes;
+}
+
+/// <summary>Request feature: the OTLP body was refused for its size; the response must be 413.</summary>
+internal sealed class OtlpPayloadTooLargeFeature(long maxPayloadBytes)
+{
+    public long MaxPayloadBytes { get; } = maxPayloadBytes;
+
+    public string Message => MessageFor(MaxPayloadBytes);
+
+    internal static string MessageFor(long maxPayloadBytes) =>
+        $"OTLP payload exceeds the {maxPayloadBytes / (1024 * 1024)} MiB limit after decompression.";
 }

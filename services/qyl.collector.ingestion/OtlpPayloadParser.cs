@@ -84,7 +84,7 @@ internal static class OtlpPayloadParser
             throw new OtlpUnsupportedContentEncodingException(contentEncoding);
 
         if (isIdentity && request.ContentLength is > MaxPayloadBytes)
-            throw new InvalidDataException("OTLP payload exceeds the configured maximum size.");
+            throw RefuseOversizedPayload(request);
 
         try
         {
@@ -93,11 +93,11 @@ internal static class OtlpPayloadParser
                 var capacity = request.ContentLength is > 0 and <= int.MaxValue
                     ? (int)request.ContentLength.Value
                     : 0;
-                return await ReadBoundedStreamAsync(request.Body, capacity, ct).ConfigureAwait(false);
+                return await ReadBoundedStreamAsync(request, request.Body, capacity, ct).ConfigureAwait(false);
             }
 
             await using var gzip = new GZipStream(request.Body, CompressionMode.Decompress, leaveOpen: true);
-            return await ReadBoundedStreamAsync(gzip, 0, ct).ConfigureAwait(false);
+            return await ReadBoundedStreamAsync(request, gzip, 0, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -106,7 +106,19 @@ internal static class OtlpPayloadParser
         }
     }
 
+    /// <summary>
+    /// OTLP 1.11 (request size limits) makes an oversized OTLP/HTTP body a 413, not a 400. The endpoint
+    /// handlers map every parser failure to one 400, so the refusal is also recorded on the request;
+    /// <see cref="OtlpHttpResult"/> reads it and answers 413 Content Too Large with the OTLP status body.
+    /// </summary>
+    private static OtlpPayloadTooLargeException RefuseOversizedPayload(HttpRequest request)
+    {
+        request.HttpContext.Features.Set(new OtlpPayloadTooLargeFeature(MaxPayloadBytes));
+        return new OtlpPayloadTooLargeException(MaxPayloadBytes);
+    }
+
     private static async Task<MemoryStream> ReadBoundedStreamAsync(
+        HttpRequest request,
         Stream source,
         int capacity,
         CancellationToken ct)
@@ -125,7 +137,7 @@ internal static class OtlpPayloadParser
 
                 totalBytes += read;
                 if (totalBytes > MaxPayloadBytes)
-                    throw new InvalidDataException("OTLP payload exceeds the configured maximum size.");
+                    throw RefuseOversizedPayload(request);
 
                 payload.Write(buffer, 0, read);
             }
