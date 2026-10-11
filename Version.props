@@ -40,7 +40,7 @@
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>9.8.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
-    <QylApiContractsVersion>11.6.0-rc.1</QylApiContractsVersion>
+    <QylApiContractsVersion>11.6.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.47</ANcpLuaRoslynUtilitiesVersion>
