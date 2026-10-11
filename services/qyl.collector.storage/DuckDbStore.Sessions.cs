@@ -35,7 +35,7 @@ internal sealed partial class DuckDbStore
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,
         int limit = 100,
-        int offset = 0,
+        SessionPageCursor? cursor = null,
         bool? isActive = null,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
@@ -43,14 +43,20 @@ internal sealed partial class DuckDbStore
         await ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = SessionSelectColumns
+            // Keyset order: latest activity first, the session identity breaking ties, so a page
+            // boundary is a position in that order rather than an offset that shifts under ingest.
+            cmd.CommandText = "SELECT * FROM ("
+                              + SessionSelectColumns
                               + " WHERE project_id = $1"
                               + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
                               + " AND ($3::UBIGINT IS NULL OR start_time_unix_nano <= $3)"
                               + " GROUP BY COALESCE(session_id, trace_id)"
                               + " HAVING ($4::BOOLEAN IS NULL OR (MAX(end_time_unix_nano) >= $5) = $4)"
-                              + " ORDER BY MAX(end_time_unix_nano) DESC"
-                              + " LIMIT $6 OFFSET $7";
+                              + ") AS sessions"
+                              + " WHERE $7::UBIGINT IS NULL OR last_activity < $7"
+                              + " OR (last_activity = $7 AND session_id < $8::VARCHAR)"
+                              + " ORDER BY last_activity DESC, session_id DESC"
+                              + " LIMIT $6";
 
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             AddUnixNanoParam(cmd, startTime);
@@ -58,7 +64,11 @@ internal sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = isActive ?? (object)DBNull.Value });
             AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow() - QylSessionActivity.ActiveWindow);
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-            cmd.Parameters.Add(new DuckDBParameter { Value = offset });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = cursor is { } after ? (decimal)after.LastActivityUnixNano : DBNull.Value
+            });
+            cmd.Parameters.Add(new DuckDBParameter { Value = cursor?.SessionId ?? (object)DBNull.Value });
             return ExecuteSessionQuery(cmd);
         }, ct).ConfigureAwait(false);
 
@@ -177,6 +187,7 @@ internal sealed partial class DuckDbStore
                 SessionId = reader.GetString(0),
                 StartTime = startTime,
                 LastActivity = lastActivity,
+                LastActivityUnixNano = lastActivityNano,
                 DurationMs = QylTimeConversions.NanosToMs(lastActivityNano - startTimeNano),
                 SpanCount = spanCount,
                 TraceCount = DuckDbValueReader.ReadInt64(reader, 4, 0),
@@ -215,6 +226,9 @@ internal sealed record SessionQueryRow
     public required string SessionId { get; init; }
     public DateTime StartTime { get; init; }
     public DateTime LastActivity { get; init; }
+
+    /// <summary>The exact keyset position of this row in the session list; DateTime would round it.</summary>
+    public ulong LastActivityUnixNano { get; init; }
     public double DurationMs { get; init; }
     public long SpanCount { get; init; }
     public long TraceCount { get; init; }

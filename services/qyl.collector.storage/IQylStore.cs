@@ -6,6 +6,40 @@ internal sealed class QylSchemaMismatchException(string message) : InvalidOperat
 
 internal readonly record struct TracePageCursor(ulong ActivityUnixNano, string TraceId);
 
+/// <summary>
+/// One page of traces, newest activity first. Every filter is a trace-level predicate: a trace is
+/// listed whole or not at all, so a filter never returns a partial trace.
+/// </summary>
+internal sealed record TracePageQuery
+{
+    public required string ProjectId { get; init; }
+    public required int Limit { get; init; }
+    public TracePageCursor? Cursor { get; init; }
+
+    /// <summary>Earliest trace start (the minimum span start), inclusive.</summary>
+    public ulong? StartUnixNano { get; init; }
+
+    /// <summary>Trace start bound, exclusive: only traces that started before it.</summary>
+    public ulong? EndUnixNano { get; init; }
+
+    /// <summary>Only traces with at least one span from this service.</summary>
+    public string? ServiceName { get; init; }
+
+    /// <summary>Only traces with at least one span whose status is Error.</summary>
+    public bool ErrorsOnly { get; init; }
+
+    /// <summary>Only the traces a session touched, under the session identity COALESCE(session_id, trace_id).</summary>
+    public string? SessionId { get; init; }
+}
+
+internal readonly record struct SpanPageCursor(ulong StartTimeUnixNano, string SpanId);
+
+internal readonly record struct SessionPageCursor(ulong LastActivityUnixNano, string SessionId);
+
+internal readonly record struct LogPageCursor(ulong TimeUnixNano, string LogId);
+
+internal readonly record struct MetricSeriesPageCursor(ulong LastSeenUnixNano, string SeriesId);
+
 internal sealed record TraceStoragePage(
     IReadOnlyList<TraceStoragePageItem> Items,
     bool HasMore);
@@ -42,6 +76,7 @@ internal interface IQylStore : IAsyncDisposable
         string projectId,
         string? namePrefix = null,
         int limit = 200,
+        string? afterMetricName = null,
         CancellationToken ct = default);
 
     /// <summary>The distinct attribute streams recorded under one metric name.</summary>
@@ -50,6 +85,7 @@ internal interface IQylStore : IAsyncDisposable
         string metricName,
         IReadOnlyList<MetricAttributeMatcher> matchers,
         int limit = 200,
+        MetricSeriesPageCursor? cursor = null,
         CancellationToken ct = default);
 
     /// <summary>Aggregates one metric into time buckets server-side; never returns raw points.</summary>
@@ -74,7 +110,7 @@ internal interface IQylStore : IAsyncDisposable
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,
         int limit = 100,
-        int offset = 0,
+        SessionPageCursor? cursor = null,
         bool? isActive = null,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
@@ -91,11 +127,6 @@ internal interface IQylStore : IAsyncDisposable
         DateTimeOffset? endTime = null,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(
-        string sessionId,
-        string projectId,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(
         string traceId,
         string projectId,
@@ -107,9 +138,18 @@ internal interface IQylStore : IAsyncDisposable
         CancellationToken ct = default);
 
     Task<TraceStoragePage> GetTracePageAsync(
+        TracePageQuery query,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// One trace's spans in start order after the cursor; ask for one extra row to learn whether
+    /// more follow. A null limit returns every remaining span.
+    /// </summary>
+    Task<IReadOnlyList<SpanStorageRow>> GetTraceSpanPageAsync(
+        string traceId,
         string projectId,
-        TracePageCursor? cursor,
-        int limit,
+        SpanPageCursor? cursor,
+        int? limit,
         CancellationToken ct = default);
 
     Task<StorageStats> GetStorageStatsAsync(string projectId, CancellationToken ct = default);
@@ -125,6 +165,81 @@ internal interface IQylStore : IAsyncDisposable
         ulong? before = null,
         string? serviceName = null,
         int limit = 500,
+        LogPageCursor? cursor = null,
+        CancellationToken ct = default);
+
+    Task<bool> TraceExistsAsync(string projectId, string traceId, CancellationToken ct = default);
+
+    Task<bool> SpanExistsAsync(string projectId, string traceId, string spanId, CancellationToken ct = default);
+
+    /// <summary>The unexpired first result of a creating POST under this key, if any.</summary>
+    Task<IdempotencyKeyRow?> GetIdempotencyKeyAsync(
+        string projectId,
+        string operation,
+        string idempotencyKey,
+        ulong notBeforeUnixNano,
+        CancellationToken ct = default);
+
+    Task<AnnotationRow?> GetAnnotationAsync(string projectId, string annotationId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<AnnotationRow>> ListAnnotationsAsync(AnnotationListQuery query, CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(
+        AnnotationRow row,
+        IdempotencyKeyRow? idempotency,
+        ulong idempotencyNotBeforeUnixNano,
+        CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(
+        string projectId,
+        string annotationId,
+        EntityTagCondition ifMatch,
+        Func<AnnotationRow, AnnotationRow> update,
+        CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<AnnotationRow>> DeleteAnnotationAsync(
+        string projectId,
+        string annotationId,
+        EntityTagCondition ifMatch,
+        CancellationToken ct = default);
+
+    Task<SavedQueryRow?> GetSavedQueryAsync(string projectId, string savedQueryId, CancellationToken ct = default);
+
+    /// <summary>Saved queries by name; ask for one extra row to learn whether more follow.</summary>
+    Task<IReadOnlyList<SavedQueryRow>> ListSavedQueriesAsync(
+        string projectId,
+        string? signal,
+        string? afterName,
+        int limit,
+        CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<SavedQueryRow>> CreateSavedQueryAsync(
+        SavedQueryRow row,
+        IdempotencyKeyRow? idempotency,
+        ulong idempotencyNotBeforeUnixNano,
+        CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<SavedQueryRow>> UpdateSavedQueryAsync(
+        string projectId,
+        string savedQueryId,
+        EntityTagCondition ifMatch,
+        Func<SavedQueryRow, SavedQueryRow> update,
+        CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<SavedQueryRow>> DeleteSavedQueryAsync(
+        string projectId,
+        string savedQueryId,
+        EntityTagCondition ifMatch,
+        CancellationToken ct = default);
+
+    /// <summary>Annotations last changed before the cutoff expire with the telemetry they point at.</summary>
+    Task<int> DeleteExpiredAnnotationsBatchAsync(
+        ulong cutoffUnixNano,
+        int batchSize,
+        CancellationToken ct = default);
+
+    Task<int> DeleteExpiredIdempotencyKeysAsync(
+        ulong cutoffUnixNano,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<LogStorageRow>> GetLogStreamPageAsync(

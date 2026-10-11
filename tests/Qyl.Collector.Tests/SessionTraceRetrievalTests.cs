@@ -49,7 +49,10 @@ public sealed class SessionTraceRetrievalTests
 
         await store.EnqueueAsync(ToBatch(request), TestContext.Current.CancellationToken);
 
-        var spans = await store.GetSpansBySessionAsync("sess-1", "default", TestContext.Current.CancellationToken);
+        var page = await store.GetTracePageAsync(
+            new TracePageQuery { ProjectId = "default", Limit = 10, SessionId = "sess-1" },
+            TestContext.Current.CancellationToken);
+        var spans = Assert.Single(page.Items).Spans;
 
         var taggedHex = Convert.ToHexString(taggedTraceId).ToLowerInvariant();
         Assert.Equal(3, spans.Count);
@@ -89,7 +92,10 @@ public sealed class SessionTraceRetrievalTests
 
         // NULL session_id falls back to trace_id as the session key.
         var sessionKey = Convert.ToHexString(traceId).ToLowerInvariant();
-        var spans = await store.GetSpansBySessionAsync(sessionKey, "default", TestContext.Current.CancellationToken);
+        var page = await store.GetTracePageAsync(
+            new TracePageQuery { ProjectId = "default", Limit = 10, SessionId = sessionKey },
+            TestContext.Current.CancellationToken);
+        var spans = Assert.Single(page.Items).Spans;
 
         Assert.Equal(2, spans.Count);
         Assert.All(spans, s => Assert.Equal(sessionKey, s.TraceId));

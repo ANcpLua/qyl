@@ -294,6 +294,61 @@ public sealed class RetentionTests
         Assert.Equal(4096L * 1024L * 1024L, configured.StorageMinimumFreeBytes);
     }
 
+    [Fact]
+    public async Task A_cycle_expires_annotations_with_the_window_and_idempotency_keys_after_a_day()
+    {
+        var databasePath = DatabasePath("resources");
+        var cutoff = TimeConversions.ToUnixNanoUnsigned(s_now.AddDays(-30));
+        var dayAgo = TimeConversions.ToUnixNanoUnsigned(s_now.AddHours(-24));
+        var ct = TestContext.Current.CancellationToken;
+
+        try
+        {
+            await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 2);
+            var annotation = new AnnotationRow
+            {
+                ProjectId = "alpha", AnnotationId = "stale", TargetKind = "trace",
+                TraceId = CollectorApiTestHost.TraceId(1), Text = "old", CreatedAtUnixNano = cutoff - 10,
+                UpdatedAtUnixNano = cutoff - 1, Etag = "\"1\""
+            };
+            await store.CreateAnnotationAsync(annotation, null, 0, ct);
+            // Edited inside the window: the last change, not the creation, counts.
+            await store.CreateAnnotationAsync(
+                annotation with { AnnotationId = "edited", UpdatedAtUnixNano = cutoff }, null, 0, ct);
+            var savedQuery = new SavedQueryRow
+            {
+                ProjectId = "alpha", SavedQueryId = "kept", Name = "kept", Signal = "traces",
+                FilterJson = """{"signal":"traces"}""", CreatedAtUnixNano = 1, UpdatedAtUnixNano = 1, Etag = "\"1\""
+            };
+            await store.CreateSavedQueryAsync(savedQuery, new IdempotencyKeyRow
+            {
+                ProjectId = "alpha", Operation = "saved-queries", IdempotencyKey = "old", RequestHash = "h",
+                ResourceId = "kept", ResponseJson = "{}", CreatedAtUnixNano = dayAgo - 1
+            }, 0, ct);
+            await store.CreateSavedQueryAsync(savedQuery with { SavedQueryId = "kept-2", Name = "kept-2" },
+                new IdempotencyKeyRow
+                {
+                    ProjectId = "alpha", Operation = "saved-queries", IdempotencyKey = "new", RequestHash = "h",
+                    ResourceId = "kept-2", ResponseJson = "{}", CreatedAtUnixNano = dayAgo
+                }, 0, ct);
+
+            using var service = CreateService(store, days: 30);
+            var result = await service.RunCycleAsync(ct);
+
+            Assert.Equal(1, result.DeletedAnnotations);
+            Assert.Equal(1, result.DeletedIdempotencyKeys);
+            Assert.Null(await store.GetAnnotationAsync("alpha", "stale", ct));
+            Assert.NotNull(await store.GetAnnotationAsync("alpha", "edited", ct));
+            Assert.Equal(2, (await store.ListSavedQueriesAsync("alpha", null, null, 10, ct)).Count);
+            Assert.Null(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "old", 0, ct));
+            Assert.NotNull(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "new", 0, ct));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
     private static RetentionService CreateService(DuckDbStore store, int days) =>
         new(
             store,

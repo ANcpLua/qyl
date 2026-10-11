@@ -1,5 +1,31 @@
 # Changelog
 
+## 9.2.0 — unreleased
+
+- `Qyl.Api.Contracts` and `@ancplua/qyl-api-schema` 11.5.0 → 11.6.0-rc.1 (contract revision
+  `sha256:d926c3c6ab829cbf`). The collector serves the Contract 11.6.0 surface:
+  - Every paged list (traces, a trace's spans, sessions, a session's traces, logs, metrics,
+    metric series, annotations, saved queries) takes `cursor` and returns `next_cursor` from a
+    keyset position and a `limit + 1` read. Cursors are opaque and per list; the sessions list no
+    longer takes an offset and no longer serves `prev_cursor`.
+  - `GET /api/v1/traces` filters whole traces server-side by `start_time` (inclusive) and
+    `end_time` (exclusive) on the trace start, `service_name` and `errors_only`.
+  - `GET /api/v1/sessions/{session_id}/traces` is bounded (`limit` 100, at most 1000);
+    `GET /api/v1/traces/{trace_id}/spans` takes `limit` (at most 10000) and stays whole without it.
+  - Annotations (`/api/v1/annotations`): a note of at most 2000 characters on a trace, span or
+    session of the caller's project, with create, list, get, update and delete.
+  - Saved queries (`/api/v1/saved-queries`): named trace, log or metric filters, unique per
+    project, with create, list, get, update, delete and `:run`.
+  - The write base: `Idempotency-Key` on creating POSTs (replayed for 24 hours, `409` for another
+    body), `ETag` and `Location` on create, `If-Match` on PATCH and DELETE (`428` when missing,
+    `412` when stale).
+- Collector keys carry roles `ingest`, `read`, `write` and `delete`, enforced per route; a
+  credential configured as a string keeps `ingest` and `read` (`docs/configuration.md`).
+- Storage: the three new tables are created in place on a database written by 9.1.0, whose
+  stored schema identity equals the identity of its telemetry tables alone; every other schema
+  difference still fails closed while data exists. Retention expires annotations with the
+  telemetry window, counted from their last change, and idempotency keys after 24 hours.
+
 ## 9.1.0 — 2026-10-11
 
 - `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 23.0.0 → 23.1.0;

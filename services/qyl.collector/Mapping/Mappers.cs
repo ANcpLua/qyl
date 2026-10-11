@@ -1,3 +1,4 @@
+using Qyl.Api.Contracts.Annotations;
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
@@ -5,6 +6,7 @@ using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Traces;
+using Qyl.Api.Contracts.SavedQueries;
 using Qyl.Collector.Storage;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using ContractValue = Qyl.Api.Contracts.Common.AttributeValue;
@@ -225,6 +227,20 @@ internal static class SpanMapper
         };
     }
 
+    /// <summary>The trace without its span collection: what a saved trace query lists, like list_traces.</summary>
+    public static TraceSummary ToSummary(TraceContract trace) =>
+        new()
+        {
+            TraceId = trace.TraceId,
+            RootSpan = trace.RootSpan,
+            SpanCount = trace.SpanCount,
+            DurationNs = trace.DurationNs,
+            StartTime = trace.StartTime,
+            EndTime = trace.EndTime,
+            Services = trace.Services,
+            HasError = trace.HasError
+        };
+
     private static SpanKind MapSpanKind(byte kind) =>
         kind switch
         {
@@ -407,17 +423,13 @@ internal static class SessionMapper
     public static CursorPageSessionEntity ToPage(
         IReadOnlyList<SessionQueryRow> summaries,
         bool hasMore,
-        string? previousCursor = null,
-        string? nextCursor = null)
-    {
-        return new CursorPageSessionEntity
+        string? nextCursor) =>
+        new()
         {
             Items = ToContracts(summaries),
             HasMore = hasMore,
-            PrevCursor = previousCursor,
             NextCursor = nextCursor
         };
-    }
 
     private static int ToInt32(long value) =>
         value switch
@@ -523,6 +535,20 @@ internal static class MetricMapper
         _ => ContractMetricTemporality.Unspecified
     };
 
+    public static StorageMetricAggregation ToStorageAggregation(ContractMetricAggregation aggregation) => aggregation switch
+    {
+        ContractMetricAggregation.Min => StorageMetricAggregation.Min,
+        ContractMetricAggregation.Max => StorageMetricAggregation.Max,
+        ContractMetricAggregation.Sum => StorageMetricAggregation.Sum,
+        ContractMetricAggregation.Count => StorageMetricAggregation.Count,
+        ContractMetricAggregation.Last => StorageMetricAggregation.Last,
+        ContractMetricAggregation.P50 => StorageMetricAggregation.P50,
+        ContractMetricAggregation.P90 => StorageMetricAggregation.P90,
+        ContractMetricAggregation.P95 => StorageMetricAggregation.P95,
+        ContractMetricAggregation.P99 => StorageMetricAggregation.P99,
+        _ => StorageMetricAggregation.Avg
+    };
+
     private static ContractMetricAggregation ToAggregation(StorageMetricAggregation aggregation) => aggregation switch
     {
         StorageMetricAggregation.Min => ContractMetricAggregation.Min,
@@ -535,5 +561,73 @@ internal static class MetricMapper
         StorageMetricAggregation.P95 => ContractMetricAggregation.P95,
         StorageMetricAggregation.P99 => ContractMetricAggregation.P99,
         _ => ContractMetricAggregation.Avg
+    };
+}
+
+internal static class AnnotationMapper
+{
+    public const string TraceKind = "trace";
+    public const string SpanKind = "span";
+    public const string SessionKind = "session";
+
+    public static Annotation ToContract(AnnotationRow row) =>
+        new()
+        {
+            Id = row.AnnotationId,
+            CreatedAt = QylTimeConversions.NanosToDateTimeOffset(row.CreatedAtUnixNano),
+            UpdatedAt = QylTimeConversions.NanosToDateTimeOffset(row.UpdatedAtUnixNano),
+            Etag = row.Etag,
+            Target = row.TargetKind switch
+            {
+                TraceKind => new TraceAnnotationTarget { TraceId = row.TraceId! },
+                SpanKind => new SpanAnnotationTarget { TraceId = row.TraceId!, SpanId = row.SpanId! },
+                SessionKind => new SessionAnnotationTarget { SessionId = row.SessionId! },
+                _ => throw new InvalidDataException($"Stored annotation target kind '{row.TargetKind}' is unknown.")
+            },
+            Text = row.Text
+        };
+
+    public static IReadOnlyList<Annotation> ToContracts(IReadOnlyList<AnnotationRow> rows) =>
+        [.. rows.Select(static row => ToContract(row))];
+}
+
+internal static class SavedQueryMapper
+{
+    public static SavedQuery ToContract(SavedQueryRow row) =>
+        new()
+        {
+            Id = row.SavedQueryId,
+            CreatedAt = QylTimeConversions.NanosToDateTimeOffset(row.CreatedAtUnixNano),
+            UpdatedAt = QylTimeConversions.NanosToDateTimeOffset(row.UpdatedAtUnixNano),
+            Etag = row.Etag,
+            Name = row.Name,
+            Description = row.Description,
+            Filter = ReadFilter(row.FilterJson)
+        };
+
+    public static IReadOnlyList<SavedQuery> ToContracts(IReadOnlyList<SavedQueryRow> rows) =>
+        [.. rows.Select(static row => ToContract(row))];
+
+    public static SavedQueryFilter ReadFilter(string filterJson) =>
+        JsonSerializer.Deserialize(filterJson, QylSerializerContext.Default.SavedQueryFilter)
+        ?? throw new InvalidDataException("A stored saved-query filter is empty.");
+
+    public static string WriteFilter(SavedQueryFilter filter) =>
+        JsonSerializer.Serialize(filter, QylSerializerContext.Default.SavedQueryFilter);
+
+    public static string SignalName(SavedQueryFilter filter) => filter switch
+    {
+        SavedTraceQueryFilter => "traces",
+        SavedLogQueryFilter => "logs",
+        SavedMetricQueryFilter => "metrics",
+        _ => throw new ArgumentOutOfRangeException(nameof(filter), "Unknown saved-query filter.")
+    };
+
+    public static string SignalName(SavedQuerySignal signal) => signal switch
+    {
+        SavedQuerySignal.Traces => "traces",
+        SavedQuerySignal.Logs => "logs",
+        SavedQuerySignal.Metrics => "metrics",
+        _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null)
     };
 }

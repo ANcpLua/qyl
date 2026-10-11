@@ -57,12 +57,12 @@ internal static class CollectorAuthExtensions
                     throw new InvalidOperationException("QYL_OTLP_PROJECT_KEYS has an invalid or duplicate project.");
 
                 var count = 0;
-                foreach (var key in project.Value.EnumerateArray())
+                foreach (var entry in project.Value.EnumerateArray())
                 {
-                    var value = key.ValueKind == JsonValueKind.String ? key.GetString() : null;
-                    if (string.IsNullOrWhiteSpace(value) || !credentials.Add(value))
+                    var (value, roles) = ParseCredential(entry);
+                    if (!credentials.Add(value))
                         throw new InvalidOperationException("QYL_OTLP_PROJECT_KEYS has an invalid or duplicate credential.");
-                    keys.Add(new ProjectApiKey(project.Name, value));
+                    keys.Add(new ProjectApiKey(project.Name, value, roles));
                     count++;
                 }
 
@@ -76,5 +76,47 @@ internal static class CollectorAuthExtensions
         {
             throw new InvalidOperationException("QYL_OTLP_PROJECT_KEYS must be valid JSON.", ex);
         }
+    }
+
+    // A bare string is a credential from before roles and keeps ingest and read (QYL-A2), so no
+    // deployed key changes meaning. An object names its roles explicitly:
+    // {"key":"...","roles":["read","write","delete"]}.
+    private static (string Key, ApiKeyRoles Roles) ParseCredential(JsonElement entry)
+    {
+        if (entry.ValueKind is JsonValueKind.String)
+        {
+            var bare = entry.GetString();
+            return string.IsNullOrWhiteSpace(bare)
+                ? throw new InvalidOperationException("QYL_OTLP_PROJECT_KEYS has an invalid or duplicate credential.")
+                : (bare, ApiKeyRoles.IngestAndRead);
+        }
+
+        if (entry.ValueKind is not JsonValueKind.Object ||
+            !entry.TryGetProperty("key", out var keyElement) || keyElement.ValueKind is not JsonValueKind.String ||
+            string.IsNullOrWhiteSpace(keyElement.GetString()) ||
+            !entry.TryGetProperty("roles", out var rolesElement) || rolesElement.ValueKind is not JsonValueKind.Array ||
+            entry.EnumerateObject().Any(static property => property.Name is not ("key" or "roles")))
+        {
+            throw new InvalidOperationException(
+                "QYL_OTLP_PROJECT_KEYS credentials must be strings or {\"key\": string, \"roles\": [...]} objects.");
+        }
+
+        var roles = ApiKeyRoles.None;
+        foreach (var roleElement in rolesElement.EnumerateArray())
+        {
+            if (roleElement.ValueKind is not JsonValueKind.String ||
+                !ApiKeyRoleNames.TryParse(roleElement.GetString(), out var role) ||
+                (roles & role) is not ApiKeyRoles.None)
+            {
+                throw new InvalidOperationException(
+                    "QYL_OTLP_PROJECT_KEYS roles must be distinct values of ingest, read, write and delete.");
+            }
+
+            roles |= role;
+        }
+
+        return roles is ApiKeyRoles.None
+            ? throw new InvalidOperationException("QYL_OTLP_PROJECT_KEYS has a credential without roles.")
+            : (keyElement.GetString()!, roles);
     }
 }

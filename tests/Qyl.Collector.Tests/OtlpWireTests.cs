@@ -65,7 +65,7 @@ public sealed class OtlpWireTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1")]
+            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
         var context = new TestServerCallContext(TestContext.Current.CancellationToken);
@@ -84,12 +84,29 @@ public sealed class OtlpWireTests
     }
 
     [Fact]
+    public async Task Grpc_interceptor_refuses_a_key_without_the_ingest_role()
+    {
+        var options = new OtlpApiKeyOptions
+        {
+            AuthMode = "ApiKey",
+            Keys = [new ProjectApiKey("alpha", "reader", ApiKeyRoles.Read | ApiKeyRoles.Write)]
+        };
+        var interceptor = new OtlpApiKeyInterceptor(options);
+        var context = new TestServerCallContext(TestContext.Current.CancellationToken);
+        context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "reader");
+
+        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+            "request", context, (_, _) => Task.FromResult("should not run")));
+        Assert.Equal(StatusCode.PermissionDenied, error.StatusCode);
+    }
+
+    [Fact]
     public async Task Grpc_interceptor_rejects_project_metadata_that_conflicts_with_the_key()
     {
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1")]
+            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
 
@@ -121,7 +138,7 @@ public sealed class OtlpWireTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1")]
+            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
         };
         var request = new ExportTraceServiceRequest
         {

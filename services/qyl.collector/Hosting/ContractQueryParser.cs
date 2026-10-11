@@ -7,13 +7,23 @@ internal readonly record struct ParsedSessionsParameters(
     bool? IsActive,
     DateTimeOffset? StartTime,
     DateTimeOffset? EndTime,
-    int? Limit);
+    int? Limit,
+    string? Cursor);
 
 internal readonly record struct ParsedSessionStatsParameters(
     DateTimeOffset? StartTime,
     DateTimeOffset? EndTime);
 
 internal readonly record struct ParsedTracesParameters(
+    DateTimeOffset? StartTime,
+    DateTimeOffset? EndTime,
+    string? ServiceName,
+    bool? ErrorsOnly,
+    int? Limit,
+    string? Cursor);
+
+/// <summary>The <c>limit</c> and <c>cursor</c> pair of a paged sub-list.</summary>
+internal readonly record struct ParsedPageParameters(
     int? Limit,
     string? Cursor);
 
@@ -21,15 +31,30 @@ internal readonly record struct ParsedLogsParameters(
     int? SeverityMin,
     DateTimeOffset? StartTime,
     DateTimeOffset? EndTime,
-    int? Limit);
+    int? Limit,
+    string? Cursor);
 
 internal readonly record struct ParsedMetricsParameters(
     string? NamePrefix,
-    int? Limit);
+    int? Limit,
+    string? Cursor);
 
 internal readonly record struct ParsedMetricSeriesParameters(
     IReadOnlyList<MetricAttributeMatcher> Matchers,
-    int? Limit);
+    int? Limit,
+    string? Cursor);
+
+internal readonly record struct ParsedAnnotationsParameters(
+    string? TraceId,
+    string? SpanId,
+    string? SessionId,
+    int? Limit,
+    string? Cursor);
+
+internal readonly record struct ParsedSavedQueriesParameters(
+    string? Signal,
+    int? Limit,
+    string? Cursor);
 
 internal readonly record struct ParsedMetricQueryParameters(
     DateTimeOffset? StartTime,
@@ -51,8 +76,9 @@ internal static class ContractQueryParser
         var reader = new QueryReader(request.Query);
         if (reader.ReadString("name_prefix", out var namePrefix) is { } prefixError) return prefixError;
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
 
-        parsed = new ParsedMetricsParameters(namePrefix, limit);
+        parsed = new ParsedMetricsParameters(namePrefix, limit, cursor);
         return null;
     }
 
@@ -62,8 +88,9 @@ internal static class ContractQueryParser
         var reader = new QueryReader(request.Query);
         if (ReadMatchers(reader, out var matchers) is { } matcherError) return matcherError;
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
 
-        parsed = new ParsedMetricSeriesParameters(matchers, limit);
+        parsed = new ParsedMetricSeriesParameters(matchers, limit, cursor);
         return null;
     }
 
@@ -148,8 +175,9 @@ internal static class ContractQueryParser
         if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
         if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
 
-        parsed = new ParsedSessionsParameters(isActive, startTime, endTime, limit);
+        parsed = new ParsedSessionsParameters(isActive, startTime, endTime, limit, cursor);
         return null;
     }
 
@@ -168,12 +196,75 @@ internal static class ContractQueryParser
     {
         parsed = default;
         var reader = new QueryReader(request.Query);
+        if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
+        if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
+        if (reader.ReadString("service_name", out var serviceName) is { } serviceError) return serviceError;
+        if (reader.ReadBoolean("errors_only", out var errorsOnly) is { } errorsError) return errorsError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
+        if (RejectInvertedRange(startTime, endTime) is { } rangeError) return rangeError;
+
+        parsed = new ParsedTracesParameters(startTime, endTime, serviceName, errorsOnly, limit, cursor);
+        return null;
+    }
+
+    internal static IResult? ParsePage(HttpRequest request, out ParsedPageParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
         if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
 
-        parsed = new ParsedTracesParameters(limit, cursor);
+        parsed = new ParsedPageParameters(limit, cursor);
         return null;
     }
+
+    internal static IResult? ParseAnnotations(HttpRequest request, out ParsedAnnotationsParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadString("trace_id", out var traceId) is { } traceError) return traceError;
+        if (reader.ReadString("span_id", out var spanId) is { } spanError) return spanError;
+        if (reader.ReadString("session_id", out var sessionId) is { } sessionError) return sessionError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
+
+        if (traceId is not null && !ContractIdentifiers.IsTraceId(traceId))
+            return Invalid("trace_id", ContractIdentifiers.TraceIdMessage, "trace_id.invalid", traceId);
+        if (spanId is not null && !ContractIdentifiers.IsSpanId(spanId))
+            return Invalid("span_id", ContractIdentifiers.SpanIdMessage, "span_id.invalid", spanId);
+        if (spanId is not null && traceId is null)
+            return Invalid("span_id", "span_id requires trace_id.", "span_id.requires_trace_id", spanId);
+        if (sessionId is not null && !ContractIdentifiers.IsSessionId(sessionId))
+            return Invalid("session_id", ContractIdentifiers.SessionIdMessage, "session_id.invalid", sessionId);
+
+        parsed = new ParsedAnnotationsParameters(traceId, spanId, sessionId, limit, cursor);
+        return null;
+    }
+
+    internal static IResult? ParseSavedQueries(HttpRequest request, out ParsedSavedQueriesParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadString("signal", out var signal) is { } signalError) return signalError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
+
+        if (signal is not null and not ("traces" or "logs" or "metrics"))
+            return Invalid("signal", "Value must be one of traces, logs, metrics.", "signal.invalid", signal);
+
+        parsed = new ParsedSavedQueriesParameters(signal, limit, cursor);
+        return null;
+    }
+
+    private static IResult? RejectInvertedRange(DateTimeOffset? startTime, DateTimeOffset? endTime) =>
+        startTime is { } start && endTime is { } end && end < start
+            ? Invalid(
+                "end_time",
+                "The range end must not precede its start.",
+                "range.inverted",
+                end.ToString("O", CultureInfo.InvariantCulture))
+            : null;
 
     internal static IResult? ParseLogs(HttpRequest request, out ParsedLogsParameters parsed)
     {
@@ -183,8 +274,9 @@ internal static class ContractQueryParser
         if (reader.ReadDateTime("start_time", out var startTime) is { } startError) return startError;
         if (reader.ReadDateTime("end_time", out var endTime) is { } endError) return endError;
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
 
-        parsed = new ParsedLogsParameters(severityMin, startTime, endTime, limit);
+        parsed = new ParsedLogsParameters(severityMin, startTime, endTime, limit, cursor);
         return null;
     }
 
@@ -357,4 +449,26 @@ internal static class ContractQueryParser
 
     private static IResult Invalid(string field, string message, string code, string? rejectedValue) =>
         ContractErrorResults.Validation(field, message, code, rejectedValue);
+}
+
+/// <summary>The identifier formats the contract's scalars declare (common/types.tsp).</summary>
+internal static class ContractIdentifiers
+{
+    internal const string TraceIdMessage = "Value must be 32 lowercase hex characters.";
+    internal const string SpanIdMessage = "Value must be 16 lowercase hex characters.";
+    internal const string SessionIdMessage =
+        "Value must be 1 to 128 URL-safe characters (A-Z a-z 0-9 . _ ~ -), not only dots.";
+
+    internal static bool IsTraceId(string? value) => IsLowerHex(value, 32);
+
+    internal static bool IsSpanId(string? value) => IsLowerHex(value, 16);
+
+    internal static bool IsSessionId(string? value) =>
+        value is { Length: >= 1 and <= 128 } &&
+        value.All(static c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '~' or '-') &&
+        value.Any(static c => c is not '.');
+
+    private static bool IsLowerHex(string? value, int length) =>
+        value is not null && value.Length == length &&
+        value.All(static c => char.IsAsciiDigit(c) || c is >= 'a' and <= 'f');
 }

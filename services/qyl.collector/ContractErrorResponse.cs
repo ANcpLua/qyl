@@ -38,6 +38,34 @@ internal static class ContractErrorResults
             statusCode: StatusCodes.Status409Conflict,
             contentType: ProblemDetailsMediaType.Value);
 
+    internal static IResult PreconditionFailed(string? currentEtag) =>
+        Results.Json(
+            new PreconditionFailedError
+            {
+                ProblemType = new Uri("about:blank"),
+                Title = "Precondition Failed",
+                Status = StatusCodes.Status412PreconditionFailed,
+                Detail = "If-Match does not name the current version. Read the resource again and retry with its etag.",
+                CurrentEtag = currentEtag
+            },
+            QylSerializerContext.Default.PreconditionFailedError,
+            statusCode: StatusCodes.Status412PreconditionFailed,
+            contentType: ProblemDetailsMediaType.Value);
+
+    internal static IResult PreconditionRequired() =>
+        Results.Json(
+            new PreconditionRequiredError
+            {
+                ProblemType = new Uri("about:blank"),
+                Title = "Precondition Required",
+                Status = StatusCodes.Status428PreconditionRequired,
+                Detail = "Send the etag of the version being changed in If-Match.",
+                RequiredHeader = "If-Match"
+            },
+            QylSerializerContext.Default.PreconditionRequiredError,
+            statusCode: StatusCodes.Status428PreconditionRequired,
+            contentType: ProblemDetailsMediaType.Value);
+
     internal static IResult ServiceUnavailable(string reason) =>
         Results.Json(
             CreateServiceUnavailable(reason),
@@ -80,6 +108,24 @@ internal static class ContractErrorResults
             CreateUnauthorized(detail),
             QylSerializerContext.Default.UnauthorizedError,
             StatusCodes.Status401Unauthorized,
+            cancellationToken);
+
+    internal static Task WriteForbiddenAsync(
+        HttpResponse response,
+        string requiredPermission,
+        CancellationToken cancellationToken = default) =>
+        WriteAsync(
+            response,
+            new ForbiddenError
+            {
+                ProblemType = new Uri("about:blank"),
+                Title = "Forbidden",
+                Status = StatusCodes.Status403Forbidden,
+                Detail = $"The API key lacks the {requiredPermission} role.",
+                RequiredPermission = requiredPermission
+            },
+            QylSerializerContext.Default.ForbiddenError,
+            StatusCodes.Status403Forbidden,
             cancellationToken);
 
     internal static Task WriteInternalServerErrorAsync(

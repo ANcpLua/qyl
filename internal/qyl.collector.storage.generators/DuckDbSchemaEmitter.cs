@@ -44,6 +44,7 @@ internal static class DuckDbSchemaEmitter
         sb.AppendLine($"public const string AuthoritativeHash = \"{ComputeHash(authoritative, includeLogSequence: true)}\";");
         sb.AppendLine($"public const string DerivedHash = \"{ComputeHash(derived, includeLogSequence: false)}\";");
         sb.AppendLine();
+        EmitAuthoritativeHashInputs(sb, authoritative);
 
         EmitDdlArray(sb, "AuthoritativeDdl", authoritative, includeLogSequence: true);
         EmitDdlArray(sb, "DerivedDdl", derived, includeLogSequence: false);
@@ -144,26 +145,74 @@ internal static class DuckDbSchemaEmitter
 
     private static string ComputeHash(
         IReadOnlyList<DuckDbTableInfo> tables,
-        bool includeLogSequence)
+        bool includeLogSequence) =>
+        Sha256Hex(CanonicalPrefix(includeLogSequence) + string.Concat(tables.Select(CanonicalTable)));
+
+    // The canonical text the schema identity hashes: a version preamble, the log sequence for the
+    // authoritative set, then each table's CREATE TABLE and index DDL in table-name order.
+    private static string CanonicalPrefix(bool includeLogSequence)
     {
         var canonical = new StringBuilder("qyl-duckdb-generated-ddl/v1\n");
         if (includeLogSequence)
             canonical.AppendLine(LogSequenceDdl);
-        foreach (var table in tables)
-        {
-            canonical.AppendLine(DuckDbEmitter.BuildCreateTableDdl(table));
-            var indexes = DuckDbEmitter.BuildIndexesDdl(table);
-            if (indexes.Length > 0)
-                canonical.AppendLine(indexes);
-        }
+        return canonical.ToString();
+    }
 
+    private static string CanonicalTable(DuckDbTableInfo table)
+    {
+        var canonical = new StringBuilder();
+        canonical.AppendLine(DuckDbEmitter.BuildCreateTableDdl(table));
+        var indexes = DuckDbEmitter.BuildIndexesDdl(table);
+        if (indexes.Length > 0)
+            canonical.AppendLine(indexes);
+        return canonical.ToString();
+    }
+
+    private static string Sha256Hex(string canonical)
+    {
         using var sha = SHA256.Create();
-        var digest = sha.ComputeHash(Encoding.UTF8.GetBytes(canonical.ToString()));
+        var digest = sha.ComputeHash(Encoding.UTF8.GetBytes(canonical));
         var hex = new StringBuilder(digest.Length * 2);
         foreach (var value in digest)
             hex.Append(value.ToString("x2", CultureInfo.InvariantCulture));
         return hex.ToString();
     }
+
+    // The exact text behind AuthoritativeHash, per table, so start-up can recompute the identity a
+    // build with only some of today's tables would have stored. A database whose stored hash equals
+    // the identity of exactly the tables it holds was written by an earlier build of this same
+    // schema minus the tables added since; creating those is the one schema change that needs no
+    // migration, so it is the one the fail-closed check lets through.
+    private static void EmitAuthoritativeHashInputs(
+        IndentedStringBuilder sb,
+        IReadOnlyList<DuckDbTableInfo> tables)
+    {
+        sb.AppendLine($"public const string AuthoritativeHashPrefix = \"{EscapeLiteral(CanonicalPrefix(includeLogSequence: true))}\";");
+        sb.AppendLine();
+        sb.AppendLine("public static readonly (string Table, string Canonical)[] AuthoritativeHashParts =");
+        sb.BeginBlock();
+        foreach (var table in tables)
+            sb.AppendLine($"(\"{Escape(table.TableName)}\", \"{EscapeLiteral(CanonicalTable(table))}\"),");
+        sb.EndBlock("};");
+        sb.AppendLine();
+        sb.AppendLine("/// <summary>The authoritative identity of a schema holding exactly <paramref name=\"tables\"/>.</summary>");
+        sb.AppendLine("public static string ComputeAuthoritativeHash(global::System.Collections.Generic.IReadOnlyCollection<string> tables)");
+        sb.BeginBlock();
+        sb.AppendLine("var canonical = new global::System.Text.StringBuilder(AuthoritativeHashPrefix);");
+        sb.AppendLine("foreach (var (table, text) in AuthoritativeHashParts)");
+        sb.BeginBlock();
+        sb.AppendLine("if (global::System.Linq.Enumerable.Contains(tables, table, global::System.StringComparer.Ordinal))");
+        sb.AppendLine("    canonical.Append(text);");
+        sb.EndBlock();
+        sb.AppendLine("var digest = global::System.Security.Cryptography.SHA256.HashData(");
+        sb.AppendLine("    global::System.Text.Encoding.UTF8.GetBytes(canonical.ToString()));");
+        sb.AppendLine("return global::System.Convert.ToHexStringLower(digest);");
+        sb.EndBlock();
+        sb.AppendLine();
+    }
+
+    private static string EscapeLiteral(string value) =>
+        Escape(value).Replace("\r", "\\r").Replace("\n", "\\n");
 
     private static string Qualify(DuckDbTableInfo table) =>
         string.IsNullOrEmpty(table.Namespace) || table.Namespace == "<global namespace>"

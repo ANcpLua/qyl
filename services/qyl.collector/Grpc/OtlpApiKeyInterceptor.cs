@@ -6,9 +6,10 @@ namespace Qyl.Collector.Grpc;
 
 /// <summary>
 /// The gRPC mirror of <see cref="Qyl.Collector.ApiKeys.CollectorApiKeyMiddleware"/>: in ApiKey
-/// mode every OTLP export call must carry a valid <c>x-otlp-api-key</c> metadata entry — the
-/// same project bindings and fixed-time validation, <c>Unauthenticated</c> instead of 401, and
-/// <c>InvalidArgument</c> instead of 400 when <c>x-qyl-project</c> names another project.
+/// mode every OTLP export call must carry a valid <c>x-otlp-api-key</c> metadata entry with the
+/// <c>ingest</c> role — the same project bindings and fixed-time validation, <c>Unauthenticated</c>
+/// instead of 401, <c>PermissionDenied</c> instead of 403, and <c>InvalidArgument</c> instead of
+/// 400 when <c>x-qyl-project</c> names another project.
 /// All OTLP export methods are unary, so the unary handler is the whole boundary.
 /// </summary>
 internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interceptor
@@ -20,15 +21,19 @@ internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interce
     {
         if (options.IsApiKeyMode)
         {
-            var projectId = OtlpApiKeyValidator.ResolveProject(
+            var credential = OtlpApiKeyValidator.Resolve(
                 context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), options);
-            if (projectId is null)
+            if (credential is null)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
 
-            if (ProjectIdentity.Conflicts(context.RequestHeaders.GetValue(ProjectIdentity.HeaderName), projectId))
+            if ((credential.Roles & ApiKeyRoles.Ingest) is ApiKeyRoles.None)
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "The API key lacks the ingest role."));
+
+            if (ProjectIdentity.Conflicts(context.RequestHeaders.GetValue(ProjectIdentity.HeaderName),
+                    credential.ProjectId))
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Project does not match the API key."));
 
-            AuthenticatedProject.Set(context, projectId);
+            AuthenticatedProject.Set(context, credential.ProjectId);
         }
 
         return continuation(request, context);

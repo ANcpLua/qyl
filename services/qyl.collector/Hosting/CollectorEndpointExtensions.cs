@@ -43,23 +43,39 @@ internal static partial class CollectorEndpointExtensions
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
         otlp.MapPost("/metrics", IngestOtlpMetricsAsync);
 
+        // Every product route names the key role it requires (QYL-A2): the query routes `read`,
+        // creating and updating a resource `write`, deleting one `delete`. Running a saved query
+        // is a read even though it is a POST.
         var api = app.MapGroup("/api/v1");
 
-        api.MapGet("/sessions", GetSessionsAsync);
-        api.MapGet("/sessions/stats", GetSessionStatsAsync);
-        api.MapGet("/sessions/{session_id}", GetSessionByIdAsync);
-        api.MapGet("/sessions/{session_id}/traces", GetSessionTracesAsync);
+        api.MapGet("/sessions", GetSessionsAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/sessions/stats", GetSessionStatsAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/sessions/{session_id}", GetSessionByIdAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/sessions/{session_id}/traces", GetSessionTracesAsync).RequireKeyRole(ApiKeyRoles.Read);
 
-        api.MapGet("/traces", GetTracesAsync);
-        api.MapGet("/traces/{trace_id}", GetTraceAsync);
-        api.MapGet("/traces/{trace_id}/spans", GetTraceSpansAsync);
+        api.MapGet("/traces", GetTracesAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/traces/{trace_id}", GetTraceAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/traces/{trace_id}/spans", GetTraceSpansAsync).RequireKeyRole(ApiKeyRoles.Read);
 
-        api.MapGet("/metrics", GetMetricsAsync);
-        api.MapGet("/metrics/{metric_name}/series", GetMetricSeriesAsync);
-        api.MapGet("/metrics/{metric_name}/query", QueryMetricAsync);
+        api.MapGet("/metrics", GetMetricsAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/metrics/{metric_name}/series", GetMetricSeriesAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/metrics/{metric_name}/query", QueryMetricAsync).RequireKeyRole(ApiKeyRoles.Read);
 
-        api.MapGet("/logs", GetLogsAsync);
-        api.MapGet("/stream/logs", StreamLogsAsync);
+        api.MapGet("/logs", GetLogsAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/stream/logs", StreamLogsAsync).RequireKeyRole(ApiKeyRoles.Read);
+
+        api.MapPost("/annotations", CreateAnnotationAsync).RequireKeyRole(ApiKeyRoles.Write);
+        api.MapGet("/annotations", ListAnnotationsAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/annotations/{annotation_id}", GetAnnotationAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPatch("/annotations/{annotation_id}", UpdateAnnotationAsync).RequireKeyRole(ApiKeyRoles.Write);
+        api.MapDelete("/annotations/{annotation_id}", DeleteAnnotationAsync).RequireKeyRole(ApiKeyRoles.Delete);
+
+        api.MapPost("/saved-queries", CreateSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Write);
+        api.MapGet("/saved-queries", ListSavedQueriesAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/saved-queries/{saved_query_id}", GetSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPatch("/saved-queries/{saved_query_id}", UpdateSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Write);
+        api.MapDelete("/saved-queries/{saved_query_id}", DeleteSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Delete);
+        api.MapPost("/saved-queries/{saved_query_id}:run", RunSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Read);
 
         app.MapFallback(FallbackHandler);
 
@@ -329,19 +345,30 @@ internal static partial class CollectorEndpointExtensions
             return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
         }
 
+        string? afterName = null;
+        if (query.Cursor is { } encoded)
+        {
+            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.Metrics, 1, out var fields))
+                return InvalidCursor(encoded);
+            afterName = fields[0];
+        }
+
         // One extra row makes HasMore a fact rather than the coincidence of a page that exactly
-        // fills the limit; the sessions list pages the same way.
+        // fills the limit; every list pages the same way.
         var metrics = await store.ListMetricsAsync(
             ResolveProjectScope(httpContext),
             query.NamePrefix,
             boundedLimit + 1,
+            afterName,
             ct);
 
         var hasMore = metrics.Count > boundedLimit;
+        IReadOnlyList<MetricCatalogEntry> page = hasMore ? [.. metrics.Take(boundedLimit)] : metrics;
         return Results.Ok(new CursorPageMetricDescriptor
         {
-            Items = MetricMapper.ToContracts(hasMore ? [.. metrics.Take(boundedLimit)] : metrics),
-            HasMore = hasMore
+            Items = MetricMapper.ToContracts(page),
+            HasMore = hasMore,
+            NextCursor = hasMore ? PageCursorCodec.Encode(PageCursorKind.Metrics, page[^1].MetricName) : null
         });
     }
 
@@ -360,25 +387,45 @@ internal static partial class CollectorEndpointExtensions
             return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
         }
 
+        MetricSeriesPageCursor? cursor = null;
+        if (query.Cursor is { } encoded)
+        {
+            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.MetricSeries, 2, out var fields) ||
+                !PageCursorCodec.TryParseHex(fields[0], out var lastSeen))
+            {
+                return InvalidCursor(encoded);
+            }
+
+            cursor = new MetricSeriesPageCursor(lastSeen, fields[1]);
+        }
+
         var projectId = ResolveProjectScope(httpContext);
         var series = await store.ListMetricSeriesAsync(
             projectId,
             metricName,
             query.Matchers,
             boundedLimit + 1,
+            cursor,
             ct);
 
-        // An empty page under a name that was never recorded is a 404: the caller asked
+        // An empty first page under a name that was never recorded is a 404: the caller asked
         // about an instrument, not about a filter, and "no such metric" is the answer that
         // tells it to stop asking. A name that exists but matches no filter is an empty 200.
-        if (series.Count is 0 && query.Matchers.Count is 0)
+        if (series.Count is 0 && query.Matchers.Count is 0 && cursor is null)
             return ContractErrorResults.NotFound("metric", metricName);
 
         var hasMore = series.Count > boundedLimit;
+        IReadOnlyList<MetricSeriesRow> page = hasMore ? [.. series.Take(boundedLimit)] : series;
         return Results.Ok(new CursorPageMetricSeries
         {
-            Items = MetricMapper.ToContracts(hasMore ? [.. series.Take(boundedLimit)] : series),
-            HasMore = hasMore
+            Items = MetricMapper.ToContracts(page),
+            HasMore = hasMore,
+            NextCursor = hasMore
+                ? PageCursorCodec.Encode(
+                    PageCursorKind.MetricSeries,
+                    PageCursorCodec.Hex(page[^1].LastSeenUnixNano),
+                    page[^1].SeriesId)
+                : null
         });
     }
 
@@ -425,7 +472,7 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var projectId = ResolveProjectScope(httpContext);
-        var descriptor = (await store.ListMetricsAsync(projectId, metricName, limit: 1, ct))
+        var descriptor = (await store.ListMetricsAsync(projectId, metricName, limit: 1, ct: ct))
             .FirstOrDefault(entry => string.Equals(entry.MetricName, metricName, StringComparison.Ordinal));
         if (descriptor is null)
             return ContractErrorResults.NotFound("metric", metricName);
@@ -466,50 +513,49 @@ internal static partial class CollectorEndpointExtensions
     internal static async Task<IResult> GetSessionsAsync(
         HttpContext httpContext,
         IQylStore store,
-        string? cursor,
         CancellationToken ct)
     {
         if (ContractQueryParser.ParseSessions(httpContext.Request, out var query) is { } queryError)
             return queryError;
-
-        if (!TryReadOffsetCursor(cursor, out var offset))
-        {
-            return ContractErrorResults.Validation(
-                "cursor",
-                "Cursor must be a non-negative integer offset.",
-                "cursor.invalid",
-                cursor);
-        }
 
         if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.SessionMaxLimit,
                 out var boundedLimit))
         {
             return InvalidLimit(query.Limit, ContractLimits.SessionMaxLimit);
         }
+
+        SessionPageCursor? cursor = null;
+        if (query.Cursor is { } encoded)
+        {
+            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.Sessions, 2, out var fields) ||
+                !PageCursorCodec.TryParseHex(fields[0], out var lastActivity))
+            {
+                return InvalidCursor(encoded);
+            }
+
+            cursor = new SessionPageCursor(lastActivity, fields[1]);
+        }
+
         var sessions = await store.GetSessionsAsync(
             ResolveProjectScope(httpContext),
             boundedLimit + 1,
-            offset,
+            cursor,
             query.IsActive,
             query.StartTime,
             query.EndTime,
             ct: ct).ConfigureAwait(false);
 
         var hasMore = sessions.Count > boundedLimit;
-        var pageItems = hasMore ? sessions.Take(boundedLimit).ToArray() : sessions;
-        var response = SessionMapper.ToPage(
-            pageItems,
+        IReadOnlyList<SessionQueryRow> page = hasMore ? [.. sessions.Take(boundedLimit)] : sessions;
+        return Results.Ok(SessionMapper.ToPage(
+            page,
             hasMore,
-            offset > 0 ? Math.Max(0, offset - boundedLimit).ToString(CultureInfo.InvariantCulture) : null,
-            hasMore ? (offset + boundedLimit).ToString(CultureInfo.InvariantCulture) : null);
-        return Results.Ok(response);
-    }
-
-    private static bool TryReadOffsetCursor(string? cursor, out int offset)
-    {
-        offset = 0;
-        return string.IsNullOrWhiteSpace(cursor) ||
-               int.TryParse(cursor, NumberStyles.None, CultureInfo.InvariantCulture, out offset) && offset >= 0;
+            hasMore
+                ? PageCursorCodec.Encode(
+                    PageCursorKind.Sessions,
+                    PageCursorCodec.Hex(page[^1].LastActivityUnixNano),
+                    page[^1].SessionId)
+                : null));
     }
 
     private static async Task<IResult> GetSessionByIdAsync(
@@ -543,27 +589,43 @@ internal static partial class CollectorEndpointExtensions
         });
     }
 
-    private static async Task<IResult> GetSessionTracesAsync(
+    // Session traces are paged like the trace list (QYL-A4): a long-lived session can touch
+    // thousands of traces, and an unbounded response is one no client can hold.
+    internal static async Task<IResult> GetSessionTracesAsync(
         HttpContext httpContext,
         [FromRoute(Name = "session_id")] string sessionId,
         IQylStore store,
         CancellationToken ct)
     {
-        if (await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is null)
+        if (ContractQueryParser.ParsePage(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
+                ContractLimits.SessionTraceMaxLimit, out var boundedLimit))
+        {
+            return InvalidLimit(query.Limit, ContractLimits.SessionTraceMaxLimit);
+        }
+
+        TracePageCursor? cursor = null;
+        if (query.Cursor is { } encoded)
+        {
+            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.SessionTraces, out var decoded))
+                return InvalidCursor(encoded);
+            cursor = decoded;
+        }
+
+        var projectId = ResolveProjectScope(httpContext);
+        if (await store.GetSessionAsync(sessionId, projectId, ct: ct).ConfigureAwait(false) is null)
             return ContractErrorResults.NotFound("session", sessionId);
 
-        var spans = await store.GetSpansBySessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct)
-            .ConfigureAwait(false);
-        var traces = spans
-            .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
-            .Select(static group =>
-            {
-                var spanContracts = SpanMapper.ToContracts(group);
-                return SpanMapper.ToTrace(group.Key, spanContracts);
-            })
-            .ToList();
-
-        return Results.Ok(new CursorPageTrace { Items = traces, HasMore = false });
+        var page = await store.GetTracePageAsync(new TracePageQuery
+        {
+            ProjectId = projectId,
+            Limit = boundedLimit,
+            Cursor = cursor,
+            SessionId = sessionId
+        }, ct).ConfigureAwait(false);
+        return Results.Ok(ToTracePage(page, PageCursorKind.SessionTraces));
     }
 
     internal static async Task<IResult> GetTracesAsync(
@@ -583,54 +645,84 @@ internal static partial class CollectorEndpointExtensions
         TracePageCursor? cursor = null;
         if (parameters.Cursor is { } encodedCursor)
         {
-            if (!TracePageCursorCodec.TryDecode(encodedCursor, out var decodedCursor))
-            {
-                return ContractErrorResults.Validation(
-                    "cursor",
-                    "Cursor is not a valid qyl trace-page cursor.",
-                    "cursor.invalid",
-                    encodedCursor);
-            }
-
+            if (!PageCursorCodec.TryDecode(encodedCursor, PageCursorKind.Traces, out var decodedCursor))
+                return InvalidCursor(encodedCursor);
             cursor = decodedCursor;
         }
 
-        var page = await store.GetTracePageAsync(
-                ResolveProjectScope(httpContext),
-                cursor,
-                boundedLimit,
-                ct)
+        var page = await store.GetTracePageAsync(new TracePageQuery
+            {
+                ProjectId = ResolveProjectScope(httpContext),
+                Limit = boundedLimit,
+                Cursor = cursor,
+                StartUnixNano = ToUnixNano(parameters.StartTime),
+                EndUnixNano = ToUnixNano(parameters.EndTime),
+                ServiceName = parameters.ServiceName,
+                ErrorsOnly = parameters.ErrorsOnly is true
+            }, ct)
             .ConfigureAwait(false);
-        var traces = page.Items.Select(static item =>
-        {
-            var spanContracts = SpanMapper.ToContracts(item.Spans);
-            return SpanMapper.ToTrace(item.TraceId, spanContracts);
-        }).ToList();
-        var nextCursor = page.HasMore && page.Items.Count > 0
-            ? TracePageCursorCodec.Encode(new TracePageCursor(
-                page.Items[^1].ActivityUnixNano,
-                page.Items[^1].TraceId))
-            : null;
-
-        return Results.Ok(new CursorPageTrace
-        {
-            Items = traces,
-            HasMore = page.HasMore,
-            NextCursor = nextCursor
-        });
+        return Results.Ok(ToTracePage(page, PageCursorKind.Traces));
     }
 
-    private static async Task<IResult> GetTraceSpansAsync(
+    internal static CursorPageTrace ToTracePage(TraceStoragePage page, PageCursorKind kind) =>
+        new()
+        {
+            Items = [.. page.Items.Select(static item => SpanMapper.ToTrace(item.TraceId, SpanMapper.ToContracts(item.Spans)))],
+            HasMore = page.HasMore,
+            NextCursor = page.HasMore && page.Items.Count > 0
+                ? PageCursorCodec.Encode(kind, new TracePageCursor(page.Items[^1].ActivityUnixNano, page.Items[^1].TraceId))
+                : null
+        };
+
+    internal static async Task<IResult> GetTraceSpansAsync(
         HttpContext httpContext,
         [FromRoute(Name = "trace_id")] string traceId,
         IQylStore store,
         CancellationToken ct)
     {
-        var spans = await store.GetTraceAsync(traceId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false);
-        if (spans.Count is 0) return ContractErrorResults.NotFound("trace", traceId);
+        if (ContractQueryParser.ParsePage(httpContext.Request, out var query) is { } queryError)
+            return queryError;
 
-        var spanContracts = SpanMapper.ToContracts(spans);
-        return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
+        // Omitted, the limit stays unbounded: the contract serves every span of the trace in one
+        // page then, exactly as before the parameter existed.
+        if (query.Limit is { } requested && requested is < 1 or > ContractLimits.SpanMaxLimit)
+            return InvalidLimit(requested, ContractLimits.SpanMaxLimit);
+
+        SpanPageCursor? cursor = null;
+        if (query.Cursor is { } encoded)
+        {
+            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.TraceSpans, 2, out var fields) ||
+                !PageCursorCodec.TryParseHex(fields[0], out var start) ||
+                !ContractIdentifiers.IsSpanId(fields[1]))
+            {
+                return InvalidCursor(encoded);
+            }
+
+            cursor = new SpanPageCursor(start, fields[1]);
+        }
+
+        var projectId = ResolveProjectScope(httpContext);
+        var spans = await store.GetTraceSpanPageAsync(traceId, projectId, cursor, query.Limit + 1, ct)
+            .ConfigureAwait(false);
+        if (spans.Count is 0 &&
+            (cursor is null || !await store.TraceExistsAsync(projectId, traceId, ct).ConfigureAwait(false)))
+        {
+            return ContractErrorResults.NotFound("trace", traceId);
+        }
+
+        var hasMore = query.Limit is { } limit && spans.Count > limit;
+        IReadOnlyList<SpanStorageRow> page = hasMore ? [.. spans.Take(query.Limit!.Value)] : spans;
+        return Results.Ok(new CursorPageSpan
+        {
+            Items = SpanMapper.ToContracts(page),
+            HasMore = hasMore,
+            NextCursor = hasMore
+                ? PageCursorCodec.Encode(
+                    PageCursorKind.TraceSpans,
+                    PageCursorCodec.Hex(page[^1].StartTimeUnixNano),
+                    page[^1].SpanId)
+                : null
+        });
     }
 
     private static async Task<IResult> GetTraceAsync(
@@ -674,6 +766,15 @@ internal static partial class CollectorEndpointExtensions
                 "severity.out_of_range",
                 typedQuery.SeverityMin.Value.ToString(CultureInfo.InvariantCulture));
         }
+
+        LogPageCursor? cursor = null;
+        if (typedQuery.Cursor is { } encoded)
+        {
+            if (!TryDecodeLogCursor(encoded, PageCursorKind.Logs, out var decoded))
+                return InvalidCursor(encoded);
+            cursor = decoded;
+        }
+
         var logs = await store.GetLogsAsync(
             ResolveProjectScope(httpContext),
             sessionId: sessionId,
@@ -681,23 +782,58 @@ internal static partial class CollectorEndpointExtensions
             severityText: level,
             minSeverity: typedQuery.SeverityMin,
             search: query,
-            start: typedQuery.StartTime.HasValue
-                ? QylTimeConversions.ToUnixNanoUnsigned(typedQuery.StartTime.Value.ToUniversalTime())
-                : null,
-            before: typedQuery.EndTime.HasValue
-                ? QylTimeConversions.ToUnixNanoUnsigned(typedQuery.EndTime.Value.ToUniversalTime())
-                : null,
+            start: ToUnixNano(typedQuery.StartTime),
+            before: ToUnixNano(typedQuery.EndTime),
             serviceName: serviceName,
             limit: boundedLimit + 1,
+            cursor: cursor,
             ct: ct);
 
-        var hasMore = logs.Count > boundedLimit;
-        return Results.Ok(new CursorPageLogRecord
-        {
-            Items = LogMapper.ToContracts(hasMore ? [.. logs.Take(boundedLimit)] : logs),
-            HasMore = hasMore
-        });
+        return Results.Ok(ToLogPage(logs, boundedLimit, PageCursorKind.Logs));
     }
+
+    internal static CursorPageLogRecord ToLogPage(
+        IReadOnlyList<LogStorageRow> logs,
+        int limit,
+        PageCursorKind kind,
+        params string[] cursorPrefix)
+    {
+        var hasMore = logs.Count > limit;
+        IReadOnlyList<LogStorageRow> page = hasMore ? [.. logs.Take(limit)] : logs;
+        return new CursorPageLogRecord
+        {
+            Items = LogMapper.ToContracts(page),
+            HasMore = hasMore,
+            NextCursor = hasMore
+                ? PageCursorCodec.Encode(
+                    kind,
+                    [.. cursorPrefix, PageCursorCodec.Hex(page[^1].TimeUnixNano), page[^1].LogId])
+                : null
+        };
+    }
+
+    internal static bool TryDecodeLogCursor(string encoded, PageCursorKind kind, out LogPageCursor cursor)
+    {
+        cursor = default;
+        if (!PageCursorCodec.TryDecode(encoded, kind, 2, out var fields) ||
+            !PageCursorCodec.TryParseHex(fields[0], out var time))
+        {
+            return false;
+        }
+
+        cursor = new LogPageCursor(time, fields[1]);
+        return true;
+    }
+
+    private static ulong? ToUnixNano(DateTimeOffset? value) =>
+        value is { } timestamp ? QylTimeConversions.ToUnixNanoUnsigned(timestamp.ToUniversalTime()) : null;
+
+    private static IResult InvalidCursor(string cursor) =>
+        ContractErrorResults.Validation(
+            "cursor",
+            "Cursor is not a next_cursor this list served.",
+            "cursor.invalid",
+            cursor);
 
     internal static async Task StreamLogsAsync(
         HttpContext context,
@@ -859,14 +995,14 @@ internal static partial class CollectorEndpointExtensions
     }
 
 
-    private static IResult InvalidLimit(int? limit, int maximum) =>
+    internal static IResult InvalidLimit(int? limit, int maximum) =>
         ContractErrorResults.Validation(
             "limit",
             $"Limit must be between 1 and {maximum}.",
             "limit.out_of_range",
             limit?.ToString(CultureInfo.InvariantCulture));
 
-    private static string ResolveProjectScope(HttpContext httpContext) =>
+    internal static string ResolveProjectScope(HttpContext httpContext) =>
         AuthenticatedProject.ForHttpRead(httpContext);
 
     internal static Task FallbackHandler(HttpContext context)
@@ -916,12 +1052,17 @@ internal static partial class CollectorEndpointExtensions
         path.Equals(root, StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase);
 
-    private static class ContractLimits
+    internal static class ContractLimits
     {
         public const int DefaultPageLimit = 100;
         public const int SessionMaxLimit = 1_000;
+        public const int SessionTraceMaxLimit = 1_000;
         public const int TraceMaxLimit = 1_000;
+        public const int SpanMaxLimit = 10_000;
         public const int LogMaxLimit = 10_000;
+        public const int AnnotationMaxLimit = 1_000;
+        public const int SavedQueryMaxLimit = 1_000;
+        public const int SavedQueryRunMaxLimit = 1_000;
         public const int MetricDefaultLimit = 200;
         public const int MetricMaxLimit = 1_000;
         public const int MetricSeriesDefaultLimit = 50;
