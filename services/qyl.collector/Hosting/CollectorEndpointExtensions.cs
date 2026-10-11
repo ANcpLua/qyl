@@ -329,16 +329,19 @@ internal static partial class CollectorEndpointExtensions
             return InvalidLimit(query.Limit, ContractLimits.MetricMaxLimit);
         }
 
+        // One extra row makes HasMore a fact rather than the coincidence of a page that exactly
+        // fills the limit; the sessions list pages the same way.
         var metrics = await store.ListMetricsAsync(
             ResolveProjectScope(httpContext),
             query.NamePrefix,
-            boundedLimit,
+            boundedLimit + 1,
             ct);
 
+        var hasMore = metrics.Count > boundedLimit;
         return Results.Ok(new CursorPageMetricDescriptor
         {
-            Items = MetricMapper.ToContracts(metrics),
-            HasMore = metrics.Count >= boundedLimit
+            Items = MetricMapper.ToContracts(hasMore ? [.. metrics.Take(boundedLimit)] : metrics),
+            HasMore = hasMore
         });
     }
 
@@ -362,7 +365,7 @@ internal static partial class CollectorEndpointExtensions
             projectId,
             metricName,
             query.Matchers,
-            boundedLimit,
+            boundedLimit + 1,
             ct);
 
         // An empty page under a name that was never recorded is a 404: the caller asked
@@ -371,10 +374,11 @@ internal static partial class CollectorEndpointExtensions
         if (series.Count is 0 && query.Matchers.Count is 0)
             return ContractErrorResults.NotFound("metric", metricName);
 
+        var hasMore = series.Count > boundedLimit;
         return Results.Ok(new CursorPageMetricSeries
         {
-            Items = MetricMapper.ToContracts(series),
-            HasMore = series.Count >= boundedLimit
+            Items = MetricMapper.ToContracts(hasMore ? [.. series.Take(boundedLimit)] : series),
+            HasMore = hasMore
         });
     }
 
@@ -684,10 +688,15 @@ internal static partial class CollectorEndpointExtensions
                 ? QylTimeConversions.ToUnixNanoUnsigned(typedQuery.EndTime.Value.ToUniversalTime())
                 : null,
             serviceName: serviceName,
-            limit: boundedLimit,
+            limit: boundedLimit + 1,
             ct: ct);
 
-        return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
+        var hasMore = logs.Count > boundedLimit;
+        return Results.Ok(new CursorPageLogRecord
+        {
+            Items = LogMapper.ToContracts(hasMore ? [.. logs.Take(boundedLimit)] : logs),
+            HasMore = hasMore
+        });
     }
 
     internal static async Task StreamLogsAsync(
@@ -860,12 +869,16 @@ internal static partial class CollectorEndpointExtensions
     private static string ResolveProjectScope(HttpContext httpContext) =>
         AuthenticatedProject.ForHttpRead(httpContext);
 
-    private static Task FallbackHandler(HttpContext context)
+    internal static Task FallbackHandler(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "/";
 
-        if (IsPathOrDescendant(path, "/api") ||
-            OtlpConstants.IsOtlpNamespacePath(path) ||
+        // Every /api response is problem+json, an unknown route included, so a client parses
+        // one error shape instead of special-casing an empty 404.
+        if (IsPathOrDescendant(path, "/api"))
+            return ContractErrorResults.WriteNotFoundAsync(context.Response, "route", path, context.RequestAborted);
+
+        if (OtlpConstants.IsOtlpNamespacePath(path) ||
             IsPathOrDescendant(path, "/assets"))
         {
             context.Response.StatusCode = 404;
@@ -884,7 +897,7 @@ internal static partial class CollectorEndpointExtensions
         {
             context.Response.StatusCode = 404;
             return context.Response.WriteAsync(
-                "Dashboard not found. Build with: dotnet run --project eng/build/build.csproj -- FrontendBuild");
+                "Dashboard not found. Build with: ./eng/build.sh FrontendBuild");
         }
 
         var indexPath = Path.Combine(webRootPath, "index.html");
@@ -896,7 +909,7 @@ internal static partial class CollectorEndpointExtensions
 
         context.Response.StatusCode = 404;
         return context.Response.WriteAsync(
-            "Dashboard not found. Build with: dotnet run --project eng/build/build.csproj -- FrontendBuild");
+            "Dashboard not found. Build with: ./eng/build.sh FrontendBuild");
     }
 
     private static bool IsPathOrDescendant(string path, string root) =>

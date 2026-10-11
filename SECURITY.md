@@ -21,7 +21,7 @@ rather than against a guaranteed response window.
 ## Supported versions
 
 Fixes land on `main` and ship in the next release. Security fixes are published
-for the current 3.x line only; earlier majors (1.x and 2.x) are not patched in
+for the latest release line only; earlier lines are not patched in
 place.
 
 ## Disclosure

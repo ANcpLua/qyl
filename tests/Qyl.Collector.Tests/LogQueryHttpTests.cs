@@ -1,7 +1,9 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
 
@@ -68,6 +70,80 @@ public sealed class LogQueryHttpTests
             using var absent = JsonDocument.Parse(await client.GetStringAsync(
                 "/api/v1/logs?service_name=missing&severity_min=17&limit=20", ct));
             Assert.Equal(0, absent.RootElement.GetProperty("items").GetArrayLength());
+        }
+        finally
+        {
+            await app.StopAsync(ct);
+        }
+    }
+
+    [Theory]
+    [InlineData(2, 2, false)]
+    [InlineData(1, 1, true)]
+    public async Task Log_pages_report_has_more_only_when_a_row_lies_past_the_limit(
+        int limit, int expectedItems, bool expectedHasMore)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new DuckDbStore(":memory:");
+        var row = new LogStorageRow
+        {
+            ProjectId = "default",
+            LogId = "first",
+            ServiceName = "checkout",
+            TimeUnixNano = 2_000_000_000,
+            SeverityNumber = 9,
+            SeverityText = "INFO",
+            Body = "\"entry\""
+        };
+        // Two rows: a page that exactly fills the limit has no more.
+        await store.InsertLogsAsync([row, row with { LogId = "second", TimeUnixNano = 3_000_000_000 }], ct);
+
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddSingleton<IQylStore>(store);
+        builder.Services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default));
+        await using var app = builder.Build();
+        app.MapGet("/api/v1/logs", CollectorEndpointExtensions.GetLogsAsync);
+        await app.StartAsync(ct);
+        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+        try
+        {
+            using var page = JsonDocument.Parse(await client.GetStringAsync($"/api/v1/logs?limit={limit}", ct));
+            Assert.Equal(expectedItems, page.RootElement.GetProperty("items").GetArrayLength());
+            Assert.Equal(expectedHasMore, page.RootElement.GetProperty("has_more").GetBoolean());
+        }
+        finally
+        {
+            await app.StopAsync(ct);
+        }
+    }
+
+    [Theory]
+    [InlineData("/api")]
+    [InlineData("/api/v1/unknown")]
+    [InlineData("/api/v2/logs")]
+    public async Task Unknown_api_routes_are_problem_json_not_found(string path)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        await using var app = builder.Build();
+        app.MapFallback(CollectorEndpointExtensions.FallbackHandler);
+        await app.StartAsync(ct);
+        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+        try
+        {
+            using var response = await client.GetAsync(path, ct);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal(ProblemDetailsMediaType.Value, response.Content.Headers.ContentType?.MediaType);
+            using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            Assert.Equal(404, body.RootElement.GetProperty("status").GetInt32());
+            Assert.Equal(path, body.RootElement.GetProperty("resource_id").GetString());
+
+            // Outside /api the fallback keeps serving the dashboard path, never problem+json.
+            using var dashboard = await client.GetAsync("/sessions", ct);
+            Assert.NotEqual(ProblemDetailsMediaType.Value, dashboard.Content.Headers.ContentType?.MediaType);
         }
         finally
         {

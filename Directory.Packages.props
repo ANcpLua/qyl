@@ -76,8 +76,4 @@
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)"/>
     <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>
-  </ItemGroup>
 </Project>

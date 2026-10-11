@@ -244,6 +244,36 @@ public sealed class MetricApiTests
         Assert.True(result.Truncated);
     }
 
+    [Theory]
+    [InlineData(2, 2, false)]
+    [InlineData(1, 1, true)]
+    public async Task The_catalog_and_series_routes_report_has_more_only_when_a_row_lies_past_the_limit(
+        int limit, int expectedItems, bool expectedHasMore)
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var ct = TestContext.Current.CancellationToken;
+        // Two names and two series under the first: a page that exactly fills the limit has no more.
+        await IngestAsync(store, ct,
+            Gauge("http.server.active", "/a", (T0, 1d)),
+            Gauge("http.server.active", "/b", (T0, 2d)),
+            Counter("http.server.requests", (T0, 3d)));
+
+        var catalog = CreateContext($"limit={limit}");
+        await (await CollectorEndpointExtensions.GetMetricsAsync(catalog, store, ct)).ExecuteAsync(catalog);
+        var catalogPage = JsonSerializer.Deserialize(
+            await ReadBodyAsync(catalog), QylSerializerContext.Default.CursorPageMetricDescriptor)!;
+        Assert.Equal(expectedItems, catalogPage.Items.Count);
+        Assert.Equal(expectedHasMore, catalogPage.HasMore);
+
+        var series = CreateContext($"limit={limit}");
+        await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
+            series, "http.server.active", store, ct)).ExecuteAsync(series);
+        var seriesPage = JsonSerializer.Deserialize(
+            await ReadBodyAsync(series), QylSerializerContext.Default.CursorPageMetricSeries)!;
+        Assert.Equal(expectedItems, seriesPage.Items.Count);
+        Assert.Equal(expectedHasMore, seriesPage.HasMore);
+    }
+
     private static async Task IngestAsync(DuckDbStore store, CancellationToken ct, params OtlpMetric[] metrics)
     {
         var scope = new ScopeMetrics();

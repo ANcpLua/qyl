@@ -61,7 +61,12 @@ jobs:
 
           for path in "${changed[@]}"; do
             case "$path" in
-              README.md|CHANGELOG.md|docs/*)
+              # VerifyBackend renders README.md from Version.props and checks docs/configuration.md
+              # against the configuration knobs, so both need the backend lane.
+              README.md|docs/configuration.md)
+                backend=true
+                ;;
+              CHANGELOG.md|docs/*)
                 ;;
               .github/*.md)
                 if [[ "${path#.github/}" == */* ]]; then

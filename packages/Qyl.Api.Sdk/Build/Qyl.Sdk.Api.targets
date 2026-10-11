@@ -22,7 +22,6 @@
     <PackageReference Include="Microsoft.OpenApi"
                       VersionOverride="$(QylOpenApiModelVersion)" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
-                      Condition="'$(QylEmitOpenApiDocument)' == 'true'"
                       VersionOverride="$(QylApiDescriptionServerVersion)"
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
@@ -47,7 +46,6 @@
                       Version="$(QylOpenApiModelVersion)"
                       IsImplicitlyDefined="true" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
-                      Condition="'$(QylEmitOpenApiDocument)' == 'true'"
                       Version="$(QylApiDescriptionServerVersion)"
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
@@ -91,6 +89,11 @@
     consumer's own compilation (CS1570 in every build of every Qyl API) and a bare `;` would cut the file in half.
   -->
   <Target Name="QylGenerateSdkBuildInfo" BeforeTargets="CoreCompile">
+    <!-- The value becomes a Microsoft.OpenApi.OpenApiSpecVersion member and a tool argument; an unknown one would
+         otherwise surface as CS0117 in generated code or a tool failure after compilation. -->
+    <Error Condition="'$(QylOpenApiVersion)' != 'OpenApi2_0' and '$(QylOpenApiVersion)' != 'OpenApi3_0' and '$(QylOpenApiVersion)' != 'OpenApi3_1'"
+           Code="QYLSDK0003"
+           Text="QylOpenApiVersion is '$(QylOpenApiVersion)'. It must name a Microsoft.OpenApi.OpenApiSpecVersion member: OpenApi2_0, OpenApi3_0 or OpenApi3_1." />
     <PropertyGroup>
       <!-- The tool names the file from the project, not the assembly: Microsoft.Extensions.ApiDescription.Server
            passes the project name as its own argument and never a file name. A project whose AssemblyName
@@ -157,8 +160,7 @@ namespace Qyl
     consumer — including the first build of a new project, where the document appears for the first time.
   -->
   <Target Name="QylVerifyContractRevision"
-          AfterTargets="GenerateOpenApiDocuments"
-          Condition="'$(QylEmitOpenApiDocument)' == 'true'">
+          AfterTargets="GenerateOpenApiDocuments">
     <Error Condition="!Exists('$(QylOpenApiDocumentFile)')"
            Code="QYLSDK0002"
            Text="The Qyl API's OpenAPI document was not produced at $(QylOpenApiDocumentFile). It is a committed build artifact and the contract revision every span carries is its digest; a Qyl API cannot be built without it." />

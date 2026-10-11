@@ -1,7 +1,9 @@
 <Project>
   <!--
     Opinions of a Qyl API project. Every value is a default: a project (or Directory.Build.props)
-    that sets the property first wins, so nothing here is a lock-in.
+    that sets the property first wins, so nothing here is a lock-in. Two exceptions, both marked below:
+    OpenApiGenerateDocumentsOptions gains the openapi-version flag unless it already carries one, and
+    OpenApiDocumentsDirectory always follows QylOpenApiDocumentsDirectory.
   -->
   <PropertyGroup>
     <QylSdkSourcesPath>$(QylSdkRoot)Sources/</QylSdkSourcesPath>
@@ -27,8 +29,8 @@
       compilation as Qyl.QylSdkBuild.OpenApiVersion, which AddQylApi applies at runtime. Value: a Microsoft.OpenApi.OpenApiSpecVersion member name.
     -->
     <QylOpenApiVersion Condition="'$(QylOpenApiVersion)' == ''">OpenApi3_1</QylOpenApiVersion>
-    <OpenApiGenerateDocumentsOptions>$(OpenApiGenerateDocumentsOptions) --openapi-version $(QylOpenApiVersion)</OpenApiGenerateDocumentsOptions>
-    <QylEmitOpenApiDocument Condition="'$(QylEmitOpenApiDocument)' == ''">true</QylEmitOpenApiDocument>
+    <!-- Appended, not defaulted, and only once: a project that already passes the flag keeps its own. -->
+    <OpenApiGenerateDocumentsOptions Condition="!$(OpenApiGenerateDocumentsOptions.Contains('--openapi-version'))">$(OpenApiGenerateDocumentsOptions) --openapi-version $(QylOpenApiVersion)</OpenApiGenerateDocumentsOptions>
     <QylOpenApiDocumentsDirectory Condition="'$(QylOpenApiDocumentsDirectory)' == ''">$(MSBuildProjectDirectory)/openapi</QylOpenApiDocumentsDirectory>
     <!-- Set unconditionally: the ApiDescription.Server package already defaulted this to obj/ before this file was imported. -->
     <OpenApiDocumentsDirectory>$(QylOpenApiDocumentsDirectory)</OpenApiDocumentsDirectory>
