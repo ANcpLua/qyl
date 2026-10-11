@@ -64,10 +64,10 @@ The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.A
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
 | `qyl` (dotnet tool) | 12.0.0 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 24.0.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 9.8.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 24.0.1 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.SemanticConventions*` | 9.9.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
-| `qyl-mcp-server` | 7.6.0 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
+| `qyl-mcp-server` | 7.6.1 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 | `Qyl.Api.Sdk` (MSBuild SDK) | 12.0.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last

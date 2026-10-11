@@ -1,6 +1,11 @@
 # Changelog
 
-## 12.0.0 — Unreleased
+## 12.0.0 — 2026-10-12
+
+- Adopt `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 24.0.1 together with
+  `Qyl.Telemetry.SemanticConventions*` 9.9.0. The shared qyl registry now generates C# and
+  TypeScript definitions; MCP consumes the same vocabulary in 7.6.1. Refresh the generated
+  collector attribute catalog without changing its normalization or privacy policy.
 
 - Breaking configuration change: every `QYL_OTLP_PROJECT_KEYS` entry must be an object with
   `key` and a nonempty `roles` array. Plain strings and implicit roles are removed. Allowed

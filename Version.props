@@ -36,9 +36,9 @@
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Api.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>24.0.0</QylTelemetryVersion>
+    <QylTelemetryVersion>24.0.1</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
-    <QylSemanticConventionsVersion>9.8.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>9.9.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <QylApiContractsVersion>12.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
