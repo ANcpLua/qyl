@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Qyl;
 
 namespace Qyl.Cli.Runtime;
@@ -144,7 +145,7 @@ internal sealed class QylAppBuilder
         // interactive console; export failures surface through OpenTelemetry's own diagnostics, and
         // the last batches at shutdown always miss the already-stopped sink. Keep them off the console.
         foreach (var exporter in new[] { "OtlpTraceExporter", "OtlpLogExporter", "OtlpMetricExporter" })
-            _host.Logging.AddFilter($"System.Net.Http.HttpClient.{exporter}", Microsoft.Extensions.Logging.LogLevel.None);
+            _host.Logging.AddFilter($"System.Net.Http.HttpClient.{exporter}", LogLevel.None);
 
         _host.Services.AddSingleton(_options);
         _host.Services.AddSingleton(TimeProvider.System);
