@@ -122,12 +122,6 @@ describe('wire timestamp shapes the collector actually emits', () => {
         }).timestamp).toBe(OFFSET_TIMESTAMP);
         expect(parseHeartbeatEvent({type: 'heartbeat', timestamp: OFFSET_TIMESTAMP}).timestamp)
             .toBe(OFFSET_TIMESTAMP);
-        expect(parseProblemDetails({
-            type: 'about:blank',
-            title: 'Not Found',
-            status: 404,
-            timestamp: OFFSET_TIMESTAMP,
-        }).timestamp).toBe(OFFSET_TIMESTAMP);
     });
 
     it('rejects a timestamp that drops seconds on every dated contract', () => {
@@ -156,17 +150,20 @@ describe('wire timestamp shapes the collector actually emits', () => {
         })).toThrow(/Collector contract mismatch/);
         expect(() => parseHeartbeatEvent({type: 'heartbeat', timestamp: SECONDS_MISSING_TIMESTAMP}))
             .toThrow(/Collector contract mismatch/);
-        expect(() => parseProblemDetails({
-            type: 'about:blank',
-            title: 'Not Found',
-            status: 404,
-            timestamp: SECONDS_MISSING_TIMESTAMP,
-        })).toThrow(/Collector contract mismatch/);
     });
 
-    // `Operations.health_ready.Response.200` and `Operations.TracesApi_getSpans.Response.200`
-    // publish no `format: date-time` member, so there is no timestamp shape to pin for them.
-    it('still pins the two dated-field-free parsers against drift', () => {
+    // `Operations.health_ready.Response.200`, `Operations.TracesApi_getSpans.Response.200` and
+    // `Common.Errors.ProblemDetails` publish no `format: date-time` member, so there is no
+    // timestamp shape to pin for them. A 12.0.0 problem names its type URI and stable code.
+    it('still pins the dated-field-free parsers against drift', () => {
+        expect(parseProblemDetails({
+            type: 'https://qyl.at/problems/not-found',
+            title: 'Not Found',
+            status: 404,
+            code: 'not_found',
+        }).code).toBe('not_found');
+        expect(() => parseProblemDetails({type: 'about:blank', title: 'Not Found', status: 404}))
+            .toThrow(/Collector contract mismatch/);
         expect(parseSpanPage({items: [span], has_more: false}, span.trace_id).items[0].span_id)
             .toBe(span.span_id);
         expect(() => parseSpanPage({items: [{...span, kind: 'server'}], has_more: false}, span.trace_id))

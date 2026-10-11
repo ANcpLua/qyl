@@ -1,6 +1,23 @@
 # Changelog
 
-## 10.0.0 — unreleased
+## 11.0.0 — unreleased
+
+- `Qyl.Api.Contracts` and `@ancplua/qyl-api-schema` 11.6.0 → 12.0.0 (contract revision
+  `sha256:b29439eba28e752b`). The collector and the `qyl` runner serve the Contract 12.0.0 surface,
+  which is breaking for API clients:
+  - Every problem body is RFC 9457 plus the `code` extension: `type` is one of the ten
+    `https://qyl.at/problems/<name>` URIs and `code` its stable string (`validation_failed`,
+    `not_found`, …). `about:blank`, `error_code`, `trace_id`, `request_id` and `timestamp` are gone
+    from problem bodies; the collector's 500 still carries `X-Trace-Id` as a header. The former
+    `error_code` (`collector.unhandled_exception`, `runner.action_failed`) is the `detail`.
+  - One page limit on every list route and on `SavedQueryRunRequest.limit`: 1 to 1000, 100 when
+    omitted. Logs no longer accept 10000, metrics default to 100 instead of 200, and
+    `GET /api/v1/traces/{trace_id}/spans` pages by 100 when `limit` is omitted instead of serving
+    the whole trace; follow `next_cursor` for the rest. `series_limit` on the metric query keeps
+    1 to 500, 50 by default.
+  - `next_cursor` is present exactly when `has_more` is true; the last page omits it.
+
+## 10.0.0 — 2026-10-11
 
 - `qyl` runner: a request still in flight when the runner shuts down, or accepted while it drains,
   is answered `503` `application/problem+json` with `reason: runner.shutting_down` instead of an

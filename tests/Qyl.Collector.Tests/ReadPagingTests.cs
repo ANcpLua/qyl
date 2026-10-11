@@ -57,20 +57,22 @@ public sealed class ReadPagingTests
     }
 
     [Fact]
-    public async Task Trace_spans_page_in_start_order_and_stay_whole_without_a_limit()
+    public async Task Trace_spans_page_in_start_order_with_the_shared_page_limit()
     {
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
         await SeedTracesAsync(host);
 
+        // Omitted, the limit is the contract's default page of 100: three spans fit in one page.
         using var all = await host.SendAsync(HttpMethod.Get, $"/api/v1/traces/{TraceId(1)}/spans", "reader");
         var allBody = await JsonAsync(all);
         Assert.Equal(3, allBody.GetProperty("items").GetArrayLength());
         Assert.False(allBody.GetProperty("has_more").GetBoolean());
+        Assert.False(allBody.TryGetProperty("next_cursor", out _));
 
         var spans = await CollectAsync(host, $"/api/v1/traces/{TraceId(1)}/spans?limit=1", "span_id");
         Assert.Equal([SpanId(10), SpanId(11), SpanId(12)], spans);
 
-        using var tooLarge = await host.SendAsync(HttpMethod.Get, $"/api/v1/traces/{TraceId(1)}/spans?limit=10001", "reader");
+        using var tooLarge = await host.SendAsync(HttpMethod.Get, $"/api/v1/traces/{TraceId(1)}/spans?limit=1001", "reader");
         using var missing = await host.SendAsync(HttpMethod.Get, $"/api/v1/traces/{TraceId(99)}/spans?limit=1", "reader");
         Assert.Equal(HttpStatusCode.BadRequest, tooLarge.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);

@@ -28,7 +28,8 @@ internal static class ContractErrorResults
         Results.Json(
             new ConflictError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ProblemType.Conflict,
+                Code = ProblemCode.Conflict,
                 Title = "Conflict",
                 Status = StatusCodes.Status409Conflict,
                 Detail = detail,
@@ -42,7 +43,8 @@ internal static class ContractErrorResults
         Results.Json(
             new PreconditionFailedError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ProblemType.PreconditionFailed,
+                Code = ProblemCode.PreconditionFailed,
                 Title = "Precondition Failed",
                 Status = StatusCodes.Status412PreconditionFailed,
                 Detail = "If-Match does not name the current version. Read the resource again and retry with its etag.",
@@ -56,7 +58,8 @@ internal static class ContractErrorResults
         Results.Json(
             new PreconditionRequiredError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ProblemType.PreconditionRequired,
+                Code = ProblemCode.PreconditionRequired,
                 Title = "Precondition Required",
                 Status = StatusCodes.Status428PreconditionRequired,
                 Detail = "Send the etag of the version being changed in If-Match.",
@@ -118,7 +121,8 @@ internal static class ContractErrorResults
             response,
             new ForbiddenError
             {
-                ProblemType = new Uri("about:blank"),
+                Type = ProblemType.Forbidden,
+                Code = ProblemCode.Forbidden,
                 Title = "Forbidden",
                 Status = StatusCodes.Status403Forbidden,
                 Detail = $"The API key lacks the {requiredPermission} role.",
@@ -153,7 +157,8 @@ internal static class ContractErrorResults
     private static NotFoundError CreateNotFound(string resourceType, string resourceId) =>
         new()
         {
-            ProblemType = new Uri("about:blank"),
+            Type = ProblemType.NotFound,
+            Code = ProblemCode.NotFound,
             Title = "Not Found",
             Status = StatusCodes.Status404NotFound,
             ResourceType = resourceType,
@@ -167,7 +172,8 @@ internal static class ContractErrorResults
         string? rejectedValue) =>
         new()
         {
-            ProblemType = new Uri("about:blank"),
+            Type = ProblemType.ValidationFailed,
+            Code = ProblemCode.ValidationFailed,
             Title = "Validation Failed",
             Status = StatusCodes.Status400BadRequest,
             Errors =
@@ -185,7 +191,8 @@ internal static class ContractErrorResults
     private static UnauthorizedError CreateUnauthorized(string detail) =>
         new()
         {
-            ProblemType = new Uri("about:blank"),
+            Type = ProblemType.Unauthorized,
+            Code = ProblemCode.Unauthorized,
             Title = "Unauthorized",
             Status = StatusCodes.Status401Unauthorized,
             Detail = detail
@@ -194,16 +201,18 @@ internal static class ContractErrorResults
     private static ContractInternalServerError CreateInternalServerError(string errorCode) =>
         new()
         {
-            ProblemType = new Uri("about:blank"),
+            Type = ProblemType.InternalError,
+            Code = ProblemCode.InternalError,
             Title = "Internal Server Error",
             Status = StatusCodes.Status500InternalServerError,
-            ErrorCode = errorCode
+            Detail = errorCode
         };
 
     private static ServiceUnavailableError CreateServiceUnavailable(string reason) =>
         new()
         {
-            ProblemType = new Uri("about:blank"),
+            Type = ProblemType.ServiceUnavailable,
+            Code = ProblemCode.ServiceUnavailable,
             Title = "Service Unavailable",
             Status = StatusCodes.Status503ServiceUnavailable,
             Detail = "The collector cannot accept this operation at present. Retry later.",

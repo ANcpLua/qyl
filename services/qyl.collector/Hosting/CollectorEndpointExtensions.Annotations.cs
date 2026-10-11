@@ -104,9 +104,9 @@ internal static partial class CollectorEndpointExtensions
             return queryError;
 
         if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.AnnotationMaxLimit, out var boundedLimit))
+                ContractLimits.MaxPageLimit, out var boundedLimit))
         {
-            return InvalidLimit(query.Limit, ContractLimits.AnnotationMaxLimit);
+            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
         AnnotationPageCursor? cursor = null;
