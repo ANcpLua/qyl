@@ -56,10 +56,11 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new InvalidOperationException($"{DashboardDirectory} must depend on {packageName}.");
             }
 
+            // One exact SemVer version, a release candidate included; never a range.
             var version = dependency.GetString();
-            if (version is null || !Version.TryParse(version, out _))
+            if (version is null || !NuGet.Versioning.NuGetVersion.TryParseStrict(version, out _))
                 throw new InvalidOperationException(
-                    $"{DashboardDirectory} must pin {packageName} to one exact stable version; found '{version}'.");
+                    $"{DashboardDirectory} must pin {packageName} to one exact version; found '{version}'.");
 
             // bun.lock is JSONC; each package entry is an array whose first element is "<name>@<version>".
             var lockFile = DashboardDirectory / "bun.lock";
@@ -488,12 +489,28 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             var expectedDefault = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "default");
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/traces", expectedDefault);
             EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/sessions/{session_id}/traces", expectedDefault);
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/annotations", expectedDefault);
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/saved-queries", expectedDefault);
+            var runLimit = document.RootElement.GetProperty("components").GetProperty("schemas")
+                .GetProperty("SavedQueries.SavedQueryRunRequest").GetProperty("properties").GetProperty("limit");
+            if (runLimit.GetProperty("default").GetInt32() != expectedDefault)
+                throw new InvalidOperationException(
+                    $"SavedQueryRunRequest.limit default must be the shared page default {expectedDefault}.");
             var expected = new Dictionary<string, int>(StringComparer.Ordinal)
             {
                 ["DefaultPageLimit"] = expectedDefault,
                 ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
+                ["SessionTraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(
+                    document, "/api/v1/sessions/{session_id}/traces", "limit", "maximum"),
                 ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
+                // Omitted, the span limit stays unbounded (the whole trace in one page), so it has no default.
+                ["SpanMaxLimit"] = ReadOpenApiIntegerSchemaValue(
+                    document, "/api/v1/traces/{trace_id}/spans", "limit", "maximum"),
                 ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
+                ["AnnotationMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/annotations", "limit", "maximum"),
+                ["SavedQueryMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/saved-queries", "limit", "maximum"),
+                ["SavedQueryRunMaxLimit"] = runLimit.GetProperty("maximum").GetInt32(),
                 // The metric routes carry their own default and maximum rather than the shared
                 // page limit: a metric catalog is a small, dense list and a range query returns
                 // streams, not rows, so neither is bounded by the same number as a span page.
@@ -580,16 +597,21 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             {
                 "delete", "get", "patch", "post", "put"
             };
-            var expected = openApiDocument.RootElement.GetProperty("paths")
+            // The key role each operation's security scheme names (common/auth.tsp): the query
+            // routes keep ApiKeyAuth and require `read`.
+            var expectedRoles = openApiDocument.RootElement.GetProperty("paths")
                 .EnumerateObject()
                 .Where(static path => path.Name.StartsWith("/api/v1/", StringComparison.Ordinal))
                 .SelectMany(path => path.Value.EnumerateObject()
                     .Where(operation => operationNames.Contains(operation.Name))
-                    .Select(operation => $"{operation.Name.ToUpperInvariant()} {path.Name}"))
-                .ToHashSet(StringComparer.Ordinal);
+                    .Select(operation => (
+                        Route: $"{operation.Name.ToUpperInvariant()} {path.Name}",
+                        Role: SecuritySchemeRole(operation.Value))))
+                .ToDictionary(static item => item.Route, static item => item.Role, StringComparer.Ordinal);
+            var expected = expectedRoles.Keys.ToHashSet(StringComparer.Ordinal);
 
             var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(endpointFile), path: endpointFile.ToString());
-            var actual = tree.GetCompilationUnitRoot().DescendantNodes()
+            var mapped = tree.GetCompilationUnitRoot().DescendantNodes()
                 .OfType<InvocationExpressionSyntax>()
                 .Select(static invocation => (Invocation: invocation, Member: invocation.Expression as MemberAccessExpressionSyntax))
                 .Where(static item => item.Member?.Expression is IdentifierNameSyntax { Identifier.ValueText: "api" })
@@ -608,17 +630,26 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                         as LiteralExpressionSyntax;
                     return method is null || route is null
                         ? null
-                        : $"{method} /api/v1{route.Token.ValueText}";
+                        : ((string Route, string? Role)?)($"{method} /api/v1{route.Token.ValueText}",
+                            DeclaredKeyRole(item.Invocation));
                 })
                 .Where(static route => route is not null)
-                .Select(static route => route!)
-                .ToHashSet(StringComparer.Ordinal);
+                .Select(static route => route!.Value)
+                .ToList();
+            var actual = mapped.Select(static route => route.Route).ToHashSet(StringComparer.Ordinal);
 
             var missing = expected.Except(actual, StringComparer.Ordinal).OrderBy(static route => route).ToArray();
             var extra = actual.Except(expected, StringComparer.Ordinal).OrderBy(static route => route).ToArray();
-            if (missing.Length is 0 && extra.Length is 0)
+            var wrongRoles = mapped
+                .Where(route => expectedRoles.TryGetValue(route.Route, out var role) &&
+                                !string.Equals(role, route.Role, StringComparison.Ordinal))
+                .Select(route => $"{route.Route}: collector requires {route.Role ?? "no role"}, " +
+                                 $"OpenAPI security names {expectedRoles[route.Route]}")
+                .OrderBy(static route => route)
+                .ToArray();
+            if (missing.Length is 0 && extra.Length is 0 && wrongRoles.Length is 0)
             {
-                Log.Information("Collector product routes exactly match qyl-api-schema OpenAPI");
+                Log.Information("Collector product routes and their key roles exactly match qyl-api-schema OpenAPI");
                 return;
             }
 
@@ -626,9 +657,38 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 Log.Error("  Missing collector product route: {Route}", route);
             foreach (var route in extra)
                 Log.Error("  Collector route absent from qyl-api-schema: {Route}", route);
+            foreach (var route in wrongRoles)
+                Log.Error("  Key role mismatch: {Route}", route);
 
             throw new InvalidOperationException(
-                "Collector /api/v1 routes must exactly match the installed qyl-api-schema OpenAPI contract.");
+                "Collector /api/v1 routes, and the key role each requires, must exactly match the installed " +
+                "qyl-api-schema OpenAPI contract.");
+
+            static string SecuritySchemeRole(JsonElement operation)
+            {
+                var scheme = operation.TryGetProperty("security", out var security) && security.GetArrayLength() is 1
+                    ? security[0].EnumerateObject().Single().Name
+                    : null;
+                return scheme switch
+                {
+                    "ApiKeyAuth" => "Read",
+                    "QylWriteKeyAuth" => "Write",
+                    "QylDeleteKeyAuth" => "Delete",
+                    _ => throw new InvalidOperationException(
+                        $"An /api/v1 operation names no collector key scheme it can map to a role: '{scheme}'.")
+                };
+            }
+
+            // `api.MapX(...).RequireKeyRole(ApiKeyRoles.Y)` declares role Y for that route.
+            static string? DeclaredKeyRole(InvocationExpressionSyntax map) =>
+                map.Parent is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "RequireKeyRole" } access &&
+                access.Parent is InvocationExpressionSyntax requirement &&
+                requirement.ArgumentList.Arguments.SingleOrDefault()?.Expression is MemberAccessExpressionSyntax
+                {
+                    Expression: IdentifierNameSyntax { Identifier.ValueText: "ApiKeyRoles" }
+                } role
+                    ? role.Name.Identifier.ValueText
+                    : null;
         });
 
     Target VerifyCollectorUsesSemanticConstants => d => d

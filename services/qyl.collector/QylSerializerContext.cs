@@ -1,4 +1,5 @@
 using Qyl.Api.Contracts;
+using Qyl.Api.Contracts.Annotations;
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Api.Contracts.Common.Pagination;
@@ -6,6 +7,7 @@ using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.OTel.Traces;
+using Qyl.Api.Contracts.SavedQueries;
 using Qyl.Api.Contracts.Streaming;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
@@ -30,6 +32,7 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.Trace), TypeInfoPropertyName = "OtelTrace")]
 [JsonSerializable(typeof(CursorPageSpan))]
 [JsonSerializable(typeof(CursorPageTrace))]
+[JsonSerializable(typeof(TraceSummary))]
 [JsonSerializable(typeof(LogRecord))]
 [JsonSerializable(typeof(LogRecord[]))]
 [JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeValue))]
@@ -67,7 +70,31 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ValidationErrorDetail))]
 [JsonSerializable(typeof(ConflictError))]
 [JsonSerializable(typeof(UnauthorizedError))]
+[JsonSerializable(typeof(ForbiddenError))]
 [JsonSerializable(typeof(ServiceUnavailableError))]
+[JsonSerializable(typeof(PreconditionFailedError))]
+[JsonSerializable(typeof(PreconditionRequiredError))]
+[JsonSerializable(typeof(Annotation))]
+[JsonSerializable(typeof(AnnotationTarget))]
+[JsonSerializable(typeof(TraceAnnotationTarget))]
+[JsonSerializable(typeof(SpanAnnotationTarget))]
+[JsonSerializable(typeof(SessionAnnotationTarget))]
+[JsonSerializable(typeof(AnnotationCreateRequest))]
+[JsonSerializable(typeof(AnnotationUpdateRequest))]
+[JsonSerializable(typeof(CursorPageAnnotation))]
+[JsonSerializable(typeof(SavedQuery))]
+[JsonSerializable(typeof(SavedQueryFilter))]
+[JsonSerializable(typeof(SavedTraceQueryFilter))]
+[JsonSerializable(typeof(SavedLogQueryFilter))]
+[JsonSerializable(typeof(SavedMetricQueryFilter))]
+[JsonSerializable(typeof(SavedQueryCreateRequest))]
+[JsonSerializable(typeof(SavedQueryUpdateRequest))]
+[JsonSerializable(typeof(SavedQueryRunRequest))]
+[JsonSerializable(typeof(SavedQueryRunResult))]
+[JsonSerializable(typeof(SavedTraceQueryRun))]
+[JsonSerializable(typeof(SavedLogQueryRun))]
+[JsonSerializable(typeof(SavedMetricQueryRun))]
+[JsonSerializable(typeof(CursorPageSavedQuery))]
 [JsonSerializable(typeof(LogStreamEvent))]
 [JsonSerializable(typeof(HeartbeatEvent))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]

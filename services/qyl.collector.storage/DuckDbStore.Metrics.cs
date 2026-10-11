@@ -70,15 +70,15 @@ internal sealed partial class DuckDbStore
         string projectId,
         string? namePrefix = null,
         int limit = 200,
+        string? afterMetricName = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
         return ExecuteReadAsync<IReadOnlyList<MetricCatalogEntry>>(con =>
         {
             using var cmd = con.CreateCommand();
-            var filter = string.IsNullOrEmpty(namePrefix)
-                ? ""
-                : " AND starts_with(metric_name, $3)";
+            var filter = " AND ($3::VARCHAR IS NULL OR metric_name > $3)"
+                         + (string.IsNullOrEmpty(namePrefix) ? "" : " AND starts_with(metric_name, $4)");
             // Composed, not interpolated, into CommandText: every fragment spliced here is a
             // constant chosen by this method, and every caller value is a bound parameter.
             // An aggregate projection, not a row read: the catalog collapses every series
@@ -101,7 +101,8 @@ internal sealed partial class DuckDbStore
             cmd.CommandText = sql;
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-            if (filter.Length > 0)
+            cmd.Parameters.Add(new DuckDBParameter { Value = afterMetricName ?? (object)DBNull.Value });
+            if (!string.IsNullOrEmpty(namePrefix))
                 cmd.Parameters.Add(new DuckDBParameter { Value = namePrefix });
 
             var entries = new List<MetricCatalogEntry>();
@@ -128,6 +129,7 @@ internal sealed partial class DuckDbStore
         string metricName,
         IReadOnlyList<MetricAttributeMatcher> matchers,
         int limit = 200,
+        MetricSeriesPageCursor? cursor = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -137,6 +139,9 @@ internal sealed partial class DuckDbStore
             qb.Add("project_id = $N", projectId);
             qb.Add("metric_name = $N", metricName);
             AppendMatchers(ref qb, matchers);
+            if (cursor is { } after)
+                qb.Add("(last_seen_unix_nano < $A OR (last_seen_unix_nano = $A AND series_id > $B))",
+                    (decimal)after.LastSeenUnixNano, after.SeriesId);
 
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + MetricSeriesRow.SelectColumnList

@@ -35,9 +35,9 @@ public sealed class ProjectIsolationTests
             environment);
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<OtlpApiKeyOptions>();
-        Assert.Equal("alpha", OtlpApiKeyValidator.ResolveProject("a2", options));
-        Assert.Equal("beta", OtlpApiKeyValidator.ResolveProject("b1", options));
-        Assert.Null(OtlpApiKeyValidator.ResolveProject("unknown", options));
+        Assert.Equal("alpha", OtlpApiKeyValidator.Resolve("a2", options)?.ProjectId);
+        Assert.Equal("beta", OtlpApiKeyValidator.Resolve("b1", options)?.ProjectId);
+        Assert.Null(OtlpApiKeyValidator.Resolve("unknown", options)?.ProjectId);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class ProjectIsolationTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1")]
+            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
         };
         string? reachedProject = null;
         var middleware = new CollectorApiKeyMiddleware(
@@ -115,7 +115,7 @@ public sealed class ProjectIsolationTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1"), new ProjectApiKey("beta", "b1")]
+            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead), new ProjectApiKey("beta", "b1", ApiKeyRoles.IngestAndRead)]
         };
         var empty = new Dictionary<string, OtlpAttributeValue>();
         var log = new LogIngestionRecord
@@ -156,7 +156,7 @@ public sealed class ProjectIsolationTests
         var options = new OtlpApiKeyOptions
         {
             AuthMode = "ApiKey",
-            Keys = [new ProjectApiKey("alpha", "a1")]
+            Keys = [new ProjectApiKey("alpha", "a1", ApiKeyRoles.IngestAndRead)]
         };
         var export = new ExportTraceServiceRequest
         {
@@ -220,6 +220,7 @@ public sealed class ProjectIsolationTests
         {
             RequestServices = services.BuildServiceProvider()
         };
+        context.Request.Method = HttpMethods.Get;
         context.Response.Body = new MemoryStream();
         return context;
     }

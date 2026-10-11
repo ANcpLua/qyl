@@ -1,22 +1,23 @@
 namespace Qyl.Collector.ApiKeys;
 
 /// <summary>
-/// Resolve the project bound to a credential for both transports.
+/// Resolve the credential, and with it the project and roles, for both transports.
 /// </summary>
 internal static class OtlpApiKeyValidator
 {
-    public static string? ResolveProject(string? candidate, OtlpApiKeyOptions options)
+    public static ProjectApiKey? Resolve(string? candidate, OtlpApiKeyOptions options)
     {
         if (string.IsNullOrWhiteSpace(candidate)) return null;
 
-        string? projectId = null;
+        // Every entry is compared, so the time taken does not reveal which credential matched.
+        ProjectApiKey? match = null;
         foreach (var entry in options.Keys)
         {
             if (FixedTimeEquals(candidate, entry.ApiKey))
-                projectId = entry.ProjectId;
+                match = entry;
         }
 
-        return projectId;
+        return match;
     }
 
     private static bool FixedTimeEquals(string candidate, string expected)

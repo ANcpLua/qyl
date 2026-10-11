@@ -275,43 +275,6 @@ internal sealed partial class DuckDbStore : IQylStore
             .ConfigureAwait(false);
     }
 
-    public Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(
-        string sessionId,
-        string projectId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
-        {
-            var spans = new List<SpanStorageRow>();
-            using var cmd = con.CreateCommand();
-            // A session id is COALESCE(session_id, trace_id) — the same identity the session
-            // aggregation (DuckDbStore.Sessions) and GetSessionAsync use. Match it here too:
-            // non-session telemetry (e.g. plain HTTP) persists with a NULL session_id and is keyed
-            // by its trace_id, so a strict `session_id = $2` would drop the very spans the session's
-            // trace_count/span_count were derived from.
-            //
-            // The membership match runs as a subquery over trace ids, not over spans directly:
-            // a session key is often stamped on a single span per trace (e.g. an app tagging only
-            // its request-handler span), and the session view must return the FULL traces the
-            // session touched — parents, children, and gen_ai spans included — or trace trees
-            // render empty and token/cost spans silently vanish from the session.
-            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE project_id = $1 AND trace_id IN ("
-                                        + "SELECT DISTINCT trace_id FROM spans WHERE project_id = $1"
-                                        + " AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2)))"
-                                        + " ORDER BY start_time_unix_nano ASC";
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-            cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                spans.Add(SpanStorageRow.MapFromReader(reader));
-
-            return spans;
-        }, ct);
-    }
-
     public Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(
         string traceId,
         string projectId,
@@ -365,55 +328,100 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct);
     }
 
-    public Task<TraceStoragePage> GetTracePageAsync(
+    public Task<IReadOnlyList<SpanStorageRow>> GetTraceSpanPageAsync(
+        string traceId,
         string projectId,
-        TracePageCursor? cursor,
-        int limit,
+        SpanPageCursor? cursor,
+        int? limit,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
         if (limit < 1)
-            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Trace page limit must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Span page limit must be positive.");
 
+        return ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
+        {
+            var spans = new List<SpanStorageRow>();
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
+                                        + " FROM spans WHERE project_id = $1 AND trace_id = $2"
+                                        + " AND ($3::UBIGINT IS NULL OR start_time_unix_nano > $3"
+                                        + " OR (start_time_unix_nano = $3 AND span_id > $4::VARCHAR))"
+                                        + " ORDER BY start_time_unix_nano ASC, span_id ASC"
+                                        + (limit.HasValue ? " LIMIT $5" : "");
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = cursor is { } after ? (decimal)after.StartTimeUnixNano : DBNull.Value
+            });
+            cmd.Parameters.Add(new DuckDBParameter { Value = cursor?.SpanId ?? (object)DBNull.Value });
+            if (limit is { } bounded)
+                cmd.Parameters.Add(new DuckDBParameter { Value = bounded });
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                spans.Add(SpanStorageRow.MapFromReader(reader));
+
+            return spans;
+        }, ct);
+    }
+
+    public Task<TraceStoragePage> GetTracePageAsync(
+        TracePageQuery query,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (query.Limit < 1)
+            throw new ArgumentOutOfRangeException(nameof(query), query.Limit, "Trace page limit must be positive.");
+
+        var limit = query.Limit;
+        var projectId = query.ProjectId;
         return ExecuteReadAsync(con =>
         {
             var heads = new List<(string TraceId, ulong ActivityUnixNano)>(limit + 1);
             using (var headCommand = con.CreateCommand())
             {
-                headCommand.CommandText = cursor.HasValue
-                    ? """
-                      WITH trace_heads AS (
-                          SELECT trace_id, MAX(end_time_unix_nano) AS activity_unix_nano
-                          FROM spans
-                          WHERE project_id = $1
-                          GROUP BY trace_id
-                      )
-                      SELECT trace_id, activity_unix_nano
-                      FROM trace_heads
-                      WHERE activity_unix_nano < $2
-                         OR (activity_unix_nano = $2 AND trace_id < $3)
-                      ORDER BY activity_unix_nano DESC, trace_id DESC
-                      LIMIT $4
-                      """
-                    : """
-                      WITH trace_heads AS (
-                          SELECT trace_id, MAX(end_time_unix_nano) AS activity_unix_nano
-                          FROM spans
-                          WHERE project_id = $1
-                          GROUP BY trace_id
-                      )
-                      SELECT trace_id, activity_unix_nano
-                      FROM trace_heads
-                      ORDER BY activity_unix_nano DESC, trace_id DESC
-                      LIMIT $2
-                      """;
+                // Every filter is a HAVING over the whole trace, so a trace is listed whole or not
+                // at all. A session's traces are the traces any of its spans touched, under the
+                // session identity COALESCE(session_id, trace_id) the session list aggregates by.
+                headCommand.CommandText = """
+                                          WITH trace_heads AS (
+                                              SELECT trace_id, MAX(end_time_unix_nano) AS activity_unix_nano
+                                              FROM spans
+                                              WHERE project_id = $1
+                                                AND ($2::VARCHAR IS NULL OR trace_id IN (SELECT DISTINCT trace_id FROM spans WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))))
+                                              GROUP BY trace_id
+                                              HAVING ($3::UBIGINT IS NULL OR MIN(start_time_unix_nano) >= $3)
+                                                 AND ($4::UBIGINT IS NULL OR MIN(start_time_unix_nano) < $4)
+                                                 AND ($5::VARCHAR IS NULL OR bool_or(service_name = $5))
+                                                 AND (NOT $6::BOOLEAN OR bool_or(status_code = 2))
+                                          )
+                                          SELECT trace_id, activity_unix_nano
+                                          FROM trace_heads
+                                          WHERE $7::UBIGINT IS NULL
+                                             OR activity_unix_nano < $7
+                                             OR (activity_unix_nano = $7 AND trace_id < $8::VARCHAR)
+                                          ORDER BY activity_unix_nano DESC, trace_id DESC
+                                          LIMIT $9
+                                          """;
                 headCommand.Parameters.Add(new DuckDBParameter { Value = projectId });
-                if (cursor is { } after)
+                headCommand.Parameters.Add(new DuckDBParameter { Value = query.SessionId ?? (object)DBNull.Value });
+                headCommand.Parameters.Add(new DuckDBParameter
                 {
-                    headCommand.Parameters.Add(new DuckDBParameter { Value = (decimal)after.ActivityUnixNano });
-                    headCommand.Parameters.Add(new DuckDBParameter { Value = after.TraceId });
-                }
-
+                    Value = query.StartUnixNano is { } start ? (decimal)start : DBNull.Value
+                });
+                headCommand.Parameters.Add(new DuckDBParameter
+                {
+                    Value = query.EndUnixNano is { } end ? (decimal)end : DBNull.Value
+                });
+                headCommand.Parameters.Add(new DuckDBParameter { Value = query.ServiceName ?? (object)DBNull.Value });
+                headCommand.Parameters.Add(new DuckDBParameter { Value = query.ErrorsOnly });
+                headCommand.Parameters.Add(new DuckDBParameter
+                {
+                    Value = query.Cursor is { } after ? (decimal)after.ActivityUnixNano : DBNull.Value
+                });
+                headCommand.Parameters.Add(new DuckDBParameter { Value = query.Cursor?.TraceId ?? (object)DBNull.Value });
                 headCommand.Parameters.Add(new DuckDBParameter { Value = limit + 1 });
                 using var headReader = headCommand.ExecuteReader();
                 while (headReader.Read())
@@ -525,6 +533,7 @@ internal sealed partial class DuckDbStore : IQylStore
         ulong? before = null,
         string? serviceName = null,
         int limit = 500,
+        LogPageCursor? cursor = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -551,6 +560,9 @@ internal sealed partial class DuckDbStore : IQylStore
                 qb.Add("time_unix_nano >= $N", (decimal)start.Value);
             if (before.HasValue)
                 qb.Add("time_unix_nano <= $N", (decimal)before.Value);
+            if (cursor is { } after)
+                qb.Add("(time_unix_nano < $A OR (time_unix_nano = $A AND log_id < $B))",
+                    (decimal)after.TimeUnixNano, after.LogId);
 
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
@@ -770,7 +782,9 @@ internal sealed partial class DuckDbStore : IQylStore
             DuckDbGeneratedSchema.AuthoritativeTables);
         if (stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash })
         {
-            authoritativeMismatches = DuckDbGeneratedSchema.AuthoritativeTableNames;
+            authoritativeMismatches = IsAdditiveAuthoritativeRelease(con, transaction, stored, authoritativeMismatches)
+                ? []
+                : DuckDbGeneratedSchema.AuthoritativeTableNames;
         }
         var derivedMismatches = FindSchemaMismatches(
             con,
@@ -825,6 +839,33 @@ internal sealed partial class DuckDbStore : IQylStore
         transaction.Commit();
 
         VerifyPersistedPrimaryKeys(con);
+    }
+
+    // A release that only adds authoritative tables (annotations and saved queries joined the
+    // telemetry tables this way) needs no migration: every table the database holds is the one
+    // this build generates, byte for byte, and the stored identity is exactly the identity of
+    // those tables. Each absent table is then created empty by the regular IF NOT EXISTS DDL.
+    // Anything else (a changed column, index or default, or a table this build no longer knows)
+    // still fails closed while data exists.
+    private static bool IsAdditiveAuthoritativeRelease(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        SchemaIdentity stored,
+        IReadOnlyList<string> structuralMismatches)
+    {
+        var absent = DuckDbGeneratedSchema.AuthoritativeTableNames
+            .Where(table => !TableExists(con, transaction, table))
+            .ToHashSet(StringComparer.Ordinal);
+        if (absent.Count is 0 || !structuralMismatches.All(absent.Contains))
+            return false;
+
+        var present = DuckDbGeneratedSchema.AuthoritativeTableNames
+            .Where(table => !absent.Contains(table))
+            .ToArray();
+        return string.Equals(
+            stored.AuthoritativeHash,
+            DuckDbGeneratedSchema.ComputeAuthoritativeHash(present),
+            StringComparison.Ordinal);
     }
 
     private static SchemaIdentity? ReadSchemaIdentity(
@@ -977,8 +1018,10 @@ internal sealed partial class DuckDbStore : IQylStore
         if (value.Length is 0)
             return [];
 
+        // DuckDB lists a keyword column (e.g. saved_queries.name) as a string literal of the
+        // quoted identifier, '"name"', so both quote layers come off.
         return value.Split(',')
-            .Select(static column => column.Trim().Trim('"'))
+            .Select(static column => column.Trim().Trim('\'').Trim('"'))
             .ToArray();
     }
 
@@ -1306,6 +1349,16 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             _conditions.Add(condition.Replace("$N", $"${_paramIndex++}"));
             _parameters.Add(new DuckDBParameter { Value = value });
+        }
+
+        // A keyset predicate binds two values: $A is the sort key, $B the tie-breaker.
+        public void Add(string condition, object first, object second)
+        {
+            var a = $"${_paramIndex++}";
+            var b = $"${_paramIndex++}";
+            _conditions.Add(condition.Replace("$A", a).Replace("$B", b));
+            _parameters.Add(new DuckDBParameter { Value = first });
+            _parameters.Add(new DuckDBParameter { Value = second });
         }
 
         public readonly string WhereClause =>

@@ -65,6 +65,8 @@ internal sealed partial class RetentionService(
         long deletedSpans = 0;
         long deletedMetricPoints = 0;
         long deletedMetricSeries = 0;
+        long deletedAnnotations = 0;
+        var deletedIdempotencyKeys = 0;
         var writeBatches = 0;
 
         try
@@ -111,10 +113,33 @@ internal sealed partial class RetentionService(
                 if (deleted.Points < DeleteBatchSize)
                     break;
             }
+
+            // An annotation points at telemetry by id, so it expires with the same window,
+            // counted from its last change; saved queries are configuration and never expire.
+            while (true)
+            {
+                var deleted = await store.DeleteExpiredAnnotationsBatchAsync(
+                        cutoff,
+                        DeleteBatchSize,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                writeBatches++;
+                deletedAnnotations += deleted;
+                if (deleted < DeleteBatchSize)
+                    break;
+            }
+
+            deletedIdempotencyKeys = await store.DeleteExpiredIdempotencyKeysAsync(
+                    QylTimeConversions.ToUnixNanoUnsigned(
+                        timeProvider.GetUtcNow() - Hosting.ResourceHttp.IdempotencyKeyLifetime),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            writeBatches++;
         }
         finally
         {
-            if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries > 0)
+            if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries + deletedAnnotations +
+                deletedIdempotencyKeys > 0)
                 await CheckpointAfterDeletionAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -125,6 +150,8 @@ internal sealed partial class RetentionService(
             deletedSpans,
             deletedMetricPoints,
             deletedMetricSeries,
+            deletedAnnotations,
+            deletedIdempotencyKeys,
             writeBatches,
             duration,
             fileBefore.ManagedStorageBytes,
@@ -142,6 +169,9 @@ internal sealed partial class RetentionService(
                 result.FileSizeBeforeBytes,
                 result.FileSizeAfterBytes);
         }
+
+        if (result.DeletedAnnotations + result.DeletedIdempotencyKeys > 0)
+            LogResourcesExpired(logger, result.DeletedAnnotations, result.DeletedIdempotencyKeys);
 
         return result;
     }
@@ -172,6 +202,15 @@ internal sealed partial class RetentionService(
         long fileSizeBeforeBytes,
         long fileSizeAfterBytes);
 
+    [LoggerMessage(
+        EventId = 3003,
+        Level = LogLevel.Information,
+        Message = "Retention cycle expired {DeletedAnnotations} annotations and {DeletedIdempotencyKeys} idempotency keys")]
+    private static partial void LogResourcesExpired(
+        ILogger logger,
+        long deletedAnnotations,
+        long deletedIdempotencyKeys);
+
     [LoggerMessage(EventId = 3002, Level = LogLevel.Error, Message = "Retention cycle failed")]
     private static partial void LogCycleFailed(ILogger logger, Exception exception);
 }
@@ -181,13 +220,16 @@ internal readonly record struct RetentionCycleOutcome(
     long DeletedSpanRows,
     long DeletedMetricPoints,
     long DeletedMetricSeries,
+    long DeletedAnnotations,
+    long DeletedIdempotencyKeys,
     int WriteBatches,
     TimeSpan Duration,
     long FileSizeBeforeBytes,
     long FileSizeAfterBytes)
 {
-    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, 0, 0, TimeSpan.Zero, 0, 0);
+    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, TimeSpan.Zero, 0, 0);
 
+    /// <summary>Telemetry rows deleted; the existing cycle log reports exactly these.</summary>
     public long TotalRows =>
         DeletedLogRows + DeletedSpanRows + DeletedMetricPoints + DeletedMetricSeries;
 }
