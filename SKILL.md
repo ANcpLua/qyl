@@ -54,8 +54,7 @@ upload failure without network access. Keep this focused check green when changi
    script then checks all eight package indexes. If indexing is incomplete, keep polling every
    30 s; do not notify consumers while any runtime package is unavailable.
 5. The moment all eight are indexed: stop watching and notify each consumer (section "Notify").
-6. Record the published version in
-   `/Users/alexandernachtmann/Downloads/qyl-codex-claude/qyl-handoff-for-codex.md` and run
+6. Run
    `/Users/alexandernachtmann/Downloads/qyl-codex-claude/refresh-published-versions.sh`, which rewrites
    `qyl-published-versions.yaml` beside it from the registries (the snapshot every agent reads first).
 
