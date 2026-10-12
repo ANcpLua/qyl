@@ -16,10 +16,14 @@ interface IPipeline : IHasSourcePaths
     AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
 
     /// <summary>Playwright colours its report; NO_COLOR from the outer shell would strip it.</summary>
-    static IReadOnlyDictionary<string, string> DashboardEnvironmentWithoutNoColor() =>
-        Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>()
+    static IReadOnlyDictionary<string, string> DashboardEnvironmentWithoutNoColor()
+    {
+        var environment = Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>()
             .Where(static e => !string.Equals((string)e.Key, "NO_COLOR", StringComparison.Ordinal))
             .ToDictionary(static e => (string)e.Key, static e => (string?)e.Value ?? string.Empty);
+        environment["QYL_E2E_NO_BUILD"] = "1";
+        return environment;
+    }
 
     Target FrontendInstall => d => d
         .Unlisted()

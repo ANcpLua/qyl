@@ -51,7 +51,6 @@
        neither safe nor deterministic, even when the final publish directories differ. -->
   <Target Name="QylRestoreCollectorsForToolPackage" BeforeTargets="_CreateRIDSpecificToolPackages"
           Condition="'$(RuntimeIdentifier)' == ''">
-    <RemoveDir Directories="$(_QylBundledCollectorArtifactsRoot)"/>
     <ItemGroup>
       <_QylCollectorRestoreRid Include="$(ToolPackageRuntimeIdentifiers)"/>
       <_QylCollectorRestoreProject Include="@(_QylCollectorRestoreRid->'$(_QylCollectorProject)')">

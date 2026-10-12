@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Bound compiler and NativeAOT worker concurrency inside Docker as well as on the host.
+export DOTNET_PROCESSOR_COUNT="${DOTNET_PROCESSOR_COUNT:-4}"
+
 if [[ $# -ne 1 ]]; then
   echo "Usage: $0 <output-directory>" >&2
   exit 2
@@ -20,9 +23,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-DUCKDB_VERSION="$(dotnet msbuild "$PROJECT" -getProperty:DuckDBVersion -nologo)"
+DUCKDB_VERSION="$(dotnet msbuild "$PROJECT" -maxcpucount:4 -getProperty:DuckDBVersion -nologo)"
 
-if dotnet publish "$PROJECT" -c Release -o "$OUTPUT_DIRECTORY" -p:QylAot=true \
+if dotnet publish "$PROJECT" -maxcpucount:4 -nodeReuse:false -p:UseSharedCompilation=false -p:ConcurrentBuild=false -c Release -o "$OUTPUT_DIRECTORY" -p:QylAot=true \
   >"$PUBLISH_OUTPUT" 2>&1; then
   :
 else

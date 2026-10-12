@@ -21,9 +21,10 @@ export default defineConfig({
     webServer: process.env.QYL_BASE_URL
         ? undefined
         : {
-            // Build and run the actual single-origin Release product. This deliberately exercises
+            // The Fallout gate reuses its compiled Release product; standalone E2E builds it.
+            // This deliberately exercises the actual single-origin product and
             // embedded-dashboard middleware before routing; a SPA that shadows OTLP/API paths fails.
-            command: 'dotnet run --project ../qyl.collector --configuration Release --no-restore -p:QylEmbedDashboard=true',
+            command: `dotnet run --project ../qyl.collector --configuration Release ${process.env.QYL_E2E_NO_BUILD === '1' ? '--no-build' : '--no-restore'} -p:QylEmbedDashboard=true`,
             url: 'http://127.0.0.1:5100/health',
             timeout: 120_000,
             reuseExistingServer: false,

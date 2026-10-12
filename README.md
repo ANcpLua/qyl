@@ -194,6 +194,15 @@ mise install && mise run check
 Single targets run through `./eng/build.sh <Target>`. `Ci` is the full gate; `./eng/build.sh --help`
 lists every target it depends on.
 
+Run one gate at a time on the development Mac and cap each MSBuild invocation at four
+nodes (`-maxcpucount:4`), including tool-package RID builds. The Docker NativeAOT publish
+script applies the same cap. After an interrupted gate, use
+`./eng/build.sh Ci --Configuration Release --continue`
+to reuse the completed stages recorded in `.fallout/temp/build-attempt.log`; retain its
+compiled artifacts. Tool packaging preserves each RID's compiler cache, while clearing
+its final publish directory so removed files cannot enter a package. Generated version
+source is rewritten only when its contents change.
+
 ## License
 
 MIT

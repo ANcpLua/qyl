@@ -4,11 +4,12 @@ using Fallout.Common;
 using Fallout.Common.IO;
 using Fallout.Common.Tooling;
 using Fallout.Common.Tools.DotNet;
+using Fallout.Components;
 
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IHousekeeping))]
-interface IHousekeeping : IHasSourcePaths
+interface IHousekeeping : IHasSourcePaths, IHasConfiguration
 {
     AbsolutePath ToolsDirectory => RootDirectory / "eng" / "tools";
 
@@ -20,7 +21,7 @@ interface IHousekeeping : IHasSourcePaths
         .Description("Verify pinned .NET SDK versions in workflows and dockerfiles match global.json")
         .Executes(() =>
             DotNetTasks.DotNet(
-                $"run --project \"{ToolsDirectory / "SdkVersionAnalyzer"}\" -- --verify \"{RootDirectory}\"",
+                $"run --project \"{ToolsDirectory / "SdkVersionAnalyzer"}\" --configuration {Configuration} --no-build -- --verify \"{RootDirectory}\"",
                 workingDirectory: RootDirectory));
 
     Target UpdateSdkVersions => d => d

@@ -13,7 +13,8 @@
     <WriteLinesToFile
       File="$(IntermediateOutputPath)BuildVersion.g.cs"
       Lines="namespace $(RootNamespace)%3B&#10;&#10;internal static class BuildVersion&#10;{&#10;    internal const string InformationalVersion = &quot;$(_QylInformationalVersion)&quot;%3B&#10;    internal const string ProductVersion = &quot;$(_QylProductVersion)&quot;%3B&#10;}"
-      Overwrite="true"/>
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"/>
   </Target>
 
 </Project>

@@ -105,11 +105,11 @@ sealed class Build : FalloutBuild,
     Target Test => d => d
         .Description("Run every .NET test project in the solution")
         .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() => DotNetTasks.DotNetTest(s => s
-            .SetProjectFile(From<IHasSolution>().Solution)
-            .SetConfiguration(From<IHasConfiguration>().Configuration)
-            .EnableNoBuild()
-            .EnableNoRestore()));
+        // Microsoft.Testing.Platform requires the explicit solution option; the
+        // legacy DotNetTest wrapper emits a positional VSTest-style argument.
+        .Executes(() => DotNetTasks.DotNet(
+            $"test --solution \"{From<IHasSolution>().Solution}\" --configuration {From<IHasConfiguration>().Configuration} --no-build --no-restore --max-parallel-test-modules 1",
+            workingDirectory: RootDirectory));
 
     public Target Dev => d => d
         .Description("Start development environment (Docker + compile)")

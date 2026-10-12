@@ -78,6 +78,7 @@ test.describe('qyl executable product surface', () => {
                 '--configuration',
                 'Release',
                 '--no-launch-profile',
+                ...(process.env.QYL_E2E_NO_BUILD === '1' ? ['--no-build'] : []),
             ],
             {
                 cwd: process.cwd(),

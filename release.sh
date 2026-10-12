@@ -76,7 +76,7 @@ actual=$(find "$OUT" -maxdepth 1 -name '*.nupkg' -exec basename {} \; | sort)
 [[ $actual == "$expected" ]] || { echo "expected:"; echo "$expected"; echo "packed:"; echo "$actual"; die "package set mismatch"; }
 
 say "smoke the tool packages on this host"
-dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release -- "$OUT"
+dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release --no-build -- "$OUT"
 
 [[ $(git rev-parse HEAD) == "$release_commit" ]] || die "HEAD changed during packing; rerun from the intended release commit"
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "tracked files changed during packing; commit them and rerun"
