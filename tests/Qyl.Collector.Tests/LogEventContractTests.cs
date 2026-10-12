@@ -16,11 +16,15 @@ namespace Qyl.Collector.Tests;
 
 public sealed class LogEventContractTests
 {
-    [Fact]
-    public async Task Otlp_event_name_and_body_survive_storage_rest_and_sse()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Otlp_event_name_and_body_survive_storage_rest_and_sse(bool canonicalBrowserEvent)
     {
-        const string eventName = "mcp.request";
-        const string logBody = "MCP JSON-RPC request completed";
+        var eventName = canonicalBrowserEvent ? "browser.web_vital" : "mcp.request";
+        var routeKey = canonicalBrowserEvent ? "url.path" : "page.route";
+        var valueKey = canonicalBrowserEvent ? "browser.web_vital.value" : "web.vital.value";
+        var logBody = canonicalBrowserEvent ? "LCP measured" : "MCP JSON-RPC request completed";
         const string traceId = "11111111111111111111111111111111";
         const string spanId = "2222222222222222";
         var request = new ExportLogsServiceRequest
@@ -76,6 +80,26 @@ public sealed class LogEventContractTests
             }
         };
 
+        var attributes = request.ResourceLogs[0].ScopeLogs[0].LogRecords[0].Attributes;
+        if (canonicalBrowserEvent)
+        {
+            attributes.Clear();
+            attributes.Add(new[]
+            {
+                StringAttribute("browser.language", "en-US"),
+                StringAttribute("url.path", "/docs/mcp/"),
+                StringAttribute("browser.web_vital.id", "v5-test-id"),
+                StringAttribute("browser.web_vital.name", "lcp"),
+                StringAttribute("browser.web_vital.rating", "good"),
+                StringAttribute("browser.web_vital.navigation_type", "navigate"),
+                new KeyValue { Key = "browser.web_vital.delta", Value = new AnyValue { DoubleValue = 12.5 } },
+                IntAttribute("browser.web_vital.value", 778)
+            });
+        }
+        attributes.Add(StringAttribute("url.full", "https://example.test/private?token=secret"));
+        attributes.Add(StringAttribute("url.query", "token=secret"));
+        attributes.Add(StringAttribute("http.request.header.authorization", "Bearer secret"));
+
         var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request));
         var converted = Assert.Single(rows);
         Assert.Equal(eventName, converted.EventName);
@@ -86,9 +110,16 @@ public sealed class LogEventContractTests
             JsonSerializer.Serialize(new Qyl.Api.Contracts.Common.AttributeValue.StringValue(logBody), QylSerializerContext.Default.AttributeValue),
             converted.Body);
         Assert.Contains(
-            "\"web.vital.value\":{\"type\":\"int\",\"value\":\"778\"}",
+            $"\"{valueKey}\":{{\"type\":\"int\",\"value\":\"778\"}}",
             converted.AttributesJson,
             StringComparison.Ordinal);
+
+        Assert.DoesNotContain("secret", converted.AttributesJson, StringComparison.Ordinal);
+        if (canonicalBrowserEvent)
+        {
+            foreach (var key in new[] { "browser.web_vital.id", "browser.web_vital.delta", "browser.web_vital.name", "browser.web_vital.rating", "browser.web_vital.navigation_type" })
+                Assert.Contains($"\"{key}\"", converted.AttributesJson, StringComparison.Ordinal);
+        }
 
         await using var store = new DuckDbStore(":memory:");
         await store.InsertLogsAsync(rows, TestContext.Current.CancellationToken);
@@ -111,9 +142,9 @@ public sealed class LogEventContractTests
         Assert.Contains($"\"trace_id\":\"{traceId}\"", restJson, StringComparison.Ordinal);
         Assert.Contains($"\"span_id\":\"{spanId}\"", restJson, StringComparison.Ordinal);
         Assert.Contains(logBody, restJson, StringComparison.Ordinal);
-        Assert.Contains("\"key\":\"page.route\"", restJson, StringComparison.Ordinal);
+        Assert.Contains($"\"key\":\"{routeKey}\"", restJson, StringComparison.Ordinal);
         Assert.Contains("\"value\":\"/docs/mcp/\"", restJson, StringComparison.Ordinal);
-        Assert.Contains("\"key\":\"web.vital.value\"", restJson, StringComparison.Ordinal);
+        Assert.Contains($"\"key\":\"{valueKey}\"", restJson, StringComparison.Ordinal);
         Assert.Contains("778", restJson, StringComparison.Ordinal);
         var page = JsonSerializer.Deserialize(restJson, QylSerializerContext.Default.CursorPageLogRecord);
         Assert.Equal(eventName, Assert.Single(Assert.IsType<CursorPageLogRecord>(page).Items).EventName);
@@ -139,10 +170,20 @@ public sealed class LogEventContractTests
         Assert.Contains($"\"trace_id\":\"{traceId}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains($"\"span_id\":\"{spanId}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains(logBody, streamJson, StringComparison.Ordinal);
-        Assert.Contains("\"key\":\"page.route\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains($"\"key\":\"{routeKey}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains("\"value\":\"/docs/mcp/\"", streamJson, StringComparison.Ordinal);
-        Assert.Contains("\"key\":\"web.vital.value\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains($"\"key\":\"{valueKey}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains("778", streamJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", restJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", streamJson, StringComparison.Ordinal);
+        if (canonicalBrowserEvent)
+        {
+            foreach (var key in new[] { "browser.web_vital.id", "browser.web_vital.delta", "browser.web_vital.name", "browser.web_vital.rating", "browser.web_vital.navigation_type" })
+            {
+                Assert.Contains($"\"key\":\"{key}\"", restJson, StringComparison.Ordinal);
+                Assert.Contains($"\"key\":\"{key}\"", streamJson, StringComparison.Ordinal);
+            }
+        }
     }
 
     private static KeyValue StringAttribute(string key, string value) =>

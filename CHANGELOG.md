@@ -1,5 +1,13 @@
 # Changelog
 
+## 12.0.1 — 2026-10-12
+
+- Capture the generated `browser.web_vital.*` log attributes and `url.path` so canonical
+  browser Web Vitals events retain their measurements, identity, navigation and route.
+  Keep legacy browser attributes readable and preserve the existing privacy denials.
+- Publish and index runtime packages before the tool pointer, preventing fresh installs
+  from racing an unindexed runtime dependency.
+
 ## 12.0.0 — 2026-10-12
 
 - Adopt `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 24.0.1 together with

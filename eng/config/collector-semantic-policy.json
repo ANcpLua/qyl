@@ -26,9 +26,11 @@
       "exception.",
       "http.",
       "otel.",
-      "server."
+      "server.",
+      "url.path"
     ],
     "incubatingPrefixes": [
+      "browser.web_vital.",
       "gen_ai.",
       "jsonrpc.",
       "mcp.",

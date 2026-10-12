@@ -346,6 +346,12 @@ internal static class CollectorSemanticAttributeCatalog
         "browser.language", // incubating
         "browser.viewport.height", // incubating
         "browser.viewport.width", // incubating
+        "browser.web_vital.delta", // incubating
+        "browser.web_vital.id", // incubating
+        "browser.web_vital.name", // incubating
+        "browser.web_vital.navigation_type", // incubating
+        "browser.web_vital.rating", // incubating
+        "browser.web_vital.value", // incubating
         "error.message",
         "error.type",
         "exception.escaped",
@@ -565,6 +571,7 @@ internal static class CollectorSemanticAttributeCatalog
         "rpc.system.name", // incubating
         "server.address",
         "server.port",
+        "url.path",
         "web.vital.name", // incubating
         "web.vital.rating", // incubating
         "web.vital.unit", // incubating
