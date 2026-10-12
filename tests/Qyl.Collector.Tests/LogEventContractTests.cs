@@ -186,6 +186,51 @@ public sealed class LogEventContractTests
         }
     }
 
+    [Theory]
+    [InlineData("CLS")]
+    [InlineData("a quote: \"hello\"")]
+    [InlineData("{\"unfinished\":")]
+    [InlineData("123")]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Historical_plain_text_bodies_remain_readable_in_rest_and_sse(string body)
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await store.InsertLogsAsync([
+            new LogStorageRow
+            {
+                ProjectId = "default",
+                LogId = "historical-body",
+                TimeUnixNano = 2_000_000_000,
+                SeverityNumber = 9,
+                SeverityText = "INFO",
+                Body = body,
+                ServiceName = "qyl.at",
+                EventName = "web.vitals.CLS"
+            }
+        ], TestContext.Current.CancellationToken);
+
+        var context = CreateContext();
+        var result = await CollectorEndpointExtensions.GetLogsAsync(
+            context, store, sessionId: null, traceId: null, serviceName: "qyl.at",
+            level: null, query: null, TestContext.Current.CancellationToken);
+        await result.ExecuteAsync(context);
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        var page = JsonSerializer.Deserialize(await ReadBodyAsync(context),
+            QylSerializerContext.Default.CursorPageLogRecord);
+        var record = Assert.Single(Assert.IsType<CursorPageLogRecord>(page).Items);
+        Assert.Equal(body, Assert.IsType<Qyl.Api.Contracts.Common.AttributeValue.StringValue>(record.Body).Value);
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(8));
+        await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
+            store, "default", serviceName: "qyl.at", minSeverity: null, query: null,
+            afterIngestSequence: null, timeout.Token).GetAsyncEnumerator(timeout.Token);
+        Assert.True(await stream.MoveNextAsync());
+        var streamed = Assert.IsType<LogStreamEvent>(stream.Current.Log).Data;
+        Assert.Equal(body, Assert.IsType<Qyl.Api.Contracts.Common.AttributeValue.StringValue>(streamed.Body).Value);
+    }
+
     private static KeyValue StringAttribute(string key, string value) =>
         new() { Key = key, Value = new AnyValue { StringValue = value } };
 

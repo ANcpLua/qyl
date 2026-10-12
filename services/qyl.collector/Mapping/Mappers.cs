@@ -62,19 +62,21 @@ internal static class ContractJson
         }
     }
 
-    /// <summary>A stored body or single value, decoded with the contract's own converter.</summary>
-    public static ContractValue? ParseAttributeValue(string? json)
+    /// <summary>Decode current JSON bodies while preserving text stored by older collectors.</summary>
+    public static ContractValue? ParseLogBody(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json))
+        if (json is null)
             return null;
 
         try
         {
             return JsonSerializer.Deserialize(json, QylSerializerContext.Default.AttributeValue);
         }
-        catch (JsonException exception)
+        catch (JsonException)
         {
-            throw new InvalidDataException("Stored value does not match the generated AttributeValue contract.", exception);
+            // Before canonical AttributeValue storage, log bodies were persisted as raw text.
+            // Keep those historical rows readable without rewriting their stored contents.
+            return new ContractValue.StringValue(json);
         }
     }
 }
@@ -348,7 +350,7 @@ internal static class LogMapper
             ObservedTimeUnixNano = record.ObservedTimeUnixNano ?? record.TimeUnixNano,
             SeverityNumber = MapSeverityNumber(record.SeverityNumber),
             SeverityText = MapSeverityText(record.SeverityText, record.SeverityNumber),
-            Body = ContractJson.ParseAttributeValue(record.Body),
+            Body = ContractJson.ParseLogBody(record.Body),
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             TraceId = record.TraceId,
             SpanId = record.SpanId,

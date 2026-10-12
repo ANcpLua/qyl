@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.0.2 — 2026-10-12
+
+- Keep historical plain-text log bodies readable through the log API and live stream.
+  Current structured bodies still use the generated contract decoder; older text no longer
+  makes a whole result page fail with HTTP 500. Stored telemetry is not rewritten.
+
 ## 12.0.1 — 2026-10-12
 
 - Capture the generated `browser.web_vital.*` log attributes and `url.path` so canonical
