@@ -32,10 +32,10 @@ internal static partial class CollectorEndpointExtensions
             var result = new AnalysisEngine(snapshot, project, handles, now, deadline.Token).Run(operation, input);
             // The generated contract validator is applied below before every result leaves this boundary.
             try { return AnalysisResult(operation, result); }
-            catch (JsonException) { return Results.Problem(statusCode: 500, title: "Analysis response does not match its contract."); }
+            catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
         catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return Results.Problem(statusCode: 504, title: "Analysis exceeded its time budget; narrow the window or filters."); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return ContractErrorResults.AnalysisDeadlineExceeded(); }
         catch (JsonException invalid) { return ContractErrorResults.Validation(invalid.Path ?? "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid"); }
     }
     private static (System.Text.Json.Serialization.Metadata.JsonTypeInfo Input, System.Text.Json.Serialization.Metadata.JsonTypeInfo Output) AnalysisContract(string operation) => operation switch
@@ -97,7 +97,7 @@ internal static partial class CollectorEndpointExtensions
             body = J.O(("status", status), ("assignee", J.String(body, "assignee")), ("ignore_until", ignoreUntil?.ToString("O")));
             var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, new AnalysisReadQuery { ErrorsOnly = true }, ct).ConfigureAwait(false);
             var engine = new AnalysisEngine(snapshot, project, CreateAnalysisHandles(context, project), time.GetUtcNow());
-            if (!engine.OwnsFailure(failureId)) return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : Results.Problem(statusCode: 503, title: "Failure lookup exceeded its scan budget.");
+            if (!engine.OwnsFailure(failureId)) return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : ContractErrorResults.ServiceUnavailable("analysis.scan_budget_exceeded");
             var existing = snapshot.State.FirstOrDefault(s => s.StateKey == failureId); var current = existing?.Etag ?? '"' + failureId + '"';
             if (!condition.Matches(current)) return ContractErrorResults.PreconditionFailed(current);
             body["updated_at"] = time.GetUtcNow().ToString("O");
@@ -108,7 +108,7 @@ internal static partial class CollectorEndpointExtensions
             var result = new AnalysisEngine(updated, project, CreateAnalysisHandles(context, project), time.GetUtcNow()).Run("list_failures", J.O(("failure_id", failureId), ("status", "all"), ("start_time", DateTimeOffset.UnixEpoch.ToString("O"))));
             context.Response.Headers.ETag = row.Etag;
             try { return AnalysisResult("update_failure_status", J.O(("failure", result["failures"]?[0]))); }
-            catch (JsonException) { return Results.Problem(statusCode: 500, title: "Analysis response does not match its contract."); }
+            catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
         catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide a valid failure status request."); }

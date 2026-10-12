@@ -31,6 +31,7 @@ internal static class AnalysisReadPlan
             if (J.String(target, "ci_run_id") is { } ci) sessions.Add(ci);
         }
         Target(input); Target(input["a"]); Target(input["b"]);
+        if (operation == "display_traces" && J.String(input, "compare_to") is { } comparisonTrace) traces.Add(comparisonTrace);
         if (operation == "ci_log" && J.String(input, "compare_to") is { } priorRun && priorRun != "last_success") sessions.Add(priorRun);
         // Failure identity is independent of time. These focused queries may span retention,
         // but still have the storage cap and report incomplete coverage instead of false totals.

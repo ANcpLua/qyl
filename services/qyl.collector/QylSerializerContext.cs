@@ -72,6 +72,7 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(UnauthorizedError))]
 [JsonSerializable(typeof(ForbiddenError))]
 [JsonSerializable(typeof(ServiceUnavailableError))]
+[JsonSerializable(typeof(ProblemDetails))]
 [JsonSerializable(typeof(PreconditionFailedError))]
 [JsonSerializable(typeof(PreconditionRequiredError))]
 [JsonSerializable(typeof(Annotation))]

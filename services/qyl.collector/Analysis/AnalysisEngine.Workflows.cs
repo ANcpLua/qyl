@@ -46,6 +46,7 @@ internal sealed partial class AnalysisEngine
             "compare" => J.O(("comparison", CompareTraces(input)), ("mode", "live")),
             "traces" => Traces(input), _ => throw new AnalysisInputException("view", "Unknown telemetry view.")
         };
+        result["mode"] = "live";
         result["since_cursor"] = handles.Issue(project, "refresh", J.O(("scope", fingerprint), ("as_of", now.ToString("O"))));
         if (input["fields"] is JsonArray fields)
         {

@@ -32,6 +32,8 @@ internal sealed partial class AnalysisEngine
         var result = CompareTracesCore(input);
         result["window"] = _window.Json;
         result["coverage"] ??= Coverage(0, 0, 0, false);
+        // Embedded viewer comparisons are complete; the standalone operation applies paging in Run.
+        result["has_more"] = false;
         return result;
     }
     private JsonObject CompareTracesCore(JsonObject input)

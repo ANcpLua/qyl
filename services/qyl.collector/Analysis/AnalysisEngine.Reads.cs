@@ -70,6 +70,8 @@ internal sealed partial class AnalysisEngine
     private static long TotalOutput(IEnumerable<AnalysisRecord> rows) => rows.Sum(static s => s.Span?.GenAiOutputTokens ?? 0);
     private JsonObject Traces(JsonObject input)
     {
+        if (J.String(input, "trace_id") is { } requestedTrace && !_spans.Any(s => s.TraceId == requestedTrace))
+            throw new AnalysisInputException("trace", requestedTrace, "trace.not_found");
         var traces = _spans.GroupBy(s => s.TraceId!).Where(g =>
         {
             var groupRows = g.ToList();
@@ -111,6 +113,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject Trace(JsonObject input)
     {
         var rows = Execution(input); var selection = J.String(input, "selection") ?? (J.Bool(input, "errors_only") ? "errors" : "all");
+        if (rows.Count == 0) throw new AnalysisInputException("trace", J.String(input, "trace_id") ?? "", "trace.not_found");
         if (J.Bool(input, "errors_only") && selection != "errors") throw new AnalysisInputException("selection", "errors_only=true requires selection=errors.");
         var matched = rows.Where(s => selection is "all" or "critical_path" || s.Error).ToHashSet(); var selected = matched.ToHashSet();
         var children = rows.ToLookup(s => s.Span?.ParentSpanId ?? "", StringComparer.Ordinal);

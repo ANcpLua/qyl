@@ -10,6 +10,50 @@ namespace Qyl.Collector.Tests;
 public sealed partial class AnalysisApiTests
 {
     [Fact]
+    public async Task Targeted_trace_reads_report_foreign_and_absent_traces_as_not_found()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), Timestamp, Timestamp + 1000)]), TestContext.Current.CancellationToken);
+        foreach (var (key, traceId) in new[] { ("beta-all", TraceId(1)), ("reader", TraceId(99)) })
+        foreach (var operation in new[] { "get_trace", "display_traces", "fetch_telemetry" })
+        {
+            var input = new JsonObject { ["trace_id"] = traceId };
+            if (operation == "fetch_telemetry") input["view"] = "trace";
+            using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/" + operation, key, input.ToJsonString());
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal("not_found", (await JsonAsync(response)).GetProperty("code").GetString());
+        }
+    }
+
+    [Fact]
+    public async Task Viewer_comparison_loads_both_traces_and_returns_a_complete_nested_contract()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var time = Timestamp;
+        await host.Store.EnqueueAsync(new SpanBatch([
+            Span(TraceId(1), SpanId(1), time, time + 1000, status: 2) with { Name = "request" },
+            Span(TraceId(2), SpanId(2), time, time + 1000, status: 1) with { Name = "request" }
+        ]), TestContext.Current.CancellationToken);
+        var result = await Read(host, "display_traces", $$"""{"trace_id":"{{TraceId(1)}}","compare_to":"{{TraceId(2)}}"}""");
+        Assert.Single(result.GetProperty("traces").EnumerateArray());
+        var comparison = result.GetProperty("comparison");
+        Assert.True(comparison.GetProperty("comparable").GetBoolean());
+        Assert.False(comparison.GetProperty("has_more").GetBoolean());
+        var pair = Assert.Single(comparison.GetProperty("aligned").EnumerateArray());
+        Assert.Equal(TraceId(1), pair.GetProperty("a_span").GetProperty("trace_id").GetString());
+        Assert.Equal(TraceId(2), pair.GetProperty("b_span").GetProperty("trace_id").GetString());
+        var missing = await Read(host, "display_traces", $$"""{"trace_id":"{{TraceId(1)}}","compare_to":"{{TraceId(3)}}"}""");
+        Assert.False(missing.GetProperty("comparison").GetProperty("comparable").GetBoolean());
+        Assert.False(missing.GetProperty("comparison").GetProperty("has_more").GetBoolean());
+        var refresh = await Read(host, "fetch_telemetry", $$$"""{"view":"compare","a":{"trace_id":"{{{TraceId(1)}}}"},"b":{"trace_id":"{{{TraceId(2)}}}"}}""");
+        Assert.True(refresh.GetProperty("comparison").GetProperty("comparable").GetBoolean());
+        Assert.False(refresh.GetProperty("comparison").GetProperty("has_more").GetBoolean());
+        var dashboard = await Read(host, "fetch_telemetry", """{"view":"mcp_stats","hours":1}""");
+        Assert.Equal("live", dashboard.GetProperty("mode").GetString());
+        Assert.True(dashboard.TryGetProperty("stats", out _));
+    }
+
+    [Fact]
     public async Task Failure_identity_ignores_UUIDs_and_reads_exception_events()
     {
         await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);

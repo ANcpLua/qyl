@@ -13,6 +13,26 @@ namespace Qyl.Collector.Tests;
 public sealed class ContractErrorResultsTests
 {
     [Fact]
+    public async Task Analysis_failures_preserve_the_generated_problem_contract()
+    {
+        foreach (var (result, status, code) in new[]
+        {
+            (ContractErrorResults.InternalServerError("analysis.response_invalid"), 500, ProblemCode.InternalError),
+            (ContractErrorResults.AnalysisDeadlineExceeded(), 504, ProblemCode.ServiceUnavailable)
+        })
+        {
+            var context = await ExecuteAsync(result);
+            Assert.Equal(status, context.Response.StatusCode);
+            Assert.Equal(ProblemDetailsMediaType.Value, context.Response.ContentType);
+            var body = await JsonSerializer.DeserializeAsync(context.Response.Body,
+                QylSerializerContext.Default.ProblemDetails, TestContext.Current.CancellationToken);
+            Assert.NotNull(body);
+            Assert.Equal(status, body.Status);
+            Assert.Equal(code, body.Code);
+        }
+    }
+
+    [Fact]
     public async Task Endpoint_problem_results_use_the_generated_media_type_and_source_generated_json()
     {
         var validation = await ExecuteAsync(ContractErrorResults.Validation(

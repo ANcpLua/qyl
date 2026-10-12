@@ -6,6 +6,27 @@ namespace Qyl.Collector;
 
 internal static class ContractErrorResults
 {
+    internal static IResult InternalServerError(string errorCode) =>
+        Results.Json(
+            CreateInternalServerError(errorCode),
+            QylSerializerContext.Default.ContractInternalServerError,
+            statusCode: StatusCodes.Status500InternalServerError,
+            contentType: ProblemDetailsMediaType.Value);
+
+    internal static IResult AnalysisDeadlineExceeded() =>
+        Results.Json(
+            new ProblemDetails
+            {
+                Type = ProblemType.ServiceUnavailable,
+                Code = ProblemCode.ServiceUnavailable,
+                Title = "Analysis deadline exceeded",
+                Status = StatusCodes.Status504GatewayTimeout,
+                Detail = "Narrow the time window or filters and retry."
+            },
+            QylSerializerContext.Default.ProblemDetails,
+            statusCode: StatusCodes.Status504GatewayTimeout,
+            contentType: ProblemDetailsMediaType.Value);
+
     internal static IResult NotFound(string resourceType, string resourceId) =>
         Results.Json(
             CreateNotFound(resourceType, resourceId),
