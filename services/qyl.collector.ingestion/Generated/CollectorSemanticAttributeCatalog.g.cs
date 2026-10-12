@@ -53,11 +53,11 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> SpanAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
-        "app.version", // incubating
-        "ci.leg", // incubating
-        "cicd.pipeline.run.attempt", // incubating
         "cicd.pipeline.run.id", // incubating
         "cicd.pipeline.run.url.full", // incubating
+        "cicd.pipeline.task.name", // incubating
+        "cicd.pipeline.task.run.id", // incubating
+        "cicd.pipeline.task.type", // incubating
         "cloud.region", // incubating
         "db.cassandra.consistency_level",
         "db.cassandra.coordinator.dc",
@@ -167,8 +167,6 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
-        "gen_ai.tool.call.arguments.hash", // incubating
-        "gen_ai.tool.call.arguments_hash", // incubating
         "gen_ai.tool.call.id", // incubating
         "gen_ai.tool.call.result", // incubating
         "gen_ai.tool.definitions", // incubating
@@ -220,10 +218,15 @@ internal static class CollectorSemanticAttributeCatalog
         "http.user_agent",
         "jsonrpc.protocol.version", // incubating
         "jsonrpc.request.id", // incubating
+        "mcp.is_error", // incubating
         "mcp.method.name", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
+        "mcp.response.is_error", // incubating
+        "mcp.server.name", // incubating
+        "mcp.server.version", // incubating
         "mcp.session.id", // incubating
+        "mcp.transport", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -301,6 +304,7 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.status_code",
         "otel.status_description",
         "qyl.exception.source", // incubating
+        "qyl.gen_ai.tool.call.arguments_hash", // incubating
         "qyl.instrumentation.domain", // incubating
         "qyl.mcp.evaluation_run.id", // incubating
         "qyl.mcp.execution.id", // incubating
@@ -352,7 +356,6 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> LogAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
-        "app.version", // incubating
         "browser.device_memory", // incubating
         "browser.language", // incubating
         "browser.viewport.height", // incubating
@@ -363,8 +366,6 @@ internal static class CollectorSemanticAttributeCatalog
         "browser.web_vital.navigation_type", // incubating
         "browser.web_vital.rating", // incubating
         "browser.web_vital.value", // incubating
-        "ci.leg", // incubating
-        "cicd.pipeline.run.attempt", // incubating
         "cicd.pipeline.run.id", // incubating
         "cicd.pipeline.run.url.full", // incubating
         "cloud.region", // incubating
@@ -433,8 +434,6 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
-        "gen_ai.tool.call.arguments.hash", // incubating
-        "gen_ai.tool.call.arguments_hash", // incubating
         "gen_ai.tool.call.id", // incubating
         "gen_ai.tool.call.result", // incubating
         "gen_ai.tool.definitions", // incubating
@@ -483,10 +482,15 @@ internal static class CollectorSemanticAttributeCatalog
         "http.user_agent",
         "jsonrpc.protocol.version", // incubating
         "jsonrpc.request.id", // incubating
+        "mcp.is_error", // incubating
         "mcp.method.name", // incubating
         "mcp.protocol.version", // incubating
         "mcp.resource.uri", // incubating
+        "mcp.response.is_error", // incubating
+        "mcp.server.name", // incubating
+        "mcp.server.version", // incubating
         "mcp.session.id", // incubating
+        "mcp.transport", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -892,7 +896,6 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> ResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
-        "app.version", // incubating
         "cloud.region", // incubating
         "deployment.environment",
         "deployment.environment.name",
@@ -1060,6 +1063,9 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal const string CicdPipelineRunId = "cicd.pipeline.run.id"; // incubating
     internal const string CicdPipelineRunUrlFull = "cicd.pipeline.run.url.full"; // incubating
+    internal const string CicdPipelineTaskName = "cicd.pipeline.task.name"; // incubating
+    internal const string CicdPipelineTaskRunId = "cicd.pipeline.task.run.id"; // incubating
+    internal const string CicdPipelineTaskType = "cicd.pipeline.task.type"; // incubating
     internal const string DbSystemName = "db.system.name";
     internal const string DeploymentEnvironment = "deployment.environment";
     internal const string DeploymentEnvironmentName = "deployment.environment.name";
@@ -1076,11 +1082,13 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiReasoningTokens = "gen_ai.usage.reasoning.output_tokens"; // incubating
     internal const string GenAiRequestModel = "gen_ai.request.model"; // incubating
     internal const string GenAiResponseModel = "gen_ai.response.model"; // incubating
+    internal const string GenAiToolCallArgumentsHash = "qyl.gen_ai.tool.call.arguments_hash"; // incubating
     internal const string GenAiToolCallId = "gen_ai.tool.call.id"; // incubating
     internal const string GenAiToolName = "gen_ai.tool.name"; // incubating
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
     internal const string McpMethodName = "mcp.method.name"; // incubating
+    internal const string MessagingSystem = "messaging.system"; // incubating
     internal const string NetworkTransport = "network.transport";
     internal const string PeerService = "peer.service";
     internal const string QylAttributeNamespace = "qyl.attribute.namespace"; // incubating

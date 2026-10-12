@@ -12,12 +12,20 @@ internal sealed partial class AnalysisEngine
         if (trace is null && session is null) throw new AnalysisInputException("trace_id", "Provide trace_id or session_id.");
         return _spans.Where(s => trace is not null ? s.TraceId == trace : s.SessionId == session).ToList();
     }
-    private static int Depth(AnalysisRecord s, IReadOnlyList<AnalysisRecord> spans)
+    private int Depth(AnalysisRecord span, IReadOnlyList<AnalysisRecord> _)
     {
-        var current = s; var seen = new HashSet<string>(); var depth = 0;
-        while (current.Span?.ParentSpanId is { Length: > 0 } parent && seen.Add(parent))
-        { var found = spans.FirstOrDefault(p => p.Id == parent && p.TraceId == current.TraceId); if (found is null) break; current = found; depth++; }
-        return depth;
+        if (_depths.TryGetValue((span.TraceId, span.Id), out var cached)) return cached;
+        var path = new List<AnalysisRecord>(); var seen = new HashSet<string>(StringComparer.Ordinal); var current = span; var depth = 0;
+        while (seen.Add(current.Id))
+        {
+            ct.ThrowIfCancellationRequested();
+            if (_depths.TryGetValue((current.TraceId, current.Id), out var existing)) { depth = existing; break; }
+            path.Add(current);
+            if (current.Span?.ParentSpanId is not { Length: > 0 } parent || !SpanIndex.TryGetValue((current.TraceId, parent), out var found)) { depth = -1; break; }
+            current = found;
+        }
+        for (var i = path.Count - 1; i >= 0; i--) _depths[(path[i].TraceId, path[i].Id)] = ++depth;
+        return _depths.GetValueOrDefault((span.TraceId, span.Id));
     }
     private JsonObject CompareTraces(JsonObject input)
     {
@@ -36,6 +44,7 @@ internal sealed partial class AnalysisEngine
         var aligned = new List<JsonObject>(); var unmatched = new List<JsonObject>(); JsonObject? first = null;
         foreach (var left in a.OrderBy(s => s.Start))
         {
+            ct.ThrowIfCancellationRequested();
             var key = (left.Service, left.Name, Depth: Depth(left, a));
             if (!groupsB.TryGetValue(key, out var queue) || !queue.TryDequeue(out var right))
             { var missing = J.O(("a_span", SpanJson(left)), ("b_span", null), ("kind", "missing")); unmatched.Add(SpanJson(left)); first ??= missing; continue; }
@@ -72,28 +81,33 @@ internal sealed partial class AnalysisEngine
             spans = _spans.Where(s => s.SessionId == run || J.Text(s.Value(CollectorSemanticAttributeCatalog.CicdPipelineRunId)) == run).ToList();
         else spans = Execution(input);
         var errors = spans.Where(s => s.Error).ToList();
-        var rootCause = errors.Where(s => !errors.Any(child => child.Span?.ParentSpanId == s.Id && child.TraceId == s.TraceId)).OrderBy(s => s.Start).FirstOrDefault();
+        var byId = spans.ToDictionary(s => s.Id, StringComparer.Ordinal);
+        var traceIds = spans.Select(s => s.TraceId).ToHashSet(StringComparer.Ordinal);
+        var sessionIds = spans.Select(s => s.SessionId).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var errorParents = errors.Where(s => s.Span?.ParentSpanId is not null).Select(s => s.Span!.ParentSpanId!).ToHashSet(StringComparer.Ordinal);
+        var rootCause = errors.Where(s => !errorParents.Contains(s.Id)).OrderBy(s => s.Start).FirstOrDefault();
         var selected = new HashSet<string>(errors.Select(s => s.Id));
         foreach (var error in errors)
-        { var current = error; while (current.Span?.ParentSpanId is { } parent && spans.FirstOrDefault(s => s.Id == parent) is { } ancestor && selected.Add(ancestor.Id)) current = ancestor; }
+        { var current = error; while (current.Span?.ParentSpanId is { } parent && byId.TryGetValue(parent, out var ancestor) && selected.Add(ancestor.Id)) current = ancestor; }
         var maxSpans = (int)J.Number(input, "max_spans", 50); var maxLogs = (int)J.Number(input, "max_logs", 20);
         if (maxSpans is < 1 or > 1000 || maxLogs is < 0 or > 1000) throw new AnalysisInputException("max_spans", "Use 1–1000 spans and 0–1000 logs.");
         var evidence = spans.Where(s => selected.Contains(s.Id)).Select(s => { var row = SpanJson(s); row["role"] = s.Error ? "matched" : "context"; return row; }).ToList();
-        var logs = _logs.Where(l => spans.Any(s => s.TraceId == l.TraceId && (l.SpanId == s.Id || l.SpanId is null))).ToList();
-        var missing = spans.Where(s => s.Span?.ParentSpanId is { Length: > 0 } parent && !spans.Any(p => p.Id == parent)).Select(s => s.Span!.ParentSpanId!).Distinct().ToList();
+        var logs = _logs.Where(l => traceIds.Contains(l.TraceId) && (l.SpanId is null || byId.ContainsKey(l.SpanId))).ToList();
+        var missing = spans.Where(s => s.Span?.ParentSpanId is { Length: > 0 } parent && !byId.ContainsKey(parent)).Select(s => s.Span!.ParentSpanId!).Distinct().ToList();
         var unknowns = missing.Select(id => (JsonNode?)JsonValue.Create("Missing parent span " + id)).ToList();
         if (spans.Any(s => s.End < s.Start)) unknowns.Add(JsonValue.Create("Clock skew: span end precedes start."));
         if (evidence.Count > maxSpans || logs.Count > maxLogs) unknowns.Add(JsonValue.Create("Evidence was truncated."));
-        var success = rootCause is null ? null : _spans.Where(s => s.Name == spans.FirstOrDefault()?.Name && !s.Error && !_spans.Any(e => e.TraceId == s.TraceId && e.Error)).OrderBy(s => Math.Abs((decimal)s.Start - rootCause.Start)).FirstOrDefault();
+        var errorTraces = _spans.Where(s => s.Error).Select(s => s.TraceId).ToHashSet(StringComparer.Ordinal);
+        var success = rootCause is null ? null : _spans.Where(s => s.Name == spans.FirstOrDefault()?.Name && !s.Error && !errorTraces.Contains(s.TraceId)).OrderBy(s => Math.Abs((decimal)s.Start - rootCause.Start)).FirstOrDefault();
         JsonObject? divergence = null;
         if (success is not null && spans.FirstOrDefault()?.TraceId is { } failingTrace)
             divergence = CompareTraces(J.O(("a", J.O(("trace_id", failingTrace))), ("b", J.O(("trace_id", success.TraceId)))))["first_divergence"]?.DeepClone().AsObject();
-        return J.O(("observed", J.O(("root_cause_span", rootCause is null ? null : SpanJson(rootCause)), ("error_spans", J.A(evidence.Take(maxSpans))),
-            ("propagation", J.A(spans.Where(s => s.Span?.ParentSpanId is { } parent && selected.Contains(parent) && selected.Contains(s.Id)).Select(s => J.O(("from", SpanJson(spans.First(p => p.Id == s.Span!.ParentSpanId))), ("to", SpanJson(s)))))), ("logs", J.A(logs.Take(maxLogs).Select(LogJson))),
+        return J.O(("observed", J.O(("root_cause_span", rootCause is null ? null : SpanJson(rootCause)), ("error_spans", J.A(evidence)),
+            ("propagation", J.A(spans.Where(s => s.Span?.ParentSpanId is { } parent && selected.Contains(parent) && selected.Contains(s.Id)).Select(s => J.O(("from", SpanJson(byId[s.Span!.ParentSpanId!])), ("to", SpanJson(s)))))), ("logs", J.A(logs.Select(LogJson))),
             ("retries", J.A(spans.GroupBy(s => (s.Span?.ParentSpanId, s.Name)).Where(g => g.Count() > 1).Select(g => J.O(("name", g.Key.Name), ("attempts", g.Count()), ("spans", J.A(g.Select(SpanJson))))))),
             ("fanout", J.A(spans.GroupBy(s => s.Span?.ParentSpanId).Where(g => g.Key is not null && g.Count() > 1).Select(g => J.O(("parent_span_id", g.Key), ("name", "children"), ("count", g.Count()), ("trace_id", g.First().TraceId))))))),
             ("comparison", J.O(("nearest_success_trace_id", success?.TraceId), ("first_divergence", divergence))),
-            ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", new JsonArray()), ("annotations", J.A(snapshot.Annotations.Where(n => spans.Any(s => s.TraceId == n.TraceId || s.SessionId == n.SessionId && n.SessionId is not null)).Select(AnnotationJson))))),
+            ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId)).Select(AnnotationJson))))),
             ("settled", spans.Count == 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
             ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, Math.Min(evidence.Count, maxSpans) + Math.Min(logs.Count, maxLogs), evidence.Count > maxSpans || logs.Count > maxLogs)));
     }
@@ -124,10 +138,27 @@ internal sealed partial class AnalysisEngine
         var scope = J.String(input, "attribute_scope") ?? "both"; var limit = (int)J.Number(input, "limit", 10);
         var namesA = a.Select(s => s.Name).ToHashSet(); var namesB = b.Select(s => s.Name).ToHashSet();
         JsonObject Durations(List<AnalysisRecord> rows) => J.O(("p50_ms", J.Percentile(rows.Select(s => s.Duration), .5)), ("p95_ms", J.Percentile(rows.Select(s => s.Duration), .95)), ("p99_ms", J.Percentile(rows.Select(s => s.Duration), .99)));
-        return J.O(("discriminators", Discriminators(a, b, scope, limit, new[] { ga["matchers"], (gb as JsonObject)?["matchers"] }.OfType<JsonArray>().SelectMany(x => x).Select(x => J.String(x, "key") ?? "").ToHashSet())), ("structural", J.A(namesA.SymmetricExcept(namesB).Select(name => J.O(("name", name), ("share_a", a.Count(s => s.Name == name) / (double)Math.Max(a.Count, 1)), ("share_b", b.Count(s => s.Name == name) / (double)Math.Max(b.Count, 1)))))),
-            ("durations", J.O(("a", Durations(a)), ("b", Durations(b)))), ("composition", J.O(("changed", true), ("traffic_mix_changed", !namesA.SetEquals(namesB)), ("same_traffic_changed", namesA.SetEquals(namesB)), ("summary", "These are associations, not causes."))),
-            ("size_a", a.Count), ("size_b", b.Count), ("excluded_keys", a.Concat(b).SelectMany(s => s.Attributes.Select(p => p.Key)).Where(IsUniqueKey).Distinct()), ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, Math.Min(limit, a.Count), false)));
+        var countsA = a.GroupBy(r => r.Name).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        var countsB = b.GroupBy(r => r.Name).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        double ShareA(string name) => countsA.GetValueOrDefault(name) / (double)Math.Max(1, a.Count);
+        double ShareB(string name) => countsB.GetValueOrDefault(name) / (double)Math.Max(1, b.Count);
+        var names = namesA.Union(namesB).Order(StringComparer.Ordinal).ToList();
+        var mixChanged = names.Any(name => Math.Abs(ShareA(name) - ShareB(name)) > .01);
+        var performanceChanged = !JsonNode.DeepEquals(Durations(a), Durations(b))
+            || a.Count(s => s.Error) / (double)Math.Max(1, a.Count) != b.Count(s => s.Error) / (double)Math.Max(1, b.Count);
+        var predicates = new[] { ga["matchers"], (gb as JsonObject)?["matchers"] }.OfType<JsonArray>()
+            .SelectMany(x => x).Select(x => J.String(x, "key") ?? "").ToHashSet(StringComparer.Ordinal);
+        return J.O(
+            ("discriminators", Discriminators(a, b, scope, int.MaxValue, predicates)),
+            ("structural", J.A(names.Where(name => ShareA(name) != ShareB(name)).Select(name => J.O(("name", name), ("share_a", ShareA(name)), ("share_b", ShareB(name)))))),
+            ("durations", J.O(("a", Durations(a)), ("b", Durations(b)))),
+            ("composition", J.O(("changed", mixChanged || performanceChanged), ("traffic_mix_changed", mixChanged),
+                ("same_traffic_changed", !mixChanged && performanceChanged), ("summary", "These are associations, not causes."))),
+            ("size_a", a.Count), ("size_b", b.Count),
+            ("excluded_keys", a.Concat(b).SelectMany(s => s.Attributes.Select(p => p.Key)).Where(IsUniqueKey).Distinct()),
+            ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, Math.Min(limit, a.Count), false)));
     }
+
     private JsonObject VerifyFix(JsonObject input)
     {
         if (J.String(input, "verify_id") is { } token) { input = handles.Read(token, project, "verify_id"); _window = AnalysisWindow.Resolve(input, now); }
@@ -148,14 +179,10 @@ internal sealed partial class AnalysisEngine
         var afterFailures = failure.Where(s => s.Start >= ns).ToList(); var beforeFailures = failure.Count(s => s.Start < ns && s.Start >= (ulong)beforeStart.ToUnixTimeMilliseconds() * 1_000_000);
         var verdict = afterFailures.Count > 0 ? "failed" : after.Count < minRequests || duration.TotalMinutes < minMinutes ? "pending" : after.Count == 0 ? "inconclusive" : "passed";
         JsonObject Segment(DateTimeOffset start, DateTimeOffset end, int occurrences, int count) => J.O(("window", new AnalysisWindow(start, end).Json), ("occurrences", occurrences), ("requests", count), ("rate", count == 0 ? null : occurrences / (double)count), ("unit", "requests"));
-        var guardrails = _spans.Where(s => s.Error && s.Start >= ns).GroupBy(Signature).Where(g => !failure.Any(f => Signature(f) == g.Key)).Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; item["services"] = J.N(g.Select(s => s.Service).Distinct()); return item; }).Take(10);
+        var knownFailures = _spans.Where(s => s.Error && s.Start < ns && s.Start >= (ulong)beforeStart.ToUnixTimeMilliseconds() * 1_000_000).Select(Signature).Concat(failure.Select(Signature)).ToHashSet(StringComparer.Ordinal);
+        var guardrails = _spans.Where(s => s.Error && s.Start >= ns).GroupBy(Signature).Where(g => !knownFailures.Contains(g.Key)).Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; item["services"] = J.N(g.Select(s => s.Service).Distinct()); return item; });
         return J.O(("verdict", verdict), ("before", Segment(beforeStart, since.Value, beforeFailures, before.Count)), ("after", Segment(since.Value, now, afterFailures.Count, after.Count)),
             ("needs", verdict == "pending" ? J.O(("requests", Math.Max(0, minRequests - after.Count)), ("minutes", Math.Max(0, minMinutes - duration.TotalMinutes))) : null),
             ("recurrences", afterFailures.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)), ("guardrails", J.A(guardrails)), ("verify_id", handles.Issue(project, "verify_id", input)));
     }
-}
-
-internal static class SetDifferenceExtensions
-{
-    public static IEnumerable<T> SymmetricExcept<T>(this HashSet<T> a, HashSet<T> b) => a.Except(b).Concat(b.Except(a));
 }

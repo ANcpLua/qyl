@@ -12,12 +12,15 @@ internal static class MetricStorageMapper
 {
     internal readonly record struct MetricWriteSet(
         IReadOnlyList<MetricSeriesRow> Series,
-        IReadOnlyList<MetricPointRow> Points);
+        IReadOnlyList<MetricPointRow> Points,
+        IReadOnlyList<MetricExemplarRow> Exemplars);
 
     public static MetricWriteSet ToStorageRows(MetricIngestionBatch batch, string? authenticatedProjectId = null)
     {
         var series = new Dictionary<(string ProjectId, string SeriesId), MetricSeriesRow>();
         var points = new Dictionary<(string ProjectId, string SeriesId, ulong Time), MetricPointRow>();
+
+        var exemplars = new Dictionary<(string Project, string Series, ulong Time, string Trace), MetricExemplarRow>();
 
         foreach (var record in batch.Points)
         {
@@ -32,6 +35,9 @@ internal static class MetricStorageMapper
                 record.ServiceName,
                 attributesJson,
                 resourceJson);
+
+            foreach (var traceId in record.ExemplarTraceIds)
+                exemplars[(projectId, seriesId, record.TimeUnixNano, traceId)] = new MetricExemplarRow { ProjectId = projectId, SeriesId = seriesId, TimeUnixNano = record.TimeUnixNano, TraceId = traceId };
 
             var key = (projectId, seriesId);
             var row = new MetricSeriesRow
@@ -79,7 +85,7 @@ internal static class MetricStorageMapper
             };
         }
 
-        return new MetricWriteSet([.. series.Values], [.. points.Values]);
+        return new MetricWriteSet([.. series.Values], [.. points.Values], [.. exemplars.Values]);
     }
 
     /// <summary>

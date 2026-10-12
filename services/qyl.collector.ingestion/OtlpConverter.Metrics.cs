@@ -193,6 +193,7 @@ internal static partial class OtlpConverter
         {
             TimeUnixNano = point.TimeUnixNano,
             StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
+            ExemplarTraceIds = point.Exemplars.Where(static e => e.TraceId.Length == 16 && e.TraceId.Span.IndexOfAnyExcept((byte)0) >= 0).Select(static e => Convert.ToHexStringLower(e.TraceId.Span)).Distinct(StringComparer.Ordinal).Take(3).ToArray(),
             Value = value
         };
     }
@@ -222,6 +223,7 @@ internal static partial class OtlpConverter
                {
                    TimeUnixNano = point.TimeUnixNano,
                    StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
+            ExemplarTraceIds = point.Exemplars.Where(static e => e.TraceId.Length == 16 && e.TraceId.Span.IndexOfAnyExcept((byte)0) >= 0).Select(static e => Convert.ToHexStringLower(e.TraceId.Span)).Distinct(StringComparer.Ordinal).Take(3).ToArray(),
                    Count = noValue ? null : point.Count,
                    Sum = noValue || !point.HasSum ? null : point.Sum,
                    Min = noValue || !point.HasMin ? null : point.Min,
@@ -307,6 +309,7 @@ internal static partial class OtlpConverter
                {
                    TimeUnixNano = point.TimeUnixNano,
                    StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
+            ExemplarTraceIds = point.Exemplars.Where(static e => e.TraceId.Length == 16 && e.TraceId.Span.IndexOfAnyExcept((byte)0) >= 0).Select(static e => Convert.ToHexStringLower(e.TraceId.Span)).Distinct(StringComparer.Ordinal).Take(3).ToArray(),
                    Count = noValue ? null : point.Count,
                    Sum = noValue || !point.HasSum ? null : point.Sum,
                    Min = noValue || !point.HasMin ? null : point.Min,

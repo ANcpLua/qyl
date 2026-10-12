@@ -18,7 +18,7 @@ internal sealed class MetricsServiceImpl(IQylStore store, OtlpApiKeyOptions? opt
             if (write.Points.Count > 0)
             {
                 await store
-                    .InsertMetricsAsync(write.Series, write.Points, context.CancellationToken)
+                    .InsertMetricsAsync(write.Series, write.Points, write.Exemplars, context.CancellationToken)
                     .ConfigureAwait(false);
             }
 

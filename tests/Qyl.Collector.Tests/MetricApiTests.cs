@@ -291,7 +291,7 @@ public sealed class MetricApiTests
         };
 
         var write = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request));
-        await store.InsertMetricsAsync(write.Series, write.Points, ct);
+        await store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, ct);
     }
 
     private static OtlpMetric Gauge(string name, string route, params (ulong Time, double Value)[] points)

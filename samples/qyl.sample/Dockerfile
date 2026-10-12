@@ -9,7 +9,8 @@ WORKDIR /source
 COPY . .
 # The NuGet caches are removed in the same layer: they are dead weight, and the legacy builder cannot export the http-cache
 # (file names containing '$' break its diff stream).
-RUN dotnet publish samples/qyl.sample/qyl.sample.csproj --configuration Release --output /app \
+RUN DOTNET_PROCESSOR_COUNT=4 dotnet publish samples/qyl.sample/qyl.sample.csproj --configuration Release --output /app \
+    -maxcpucount:4 -p:UseSharedCompilation=false \
     && rm -f /app/*.dbg /app/*.Development.json \
     && rm -rf /root/.nuget /root/.local/share/NuGet
 

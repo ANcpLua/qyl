@@ -65,7 +65,8 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["QYL_OTLP_AUTH_MODE"] = "ApiKey",
-                ["QYL_OTLP_PROJECT_KEYS"] = ProjectKeys
+                ["QYL_OTLP_PROJECT_KEYS"] = ProjectKeys,
+                ["QYL_ANALYSIS_SIGNING_KEY"] = "analysis-test-key-independent-of-api-keys"
             })
             .Build();
         var builder = WebApplication.CreateSlimBuilder();

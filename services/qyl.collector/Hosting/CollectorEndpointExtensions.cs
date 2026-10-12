@@ -361,7 +361,7 @@ internal static partial class CollectorEndpointExtensions
                 batch, AuthenticatedProject.ForHttpIngest(context));
 
             if (write.Points.Count > 0)
-                await store.InsertMetricsAsync(write.Series, write.Points, ct);
+                await store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, ct);
 
             return OtlpHttpResult.Success(encoding, MetricsExportAck.Create(batch));
         }

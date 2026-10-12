@@ -61,6 +61,14 @@ internal sealed partial class DuckDbStore
                     deleted++;
             }
 
+            await using var metadata = con.CreateCommand();
+            metadata.Transaction = transaction;
+            metadata.CommandText = """
+                DELETE FROM analysis_state s WHERE s.state_key LIKE 'annotation:%'
+                AND NOT EXISTS (SELECT 1 FROM annotations a
+                  WHERE a.project_id = s.project_id AND 'annotation:' || a.annotation_id = s.state_key)
+                """;
+            await metadata.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             await transaction.CommitAsync(token).ConfigureAwait(false);
             return deleted;
         }, ct);

@@ -57,7 +57,8 @@ internal readonly record struct StorageFileMetrics(
 
 internal interface IQylStore : IAsyncDisposable
 {
-    Task<AnalysisSnapshot> ReadAnalysisSnapshotAsync(string projectId, CancellationToken ct = default);
+    Task<AnalysisSnapshot> ReadAnalysisSnapshotAsync(string projectId, AnalysisReadQuery? query = null, CancellationToken ct = default);
+    Task<IReadOnlyList<AnalysisStateRow>> ReadAnalysisStateAsync(string projectId, IReadOnlyList<string> keys, CancellationToken ct = default);
     Task<ResourceWriteOutcome<AnalysisStateRow>> WriteAnalysisStateAsync(AnalysisStateRow row, string? expectedEtag, CancellationToken ct = default);
 
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
@@ -72,6 +73,7 @@ internal interface IQylStore : IAsyncDisposable
     Task InsertMetricsAsync(
         IReadOnlyList<MetricSeriesRow> series,
         IReadOnlyList<MetricPointRow> points,
+        IReadOnlyList<MetricExemplarRow>? exemplars = null,
         CancellationToken ct = default);
 
     /// <summary>Metric names recorded for a project, with the shape shared by their series.</summary>
@@ -191,18 +193,14 @@ internal interface IQylStore : IAsyncDisposable
         AnnotationRow row,
         IdempotencyKeyRow? idempotency,
         ulong idempotencyNotBeforeUnixNano,
-        CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(AnnotationRow row, IdempotencyKeyRow? idempotency, ulong idempotencyNotBeforeUnixNano, AnalysisStateRow? metadata, CancellationToken ct);
-
-    Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(string projectId, string annotationId, EntityTagCondition ifMatch, Func<AnnotationRow, AnnotationRow> update, AnalysisStateRow? metadata, CancellationToken ct);
+        AnalysisStateRow? metadata = null, CancellationToken ct = default);
 
     Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(
         string projectId,
         string annotationId,
         EntityTagCondition ifMatch,
         Func<AnnotationRow, AnnotationRow> update,
-        CancellationToken ct = default);
+        AnalysisStateRow? metadata = null, CancellationToken ct = default);
 
     Task<ResourceWriteOutcome<AnnotationRow>> DeleteAnnotationAsync(
         string projectId,

@@ -22,6 +22,7 @@ internal readonly record struct AnalysisWindow(DateTimeOffset Start, DateTimeOff
     {
         var end = J.Date(input, "end_time") ?? now;
         var start = J.Date(input, "start_time") ?? end.AddMinutes(-J.Number(input, "lookback_minutes", defaultMinutes));
+        if (start < DateTimeOffset.UnixEpoch) throw new AnalysisInputException("start_time", "start_time must be on or after the Unix epoch.");
         if (end <= start) throw new AnalysisInputException("end_time", "end_time must be after start_time.");
         return new(start, end);
     }
@@ -41,14 +42,14 @@ internal static partial class J
     public static JsonObject O(params (string Key, object? Value)[] items)
     { var obj = new JsonObject(); foreach (var item in items) obj[item.Key] = N(item.Value); return obj; }
     public static JsonArray A(IEnumerable<JsonNode?> items) => new(items.Select(static v => v?.DeepClone()).ToArray());
-    public static string? String(JsonNode? input, string name) => input?[name]?.GetValueKind() == JsonValueKind.String ? input[name]!.GetValue<string>() : null;
-    public static double Number(JsonNode? input, string name, double fallback = 0) => input?[name]?.GetValueKind() == JsonValueKind.Number ? double.Parse(input[name]!.ToJsonString(), CultureInfo.InvariantCulture) : fallback;
-    public static bool Bool(JsonNode? input, string name, bool fallback = false) => input?[name]?.GetValueKind() is JsonValueKind.True or JsonValueKind.False ? input[name]!.GetValue<bool>() : fallback;
+    public static string? String(JsonNode? input, string name) => (input as JsonObject)?[name]?.GetValueKind() == JsonValueKind.String ? ((JsonObject)input!)[name]!.GetValue<string>() : null;
+    public static double Number(JsonNode? input, string name, double fallback = 0) => (input as JsonObject)?[name]?.GetValueKind() == JsonValueKind.Number ? double.Parse(((JsonObject)input!)[name]!.ToJsonString(), CultureInfo.InvariantCulture) : fallback;
+    public static bool Bool(JsonNode? input, string name, bool fallback = false) => (input as JsonObject)?[name]?.GetValueKind() is JsonValueKind.True or JsonValueKind.False ? ((JsonObject)input!)[name]!.GetValue<bool>() : fallback;
     public static string Text(JsonNode? value) => value is null ? "" : value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>() : value.ToJsonString();
     public static DateTimeOffset? Date(JsonNode? input, string name)
     {
-        if (input?[name] is null) return null;
-        if (!DateTimeOffset.TryParse(String(input, name), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
+        if ((input as JsonObject)?[name] is null) return null;
+        if (!Rfc3339().IsMatch(String(input, name) ?? "") || !DateTimeOffset.TryParse(String(input, name), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
             throw new AnalysisInputException(name, name + " must be an RFC 3339 timestamp.");
         return value;
     }
@@ -71,7 +72,8 @@ internal static partial class J
             if (obj[name] is { } scalar) return scalar.DeepClone();
         return obj.DeepClone();
     }
-    public static string Normalize(string message) => Quoted().Replace(Hex().Replace(Uuid().Replace(Numbers().Replace(message, "#"), "#"), "#"), "#");
+    public static string Normalize(string message) => Numbers().Replace(Quoted().Replace(Hex().Replace(Uuid().Replace(message, "#"), "#"), "#"), "#");
+    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$")] private static partial Regex Rfc3339();
     [GeneratedRegex(@"\b\d+(?:\.\d+)?\b")] private static partial Regex Numbers();
     [GeneratedRegex(@"[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}")] private static partial Regex Uuid();
     [GeneratedRegex(@"\b(?:0x)?[0-9a-fA-F]{8,}\b")] private static partial Regex Hex();
@@ -98,7 +100,17 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
     };
     public static AnalysisRecord From(SpanStorageRow s) => new(s.SpanId, s.TraceId, s.SpanId, s.SessionId,
         s.ServiceName ?? "unknown_service", s.Name, s.StartTimeUnixNano, s.EndTimeUnixNano, s.StatusCode == 2,
-        s.DurationNs / 1_000_000d, J.Attributes(s.AttributesJson), J.Attributes(s.ResourceJson), Span: s);
+        s.DurationNs / 1_000_000d, SpanAttributes(s), J.Attributes(s.ResourceJson), Span: s);
+    private static JsonObject SpanAttributes(SpanStorageRow span)
+    {
+        var attributes = J.Attributes(span.AttributesJson);
+        if (JsonNode.Parse(span.EventsJson ?? "[]") is JsonArray events)
+            foreach (var entry in events.OfType<JsonObject>().Where(static e => J.String(e, "name") == "exception"))
+                foreach (var pair in J.Attributes(entry["attributes"]?.ToJsonString()))
+                    if (pair.Key is CollectorSemanticAttributeCatalog.RecordedFailureKind or CollectorSemanticAttributeCatalog.ExceptionMessage)
+                        attributes[pair.Key] ??= pair.Value?.DeepClone();
+        return attributes;
+    }
     public static AnalysisRecord From(LogStorageRow l) => new(l.LogId, l.TraceId, l.SpanId, l.SessionId,
         l.ServiceName ?? "unknown_service", l.EventName ?? "", l.TimeUnixNano, l.TimeUnixNano, l.SeverityNumber >= 17,
         0, J.Attributes(l.AttributesJson), J.Attributes(l.ResourceJson), Log: l);

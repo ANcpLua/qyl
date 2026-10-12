@@ -1,23 +1,14 @@
-using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Collector.Analysis;
-using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Hosting;
 
 internal static partial class CollectorEndpointExtensions
 {
-    private static AnalysisHandles CreateAnalysisHandles(HttpContext context, string project)
-    {
-        var options = context.RequestServices.GetRequiredService<OtlpApiKeyOptions>();
-        var configured = context.RequestServices.GetRequiredService<IConfiguration>()["QYL_ANALYSIS_SIGNING_KEY"];
-        // Authenticated projects already possess a persisted credential. Deriving a separate signing
-        // key with a domain separator keeps tokens self-contained without a write from a read tool.
-        var material = configured ?? options.Keys.Where(k => k.ProjectId == project).OrderBy(k => k.ApiKey, StringComparer.Ordinal).Select(k => k.ApiKey).FirstOrDefault() ?? "qyl-unsecured-local-analysis";
-        return new AnalysisHandles(SHA256.HashData(Encoding.UTF8.GetBytes("qyl-analysis-v1\0" + project + "\0" + material)));
-    }
+    private static AnalysisHandles CreateAnalysisHandles(HttpContext context, string project) =>
+        context.RequestServices.GetRequiredService<AnalysisSigningKey>().ForProject(project);
     internal static async Task<IResult> AnalyzeAsync(string operation, HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromSeconds(55));
@@ -27,84 +18,66 @@ internal static partial class CollectorEndpointExtensions
             if (node is not JsonObject input) return ResourceHttp.InvalidBody("The request body must be a JSON object.");
             ValidateAnalysisInput(operation, input);
             var project = ResolveProjectScope(context);
-            var snapshot = await store.ReadAnalysisSnapshotAsync(project, deadline.Token).ConfigureAwait(false);
-            var result = new AnalysisEngine(snapshot, project, CreateAnalysisHandles(context, project), time.GetUtcNow()).Run(operation, input);
+            var now = time.GetUtcNow(); var handles = CreateAnalysisHandles(context, project);
+            var readInput = input;
+            if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
+            {
+                var saved = await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false);
+                if (saved is null) return ContractErrorResults.NotFound("saved_query", savedId);
+                readInput = JsonNode.Parse(saved.FilterJson)!.AsObject();
+                foreach (var pair in input) readInput[pair.Key] = pair.Value?.DeepClone();
+            }
+            var query = AnalysisReadPlan.Resolve(operation, readInput, now, handles, project);
+            var snapshot = await store.ReadAnalysisSnapshotAsync(project, query, deadline.Token).ConfigureAwait(false);
+            var result = new AnalysisEngine(snapshot, project, handles, now, deadline.Token).Run(operation, input);
             // The generated contract validator is applied below before every result leaves this boundary.
-            return AnalysisResult(operation, result);
+            try { return AnalysisResult(operation, result); }
+            catch (JsonException) { return Results.Problem(statusCode: 500, title: "Analysis response does not match its contract."); }
         }
         catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
-        catch (JsonException invalid) { return ContractErrorResults.Validation(invalid.Path ?? "body", "The analysis input or output does not match the generated contract.", "analysis.contract_invalid"); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return Results.Problem(statusCode: 504, title: "Analysis exceeded its time budget; narrow the window or filters."); }
+        catch (JsonException invalid) { return ContractErrorResults.Validation(invalid.Path ?? "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid"); }
     }
-    private static void ValidateAnalysisInput(string operation, JsonObject input)
+    private static (System.Text.Json.Serialization.Metadata.JsonTypeInfo Input, System.Text.Json.Serialization.Metadata.JsonTypeInfo Output) AnalysisContract(string operation) => operation switch
     {
-        var typeInfo = operation switch
-        {
-            "triage" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.TriageInput,
-            "list_failures" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListFailuresInput,
-            "get_failure_context" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetFailureContextInput,
-            "compare_groups" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CompareGroupsInput,
-            "compare_traces" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CompareTracesInput,
-            "verify_fix" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.VerifyFixInput,
-            "aggregate_telemetry" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.AggregateTelemetryInput,
-            "discover_attributes" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.DiscoverAttributesInput,
-            "get_agent_run" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetAgentRunInput,
-            "list_releases" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListReleasesInput,
-            "get_service_map" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetServiceMapInput,
-            "check_telemetry_health" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CheckTelemetryHealthInput,
-            "get_mcp_stats" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetMcpStatsInput,
-            "list_sessions" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListSessionsInput,
-            "list_traces" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListTracesInput,
-            "get_trace" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetTraceInput,
-            "search_logs" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.SearchLogsInput,
-            "list_metrics" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListMetricsInput,
-            "get_metric_series" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetMetricSeriesInput,
-            "query_metric" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.QueryMetricInput,
-            "ci_log" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CiLogInput,
-            "list_saved_queries" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListSavedQueriesInput,
-            "run_saved_query" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.RunSavedQueryInput,
-            "display_traces" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.DisplayTracesInput,
-            "display_mcp_dashboard" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.DisplayMcpDashboardInput,
-            "fetch_telemetry" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.FetchTelemetryInput,
-            _ => throw new InvalidOperationException("Unknown analysis output contract.")
-        };
-        _ = JsonSerializer.Deserialize(input.ToJsonString(), typeInfo);
-    }
+        "triage" => (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput),
+        "list_failures" => (AnalysisContractJsonContext.Default.ListFailuresInput, AnalysisContractJsonContext.Default.ListFailuresOutput),
+        "get_failure_context" => (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput),
+        "compare_groups" => (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput),
+        "compare_traces" => (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput),
+        "verify_fix" => (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput),
+        "aggregate_telemetry" => (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput),
+        "discover_attributes" => (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput),
+        "get_agent_run" => (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput),
+        "list_releases" => (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput),
+        "get_service_map" => (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput),
+        "check_telemetry_health" => (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput),
+        "get_mcp_stats" => (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput),
+        "list_sessions" => (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput),
+        "list_traces" => (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput),
+        "get_trace" => (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput),
+        "search_logs" => (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput),
+        "list_metrics" => (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput),
+        "get_metric_series" => (AnalysisContractJsonContext.Default.GetMetricSeriesInput, AnalysisContractJsonContext.Default.GetMetricSeriesOutput),
+        "query_metric" => (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput),
+        "ci_log" => (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput),
+        "list_saved_queries" => (AnalysisContractJsonContext.Default.ListSavedQueriesInput, AnalysisContractJsonContext.Default.ListSavedQueriesOutput),
+        "run_saved_query" => (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput),
+        "display_traces" => (AnalysisContractJsonContext.Default.DisplayTracesInput, AnalysisContractJsonContext.Default.DisplayTracesOutput),
+        "display_mcp_dashboard" => (AnalysisContractJsonContext.Default.DisplayMcpDashboardInput, AnalysisContractJsonContext.Default.DisplayMcpDashboardOutput),
+        "fetch_telemetry" => (AnalysisContractJsonContext.Default.FetchTelemetryInput, AnalysisContractJsonContext.Default.FetchTelemetryOutput),
+        "update_failure_status" => (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput),
+        _ => throw new InvalidOperationException("Unknown analysis contract.")
+    };
+
+    private static void ValidateAnalysisInput(string operation, JsonObject input) =>
+        _ = JsonSerializer.Deserialize(input.ToJsonString(), AnalysisContract(operation).Input);
 
     private static IResult AnalysisResult(string operation, JsonObject result)
     {
-        var typeInfo = operation switch
-        {
-            "triage" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.TriageOutput,
-            "list_failures" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListFailuresOutput,
-            "get_failure_context" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetFailureContextOutput,
-            "compare_groups" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CompareGroupsOutput,
-            "compare_traces" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CompareTracesOutput,
-            "verify_fix" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.VerifyFixOutput,
-            "aggregate_telemetry" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.AggregateTelemetryOutput,
-            "discover_attributes" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.DiscoverAttributesOutput,
-            "get_agent_run" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetAgentRunOutput,
-            "list_releases" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListReleasesOutput,
-            "get_service_map" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetServiceMapOutput,
-            "check_telemetry_health" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput,
-            "get_mcp_stats" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetMcpStatsOutput,
-            "list_sessions" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListSessionsOutput,
-            "list_traces" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListTracesOutput,
-            "get_trace" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetTraceOutput,
-            "search_logs" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.SearchLogsOutput,
-            "list_metrics" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListMetricsOutput,
-            "get_metric_series" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.GetMetricSeriesOutput,
-            "query_metric" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.QueryMetricOutput,
-            "ci_log" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.CiLogOutput,
-            "list_saved_queries" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.ListSavedQueriesOutput,
-            "run_saved_query" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.RunSavedQueryOutput,
-            "display_traces" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.DisplayTracesOutput,
-            "display_mcp_dashboard" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.DisplayMcpDashboardOutput,
-            "fetch_telemetry" => (System.Text.Json.Serialization.Metadata.JsonTypeInfo)AnalysisContractJsonContext.Default.FetchTelemetryOutput,
-            "update_failure_status" => AnalysisContractJsonContext.Default.UpdateFailureStatusOutput,
-            _ => throw new InvalidOperationException("Unknown analysis output contract.")
-        };
+        var typeInfo = AnalysisContract(operation).Output;
         var typed = JsonSerializer.Deserialize(result.ToJsonString(), typeInfo)
-            ?? throw new InvalidOperationException("Analysis result is empty.");
+            ?? throw new JsonException("Analysis result is empty.");
         return Results.Json(typed, typeInfo);
     }
 
@@ -118,21 +91,24 @@ internal static partial class CollectorEndpointExtensions
             var status = J.String(body, "status");
             if (status is not ("open" or "resolved" or "ignored")) return ContractErrorResults.Validation("status", "Choose open, resolved or ignored.", "status.invalid");
             if (body["ignore_until"] is not null && status != "ignored") return ContractErrorResults.Validation("ignore_until", "ignore_until is valid only with status=ignored.", "ignore_until.invalid");
+            if (body["assignee"] is not null && body["assignee"]!.GetValueKind() != JsonValueKind.String) return ContractErrorResults.Validation("assignee", "assignee must be a string.", "assignee.type");
             if (J.String(body, "assignee")?.EnumerateRunes().Count() > 256) return ContractErrorResults.Validation("assignee", "Use at most 256 characters.", "assignee.length");
-            _ = J.Date(body, "ignore_until");
-            var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct).ConfigureAwait(false);
+            var ignoreUntil = J.Date(body, "ignore_until");
+            body = J.O(("status", status), ("assignee", J.String(body, "assignee")), ("ignore_until", ignoreUntil?.ToString("O")));
+            var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, new AnalysisReadQuery { ErrorsOnly = true }, ct).ConfigureAwait(false);
             var engine = new AnalysisEngine(snapshot, project, CreateAnalysisHandles(context, project), time.GetUtcNow());
-            if (!engine.OwnsFailure(failureId)) return ContractErrorResults.NotFound("failure", failureId);
+            if (!engine.OwnsFailure(failureId)) return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : Results.Problem(statusCode: 503, title: "Failure lookup exceeded its scan budget.");
             var existing = snapshot.State.FirstOrDefault(s => s.StateKey == failureId); var current = existing?.Etag ?? '"' + failureId + '"';
             if (!condition.Matches(current)) return ContractErrorResults.PreconditionFailed(current);
             body["updated_at"] = time.GetUtcNow().ToString("O");
             var row = new AnalysisStateRow { ProjectId = project, StateKey = failureId, ValueJson = body.ToJsonString(), Etag = ResourceHttp.NewEtag(), UpdatedAtUnixNano = ResourceHttp.NowUnixNano(time) };
             var outcome = await store.WriteAnalysisStateAsync(row, existing?.Etag, ct).ConfigureAwait(false);
             if (outcome.Status == ResourceWriteStatus.PreconditionFailed) return ContractErrorResults.PreconditionFailed(outcome.CurrentEtag);
-            var updated = await store.ReadAnalysisSnapshotAsync(project, ct).ConfigureAwait(false);
+            var updated = snapshot with { State = snapshot.State.Where(s => s.StateKey != failureId).Append(row).ToArray() };
             var result = new AnalysisEngine(updated, project, CreateAnalysisHandles(context, project), time.GetUtcNow()).Run("list_failures", J.O(("failure_id", failureId), ("status", "all"), ("start_time", DateTimeOffset.UnixEpoch.ToString("O"))));
             context.Response.Headers.ETag = row.Etag;
-            return AnalysisResult("update_failure_status", J.O(("failure", result["failures"]?[0])));
+            try { return AnalysisResult("update_failure_status", J.O(("failure", result["failures"]?[0]))); }
+            catch (JsonException) { return Results.Problem(statusCode: 500, title: "Analysis response does not match its contract."); }
         }
         catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide a valid failure status request."); }

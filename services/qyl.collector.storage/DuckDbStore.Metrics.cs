@@ -47,6 +47,7 @@ internal sealed partial class DuckDbStore
     public async Task InsertMetricsAsync(
         IReadOnlyList<MetricSeriesRow> series,
         IReadOnlyList<MetricPointRow> points,
+        IReadOnlyList<MetricExemplarRow>? exemplars = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -62,6 +63,9 @@ internal sealed partial class DuckDbStore
                 MetricSeriesRow.BuildMultiRowInsertSql, MaxMetricSeriesPerBatch, token);
             await InsertRowsBatchedAsync(con, tx, points, MetricPointRow.AddParameters,
                 MetricPointRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
+            if (exemplars is { Count: > 0 })
+                await InsertRowsBatchedAsync(con, tx, exemplars, MetricExemplarRow.AddParameters,
+                    MetricExemplarRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
@@ -170,8 +174,8 @@ internal sealed partial class DuckDbStore
             throw new ArgumentOutOfRangeException(nameof(request), "Metric query end must not precede its start.");
 
         return ExecuteReadAsync<IReadOnlyList<MetricQuerySeries>>(
-            con => IsPercentile(request.Aggregation)
-                ? QueryHistogramPercentile(con, request)
+            con => ResolveMetricKind(con, request) >= (byte)MetricKind.Histogram
+                ? QueryHistogram(con, request, ct)
                 : QueryAggregate(con, request),
             ct);
     }
@@ -180,7 +184,6 @@ internal sealed partial class DuckDbStore
         DuckDBConnection con,
         MetricRangeQuery request)
     {
-        var kind = ResolveMetricKind(con, request);
         var qb = new QueryBuilder();
         qb.Add("s.project_id = $N", request.ProjectId);
         qb.Add("s.metric_name = $N", request.MetricName);
@@ -189,7 +192,7 @@ internal sealed partial class DuckDbStore
         qb.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
 
         var groupExpression = BuildGroupExpression(request.GroupBy);
-        var sample = BuildSampleExpression(kind, request.Aggregation);
+        var sample = BuildSampleExpression(request.Aggregation);
         var start = request.StartUnixNano.ToString(CultureInfo.InvariantCulture);
         var step = request.StepUnixNano.ToString(CultureInfo.InvariantCulture);
 
@@ -233,163 +236,52 @@ internal sealed partial class DuckDbStore
         return [.. order.Select(key => new MetricQuerySeries(key, ToGroupAttributesJson(request.GroupBy, key), streams[key]))];
     }
 
-    /// <summary>
-    /// Percentiles need bucket vectors summed element-wise across the points falling in one
-    /// step, which SQL has no aggregate for. The rows are read out (bounded) and folded here.
-    /// </summary>
-    private static IReadOnlyList<MetricQuerySeries> QueryHistogramPercentile(
-        DuckDBConnection con,
-        MetricRangeQuery request)
+    private static IReadOnlyList<MetricQuerySeries> QueryHistogram(
+        DuckDBConnection con, MetricRangeQuery request, CancellationToken ct)
     {
         var qb = new QueryBuilder();
         qb.Add("s.project_id = $N", request.ProjectId);
         qb.Add("s.metric_name = $N", request.MetricName);
         AppendMatchers(ref qb, request.Matchers, "s.");
-        qb.Add("p.time_unix_nano >= $N", (decimal)request.StartUnixNano);
         qb.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
-
-        var groupExpression = BuildGroupExpression(request.GroupBy);
-        var start = request.StartUnixNano.ToString(CultureInfo.InvariantCulture);
-        var step = request.StepUnixNano.ToString(CultureInfo.InvariantCulture);
-
+        // Include the last observation before the range to derive the first interval.
+        qb.Add("(p.time_unix_nano >= $N OR p.time_unix_nano = "
+            + "(SELECT max(prior.time_unix_nano) FROM metric_points prior WHERE prior.project_id = p.project_id "
+            + "AND prior.series_id = p.series_id AND prior.time_unix_nano < $N))", (decimal)request.StartUnixNano);
         using var cmd = con.CreateCommand();
-        var sql = "SELECT " + groupExpression + " AS group_key, "
-                  + BuildBucketExpression(start, step) + " AS bucket_start, "
-                  + "p.bucket_bounds_json, p.bucket_counts_json "
-                  + "FROM metric_points AS p JOIN metric_series AS s "
-                  + "ON s.project_id = p.project_id AND s.series_id = p.series_id "
-                  + qb.WhereClause
-                  + " AND p.bucket_counts_json IS NOT NULL "
-                  + "ORDER BY group_key, bucket_start LIMIT "
-                  + MaxHistogramRowsPerQuery.ToString(CultureInfo.InvariantCulture);
-        cmd.CommandText = sql;
+        cmd.CommandTimeout = 50;
+        var columns = string.Join(", ", MetricPointRow.SelectColumnList.Split(',').Select(static name => "p." + name.Trim()));
+        cmd.CommandText = "SELECT " + columns + ", s.temporality, " + BuildGroupExpression(request.GroupBy)
+            + " FROM metric_points p JOIN metric_series s ON s.project_id = p.project_id AND s.series_id = p.series_id "
+            + qb.WhereClause + " ORDER BY p.series_id, p.time_unix_nano LIMIT " + (MaxHistogramRowsPerQuery + 1);
         qb.ApplyTo(cmd);
-
-        var folded = new Dictionary<string, Dictionary<ulong, HistogramFold>>(StringComparer.Ordinal);
-        var order = new List<string>();
-        using (var reader = cmd.ExecuteReader())
+        using var cancellation = ct.Register(cmd.Cancel);
+        using var reader = cmd.ExecuteReader();
+        var groups = new SortedDictionary<string, SortedDictionary<ulong, List<MetricPointRow>>>(StringComparer.Ordinal);
+        var previous = new Dictionary<string, MetricPointRow>(StringComparer.Ordinal);
+        var rowCount = 0;
+        while (reader.Read())
         {
-            while (reader.Read())
-            {
-                var groupKey = DuckDbValueReader.ReadString(reader, 0) ?? "";
-                if (!folded.TryGetValue(groupKey, out var buckets))
-                {
-                    if (order.Count >= request.SeriesLimit)
-                        continue;
-                    buckets = [];
-                    folded[groupKey] = buckets;
-                    order.Add(groupKey);
-                }
-
-                var bucketStart = DuckDbValueReader.ReadUInt64(reader, 1, 0);
-                var bounds = ParseDoubleArray(DuckDbValueReader.ReadString(reader, 2));
-                var counts = ParseUInt64Array(DuckDbValueReader.ReadString(reader, 3));
-                if (counts is null)
-                    continue;
-
-                if (!buckets.TryGetValue(bucketStart, out var fold))
-                    buckets[bucketStart] = fold = new HistogramFold();
-                fold.Add(bounds, counts);
-            }
+            ct.ThrowIfCancellationRequested();
+            if (++rowCount > MaxHistogramRowsPerQuery)
+                throw new InvalidOperationException("Histogram query exceeds the bounded read. Narrow the range or matchers.");
+            var point = MetricPointRow.MapFromReader(reader);
+            var temporality = Convert.ToByte(reader.GetValue(reader.FieldCount - 2), CultureInfo.InvariantCulture);
+            var group = reader.GetString(reader.FieldCount - 1);
+            var delta = temporality == 2 ? MetricHistogram.HistogramDelta(point, previous.GetValueOrDefault(point.SeriesId), request.StartUnixNano) : point;
+            previous[point.SeriesId] = point;
+            if (point.TimeUnixNano < request.StartUnixNano) continue;
+            if (!groups.TryGetValue(group, out var buckets)) groups[group] = buckets = [];
+            var bucket = request.StartUnixNano + (point.TimeUnixNano - request.StartUnixNano) / request.StepUnixNano * request.StepUnixNano;
+            if (!buckets.TryGetValue(bucket, out var points)) buckets[bucket] = points = [];
+            if (delta is not null) points.Add(delta);
         }
-
-        var quantile = QuantileOf(request.Aggregation);
-        return
-        [
-            .. order.Select(key => new MetricQuerySeries(
-                key,
-                ToGroupAttributesJson(request.GroupBy, key),
-                [
-                    .. folded[key]
-                        .OrderBy(static item => item.Key)
-                        .Select(item => new MetricAggregatePoint(
-                            item.Key,
-                            item.Value.Quantile(quantile),
-                            item.Value.TotalCount))
-                ]))
-        ];
-    }
-
-    /// <summary>
-    /// Sums bucket vectors that share explicit bounds. Points whose bounds disagree (an SDK
-    /// reconfigured mid-window) are kept apart and the widest-count layout wins, because
-    /// merging incompatible layouts would silently invent a distribution.
-    /// </summary>
-    private sealed class HistogramFold
-    {
-        private double[]? _bounds;
-        private ulong[]? _counts;
-
-        public ulong TotalCount { get; private set; }
-
-        public void Add(double[]? bounds, ulong[] counts)
-        {
-            TotalCount += counts.Aggregate(0UL, static (sum, value) => sum + value);
-
-            if (_counts is null)
-            {
-                _bounds = bounds;
-                _counts = [.. counts];
-                return;
-            }
-
-            if (_counts.Length != counts.Length || !BoundsMatch(_bounds, bounds))
-            {
-                if (counts.Length > _counts.Length)
-                {
-                    _bounds = bounds;
-                    _counts = [.. counts];
-                }
-
-                return;
-            }
-
-            for (var i = 0; i < counts.Length; i++)
-                _counts[i] += counts[i];
-        }
-
-        public double? Quantile(double quantile)
-        {
-            if (_counts is not { Length: > 0 } counts || _bounds is not { Length: > 0 } bounds)
-                return null;
-
-            var total = counts.Aggregate(0UL, static (sum, value) => sum + value);
-            if (total is 0)
-                return null;
-
-            var target = quantile * total;
-            var cumulative = 0UL;
-            for (var i = 0; i < counts.Length; i++)
-            {
-                var next = cumulative + counts[i];
-                if (next < target || counts[i] is 0)
-                {
-                    cumulative = next;
-                    continue;
-                }
-
-                // The first bucket is (-infinity, bounds[0]] and the last (bounds[^1], +infinity):
-                // neither has two finite edges, so report the finite one rather than extrapolate.
-                if (i is 0)
-                    return bounds[0];
-                if (i >= bounds.Length)
-                    return bounds[^1];
-
-                var lower = bounds[i - 1];
-                var upper = bounds[i];
-                var withinBucket = (target - cumulative) / counts[i];
-                return lower + (upper - lower) * withinBucket;
-            }
-
-            return bounds[^1];
-        }
-
-        private static bool BoundsMatch(double[]? left, double[]? right)
-        {
-            if (left is null || right is null)
-                return left is null && right is null;
-            return left.AsSpan().SequenceEqual(right);
-        }
+        var aggregation = request.Aggregation switch { MetricAggregation.Avg => "avg", MetricAggregation.Min => "min", MetricAggregation.Max => "max", MetricAggregation.Sum => "sum", MetricAggregation.Count => "count", MetricAggregation.P50 => "p50", MetricAggregation.P90 => "p90", MetricAggregation.P95 => "p95", MetricAggregation.P99 => "p99", _ => "last" };
+        return groups.Take(request.SeriesLimit).Select(group => new MetricQuerySeries(
+            group.Key, ToGroupAttributesJson(request.GroupBy, group.Key),
+            group.Value.Select(bucket => new MetricAggregatePoint(bucket.Key,
+                request.Aggregation == MetricAggregation.Last ? bucket.Value.LastOrDefault()?.HistogramSum : MetricHistogram.Histogram(bucket.Value, aggregation),
+                bucket.Value.Aggregate(0UL, static (sum, point) => sum + (point.HistogramCount ?? 0)))).ToArray())).ToArray();
     }
 
     private static byte ResolveMetricKind(DuckDBConnection con, MetricRangeQuery request)
@@ -412,34 +304,17 @@ internal sealed partial class DuckDbStore
     /// value, so its average is the recorded sum over the recorded count, not an average of
     /// per-point averages.
     /// </summary>
-    private static string BuildSampleExpression(byte metricKind, MetricAggregation aggregation)
+    private static string BuildSampleExpression(MetricAggregation aggregation)
     {
-        var isHistogram = metricKind is (byte)MetricKind.Histogram or (byte)MetricKind.ExponentialHistogram;
-        if (!isHistogram)
-        {
-            return aggregation switch
-            {
-                MetricAggregation.Avg => "avg(p.value)",
-                MetricAggregation.Min => "min(p.value)",
-                MetricAggregation.Max => "max(p.value)",
-                MetricAggregation.Sum => "sum(p.value)",
-                MetricAggregation.Count => "CAST(count(p.value) AS DOUBLE)",
-                MetricAggregation.Last => "arg_max(p.value, p.time_unix_nano)",
-                _ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, "Unsupported metric aggregation.")
-            };
-        }
-
         return aggregation switch
         {
-            MetricAggregation.Avg =>
-                "CASE WHEN sum(p.histogram_count) > 0 " +
-                "THEN sum(p.histogram_sum) / sum(p.histogram_count) ELSE NULL END",
-            MetricAggregation.Min => "min(p.histogram_min)",
-            MetricAggregation.Max => "max(p.histogram_max)",
-            MetricAggregation.Sum => "sum(p.histogram_sum)",
-            MetricAggregation.Count => "CAST(sum(p.histogram_count) AS DOUBLE)",
-            MetricAggregation.Last => "arg_max(p.histogram_sum, p.time_unix_nano)",
-            _ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, "Unsupported metric aggregation.")
+            MetricAggregation.Avg => "avg(p.value)",
+            MetricAggregation.Min => "min(p.value)",
+            MetricAggregation.Max => "max(p.value)",
+            MetricAggregation.Sum => "sum(p.value)",
+            MetricAggregation.Count => "CAST(count(p.value) AS DOUBLE)",
+            MetricAggregation.Last => "arg_max(p.value, p.time_unix_nano)",
+            _ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, "Unsupported scalar aggregation.")
         };
     }
 
@@ -511,45 +386,6 @@ internal sealed partial class DuckDbStore
             .Replace("\"", "\\\"", StringComparison.Ordinal)
             .Replace("'", "''", StringComparison.Ordinal) + "\"";
 
-    private static bool IsPercentile(MetricAggregation aggregation) =>
-        aggregation is MetricAggregation.P50 or MetricAggregation.P90
-            or MetricAggregation.P95 or MetricAggregation.P99;
-
-    private static double QuantileOf(MetricAggregation aggregation) => aggregation switch
-    {
-        MetricAggregation.P50 => 0.50,
-        MetricAggregation.P90 => 0.90,
-        MetricAggregation.P95 => 0.95,
-        MetricAggregation.P99 => 0.99,
-        _ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, "Not a percentile aggregation.")
-    };
-
-    private static double[]? ParseDoubleArray(string? json)
-    {
-        if (string.IsNullOrEmpty(json))
-            return null;
-
-        using var document = JsonDocument.Parse(json);
-        var values = new double[document.RootElement.GetArrayLength()];
-        var index = 0;
-        foreach (var element in document.RootElement.EnumerateArray())
-            values[index++] = element.GetDouble();
-        return values;
-    }
-
-    private static ulong[]? ParseUInt64Array(string? json)
-    {
-        if (string.IsNullOrEmpty(json))
-            return null;
-
-        using var document = JsonDocument.Parse(json);
-        var values = new ulong[document.RootElement.GetArrayLength()];
-        var index = 0;
-        foreach (var element in document.RootElement.EnumerateArray())
-            values[index++] = element.GetUInt64();
-        return values;
-    }
-
     public Task<MetricRetentionResult> DeleteExpiredMetricsBatchAsync(
         ulong cutoffUnixNano,
         int batchSize,
@@ -582,6 +418,13 @@ internal sealed partial class DuckDbStore
                 await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
                 while (await reader.ReadAsync(token).ConfigureAwait(false))
                     deletedPoints++;
+            }
+
+            await using (var command = con.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandText = "DELETE FROM metric_exemplars e WHERE NOT EXISTS (SELECT 1 FROM metric_points p WHERE p.project_id = e.project_id AND p.series_id = e.series_id AND p.time_unix_nano = e.time_unix_nano)";
+                await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             // A series with no points left is unreachable: nothing can query it and it would

@@ -28,7 +28,8 @@ internal static partial class CollectorEndpointExtensions
         if (bodyError is not null)
             return bodyError;
 
-        if (request!.Text is not null && ValidateAnnotationText(request.Text) is { } textError)
+        if (request!.Text is null) return ContractErrorResults.Validation("text", "Annotation text is required.", "text.required");
+        if (ValidateAnnotationText(request.Text) is { } textError)
             return textError;
         if (ValidateAnnotationLabels(request.Labels) is { } labelsError) return labelsError;
         if (ValidateAnnotationTarget(request.Target) is { } targetError)
@@ -286,20 +287,18 @@ internal static partial class CollectorEndpointExtensions
                 ? null
                 : ContractErrorResults.NotFound("span", span.SpanId),
         FailureAnnotationTarget failure =>
-            (await store.ReadAnalysisSnapshotAsync(projectId, ct).ConfigureAwait(false)).Spans.Any(s => AnalysisFailureIdentity(s, projectId) == failure.FailureId)
-                ? null : ContractErrorResults.NotFound("failure", failure.FailureId),
+            await ValidateFailureTargetAsync(store, projectId, failure.FailureId, ct).ConfigureAwait(false),
         SessionAnnotationTarget session =>
             await store.GetSessionAsync(session.SessionId, projectId, ct).ConfigureAwait(false) is not null
                 ? null
                 : ContractErrorResults.NotFound("session", session.SessionId),
         _ => ResourceHttp.InvalidBody("target.kind must be trace, span or session.")
     };
-    private static string? AnalysisFailureIdentity(SpanStorageRow row, string projectId)
+    private static async Task<IResult?> ValidateFailureTargetAsync(IQylStore store, string projectId, string failureId, CancellationToken ct)
     {
-        if (row.StatusCode != 2) return null;
-        var engine = new AnalysisEngine(new AnalysisSnapshot([row], [], [], [], [], [], []), projectId, new AnalysisHandles(new byte[32]), TimeProvider.System.GetUtcNow());
-        var result = engine.Run("list_failures", J.O(("start_time", DateTimeOffset.UnixEpoch.ToString("O")), ("end_time", TimeProvider.System.GetUtcNow().AddDays(1).ToString("O"))));
-        return J.String(result["failures"]?[0], "failure_id");
+        var snapshot = await store.ReadAnalysisSnapshotAsync(projectId, new AnalysisReadQuery { ErrorsOnly = true }, ct).ConfigureAwait(false);
+        if (snapshot.Spans.Any(s => AnalysisEngine.FailureIdentity(projectId, s) == failureId)) return null;
+        return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : Results.Problem(statusCode: 503, title: "Failure lookup exceeded its scan budget.");
     }
     private static IResult? ValidateAnnotationLabels(IReadOnlyList<string>? labels) => labels is not null && (labels.Count > 10 || labels.Any(static label => label.EnumerateRunes().Count() > 64))
         ? ContractErrorResults.Validation("labels", "Use at most ten labels of at most 64 characters each.", "labels.invalid") : null;
@@ -311,8 +310,8 @@ internal static partial class CollectorEndpointExtensions
     private static async Task<IReadOnlyList<Annotation>> AnnotationContractsAsync(IQylStore store, IReadOnlyList<AnnotationRow> rows, CancellationToken ct)
     {
         if (rows.Count == 0) return [];
-        var snapshot = await store.ReadAnalysisSnapshotAsync(rows[0].ProjectId, ct).ConfigureAwait(false);
-        return rows.Select(row => snapshot.State.FirstOrDefault(s => s.StateKey == "annotation:" + row.AnnotationId) is { } metadata
+        var state = await store.ReadAnalysisStateAsync(rows[0].ProjectId, rows.Select(row => "annotation:" + row.AnnotationId).ToArray(), ct).ConfigureAwait(false);
+        return rows.Select(row => state.FirstOrDefault(s => s.StateKey == "annotation:" + row.AnnotationId) is { } metadata
             ? JsonSerializer.Deserialize(metadata.ValueJson, QylSerializerContext.Default.Annotation)!
             : AnnotationMapper.ToContract(row)).ToArray();
     }

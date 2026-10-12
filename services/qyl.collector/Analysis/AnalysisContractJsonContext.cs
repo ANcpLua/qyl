@@ -57,6 +57,7 @@ namespace Qyl.Collector.Analysis;
 [JsonSerializable(typeof(DisplayMcpDashboardOutput))]
 [JsonSerializable(typeof(FetchTelemetryInput))]
 [JsonSerializable(typeof(FetchTelemetryOutput))]
+[JsonSerializable(typeof(UpdateFailureStatusInput))]
 [JsonSerializable(typeof(UpdateFailureStatusOutput))]
 [JsonSerializable(typeof(JsonElement))]
 internal partial class AnalysisContractJsonContext : JsonSerializerContext;

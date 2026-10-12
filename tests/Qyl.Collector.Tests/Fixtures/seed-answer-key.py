@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Seed the shared 32-tool answer key through real OTLP; no direct database writes.
-Usage: python3 seed-answer-key.py http://127.0.0.1:5518 /tmp/qyl-answer-key.json
+Usage: python3 seed-answer-key.py http://127.0.0.1:5518 /tmp/qyl-answer-key.json [project]
 The JSON records absolute windows, ids and Verify requests for both C# and MCP tests.
 """
 import datetime, hashlib, json, sys, time, urllib.request
 base=sys.argv[1].rstrip('/'); out=sys.argv[2] if len(sys.argv)>2 else '/tmp/qyl-answer-key.json'
+project=sys.argv[3] if len(sys.argv)>3 else 'answer-key'
 now=int(time.time()*1e9); minute=60_000_000_000; T=now-20*minute; T2=now-5*minute
 spans=[]; logs=[]; keys={}
 def ident(text,n):return hashlib.sha256(text.encode()).hexdigest()[:n]
@@ -33,15 +34,15 @@ span('release-first','checkout','checkout',T,error=True,a={'error.type':'downstr
 for i in range(4):span(f'fix-request-{i}','checkout','checkout',T2+minute+i*1_000_000,r={'service.version':'1.4.1'})
 for i in range(2):span(f'rare-{i}','payments','/pay',T+i*1_000_000,error=True,a={'http.route':'/pay','http.response.status_code':500,'error.type':'payment'},message='payment error')
 for region,version,error in [('eu','2.3',True),('us','2.3',False),('eu','2.2',False),('us','2.2',False)]:
- for i in range(10):span(f'discrim-{region}-{version}-{i}','regional','request',T+i*1_000_000,error=error,a={'error.type':'regional'} if error else {},r={'cloud.region':region,'app.version':version})
+ for i in range(10):span(f'discrim-{region}-{version}-{i}','regional','request',T+i*1_000_000,error=error,a={'error.type':'regional'} if error else {},r={'cloud.region':region,'service.version':version})
 for route,ms in [('/checkout',1840),('/cart',210)]:
  for i in range(20):span(f'latency-{route}-{i}','http','GET '+route,T+i*1_000_000,duration=ms,a={'http.route':route})
 for i in range(40):
  trm,sm=span(f'mcp-{i}','qyl-mcp','tools/call search_logs',T+i*1_000_000,error=i<8,a={'mcp.method.name':'tools/call','gen_ai.tool.name':'search_logs','mcp.server.name':'qyl','mcp.transport':'http',**({'error.type':'timeout'} if i<8 else {})})
  if i<8:logs.append({'resource':{'attributes':attrs({'service.name':'qyl-mcp'})},'scopeLogs':[{'scope':{'name':'qyl-answer-key'},'logRecords':[{'timeUnixNano':str(T+i*1_000_000),'severityNumber':17,'severityText':'ERROR','body':{'stringValue':f'tool timeout after {i+1} seconds'},'traceId':trm,'spanId':sm,'attributes':attrs({'error.type':'timeout'})}]}]})
-for i in range(3):span(f'agent-{i}','agent','search_logs',T+i*1_000_000,session='agent_run',a={'gen_ai.operation.name':'execute_tool','gen_ai.tool.name':'search_logs','gen_ai.tool.call.arguments_hash':'same-arguments-hash','gen_ai.agent.name':'researcher','gen_ai.usage.input_tokens':100,'gen_ai.usage.output_tokens':20})
+for i in range(3):span(f'agent-{i}','agent','search_logs',T+i*1_000_000,session='agent_run',a={'gen_ai.operation.name':'execute_tool','gen_ai.tool.name':'search_logs','qyl.gen_ai.tool.call.arguments_hash':'same-arguments-hash','gen_ai.agent.name':'researcher','gen_ai.usage.input_tokens':100,'gen_ai.usage.output_tokens':20})
 for label,at,build,error in [('baseline',now-40*minute,100,False),('current',now-10*minute,300,True)]:
- for phase in ['build','test']:span(f'ci-{label}-{phase}','qyl-ci-test',phase,at+(0 if phase=='build' else 1_000_000_000),duration=build if phase=='build' else 20,error=error and phase=='test',session='ci_'+label,a={'ci.leg':phase,'cicd.pipeline.run.id':'provider-'+label})
+ for phase in ['build','test']:span(f'ci-{label}-{phase}','qyl-ci-test',phase,at+(0 if phase=='build' else 1_000_000_000),duration=build if phase=='build' else 20,error=error and phase=='test',session='ci_'+label,a={'cicd.pipeline.task.type':phase,'cicd.pipeline.task.name':phase,'cicd.pipeline.run.id':'provider-'+label})
 span('silent','billing','charge',now-120*minute)
 metrics=[]
 for route,value in [('/checkout',1.84),('/cart',.21)]:
@@ -49,10 +50,10 @@ for route,value in [('/checkout',1.84),('/cart',.21)]:
 metrics.append({'resource':{'attributes':attrs({'service.name':'counter'})},'scopeMetrics':[{'scope':{'name':'qyl-answer-key'},'metrics':[{'name':'requests.total','unit':'{request}','sum':{'aggregationTemporality':2,'isMonotonic':True,'dataPoints':[{'startTimeUnixNano':str(T-minute),'timeUnixNano':str(T+i*minute),'asInt':str(v)} for i,v in enumerate([100,150,190])]}}]}]})
 def post(path,data):
  for batch in next(iter(data.values())):
-  batch['resource']['attributes'].append(attr('qyl.project.id','answer-key'))
- req=urllib.request.Request(base+path,json.dumps(data).encode(),{'Content-Type':'application/json','X-Qyl-Project':'answer-key'},method='POST')
+  batch['resource']['attributes'].append(attr('qyl.project.id',project))
+ req=urllib.request.Request(base+path,json.dumps(data).encode(),{'Content-Type':'application/json','X-Qyl-Project':project},method='POST')
  with urllib.request.urlopen(req,timeout=60) as res: assert res.status==200
 post('/v1/traces',{'resourceSpans':spans});post('/v1/logs',{'resourceLogs':logs});post('/v1/metrics',{'resourceMetrics':metrics})
 def iso(n):return datetime.datetime.fromtimestamp(n/1e9,datetime.timezone.utc).isoformat().replace('+00:00','Z')
-metadata={'project':'answer-key','now':iso(now),'T':iso(T),'T2':iso(T2),'window':{'start_time':iso(now-60*minute),'end_time':iso(now+minute)},'keys':keys,'expected':{'mcp_requests':40,'mcp_errors':8,'error_rate':.2,'increase':90,'checkout_p95_ms':1840,'fix_requests_needed':96},'baseline_window':{'start_time':iso(now-120*minute),'end_time':iso(now-60*minute)}}
+metadata={'project':project,'now':iso(now),'T':iso(T),'T2':iso(T2),'window':{'start_time':iso(now-60*minute),'end_time':iso(now+minute)},'keys':keys,'expected':{'mcp_requests':40,'mcp_errors':8,'error_rate':.2,'increase':90,'checkout_p95_ms':1840,'fix_requests_needed':96},'baseline_window':{'start_time':iso(now-120*minute),'end_time':iso(now-60*minute)}}
 open(out,'w').write(json.dumps(metadata,indent=2)+'\n');print(out)

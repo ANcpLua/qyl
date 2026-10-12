@@ -382,13 +382,47 @@ public sealed class MetricStorageTests
         Assert.Equal("new.gauge", Assert.Single(remaining).MetricName);
     }
 
+    [Fact]
+    public async Task Product_and_analysis_histograms_share_interval_math_and_ingested_exemplars()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var ct = TestContext.Current.CancellationToken;
+        const string traceId = "00000000000000000000000000000042";
+        var first = new HistogramDataPoint
+        {
+            StartTimeUnixNano = T0, TimeUnixNano = T0 + OneSecond, Count = 10, Sum = 100,
+            ExplicitBounds = { 20d }, BucketCounts = { 10UL, 0UL }
+        };
+        var second = first.Clone();
+        second.TimeUnixNano = T0 + 2 * OneSecond; second.Count = 15; second.Sum = 160;
+        second.BucketCounts[0] = 15;
+        second.Exemplars.Add(new Exemplar { TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(traceId)), TimeUnixNano = second.TimeUnixNano, AsDouble = 12 });
+        await IngestAsync(store, ct, Request(new OtlpMetric
+        {
+            Name = "cumulative.latency", Histogram = new Histogram
+            { AggregationTemporality = AggregationTemporality.Cumulative, DataPoints = { first, second } }
+        }));
+        var query = new MetricRangeQuery
+        {
+            ProjectId = ProjectScope.DefaultProjectId, MetricName = "cumulative.latency",
+            StartUnixNano = T0, EndUnixNano = T0 + 3 * OneSecond, StepUnixNano = 3 * OneSecond,
+            Aggregation = MetricAggregation.Count
+        };
+        Assert.Equal(15d, Assert.Single(Assert.Single(await store.QueryMetricAsync(query, ct)).Points).Value);
+        // The previous point is outside the selected window but remains the subtraction baseline.
+        Assert.Equal(5d, Assert.Single(Assert.Single(await store.QueryMetricAsync(query with { StartUnixNano = T0 + OneSecond + 1 }, ct)).Points).Value);
+        var snapshot = await store.ReadAnalysisSnapshotAsync(ProjectScope.DefaultProjectId, ct: ct);
+        Assert.Equal(traceId, Assert.Single(snapshot.Exemplars).TraceId);
+        Assert.Equal(5UL, MetricHistogram.HistogramDelta(snapshot.Points.OrderBy(p => p.TimeUnixNano).Last(), snapshot.Points.OrderBy(p => p.TimeUnixNano).First(), T0)!.HistogramCount);
+    }
+
     private static async Task IngestAsync(
         DuckDbStore store,
         CancellationToken ct,
         ExportMetricsServiceRequest request)
     {
         var write = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request));
-        await store.InsertMetricsAsync(write.Series, write.Points, ct);
+        await store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, ct);
     }
 
     private static ExportMetricsServiceRequest Request(params OtlpMetric[] metrics)

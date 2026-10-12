@@ -20,6 +20,7 @@ internal static class CollectorCoreExtensions
         services.AddSingleton<CollectorStreamCapacity>();
 
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(_ => new Qyl.Collector.Analysis.AnalysisSigningKey(config));
 
         services.ConfigureHttpJsonOptions(static options =>
         {

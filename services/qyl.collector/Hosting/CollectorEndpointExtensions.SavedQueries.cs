@@ -223,7 +223,7 @@ internal static partial class CollectorEndpointExtensions
             if (body is null) return ResourceHttp.InvalidBody("Provide an object with the run options.");
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
-            var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct).ConfigureAwait(false);
+            var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct: ct).ConfigureAwait(false);
             var result = new Qyl.Collector.Analysis.AnalysisEngine(snapshot, project, CreateAnalysisHandles(httpContext, project), timeProvider.GetUtcNow()).Run("run_saved_query", body);
             var typed = JsonSerializer.Deserialize(result["result"]!.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
             return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);

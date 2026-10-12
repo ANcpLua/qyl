@@ -311,10 +311,10 @@ public sealed class RetentionTests
                 TraceId = CollectorApiTestHost.TraceId(1), Text = "old", CreatedAtUnixNano = cutoff - 10,
                 UpdatedAtUnixNano = cutoff - 1, Etag = "\"1\""
             };
-            await store.CreateAnnotationAsync(annotation, null, 0, ct);
+            await store.CreateAnnotationAsync(annotation, null, 0, ct: ct);
             // Edited inside the window: the last change, not the creation, counts.
             await store.CreateAnnotationAsync(
-                annotation with { AnnotationId = "edited", UpdatedAtUnixNano = cutoff }, null, 0, ct);
+                annotation with { AnnotationId = "edited", UpdatedAtUnixNano = cutoff }, null, 0, ct: ct);
             var savedQuery = new SavedQueryRow
             {
                 ProjectId = "alpha", SavedQueryId = "kept", Name = "kept", Signal = "traces",

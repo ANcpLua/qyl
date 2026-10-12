@@ -72,7 +72,7 @@ internal static class ContractJson
         {
             return JsonSerializer.Deserialize(json, QylSerializerContext.Default.AttributeValue);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
         {
             // Before canonical AttributeValue storage, log bodies were persisted as raw text.
             // Keep those historical rows readable without rewriting their stored contents.

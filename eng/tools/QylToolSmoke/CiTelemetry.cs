@@ -11,7 +11,7 @@ namespace QylToolSmoke;
 /// so qyl.mcp's ci_log tool can answer "which leg hung on what" from qyl's own
 /// telemetry. Convention (must match ci_log in qyl.mcp): resource service.name
 /// "qyl-ci-smoke", session.id = one workflow run, one span per phase carrying a
-/// ci.leg attribute, failures as span status error.
+/// cicd.pipeline.task.name attribute, failures as span status error.
 ///
 /// Entirely inert unless QYL_CI_OTLP_ENDPOINT is set, and a failed export never
 /// fails the smoke — telemetry about CI must not become a new way to break CI.
@@ -81,7 +81,7 @@ internal static class CiTelemetry
             endTimeUnixNano = phase.EndNano.ToString(CultureInfo.InvariantCulture),
             attributes = new[]
             {
-                new { key = "ci.leg", value = new { stringValue = Leg } },
+                new { key = "cicd.pipeline.task.name", value = new { stringValue = Leg } },
                 new { key = "session.id", value = new { stringValue = RunId } }
             },
             status = phase.Ok
@@ -103,7 +103,7 @@ internal static class CiTelemetry
                         {
                             // The leg lives in service.name too: the collector does not yet
                             // persist span attributes on readback, and per-leg grouping must
-                            // survive that (ci.leg stays for when it does).
+                            // survive that (cicd.pipeline.task.name stays for when it does).
                             new { key = "service.name", value = new { stringValue = $"qyl-ci-smoke-{Leg}" } },
                             new { key = "session.id", value = new { stringValue = RunId } }
                         }

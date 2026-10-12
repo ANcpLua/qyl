@@ -170,7 +170,7 @@ dotnet build "$DRIVER_PROJECT" --configuration Release --nologo
 dotnet build "$SDK_CONFORMANCE_DRIVER_PROJECT" --configuration Release --nologo
 
 phase "Publish the released-Qyl.Telemetry.Hosting conformance app with Native AOT"
-rm -rf "$SDK_CONFORMANCE_PUBLISH_DIRECTORY"
+mkdir -p "$SDK_CONFORMANCE_PUBLISH_DIRECTORY"
 dotnet publish \
   "$SDK_CONFORMANCE_PROJECT" \
   --configuration Release \
@@ -183,7 +183,6 @@ dotnet publish \
 phase "Build the collector deployment image"
 docker build \
   --progress=plain \
-  --no-cache-filter build \
   --platform "$SMOKE_PLATFORM" \
   --file "$REPO_ROOT/services/qyl.collector/Dockerfile" \
   --tag "$IMAGE_NAME" \

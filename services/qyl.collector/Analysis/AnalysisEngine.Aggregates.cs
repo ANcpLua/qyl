@@ -40,8 +40,14 @@ internal sealed partial class AnalysisEngine
         groups = descending ? groups.OrderByDescending(g => J.Number(g["measures"], order)).ThenBy(g => g["key"]!.ToJsonString(), StringComparer.Ordinal).ToList() : groups.OrderBy(g => J.Number(g["measures"], order)).ThenBy(g => g["key"]!.ToJsonString(), StringComparer.Ordinal).ToList();
         var limit = (int)J.Number(input, "limit", 20); if (limit is < 1 or > 200) throw new AnalysisInputException("limit", "Use a limit from 1 to 200.");
         var units = new JsonObject(); foreach (var m in measures) units[m] = m.StartsWith("duration", StringComparison.Ordinal) ? "ms" : m == "error_rate" ? "1" : signal == "spans" ? "spans" : "logs";
-        return J.O(("groups", J.A(groups.Take(limit))), ("other", J.O(("groups", Math.Max(0, groups.Count - limit)), ("count", groups.Skip(limit).Sum(g => J.Number(g["measures"], "count"))))), ("units", units), ("coverage", Coverage(signal == "logs" ? _logs.Count : _spans.Count, rows.Count, Math.Min(limit, groups.Count), groups.Count > limit)));
+        return J.O(("groups", J.A(groups)), ("other", J.O(("groups", Math.Max(0, groups.Count - limit)), ("count", groups.Skip(limit).Sum(g => J.Number(g["measures"], "count"))))), ("units", units), ("coverage", Coverage(signal == "logs" ? _logs.Count : _spans.Count, rows.Count, Math.Min(limit, groups.Count), groups.Count > limit)));
     }
+    private static string AttributeType(JsonNode? value) => value?.GetValueKind() switch
+    {
+        JsonValueKind.True or JsonValueKind.False => "boolean",
+        JsonValueKind.Number => long.TryParse(value.ToJsonString(), CultureInfo.InvariantCulture, out _) ? "int" : "double",
+        JsonValueKind.String => "string", JsonValueKind.Array => "array", JsonValueKind.Object => "object", _ => "null"
+    };
     private JsonObject Discover(JsonObject input)
     {
         var signal = J.String(input, "signal") ?? "spans"; var rows = Select(input, signal == "logs" ? "logs" : "spans");
@@ -50,22 +56,24 @@ internal sealed partial class AnalysisEngine
             .GroupBy(p => (p.Key, p.Scope)).Select(g =>
             {
                 var values = g.GroupBy(p => J.Text(p.Value)).OrderByDescending(v => v.Count()).ThenBy(v => v.Key, StringComparer.Ordinal).ToList();
-                return J.O(("key", g.Key.Key), ("scope", g.Key.Scope), ("type", g.First().Value?.GetValueKind().ToString().ToLowerInvariant() ?? "null"),
+                return J.O(("key", g.Key.Key), ("scope", g.Key.Scope), ("type", AttributeType(g.First().Value)),
                     ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count), ("cardinality_exact", true),
                     ("top_values", J.A(values.Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("semconv", SemanticMetadata.Find(g.Key.Key)));
             }).OrderBy(g => J.String(g, "key"), StringComparer.Ordinal).ThenBy(g => J.String(g, "scope"), StringComparer.Ordinal).ToList();
         var limit = (int)J.Number(input, "limit", 100); if (limit is < 1 or > 1000) throw new AnalysisInputException("limit", "Use a limit from 1 to 1000.");
-        return J.O(("attributes", J.A(attrs.Take(limit))), ("coverage", Coverage(_spans.Count + _logs.Count, rows.Count, Math.Min(limit, attrs.Count), attrs.Count > limit)));
+        return J.O(("attributes", J.A(attrs)), ("coverage", Coverage(_spans.Count + _logs.Count, rows.Count, Math.Min(limit, attrs.Count), attrs.Count > limit)));
     }
     private List<JsonObject> ReleaseList(List<AnalysisRecord> rows)
     {
+        var byService = rows.ToLookup(s => s.Service, StringComparer.Ordinal);
         return rows.Where(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")).Length > 0).GroupBy(s => (s.Service, Version: J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")), Env: J.Text(s.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource"))))
             .Select(g =>
             {
-                var first = g.Min(s => s.Start); var last = g.Max(s => s.Start); var serviceRows = rows.Where(s => s.Service == g.Key.Service).ToList();
+                var first = g.Min(s => s.Start); var last = g.Max(s => s.Start); var serviceRows = byService[g.Key.Service].ToList();
                 var before = serviceRows.Where(s => s.Start < first).ToList(); var after = serviceRows.Where(s => s.Start >= first && J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == g.Key.Version).ToList();
                 JsonObject Perf(List<AnalysisRecord> items) => J.O(("error_rate", items.Count == 0 ? null : items.Count(s => s.Error) / (double)items.Count), ("p95_ms", J.Percentile(items.Select(s => s.Duration), .95)));
-                var failures = after.Where(s => s.Error).GroupBy(Signature).Where(f => !before.Any(b => b.Error && Signature(b) == f.Key)).Select(f => FailureId(f.Key));
+                var previousFailures = before.Where(s => s.Error).Select(Signature).ToHashSet(StringComparer.Ordinal);
+                var failures = after.Where(s => s.Error).GroupBy(Signature).Where(f => !previousFailures.Contains(f.Key)).Select(f => FailureId(f.Key));
                 var concurrent = serviceRows.Any(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) != g.Key.Version && s.Start >= first && s.Start <= last);
                 return J.O(("service", g.Key.Service), ("environment", g.Key.Env), ("version", g.Key.Version), ("revision", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.VcsRefHeadRevision, "resource"))).FirstOrDefault(s => s.Length > 0)),
                     ("first_seen", J.Time(first)), ("last_seen", J.Time(last)), ("current", last == serviceRows.Max(s => s.Start) || concurrent), ("concurrent", concurrent), ("traffic_share", g.Count() / (double)serviceRows.Count),
@@ -79,14 +87,16 @@ internal sealed partial class AnalysisEngine
         var rows = Select(mapInput); var edges = new List<(string From, string To, AnalysisRecord Span)>(); var kinds = new Dictionary<string, string>();
         foreach (var s in rows)
         {
+            ct.ThrowIfCancellationRequested();
             kinds[s.Service] = "service";
-            var parent = _spans.FirstOrDefault(p => p.Id == s.Span?.ParentSpanId && p.TraceId == s.TraceId);
+            var parent = SpanIndex.GetValueOrDefault((s.TraceId, s.Span?.ParentSpanId ?? ""));
             if (parent is not null && parent.Service != s.Service) edges.Add((parent.Service, s.Service, s));
-            if (J.Bool(input, "include_external", true) && s.Span?.Kind == 3)
+            if (J.Bool(input, "include_external", true) && s.Span?.Kind is 3 or 4 or 5)
             {
                 var db = J.Text(s.Value(CollectorSemanticAttributeCatalog.DbSystemName)); var peer = J.Text(s.Value(CollectorSemanticAttributeCatalog.PeerService)); var server = J.Text(s.Value(CollectorSemanticAttributeCatalog.ServerAddress));
-                var target = peer.Length > 0 ? peer : server.Length > 0 ? server : db;
-                if (target.Length > 0 && target != s.Service) { kinds[target] = db.Length > 0 ? "database" : "external"; edges.Add((s.Service, target, s)); }
+                var messaging = J.Text(s.Value(CollectorSemanticAttributeCatalog.MessagingSystem));
+                var target = peer.Length > 0 ? peer : server.Length > 0 ? server : db.Length > 0 ? db : messaging;
+                if (target.Length > 0 && target != s.Service) { kinds[target] = db.Length > 0 ? "database" : messaging.Length > 0 ? "messaging" : "external"; edges.Add((s.Service, target, s)); }
             }
         }
         if (J.String(input, "service_name") is { } focus)
@@ -98,12 +108,14 @@ internal sealed partial class AnalysisEngine
         }
         var grouped = edges.GroupBy(e => (e.From, e.To));
         var resultEdges = grouped.Select(g => J.O(("from", g.Key.From), ("to", g.Key.To), ("calls", g.Count()), ("error_rate", g.Count(e => e.Span.Error) / (double)g.Count()), ("p95_ms", J.Percentile(g.Select(e => e.Span.Duration), .95)), ("example_operations", g.Select(e => e.Span.Name).Distinct().Take(3)), ("unit", "spans")));
-        var nodes = kinds.Select(k => { var nodeRows = rows.Where(s => s.Service == k.Key).Concat(edges.Where(e => e.To == k.Key && k.Value != "service").Select(e => e.Span)).ToList(); return J.O(("name", k.Key), ("kind", k.Value), ("calls", nodeRows.Count), ("error_rate", nodeRows.Count == 0 ? 0 : nodeRows.Count(s => s.Error) / (double)nodeRows.Count), ("p95_ms", J.Percentile(nodeRows.Select(s => s.Duration), .95)), ("unit", "spans")); });
-        return J.O(("nodes", J.A(nodes)), ("edges", J.A(resultEdges)), ("unknown_callers", rows.Count == 0 ? 0 : rows.Count(s => s.Span?.ParentSpanId is { Length: > 0 } p && !_spans.Any(a => a.Id == p && a.TraceId == s.TraceId)) / (double)rows.Count));
+        var serviceRowsByName = rows.ToLookup(s => s.Service, StringComparer.Ordinal);
+        var incomingByName = edges.ToLookup(e => e.To, StringComparer.Ordinal);
+        var nodes = kinds.Select(k => { var nodeRows = serviceRowsByName[k.Key].Concat(k.Value == "service" ? [] : incomingByName[k.Key].Select(e => e.Span)).ToList(); return J.O(("name", k.Key), ("kind", k.Value), ("calls", nodeRows.Count), ("error_rate", nodeRows.Count == 0 ? 0 : nodeRows.Count(s => s.Error) / (double)nodeRows.Count), ("p95_ms", J.Percentile(nodeRows.Select(s => s.Duration), .95)), ("unit", "spans")); });
+        return J.O(("nodes", J.A(nodes)), ("edges", J.A(resultEdges)), ("unknown_callers", rows.Count == 0 ? 0 : rows.Count(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))) / (double)rows.Count));
     }
     private JsonObject Health(JsonObject input)
     {
-        var rows = Select(input); var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !_spans.Any(a => a.Id == p && a.TraceId == s.TraceId)).ToList();
+        var rows = Select(input); var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).ToList();
         var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();
         var lag = snapshot.Logs.Where(l => l.ObservedTimeUnixNano is not null).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
         return J.O(("silent_services", Silent(input)), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count == 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
@@ -152,7 +164,7 @@ internal sealed partial class AnalysisEngine
             .OrderByDescending(g => g.Count()).Select(g => { var result = Totals(g.ToList()); result["name"] = g.Key; result["example_trace_ids"] = J.N(g.OrderByDescending(s => s.Error).ThenByDescending(s => s.Duration).Select(s => s.TraceId).OfType<string>().Distinct().Take(3)); return result; }).ToList();
         var classes = new JsonObject(); foreach (var kind in new[] { "transport", "protocol", "tool_result", "authentication", "cancellation", "timeout" }) classes[kind] = rows.Count(s => s.Error && McpFailureClass(s) == kind);
         var limit = (int)J.Number(input, "limit", 100);
-        var output = J.O(("totals", Totals(rows)), ("groups", J.A(groups.Take(limit))), ("failure_classes", classes), ("coverage", Coverage(_spans.Count, rows.Count, Math.Min(limit, groups.Count), groups.Count > limit)));
+        var output = J.O(("totals", Totals(rows)), ("groups", J.A(groups)), ("failure_classes", classes), ("coverage", Coverage(_spans.Count, rows.Count, Math.Min(limit, groups.Count), groups.Count > limit)));
         if (input["compare_to"] is { } comparison)
         {
             var copy = input.DeepClone().AsObject(); copy.Remove("compare_to");

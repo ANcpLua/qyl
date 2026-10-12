@@ -74,6 +74,7 @@ ehthumbs.db
 Thumbs.db
 
 .fallout/temp/
+.fallout/cache/
 .fallout/build.schema.json
 
 *.duckdb

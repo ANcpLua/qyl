@@ -4,18 +4,25 @@ using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Analysis;
 
-internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string project, AnalysisHandles handles, DateTimeOffset now)
+internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string project, AnalysisHandles handles, DateTimeOffset now, CancellationToken ct = default)
 {
-    private readonly List<AnalysisRecord> _spans = snapshot.Spans.Select(AnalysisRecord.From).OrderBy(static s => s.Start).ThenBy(static s => s.Id, StringComparer.Ordinal).ToList();
-    private readonly List<AnalysisRecord> _logs = snapshot.Logs.Select(AnalysisRecord.From).OrderBy(static s => s.Start).ThenBy(static s => s.Id, StringComparer.Ordinal).ToList();
+    private readonly List<AnalysisRecord> _spans = snapshot.Spans.Select(s => { ct.ThrowIfCancellationRequested(); return AnalysisRecord.From(s); }).OrderBy(static s => s.Start).ThenBy(static s => s.Id, StringComparer.Ordinal).ToList();
+    private readonly List<AnalysisRecord> _logs = snapshot.Logs.Select(s => { ct.ThrowIfCancellationRequested(); return AnalysisRecord.From(s); }).OrderBy(static s => s.Start).ThenBy(static s => s.Id, StringComparer.Ordinal).ToList();
+    private Dictionary<(string? Trace, string Id), AnalysisRecord>? _spanIndex;
+    private Dictionary<(string? Trace, string Id), AnalysisRecord> SpanIndex => _spanIndex ??= _spans.ToDictionary(static s => (s.TraceId, s.Id));
+    private readonly Dictionary<(string? Trace, string Id), int> _depths = [];
+    private readonly Dictionary<string, AnalysisStateRow> _state = snapshot.State.ToDictionary(static s => s.StateKey, StringComparer.Ordinal);
+    private ILookup<string, MetricPointRow>? _pointsBySeries;
+    private ILookup<string, MetricPointRow> PointsBySeries => _pointsBySeries ??= snapshot.Points.ToLookup(static p => p.SeriesId, StringComparer.Ordinal);
     private AnalysisWindow _window;
     private string _operation = "";
 
     public JsonObject Run(string operation, JsonObject input)
     {
+        ct.ThrowIfCancellationRequested();
         _operation = operation;
         _window = AnalysisWindow.Resolve(input, now, operation == "list_releases" ? 10080 : J.Number(input, "hours") > 0 ? J.Number(input, "hours") * 60 : 60);
-        if (J.String(input, "cursor") is { } continuation)
+        if ((J.String(input, "cursor") ?? J.String(input, "phase_cursor")) is { } continuation)
         {
             var state = handles.Read(continuation, project, "cursor");
             if (state["window"] is JsonObject window) _window = AnalysisWindow.Resolve(window, now);
@@ -33,27 +40,31 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             "ci_log" => Ci(input), "list_saved_queries" => SavedQueries(input), "run_saved_query" => RunSavedQuery(input), "fetch_telemetry" => Fetch(input), _ => throw new AnalysisInputException("tool", "Unknown analysis operation.")
         };
         result["window"] ??= _window.Json;
-        result["coverage"] ??= Coverage(_spans.Count + _logs.Count, _spans.Count + _logs.Count, 1, false);
-        return result;
+        result["coverage"] ??= Coverage(Select(input).Count + Select(input, "logs").Count, Select(input).Count + Select(input, "logs").Count, 1, false);
+        return PageCollections(input, result);
     }
 
     private JsonObject Coverage(int examined, int matched, int returned, bool truncated) => J.O(
-        ("examined", examined), ("matched", matched), ("returned", returned), ("truncated", truncated),
-        ("scan_complete", true), ("as_of", now.ToString("O")));
+        ("examined", examined), ("matched", snapshot.ScanComplete ? matched : null), ("returned", returned), ("truncated", truncated || !snapshot.ScanComplete),
+        ("scan_complete", snapshot.ScanComplete), ("as_of", _window.End.ToString("O")));
     private List<AnalysisRecord> Select(JsonObject input, string signal = "spans", AnalysisWindow? window = null)
     {
         var w = window ?? _window;
-        return (signal == "logs" ? _logs : _spans).Where(r => w.Contains(r.Start)
+        return (signal == "logs" ? _logs : _spans).Where(r => Checked(r) && w.Contains(r.Start)
             && (J.String(input, "service_name") is not { } svc || r.Service == svc)
             && (J.String(input, "environment") is not { } env || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource")) == env || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironment, "resource")) == env)
             && (J.String(input, "release") is not { } version || J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == version)
             && AnalysisMatchers.Match(r, input["matchers"])).ToList();
     }
+    private bool Checked(AnalysisRecord _) { ct.ThrowIfCancellationRequested(); return true; }
     private JsonObject Page(JsonObject input, string field, IEnumerable<JsonObject> source, int defaultLimit = 100, int max = 1000)
     {
         var all = source.ToList(); var limit = (int)J.Number(input, "limit", defaultLimit);
         if (limit < 1 || limit > max) throw new AnalysisInputException("limit", $"limit must be between 1 and {max}.", "limit.out_of_range");
         var offset = 0; var scope = input.DeepClone().AsObject(); scope.Remove("cursor"); scope.Remove("limit");
+        // The signed token fixes its absolute window. Relative and resolved spellings
+        // identify the same query, including a budget retry with a smaller page.
+        foreach (var timeField in new[] { "start_time", "end_time", "lookback_minutes", "hours" }) scope.Remove(timeField);
         var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(scope.ToJsonString())));
         if (J.String(input, "cursor") is { } cursor)
         {
@@ -66,11 +77,11 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         }
         var page = all.Skip(offset).Take(limit).ToList(); var more = offset + page.Count < all.Count;
         return J.O((field, J.A(page)), ("has_more", more), ("next_cursor", more ? handles.Issue(project, "cursor", J.O(("operation", _operation), ("filter", fingerprint), ("after", PageIdentity(page[^1])), ("window", _window.Json))) : null),
-            ("coverage", Coverage(_spans.Count + _logs.Count, all.Count, page.Count, more)));
+            ("coverage", Coverage(_spans.Count(s => _window.Contains(s.Start)) + _logs.Count(s => _window.Contains(s.Start)), all.Count, page.Count, more)));
     }
     private static string PageIdentity(JsonObject row)
     {
-        foreach (var key in new[] { "failure_id", "session_id", "trace_id", "log_id", "id", "saved_query_id", "series_id", "name", "run_id" })
+        foreach (var key in new[] { "log_id", "id", "failure_id", "session_id", "trace_id", "saved_query_id", "series_id", "name", "run_id" })
             if (J.String(row, key) is { } id) return key + ":" + id;
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(row.ToJsonString())));
     }
@@ -86,14 +97,21 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         return new(_window.Start - (_window.End - _window.Start), _window.Start);
     }
     private static string FailureKind(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.RecordedFailureKind)) is { Length: > 0 } ex ? ex : J.Text(s.Value(CollectorSemanticAttributeCatalog.ErrorType));
-    private static string LogBody(AnalysisRecord s) => s.Log is null ? "" : J.Text(JsonNode.Parse(s.Log.Body ?? "null"));
+    private static string LogBody(AnalysisRecord s) => ContractJson.ParseLogBody(s.Log?.Body) switch
+    {
+        Qyl.Api.Contracts.Common.AttributeValue.StringValue text => text.Value,
+        null => "",
+        var value => JsonSerializer.Serialize(value, QylSerializerContext.Default.AttributeValue)
+    };
     private static string Message(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.ExceptionMessage)) is { Length: > 0 } ex ? ex : s.Span?.StatusMessage ?? LogBody(s);
     private static string Operation(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.HttpRoute)) is { Length: > 0 } route ? route : s.Name;
     private static string Signature(AnalysisRecord s) => string.Join("|", s.Service, Operation(s), FailureKind(s), J.Normalize(Message(s)));
-    private string FailureId(string signature) => "fail_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(project + "\0" + signature)));
-    private JsonObject State(string id) => snapshot.State.FirstOrDefault(s => s.StateKey == id) is { } row
+    private string FailureId(string signature) => FailureIdentity(project, signature);
+    private static string FailureIdentity(string projectId, string signature) => "fail_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(projectId + "\0" + signature)));
+    internal static string? FailureIdentity(string projectId, SpanStorageRow row) => row.StatusCode == 2 ? FailureIdentity(projectId, Signature(AnalysisRecord.From(row))) : null;
+    private JsonObject State(string id) => _state.GetValueOrDefault(id) is { } row
         ? JsonNode.Parse(row.ValueJson)!.AsObject() : J.O(("status", "open"));
-    private string Etag(string id) => snapshot.State.FirstOrDefault(s => s.StateKey == id)?.Etag ?? '"' + id + '"';
+    private string Etag(string id) => _state.GetValueOrDefault(id)?.Etag ?? '"' + id + '"';
     private List<AnalysisRecord> FailureRecords(string id) => _spans.Where(s => s.Error && FailureId(Signature(s)) == id).ToList();
     public bool OwnsFailure(string id) => FailureRecords(id).Count > 0;
     private JsonObject Failure(IGrouping<string, AnalysisRecord> group)
@@ -106,13 +124,13 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             ("count", records.Count), ("affected_traces", records.Select(s => s.TraceId).Distinct().Count()),
             ("affected_sessions", records.Select(s => s.SessionId).Where(s => s is not null).Distinct().Count()),
             ("releases_seen", records.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Where(s => s.Length > 0).Distinct()),
-            ("status", J.String(state, "status") ?? "open"), ("ignore_until", state["ignore_until"]), ("assignee", state["assignee"]),
+            ("status", J.String(state, "status") ?? "open"), ("updated_at", J.String(state, "updated_at") ?? J.Time(records.Min(s => s.Start))), ("ignore_until", state["ignore_until"]), ("assignee", state["assignee"]),
             ("annotation_count", notes), ("example_trace_ids", records.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)),
             ("raw_messages", records.Select(Message).Distinct().Take(3)));
     }
     private bool AnnotationTargetsFailure(AnnotationRow note, string id, List<AnalysisRecord> records)
     {
-        var metadata = snapshot.State.FirstOrDefault(s => s.StateKey == "annotation:" + note.AnnotationId);
+        var metadata = _state.GetValueOrDefault("annotation:" + note.AnnotationId);
         if (metadata is not null && J.String(JsonNode.Parse(metadata.ValueJson)?["target"], "failure_id") == id) return true;
         return note.TargetKind switch { "trace" => records.Any(r => r.TraceId == note.TraceId), "span" => records.Any(r => r.SpanId == note.SpanId && r.TraceId == note.TraceId), "session" => records.Any(r => r.SessionId == note.SessionId), _ => false };
     }
@@ -146,6 +164,8 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private JsonObject Triage(JsonObject input)
     {
         var current = Select(input); var before = Select(input, window: Baseline(input));
+        var releases = ReleaseList(current.Concat(before).ToList());
+        var baselineOperations = before.GroupBy(s => (s.Service, Op: Operation(s))).ToDictionary(g => g.Key, g => g.ToList());
         var errors = current.Where(s => s.Error).GroupBy(Signature); var baseline = before.Where(s => s.Error).GroupBy(Signature).ToDictionary(g => g.Key, g => g.Count());
         var failures = errors.Select(g =>
         {
@@ -156,30 +176,34 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
                 ? "regressed" : old == 0 ? "new" : count > old ? "worsening" : count < old ? "recovering" : "ongoing";
             f["change"] = change; f["baseline_count"] = old;
             f["services"] = J.N(g.Select(s => s.Service).Distinct()); f["example_trace_id"] = g.First().TraceId;
-            var release = ReleaseList(current.Concat(before).ToList()).Where(r => J.String(r, "service") == g.First().Service && _window.Contains((ulong)(J.Date(r, "first_seen")!.Value.ToUnixTimeMilliseconds()) * 1_000_000)).OrderBy(r => J.String(r, "first_seen"), StringComparer.Ordinal).LastOrDefault();
+            var release = releases.Where(r => J.String(r, "service") == g.First().Service && _window.Contains((ulong)(J.Date(r, "first_seen")!.Value.ToUnixTimeMilliseconds()) * 1_000_000)).OrderBy(r => J.String(r, "first_seen"), StringComparer.Ordinal).LastOrDefault();
             f["coinciding_release"] = release?.DeepClone();
             return f;
         }).Where(f => J.String(f, "status") != "ignored" || J.Date(f, "ignore_until") is { } expiry && expiry <= now)
           .OrderByDescending(f => J.Number(f, "count")).ThenBy(f => J.String(f, "failure_id"), StringComparer.Ordinal).ToList();
         var limit = (int)J.Number(input, "limit", 10); if (limit < 1 || limit > 50) throw new AnalysisInputException("limit", "limit must be between 1 and 50.");
         // New failures have reserved slots even when their count is low.
-        var kept = failures.Where(f => J.String(f, "change") == "new").ToList();
+        var kept = failures.Where(f => J.String(f, "change") == "new").Take(limit).ToList();
         kept.AddRange(failures.Where(f => J.String(f, "change") != "new").Take(Math.Max(0, limit - kept.Count)));
         var regressions = new List<JsonObject>();
         foreach (var g in current.GroupBy(s => (s.Service, Op: Operation(s))))
         {
-            var b = before.Where(s => s.Service == g.Key.Service && Operation(s) == g.Key.Op).ToList(); if (b.Count == 0) continue;
+            var b = baselineOperations.GetValueOrDefault(g.Key); if (b is null || b.Count < 20 || g.Count() < 20) continue;
             var rate = g.Count(s => s.Error) / (double)g.Count(); var oldRate = b.Count(s => s.Error) / (double)b.Count;
             foreach (var m in new[] { ("error_rate", rate, oldRate), ("p95_ms", J.Percentile(g.Select(s => s.Duration), .95), J.Percentile(b.Select(s => s.Duration), .95)), ("throughput", (double)g.Count(), b.Count) })
-                if (m.Item1 == "throughput" ? m.Item2 < m.Item3 : m.Item2 > m.Item3)
+                if (m.Item1 == "throughput" ? m.Item2 < m.Item3 * .8 : m.Item1 == "error_rate" ? m.Item2 >= m.Item3 + .05 : m.Item2 > Math.Max(m.Item3 * 1.2, m.Item3 + 10))
                     regressions.Add(J.O(("service", g.Key.Service), ("operation", g.Key.Op), ("measure", m.Item1), ("value", m.Item2), ("baseline_value", m.Item3), ("denominator", g.Count()), ("unit", m.Item1 == "p95_ms" ? "ms" : m.Item1 == "error_rate" ? "1" : "spans")));
         }
-        return J.O(("failures", J.A(kept)), ("regressions", J.A(regressions.Take(limit))), ("releases", J.A(ReleaseList(_spans).Where(r => J.Date(r, "first_seen") >= _window.Start).Take(limit))),
-            ("silent_services", Silent(input)), ("coverage", Coverage(_spans.Count, current.Count, kept.Count, kept.Count < failures.Count || regressions.Count > limit)));
+        return J.O(("failures", J.A(failures.OrderBy(f => J.String(f, "change") == "new" ? 0 : 1))), ("regressions", J.A(regressions)), ("releases", J.A(releases.Where(r => J.Date(r, "first_seen") >= _window.Start))),
+            ("silent_services", Silent(input)), ("coverage", Coverage(_spans.Count, current.Count, kept.Count, false)));
     }
-    private JsonArray Silent(JsonObject input) => J.A(_spans.GroupBy(s => s.Service)
-        .Where(g => (!input.ContainsKey("service_name") || g.Key == J.String(input, "service_name")) && g.Max(s => s.Start) < _window.StartNs)
-        .Select(g => J.O(("service", g.Key), ("last_seen", J.Time(g.Max(s => s.Start))), ("usual_rate", g.Count() / Math.Max(1d, (g.Max(s => s.Start) - g.Min(s => s.Start)) / 60_000_000_000d)), ("unit", "spans/minute"))));
+    private JsonArray Silent(JsonObject input)
+    {
+        var baseline = Baseline(input); var active = Select(input).Select(s => s.Service).ToHashSet(StringComparer.Ordinal);
+        return J.A(Select(input, window: baseline).GroupBy(s => s.Service).Where(g => !active.Contains(g.Key))
+            .OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => J.O(("service", g.Key), ("last_seen", J.Time(g.Max(s => s.Start))),
+                ("usual_rate", g.Count() / (baseline.End - baseline.Start).TotalMinutes), ("unit", "spans/minute"))));
+    }
     private static JsonObject SpanJson(AnalysisRecord r)
     {
         var result = J.O(("span_id", r.SpanId), ("trace_id", r.TraceId), ("session_id", r.SessionId),

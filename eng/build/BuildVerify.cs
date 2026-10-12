@@ -1590,7 +1590,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     "The vendored protocol file set differs from Protos/upstream.lock.json. Update the pin and every hash together.");
 
             using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(120) };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("qyl-build-provenance/1.0");
 
             foreach (var pinnedFile in expected.Values.OrderBy(static file => file.Path, StringComparer.Ordinal))
@@ -1602,7 +1602,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                         $"Vendored protocol input {pinnedFile.Path} does not match its declared vendored SHA-256. " +
                         $"Expected {pinnedFile.VendoredSha256}, got {vendoredHash}.");
 
-                var upstreamBytes = DownloadPinnedProtoSource(client, pinnedFile);
+                var upstreamBytes = DownloadPinnedProtoSource(client, pinnedFile, RootDirectory / ".fallout" / "cache" / "upstream-proto");
                 var upstreamHash = ComputePinnedProtoSha256(upstreamBytes);
                 if (!string.Equals(upstreamHash, pinnedFile.UpstreamSha256, StringComparison.Ordinal))
                     throw new InvalidOperationException(
@@ -2681,7 +2681,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
                 .SelectMany(file => removedTokens
-                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Where(token => ContainsRemovedToken(file.Text, token))
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
@@ -3093,9 +3093,17 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     private static string ComputePinnedProtoSha256(byte[] bytes) =>
         Convert.ToHexStringLower(SHA256.HashData(bytes));
 
-    private static byte[] DownloadPinnedProtoSource(HttpClient client, PinnedProtoFile pinnedFile)
+    private static byte[] DownloadPinnedProtoSource(HttpClient client, PinnedProtoFile pinnedFile, AbsolutePath cacheDirectory)
     {
         const int maximumProtoBytes = 4 * 1024 * 1024;
+        var cachedPath = cacheDirectory / pinnedFile.UpstreamSha256;
+        if (File.Exists(cachedPath) && new FileInfo(cachedPath).Length <= maximumProtoBytes)
+        {
+            var cached = File.ReadAllBytes(cachedPath);
+            // Immutable revision plus an independently checked digest: the cache
+            // avoids re-downloading identical bytes without relaxing provenance.
+            if (ComputePinnedProtoSha256(cached) == pinnedFile.UpstreamSha256) return cached;
+        }
         var encodedPath = string.Join(
             '/',
             pinnedFile.Path.Split('/').Select(Uri.EscapeDataString));
@@ -3121,7 +3129,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 throw new InvalidOperationException(
                     $"Immutable upstream protocol URL {uri} exceeded the {maximumProtoBytes}-byte limit.");
 
-            return buffer.ToArray();
+            var bytes = buffer.ToArray();
+            if (ComputePinnedProtoSha256(bytes) == pinnedFile.UpstreamSha256)
+            {
+                Directory.CreateDirectory(cacheDirectory);
+                File.WriteAllBytes(cachedPath, bytes);
+            }
+            return bytes;
         }
         catch (HttpRequestException exception)
         {

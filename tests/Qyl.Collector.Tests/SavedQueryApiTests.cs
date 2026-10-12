@@ -264,7 +264,7 @@ public sealed class SavedQueryApiTests
             }
         };
         var write = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request), "alpha");
-        await host.Store.InsertMetricsAsync(write.Series, write.Points, TestContext.Current.CancellationToken);
+        await host.Store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, TestContext.Current.CancellationToken);
 
         using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer",
             """{"name":"api","filter":{"signal":"metrics","metric_name":"active","aggregation":"sum","step_ms":60000,"matchers":[{"key":"http.route","op":"prefix","value":"/api"}]}}""");

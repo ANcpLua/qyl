@@ -115,15 +115,11 @@ internal sealed partial class DuckDbStore
         }, ct);
     }
 
-    public Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(AnnotationRow row, IdempotencyKeyRow? idempotency, ulong idempotencyNotBeforeUnixNano, CancellationToken ct = default) => CreateAnnotationAsync(row, idempotency, idempotencyNotBeforeUnixNano, null, ct);
-
-    public Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(string projectId, string annotationId, EntityTagCondition ifMatch, Func<AnnotationRow, AnnotationRow> update, CancellationToken ct = default) => UpdateAnnotationAsync(projectId, annotationId, ifMatch, update, null, ct);
-
     public Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(
         AnnotationRow row,
         IdempotencyKeyRow? idempotency,
         ulong idempotencyNotBeforeUnixNano,
-        AnalysisStateRow? metadata, CancellationToken ct) =>
+        AnalysisStateRow? metadata = null, CancellationToken ct = default) =>
         ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -153,7 +149,7 @@ internal sealed partial class DuckDbStore
         string annotationId,
         EntityTagCondition ifMatch,
         Func<AnnotationRow, AnnotationRow> update,
-        AnalysisStateRow? metadata, CancellationToken ct) =>
+        AnalysisStateRow? metadata = null, CancellationToken ct = default) =>
         ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -190,6 +186,10 @@ internal sealed partial class DuckDbStore
             cmd.Transaction = tx;
             cmd.CommandText = "DELETE FROM annotations WHERE project_id = $1 AND annotation_id = $2";
             AddParameters(cmd, projectId, annotationId);
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            cmd.Parameters.Clear();
+            cmd.CommandText = "DELETE FROM analysis_state WHERE project_id = $1 AND state_key = $2";
+            AddParameters(cmd, projectId, "annotation:" + annotationId);
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             await tx.CommitAsync(token).ConfigureAwait(false);
             return new ResourceWriteOutcome<AnnotationRow>(ResourceWriteStatus.Deleted, current);

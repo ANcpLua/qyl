@@ -1,0 +1,194 @@
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Qyl.Collector.Analysis;
+using Qyl.Collector.Storage;
+using static Qyl.Collector.Tests.CollectorApiTestHost;
+
+namespace Qyl.Collector.Tests;
+
+public sealed partial class AnalysisApiTests
+{
+    [Fact]
+    public async Task Failure_identity_ignores_UUIDs_and_reads_exception_events()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var time = Timestamp;
+        var rows = Enumerable.Range(1, 100).Select(i => Span(TraceId(i), SpanId(i), time, time + 1000, status: 2) with
+        {
+            Name = "call",
+            EventsJson = $$$"""[{"name":"exception","attributes":{"exception.type":"TimeoutException","exception.message":"request {{{Guid.NewGuid()}}} timed out"}}]"""
+        }).ToArray();
+        await host.Store.EnqueueAsync(new SpanBatch(rows), TestContext.Current.CancellationToken);
+        var first = await Read(host, "list_failures", "{}");
+        var failure = Assert.Single(first.GetProperty("failures").EnumerateArray());
+        Assert.Equal(100, failure.GetProperty("count").GetInt32());
+        Assert.Equal("TimeoutException", failure.GetProperty("exception_type").GetString());
+        var identity = AnalysisEngine.FailureIdentity("alpha", rows[0]);
+        Assert.All(rows, row => Assert.Equal(identity, AnalysisEngine.FailureIdentity("alpha", row)));
+        Assert.NotEqual(identity, AnalysisEngine.FailureIdentity("beta", rows[0]));
+    }
+
+    [Fact]
+    public async Task Log_pages_use_log_identity_and_preserve_plain_text_and_fetch_fields()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var rows = Enumerable.Range(1, 5).Select(i => new LogStorageRow
+        {
+            ProjectId = "alpha", LogId = "log-" + i, TraceId = TraceId(1), SpanId = SpanId(1),
+            TimeUnixNano = Timestamp, SeverityNumber = 17, ServiceName = "logs", Body = "{\"message\":\"literal " + i + "\"}"
+        }).ToArray();
+        await host.Store.InsertLogsAsync(rows, TestContext.Current.CancellationToken);
+        var seen = new HashSet<string>(); string? cursor = null;
+        for (var page = 0; page < 3; page++)
+        {
+            var input = new JsonObject { ["limit"] = 2, ["cursor"] = cursor };
+            var result = await Read(host, "search_logs", input.ToJsonString());
+            foreach (var log in result.GetProperty("logs").EnumerateArray())
+            {
+                var body = log.GetProperty("body").GetString()!;
+                Assert.StartsWith("{\"message\":", body, StringComparison.Ordinal);
+                Assert.True(seen.Add(body), "log repeated across pages");
+            }
+            cursor = result.TryGetProperty("next_cursor", out var next) ? next.GetString() : null;
+        }
+        Assert.Equal(5, seen.Count);
+        Assert.Null(cursor);
+        var fetched = await Read(host, "fetch_telemetry", """{"view":"logs","limit":2}""");
+        Assert.True(fetched.GetProperty("has_more").GetBoolean());
+        Assert.Equal(5, fetched.GetProperty("total_matched").GetInt32());
+    }
+
+    [Fact]
+    public async Task Failure_status_rejects_poisoned_values_and_enforces_etags()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), Timestamp, Timestamp + 10, status: 2)]), TestContext.Current.CancellationToken);
+        var failure = (await Read(host, "list_failures", "{}")).GetProperty("failures")[0];
+        var route = "/api/v1/failures/" + failure.GetProperty("failure_id").GetString();
+        var etag = failure.GetProperty("etag").GetString()!;
+        var headers = new Dictionary<string, string> { ["If-Match"] = etag };
+        foreach (var body in new[] { "{\"status\":\"open\",\"ignore_until\":\"2026-01-01T00:00:00Z\"}", "{\"status\":\"ignored\",\"ignore_until\":\"tomorrow\"}", "{\"status\":\"open\",\"assignee\":42}" })
+        {
+            using var rejected = await host.SendAsync(HttpMethod.Patch, route, "writer", body, headers);
+            Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        }
+        using var missing = await host.SendAsync(HttpMethod.Patch, route, "writer", "{\"status\":\"resolved\"}");
+        Assert.Equal((HttpStatusCode)428, missing.StatusCode);
+        using var changed = await host.SendAsync(HttpMethod.Patch, route, "writer", "{\"status\":\"resolved\"}", headers);
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        Assert.True((await JsonAsync(changed)).GetProperty("failure").TryGetProperty("updated_at", out _));
+        using var stale = await host.SendAsync(HttpMethod.Patch, route, "writer", "{\"status\":\"ignored\"}", headers);
+        Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
+        Assert.Equal("resolved", (await Read(host, "list_failures", "{\"status\":\"all\"}")).GetProperty("failures")[0].GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task Cumulative_histograms_subtract_overlapping_exports_and_keep_exemplars()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var time = Timestamp;
+        var series = new MetricSeriesRow { ProjectId = "alpha", SeriesId = "hist", MetricName = "latency", MetricKind = 3, Temporality = 2, IsMonotonic = 0, FirstSeenUnixNano = time, LastSeenUnixNano = time + 1_000_000_000 };
+        var first = new MetricPointRow { ProjectId = "alpha", SeriesId = "hist", TimeUnixNano = time, StartTimeUnixNano = time - 1_000_000_000, HistogramCount = 10, HistogramSum = 100, BucketBoundsJson = "[20]", BucketCountsJson = "[10,0]" };
+        var second = first with { TimeUnixNano = time + 1_000_000_000, HistogramCount = 15, HistogramSum = 160, BucketCountsJson = "[15,0]" };
+        await host.Store.InsertMetricsAsync([series], [first, second], [new MetricExemplarRow { ProjectId = "alpha", SeriesId = "hist", TimeUnixNano = second.TimeUnixNano, TraceId = TraceId(1) }], TestContext.Current.CancellationToken);
+        var result = await Read(host, "query_metric", """{"metric_name":"latency","aggregation":"count","step_ms":3600000}""");
+        Assert.Equal(15, result.GetProperty("series")[0].GetProperty("buckets")[0].GetProperty("value").GetInt32());
+        Assert.Equal(TraceId(1), Assert.Single(result.GetProperty("exemplar_trace_ids").EnumerateArray()).GetString());
+        var reset = second with { HistogramCount = 2, StartTimeUnixNano = second.TimeUnixNano, HistogramSum = 4, BucketCountsJson = "[2,0]" };
+        Assert.Equal((ulong)2, MetricHistogram.HistogramDelta(reset, second, time)!.HistogramCount);
+        Assert.Null(MetricHistogram.HistogramDelta(first, null, time));
+    }
+
+    [Fact]
+    public async Task Snapshot_window_and_incomplete_coverage_are_honest()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var time = Timestamp;
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), time, time + 10), Span(TraceId(2), SpanId(2), time - 10_000, time - 9_000)]), TestContext.Current.CancellationToken);
+        var snapshot = await host.Store.ReadAnalysisSnapshotAsync("alpha", new AnalysisReadQuery { Start = time, End = time + 1000 }, TestContext.Current.CancellationToken);
+        Assert.Single(snapshot.Spans);
+        var engine = new AnalysisEngine(snapshot with { ScanComplete = false }, "alpha", new AnalysisHandles(new byte[32]), DateTimeOffset.UtcNow);
+        var result = engine.Run("list_traces", new JsonObject());
+        Assert.False(result["coverage"]!["scan_complete"]!.GetValue<bool>());
+        Assert.Null(result["coverage"]!["matched"]);
+        Assert.True(result["coverage"]!["truncated"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public async Task Triage_caps_new_failures_and_ci_pages_only_real_phases()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var time = Timestamp;
+        var rows = Enumerable.Range(1, 7).Select(i => Span(TraceId(i), SpanId(i), time + (ulong)i, time + (ulong)i + 1000, service: "failure-" + i, status: 2)).ToList();
+        rows.AddRange(Enumerable.Range(10, 4).Select(i => Span(TraceId(10), SpanId(i), time + (ulong)i, time + (ulong)i + 1000, service: "qyl-ci-tests", sessionId: "ci") with { AttributesJson = i < 12 ? "{\"cicd.pipeline.task.name\":\"build\"}" : "{}" }));
+        await host.Store.EnqueueAsync(new SpanBatch(rows), TestContext.Current.CancellationToken);
+        var triage = await Read(host, "triage", "{\"limit\":2}");
+        Assert.Equal(2, triage.GetProperty("failures").GetArrayLength());
+        Assert.True(triage.GetProperty("has_more").GetBoolean());
+        var ci = await Read(host, "ci_log", "{\"run_id\":\"ci\",\"limit\":1}");
+        Assert.Single(ci.GetProperty("phases").EnumerateArray());
+        var next = new JsonObject { ["run_id"] = "ci", ["limit"] = 1, ["phase_cursor"] = ci.GetProperty("next_phase_cursor").GetString() };
+        var second = await Read(host, "ci_log", next.ToJsonString());
+        Assert.Single(second.GetProperty("phases").EnumerateArray());
+        Assert.NotEqual(ci.GetProperty("phases")[0].GetProperty("span_id").GetString(), second.GetProperty("phases")[0].GetProperty("span_id").GetString());
+        Assert.False(second.TryGetProperty("next_phase_cursor", out var cursor) && cursor.ValueKind == JsonValueKind.String);
+    }
+
+    [Fact]
+    public async Task Equal_groups_and_plain_version_comparisons_are_supported()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), Timestamp, Timestamp + 1000) with { AttributesJson = "{\"mcp.method.name\":\"tools/call\"}", ResourceJson = "{\"service.version\":\"v1\"}" }]), TestContext.Current.CancellationToken);
+        var compare = await Read(host, "compare_groups", "{\"signal\":\"spans\",\"group_a\":{\"matchers\":[]},\"group_b\":{\"matchers\":[]}}");
+        Assert.False(compare.GetProperty("composition").GetProperty("changed").GetBoolean());
+        var stats = await Read(host, "get_mcp_stats", "{\"compare_to\":\"v1\"}");
+        Assert.True(stats.TryGetProperty("comparison", out _));
+        using var invalid = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/triage", "reader", "{\"limit\":51}");
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task Metric_ratios_match_group_identity_instead_of_series_position()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var rows = new[] { ("num-a", "requests", "a", 10d), ("num-b", "requests", "b", 40d),
+            ("num-c", "requests", "c", 2d), ("den-a", "total", "b", 10d), ("den-z", "total", "a", 20d) };
+        var current = Timestamp;
+        var baseline = current - 3_600_000_000_000;
+        await host.Store.InsertMetricsAsync(
+            rows.Select(r => new MetricSeriesRow { ProjectId = "alpha", SeriesId = r.Item1, MetricName = r.Item2,
+                MetricKind = 1, Temporality = 0, IsMonotonic = 0, FirstSeenUnixNano = baseline, LastSeenUnixNano = current,
+                AttributesJson = "{\"http.route\":\"" + r.Item3 + "\"}" }).ToArray(),
+            rows.SelectMany(r => new[] { baseline, current }.Select(time => new MetricPointRow
+                { ProjectId = "alpha", SeriesId = r.Item1, TimeUnixNano = time, Value = r.Item4 })).ToArray(),
+            [], TestContext.Current.CancellationToken);
+        var result = await Read(host, "query_metric", """{"metric_name":"requests","group_by":["http.route"],"step_ms":3600000,"compare_to":"previous_window","ratio_of":{"metric_name":"total"}}""");
+        foreach (var series in new[] { result.GetProperty("series"), result.GetProperty("comparison").GetProperty("series") })
+        {
+            var values = series.EnumerateArray().ToDictionary(
+                s => s.GetProperty("attributes")[0].GetProperty("value").GetString()!,
+                s => s.GetProperty("buckets")[0].GetProperty("value"));
+            Assert.Equal(.5, values["a"].GetDouble());
+            Assert.Equal(4, values["b"].GetDouble());
+            Assert.Equal(JsonValueKind.Null, values["c"].ValueKind);
+        }
+    }
+
+    [Fact]
+    public async Task Ci_links_observed_reruns_without_fabricating_attempts_for_unknown_providers()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var rows = Enumerable.Range(1, 3).Select(i => Span(TraceId(i), SpanId(i), Timestamp + (ulong)i, Timestamp + (ulong)i + 1000,
+            service: "qyl-ci-tests", sessionId: "run-" + i) with
+        { AttributesJson = i < 3 ? "{\"cicd.pipeline.run.id\":\"same-provider-run\",\"cicd.pipeline.task.name\":\"build\"}" : "{}" }).ToArray();
+        await host.Store.EnqueueAsync(new SpanBatch(rows), TestContext.Current.CancellationToken);
+        var result = await Read(host, "ci_log", """{"run_id":"run-2"}""");
+        var runs = result.GetProperty("runs").EnumerateArray().ToDictionary(r => r.GetProperty("run_id").GetString()!);
+        Assert.Equal(2, runs["run-2"].GetProperty("attempt").GetInt32());
+        var prior = Assert.Single(runs["run-2"].GetProperty("attempts").EnumerateArray());
+        Assert.Equal("run-1", prior.GetProperty("run_id").GetString());
+        Assert.Equal(1, prior.GetProperty("attempt").GetInt32());
+        Assert.False(runs["run-3"].TryGetProperty("attempt", out _));
+    }
+}

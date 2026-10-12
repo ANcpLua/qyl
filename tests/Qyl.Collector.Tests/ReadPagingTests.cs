@@ -219,7 +219,7 @@ public sealed class ReadPagingTests
             }
         };
         var write = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request), "alpha");
-        await host.Store.InsertMetricsAsync(write.Series, write.Points, TestContext.Current.CancellationToken);
+        await host.Store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, TestContext.Current.CancellationToken);
 
         Assert.Equal(["m.one", "m.three", "m.two"], await CollectAsync(host, "/api/v1/metrics?limit=1", "name"));
 

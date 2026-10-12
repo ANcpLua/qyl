@@ -5,6 +5,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
+using System.Collections;
+using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -26,6 +30,8 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
     AbsolutePath CollectorSemanticPolicyFile =>
         RootDirectory / "eng" / "config" / "collector-semantic-policy.json";
 
+    AbsolutePath AnalysisSemanticMetadataFile => RootDirectory / "services" / "qyl.collector" / "Analysis" / "Generated" / "semconv-metadata.json";
+
     Target GenerateCollectorSemanticAttributeCatalog => d => d
         .Description("Generate collector semantic attribute catalog from Qyl.Telemetry.SemanticConventions")
         .Executes(() =>
@@ -37,6 +43,8 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
             {
                 File.WriteAllText(CollectorSemanticCatalogFile, generated);
             }
+
+            File.WriteAllText(AnalysisSemanticMetadataFile, new SemConvAttributeResolver(ReadResolvedPackageAssemblies()).AnalysisMetadataJson());
 
             Log.Information(
                 "Generated collector semantic attribute catalog: {File}",
@@ -56,6 +64,10 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
 
             var expected = GenerateCollectorSemanticAttributeCatalogText();
             var actual = File.ReadAllText(CollectorSemanticCatalogFile);
+
+            var expectedMetadata = new SemConvAttributeResolver(ReadResolvedPackageAssemblies()).AnalysisMetadataJson();
+            if (!AnalysisSemanticMetadataFile.FileExists() || File.ReadAllText(AnalysisSemanticMetadataFile) != expectedMetadata)
+                throw new InvalidOperationException("Analysis semantic metadata is stale. Run GenerateCollectorSemanticAttributeCatalog.");
 
             if (string.Equals(actual, expected, StringComparison.Ordinal))
             {
@@ -777,6 +789,49 @@ internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, strin
 
         throw new InvalidOperationException(
             $"Semantic convention value class '{typePath}' is not present in the configured package references.");
+    }
+
+    public string AnalysisMetadataJson()
+    {
+        var attributes = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
+        var requirements = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var package in new[] { ICollectorSemanticCatalog.IncubatingPackageId, ICollectorSemanticCatalog.StablePackageId })
+        {
+            var assembly = ResolveAssembly(package);
+            var xml = XDocument.Load(Path.ChangeExtension(packageAssemblyPaths[package], ".xml"));
+            var docs = xml.Descendants("member").ToDictionary(e => (string)e.Attribute("name")!, e => Regex.Replace(e.Element("summary")?.Value ?? "", @"\s+", " ").Trim(), StringComparer.Ordinal);
+            foreach (var type in assembly.GetTypes().OrderBy(t => t.FullName, StringComparer.Ordinal))
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (type.FullName?.Contains(".Attributes.", StringComparison.Ordinal) == true && type.Name.EndsWith("Attributes", StringComparison.Ordinal) && field.IsLiteral && field.FieldType == typeof(string))
+                {
+                    var key = (string)field.GetRawConstantValue()!;
+                    attributes[key] = new JsonObject
+                    {
+                        ["brief"] = docs.GetValueOrDefault("F:" + type.FullName + "." + field.Name, ""),
+                        ["stability"] = package == ICollectorSemanticCatalog.StablePackageId ? "stable" : "development",
+                        ["requirement_level"] = "recommended"
+                    };
+                }
+                if (!field.FieldType.IsGenericType || field.FieldType.GetGenericTypeDefinition().Name != "SpanDefinition`1") continue;
+                var definition = field.GetValue(null)!;
+                var id = (string)field.FieldType.GetProperty("Id")!.GetValue(definition)!;
+                var kind = (string)field.FieldType.GetProperty("SpanKind")!.GetValue(definition)!;
+                var refs = (IEnumerable)field.FieldType.GetProperty("Attributes")!.GetValue(definition)!;
+                var required = new List<string>();
+                foreach (var attribute in refs)
+                    if (attribute.GetType().GetProperty("RequirementLevel")!.GetValue(attribute)!.ToString() == "Required")
+                        required.Add((string)attribute.GetType().GetProperty("Name")!.GetValue(attribute)!);
+                requirements[id] = new JsonObject { ["type"] = id, ["kind"] = kind,
+                    ["required"] = new JsonArray(required.Order(StringComparer.Ordinal).Select(v => (JsonNode?)JsonValue.Create(v)).ToArray()) };
+            }
+        }
+        return new JsonObject
+        {
+            ["schema_url"] = SchemaUrlCurrent(),
+            ["attributes"] = new JsonObject(attributes.Select(p => new KeyValuePair<string, JsonNode?>(p.Key, p.Value))),
+            ["span_requirements"] = new JsonArray(requirements.Values.Cast<JsonNode?>().ToArray())
+        }.ToJsonString() + "\n";
     }
 
     public string SchemaUrlCurrent()

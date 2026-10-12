@@ -11,6 +11,16 @@ using Serilog;
 
 namespace Qyl.Build;
 
+interface IQylTests : IHasSolution, IHasConfiguration
+{
+    Target Test => d => d
+        .Description("Run every .NET test project in the solution using the completed build")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() => DotNetTasks.DotNet(
+            $"test --solution \"{Solution}\" --configuration {Configuration} --no-build --no-restore --max-parallel-test-modules 1",
+            workingDirectory: RootDirectory));
+}
+
 [GitHubActions(
     "ci",
     GitHubActionsImage.UbuntuLatest,
@@ -21,6 +31,7 @@ namespace Qyl.Build;
     FetchDepth = 0)]
 sealed class Build : FalloutBuild,
     ICompile,
+    IQylTests,
     IDocker,
     IPipeline,
     INativeAot,
@@ -41,7 +52,7 @@ sealed class Build : FalloutBuild,
     internal static string CommitLabel => GitScalar("rev-parse --short HEAD", "N/A");
 
 
-    Target Clean => d => d
+    public Target Clean => d => d
         .Before<IRestore>(static x => x.Restore)
         .Before<IPipeline>(static x => x.FrontendInstall)
         .Executes(() =>
@@ -84,9 +95,8 @@ sealed class Build : FalloutBuild,
 
     public Target Ci => d => d
         .Description("Local CI gate: backend, frontend, and generated artifacts")
-        .DependsOn(Clean)
         .DependsOn<ICompile>(static x => x.Compile)
-        .DependsOn(Test)
+        .DependsOn<IQylTests>(static x => x.Test)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
@@ -101,15 +111,6 @@ sealed class Build : FalloutBuild,
         // The SDK's own nine-stage proof: it ships from here, so its gates are this gate.
         .DependsOn<IApiSdk>(static x => x.ApiSdk)
         .DependsOn<ICiCoverage>(static x => x.G1VocabularySmoke);
-
-    Target Test => d => d
-        .Description("Run every .NET test project in the solution")
-        .DependsOn<ICompile>(static x => x.Compile)
-        // Microsoft.Testing.Platform requires the explicit solution option; the
-        // legacy DotNetTest wrapper emits a positional VSTest-style argument.
-        .Executes(() => DotNetTasks.DotNet(
-            $"test --solution \"{From<IHasSolution>().Solution}\" --configuration {From<IHasConfiguration>().Configuration} --no-build --no-restore --max-parallel-test-modules 1",
-            workingDirectory: RootDirectory));
 
     public Target Dev => d => d
         .Description("Start development environment (Docker + compile)")

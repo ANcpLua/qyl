@@ -95,6 +95,7 @@ internal sealed record MetricPointIngestionRecord
 
     /// <summary>Gauge and sum value; NULL for histograms and for NO_RECORDED_VALUE points.</summary>
     public double? Value { get; init; }
+    public IReadOnlyList<string> ExemplarTraceIds { get; init; } = [];
 
     public ulong? Count { get; init; }
     public double? Sum { get; init; }

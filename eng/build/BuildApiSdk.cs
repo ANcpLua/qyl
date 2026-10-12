@@ -62,11 +62,6 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
 
     AbsolutePath SampleContract => SampleDirectory / "openapi" / "qyl.sample.json";
 
-    AbsolutePath GeneratorTestsProject =>
-        RootDirectory / "tests" / "Qyl.Api.Sdk.Xml.Generator.Tests" / "Qyl.Api.Sdk.Xml.Generator.Tests.csproj";
-
-    AbsolutePath ApiTestsProject => RootDirectory / "tests" / "Qyl.Api.Tests" / "Qyl.Api.Tests.csproj";
-
     AbsolutePath ApiSdkArtifactsDirectory => ArtifactsDirectory / "api-sdk";
 
     AbsolutePath ApiSdkNativeDirectory => ApiSdkArtifactsDirectory / "native";
@@ -101,23 +96,12 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
     /// <summary>Stage 1: the SDK, the sample and the generator's own proof build and pass.</summary>
     Target ApiSdkBuildAndTest => d => d
         .Unlisted()
-        // Ordering only, so a Clean in the same run cannot delete the build output these stages
-        // read; standalone, ApiSdk still needs nothing but itself.
-        .After<ICompile>(static x => x.Compile)
+        // The sample and SDK tests belong to the solution. Share its build and test
+        // targets with Ci so each runs once, including when ApiSdk is invoked alone.
+        .DependsOn<IQylTests>(static x => x.Test)
         .Executes(() =>
         {
-            ApiSdkArtifactsDirectory.CreateOrCleanDirectory();
-
-            DotNetTasks.DotNetBuild(s => s
-                .SetProjectFile(SampleProject)
-                .SetConfiguration(Configuration));
-
-            foreach (var project in new[] { GeneratorTestsProject, ApiTestsProject })
-            {
-                DotNetTasks.DotNetTest(s => s
-                    .SetProjectFile(project)
-                    .SetConfiguration(Configuration));
-            }
+            Directory.CreateDirectory(ApiSdkArtifactsDirectory);
 
             Log.Information("Qyl.Api.Sdk: sample builds, generator and runtime tests pass");
         });
@@ -222,7 +206,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
         .Executes(() =>
         {
             var runtime = NativeRuntime ?? RuntimeInformation.RuntimeIdentifier;
-            ApiSdkNativeDirectory.CreateOrCleanDirectory();
+            Directory.CreateDirectory(ApiSdkNativeDirectory);
 
             DotNetTasks.DotNetPublish(s => s
                 .SetProject(SampleProject)
@@ -443,10 +427,6 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
         .DependsOn(ApiSdkPackagedConsumer)
         .Executes(() =>
         {
-            DotNetTasks.DotNetBuild(s => s
-                .SetProjectFile(CollectorProject)
-                .SetConfiguration(Configuration));
-
             var collector = (RootDirectory / "artifacts" / "bin" / "qyl.collector")
                 .GlobFiles("**/qyl.collector", "**/qyl.collector.exe")
                 .FirstOrDefault(file =>

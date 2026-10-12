@@ -14,7 +14,7 @@ public sealed class SchemaEvolutionTests
     private const string TelemetryOnlyHash = "a20800b2a7d212fc3d284bf43b0ade1bf4dde1203f312623bad6a53d09911c19";
 
     private static readonly string[] s_telemetryTables = ["logs", "metric_points", "metric_series", "spans"];
-    private static readonly string[] s_resourceTables = ["analysis_state", "annotations", "idempotency_keys", "saved_queries"];
+    private static readonly string[] s_addedTables = ["analysis_state", "annotations", "idempotency_keys", "metric_exemplars", "saved_queries"];
 
     [Fact]
     public void The_identity_of_the_telemetry_tables_alone_is_the_previous_builds_identity()
@@ -24,7 +24,7 @@ public sealed class SchemaEvolutionTests
             DuckDbGeneratedSchema.AuthoritativeHash,
             DuckDbGeneratedSchema.ComputeAuthoritativeHash(DuckDbGeneratedSchema.AuthoritativeTableNames));
         Assert.Equal(
-            s_telemetryTables.Concat(s_resourceTables).Order(StringComparer.Ordinal),
+            s_telemetryTables.Concat(s_addedTables).Order(StringComparer.Ordinal),
             DuckDbGeneratedSchema.AuthoritativeTableNames.Order(StringComparer.Ordinal));
     }
 
@@ -42,7 +42,7 @@ public sealed class SchemaEvolutionTests
             }
 
             using var con = Open(path);
-            Assert.All(s_resourceTables, table => Assert.True(TableExists(con, table)));
+            Assert.All(s_addedTables, table => Assert.True(TableExists(con, table)));
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
             Assert.Equal(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
@@ -53,10 +53,12 @@ public sealed class SchemaEvolutionTests
         }
     }
 
-    [Fact]
-    public async Task The_previous_resource_schema_gains_only_the_analysis_state_table()
+    [Theory]
+    [InlineData("analysis_state")]
+    [InlineData("metric_exemplars")]
+    public async Task A_previous_resource_schema_gains_only_the_new_table(string newTable)
     {
-        var present = DuckDbGeneratedSchema.AuthoritativeTableNames.Where(name => name != "analysis_state").ToArray();
+        var present = DuckDbGeneratedSchema.AuthoritativeTableNames.Where(name => name != newTable).ToArray();
         var path = Path.Combine(Path.GetTempPath(), $"qyl-analysis-schema-{Guid.NewGuid():N}.duckdb");
         try
         {
@@ -65,7 +67,7 @@ public sealed class SchemaEvolutionTests
             using (var con = Open(path))
             {
                 using var command = con.CreateCommand();
-                command.CommandText = "DROP TABLE analysis_state";
+                command.CommandText = "DROP TABLE " + newTable;
                 command.ExecuteNonQuery();
                 command.CommandText = "UPDATE qyl_schema_meta SET authoritative_schema_hash = $1";
                 command.Parameters.Add(new DuckDBParameter { Value = DuckDbGeneratedSchema.ComputeAuthoritativeHash(present) });
@@ -73,7 +75,9 @@ public sealed class SchemaEvolutionTests
             }
             await using var store = new DuckDbStore(path);
             Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-            Assert.Empty((await store.ReadAnalysisSnapshotAsync("alpha", TestContext.Current.CancellationToken)).State);
+            var snapshot = await store.ReadAnalysisSnapshotAsync("alpha", ct: TestContext.Current.CancellationToken);
+            Assert.Empty(snapshot.State);
+            Assert.Empty(snapshot.Exemplars);
         }
         finally { DeleteDatabase(path); }
     }
@@ -105,7 +109,7 @@ public sealed class SchemaEvolutionTests
         }
 
         using var con = Open(path);
-        foreach (var table in s_resourceTables)
+        foreach (var table in s_addedTables)
         {
             using var drop = con.CreateCommand();
             drop.CommandText = $"DROP TABLE \"{table}\"";
