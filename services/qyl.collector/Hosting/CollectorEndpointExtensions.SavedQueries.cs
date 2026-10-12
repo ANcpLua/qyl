@@ -3,9 +3,6 @@ using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.SavedQueries;
 using Qyl.Collector.Storage;
-using ContractMatcher = Qyl.Api.Contracts.OTel.Metrics.MetricAttributeMatcher;
-using ContractMatcherOp = Qyl.Api.Contracts.OTel.Metrics.MetricMatcherOp;
-using StorageMatcher = Qyl.Collector.Storage.MetricAttributeMatcher;
 
 namespace Qyl.Collector.Hosting;
 
@@ -18,7 +15,6 @@ internal static partial class CollectorEndpointExtensions
     private const int SavedQueryMaxNameLength = 200;
     private const int SavedQueryMaxDescriptionLength = 2000;
     private const int SavedQueryMaxLookbackMinutes = 43_200;
-    private const int SavedQueryDefaultLookbackMinutes = 60;
     private const int SavedQueryMaxServiceNameLength = 256;
     private const int SavedQueryMaxSearchLength = 1024;
     private const int SavedQueryMaxMetricNameLength = 256;
@@ -219,195 +215,21 @@ internal static partial class CollectorEndpointExtensions
         TimeProvider timeProvider,
         CancellationToken ct)
     {
-        var (request, bodyError) = await ResourceHttp.ReadOptionalJsonBodyAsync(
-            httpContext.Request,
-            QylSerializerContext.Default.SavedQueryRunRequest,
-            static () => new SavedQueryRunRequest(),
-            ct).ConfigureAwait(false);
-        if (bodyError is not null)
-            return bodyError;
-
-        if (!ContractLimits.TryResolve(request!.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.MaxPageLimit, out var boundedLimit))
+        try
         {
-            return InvalidLimit(request.Limit, ContractLimits.MaxPageLimit);
+            var body = httpContext.Request.ContentLength is > 0
+                ? await System.Text.Json.Nodes.JsonNode.ParseAsync(httpContext.Request.Body, cancellationToken: ct).ConfigureAwait(false) as System.Text.Json.Nodes.JsonObject
+                : new System.Text.Json.Nodes.JsonObject();
+            if (body is null) return ResourceHttp.InvalidBody("Provide an object with the run options.");
+            body["id"] = savedQueryId;
+            var project = ResolveProjectScope(httpContext);
+            var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct).ConfigureAwait(false);
+            var result = new Qyl.Collector.Analysis.AnalysisEngine(snapshot, project, CreateAnalysisHandles(httpContext, project), timeProvider.GetUtcNow()).Run("run_saved_query", body);
+            var typed = JsonSerializer.Deserialize(result["result"]!.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
+            return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);
         }
-
-        var projectId = ResolveProjectScope(httpContext);
-        if (await store.GetSavedQueryAsync(projectId, savedQueryId, ct).ConfigureAwait(false) is not { } row)
-            return ContractErrorResults.NotFound("saved_query", savedQueryId);
-
-        var filter = SavedQueryMapper.ReadFilter(row.FilterJson);
-        var lookback = TimeSpan.FromMinutes(LookbackMinutes(filter) ?? SavedQueryDefaultLookbackMinutes);
-        var end = request.EndTime ?? timeProvider.GetUtcNow();
-        var start = request.StartTime ?? end - lookback;
-        if (end < start)
-        {
-            return ContractErrorResults.Validation(
-                "end_time",
-                "The range end must not precede its start.",
-                "range.inverted",
-                end.ToString("O", CultureInfo.InvariantCulture));
-        }
-
-        var startUnixNano = QylTimeConversions.ToUnixNanoUnsigned(start.ToUniversalTime());
-        var endUnixNano = QylTimeConversions.ToUnixNanoUnsigned(end.ToUniversalTime());
-
-        switch (filter)
-        {
-            case SavedTraceQueryFilter traces:
-            {
-                TracePageCursor? cursor = null;
-                if (request.Cursor is { } encoded)
-                {
-                    if (!TryDecodeRunCursor(encoded, PageCursorKind.SavedTraceRun, savedQueryId, out var window,
-                            out var fields) ||
-                        !PageCursorCodec.TryParseHex(fields[0], out var activity) ||
-                        !ContractIdentifiers.IsTraceId(fields[1]))
-                    {
-                        return InvalidCursor(encoded);
-                    }
-
-                    (startUnixNano, endUnixNano) = window;
-                    cursor = new TracePageCursor(activity, fields[1]);
-                }
-
-                var page = await store.GetTracePageAsync(new TracePageQuery
-                {
-                    ProjectId = projectId,
-                    Limit = boundedLimit,
-                    Cursor = cursor,
-                    StartUnixNano = startUnixNano,
-                    EndUnixNano = endUnixNano,
-                    ServiceName = traces.ServiceName,
-                    ErrorsOnly = traces.ErrorsOnly is true
-                }, ct).ConfigureAwait(false);
-                var traceItems = page.Items;
-                return Results.Json<SavedQueryRunResult>(new SavedTraceQueryRun
-                {
-                    Items = [.. ToTracePage(page, PageCursorKind.SavedTraceRun).Items.Select(SpanMapper.ToSummary)],
-                    HasMore = page.HasMore,
-                    NextCursor = page.HasMore && traceItems.Count > 0
-                        ? PageCursorCodec.Encode(
-                            PageCursorKind.SavedTraceRun,
-                            savedQueryId,
-                            PageCursorCodec.Hex(startUnixNano),
-                            PageCursorCodec.Hex(endUnixNano),
-                            PageCursorCodec.Hex(traceItems[^1].ActivityUnixNano),
-                            traceItems[^1].TraceId)
-                        : null
-                }, QylSerializerContext.Default.SavedQueryRunResult);
-            }
-
-            case SavedLogQueryFilter logs:
-            {
-                LogPageCursor? cursor = null;
-                if (request.Cursor is { } encoded)
-                {
-                    if (!TryDecodeRunCursor(encoded, PageCursorKind.SavedLogRun, savedQueryId, out var window,
-                            out var fields) ||
-                        !PageCursorCodec.TryParseHex(fields[0], out var time))
-                    {
-                        return InvalidCursor(encoded);
-                    }
-
-                    (startUnixNano, endUnixNano) = window;
-                    cursor = new LogPageCursor(time, fields[1]);
-                }
-
-                var rows = await store.GetLogsAsync(
-                    projectId,
-                    sessionId: logs.SessionId,
-                    traceId: logs.TraceId,
-                    minSeverity: logs.SeverityMin is { } severity ? (int)severity : null,
-                    search: logs.Query,
-                    start: startUnixNano,
-                    before: endUnixNano,
-                    serviceName: logs.ServiceName,
-                    limit: boundedLimit + 1,
-                    cursor: cursor,
-                    ct: ct).ConfigureAwait(false);
-                var page = ToLogPage(
-                    rows,
-                    boundedLimit,
-                    PageCursorKind.SavedLogRun,
-                    savedQueryId,
-                    PageCursorCodec.Hex(startUnixNano),
-                    PageCursorCodec.Hex(endUnixNano));
-                return Results.Json<SavedQueryRunResult>(new SavedLogQueryRun
-                {
-                    Items = page.Items,
-                    HasMore = page.HasMore,
-                    NextCursor = page.NextCursor
-                }, QylSerializerContext.Default.SavedQueryRunResult);
-            }
-
-            case SavedMetricQueryFilter metrics:
-            {
-                if (request.Cursor is { } encoded)
-                    return InvalidCursor(encoded);
-
-                var descriptor = (await store.ListMetricsAsync(projectId, metrics.MetricName, limit: 1, ct: ct)
-                        .ConfigureAwait(false))
-                    .FirstOrDefault(entry => string.Equals(entry.MetricName, metrics.MetricName, StringComparison.Ordinal));
-                if (descriptor is null)
-                    return ContractErrorResults.NotFound("metric", metrics.MetricName);
-
-                var aggregation = MetricMapper.ToStorageAggregation(
-                    metrics.Aggregation ?? Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg);
-                var stepMs = metrics.StepMs ?? ContractLimits.MetricDefaultStepMs;
-                var series = await store.QueryMetricAsync(new MetricRangeQuery
-                {
-                    ProjectId = projectId,
-                    MetricName = metrics.MetricName,
-                    StartUnixNano = startUnixNano,
-                    EndUnixNano = endUnixNano,
-                    StepUnixNano = (ulong)stepMs * 1_000_000UL,
-                    Aggregation = aggregation,
-                    GroupBy = metrics.GroupBy ?? [],
-                    Matchers = ToStorageMatchers(metrics.Matchers),
-                    SeriesLimit = ContractLimits.MetricSeriesDefaultLimit + 1
-                }, ct).ConfigureAwait(false);
-
-                var truncated = series.Count > ContractLimits.MetricSeriesDefaultLimit;
-                return Results.Json<SavedQueryRunResult>(new SavedMetricQueryRun
-                {
-                    Result = MetricMapper.ToQueryResult(
-                        descriptor,
-                        aggregation,
-                        stepMs,
-                        start,
-                        end,
-                        truncated ? [.. series.Take(ContractLimits.MetricSeriesDefaultLimit)] : series,
-                        truncated)
-                }, QylSerializerContext.Default.SavedQueryRunResult);
-            }
-
-            default:
-                throw new InvalidDataException($"Saved query {savedQueryId} has an unknown filter.");
-        }
-    }
-
-    private static bool TryDecodeRunCursor(
-        string encoded,
-        PageCursorKind kind,
-        string savedQueryId,
-        out (ulong Start, ulong End) window,
-        out string[] keyset)
-    {
-        window = default;
-        keyset = [];
-        if (!PageCursorCodec.TryDecode(encoded, kind, 5, out var fields) ||
-            !string.Equals(fields[0], savedQueryId, StringComparison.Ordinal) ||
-            !PageCursorCodec.TryParseHex(fields[1], out var start) ||
-            !PageCursorCodec.TryParseHex(fields[2], out var end))
-        {
-            return false;
-        }
-
-        window = (start, end);
-        keyset = fields[3..];
-        return true;
+        catch (Qyl.Collector.Analysis.AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
+        catch (JsonException) { return ResourceHttp.InvalidBody("Provide valid run options."); }
     }
 
     private static int? LookbackMinutes(SavedQueryFilter filter) => filter switch
@@ -417,12 +239,6 @@ internal static partial class CollectorEndpointExtensions
         SavedMetricQueryFilter metrics => metrics.LookbackMinutes,
         _ => null
     };
-
-    private static IReadOnlyList<StorageMatcher> ToStorageMatchers(IReadOnlyList<ContractMatcher>? matchers) =>
-        matchers is null
-            ? []
-            : [.. matchers.Select(static matcher =>
-                new StorageMatcher(matcher.Key, matcher.Value, matcher.Op is ContractMatcherOp.Prefix))];
 
     private static string SavedQueryLocation(string savedQueryId) =>
         "/api/v1/saved-queries/" + Uri.EscapeDataString(savedQueryId);
@@ -459,6 +275,9 @@ internal static partial class CollectorEndpointExtensions
 
     private static IResult? ValidateSavedQueryFilter(SavedQueryFilter filter)
     {
+        try { Qyl.Collector.Analysis.AnalysisMatchers.Validate(System.Text.Json.Nodes.JsonNode.Parse(SavedQueryMapper.WriteFilter(filter))?["matchers"]); }
+        catch (Qyl.Collector.Analysis.AnalysisInputException invalid) { return ContractErrorResults.Validation("filter.matchers", invalid.Description, invalid.Code); }
+
         if (LookbackMinutes(filter) is { } lookback and (< 1 or > SavedQueryMaxLookbackMinutes))
         {
             return ContractErrorResults.Validation("filter.lookback_minutes",
@@ -506,7 +325,7 @@ internal static partial class CollectorEndpointExtensions
                 if (metrics.Matchers is { } matchers &&
                     (matchers.Count > SavedQueryMaxMatchers || matchers.Any(static matcher =>
                         !LengthBetween(matcher.Key, 1, SavedQueryMaxMatcherKeyLength) ||
-                        !LengthBetween(matcher.Value, 0, SavedQueryMaxMatcherValueLength) ||
+                        !LengthBetween(Convert.ToString(matcher.Value, CultureInfo.InvariantCulture) ?? "", 0, SavedQueryMaxMatcherValueLength) ||
                         !Enum.IsDefined(matcher.Op))))
                     return ContractErrorResults.Validation("filter.matchers",
                         $"At most {SavedQueryMaxMatchers} matchers, each a key of 1 to {SavedQueryMaxMatcherKeyLength} " +

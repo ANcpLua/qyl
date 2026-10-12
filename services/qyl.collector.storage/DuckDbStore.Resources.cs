@@ -115,11 +115,15 @@ internal sealed partial class DuckDbStore
         }, ct);
     }
 
+    public Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(AnnotationRow row, IdempotencyKeyRow? idempotency, ulong idempotencyNotBeforeUnixNano, CancellationToken ct = default) => CreateAnnotationAsync(row, idempotency, idempotencyNotBeforeUnixNano, null, ct);
+
+    public Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(string projectId, string annotationId, EntityTagCondition ifMatch, Func<AnnotationRow, AnnotationRow> update, CancellationToken ct = default) => UpdateAnnotationAsync(projectId, annotationId, ifMatch, update, null, ct);
+
     public Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(
         AnnotationRow row,
         IdempotencyKeyRow? idempotency,
         ulong idempotencyNotBeforeUnixNano,
-        CancellationToken ct = default) =>
+        AnalysisStateRow? metadata, CancellationToken ct) =>
         ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -138,6 +142,8 @@ internal sealed partial class DuckDbStore
                     IdempotencyKeyRow.BuildMultiRowInsertSql, 1, token).ConfigureAwait(false);
             }
 
+            if (metadata is not null)
+                await InsertRowsBatchedAsync(con, tx, [metadata], AnalysisStateRow.AddParameters, AnalysisStateRow.BuildMultiRowInsertSql, 1, token).ConfigureAwait(false);
             await tx.CommitAsync(token).ConfigureAwait(false);
             return new ResourceWriteOutcome<AnnotationRow>(ResourceWriteStatus.Created, row);
         }, ct);
@@ -147,7 +153,7 @@ internal sealed partial class DuckDbStore
         string annotationId,
         EntityTagCondition ifMatch,
         Func<AnnotationRow, AnnotationRow> update,
-        CancellationToken ct = default) =>
+        AnalysisStateRow? metadata, CancellationToken ct) =>
         ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -160,6 +166,8 @@ internal sealed partial class DuckDbStore
             var updated = update(current);
             await InsertRowsBatchedAsync(con, tx, [updated], AnnotationRow.AddParameters,
                 AnnotationRow.BuildMultiRowInsertSql, 1, token).ConfigureAwait(false);
+            if (metadata is not null)
+                await InsertRowsBatchedAsync(con, tx, [metadata], AnalysisStateRow.AddParameters, AnalysisStateRow.BuildMultiRowInsertSql, 1, token).ConfigureAwait(false);
             await tx.CommitAsync(token).ConfigureAwait(false);
             return new ResourceWriteOutcome<AnnotationRow>(ResourceWriteStatus.Updated, updated);
         }, ct);

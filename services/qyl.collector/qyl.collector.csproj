@@ -29,6 +29,10 @@
     <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == ''">false</QylEmbedDashboard>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Analysis/Generated/semconv-metadata.json" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(QylEmbedDashboard)' == 'true' AND Exists('..\qyl.dashboard\dist\index.html')">
     <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot"/>
   </ItemGroup>

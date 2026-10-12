@@ -1,5 +1,18 @@
 # Changelog
 
+## 12.1.0 — 2026-10-12
+
+- Add the collector analysis engine for qyl.mcp's 32-tool catalog: failure triage,
+  evidence and comparison, fix verification, aggregate queries, agent runs, releases,
+  service maps, telemetry health, MCP diagnostics and viewer refreshes.
+- Apply one project-scoped matcher/window/pagination implementation across direct and
+  saved queries. Return measured coverage, denominators and metric units, with signed
+  continuation and verification handles.
+- Persist failure status and annotation labels/classification atomically, using ETags.
+  Add only the new analysis-state table when opening an existing compatible database.
+- Pin API contracts12.1.0; include real OTLP answer-key and HTTP regression coverage.
+
+
 ## 12.0.2 — 2026-10-12
 
 - Keep historical plain-text log bodies readable through the log API and live stream.

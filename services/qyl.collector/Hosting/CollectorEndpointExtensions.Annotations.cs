@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+using Qyl.Collector.Analysis;
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Annotations;
 using Qyl.Api.Contracts.Common.Pagination;
@@ -26,8 +28,9 @@ internal static partial class CollectorEndpointExtensions
         if (bodyError is not null)
             return bodyError;
 
-        if (ValidateAnnotationText(request!.Text) is { } textError)
+        if (request!.Text is not null && ValidateAnnotationText(request.Text) is { } textError)
             return textError;
+        if (ValidateAnnotationLabels(request.Labels) is { } labelsError) return labelsError;
         if (ValidateAnnotationTarget(request.Target) is { } targetError)
             return targetError;
 
@@ -56,6 +59,7 @@ internal static partial class CollectorEndpointExtensions
             {
                 TraceAnnotationTarget => AnnotationMapper.TraceKind,
                 SpanAnnotationTarget => AnnotationMapper.SpanKind,
+                FailureAnnotationTarget => "failure",
                 _ => AnnotationMapper.SessionKind
             },
             TraceId = request.Target switch
@@ -66,12 +70,13 @@ internal static partial class CollectorEndpointExtensions
             },
             SpanId = (request.Target as SpanAnnotationTarget)?.SpanId,
             SessionId = (request.Target as SessionAnnotationTarget)?.SessionId,
-            Text = request.Text,
+            Text = request.Text!,
             CreatedAtUnixNano = now,
             UpdatedAtUnixNano = now,
             Etag = ResourceHttp.NewEtag()
         };
-        var annotation = AnnotationMapper.ToContract(row);
+        var annotation = AnnotationMapper.ToContract(row, (request.Target as FailureAnnotationTarget)?.FailureId, request.Labels, request.Classification ?? AnnotationClassification.Note);
+        var metadata = AnnotationMetadata(row, annotation);
         var idempotency = idempotencyKey is null
             ? null
             : new IdempotencyKeyRow
@@ -85,7 +90,7 @@ internal static partial class CollectorEndpointExtensions
                 CreatedAtUnixNano = now
             };
 
-        var outcome = await store.CreateAnnotationAsync(row, idempotency, notBefore, ct).ConfigureAwait(false);
+        var outcome = await store.CreateAnnotationAsync(row, idempotency, notBefore, metadata, ct).ConfigureAwait(false);
         return outcome.Status switch
         {
             ResourceWriteStatus.Created => ResourceHttp.Created(
@@ -135,7 +140,7 @@ internal static partial class CollectorEndpointExtensions
         IReadOnlyList<AnnotationRow> page = hasMore ? [.. rows.Take(boundedLimit)] : rows;
         return Results.Json(new CursorPageAnnotation
         {
-            Items = AnnotationMapper.ToContracts(page),
+            Items = await AnnotationContractsAsync(store, page, ct),
             HasMore = hasMore,
             NextCursor = hasMore
                 ? PageCursorCodec.Encode(
@@ -146,16 +151,14 @@ internal static partial class CollectorEndpointExtensions
         }, QylSerializerContext.Default.CursorPageAnnotation);
     }
 
-    internal static async Task<IResult> GetAnnotationAsync(
-        HttpContext httpContext,
-        [FromRoute(Name = "annotation_id")] string annotationId,
-        IQylStore store,
-        CancellationToken ct) =>
-        await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false)
-            is not { } row
-            ? ContractErrorResults.NotFound("annotation", annotationId)
-            : ResourceHttp.WithEtag(httpContext, row.Etag, AnnotationMapper.ToContract(row),
-                QylSerializerContext.Default.Annotation);
+    internal static async Task<IResult> GetAnnotationAsync(HttpContext httpContext,
+        [FromRoute(Name = "annotation_id")] string annotationId, IQylStore store, CancellationToken ct)
+    {
+        var row = await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false);
+        if (row is null) return ContractErrorResults.NotFound("annotation", annotationId);
+        var contracts = await AnnotationContractsAsync(store, [row], ct).ConfigureAwait(false);
+        return ResourceHttp.WithEtag(httpContext, row.Etag, contracts[0], QylSerializerContext.Default.Annotation);
+    }
 
     internal static async Task<IResult> UpdateAnnotationAsync(
         HttpContext httpContext,
@@ -171,22 +174,30 @@ internal static partial class CollectorEndpointExtensions
             httpContext.Request, QylSerializerContext.Default.AnnotationUpdateRequest, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
-        if (ValidateAnnotationText(request!.Text) is { } textError)
+        if (request!.Text is not null && ValidateAnnotationText(request.Text) is { } textError)
             return textError;
 
+        if (ValidateAnnotationLabels(request.Labels) is { } labelsError) return labelsError;
+        var existing = await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false);
+        if (existing is null) return ContractErrorResults.NotFound("annotation", annotationId);
+        var prior = (await AnnotationContractsAsync(store, [existing], ct).ConfigureAwait(false))[0];
         var now = ResourceHttp.NowUnixNano(timeProvider);
         var etag = ResourceHttp.NewEtag();
+        var updatedRow = existing with { Text = request.Text ?? existing.Text, UpdatedAtUnixNano = now, Etag = etag };
+        var updatedContract = AnnotationMapper.ToContract(updatedRow, (prior.Target as FailureAnnotationTarget)?.FailureId,
+            request.Labels ?? prior.Labels, request.Classification ?? prior.Classification);
+        var metadata = AnnotationMetadata(updatedRow, updatedContract);
         var outcome = await store.UpdateAnnotationAsync(
             ResolveProjectScope(httpContext),
             annotationId,
             ifMatch,
-            current => current with { Text = request.Text, UpdatedAtUnixNano = now, Etag = etag },
-            ct).ConfigureAwait(false);
+            current => current with { Text = request.Text ?? current.Text, UpdatedAtUnixNano = now, Etag = etag },
+            metadata, ct).ConfigureAwait(false);
 
         return outcome.Status switch
         {
             ResourceWriteStatus.Updated => ResourceHttp.WithEtag(httpContext, outcome.Row!.Etag,
-                AnnotationMapper.ToContract(outcome.Row), QylSerializerContext.Default.Annotation),
+                updatedContract, QylSerializerContext.Default.Annotation),
             ResourceWriteStatus.PreconditionFailed => ContractErrorResults.PreconditionFailed(outcome.CurrentEtag),
             _ => ContractErrorResults.NotFound("annotation", annotationId)
         };
@@ -256,7 +267,7 @@ internal static partial class CollectorEndpointExtensions
         SessionAnnotationTarget session when !ContractIdentifiers.IsSessionId(session.SessionId) =>
             ContractErrorResults.Validation("target.session_id", ContractIdentifiers.SessionIdMessage,
                 "session_id.invalid", session.SessionId),
-        TraceAnnotationTarget or SpanAnnotationTarget or SessionAnnotationTarget => null,
+        TraceAnnotationTarget or SpanAnnotationTarget or SessionAnnotationTarget or FailureAnnotationTarget => null,
         _ => ResourceHttp.InvalidBody("target.kind must be trace, span or session.")
     };
 
@@ -274,10 +285,36 @@ internal static partial class CollectorEndpointExtensions
             await store.SpanExistsAsync(projectId, span.TraceId, span.SpanId, ct).ConfigureAwait(false)
                 ? null
                 : ContractErrorResults.NotFound("span", span.SpanId),
+        FailureAnnotationTarget failure =>
+            (await store.ReadAnalysisSnapshotAsync(projectId, ct).ConfigureAwait(false)).Spans.Any(s => AnalysisFailureIdentity(s, projectId) == failure.FailureId)
+                ? null : ContractErrorResults.NotFound("failure", failure.FailureId),
         SessionAnnotationTarget session =>
             await store.GetSessionAsync(session.SessionId, projectId, ct).ConfigureAwait(false) is not null
                 ? null
                 : ContractErrorResults.NotFound("session", session.SessionId),
         _ => ResourceHttp.InvalidBody("target.kind must be trace, span or session.")
     };
+    private static string? AnalysisFailureIdentity(SpanStorageRow row, string projectId)
+    {
+        if (row.StatusCode != 2) return null;
+        var engine = new AnalysisEngine(new AnalysisSnapshot([row], [], [], [], [], [], []), projectId, new AnalysisHandles(new byte[32]), TimeProvider.System.GetUtcNow());
+        var result = engine.Run("list_failures", J.O(("start_time", DateTimeOffset.UnixEpoch.ToString("O")), ("end_time", TimeProvider.System.GetUtcNow().AddDays(1).ToString("O"))));
+        return J.String(result["failures"]?[0], "failure_id");
+    }
+    private static IResult? ValidateAnnotationLabels(IReadOnlyList<string>? labels) => labels is not null && (labels.Count > 10 || labels.Any(static label => label.EnumerateRunes().Count() > 64))
+        ? ContractErrorResults.Validation("labels", "Use at most ten labels of at most 64 characters each.", "labels.invalid") : null;
+    private static AnalysisStateRow AnnotationMetadata(AnnotationRow row, Annotation annotation) => new()
+    {
+        ProjectId = row.ProjectId, StateKey = "annotation:" + row.AnnotationId, Etag = row.Etag, UpdatedAtUnixNano = row.UpdatedAtUnixNano,
+        ValueJson = JsonSerializer.Serialize(annotation, QylSerializerContext.Default.Annotation)
+    };
+    private static async Task<IReadOnlyList<Annotation>> AnnotationContractsAsync(IQylStore store, IReadOnlyList<AnnotationRow> rows, CancellationToken ct)
+    {
+        if (rows.Count == 0) return [];
+        var snapshot = await store.ReadAnalysisSnapshotAsync(rows[0].ProjectId, ct).ConfigureAwait(false);
+        return rows.Select(row => snapshot.State.FirstOrDefault(s => s.StateKey == "annotation:" + row.AnnotationId) is { } metadata
+            ? JsonSerializer.Deserialize(metadata.ValueJson, QylSerializerContext.Default.Annotation)!
+            : AnnotationMapper.ToContract(row)).ToArray();
+    }
+
 }

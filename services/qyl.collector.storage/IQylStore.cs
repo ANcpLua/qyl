@@ -57,6 +57,9 @@ internal readonly record struct StorageFileMetrics(
 
 internal interface IQylStore : IAsyncDisposable
 {
+    Task<AnalysisSnapshot> ReadAnalysisSnapshotAsync(string projectId, CancellationToken ct = default);
+    Task<ResourceWriteOutcome<AnalysisStateRow>> WriteAnalysisStateAsync(AnalysisStateRow row, string? expectedEtag, CancellationToken ct = default);
+
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
 
     Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default);
@@ -189,6 +192,10 @@ internal interface IQylStore : IAsyncDisposable
         IdempotencyKeyRow? idempotency,
         ulong idempotencyNotBeforeUnixNano,
         CancellationToken ct = default);
+
+    Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(AnnotationRow row, IdempotencyKeyRow? idempotency, ulong idempotencyNotBeforeUnixNano, AnalysisStateRow? metadata, CancellationToken ct);
+
+    Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(string projectId, string annotationId, EntityTagCondition ifMatch, Func<AnnotationRow, AnnotationRow> update, AnalysisStateRow? metadata, CancellationToken ct);
 
     Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(
         string projectId,

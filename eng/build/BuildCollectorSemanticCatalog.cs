@@ -157,6 +157,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Span);
         incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Log);
         incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Metric);
+        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Resource);
 
         var spanAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.SpanAttributeAllowList.StablePrefixes, "spanAttributeAllowList.stablePrefixes"),
@@ -175,7 +176,8 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
 
         var resourceAttributeAllowList = NormalizedValues(
             ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.ResourceAttributeAllowList.IncubatingPrefixes, "resourceAttributeAllowList.incubatingPrefixes"));
+            ValuesWithPrefixes(incubatingAttributeValues, policy.ResourceAttributeAllowList.IncubatingPrefixes, "resourceAttributeAllowList.incubatingPrefixes"),
+            policy.DevelopmentAttributeAllowList.Resource);
 
         var sessionCorrelation = resolver.RequiredAttributeValues(policy.SessionCorrelation);
 
@@ -700,6 +702,7 @@ internal sealed class CollectorDevelopmentAttributePolicy
     public string[] Span { get; init; } = [];
     public string[] Log { get; init; } = [];
     public string[] Metric { get; init; } = [];
+    public string[] Resource { get; init; } = [];
 }
 
 [JsonSourceGenerationOptions(

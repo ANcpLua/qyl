@@ -572,7 +572,7 @@ internal static class AnnotationMapper
     public const string SpanKind = "span";
     public const string SessionKind = "session";
 
-    public static Annotation ToContract(AnnotationRow row) =>
+    public static Annotation ToContract(AnnotationRow row, string? failureId = null, IReadOnlyList<string>? labels = null, AnnotationClassification? classification = null) =>
         new()
         {
             Id = row.AnnotationId,
@@ -584,9 +584,12 @@ internal static class AnnotationMapper
                 TraceKind => new TraceAnnotationTarget { TraceId = row.TraceId! },
                 SpanKind => new SpanAnnotationTarget { TraceId = row.TraceId!, SpanId = row.SpanId! },
                 SessionKind => new SessionAnnotationTarget { SessionId = row.SessionId! },
+                "failure" => new FailureAnnotationTarget { FailureId = failureId ?? throw new InvalidDataException("Failure annotation metadata is missing.") },
                 _ => throw new InvalidDataException($"Stored annotation target kind '{row.TargetKind}' is unknown.")
             },
-            Text = row.Text
+            Text = row.Text,
+            Labels = labels,
+            Classification = classification
         };
 
     public static IReadOnlyList<Annotation> ToContracts(IReadOnlyList<AnnotationRow> rows) =>

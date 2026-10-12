@@ -77,6 +77,34 @@ internal static partial class CollectorEndpointExtensions
         api.MapDelete("/saved-queries/{saved_query_id}", DeleteSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Delete);
         api.MapPost("/saved-queries/{saved_query_id}:run", RunSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Read);
 
+        api.MapPost("/analysis/triage", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("triage", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/list_failures", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_failures", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/get_failure_context", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_failure_context", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/compare_groups", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("compare_groups", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/compare_traces", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("compare_traces", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/verify_fix", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("verify_fix", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/aggregate_telemetry", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("aggregate_telemetry", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/discover_attributes", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("discover_attributes", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/get_agent_run", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_agent_run", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/list_releases", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_releases", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/get_service_map", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_service_map", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/check_telemetry_health", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("check_telemetry_health", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/get_mcp_stats", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_mcp_stats", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/list_sessions", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_sessions", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/list_traces", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_traces", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/get_trace", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_trace", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/search_logs", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("search_logs", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/list_metrics", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_metrics", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/get_metric_series", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_metric_series", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/query_metric", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("query_metric", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/ci_log", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("ci_log", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/display_traces", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("display_traces", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/display_mcp_dashboard", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("display_mcp_dashboard", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/list_saved_queries", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_saved_queries", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/run_saved_query", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("run_saved_query", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPost("/analysis/fetch_telemetry", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("fetch_telemetry", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapPatch("/failures/{failure_id}", UpdateFailureStatusAsync).RequireKeyRole(ApiKeyRoles.Write);
+
         app.MapFallback(FallbackHandler);
 
         return app;

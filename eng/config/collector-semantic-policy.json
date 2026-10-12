@@ -79,7 +79,17 @@
       "qyl.mcp.sdk.tier",
       "qyl.mcp.server.id",
       "qyl.mcp.test_case.id",
-      "qyl.mcp.tool.name"
+      "qyl.mcp.tool.name",
+      "app.version",
+      "cloud.region",
+      "ci.leg",
+      "cicd.pipeline.run.id",
+      "cicd.pipeline.run.url.full",
+      "cicd.pipeline.run.attempt",
+      "vcs.ref.head.name",
+      "vcs.ref.head.revision",
+      "gen_ai.tool.call.arguments_hash",
+      "gen_ai.tool.call.arguments.hash"
     ],
     "log": [
       "browser.device_memory",
@@ -99,12 +109,28 @@
       "web.vital.name",
       "web.vital.rating",
       "web.vital.unit",
-      "web.vital.value"
+      "web.vital.value",
+      "app.version",
+      "cloud.region",
+      "ci.leg",
+      "cicd.pipeline.run.id",
+      "cicd.pipeline.run.url.full",
+      "cicd.pipeline.run.attempt",
+      "vcs.ref.head.name",
+      "vcs.ref.head.revision",
+      "gen_ai.tool.call.arguments_hash",
+      "gen_ai.tool.call.arguments.hash"
     ],
     "metric": [
       "qyl.instrumentation.domain",
       "qyl.mcp.server.id",
       "qyl.mcp.tool.name"
+    ],
+    "resource": [
+      "app.version",
+      "cloud.region",
+      "vcs.ref.head.revision",
+      "vcs.ref.head.name"
     ]
   },
   "qylResourceAttributeAllowList": [
@@ -247,7 +273,24 @@
     "HttpRequestMethod": "http.request.method",
     "HttpRoute": "http.route",
     "ServiceName": "service.name",
-    "QylAttributeNamespace": "qyl.attribute.namespace"
+    "QylAttributeNamespace": "qyl.attribute.namespace",
+    "McpMethodName": "mcp.method.name",
+    "GenAiToolName": "gen_ai.tool.name",
+    "GenAiAgentName": "gen_ai.agent.name",
+    "State": "state",
+    "NetworkTransport": "network.transport",
+    "ServiceVersion": "service.version",
+    "DeploymentEnvironmentName": "deployment.environment.name",
+    "VcsRefHeadRevision": "vcs.ref.head.revision",
+    "PeerService": "peer.service",
+    "ServerAddress": "server.address",
+    "ErrorType": "error.type",
+    "VcsRefHeadName": "vcs.ref.head.name",
+    "CicdPipelineRunId": "cicd.pipeline.run.id",
+    "CicdPipelineRunUrlFull": "cicd.pipeline.run.url.full",
+    "DeploymentEnvironment": "deployment.environment",
+    "ExceptionMessage": "exception.message",
+    "RecordedFailureKind": "exception.type"
   },
   "wellKnownValueClasses": {
     "GenAiOperationNameValues": "GenAi.GenAiAttributes+OperationNameValues",

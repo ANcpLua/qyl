@@ -7,7 +7,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-This checkout targets qyl 12.0.2. The
+This checkout targets qyl 12.1.0. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -24,6 +24,26 @@ qyl up
 on `:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889`.
 Telemetry is stored under `~/.qyl/`, never in the working directory. All five ports are
 checked up front, so a conflict fails the command instead of leaving a half-bound stack.
+
+## Analysis for agents
+
+The collector owns the query logic behind qyl.mcp's 32 tools. Typed read requests use
+`POST /api/v1/analysis/<tool_name>`; POST reads require the `read` key role. The shared
+engine applies project scope, time windows and attribute matchers before pagination.
+Default windows are 60 minutes, except the release timeline's seven days and the
+explicit 24-hour dashboard option. Responses include their window and coverage;
+continuation and verification handles are signed and scoped to the caller's project.
+
+Failure IDs are stable within a project. Failure status and annotation labels are
+persisted with optimistic concurrency; reads do not create saved resources. Saved
+queries use the same matcher and query engine as the direct analysis tools.
+Trace evidence distinguishes matched spans from ancestor context, preserves metric
+units, and never invents missing argument hashes or captured telemetry.
+
+The shared answer-key fixture is generated through real OTLP by
+`tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py`. qyl.mcp's verification suite
+uses that same collector dataset, including failure recurrence and counter/histogram
+cases. No synthetic response engine participates in these checks.
 
 ## Send telemetry from an application
 
@@ -63,12 +83,12 @@ The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.A
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 12.0.2 | this one |
+| `qyl` (dotnet tool) | 12.1.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 24.0.1 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 9.9.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.1.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | 7.6.1 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 12.0.2 | this one |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 12.1.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -134,7 +154,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/12.0.2">
+<Project Sdk="Qyl.Api.Sdk/12.1.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

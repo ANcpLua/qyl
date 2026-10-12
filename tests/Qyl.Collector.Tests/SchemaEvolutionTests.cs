@@ -14,7 +14,7 @@ public sealed class SchemaEvolutionTests
     private const string TelemetryOnlyHash = "a20800b2a7d212fc3d284bf43b0ade1bf4dde1203f312623bad6a53d09911c19";
 
     private static readonly string[] s_telemetryTables = ["logs", "metric_points", "metric_series", "spans"];
-    private static readonly string[] s_resourceTables = ["annotations", "idempotency_keys", "saved_queries"];
+    private static readonly string[] s_resourceTables = ["analysis_state", "annotations", "idempotency_keys", "saved_queries"];
 
     [Fact]
     public void The_identity_of_the_telemetry_tables_alone_is_the_previous_builds_identity()
@@ -51,6 +51,31 @@ public sealed class SchemaEvolutionTests
         {
             DeleteDatabase(path);
         }
+    }
+
+    [Fact]
+    public async Task The_previous_resource_schema_gains_only_the_analysis_state_table()
+    {
+        var present = DuckDbGeneratedSchema.AuthoritativeTableNames.Where(name => name != "analysis_state").ToArray();
+        var path = Path.Combine(Path.GetTempPath(), $"qyl-analysis-schema-{Guid.NewGuid():N}.duckdb");
+        try
+        {
+            await using (var previous = new DuckDbStore(path))
+                await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]), TestContext.Current.CancellationToken);
+            using (var con = Open(path))
+            {
+                using var command = con.CreateCommand();
+                command.CommandText = "DROP TABLE analysis_state";
+                command.ExecuteNonQuery();
+                command.CommandText = "UPDATE qyl_schema_meta SET authoritative_schema_hash = $1";
+                command.Parameters.Add(new DuckDBParameter { Value = DuckDbGeneratedSchema.ComputeAuthoritativeHash(present) });
+                command.ExecuteNonQuery();
+            }
+            await using var store = new DuckDbStore(path);
+            Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
+            Assert.Empty((await store.ReadAnalysisSnapshotAsync("alpha", TestContext.Current.CancellationToken)).State);
+        }
+        finally { DeleteDatabase(path); }
     }
 
     [Fact]

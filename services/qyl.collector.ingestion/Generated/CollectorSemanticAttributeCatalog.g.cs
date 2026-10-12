@@ -53,6 +53,12 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> SpanAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "app.version", // incubating
+        "ci.leg", // incubating
+        "cicd.pipeline.run.attempt", // incubating
+        "cicd.pipeline.run.id", // incubating
+        "cicd.pipeline.run.url.full", // incubating
+        "cloud.region", // incubating
         "db.cassandra.consistency_level",
         "db.cassandra.coordinator.dc",
         "db.cassandra.coordinator.id",
@@ -161,6 +167,8 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
+        "gen_ai.tool.call.arguments.hash", // incubating
+        "gen_ai.tool.call.arguments_hash", // incubating
         "gen_ai.tool.call.id", // incubating
         "gen_ai.tool.call.result", // incubating
         "gen_ai.tool.definitions", // incubating
@@ -337,11 +345,14 @@ internal static class CollectorSemanticAttributeCatalog
         "url.full",
         "url.path",
         "url.query",
-        "url.scheme"
+        "url.scheme",
+        "vcs.ref.head.name", // incubating
+        "vcs.ref.head.revision" // incubating
     );
 
     internal static readonly FrozenSet<string> LogAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "app.version", // incubating
         "browser.device_memory", // incubating
         "browser.language", // incubating
         "browser.viewport.height", // incubating
@@ -352,6 +363,11 @@ internal static class CollectorSemanticAttributeCatalog
         "browser.web_vital.navigation_type", // incubating
         "browser.web_vital.rating", // incubating
         "browser.web_vital.value", // incubating
+        "ci.leg", // incubating
+        "cicd.pipeline.run.attempt", // incubating
+        "cicd.pipeline.run.id", // incubating
+        "cicd.pipeline.run.url.full", // incubating
+        "cloud.region", // incubating
         "error.message",
         "error.type",
         "exception.escaped",
@@ -417,6 +433,8 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
+        "gen_ai.tool.call.arguments.hash", // incubating
+        "gen_ai.tool.call.arguments_hash", // incubating
         "gen_ai.tool.call.id", // incubating
         "gen_ai.tool.call.result", // incubating
         "gen_ai.tool.definitions", // incubating
@@ -572,6 +590,8 @@ internal static class CollectorSemanticAttributeCatalog
         "server.address",
         "server.port",
         "url.path",
+        "vcs.ref.head.name", // incubating
+        "vcs.ref.head.revision", // incubating
         "web.vital.name", // incubating
         "web.vital.rating", // incubating
         "web.vital.unit", // incubating
@@ -872,6 +892,8 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> ResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "app.version", // incubating
+        "cloud.region", // incubating
         "deployment.environment",
         "deployment.environment.name",
         "host.arch", // incubating
@@ -897,7 +919,9 @@ internal static class CollectorSemanticAttributeCatalog
         "service.instance.id",
         "service.name",
         "service.namespace",
-        "service.version"
+        "service.version",
+        "vcs.ref.head.name", // incubating
+        "vcs.ref.head.revision" // incubating
     );
 
     internal static readonly string[] HttpHeaderAttributePrefixes =
@@ -1034,7 +1058,14 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.reasoning.output_tokens" // incubating
     );
 
+    internal const string CicdPipelineRunId = "cicd.pipeline.run.id"; // incubating
+    internal const string CicdPipelineRunUrlFull = "cicd.pipeline.run.url.full"; // incubating
     internal const string DbSystemName = "db.system.name";
+    internal const string DeploymentEnvironment = "deployment.environment";
+    internal const string DeploymentEnvironmentName = "deployment.environment.name";
+    internal const string ErrorType = "error.type";
+    internal const string ExceptionMessage = "exception.message";
+    internal const string GenAiAgentName = "gen_ai.agent.name"; // incubating
     internal const string GenAiCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"; // incubating
     internal const string GenAiCacheWriteInputTokens = "gen_ai.usage.cache_write.input_tokens"; // incubating
     internal const string GenAiInputTokens = "gen_ai.usage.input_tokens"; // incubating
@@ -1046,11 +1077,21 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiRequestModel = "gen_ai.request.model"; // incubating
     internal const string GenAiResponseModel = "gen_ai.response.model"; // incubating
     internal const string GenAiToolCallId = "gen_ai.tool.call.id"; // incubating
+    internal const string GenAiToolName = "gen_ai.tool.name"; // incubating
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
+    internal const string McpMethodName = "mcp.method.name"; // incubating
+    internal const string NetworkTransport = "network.transport";
+    internal const string PeerService = "peer.service";
     internal const string QylAttributeNamespace = "qyl.attribute.namespace"; // incubating
+    internal const string RecordedFailureKind = "exception.type";
     internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.44.0";
+    internal const string ServerAddress = "server.address";
     internal const string ServiceName = "service.name";
+    internal const string ServiceVersion = "service.version";
+    internal const string State = "state";
+    internal const string VcsRefHeadName = "vcs.ref.head.name"; // incubating
+    internal const string VcsRefHeadRevision = "vcs.ref.head.revision"; // incubating
 
     internal static class GenAiOperationNameValues
     {
