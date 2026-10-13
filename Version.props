@@ -83,8 +83,9 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Build and test tooling">
+    <!-- Stay on 10.x. Fallout's 11.0.x packages on nuget.org are unlisted builds from May 2026, older than 10.4.0. -->
     <!-- renovate: datasource=nuget depName=Fallout.Common -->
-    <FalloutVersion>11.0.18</FalloutVersion>
+    <FalloutVersion>10.4.0</FalloutVersion>
     <!-- renovate: datasource=nuget depName=Spectre.Console -->
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <!-- renovate: datasource=nuget depName=xunit.v3.mtp-v2 -->
