@@ -169,12 +169,12 @@ publish_release_set() {
   for runtime in $rids; do
     runtime_ids+=("qyl.$runtime")
     # --skip-duplicate here and below: a rerun after a partial push (pushed, not indexed yet) goes on.
-    dotnet nuget push "$OUT/qyl.$runtime.$version.nupkg" --api-key "$(<"$NUGET_KEY_FILE")" --source "$NUGET_SOURCE" --skip-duplicate || return 1
+    NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/qyl.$runtime.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return 1
   done
   say "wait for all runtime package indexes before publishing the tool pointer"
   wait_for_indexed "${runtime_ids[@]}" || return 1
   for package in Qyl.Api.Sdk qyl; do
-    dotnet nuget push "$OUT/$package.$version.nupkg" --api-key "$(<"$NUGET_KEY_FILE")" --source "$NUGET_SOURCE" --skip-duplicate || return 1
+    NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/$package.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return 1
   done
 }
 
