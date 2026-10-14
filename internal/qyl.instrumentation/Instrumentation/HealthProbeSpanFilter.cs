@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using OpenTelemetry;
 
 namespace Qyl.Instrumentation.Instrumentation;

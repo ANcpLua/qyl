@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Json;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;

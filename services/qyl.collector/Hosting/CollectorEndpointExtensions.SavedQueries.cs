@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Common.Pagination;
-using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.SavedQueries;
 using Qyl.Collector.Storage;
 

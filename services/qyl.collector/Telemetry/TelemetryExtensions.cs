@@ -1,6 +1,4 @@
-
 using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
-using Microsoft.Extensions.Diagnostics.Latency;
 
 namespace Qyl.Collector.Telemetry;
 

@@ -1,17 +1,15 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
-using Qyl.Collector;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
-using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Tests;
 

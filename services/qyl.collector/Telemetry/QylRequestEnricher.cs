@@ -1,7 +1,4 @@
-
 using Microsoft.Extensions.Diagnostics.Enrichment;
-using Microsoft.AspNetCore.Routing;
-using Qyl.Collector.Ingestion;
 
 namespace Qyl.Collector.Telemetry;
 

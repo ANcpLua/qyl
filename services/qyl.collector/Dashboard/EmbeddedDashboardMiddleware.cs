@@ -1,7 +1,3 @@
-
-using Qyl.Instrumentation;
-using Qyl.Collector.Ingestion;
-
 namespace Qyl.Collector.Dashboard;
 
 internal sealed partial class EmbeddedDashboardMiddleware

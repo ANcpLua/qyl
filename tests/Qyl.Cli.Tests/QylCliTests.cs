@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Sockets;
-using Qyl.Cli;
 using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;

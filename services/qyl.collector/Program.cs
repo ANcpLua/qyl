@@ -1,8 +1,8 @@
 using Qyl.Collector;
+using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Telemetry;
 using Qyl.Instrumentation.Instrumentation;
-using Qyl.Collector.ApiKeys;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 

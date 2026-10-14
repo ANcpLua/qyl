@@ -1,6 +1,3 @@
-using System.Text.Json;
-using Qyl.Collector.Ingestion;
-
 namespace Qyl.Collector.Storage;
 
 internal sealed class SpanEventJson

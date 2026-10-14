@@ -3,9 +3,9 @@ using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using Qyl.Collector.Ingestion;
+using Qyl.Collector.Primitives;
 using Qyl.Collector.Storage;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
-using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Tests;
 

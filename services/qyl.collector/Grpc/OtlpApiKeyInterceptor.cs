@@ -1,6 +1,6 @@
 using Grpc.Core.Interceptors;
-using Qyl.Collector.Primitives;
 using Qyl.Collector.ApiKeys;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Grpc;
 

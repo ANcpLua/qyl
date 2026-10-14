@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Qyl.Collector.Storage;
 
 internal static class PersistedAttributePolicy

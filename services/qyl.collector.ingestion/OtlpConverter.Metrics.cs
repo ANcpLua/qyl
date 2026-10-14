@@ -1,5 +1,6 @@
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
+using Qyl.Collector.Primitives;
 using Qyl.Collector.Telemetry;
 using ProtoExponentialHistogramDataPoint = OpenTelemetry.Proto.Metrics.V1.ExponentialHistogramDataPoint;
 using ProtoHistogramDataPoint = OpenTelemetry.Proto.Metrics.V1.HistogramDataPoint;
@@ -7,7 +8,6 @@ using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 using ProtoNumberDataPoint = OpenTelemetry.Proto.Metrics.V1.NumberDataPoint;
 using ProtoTemporality = OpenTelemetry.Proto.Metrics.V1.AggregationTemporality;
-using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 

@@ -1,7 +1,7 @@
-using Google.Protobuf;
-using Google.Protobuf.Reflection;
 using System.IO.Compression;
 using System.Net.Http.Headers;
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;

@@ -1,7 +1,5 @@
-using System.Text;
-using System.Text.Json;
-using ContractValue = Qyl.Api.Contracts.Common.AttributeValue;
 using Qyl.Api.Contracts.Common;
+using ContractValue = Qyl.Api.Contracts.Common.AttributeValue;
 
 namespace Qyl.Collector.Ingestion;
 

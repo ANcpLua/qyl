@@ -1,5 +1,3 @@
-using System.IO.Compression;
-using Grpc.Core;
 using Grpc.Net.Compression;
 
 namespace Qyl.Collector.Grpc;

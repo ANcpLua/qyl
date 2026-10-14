@@ -1,7 +1,5 @@
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Logging.Abstractions;
-using Qyl.Collector.Telemetry;
-
 using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;

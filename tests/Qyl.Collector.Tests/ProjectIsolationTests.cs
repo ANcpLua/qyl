@@ -6,11 +6,11 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
+using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
-using Qyl.Collector.Storage;
 using Qyl.Collector.Primitives;
-using Qyl.Collector.ApiKeys;
+using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 

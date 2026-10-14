@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.ApiKeys;

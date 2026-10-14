@@ -1,6 +1,6 @@
+using DuckDB.NET.Data;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using DuckDB.NET.Data;
 using Qyl.Collector.Storage;
 using Qyl.Collector.Storage.Generators;
 

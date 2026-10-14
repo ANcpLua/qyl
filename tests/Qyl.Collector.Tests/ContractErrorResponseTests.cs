@@ -3,10 +3,10 @@ using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Qyl.Api.Contracts.Common.Errors;
+using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
 using RpcStatus = Google.Rpc.Status;
-using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Tests;
 

@@ -1,5 +1,3 @@
-using Qyl;
-
 namespace Qyl.Api.Tests;
 
 /// <summary>

@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -8,7 +7,6 @@ using System.Text.Json.Serialization.Metadata;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
-using Qyl.Api.Contracts.OTel.Traces;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using ContractResource = Qyl.Api.Contracts.OTel.Resource.Resource;
 using ContractSpan = Qyl.Api.Contracts.OTel.Traces.Span;

@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Qyl.Collector.Primitives;
 
 internal static class TimeConversions

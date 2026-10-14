@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Retention;

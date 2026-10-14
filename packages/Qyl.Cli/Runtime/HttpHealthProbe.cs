@@ -1,8 +1,3 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Qyl.Cli.Runtime;
 
 internal sealed class HttpHealthProbe(

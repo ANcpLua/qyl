@@ -1,32 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Qyl.Collector;
-using Qyl.Collector.Dashboard;
-using Qyl.Collector.Grpc;
-using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
-using Qyl.Api.Contracts.OTel.Logs;
-using Qyl.Api.Contracts.OTel.Metrics;
 using Qyl.Api.Contracts.Streaming;
+using Qyl.Collector.ApiKeys;
+using Qyl.Collector.Dashboard;
+using Qyl.Collector.Grpc;
+using Qyl.Collector.Storage;
 using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
 using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
 using ExportMetricsServiceRequest = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
 using ExportMetricsServiceResponse = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceRequest = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
-using Qyl.Collector.Storage;
-using Qyl.Collector.ApiKeys;
 
 namespace Qyl.Collector.Hosting;
 

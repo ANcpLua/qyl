@@ -8,7 +8,6 @@ using System.Reflection.PortableExecutable;
 using System.Xml.Linq;
 using Fallout.Common;
 using Fallout.Common.IO;
-using Fallout.Common.Tooling;
 using Fallout.Common.Tools.DotNet;
 using Fallout.Components;
 using NuGet.Versioning;
