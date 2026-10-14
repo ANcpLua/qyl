@@ -111,8 +111,8 @@ public sealed class SpanAttributePolicyTests
         // The waiver is scoped: a vendor key clears the substring rule, an exact denial
         // (exception.message) and a prefix denial (user.) refuse the key whether or not the
         // vendor list would have claimed it.
-        Assert.True(AttributeMapping.IsVendorPassThrough("messaging.masstransit.message_id"));
-        Assert.True(AttributeMapping.IsVendorPassThrough("nservicebus.message_id"));
+        Assert.Contains("messaging.masstransit.message_id", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.VendorKeys);
+        Assert.Contains("nservicebus.message_id", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.VendorKeys);
         Assert.True(AttributeKeySets.IsSafeSpanAttribute("messaging.masstransit.message_id"));
         Assert.True(AttributeKeySets.IsSafeSpanAttribute("nservicebus.message_id"));
         Assert.False(AttributeKeySets.IsSafeSpanAttribute("exception.message"));

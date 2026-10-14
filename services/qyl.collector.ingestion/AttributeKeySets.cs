@@ -1,5 +1,3 @@
-using Qyl.Telemetry.SemanticConventions.Incubating.Mapping;
-
 namespace Qyl.Collector.Ingestion;
 
 internal static class AttributeKeySets
@@ -20,7 +18,6 @@ internal static class AttributeKeySets
         CollectorSemanticAttributeCatalog.ProjectIdResourceKeyPrecedence;
 
     internal static bool IsSafeSpanAttribute(string key) =>
-        CollectorSemanticAttributeCatalog.SafeHttpSpanHeaderAttributeKeys.Contains(key) ||
         IsPersistable(key) &&
         (CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key) || IsVendorTag(key) || IsAppAttribute(key));
 
@@ -38,8 +35,8 @@ internal static class AttributeKeySets
     // A key a pinned third-party library emits is a tag, not vocabulary: it is forwarded exactly
     // as it arrived and never rewritten. The prefix and exact denials still apply to it — a
     // vendor is no more entitled to write a credential into storage than an application is — and
-    // only the blunt token rule steps aside for it (see IsPersistable).
-    private static bool IsVendorTag(string key) => AttributeMapping.IsVendorPassThrough(key);
+    // only the blunt token rule steps aside for it (see IsPersistable). The keys are RegistryPolicy.VendorKeys.
+    private static bool IsVendorTag(string key) => CollectorSemanticAttributeCatalog.VendorKeys.Contains(key);
 
     /// <summary>
     /// A business attribute <c>qyl.app.&lt;key&gt;</c>, written by <c>SetAppTag</c>. Its keys are named by the
@@ -57,7 +54,8 @@ internal static class AttributeKeySets
     // Entity references may identify resources with application-defined attributes that are not
     // part of the semantic-convention catalog. Persist only those explicitly referenced keys, and
     // keep the same credential/privacy boundary as every other persisted resource attribute.
-    internal static bool IsSafeEntityReferencedResourceAttribute(string key) => IsPersistable(key);
+    // qyl.app.* is bounded per span, event and link; a resource has no such bound, so it never carries one.
+    internal static bool IsSafeEntityReferencedResourceAttribute(string key) => IsPersistable(key) && !IsAppAttribute(key);
 
     internal static bool ShouldCaptureSpanAttribute(string key) =>
         IsSafeSpanAttribute(key) ||
@@ -66,21 +64,19 @@ internal static class AttributeKeySets
 
     /// <summary>
     /// Whether the registry lets the collector persist <paramref name="key"/> at all, in
-    /// <c>RegistryPolicy.IsPersisted</c>'s order, plus the baggage prefix, which only a collector sees.
+    /// <c>RegistryPolicy.IsPersisted</c>'s order, plus two denials only a collector applies: the baggage prefix,
+    /// and the registry's key and prefix denials applied again after <c>qyl.app.</c>.
     /// The allowlists above decide which persistable keys are kept.
     /// </summary>
     internal static bool IsPersistable(string key)
     {
-        if (IsNotPersistedKeyOrTemplateChild(key))
+        if (IsDeniedKeyOrPrefix(key))
             return false;
 
-        // Prefixes, not their registry expansion: an application-defined key under one of these
-        // namespaces (user.email_address, enduser.tenant) is denied as surely as a registry key.
-        foreach (var prefix in CollectorSemanticAttributeCatalog.NotPersistedPrefixes)
-        {
-            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return false;
-        }
+        // SetAppTag names the key after qyl.app., so qyl.app.user.email is as personal as user.email.
+        if (key.StartsWith(CollectorSemanticAttributeCatalog.AppAttributePrefix, StringComparison.OrdinalIgnoreCase) &&
+            IsDeniedKeyOrPrefix(key.AsSpan(CollectorSemanticAttributeCatalog.AppAttributePrefix.Length)))
+            return false;
 
         if (key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase))
             return false;
@@ -103,13 +99,29 @@ internal static class AttributeKeySets
         return true;
     }
 
+    // Prefixes, not their registry expansion: an application-defined key under one of these
+    // namespaces (user.email_address, enduser.tenant) is denied as surely as a registry key.
+    private static bool IsDeniedKeyOrPrefix(ReadOnlySpan<char> key)
+    {
+        if (IsNotPersistedKeyOrTemplateChild(key))
+            return true;
+
+        foreach (var prefix in CollectorSemanticAttributeCatalog.NotPersistedPrefixes)
+        {
+            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     private static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> s_notPersistedKeys =
         CollectorSemanticAttributeCatalog.NotPersistedKeys.GetAlternateLookup<ReadOnlySpan<char>>();
 
     // A denied template key denies its children too: http.request.header denies http.request.header.<name>.
-    private static bool IsNotPersistedKeyOrTemplateChild(string key)
+    private static bool IsNotPersistedKeyOrTemplateChild(ReadOnlySpan<char> key)
     {
-        var candidate = key.AsSpan();
+        var candidate = key;
         while (true)
         {
             if (s_notPersistedKeys.Contains(candidate))

@@ -155,14 +155,6 @@
     "maxKeysPerSpan": 16,
     "maxValueLength": 256
   },
-  "safeHttpSpanHeaderAttributeKeys": [
-    "http.request.header.accept",
-    "http.request.header.content_type",
-    "http.request.header.mcp_method",
-    "http.request.header.mcp_name",
-    "http.request.header.mcp_protocol_version",
-    "http.response.header.content_type"
-  ],
   "spanHotAttributeKeys": [
     "gen_ai.provider.name",
     "gen_ai.operation.name",

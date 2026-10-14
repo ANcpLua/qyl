@@ -269,13 +269,15 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "MetricAttributeAllowList", metricAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "SafeHttpSpanHeaderAttributeKeys", policy.SafeHttpSpanHeaderAttributeKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
-        // RegistryPolicy, verbatim. The exact keys compare case-insensitively here, stricter than the
-        // registry's ordinal comparison: a differently cased spelling of a denied key stays denied.
+        // RegistryPolicy, verbatim. A denied key compares case-insensitively here, stricter than the registry's
+        // ordinal comparison: a differently cased spelling of a denied key stays denied. The exempt and vendor keys
+        // compare ordinally, as in the registry: they waive the token rule, so ignoring case would waive it for
+        // spellings the registry never named.
         WriteFrozenSet(builder, "NotPersistedKeys", RegistryPolicy.NotPersistedKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
         WriteStringArray(builder, "NotPersistedPrefixes", RegistryPolicy.NotPersistedPrefixes);
         WriteStringArray(builder, "DeniedKeyTokens", RegistryPolicy.DeniedKeyTokens);
-        WriteFrozenSet(builder, "TokenExemptKeys", RegistryPolicy.TokenExemptKeys, "StringComparer.OrdinalIgnoreCase", incubatingKeys);
+        WriteFrozenSet(builder, "TokenExemptKeys", RegistryPolicy.TokenExemptKeys, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "VendorKeys", RegistryPolicy.VendorKeys, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanHotAttributeKeys", spanHotAttributeKeys, "StringComparer.Ordinal", incubatingKeys);
 
         // qyl.app.<key>, written by SetAppTag: captured by prefix within the bounds the registry note states.
@@ -386,8 +388,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
 
     /// <summary>
     /// The keys this file names for the collector to persist as attributes. Not among them: the session
-    /// correlation keys, which ingest lifts into a column, the safe HTTP header keys, the one named
-    /// exception to the registry's header denial, and the projection constants, which name what a reader reads.
+    /// correlation keys, which ingest lifts into a column, and the projection constants, which name what a reader reads.
     /// </summary>
     private static IEnumerable<(string Key, string Section)> PersistedPolicyKeys(CollectorSemanticPolicyConfig policy) =>
         policy.DevelopmentAttributeAllowList.Span.Select(static key => (key, "developmentAttributeAllowList.span"))
@@ -653,7 +654,6 @@ internal sealed class CollectorSemanticPolicyConfig
     public string[] ProjectIdResourceKeys { get; init; } = [];
     public string[] SessionCorrelation { get; init; } = [];
     public CollectorAppAttributePolicy AppAttributes { get; init; } = new();
-    public string[] SafeHttpSpanHeaderAttributeKeys { get; init; } = [];
     public string[] SpanHotAttributeKeys { get; init; } = [];
     public Dictionary<string, string> ProjectionConstants { get; init; } = [];
     public Dictionary<string, string> WellKnownValueClasses { get; init; } = [];
@@ -672,7 +672,6 @@ internal sealed class CollectorSemanticPolicyConfig
         RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
         RequireNonEmpty(SessionCorrelation, relativePath, "sessionCorrelation");
         AppAttributes.Validate(relativePath);
-        RequireNonEmpty(SafeHttpSpanHeaderAttributeKeys, relativePath, "safeHttpSpanHeaderAttributeKeys");
         RequireNonEmpty(SpanHotAttributeKeys, relativePath, "spanHotAttributeKeys");
 
         if (ProjectionConstants.Count is 0)

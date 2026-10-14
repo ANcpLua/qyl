@@ -927,16 +927,6 @@ internal static class CollectorSemanticAttributeCatalog
         "vcs.ref.head.revision" // incubating
     );
 
-    internal static readonly FrozenSet<string> SafeHttpSpanHeaderAttributeKeys = FrozenSet.Create(
-        StringComparer.OrdinalIgnoreCase,
-        "http.request.header.accept",
-        "http.request.header.content_type",
-        "http.request.header.mcp_method",
-        "http.request.header.mcp_name",
-        "http.request.header.mcp_protocol_version",
-        "http.response.header.content_type"
-    );
-
     internal static readonly FrozenSet<string> NotPersistedKeys = FrozenSet.Create(
         StringComparer.OrdinalIgnoreCase,
         "code.file.path",
@@ -1019,7 +1009,7 @@ internal static class CollectorSemanticAttributeCatalog
     ];
 
     internal static readonly FrozenSet<string> TokenExemptKeys = FrozenSet.Create(
-        StringComparer.OrdinalIgnoreCase,
+        StringComparer.Ordinal,
         "db.query.summary",
         "gen_ai.token.type", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
@@ -1030,6 +1020,140 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.kafka.message.offset",
         "messaging.message.body.size", // incubating
         "messaging.message.id" // incubating
+    );
+
+    internal static readonly FrozenSet<string> VendorKeys = FrozenSet.Create(
+        StringComparer.Ordinal,
+        "az.client_request_id", // incubating
+        "az.schema_url", // incubating
+        "build.error.message", // incubating
+        "build.error.type", // incubating
+        "db.command.name", // incubating
+        "db.elasticsearch.schema_url", // incubating
+        "db.mongodb.cursor_id", // incubating
+        "db.mongodb.driver_connection_id", // incubating
+        "db.mongodb.lsid", // incubating
+        "db.mongodb.server_connection_id", // incubating
+        "db.mongodb.txn_number", // incubating
+        "db.npgsql.connection_id", // incubating
+        "db.npgsql.data_source", // incubating
+        "db.npgsql.prepared", // incubating
+        "db.npgsql.rows", // incubating
+        "db.odp.connection.id", // incubating
+        "db.odp.roundtrip.count", // incubating
+        "db.odp.roundtrip.duration", // incubating
+        "db.odp.rows_affected", // incubating
+        "db.odp.sql_id", // incubating
+        "db.odp.user.statement", // incubating
+        "db.operation.summary", // incubating
+        "edge_group.delivered", // incubating
+        "edge_group.delivery_status", // incubating
+        "edge_group.type", // incubating
+        "elastic.transport.attempted_nodes", // incubating
+        "elastic.transport.deserialize_response_ms", // incubating
+        "elastic.transport.prepare_request_ms", // incubating
+        "elastic.transport.product.name", // incubating
+        "elastic.transport.product.version", // incubating
+        "elastic.transport.schema_url", // incubating
+        "elastic.transport.version", // incubating
+        "execution.result", // incubating
+        "executor.id", // incubating
+        "executor.input", // incubating
+        "executor.output", // incubating
+        "executor.type", // incubating
+        "gen_ai.token.type", // incubating
+        "gen_ai.usage.input_audio_tokens", // incubating
+        "gen_ai.usage.input_text_tokens", // incubating
+        "gen_ai.usage.output_audio_tokens", // incubating
+        "gen_ai.usage.output_text_tokens", // incubating
+        "grpc.method", // incubating
+        "grpc.status_code", // incubating
+        "message.content", // incubating
+        "message.source_id", // incubating
+        "message.target_id", // incubating
+        "messaging.masstransit.begin_state", // incubating
+        "messaging.masstransit.consumer_type", // incubating
+        "messaging.masstransit.correlation_id", // incubating
+        "messaging.masstransit.destination_address", // incubating
+        "messaging.masstransit.end_state", // incubating
+        "messaging.masstransit.initiator_id", // incubating
+        "messaging.masstransit.input_address", // incubating
+        "messaging.masstransit.message_id", // incubating
+        "messaging.masstransit.message_types", // incubating
+        "messaging.masstransit.request_id", // incubating
+        "messaging.masstransit.saga_id", // incubating
+        "messaging.masstransit.source_address", // incubating
+        "messaging.masstransit.tracking_number", // incubating
+        "messaging.rabbitmq.delivery_tag", // incubating
+        "nservicebus.cancelled", // incubating
+        "nservicebus.content_type", // incubating
+        "nservicebus.control_message", // incubating
+        "nservicebus.conversation_id", // incubating
+        "nservicebus.correlation_id", // incubating
+        "nservicebus.databus.content_type", // incubating
+        "nservicebus.delayed_retries", // incubating
+        "nservicebus.delayed_retries_timestamp", // incubating
+        "nservicebus.deliver_at", // incubating
+        "nservicebus.discriminator", // incubating
+        "nservicebus.enclosed_message_types", // incubating
+        "nservicebus.envelope.unwrapper_type", // incubating
+        "nservicebus.event_types", // incubating
+        "nservicebus.handler.handler_type", // incubating
+        "nservicebus.handler.saga_id", // incubating
+        "nservicebus.has_license_expired", // incubating
+        "nservicebus.host.display_name", // incubating
+        "nservicebus.host.host_id", // incubating
+        "nservicebus.is_deferred", // incubating
+        "nservicebus.message_handler_type", // incubating
+        "nservicebus.message_handler_types", // incubating
+        "nservicebus.message_id", // incubating
+        "nservicebus.message_intent", // incubating
+        "nservicebus.message_type", // incubating
+        "nservicebus.native_message_id", // incubating
+        "nservicebus.non_durable", // incubating
+        "nservicebus.originating_address", // incubating
+        "nservicebus.originating_endpoint", // incubating
+        "nservicebus.originating_host_id", // incubating
+        "nservicebus.originating_machine", // incubating
+        "nservicebus.originating_saga_id", // incubating
+        "nservicebus.originating_saga_type", // incubating
+        "nservicebus.outbox.deduplicate-message", // incubating
+        "nservicebus.previous_conversation_id", // incubating
+        "nservicebus.processing_endpoint", // incubating
+        "nservicebus.processing_machine", // incubating
+        "nservicebus.queue", // incubating
+        "nservicebus.related_to", // incubating
+        "nservicebus.reply_to_address", // incubating
+        "nservicebus.saga.is_timeout", // incubating
+        "nservicebus.saga.saga_id", // incubating
+        "nservicebus.saga.saga_type", // incubating
+        "nservicebus.time_to_be_received", // incubating
+        "nservicebus.version", // incubating
+        "peer.address", // incubating
+        "quartz.cluster.recovered.instance.id", // incubating
+        "quartz.execution.group", // incubating
+        "quartz.fire.instance.id", // incubating
+        "quartz.job.group", // incubating
+        "quartz.job.name", // incubating
+        "quartz.job.result", // incubating
+        "quartz.job.type", // incubating
+        "quartz.jobstore.batch.size", // incubating
+        "quartz.jobstore.lock", // incubating
+        "quartz.jobstore.operation", // incubating
+        "quartz.jobstore.trigger.count", // incubating
+        "quartz.jobstore.trigger.fired_on_acquire", // incubating
+        "quartz.scheduler.id", // incubating
+        "quartz.scheduler.name", // incubating
+        "quartz.trigger.group", // incubating
+        "quartz.trigger.name", // incubating
+        "soap.message_version", // incubating
+        "soap.reply_action", // incubating
+        "wcf.channel.path", // incubating
+        "wcf.channel.scheme", // incubating
+        "workflow.definition", // incubating
+        "workflow.description", // incubating
+        "workflow.id", // incubating
+        "workflow.name" // incubating
     );
 
     internal static readonly FrozenSet<string> SpanHotAttributeKeys = FrozenSet.Create(

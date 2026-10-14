@@ -172,6 +172,25 @@ public sealed class ResourceEntityRefProjectionTests
         Assert.Throws<InvalidDataException>(() => ProjectSingleSpan(denied));
     }
 
+    /// <summary>
+    /// <c>qyl.app.*</c> is bounded per span, event and link; a resource has no such bound, so an entity reference
+    /// cannot carry one onto it.
+    /// </summary>
+    [Fact]
+    public void An_entity_reference_does_not_carry_an_app_attribute_onto_the_resource()
+    {
+        var resource = BuildResource();
+        resource.Attributes.Add(StringAttribute("qyl.app.tenant", "acme"));
+        resource.EntityRefs.Add(new EntityRef
+        {
+            Type = "custom.entity",
+            IdKeys = { "qyl.app.tenant" }
+        });
+
+        Assert.False(AttributeKeySets.IsSafeEntityReferencedResourceAttribute("qyl.app.tenant"));
+        Assert.Throws<InvalidDataException>(() => ProjectSingleSpan(resource));
+    }
+
     private static SpanStorageRow ProjectSingleSpan(Resource resource)
     {
         var request = new ExportTraceServiceRequest
