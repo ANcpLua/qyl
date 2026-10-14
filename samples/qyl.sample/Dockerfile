@@ -1,6 +1,6 @@
 # Native AOT container build, after dotnet/dotnet-docker samples/releasesapi:
 # an SDK image that carries clang for the ILCompiler, a chiseled runtime-deps image with no .NET runtime at all.
-# Build context is the repository root (see eng/compose.yaml) so packages/Qyl.Api.Sdk/ and the
+# Build context is the repository root (ApiSdkContainerScenario builds it from there) so packages/Qyl.Api.Sdk/ and the
 # Directory.*.props, Version.props and global.json are available.
 # No BuildKit-only instructions (--mount, --link) on purpose: the file builds with any Docker builder.
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot@sha256:88446bc2708f037046d48ef2bd77c437e981ca01229d7005ac2016ec42e05347 AS build

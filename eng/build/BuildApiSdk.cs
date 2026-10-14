@@ -44,9 +44,6 @@ namespace Qyl.Build;
 [ParameterPrefix("ApiSdk")]
 interface IApiSdk : IHasSourcePaths, IHasConfiguration
 {
-    [Parameter("Skip the Qyl.Api.Sdk container stage (it needs a running Docker or OrbStack engine)")]
-    bool? SkipContainer => TryGetValue<bool?>(() => SkipContainer);
-
     [Parameter("Runtime identifier for the Qyl.Api.Sdk Native AOT stage (default: the host)")]
     string? NativeRuntime => TryGetValue(() => NativeRuntime);
 
@@ -251,28 +248,15 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
 
     /// <summary>
     /// Stage 7: the container image, built Native AOT inside the SDK image and served from a
-    /// runtime-deps image that carries no .NET runtime at all.
+    /// runtime-deps image that carries no .NET runtime at all. Skipped without a container daemon
+    /// outside CI (<see cref="ContainerDaemon"/>).
     /// </summary>
     Target ApiSdkContainerScenario => d => d
         .Unlisted()
         .DependsOn(ApiSdkNativeScenario)
+        .OnlyWhenDynamic(() => ContainerDaemon.Required(IsServerBuild), ContainerDaemon.Condition)
         .Executes(() =>
         {
-            if (SkipContainer == true)
-            {
-                Log.Warning("Qyl.Api.Sdk: container stage skipped by --api-sdk-skip-container");
-                return;
-            }
-
-            AssertComposeGivesTheSampleACollector();
-
-            if (!ApiSdkScenario.DockerEngineIsRunning())
-            {
-                throw new InvalidOperationException(
-                    "The Qyl.Api.Sdk container stage needs a running Docker or OrbStack engine. " +
-                    "Start it, or pass --api-sdk-skip-container to record the stage as skipped.");
-            }
-
             var tag = $"qyl.sample:verify-{Environment.ProcessId.ToString(CultureInfo.InvariantCulture)}";
             var container = string.Empty;
             try
@@ -524,39 +508,6 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
         Log.Information("Qyl.Api.Sdk: a consumer whose contract changed fails its own build with QYLSDK0001");
     }
 
-    /// <summary>
-    /// The compose stack is the README's agent round-trip, and it only works if the sample can reach the
-    /// collector. Discovery probes <c>localhost</c> and the host name <c>qyl</c>; the collector's service name
-    /// is <c>qyl-collector</c>, so without an endpoint of its own the sample finds nothing and records nothing
-    /// — silently, because a missing collector is not an error to an exporter. Asserted on the file rather than
-    /// by running the stack: what broke was the configuration, and the export path itself is proven end to end
-    /// by ApiSdkSessionScenario against a real collector.
-    /// </summary>
-    private void AssertComposeGivesTheSampleACollector()
-    {
-        var compose = ComposeFile.ReadAllLines();
-        var service = compose
-            .SkipWhile(static line => !line.StartsWith("  qyl.sample:", StringComparison.Ordinal))
-            .Skip(1)
-            .TakeWhile(static line => line.Length is 0 || line.StartsWith("    ", StringComparison.Ordinal) || line.StartsWith("      ", StringComparison.Ordinal))
-            .ToList();
-
-        if (service.Count is 0)
-            throw new InvalidOperationException($"{RootDirectory.GetRelativePathTo(ComposeFile)} declares no qyl.sample service");
-
-        var endpoint = service.FirstOrDefault(static line =>
-            (line.Contains("QYL_ENDPOINT=", StringComparison.Ordinal) ||
-             line.Contains("OTEL_EXPORTER_OTLP_ENDPOINT=", StringComparison.Ordinal)) &&
-            line.Contains("qyl-collector", StringComparison.Ordinal));
-
-        ApiSdkHost.Expect(endpoint is not null,
-            "the compose sample names the collector as its OTLP endpoint (discovery probes localhost and 'qyl', not 'qyl-collector')");
-        ApiSdkHost.Expect(service.Any(static line => line.Contains("depends_on", StringComparison.Ordinal)),
-            "the compose sample declares depends_on the collector");
-
-        Log.Information("Qyl.Api.Sdk: the compose sample exports to {Endpoint}", endpoint!.Trim().TrimStart('-', ' '));
-    }
-
     AbsolutePath CollectorProject => RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj";
 
     private string SampleVersion()
@@ -719,20 +670,6 @@ internal static class ApiSdkScenario
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
-    }
-
-    public static bool DockerEngineIsRunning()
-    {
-        try
-        {
-            var process = ProcessTasks.StartProcess("docker", "version", logOutput: false, logInvocation: false);
-            process.WaitForExit();
-            return process.ExitCode == 0;
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return false;
-        }
     }
 
     public static string Docker(string arguments, AbsolutePath workingDirectory)

@@ -2261,9 +2261,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 CollectorIngestionDirectory / "qyl.collector.ingestion.csproj",
                 CollectorStorageDirectory / "qyl.collector.storage.csproj",
                 RootDirectory / "internal" / "qyl.instrumentation" / "qyl.instrumentation.csproj",
-                RootDirectory / "internal" / "qyl.instrumentation.generators" / "ServiceDefaultsSourceGenerator.cs",
-                buildDirectory / "BuildInfra.cs",
-                RootDirectory / "eng" / "compose.yaml"
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "ServiceDefaultsSourceGenerator.cs"
             ];
 
             string[] removedTokens =
@@ -2301,7 +2299,11 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 // images, compose services, and ImageSpec surfaces.
                 "qyl-dashboard",
                 "qyl.dashboard/Dockerfile",
-                "ASPNETCORE_WEBROOT"
+                "ASPNETCORE_WEBROOT",
+                // The compose stack and its Dev/Docker* targets (2026-10-14): local development runs
+                // the collector as a process; containers run only in CheckFull's daemon stages.
+                "eng/compose.yaml",
+                "IDocker"
             ];
 
             string[] removedCollectorTokens =

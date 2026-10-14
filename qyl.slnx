@@ -60,7 +60,6 @@
 
   <Folder Name="/eng/">
     <Project Path="eng/build/build.csproj" />
-    <File Path="eng/compose.yaml" />
   </Folder>
 
   <Folder Name="/eng/tools/">

@@ -29,7 +29,6 @@ sealed class Build : FalloutBuild,
     ICompile,
     IQylTests,
     ICoverage,
-    IDocker,
     IPipeline,
     INativeAot,
     IVerify,
@@ -117,23 +116,6 @@ sealed class Build : FalloutBuild,
         .DependsOn<IPipeline>(static x => x.FrontendE2E)
         .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke)
         .DependsOn<ICoverage>(static x => x.Coverage);
-
-    public Target Dev => d => d
-        .Description("Start development environment (Docker + compile)")
-        .DependsOn<IDocker>(static x => x.DockerUp)
-        .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() =>
-        {
-            Log.Information(
-                "Development environment ready ({Configuration}, {Version})",
-                From<IHasConfiguration>().Configuration,
-                VersionLabel);
-            Log.Information("  Dashboard:  http://localhost:5100");
-            Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
-            Log.Information("  OTLP gRPC:  http://localhost:4317");
-            Log.Information("  Vite Dev:   http://localhost:5173");
-            Log.Information("  Run './eng/build.sh FrontendDev' in another terminal for hot reload");
-        });
 
     AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
 

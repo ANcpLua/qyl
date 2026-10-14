@@ -171,7 +171,7 @@ that sets it first wins, with two exceptions: `OpenApiGenerateDocumentsOptions` 
 `packages/Qyl.Api.Sdk/DECISIONS.md`.
 
 ```bash
-dotnet run --project samples/qyl.sample     # or docker compose -f eng/compose.yaml up qyl.sample
+dotnet run --project samples/qyl.sample     # exports to the loopback collector `qyl up` started
 ./eng/build.sh ApiSdk
 ```
 
@@ -196,6 +196,9 @@ Single targets run through `./eng/build.sh <Target>`. `Check` is the gate before
 NativeAOT, the pack smoke (the only gate that sees trim regressions), the SDK proof, the
 dashboard end-to-end run, the vocabulary smoke and the coverage gate (`Coverage`: the .NET tests
 under Microsoft code coverage, dotcov's line and branch thresholds in `eng/build/BuildCoverage.cs`).
+Its two container stages (the collector NativeAOT smoke and the SDK container image) need a
+container daemon; without one they show as skipped in the target table, and
+`gh workflow run check.yml -f full=true` runs them on GitHub's runner.
 `./eng/build.sh --help` lists every target.
 
 Run one gate at a time on the development Mac and cap each MSBuild invocation at four

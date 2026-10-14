@@ -5,15 +5,15 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 # Quiet unless --verbose or QYL_VERBOSE=1: eng/scripts/quiet.sh prints the target table, PASS or
 # FAIL and the failing target's last lines, and keeps the whole output in
-# artifacts/logs/build-<targets>.log. --help and the targets whose output is the point (Dev,
-# DockerUp, DockerLogs, FrontendDev, Print) print as before.
+# artifacts/logs/build-<targets>.log. --help and the targets whose output is the point
+# (FrontendDev, Print) print as before.
 verbose=${QYL_VERBOSE:-0}
 arguments=()
 name=build
 for argument in "$@"; do
     case $argument in
         --verbose) verbose=1; continue ;;
-        --help | -h | Dev | DockerUp | DockerLogs | FrontendDev | Print) verbose=1 ;;
+        --help | -h | FrontendDev | Print) verbose=1 ;;
         -*) parameters=1 ;;
         *) [[ -n ${parameters:-} ]] || name+="-$argument" ;;
     esac
