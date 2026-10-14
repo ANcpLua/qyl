@@ -14,7 +14,8 @@ export default defineRailway(() => {
   });
 
   const collector = service("qyl-collector", {
-    source: github("ANcpLua/qyl", { checkSuites: true }),
+    // CI only reports: a push deploys at once and never waits for the GitHub checks on its commit.
+    source: github("ANcpLua/qyl", { checkSuites: false }),
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "services/qyl.collector/Dockerfile",
