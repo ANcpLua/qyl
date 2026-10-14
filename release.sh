@@ -5,8 +5,10 @@
 #   ./release.sh <x.y.z>            pack, push the eight packages, tag v<x.y.z>, GitHub release; returns once
 #                                   NuGet accepted the push and the tag and the GitHub release exist, and leaves
 #                                   the verification below running detached
-#   ./release.sh <x.y.z> --dry-run  every check, the real pack and smoke, a NuGet key probe;
-#                                   registry and git stay unchanged; prints what the detached job would do
+#   ./release.sh <x.y.z> --dry-run  every check, the real pack and smoke, and a NuGet key probe for each of
+#                                   the eight package ids; nothing is pushed, registry and git stay unchanged.
+#                                   Checks the real run enforces (tag, already on NuGet) only warn. Prints
+#                                   what the detached job would do
 #   ./release.sh --wait <x.y.z>     blocks until artifacts/release-<x.y.z>-verify.log ends in VERIFIED (exit 0)
 #                                   or FAILED (exit 1; exit 3 when not indexed in time), printing the log
 #   ./release.sh --verify <x.y.z>   starts the detached verification again for a released version
@@ -28,6 +30,7 @@ cd "$(dirname "$0")"
 
 NUGET_SOURCE=https://api.nuget.org/v3/index.json
 NUGET_FLAT=https://api.nuget.org/v3-flatcontainer
+NUGET_GALLERY=https://www.nuget.org/api/v2
 NUGET_KEY_FILE=$HOME/.config/vitals/nuget-qyl-manual-publish-key  # vitals keys: "qyl-dev manual publish and release (NuGet)"
 OUT=Artifacts/nuget
 RELEASE_NAME="qyl + qyl.<rid> + Qyl.Api.Sdk"
@@ -130,7 +133,22 @@ case $mode in
     exit 0 ;;
 esac
 
-indexed() { curl -fsSL "$NUGET_FLAT/$1/index.json" 2>/dev/null | grep -q "\"$2\""; }
+lower() { tr '[:upper:]' '[:lower:]' <<<"$1"; }
+indexed() { curl -fsSL "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -q "\"$2\""; }
+latest() { curl -fsSL "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -o '"[0-9][^"]*"' | tail -1 | tr -d '"'; }
+# The key probe publishes nothing: it is NuGet's push-symbols handshake. The key mints a one-use
+# package verification key for <id> <version> (only a live key with push scope can), and that key
+# verifies with 200 only when the key's account owns <id>; the verify call consumes it. The key
+# travels in a curl config on stdin, never on a command line.
+key_probe() {
+  local id=$1 version=$2 minted temp
+  minted=$(printf 'header = "X-NuGet-ApiKey: %s"\n' "$(<"$NUGET_KEY_FILE")" |
+    curl -fsS -X POST -H 'Content-Length: 0' -K - "$NUGET_GALLERY/package/create-verification-key/$id/$version") || return 1
+  temp=$(sed -n 's/.*"Key":"\([^"]*\)".*/\1/p' <<<"$minted")
+  [[ -n $temp ]] || return 1
+  [[ $(printf 'header = "X-NuGet-ApiKey: %s"\n' "$temp" |
+    curl -sS -o /dev/null -w '%{http_code}' -K - "$NUGET_GALLERY/verifykey/$id/$version") == 200 ]]
+}
 
 # Up to 20 minutes: the 43 MB osx runtime packages of 12.2.0 took about 15 minutes to index.
 # Polls back off from 5 s to 60 s.
@@ -173,14 +191,15 @@ if [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || git rev-pars
 fi
 qv=$(sed -n 's:.*<QylVersion>\([^<]*\)</QylVersion>.*:\1:p' Version.props)
 [[ $qv == "$version" ]] || die "Version.props QylVersion is $qv, not $version; bump it in its own commit first"
-for id in qyl qyl.api.sdk; do
+for id in qyl Qyl.Api.Sdk; do
   if indexed "$id" "$version"; then (( dry )) || die "$id $version is already on NuGet"; echo "warning: $id $version is already on NuGet; the real run refuses"; fi
 done
 gh auth status >/dev/null 2>&1 || die "gh is not logged in"
 rids=$(sed -n 's:.*<QylToolRuntimeIdentifiers>\([^<]*\)</QylToolRuntimeIdentifiers>.*:\1:p' packages/Qyl.Cli/Qyl.Cli.csproj | tr ';' ' ')
 [[ -n $rids ]] || die "QylToolRuntimeIdentifiers not found in packages/Qyl.Cli/Qyl.Cli.csproj"
-expected=$(printf '%s\n' "qyl.$version.nupkg" "Qyl.Api.Sdk.$version.nupkg" $(for r in $rids; do echo "qyl.$r.$version.nupkg"; done) | sort)
-echo "expected package set: $(echo "$expected" | wc -l | tr -d ' ') packages"
+package_ids=(qyl Qyl.Api.Sdk $(for r in $rids; do echo "qyl.$r"; done))
+expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
+echo "expected package set: ${#package_ids[@]} packages"
 
 say "pack (Fallout PackRelease)"
 ./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$release_commit"
@@ -194,13 +213,20 @@ dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration 
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "tracked files changed during packing; commit them and rerun"
 
 say "NuGet push"
-probe_dir=$(mktemp -d); trap 'rm -rf "$probe_dir"' EXIT
 if (( dry )); then
-  latest=$(curl -fsSL "$NUGET_FLAT/qyl/index.json" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["versions"][-1])')
-  curl -fsSL -o "$probe_dir/probe.nupkg" "$NUGET_FLAT/qyl/$latest/qyl.$latest.nupkg"
-  echo "dry run: pushing the published qyl $latest again with --skip-duplicate to prove the key (expect 'already exists')"
-  dotnet nuget push "$probe_dir/probe.nupkg" --api-key "$(<"$NUGET_KEY_FILE")" --source "$NUGET_SOURCE" --skip-duplicate
-  say "dry run finished: nothing published, nothing tagged"
+  for id in "${package_ids[@]}"; do
+    published=$(latest "$id" || true)
+    if [[ -z $published ]]; then
+      echo "warning: $id is not on NuGet yet; the key probe needs a published version, so its first push is the probe"
+      continue
+    fi
+    # A rejected key fails every attempt; a dropped connection does not.
+    probed=0
+    for _ in 1 2 3; do key_probe "$id" "$published" && { probed=1; break; }; sleep 3; done
+    (( probed )) || die "the NuGet key failed the probe for $id three times: expired, revoked, without push scope, or its account does not own $id (vitals keys)"
+    echo "key probe: $id ok (verified against $published, nothing published)"
+  done
+  say "dry run finished: ${#package_ids[@]} packages at $version in $OUT; nothing published, nothing tagged"
   git status --short --untracked-files=no
   echo "The real run pushes the runtime packages, waits for their index, pushes Qyl.Api.Sdk and qyl, tags"
   echo "$release_commit and creates the GitHub release, then starts the detached verification ($verify_log,"
