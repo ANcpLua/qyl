@@ -63,6 +63,10 @@ internal sealed partial class AnalysisEngine
         var rows = SeriesRows(input); var name = J.String(input, "metric_name") ?? throw new AnalysisInputException("metric_name", "metric_name is required.");
         if (rows.Count is 0) throw new AnalysisInputException("metric_name", "Metric was not found in this project.", "metric.not_found");
         var aggregation = J.String(input, "aggregation") ?? "avg"; var function = J.String(input, "function") ?? "none";
+        var supported = rows.All(s => s.MetricKind >= 3) ? HistogramAggregations : ScalarAggregations;
+        if (!supported.Contains(aggregation, StringComparer.Ordinal))
+            throw new AnalysisInputException("aggregation", $"'{aggregation}' does not apply to this metric; use one of: {string.Join(", ", supported)}.",
+                aggregation.StartsWith('p') ? "aggregation.requires_histogram" : "aggregation.unsupported");
         var groupBy = (input["group_by"] as JsonArray)?.Select(J.Text).ToArray() ?? [];
         var step = (long)J.Number(input, "step_ms", 60000); if (step < 1 || step > 86_400_000) throw new AnalysisInputException("step_ms", "step_ms must be 1–86400000.");
         var streams = rows.GroupBy(s => string.Join('\0', groupBy.Select(key => J.Text(SeriesRecord(s).Value(key))))).ToList();

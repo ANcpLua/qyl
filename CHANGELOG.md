@@ -5,6 +5,9 @@
 - Collector: a metric range query with a percentile aggregation (`p50`, `p90`, `p95`, `p99`)
   on a gauge or sum answers 400 `aggregation.requires_histogram` on field `aggregation`
   instead of 500; the contract already limits percentiles to histogram kinds.
+- Collector: the analysis `query_metric` operation (MCP `query_metric`) rejects a percentile on a gauge or
+  sum with 400 `aggregation.requires_histogram` instead of answering with the average labelled as the
+  percentile; an aggregation the metric kind does not support answers `aggregation.unsupported`.
 
 ## 12.2.1 — 2026-10-14
 
