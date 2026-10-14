@@ -45,7 +45,7 @@ public static class QylApiHostApplicationBuilderExtensions
     /// <item><description>Validation of every Minimal API request against its DataAnnotations, via the generated resolver.</description></item>
     /// <item><description>Problem details, so validation failures are <c>400 application/problem+json</c> and match the contract.</description></item>
     /// <item><description>The <c>v1</c> OpenAPI document, pinned to <see cref="OpenApiDocumentVersion"/>, populated from XML documentation comments, with every <c>application/xml</c> response described from its model's generated XML shape.</description></item>
-    /// <item><description>Observability: <c>AddQyl()</c> — auto-instrumentation, ASP.NET Core spans, OTLP export — with the committed contract's revision on the resource, then the <c>baggage</c> request header's <c>session.id</c> member on the server span that call's own startup filter creates.</description></item>
+    /// <item><description>Observability: <c>AddQyl()</c> — auto-instrumentation, ASP.NET Core spans, OTLP export — with the committed contract's revision on the resource; its startup filter stamps the <c>baggage</c> request header's <c>session.id</c> member on the server span.</description></item>
     /// </list>
     /// <para>
     /// The generators behind steps 2 and 4 intercept the literal <c>AddValidation()</c> and <c>AddOpenApi(lambda)</c> calls in
@@ -134,15 +134,9 @@ public static class QylApiHostApplicationBuilderExtensions
         services.AddOpenTelemetry().ConfigureResource(static resource => resource.AddAttributes(
             [new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylApiSdkBuild.ContractRevision)]));
 
-        // The agent contract: `baggage: session.id=<id>` on the request becomes session.id on the server span, which the
-        // session processor then copies to every descendant span in the process. An agent that sends the header finds
-        // everything it triggered under that session in the collector.
-        //
-        // After AddQyl on purpose. Startup filters wrap the pipeline in registration order, outermost first, and the server
-        // span this stamps is created by the filter AddQyl registers — a filter registered ahead of it would run outside the
-        // span and tag the wrong activity, or none.
-        services.AddSingleton<IStartupFilter, QylSessionBaggageStartupFilter>();
-
+        // The agent contract needs nothing here: AddQyl's ASP.NET Core startup filter stamps the request's
+        // `baggage: session.id=<id>` member on the server span, under QylApiContract.SessionIdPattern, and the session
+        // processor copies it to every descendant span in the process.
         return new QylApiBuilder(services);
     }
 }

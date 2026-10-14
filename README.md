@@ -124,7 +124,7 @@ builder.AddQylApi(AppJsonSerializerContext.Default);
 
 One call registers, in a fixed order: the given JSON contexts and the SDK's problem-details
 context, validation, problem details, the `v1` OpenAPI document, and telemetry — `AddQyl()`,
-with the committed contract's SHA-256 on the resource, followed by the filter that reads
+with the committed contract's SHA-256 on the resource; its ASP.NET Core startup filter reads
 `session.id` off the request's W3C `baggage` header onto the server span. None of them is
 optional in a Qyl API, so none is a `With*` step and there is no way to opt out of being
 observable.

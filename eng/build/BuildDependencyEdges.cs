@@ -63,6 +63,9 @@ interface IDependencyEdges : IHasSourcePaths
             "Qyl.Api.Contracts",
             "Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating",
         ],
+        // The agent contract's session stamp is AddQyl's startup filter, so its tests compose a host with
+        // AddQyl exactly as AddQylApi does.
+        ["tests/Qyl.Api.Tests/Qyl.Api.Tests.csproj"] = ["Qyl.Telemetry.Hosting"],
         ["tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj"] = ["Qyl.Telemetry.Hosting"],
         // Every project built by the Qyl.Api.Sdk MSBuild SDK, which injects these from its own targets: the
         // producer's onboarding surface and the package its interceptor generator ships in. A project moves

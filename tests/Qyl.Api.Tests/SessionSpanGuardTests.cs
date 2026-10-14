@@ -1,116 +1,45 @@
 namespace Qyl.Api.Tests;
 
 /// <summary>
-/// <c>Activity.Current</c> in a middleware is whatever the pipeline above it left there. Only one of those is
-/// the span the collector will receive, and stamping any of the others puts the agent's session on telemetry
-/// nobody will see — or on a stranger's activity.
+/// The session belongs on the one span the collector receives for a request: the hosting layer's recording
+/// server span. <c>AddQyl</c>'s startup filter stamps that span and nothing else; these are the guards a Qyl
+/// API can observe from outside.
 /// </summary>
 [Collection(ActivityListeners.Name)]
-public sealed class SessionSpanGuardTests : IDisposable
+public sealed class SessionSpanGuardTests : IAsyncLifetime
 {
-    private readonly List<IDisposable> _scopes = [];
+    private const string SampledParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+    private const string UnsampledParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-00";
 
-    public void Dispose()
+    private SessionBaggageHost _host = null!;
+
+    public async ValueTask InitializeAsync() => _host = await SessionBaggageHost.StartAsync();
+
+    public async ValueTask DisposeAsync()
     {
-        foreach (var scope in _scopes)
-            scope.Dispose();
+        if (_host is not null)
+            await _host.DisposeAsync();
     }
 
     [Fact]
-    public void Nothing_current_is_nothing_to_stamp() => QylSessionBaggageStartupFilter.Stamp(null);
-
-    [Fact]
-    public void The_legacy_hosting_activity_is_not_the_server_span()
+    public async Task The_hosting_layer_s_server_span_is_stamped()
     {
-        // What ASP.NET Core starts when nothing is subscribed to its ActivitySource: a plain Activity, no source.
-        using var legacy = new Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-        legacy.SetIdFormat(ActivityIdFormat.W3C);
-        legacy.AddBaggage(QylApiContract.SessionIdName, "agent-42");
-        legacy.Start();
+        await _host.ProbeAsync("session.id=agent-42", SampledParent);
 
-        QylSessionBaggageStartupFilter.Stamp(legacy);
-
-        Assert.Empty(legacy.Source.Name);
-        Assert.Null(legacy.GetTagItem(QylApiContract.SessionIdName));
+        var span = Assert.IsType<Activity>(_host.ServerSpan);
+        Assert.Equal("Microsoft.AspNetCore", span.Source.Name);
+        Assert.Equal(ActivityKind.Server, span.Kind);
+        Assert.Equal("agent-42", span.GetTagItem(QylApiContract.SessionIdName));
     }
 
     [Fact]
-    public void A_propagation_only_activity_records_nothing()
+    public async Task A_propagation_only_server_span_records_nothing()
     {
-        using var activity = StartServerActivity(ActivitySamplingResult.PropagationData);
+        // The caller did not sample (flags 00) and AddQyl's parent-based sampler follows it: the server
+        // activity only propagates context, and nothing is written onto it, the session included.
+        await _host.ProbeAsync("session.id=agent-42", UnsampledParent);
 
-        QylSessionBaggageStartupFilter.Stamp(activity);
-
-        Assert.False(activity!.IsAllDataRequested);
-        Assert.Null(activity.GetTagItem(QylApiContract.SessionIdName));
-    }
-
-    [Fact]
-    public void Someone_elses_activity_is_left_alone()
-    {
-        // A startup filter registered ahead of AddQylApi, or any library that opened an activity of its own.
-        var source = Source("Some.Other.Library", ActivitySamplingResult.AllData);
-        using var activity = source.StartActivity("work", ActivityKind.Server);
-        activity!.AddBaggage(QylApiContract.SessionIdName, "agent-42");
-
-        QylSessionBaggageStartupFilter.Stamp(activity);
-
-        Assert.Null(activity.GetTagItem(QylApiContract.SessionIdName));
-    }
-
-    [Fact]
-    public void A_client_span_is_not_a_server_span()
-    {
-        using var activity = StartServerActivity(ActivitySamplingResult.AllData, ActivityKind.Client);
-
-        QylSessionBaggageStartupFilter.Stamp(activity);
-
-        Assert.Null(activity!.GetTagItem(QylApiContract.SessionIdName));
-    }
-
-    [Fact]
-    public void The_server_span_is_stamped()
-    {
-        using var activity = StartServerActivity(ActivitySamplingResult.AllData);
-
-        QylSessionBaggageStartupFilter.Stamp(activity);
-
-        Assert.Equal("agent-42", activity!.GetTagItem(QylApiContract.SessionIdName));
-    }
-
-    [Fact]
-    public void A_session_already_on_the_span_wins()
-    {
-        using var activity = StartServerActivity(ActivitySamplingResult.AllData);
-        activity!.SetTag(QylApiContract.SessionIdName, "already-here");
-
-        QylSessionBaggageStartupFilter.Stamp(activity);
-
-        Assert.Equal("already-here", activity.GetTagItem(QylApiContract.SessionIdName));
-    }
-
-    private Activity? StartServerActivity(
-        ActivitySamplingResult sampling,
-        ActivityKind kind = ActivityKind.Server)
-    {
-        var source = Source(QylSessionBaggageStartupFilter.ServerActivitySourceName, sampling);
-        var activity = source.StartActivity("GET /todos", kind);
-        activity?.AddBaggage(QylApiContract.SessionIdName, "agent-42");
-        return activity;
-    }
-
-    /// <summary>A source with a listener attached, both alive until the test class is torn down.</summary>
-    private ActivitySource Source(string name, ActivitySamplingResult sampling)
-    {
-        var source = new ActivitySource(name);
-        var listener = new ActivityListener
-        {
-            ShouldListenTo = candidate => ReferenceEquals(candidate, source),
-            Sample = (ref _) => sampling
-        };
-        ActivitySource.AddActivityListener(listener);
-        _scopes.Add(listener);
-        _scopes.Add(source);
-        return source;
+        Assert.False(_host.ServerSpan?.IsAllDataRequested ?? false);
+        Assert.Null(_host.ServerSpan?.GetTagItem(QylApiContract.SessionIdName));
     }
 }

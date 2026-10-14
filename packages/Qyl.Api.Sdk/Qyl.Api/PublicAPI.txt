@@ -28,9 +28,6 @@ Qyl.QylProblemJsonContext.String.get -> System.Text.Json.Serialization.Metadata.
 Qyl.QylProblemJsonContext.StringArray.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<string[]>
 Qyl.QylResults
 static Qyl.QylResults.Xml<TValue>(TValue value) -> Qyl.Xml.XmlHttpResult<TValue>!
-Qyl.QylSessionBaggageStartupFilter
-Qyl.QylSessionBaggageStartupFilter.Configure(System.Action<Microsoft.AspNetCore.Builder.IApplicationBuilder!>! next) -> System.Action<Microsoft.AspNetCore.Builder.IApplicationBuilder!>!
-Qyl.QylSessionBaggageStartupFilter.QylSessionBaggageStartupFilter() -> void
 Qyl.QylXmlResponseTransformer
 Qyl.QylXmlResponseTransformer.QylXmlResponseTransformer() -> void
 Qyl.QylXmlResponseTransformer.TransformAsync(Microsoft.OpenApi.OpenApiOperation! operation, Microsoft.AspNetCore.OpenApi.OpenApiOperationTransformerContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!

@@ -442,3 +442,13 @@ log and leave two spellings of one knob. The break is also visible without an al
 The generator was renamed, not kept. No consumer names it. The SDK's targets add it as an
 analyzer, from the package path or the in-repository project, and both are in this tree.
 `ApiSdkPackagedConsumer` builds a consumer from the packed SDK and asserts the generator ran.
+
+## 2026-10-14 · The session stamp is AddQyl's (Qyl.Api.Sdk 13.0.0; supersedes "the agent contract is a header, not an API" as to who stamps)
+
+Qyl.Telemetry.AutoInstrumentation 25.0.0 stamps the `baggage` member `session.id` on the ASP.NET Core server
+span in `AddQyl`'s own startup filter, under the same guard (`{ Kind: Server, IsAllDataRequested: true }`,
+source `Microsoft.AspNetCore`) and the same admission rule as `QylApiContract.SessionIdPattern`. Every
+ASP.NET Core service joins the session spine without Qyl.Api, so `QylSessionBaggageStartupFilter` is deleted
+rather than kept as a second stamp of the same tag. The contract is unchanged: `QylApiContract` keeps the
+name, the pattern and `IsSessionId`, and `Qyl.Api.Tests` drives a host composed with `AddQyl` through the
+same header cases. Removing a public type makes this a major release.

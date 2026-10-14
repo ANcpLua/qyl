@@ -12,6 +12,10 @@
 - Collector: `gen_ai.agent.name` is persisted, so `get_agent_run`'s `agent_name` and `list_sessions`
   name the agent; `gen_ai.agent.id` and `gen_ai.agent.description` stay denied. The five
   `gen_ai.usage.*_tokens` counts are token-exempt and are kept as attributes beside their columns.
+- Qyl.Api.Sdk: `QylSessionBaggageStartupFilter` is deleted. `AddQyl`'s ASP.NET Core startup filter
+  stamps the `baggage` member `session.id` on the server span itself, under `QylApiContract`'s rule, so
+  `AddQylApi` registers nothing for it. The contract revision reaches the resource through
+  `AddOpenTelemetry().ConfigureResource`, since `QylTelemetryOptions.ResourceAttributes` is gone.
 - Collector: business attributes `qyl.app.<key>` (written by `SetAppTag`) are captured: at most 16 keys
   per span, each a string of at most 256 characters, a 64-bit integer, a double or a bool, and no key
   containing a denied token.
