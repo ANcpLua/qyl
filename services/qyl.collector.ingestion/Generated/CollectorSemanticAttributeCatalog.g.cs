@@ -1062,7 +1062,6 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string DeploymentEnvironment = "deployment.environment";
     internal const string DeploymentEnvironmentName = "deployment.environment.name";
     internal const string ErrorType = "error.type";
-    internal const string ExceptionMessage = "exception.message";
     internal const string GenAiAgentName = "gen_ai.agent.name"; // incubating
     internal const string GenAiCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"; // incubating
     internal const string GenAiCacheWriteInputTokens = "gen_ai.usage.cache_write.input_tokens"; // incubating
@@ -1082,7 +1081,6 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string McpMethodName = "mcp.method.name"; // incubating
     internal const string MessagingSystem = "messaging.system"; // incubating
     internal const string NetworkTransport = "network.transport";
-    internal const string PeerService = "peer.service";
     internal const string QylAttributeNamespace = "qyl.attribute.namespace"; // incubating
     internal const string RecordedFailureKind = "exception.type";
     internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.44.0";

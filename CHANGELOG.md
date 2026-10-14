@@ -16,6 +16,10 @@
   stamps the `baggage` member `session.id` on the server span itself, under `QylApiContract`'s rule, so
   `AddQylApi` registers nothing for it. The contract revision reaches the resource through
   `AddOpenTelemetry().ConfigureResource`, since `QylTelemetryOptions.ResourceAttributes` is gone.
+- Collector: the analysis reads only keys ingest keeps. The service map names an outbound target by
+  `server.address`, then the database or messaging system (`peer.service` was never persisted), and a
+  failure's message is the span's status description (`exception.message` is denied on spans, events
+  and logs). The catalog drops the `PeerService` and `ExceptionMessage` constants.
 - Collector: business attributes `qyl.app.<key>` (written by `SetAppTag`) are captured: at most 16 keys
   per span, each a string of at most 256 characters, a 64-bit integer, a double or a bool, and no key
   containing a denied token.

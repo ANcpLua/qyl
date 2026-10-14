@@ -122,6 +122,29 @@ public sealed partial class AnalysisApiTests
         Assert.Single((await Read(host, "list_traces", """{"annotation_label":"resolved"}""")).GetProperty("traces").EnumerateArray());
     }
 
+    /// <summary>
+    /// An outbound call is an edge to the store or service its client span names: <c>server.address</c>, then the
+    /// database or messaging system. <c>peer.service</c> is no target: ingest keeps no <c>peer.</c> key.
+    /// </summary>
+    [Fact]
+    public async Task The_service_map_names_an_external_target_by_server_address()
+    {
+        await using var host = await StartAsync(TestContext.Current.CancellationToken);
+        var time = Timestamp;
+        await host.Store.EnqueueAsync(new SpanBatch([
+            Span(TraceId(1), SpanId(1), time, time + 1000) with { Kind = 3, AttributesJson = """{"server.address":"payments.internal"}""" },
+            Span(TraceId(2), SpanId(2), time, time + 1000) with { Kind = 3, AttributesJson = """{"db.system.name":"postgresql"}""" }
+        ]), TestContext.Current.CancellationToken);
+
+        var map = await Read(host, "get_service_map", "{}");
+
+        var edges = map.GetProperty("edges").EnumerateArray()
+            .Select(static edge => (edge.GetProperty("from").GetString(), edge.GetProperty("to").GetString()))
+            .ToArray();
+        Assert.Contains(("checkout", "payments.internal"), edges);
+        Assert.Contains(("checkout", "postgresql"), edges);
+    }
+
     private static async Task<JsonElement> Read(CollectorApiTestHost host, string operation, string input)
     {
         using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/" + operation, "reader", input);

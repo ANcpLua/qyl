@@ -136,7 +136,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         null => "",
         var value => JsonSerializer.Serialize(value, QylSerializerContext.Default.AttributeValue)
     };
-    private static string Message(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.ExceptionMessage)) is { Length: > 0 } ex ? ex : s.Span?.StatusMessage ?? LogBody(s);
+    private static string Message(AnalysisRecord s) => s.Span?.StatusMessage ?? LogBody(s);
     private static string Operation(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.HttpRoute)) is { Length: > 0 } route ? route : s.Name;
     private static string Signature(AnalysisRecord s) => string.Join("|", s.Service, Operation(s), FailureKind(s), J.Normalize(Message(s)));
     private string FailureId(string signature) => FailureIdentity(project, signature);

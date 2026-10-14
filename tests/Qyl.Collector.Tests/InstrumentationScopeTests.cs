@@ -84,6 +84,24 @@ public sealed class InstrumentationScopeTests
         Assert.Empty((await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray());
     }
 
+    /// <summary>
+    /// The application scope carries the qyl registry's schema URL, so <c>check_telemetry_health</c> reports which
+    /// registry release a producer compiled its starters against: the pin check made observable at runtime.
+    /// </summary>
+    [Fact]
+    public async Task An_application_span_reports_the_qyl_registry_schema_url()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await host.IngestTracesAsync(TraceRequest(
+            scope: new InstrumentationScope { Name = Spans.Source.Name, Version = Spans.Source.Version },
+            resourceSchemaUrl: "", scopeSchemaUrl: Spans.Source.TelemetrySchemaUrl!));
+
+        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
+        Assert.Equal("Qyl.Telemetry.Application", stored.ScopeName);
+        Assert.Equal(["https://qyl.at/schemas/10.0.0"],
+            (await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
+    }
+
     private static ExportTraceServiceRequest TraceRequest(InstrumentationScope? scope, string resourceSchemaUrl, string scopeSchemaUrl)
     {
         var start = Now;

@@ -106,7 +106,7 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
         if (JsonNode.Parse(span.EventsJson ?? "[]") is JsonArray events)
             foreach (var entry in events.OfType<JsonObject>().Where(static e => J.String(e, "name") == "exception"))
                 foreach (var pair in J.Attributes(entry["attributes"]?.ToJsonString()))
-                    if (pair.Key is CollectorSemanticAttributeCatalog.RecordedFailureKind or CollectorSemanticAttributeCatalog.ExceptionMessage)
+                    if (pair.Key is CollectorSemanticAttributeCatalog.RecordedFailureKind)
                         attributes[pair.Key] ??= pair.Value?.DeepClone();
         return attributes;
     }

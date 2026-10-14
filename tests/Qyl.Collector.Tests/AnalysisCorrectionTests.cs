@@ -53,6 +53,10 @@ public sealed partial class AnalysisApiTests
         Assert.True(dashboard.TryGetProperty("stats", out _));
     }
 
+    /// <summary>
+    /// The failure triple as ingest keeps it: the type from the exception event, the message from the status
+    /// description (<c>RecordFailure</c>'s carrier; <c>exception.message</c> never survives ingest).
+    /// </summary>
     [Fact]
     public async Task Failure_identity_ignores_UUIDs_and_reads_exception_events()
     {
@@ -61,7 +65,8 @@ public sealed partial class AnalysisApiTests
         var rows = Enumerable.Range(1, 100).Select(i => Span(TraceId(i), SpanId(i), time, time + 1000, status: 2) with
         {
             Name = "call",
-            EventsJson = $$$"""[{"name":"exception","attributes":{"exception.type":"TimeoutException","exception.message":"request {{{Guid.NewGuid()}}} timed out"}}]"""
+            StatusMessage = $"request {Guid.NewGuid()} timed out",
+            EventsJson = """[{"name":"exception","attributes":{"exception.type":"TimeoutException"}}]"""
         }).ToArray();
         await host.Store.EnqueueAsync(new SpanBatch(rows), TestContext.Current.CancellationToken);
         var first = await Read(host, "list_failures", "{}");

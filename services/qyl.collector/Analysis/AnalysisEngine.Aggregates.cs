@@ -128,9 +128,9 @@ internal sealed partial class AnalysisEngine
             if (parent is not null && parent.Service != s.Service) edges.Add((parent.Service, s.Service, s));
             if (J.Bool(input, "include_external", true) && s.Span?.Kind is 3 or 4 or 5)
             {
-                var db = J.Text(s.Value(CollectorSemanticAttributeCatalog.DbSystemName)); var peer = J.Text(s.Value(CollectorSemanticAttributeCatalog.PeerService)); var server = J.Text(s.Value(CollectorSemanticAttributeCatalog.ServerAddress));
+                var db = J.Text(s.Value(CollectorSemanticAttributeCatalog.DbSystemName)); var server = J.Text(s.Value(CollectorSemanticAttributeCatalog.ServerAddress));
                 var messaging = J.Text(s.Value(CollectorSemanticAttributeCatalog.MessagingSystem));
-                var target = peer.Length > 0 ? peer : server.Length > 0 ? server : db.Length > 0 ? db : messaging;
+                var target = server.Length > 0 ? server : db.Length > 0 ? db : messaging;
                 if (target.Length > 0 && target != s.Service) { kinds[target] = db.Length > 0 ? "database" : messaging.Length > 0 ? "messaging" : "external"; edges.Add((s.Service, target, s)); }
             }
         }
