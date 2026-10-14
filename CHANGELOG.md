@@ -1,6 +1,6 @@
 # Changelog
 
-## 12.2.2 — unreleased
+## 13.0.0 — unreleased
 
 - Collector: a metric range query with a percentile aggregation (`p50`, `p90`, `p95`, `p99`)
   on a gauge or sum answers 400 `aggregation.requires_histogram` on field `aggregation`
