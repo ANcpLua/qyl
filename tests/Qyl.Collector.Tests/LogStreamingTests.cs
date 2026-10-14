@@ -82,7 +82,7 @@ public sealed class LogStreamingTests
         Assert.True(await stream.MoveNextAsync());
         var first = stream.Current;
         Assert.Equal("log", first.EventType);
-        Assert.Equal<ulong>(2_000_000_000, Assert.IsType<Qyl.Api.Contracts.Streaming.LogStreamEvent>(first.Log).Data.TimeUnixNano);
+        Assert.Equal<ulong>(2_000_000_000, Assert.IsType<Api.Contracts.Streaming.LogStreamEvent>(first.Log).Data.TimeUnixNano);
 
         await store.InsertLogsAsync(
             [CreateLog("late-older-event", eventTime: 1_000_000_000)],
@@ -92,7 +92,7 @@ public sealed class LogStreamingTests
         var late = stream.Current;
         Assert.Equal("log", late.EventType);
         Assert.True(late.EventId > first.EventId);
-        Assert.Equal<ulong>(1_000_000_000, Assert.IsType<Qyl.Api.Contracts.Streaming.LogStreamEvent>(late.Log).Data.TimeUnixNano);
+        Assert.Equal<ulong>(1_000_000_000, Assert.IsType<Api.Contracts.Streaming.LogStreamEvent>(late.Log).Data.TimeUnixNano);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class LogStreamingTests
             TimeUnixNano = eventTime,
             SeverityNumber = 9,
             SeverityText = "info",
-            Body = JsonSerializer.Serialize(new Qyl.Api.Contracts.Common.AttributeValue.StringValue(id), QylSerializerContext.Default.AttributeValue),
+            Body = JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(id), QylSerializerContext.Default.AttributeValue),
             ServiceName = "stream-regression"
         };
 

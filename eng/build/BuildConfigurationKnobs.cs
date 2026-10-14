@@ -64,7 +64,7 @@ internal static partial class ConfigurationKnobInventory
         {
             var syntax = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file).GetRoot();
             foreach (var literal in syntax.DescendantNodes().OfType<LiteralExpressionSyntax>()
-                         .Where(static literal => literal.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StringLiteralExpression)))
+                         .Where(static literal => literal.IsKind(SyntaxKind.StringLiteralExpression)))
             {
                 var value = literal.Token.ValueText;
                 if (!IsQylVariable(value))
@@ -102,7 +102,7 @@ internal static partial class ConfigurationKnobInventory
             throw new InvalidOperationException($"{reference} is missing: it is the QYL_* environment contract.");
 
         var matches = ConfigurationRow().Matches(File.ReadAllText(reference));
-        var duplicates = matches.Cast<Match>()
+        var duplicates = matches
             .Select(static match => match.Groups["name"].Value)
             .GroupBy(static name => name, StringComparer.Ordinal)
             .Where(static group => group.Count() > 1)
@@ -115,7 +115,7 @@ internal static partial class ConfigurationKnobInventory
                 $"docs/configuration.md contains duplicate rows: {string.Join(", ", duplicates)}");
 
         return new SortedSet<string>(
-            matches.Cast<Match>().Select(static match => match.Groups["name"].Value),
+            matches.Select(static match => match.Groups["name"].Value),
             StringComparer.Ordinal);
     }
 

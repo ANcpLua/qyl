@@ -132,7 +132,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private static string FailureKind(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.RecordedFailureKind)) is { Length: > 0 } ex ? ex : J.Text(s.Value(CollectorSemanticAttributeCatalog.ErrorType));
     private static string LogBody(AnalysisRecord s) => ContractJson.ParseLogBody(s.Log?.Body) switch
     {
-        Qyl.Api.Contracts.Common.AttributeValue.StringValue text => text.Value,
+        Api.Contracts.Common.AttributeValue.StringValue text => text.Value,
         null => "",
         var value => JsonSerializer.Serialize(value, QylSerializerContext.Default.AttributeValue)
     };
@@ -184,11 +184,10 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             "affected_traces" => failures.OrderByDescending(f => J.Number(f, "affected_traces")),
             _ => failures.OrderByDescending(f => J.Number(f, "count"))
         };
-        var result = Page(input, "failures", failures.ThenByStable(), 100);
+        var result = Page(input, "failures", failures.ThenByStable());
         if (J.String(input, "failure_id") is not null)
         {
-            var detail = result["failures"]?.AsArray().FirstOrDefault()?.AsObject();
-            if (detail is null) return result;
+            if (result["failures"]?.AsArray().FirstOrDefault()?.AsObject() is not { } detail) return result;
             detail["counts_per_release"] = J.A(records.GroupBy(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Select(g => J.O(("release", g.Key), ("count", g.Count()))));
             detail["recent_occurrences"] = J.A(records.OrderByDescending(r => r.Start).Take(3).Select(r => J.O(("trace_id", r.TraceId), ("span_id", r.Id), ("session_id", r.SessionId), ("timestamp", J.Time(r.Start)), ("message", Message(r)), ("release", J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))))));
             detail["discriminators"] = Discriminators(records, [.. Select(input).Except(records)], "both", 10);

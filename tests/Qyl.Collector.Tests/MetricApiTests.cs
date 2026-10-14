@@ -42,12 +42,12 @@ public sealed class MetricApiTests
         var active = page.Items.Single(static item => item.Name is "http.server.active");
         // Two attribute sets under one name are two series, not two metrics.
         Assert.Equal(2, active.SeriesCount);
-        Assert.Equal(Qyl.Api.Contracts.OTel.Metrics.MetricKind.Gauge, active.Kind);
+        Assert.Equal(Api.Contracts.OTel.Metrics.MetricKind.Gauge, active.Kind);
         Assert.False(active.Monotonic);
 
         var requests = page.Items.Single(static item => item.Name is "http.server.requests");
-        Assert.Equal(Qyl.Api.Contracts.OTel.Metrics.MetricKind.Sum, requests.Kind);
-        Assert.Equal(Qyl.Api.Contracts.OTel.Metrics.MetricTemporality.Cumulative, requests.Temporality);
+        Assert.Equal(Api.Contracts.OTel.Metrics.MetricKind.Sum, requests.Kind);
+        Assert.Equal(Api.Contracts.OTel.Metrics.MetricTemporality.Cumulative, requests.Temporality);
         Assert.True(requests.Monotonic);
         Assert.Equal("{request}", requests.Unit);
         Assert.False(page.HasMore);
@@ -147,7 +147,7 @@ public sealed class MetricApiTests
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
 
         Assert.Equal("http.server.active", result.Name);
-        Assert.Equal(Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg, result.Aggregation);
+        Assert.Equal(Api.Contracts.OTel.Metrics.MetricAggregation.Avg, result.Aggregation);
         Assert.Equal(30_000, result.StepMs);
         Assert.False(result.Truncated);
         Assert.Equal(2, result.Series.Count);
@@ -188,8 +188,8 @@ public sealed class MetricApiTests
         var result = JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
 
-        Assert.Equal(Qyl.Api.Contracts.OTel.Metrics.MetricKind.Histogram, result.Kind);
-        Assert.Equal(Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.P50, result.Aggregation);
+        Assert.Equal(Api.Contracts.OTel.Metrics.MetricKind.Histogram, result.Kind);
+        Assert.Equal(Api.Contracts.OTel.Metrics.MetricAggregation.P50, result.Aggregation);
         Assert.Equal("s", result.Unit);
         var bucket = Assert.Single(Assert.Single(result.Series).Buckets);
         Assert.Equal(3d, BucketValue(bucket), 9);
@@ -356,11 +356,11 @@ public sealed class MetricApiTests
     }
 
     private static string? AttributeString(Qyl.Api.Contracts.Common.Attribute attribute) =>
-        attribute.Value is Qyl.Api.Contracts.Common.AttributeValue.StringValue { Value: var text } ? text : null;
+        attribute.Value is Api.Contracts.Common.AttributeValue.StringValue { Value: var text } ? text : null;
 
     // MetricBucket.value is a `float64 | null` union, which the C# emitter lands on `object`;
     // over the wire it is a JSON number, so a round-tripped bucket carries a JsonElement.
-    private static double BucketValue(Qyl.Api.Contracts.OTel.Metrics.MetricBucket bucket) =>
+    private static double BucketValue(Api.Contracts.OTel.Metrics.MetricBucket bucket) =>
         bucket.Value switch
         {
             JsonElement element => element.GetDouble(),

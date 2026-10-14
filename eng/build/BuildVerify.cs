@@ -18,7 +18,7 @@ using Serilog;
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IVerify))]
-interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKnobs
+partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKnobs
 {
     [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
@@ -253,7 +253,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 .SelectMany(file => DeclaredTypes(file)
                     .Where(static declaration => IsLocalApiModel(declaration))
                     .Select(declaration => (
-                        File: declaration.File,
+                        declaration.File,
                         declaration.Line,
                         declaration.Name,
                         declaration.Namespace)))
@@ -802,7 +802,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
             const string latestPrefix = "This checkout targets qyl ";
             var latest = Array.FindIndex(lines, line => line.StartsWith(latestPrefix, StringComparison.Ordinal));
             if (latest < 0) throw new InvalidOperationException("README.md has no `This checkout targets qyl …` sentence");
-            rendered[latest] = System.Text.RegularExpressions.Regex.Replace(lines[latest], @"^This checkout targets qyl [0-9]+(\.[0-9]+)*", $"{latestPrefix}{Version("QylVersion")}");
+            rendered[latest] = CheckoutTargetsLine().Replace(lines[latest], $"{latestPrefix}{Version("QylVersion")}");
             const string consumerPrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
             var consumer = Array.FindIndex(lines, line => line.StartsWith(consumerPrefix, StringComparison.Ordinal));
             if (consumer < 0) throw new InvalidOperationException("README.md has no `<Project Sdk=\"Qyl.Api.Sdk/…\">` consumer line");
@@ -2994,7 +2994,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     private static void ValidatePinnedProtoPath(string path, string repository)
     {
         var segments = path.Split('/');
-        if (path.StartsWith("/", StringComparison.Ordinal) ||
+        if (path.StartsWith('/') ||
             path.Contains('\\') ||
             !path.EndsWith(".proto", StringComparison.Ordinal) ||
             segments.Any(static segment => segment.Length is 0 || segment is "." or ".."))
@@ -4002,4 +4002,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
         return attributeLiteralValues.SemanticConventionValues.Any(known => known.StartsWith(value, StringComparison.Ordinal));
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^This checkout targets qyl [0-9]+(\.[0-9]+)*")]
+    private static partial System.Text.RegularExpressions.Regex CheckoutTargetsLine();
 }

@@ -107,7 +107,7 @@ public sealed class LogEventContractTests
         Assert.Equal(spanId, converted.SpanId);
         // The stored body is the value's canonical JSON, so a string body carries its quotes.
         Assert.Equal(
-            JsonSerializer.Serialize(new Qyl.Api.Contracts.Common.AttributeValue.StringValue(logBody), QylSerializerContext.Default.AttributeValue),
+            JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(logBody), QylSerializerContext.Default.AttributeValue),
             converted.Body);
         Assert.Contains(
             $"\"{valueKey}\":{{\"type\":\"int\",\"value\":\"778\"}}",
@@ -219,7 +219,7 @@ public sealed class LogEventContractTests
         var page = JsonSerializer.Deserialize(await ReadBodyAsync(context),
             QylSerializerContext.Default.CursorPageLogRecord);
         var record = Assert.Single(Assert.IsType<CursorPageLogRecord>(page).Items);
-        Assert.Equal(body, Assert.IsType<Qyl.Api.Contracts.Common.AttributeValue.StringValue>(record.Body).Value);
+        Assert.Equal(body, Assert.IsType<Api.Contracts.Common.AttributeValue.StringValue>(record.Body).Value);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
@@ -228,7 +228,7 @@ public sealed class LogEventContractTests
             afterIngestSequence: null, timeout.Token).GetAsyncEnumerator(timeout.Token);
         Assert.True(await stream.MoveNextAsync());
         var streamed = Assert.IsType<LogStreamEvent>(stream.Current.Log).Data;
-        Assert.Equal(body, Assert.IsType<Qyl.Api.Contracts.Common.AttributeValue.StringValue>(streamed.Body).Value);
+        Assert.Equal(body, Assert.IsType<Api.Contracts.Common.AttributeValue.StringValue>(streamed.Body).Value);
     }
 
     private static KeyValue StringAttribute(string key, string value) =>

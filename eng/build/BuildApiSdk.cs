@@ -71,7 +71,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
     /// Directory.Packages.props and nuget.config, which is exactly the help it is proving it
     /// does not need.
     /// </summary>
-    AbsolutePath ApiSdkConsumerDirectory => (AbsolutePath)Path.Combine(Path.GetTempPath(), "qyl-api-sdk-consumer");
+    AbsolutePath ApiSdkConsumerDirectory => Path.Combine(Path.GetTempPath(), "qyl-api-sdk-consumer");
 
     AbsolutePath SampleIntermediateDirectory => RootDirectory / "artifacts" / "obj" / "qyl.sample";
 

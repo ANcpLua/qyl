@@ -106,7 +106,7 @@ public sealed class SessionSpanGuardTests : IDisposable
         var listener = new ActivityListener
         {
             ShouldListenTo = candidate => ReferenceEquals(candidate, source),
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => sampling
+            Sample = (ref _) => sampling
         };
         ActivitySource.AddActivityListener(listener);
         _scopes.Add(listener);

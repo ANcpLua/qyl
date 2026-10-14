@@ -113,7 +113,7 @@ internal sealed partial class DuckDbStore
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + AnalysisStateRow.SelectColumnList + " FROM analysis_state WHERE project_id = $1 AND state_key IN ("
                 + string.Join(",", Enumerable.Range(2, keys.Count).Select(i => "$" + i)) + ")";
-            AddParameters(cmd, new object[] { projectId }.Concat(keys.Cast<object>()).ToArray());
+            AddParameters(cmd, new object[] { projectId }.Concat(keys).ToArray());
             using var reader = cmd.ExecuteReader(); var rows = new List<AnalysisStateRow>();
             while (reader.Read()) { ct.ThrowIfCancellationRequested(); rows.Add(AnalysisStateRow.MapFromReader(reader)); }
             return rows;

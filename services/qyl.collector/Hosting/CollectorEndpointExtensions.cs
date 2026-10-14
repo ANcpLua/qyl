@@ -519,9 +519,8 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var projectId = ResolveProjectScope(httpContext);
-        var descriptor = (await store.ListMetricsAsync(projectId, metricName, limit: 1, ct: ct))
-            .FirstOrDefault(entry => string.Equals(entry.MetricName, metricName, StringComparison.Ordinal));
-        if (descriptor is null)
+        if ((await store.ListMetricsAsync(projectId, metricName, limit: 1, ct: ct))
+            .FirstOrDefault(entry => string.Equals(entry.MetricName, metricName, StringComparison.Ordinal)) is not { } descriptor)
             return ContractErrorResults.NotFound("metric", metricName);
 
         // A percentile interpolates over recorded bucket boundaries, which only a histogram

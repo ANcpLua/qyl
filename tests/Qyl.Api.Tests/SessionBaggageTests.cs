@@ -29,7 +29,7 @@ public sealed class SessionBaggageTests : IAsyncLifetime
         {
             ShouldListenTo = static source =>
                 source.Name == QylSessionBaggageStartupFilter.ServerActivitySourceName,
-            Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
+            Sample = static (ref _) => ActivitySamplingResult.AllData
         };
         ActivitySource.AddActivityListener(_listener);
 

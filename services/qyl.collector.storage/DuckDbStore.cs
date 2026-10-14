@@ -160,7 +160,7 @@ internal sealed partial class DuckDbStore : IQylStore
             }
             catch (OperationCanceledException) when (_cts.IsCancellationRequested)
             {
-                continue;
+                // Shutdown cancelled this reader on purpose; only unexpected failures are shutdown errors.
             }
             catch (Exception ex)
             {
@@ -1276,7 +1276,7 @@ internal sealed partial class DuckDbStore : IQylStore
             _cancellationRegistration = cancellationToken.Register(
                 static state => ((WriteJob<TResult>)state!).CancelBeforeClaim(),
                 this);
-            if (Volatile.Read(ref _state) is not 0)
+            if (Read(ref _state) is not 0)
                 _cancellationRegistration.Dispose();
         }
 

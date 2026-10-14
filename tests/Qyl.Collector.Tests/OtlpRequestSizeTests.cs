@@ -33,7 +33,7 @@ public sealed class OtlpRequestSizeTests
         Assert.Equal(OtlpPayloadParser.ProtobufContentType, context.Response.ContentType);
         var status = RpcStatus.Parser.ParseFrom(ResponseBytes(context));
         Assert.Equal(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
-        Assert.Empty(await store.GetSpansAsync(Qyl.Collector.Storage.ProjectScope.DefaultProjectId, ct: TestContext.Current.CancellationToken));
+        Assert.Empty(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -12,7 +12,7 @@ internal static class CollectorStorageExtensions
         IConfiguration configuration)
     {
         services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
-        services.AddSingleton<IQylStore>(CreateStore);
+        services.AddSingleton(CreateStore);
         services.ActivateSingleton<IQylStore>();
         services.AddHostedService<RetentionService>();
         services.AddHealthChecks()

@@ -32,7 +32,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject Fetch(JsonObject input)
     {
         var scope = input.DeepClone().AsObject(); scope.Remove("since_cursor"); scope.Remove("fields");
-        var fingerprint = Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(scope.ToJsonString())));
+        var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(scope.ToJsonString())));
         if (J.String(input, "since_cursor") is { } cursor)
         {
             var previous = handles.Read(cursor, project, "refresh");

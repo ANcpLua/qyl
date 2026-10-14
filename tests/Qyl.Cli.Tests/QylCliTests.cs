@@ -8,7 +8,7 @@ namespace Qyl.Cli.Tests;
 public sealed class QylCliTests
 {
     [Theory]
-    [InlineData()]
+    [InlineData]
     [InlineData("--help")]
     [InlineData("help")]
     [InlineData("help", "up")]

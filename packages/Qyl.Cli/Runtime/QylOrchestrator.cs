@@ -335,9 +335,8 @@ internal sealed partial class QylOrchestrator(
 
     private QylResourceActionResult HandleResourceAction(QylResourceActionRequest request)
     {
-        var resource = resources.FirstOrDefault(candidate =>
-            string.Equals(candidate.Name, request.ResourceName, StringComparison.Ordinal));
-        if (resource is null)
+        if (resources.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name, request.ResourceName, StringComparison.Ordinal)) is not { } resource)
             return new QylResourceActionResult(QylResourceActionStatus.NotFound, "Resource does not exist.");
 
         if (!registry.Snapshot.TryGetValue(resource.Name, out var state) ||

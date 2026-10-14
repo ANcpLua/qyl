@@ -29,7 +29,7 @@ public sealed class ApiKeyRoleTests
     [Fact]
     public void Accepted_roles_match_the_shared_contract()
     {
-        var contractRoles = Enum.GetNames<Qyl.Api.Contracts.Common.CollectorKeyRole>()
+        var contractRoles = Enum.GetNames<Api.Contracts.Common.CollectorKeyRole>()
             .Select(static name => name.ToLowerInvariant())
             .Order()
             .ToArray();
@@ -123,7 +123,7 @@ public sealed class ApiKeyRoleTests
     {
         var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateSlimBuilder();
         builder.Services.AddQylCollectorCore(new ConfigurationBuilder().Build());
-        builder.Services.AddSingleton<Qyl.Collector.Storage.IQylStore>(_ => throw new NotSupportedException());
+        builder.Services.AddSingleton<Storage.IQylStore>(_ => throw new NotSupportedException());
         using var app = builder.Build();
         app.MapQylCollectorEndpoints();
 

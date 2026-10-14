@@ -154,8 +154,7 @@ internal static partial class CollectorEndpointExtensions
     internal static async Task<IResult> GetAnnotationAsync(HttpContext httpContext,
         [FromRoute(Name = "annotation_id")] string annotationId, IQylStore store, CancellationToken ct)
     {
-        var row = await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false);
-        if (row is null) return ContractErrorResults.NotFound("annotation", annotationId);
+        if (await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false) is not { } row) return ContractErrorResults.NotFound("annotation", annotationId);
         var contracts = await AnnotationContractsAsync(store, [row], ct).ConfigureAwait(false);
         return ResourceHttp.WithEtag(httpContext, row.Etag, contracts[0], QylSerializerContext.Default.Annotation);
     }
@@ -178,8 +177,7 @@ internal static partial class CollectorEndpointExtensions
             return textError;
 
         if (ValidateAnnotationLabels(request.Labels) is { } labelsError) return labelsError;
-        var existing = await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false);
-        if (existing is null) return ContractErrorResults.NotFound("annotation", annotationId);
+        if (await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false) is not { } existing) return ContractErrorResults.NotFound("annotation", annotationId);
         var prior = (await AnnotationContractsAsync(store, [existing], ct).ConfigureAwait(false))[0];
         var now = ResourceHttp.NowUnixNano(timeProvider);
         var etag = ResourceHttp.NewEtag();

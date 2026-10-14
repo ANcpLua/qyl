@@ -28,7 +28,7 @@ public sealed class RunnerControlTests
         // The first python3 exec on a fresh macOS CI runner can take tens of seconds
         // (Gatekeeper/XProtect scan). Pay that cost here so the readiness window below
         // measures orchestration, not the AV scan.
-        using (var warmup = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(python!)
+        using (var warmup = Process.Start(new ProcessStartInfo(python!)
                {
                    ArgumentList = { "-c", "pass" },
                    RedirectStandardOutput = true,

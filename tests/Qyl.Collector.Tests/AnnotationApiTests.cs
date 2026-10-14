@@ -245,7 +245,7 @@ public sealed class AnnotationApiTests
 internal static class PageCursorCodecProbe
 {
     public static string TracesCursor() =>
-        Qyl.Collector.Hosting.PageCursorCodec.Encode(
-            Qyl.Collector.Hosting.PageCursorKind.Traces,
-            new TracePageCursor(1, CollectorApiTestHost.TraceId(1)));
+        Hosting.PageCursorCodec.Encode(
+            Hosting.PageCursorKind.Traces,
+            new TracePageCursor(1, TraceId(1)));
 }

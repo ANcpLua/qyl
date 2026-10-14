@@ -571,11 +571,11 @@ internal static class XmlModelParser
             ulong u64 => u64,
             long i64 => unchecked((ulong)i64),
             uint u32 => u32,
-            int i32 => unchecked((ulong)(long)i32),
+            int i32 => unchecked((ulong)i32),
             ushort u16 => u16,
-            short i16 => unchecked((ulong)(long)i16),
+            short i16 => unchecked((ulong)i16),
             byte u8 => u8,
-            sbyte i8 => unchecked((ulong)(long)i8),
+            sbyte i8 => unchecked((ulong)i8),
             _ => 0,
         };
     }

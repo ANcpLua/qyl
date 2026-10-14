@@ -38,7 +38,7 @@ internal sealed class QylAppBuilder
     internal static QylAppBuilder Create(QylAppOptions? options = null)
     {
         return new QylAppBuilder(
-            Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder([]),
+            Host.CreateApplicationBuilder([]),
             options ?? new QylAppOptions());
     }
 

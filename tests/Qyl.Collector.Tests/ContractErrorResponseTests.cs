@@ -206,7 +206,7 @@ public sealed class ContractErrorResultsTests
             context.Response.Body,
             QylSerializerContext.Default.ContractInternalServerError,
             TestContext.Current.CancellationToken);
-        var problem = Assert.IsType<Qyl.Api.Contracts.Common.Errors.InternalServerError>(error);
+        var problem = Assert.IsType<InternalServerError>(error);
         Assert.Equal(ProblemType.InternalError, problem.Type);
         Assert.Equal(ProblemCode.InternalError, problem.Code);
         Assert.Equal("collector.unhandled_exception", problem.Detail);

@@ -115,7 +115,7 @@ internal sealed partial class AnalysisEngine
                 }).OrderByDescending(r => J.String(r, "first_seen"), StringComparer.Ordinal)
         ];
     }
-    private JsonObject Releases(JsonObject input) => Page(input, "releases", ReleaseList(Select(input)), 100);
+    private JsonObject Releases(JsonObject input) => Page(input, "releases", ReleaseList(Select(input)));
     private JsonObject ServiceMap(JsonObject input)
     {
         var mapInput = input.DeepClone().AsObject(); mapInput.Remove("service_name");

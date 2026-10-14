@@ -109,7 +109,7 @@ internal sealed partial class WorkloadEmitter(
         root.SetHttpResponseStatusCode(statusCode);
         if (failed)
         {
-            root.SetErrorType(statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            root.SetErrorType(statusCode.ToString(CultureInfo.InvariantCulture));
             root.SetStatus(ActivityStatusCode.Error, "upstream model rate limited");
         }
 

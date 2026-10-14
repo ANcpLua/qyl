@@ -22,8 +22,7 @@ internal static partial class CollectorEndpointExtensions
             var readInput = input;
             if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
             {
-                var saved = await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false);
-                if (saved is null) return ContractErrorResults.NotFound("saved_query", savedId);
+                if (await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false) is not { } saved) return ContractErrorResults.NotFound("saved_query", savedId);
                 readInput = JsonNode.Parse(saved.FilterJson)!.AsObject();
                 foreach (var pair in input) readInput[pair.Key] = pair.Value?.DeepClone();
             }
@@ -86,8 +85,7 @@ internal static partial class CollectorEndpointExtensions
         try
         {
             if (ResourceHttp.ReadIfMatch(context.Request, out var condition) is { } error) return error;
-            var body = await JsonNode.ParseAsync(context.Request.Body, cancellationToken: ct).ConfigureAwait(false) as JsonObject;
-            if (body is null) return ResourceHttp.InvalidBody("The request body must be a JSON object.");
+            if (await JsonNode.ParseAsync(context.Request.Body, cancellationToken: ct).ConfigureAwait(false) as JsonObject is not { } body) return ResourceHttp.InvalidBody("The request body must be a JSON object.");
             var status = J.String(body, "status");
             if (status is not ("open" or "resolved" or "ignored")) return ContractErrorResults.Validation("status", "Choose open, resolved or ignored.", "status.invalid");
             if (body["ignore_until"] is not null && status != "ignored") return ContractErrorResults.Validation("ignore_until", "ignore_until is valid only with status=ignored.", "ignore_until.invalid");

@@ -21,9 +21,8 @@ internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interce
     {
         if (options.IsApiKeyMode)
         {
-            var credential = OtlpApiKeyValidator.Resolve(
-                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), options);
-            if (credential is null)
+            if (OtlpApiKeyValidator.Resolve(
+                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), options) is not { } credential)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
 
             if ((credential.Roles & ApiKeyRoles.Ingest) is ApiKeyRoles.None)

@@ -138,7 +138,7 @@ public sealed class ReadPagingTests
     public async Task Sessions_keep_is_active_and_the_time_range_while_paging()
     {
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
-        var now = Qyl.Collector.Primitives.TimeConversions.ToUnixNanoUnsigned(DateTimeOffset.UtcNow);
+        var now = Primitives.TimeConversions.ToUnixNanoUnsigned(DateTimeOffset.UtcNow);
         const ulong second = 1_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
@@ -266,5 +266,5 @@ public sealed class ReadPagingTests
     }
 
     private static string SessionsCursor() =>
-        Qyl.Collector.Hosting.PageCursorCodec.Encode(Qyl.Collector.Hosting.PageCursorKind.Sessions, "0000000000000001", "a");
+        Hosting.PageCursorCodec.Encode(Hosting.PageCursorKind.Sessions, "0000000000000001", "a");
 }

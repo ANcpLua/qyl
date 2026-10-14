@@ -13,7 +13,7 @@ public sealed partial class AnalysisApiTests
     [Fact]
     public async Task Filters_run_before_paging_without_an_arbitrary_scan_limit()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         var rows = Enumerable.Range(1, 1200).Select(i => Span(TraceId(i), SpanId(i), time + (ulong)i, time + (ulong)i + 1000,
             service: i < 1198 ? "healthy" : "matching", status: i < 1198 ? (byte)1 : (byte)2)).ToArray();
@@ -33,7 +33,7 @@ public sealed partial class AnalysisApiTests
     [Fact]
     public async Task All_matcher_operators_and_resource_scope_use_the_same_engine()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         await host.Store.EnqueueAsync(new SpanBatch([
             Span(TraceId(1), SpanId(1), time, time + 1000) with { AttributesJson = """{"count":{"type":"int","value":"4"},"phase":"build-fast","enabled":true}""", ResourceJson = """{"cloud.region":"eu"}""" },
@@ -54,7 +54,7 @@ public sealed partial class AnalysisApiTests
     [Fact]
     public async Task Trace_error_projection_is_applied_before_limit_and_strips_nested_attributes()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         await host.Store.EnqueueAsync(new SpanBatch([
             Span(TraceId(1), SpanId(1), time, time + 1000, status: 1),
@@ -73,7 +73,7 @@ public sealed partial class AnalysisApiTests
     [InlineData((byte)2, 240d)]
     public async Task Counter_increase_respects_temporality_and_start_time_resets(byte temporality, double expected)
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         var series = new MetricSeriesRow { ProjectId = "alpha", SeriesId = "counter", MetricName = "test.requests", MetricKind = 2, Temporality = temporality, IsMonotonic = 1, Unit = "{request}", FirstSeenUnixNano = time, LastSeenUnixNano = time + 2_000_000_000 };
         var points = CounterValues.Select((value, index) => new MetricPointRow { ProjectId = "alpha", SeriesId = "counter", TimeUnixNano = time + (ulong)index * 1_000_000_000, StartTimeUnixNano = index == 2 ? time + 1_500_000_000 : time - 1_000_000_000, Value = value }).ToArray();
@@ -86,7 +86,7 @@ public sealed partial class AnalysisApiTests
     [Fact]
     public async Task Analysis_reads_include_notes_and_apply_updated_labels_before_paging()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         await host.Store.EnqueueAsync(new SpanBatch([
             Span(TraceId(1), SpanId(1), time, time + 1000, sessionId: "annotated-session"),

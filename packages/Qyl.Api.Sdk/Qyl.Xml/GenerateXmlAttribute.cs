@@ -21,5 +21,5 @@ namespace Qyl.Xml;
 /// attribute is omitted when absent.
 /// </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class GenerateXmlAttribute : Attribute;

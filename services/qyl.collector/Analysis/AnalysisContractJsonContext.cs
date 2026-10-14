@@ -3,8 +3,8 @@ using Qyl.Api.Contracts.Mcp.Tools;
 namespace Qyl.Collector.Analysis;
 
 [JsonSourceGenerationOptions(AllowOutOfOrderMetadataProperties = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, NumberHandling = JsonNumberHandling.AllowReadingFromString)]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeObjectValue))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeValue))]
+[JsonSerializable(typeof(Api.Contracts.Common.AttributeObjectValue))]
+[JsonSerializable(typeof(Api.Contracts.Common.AttributeValue))]
 [JsonSerializable(typeof(TriageInput))]
 [JsonSerializable(typeof(TriageOutput))]
 [JsonSerializable(typeof(ListFailuresInput))]
