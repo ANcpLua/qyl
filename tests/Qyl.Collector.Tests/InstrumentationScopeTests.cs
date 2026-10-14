@@ -1,11 +1,8 @@
-using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using Google.Protobuf;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Resource.V1;
-using Qyl.Collector.Ingestion;
 using OtlpSpan = OpenTelemetry.Proto.Trace.V1.Span;
 using OtlpResourceSpans = OpenTelemetry.Proto.Trace.V1.ResourceSpans;
 using OtlpScopeSpans = OpenTelemetry.Proto.Trace.V1.ScopeSpans;
@@ -37,7 +34,7 @@ public sealed class InstrumentationScopeTests
         await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
         var request = TraceRequest(scope: new InstrumentationScope { Name = ScopeName, Version = ScopeVersion },
             resourceSchemaUrl: ResourceSchemaUrl, scopeSchemaUrl: ScopeSchemaUrl);
-        await IngestAsync(host, request);
+        await host.IngestTracesAsync(request);
 
         var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
         Assert.Equal(ScopeName, stored.ScopeName);
@@ -57,7 +54,7 @@ public sealed class InstrumentationScopeTests
     public async Task The_resource_schema_url_applies_when_the_scope_has_none()
     {
         await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
-        await IngestAsync(host, TraceRequest(scope: new InstrumentationScope { Name = ScopeName },
+        await host.IngestTracesAsync(TraceRequest(scope: new InstrumentationScope { Name = ScopeName },
             resourceSchemaUrl: ResourceSchemaUrl, scopeSchemaUrl: ""));
 
         var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
@@ -75,7 +72,7 @@ public sealed class InstrumentationScopeTests
     public async Task An_absent_scope_and_schema_url_are_absent_not_empty_strings()
     {
         await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
-        await IngestAsync(host, TraceRequest(scope: null, resourceSchemaUrl: "", scopeSchemaUrl: ""));
+        await host.IngestTracesAsync(TraceRequest(scope: null, resourceSchemaUrl: "", scopeSchemaUrl: ""));
 
         var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
         Assert.Null(stored.ScopeName);
@@ -127,16 +124,6 @@ public sealed class InstrumentationScopeTests
                 }
             }
         };
-    }
-
-    private static async Task IngestAsync(CollectorApiTestHost host, ExportTraceServiceRequest request)
-    {
-        using var message = new HttpRequestMessage(HttpMethod.Post, "/v1/traces");
-        message.Headers.Add(OtlpConstants.ApiKeyHeaderName, "ingester");
-        message.Content = new ByteArrayContent(request.ToByteArray());
-        message.Content.Headers.ContentType = new MediaTypeHeaderValue(OtlpPayloadParser.ProtobufContentType);
-        using var response = await host.Client.SendAsync(message, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     private static async Task<JsonElement> SingleSpanAsync(CollectorApiTestHost host)

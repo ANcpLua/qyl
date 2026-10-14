@@ -240,6 +240,15 @@ internal static partial class OtlpConverter
             [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
         };
 
+        CaptureSpanAttributes(attributes, protoAttributes);
+        return attributes;
+    }
+
+    private static void CaptureSpanAttributes(
+        Dictionary<string, OtlpAttributeValue> attributes,
+        RepeatedField<ProtoKeyValue> protoAttributes)
+    {
+        var appAttributes = 0;
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
@@ -251,30 +260,47 @@ internal static partial class OtlpConverter
             }
 
             var value = ConvertProtoAnyValue(attr.Value);
+            if (AttributeKeySets.IsAppAttribute(key) && !AdmitAppAttribute(attributes, key, value, ref appAttributes))
+            {
+                QylCollectorMetrics.AttributeDropped(key);
+                continue;
+            }
+
             SetNormalizedAttribute(attributes, key, value, renamed);
         }
+    }
 
-        return attributes;
+    // qyl.app.* keys are named by the application, so their number and size are bounded per span (or
+    // event, or link): the first AppAttributeMaxKeys distinct keys in wire order, each a string of at most
+    // AppAttributeMaxValueLength characters, a 64-bit integer, a double or a bool. Anything else under
+    // the prefix is dropped rather than cut, so a stored value is always the value the application wrote.
+    private static bool AdmitAppAttribute(
+        Dictionary<string, OtlpAttributeValue> attributes,
+        string key,
+        OtlpAttributeValue value,
+        ref int admitted)
+    {
+        var bounded = value.Kind switch
+        {
+            OtlpAttributeValueKind.String =>
+                value.AsString()!.Length <= CollectorSemanticAttributeCatalog.AppAttributeMaxValueLength,
+            OtlpAttributeValueKind.Int or OtlpAttributeValueKind.Double or OtlpAttributeValueKind.Bool => true,
+            _ => false
+        };
+
+        if (!bounded) return false;
+        if (attributes.ContainsKey(key)) return true;
+        if (admitted == CollectorSemanticAttributeCatalog.AppAttributeMaxKeys) return false;
+
+        admitted++;
+        return true;
     }
 
     private static IReadOnlyDictionary<string, OtlpAttributeValue> ConvertSpanChildAttributes(
         RepeatedField<ProtoKeyValue> protoAttributes)
     {
         var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
-        foreach (var attr in protoAttributes)
-        {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key))
-            {
-                QylCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
-            var value = ConvertProtoAnyValue(attr.Value);
-            SetNormalizedAttribute(attributes, key, value, renamed);
-        }
-
+        CaptureSpanAttributes(attributes, protoAttributes);
         return attributes;
     }
 

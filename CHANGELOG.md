@@ -2,6 +2,19 @@
 
 ## 13.0.0 — unreleased
 
+- Pin `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 25.0.0 and semantic conventions
+  10.0.0. Their analyzers now reach every project that references `Qyl.Telemetry.Hosting`.
+- Collector: the ingest deny list is SemConv's generated `RegistryPolicy`. The catalog generator reads it,
+  `eng/config/collector-semantic-policy.json` loses `deniedExactPrefixes`, `deniedExactKeys`,
+  `deniedKeyTokens`, `deniedTokenExemptKeys` and `httpHeaderAttributePrefixes` (a denied template key such
+  as `http.request.header` denies its children), and generation fails when the file names a key for
+  persistence that the registry does not persist.
+- Collector: `gen_ai.agent.name` is persisted, so `get_agent_run`'s `agent_name` and `list_sessions`
+  name the agent; `gen_ai.agent.id` and `gen_ai.agent.description` stay denied. The five
+  `gen_ai.usage.*_tokens` counts are token-exempt and are kept as attributes beside their columns.
+- Collector: business attributes `qyl.app.<key>` (written by `SetAppTag`) are captured: at most 16 keys
+  per span, each a string of at most 256 characters, a 64-bit integer, a double or a bool, and no key
+  containing a denied token.
 - Collector: a metric range query with a percentile aggregation (`p50`, `p90`, `p95`, `p99`)
   on a gauge or sum answers 400 `aggregation.requires_histogram` on field `aggregation`
   instead of 500; the contract already limits percentiles to histogram kinds.

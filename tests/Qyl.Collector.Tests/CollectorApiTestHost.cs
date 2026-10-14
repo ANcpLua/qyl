@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Google.Protobuf;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Proto.Collector.Trace.V1;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
@@ -105,6 +107,17 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
         if (json is not null)
             request.Content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
         return await Client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Posts an OTLP/protobuf trace export with the ingest-only key, the way an SDK exporter sends it.</summary>
+    public async Task IngestTracesAsync(ExportTraceServiceRequest request)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/v1/traces");
+        message.Headers.Add(OtlpConstants.ApiKeyHeaderName, "ingester");
+        message.Content = new ByteArrayContent(request.ToByteArray());
+        message.Content.Headers.ContentType = new MediaTypeHeaderValue(OtlpPayloadParser.ProtobufContentType);
+        using var response = await Client.SendAsync(message, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     public static async Task<JsonElement> JsonAsync(HttpResponseMessage response)

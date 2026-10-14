@@ -21,81 +21,106 @@ internal static class AttributeKeySets
 
     internal static bool IsSafeSpanAttribute(string key) =>
         CollectorSemanticAttributeCatalog.SafeHttpSpanHeaderAttributeKeys.Contains(key) ||
-        !IsDenied(key) &&
-        (CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key) || IsVendorTag(key));
+        IsPersistable(key) &&
+        (CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key) || IsVendorTag(key) || IsAppAttribute(key));
 
     internal static bool IsSafeLogAttribute(string key) =>
-        !IsDenied(key) &&
+        IsPersistable(key) &&
         (CollectorSemanticAttributeCatalog.LogAttributeAllowList.Contains(key) || IsVendorTag(key));
 
     // Metric attributes are the series identity, so an unregistered key would fork every
     // series it appears on and make the catalog unreadable. They pass exactly the same
     // registry-backed policy as span and log attributes.
     internal static bool IsSafeMetricAttribute(string key) =>
-        !IsDenied(key) &&
+        IsPersistable(key) &&
         (CollectorSemanticAttributeCatalog.MetricAttributeAllowList.Contains(key) || IsVendorTag(key));
 
     // A key a pinned third-party library emits is a tag, not vocabulary: it is forwarded exactly
-    // as it arrived and never rewritten. The prefix and exact denials above still apply to it — a
+    // as it arrived and never rewritten. The prefix and exact denials still apply to it — a
     // vendor is no more entitled to write a credential into storage than an application is — and
-    // only the blunt substring rule steps aside for it (see IsDenied).
+    // only the blunt token rule steps aside for it (see IsPersistable).
     private static bool IsVendorTag(string key) => AttributeMapping.IsVendorPassThrough(key);
 
+    /// <summary>
+    /// A business attribute <c>qyl.app.&lt;key&gt;</c>, written by <c>SetAppTag</c>. Its keys are named by the
+    /// application, so the namespace is captured by prefix; the per-span bounds apply at ingest.
+    /// </summary>
+    internal static bool IsAppAttribute(string key) =>
+        key.Length > CollectorSemanticAttributeCatalog.AppAttributePrefix.Length &&
+        key.StartsWith(CollectorSemanticAttributeCatalog.AppAttributePrefix, StringComparison.Ordinal);
+
     internal static bool IsSafeResourceAttribute(string key) =>
-        !IsDenied(key) &&
+        IsPersistable(key) &&
         (CollectorSemanticAttributeCatalog.ResourceAttributeAllowList.Contains(key) ||
          CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList.Contains(key));
 
     // Entity references may identify resources with application-defined attributes that are not
     // part of the semantic-convention catalog. Persist only those explicitly referenced keys, and
     // keep the same credential/privacy boundary as every other persisted resource attribute.
-    internal static bool IsSafeEntityReferencedResourceAttribute(string key) => !IsDenied(key);
+    internal static bool IsSafeEntityReferencedResourceAttribute(string key) => IsPersistable(key);
 
     internal static bool ShouldCaptureSpanAttribute(string key) =>
         IsSafeSpanAttribute(key) ||
         SessionCorrelation.Contains(key) ||
         CollectorSemanticAttributeCatalog.SpanHotAttributeKeys.Contains(key);
 
-    private static bool IsDenied(string key)
+    /// <summary>
+    /// Whether the registry lets the collector persist <paramref name="key"/> at all, in
+    /// <c>RegistryPolicy.IsPersisted</c>'s order, plus the baggage prefix, which only a collector sees.
+    /// The allowlists above decide which persistable keys are kept.
+    /// </summary>
+    internal static bool IsPersistable(string key)
     {
-        foreach (var prefix in CollectorSemanticAttributeCatalog.HttpHeaderAttributePrefixes)
-        {
-            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        // DeniedExactKeys only contains the keys these prefixes matched in the pinned semconv
-        // packages. Entity-referenced resource attributes are application-named, so the prefixes
-        // themselves have to be enforced here or unregistered PII keys pass the denial.
-        foreach (var prefix in CollectorSemanticAttributeCatalog.DeniedKeyPrefixes)
-        {
-            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        if (CollectorSemanticAttributeCatalog.DeniedExactKeys.Contains(key) ||
-            key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        // The substring rule is deliberately blunt, so allowlisted keys that merely contain a
-        // denied token (db.query.summary, gen_ai.token.type) opt out of it by exact name, and so
-        // does every vendor pass-through key: the vendor spells its own tags, and twelve of them
-        // (messaging.masstransit.message_id, nservicebus.message_intent, execution.result and the
-        // rest) contain a denied token while carrying nothing the token exists to catch. Only the
-        // token rule is waived. The header/enduser/user prefixes and the exact denials above are
-        // privacy rules and run ahead of this for a vendor key exactly as for any other key.
-        if (CollectorSemanticAttributeCatalog.DeniedTokenExemptKeys.Contains(key) || IsVendorTag(key))
+        if (IsNotPersistedKeyOrTemplateChild(key))
             return false;
+
+        // Prefixes, not their registry expansion: an application-defined key under one of these
+        // namespaces (user.email_address, enduser.tenant) is denied as surely as a registry key.
+        foreach (var prefix in CollectorSemanticAttributeCatalog.NotPersistedPrefixes)
+        {
+            if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        if (key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // The token rule is deliberately blunt, so registry keys that merely contain a denied token
+        // (db.query.summary, gen_ai.usage.input_tokens) opt out of it by exact name, and so does every
+        // vendor pass-through key: the vendor spells its own tags, and a dozen of them
+        // (messaging.masstransit.message_id, nservicebus.message_intent, execution.result) contain a
+        // denied token while carrying nothing the token exists to catch. The exact and prefix denials
+        // above are privacy rules and run ahead of this for a vendor key exactly as for any other key.
+        if (CollectorSemanticAttributeCatalog.TokenExemptKeys.Contains(key) || IsVendorTag(key))
+            return true;
 
         foreach (var token in CollectorSemanticAttributeCatalog.DeniedKeyTokens)
         {
             if (key.Contains(token, StringComparison.OrdinalIgnoreCase))
-                return true;
+                return false;
         }
 
-        return false;
+        return true;
+    }
+
+    private static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> s_notPersistedKeys =
+        CollectorSemanticAttributeCatalog.NotPersistedKeys.GetAlternateLookup<ReadOnlySpan<char>>();
+
+    // A denied template key denies its children too: http.request.header denies http.request.header.<name>.
+    private static bool IsNotPersistedKeyOrTemplateChild(string key)
+    {
+        var candidate = key.AsSpan();
+        while (true)
+        {
+            if (s_notPersistedKeys.Contains(candidate))
+                return true;
+
+            var dot = candidate.LastIndexOf('.');
+            if (dot <= 0)
+                return false;
+
+            candidate = candidate[..dot];
+        }
     }
 
 }
