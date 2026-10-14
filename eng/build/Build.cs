@@ -119,7 +119,7 @@ sealed class Build : FalloutBuild,
         .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke)
         .DependsOn<ICoverage>(static x => x.Coverage);
 
-    AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
+    AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "artifacts";
 
     Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
         .SetDeterministic(IsServerBuild)

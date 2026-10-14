@@ -1,5 +1,4 @@
 artifacts/
-!src/**/Artifacts/
 .agents/worktrees/
 [Bb]in/
 [Oo]bj/

@@ -6,7 +6,7 @@ namespace Qyl.Build;
 
 interface IHasSourcePaths : IHasSolution, IHasArtifacts
 {
-    new AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
+    new AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath ServicesDirectory => RootDirectory / "services";
     AbsolutePath PackagesDirectory => RootDirectory / "packages";
     AbsolutePath InternalDirectory => RootDirectory / "internal";

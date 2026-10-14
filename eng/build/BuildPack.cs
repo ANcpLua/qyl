@@ -42,7 +42,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
         .SetProperty("SourceRevisionId", RepositoryCommit!);
 
     Target PackPlatform => d => d
-        .Description("Pack the qyl tool for the host runtime into Artifacts/qyl-packages (one platform of the release set)")
+        .Description("Pack the qyl tool for the host runtime into artifacts/qyl-packages (one platform of the release set)")
         .Requires(() => PackageVersion, () => RepositoryCommit, () => ToolRuntimeIdentifier)
         .Executes(() =>
         {
@@ -65,7 +65,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
         });
 
     Target PackRelease => d => d
-        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk) into a clean Artifacts/nuget (release.sh's pack step)")
+        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk) into a clean artifacts/nuget (release.sh's pack step)")
         .Requires(() => PackageVersion, () => RepositoryCommit)
         .Executes(() =>
         {
@@ -78,7 +78,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
         });
 
     Target Pack => d => d
-        .Description("Pack the shippable packages into Artifacts/nuget")
+        .Description("Pack the shippable packages into artifacts/nuget")
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<ICompile>(static x => x.Compile)
         .Produces(NuGetArtifactsDirectory / "*.nupkg")

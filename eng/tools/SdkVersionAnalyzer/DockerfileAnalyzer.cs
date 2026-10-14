@@ -173,7 +173,6 @@ internal static partial class DockerfileAnalyzer
             $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
             $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
             $"{Path.DirectorySeparatorChar}artifacts{Path.DirectorySeparatorChar}",
-            $"{Path.DirectorySeparatorChar}Artifacts{Path.DirectorySeparatorChar}",
             $"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}",
             $"{Path.DirectorySeparatorChar}reference{Path.DirectorySeparatorChar}",
         ];

@@ -157,7 +157,6 @@ interface IDependencyEdges : IHasSourcePaths
             var projects = repoRoot.GlobFiles("services/**/*.csproj", "internal/**/*.csproj",
                     "packages/**/*.csproj", "samples/**/*.csproj", "tests/**/*.csproj", "eng/**/*.csproj")
                 .Where(static p => !p.ToString().Contains("/node_modules/", StringComparison.Ordinal)
-                                   && !p.ToString().Contains("/Artifacts/", StringComparison.Ordinal)
                                    && !p.ToString().Contains("/artifacts/", StringComparison.Ordinal));
 
             // PackageReference/GlobalPackageReference items in shared MSBuild files reach every
@@ -166,7 +165,6 @@ interface IDependencyEdges : IHasSourcePaths
             var sharedReferences = repoRoot
                 .GlobFiles("**/Directory.Build.props", "**/Directory.Build.targets", "**/Directory.Packages.props")
                 .Where(static p => !p.ToString().Contains("/node_modules/", StringComparison.Ordinal)
-                                   && !p.ToString().Contains("/Artifacts/", StringComparison.Ordinal)
                                    && !p.ToString().Contains("/artifacts/", StringComparison.Ordinal))
                 .Select(static file => (
                     Directory: file.Parent.ToString().Replace('\\', '/'),

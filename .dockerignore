@@ -117,8 +117,6 @@ venv
 **/.DS_Store
 .fallout
 **/.fallout
-Artifacts
-**/Artifacts
 artifacts
 **/artifacts
 coverage
