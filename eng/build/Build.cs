@@ -40,7 +40,8 @@ sealed class Build : FalloutBuild,
     IHousekeeping,
     IPack,
     IApiSdk,
-    IVocabularySmoke
+    IVocabularySmoke,
+    IVerifyRelease
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
 

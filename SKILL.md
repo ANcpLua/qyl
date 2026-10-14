@@ -18,10 +18,9 @@ One agent per qyl-dev repo (qyl, qyl.mcp, qyl-api-schema, Qyl.Telemetry.AutoInst
 ## Release
 
 1. Land the `QylVersion` bump on `main`.
-2. `./release.sh <x.y.z>` (`--dry-run` first only when a step is new or unsure; the script refuses before publishing when anything is off).
-3. The runtime packages are indexed before the tool pointer publishes; the script then checks all eight. If indexing is incomplete, poll every 30 s; notify no consumer while any runtime package is missing.
-4. All eight indexed: notify the consumers.
-5. Run `/Users/alexandernachtmann/RiderProjects/qyl.at/scripts/refresh-published-versions.sh` (rewrites, commits and pushes `published-versions.yaml` in qyl.at, the snapshot every agent reads first).
+2. `./release.sh <x.y.z>` (`--dry-run` first only when a step is new or unsure; the script refuses before publishing when anything is off). The runtime packages are indexed before the tool pointer publishes (in the foreground, up to 20 min); it returns once qyl and Qyl.Api.Sdk are accepted and the tag (on the commit the checks and the pack ran on) and GitHub release exist. A detached job runs `./eng/build.sh VerifyRelease --published-version <x.y.z>` (index wait for all eight, the published tool through QylToolSmoke) and then the snapshot refresh (`published-versions.yaml` in qyl.at), logging to `artifacts/release-<x.y.z>-verify.log`. Do not run the snapshot refresh by hand.
+3. `./release.sh --wait <x.y.z>` blocks until that log ends in VERIFIED or FAILED; notify no consumer before. Exit 3 = not indexed in time, `./release.sh --verify <x.y.z>` checks again; any other FAILED after publication is a patch release.
+4. VERIFIED: notify the consumers.
 
 ## Notify
 
