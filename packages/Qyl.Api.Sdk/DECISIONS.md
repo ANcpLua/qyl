@@ -147,16 +147,18 @@ proves it is `samples/qyl.sample/`, and both build with that repository's `Direc
 `Directory.Packages.props` and analyzer settings. Every entry above still holds; the paths and gate names
 they cite are the ones this tree has.
 
-The version is the repository's: `QylVersion` in `Version.props` makes this `Qyl.Api.Sdk 4.0.0`, published by
-the same trusted-publishing workflow as the `qyl` tool. The project packs itself instead of listing files in
-a nuspec, and resolves the two libraries and the analyzer from the referenced projects' build output rather
-than from `bin/<configuration>/<tfm>` paths, which that repository's artifacts layout does not have. The packed
+The version is the repository's: `QylVersion` in `Version.props` versions this package with the repository
+(12.1.1 today), and `./release.sh` releases it from the developer machine together with the `qyl` tool. The
+project packs itself instead of listing files in a nuspec, and resolves the two libraries and the analyzer from
+the referenced projects' build output rather than from `bin/<configuration>/<tfm>` paths, which that
+repository's artifacts layout does not have. The packed
 `Build/Qyl.Sdk.Packages.props` is written at pack time with its versions resolved, because the committed one
 reads them from a `Version.props` a consumer does not have.
 
-The eight-stage proof is `eng/build/BuildApiSdk.cs`, reachable from the `Ci` target and run by a CI job, in
-the same order and asserting the same things as the shell script it replaces — with the HTTP scenario written
-against the .NET stacks rather than curl, jq and xmllint, so a missing shell tool fails nothing silently.
+The proof is `eng/build/BuildApiSdk.cs`, nine stages run locally through the Fallout `ApiSdk` target and as
+part of `Ci`. The first eight run in the same order and assert the same things as the shell script they replace —
+with the HTTP scenario written against the .NET stacks rather than curl, jq and xmllint, so a missing shell tool
+fails nothing silently; the ninth, the session scenario, is added by an entry below.
 
 `Microsoft.OpenApi` is now referenced directly rather than pinned transitively: a consumer without central
 package management resolved 2.7.5, the low end of the range `Microsoft.AspNetCore.OpenApi` accepts, against a
@@ -240,15 +242,8 @@ session holds exactly those three routed server spans — `/todos/` 400, `/todos
 — and that every span in it carries the contract revision. The sample still contains no telemetry line; if the
 stage passes, the one call is the reason.
 
-Open, and owed by this wave: `qyl.api.contract.revision` is in the collector's
-`qylResourceAttributeAllowList` (`eng/config/collector-semantic-policy.json`) but is a string literal in
-`Qyl.Api/QylApiContract.cs`, because it is registered in the Weaver registry only from
-`Qyl.Telemetry.SemanticConventions` 9.2.0. When that version is on nuget.org the pin in `Version.props` moves
-and the literal becomes `QylAttributes.ApiContractRevision`. Until then
-`BuildCollectorSemanticCatalog.cs` writes `qylResourceAttributeAllowList` raw, unlike `sessionCorrelation` and
-the denial lists, which it resolves against the packages — that list gets the same
-`RequiredAttributeValues` validation with the pin bump, not before, because a gate that cannot pass is a gate
-that stops the catalog being regenerated at all.
+Open at the time: `qyl.api.contract.revision` was a string literal in `Qyl.Api/QylApiContract.cs` until
+`Qyl.Telemetry.SemanticConventions` 9.2.0 registered it; the next entry moves the pin and closes this.
 
 ## 2026-09-07 · `qyl.api.contract.revision` is the registry's name, and the allow list is held to the registry
 

@@ -12,10 +12,10 @@ cannot rot into decoration.
 | --- | --- | --- |
 | `QYL_BASE_URL` | Dashboard Playwright | Unset starts the embedded product at `http://127.0.0.1:5100`; a value targets an already-running product. |
 | `QYL_BIND_ADDRESS` | Collector | IP address literal for every listener; defaults to `127.0.0.1`. |
-| `QYL_CI_API_KEY` | NuGet consumer smoke | Optional `x-otlp-api-key` used only when CI telemetry export is enabled. |
-| `QYL_CI_LEG` | NuGet consumer smoke | CI telemetry leg name; defaults to the current runtime identifier. |
-| `QYL_CI_OTLP_ENDPOINT` | NuGet consumer smoke | OTLP/HTTP base URL for smoke telemetry; unset makes the emitter inert. |
-| `QYL_CI_RUN_ID` | NuGet consumer smoke | CI telemetry session id; defaults to `local-<machine>`. |
+| `QYL_CI_API_KEY` | NuGet consumer smoke | Optional `x-otlp-api-key` header on the smoke's phase-span export; read only when `QYL_CI_OTLP_ENDPOINT` is set. |
+| `QYL_CI_LEG` | NuGet consumer smoke | Leg name on the exported phase spans (`cicd.pipeline.task.name`, service `qyl-ci-smoke-<leg>`); defaults to the current runtime identifier. |
+| `QYL_CI_OTLP_ENDPOINT` | NuGet consumer smoke | OTLP/HTTP base URL the smoke exports one span per phase to (`/v1/traces`); unset makes the emitter inert, and a failed export never fails the smoke. |
+| `QYL_CI_RUN_ID` | NuGet consumer smoke | `session.id` on the exported phase spans, grouping one smoke run; defaults to `local-<machine>`. |
 | `QYL_DATA_PATH` | Collector | DuckDB path; defaults to `qyl.duckdb` (`qyl up` assigns per-collector files under `~/.qyl`). |
 | `QYL_DB_MEMORY_LIMIT` | Collector | Optional DuckDB `memory_limit` value; unset leaves the engine default. |
 | `QYL_DB_TEMP_DIR` | Collector | Optional DuckDB `temp_directory`; unset leaves the engine default. |

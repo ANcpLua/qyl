@@ -1,6 +1,6 @@
 # qyl
 
-Release, re-pin and agent hand-offs: follow [`SKILL.md`](SKILL.md) at this repo root (canonical clone `/Users/alexandernachtmann/RiderProjects/qyl/SKILL.md`); the one command is `./release.sh`. Published versions: `/Users/alexandernachtmann/Downloads/qyl-codex-claude/qyl-published-versions.yaml`.
+Release and re-pin: follow [`SKILL.md`](SKILL.md) at this repo root (canonical clone `/Users/alexandernachtmann/RiderProjects/qyl/SKILL.md`); the one command is `./release.sh`. Published versions are read from the registries (nuget.org, npm) or `Version.props`.
 
 ## Publishing across the qyl-dev repos
 
