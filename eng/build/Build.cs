@@ -39,6 +39,7 @@ sealed class Build : FalloutBuild,
     IHousekeeping,
     IPack,
     IApiSdk,
+    IApiBaseline,
     IVocabularySmoke,
     IVerifyRelease
 {
@@ -93,10 +94,11 @@ sealed class Build : FalloutBuild,
     // Trim and AOT regressions (IL2026/IL3050) are CheckFull's job: Compile builds with the AOT
     // analyzers off; PackSmoke and NativeAot are the gates that see them.
     public Target Check => d => d
-        .Description("The gate before every push: compile, tests, verification, SDK and SemConv pins and the dashboard's lint, tests and build")
+        .Description("The gate before every push: compile, tests, verification, the public API report, SDK and SemConv pins and the dashboard's lint, tests and build")
         .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IQylTests>(static x => x.Test)
         .DependsOn<IVerify>(static x => x.Verify)
+        .DependsOn<IApiBaseline>(static x => x.ApiBaseline)
         .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)
         .DependsOn<IHousekeeping>(static x => x.VerifySemanticConventionsPin)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)

@@ -160,8 +160,7 @@ interface IDependencyEdges : IHasSourcePaths
 
             // PackageReference/GlobalPackageReference items in shared MSBuild files reach every
             // project beneath them at evaluation time; reading only the csproj XML would let a
-            // forbidden edge hide in a Directory.Build.props (a live pattern in this repo —
-            // packages/Directory.Build.props already contributes one analyzer reference).
+            // forbidden edge hide in a Directory.Build.props.
             var sharedReferences = repoRoot
                 .GlobFiles("**/Directory.Build.props", "**/Directory.Build.targets", "**/Directory.Packages.props")
                 .Where(static p => !p.ToString().Contains("/node_modules/", StringComparison.Ordinal)

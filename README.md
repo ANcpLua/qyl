@@ -192,7 +192,8 @@ mise install && mise run check
 ```
 
 Single targets run through `./eng/build.sh <Target>`. `Check` is the gate before every push
-(compile, tests, verification, SDK pins, dashboard lint, tests and build); `CheckFull` adds
+(compile, tests, verification, the public API report, SDK pins, dashboard lint, tests and build;
+the report rewrites the `PublicAPI.txt` files and never fails); `CheckFull` adds
 NativeAOT, the pack smoke (the only gate that sees trim regressions), the SDK proof, the
 dashboard end-to-end run, the vocabulary smoke and the coverage gate (`Coverage`: the .NET tests
 under Microsoft code coverage, dotcov's line and branch thresholds in `eng/build/BuildCoverage.cs`).

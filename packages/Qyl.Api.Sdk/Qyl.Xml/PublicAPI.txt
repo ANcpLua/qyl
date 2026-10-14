@@ -1,0 +1,206 @@
+Qyl.Xml.GenerateXmlAttribute
+Qyl.Xml.GenerateXmlAttribute.GenerateXmlAttribute() -> void
+Qyl.Xml.IXmlWritable
+Qyl.Xml.IXmlWritable.WriteXml(System.Xml.XmlWriter! writer) -> void
+Qyl.Xml.IXmlWritable.WriteXml(System.Xml.XmlWriter! writer, string! localName, string? ns) -> void
+Qyl.Xml.IXmlWritable.XmlShape.get -> Qyl.Xml.XmlShape!
+Qyl.Xml.XmlAttributeShape
+override Qyl.Xml.XmlAttributeShape.<Clone>$() -> Qyl.Xml.XmlAttributeShape!
+Qyl.Xml.XmlAttributeShape.Deconstruct(out string! PropertyName, out Qyl.Xml.XmlName! Name, out Qyl.Xml.XmlScalarShape! Value, out bool Optional) -> void
+override Qyl.Xml.XmlAttributeShape.EqualityContract.get -> System.Type!
+Qyl.Xml.XmlAttributeShape.Equals(Qyl.Xml.XmlAttributeShape? other) -> bool
+override sealed Qyl.Xml.XmlAttributeShape.Equals(Qyl.Xml.XmlShapeNode? other) -> bool
+override Qyl.Xml.XmlAttributeShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlAttributeShape.GetHashCode() -> int
+Qyl.Xml.XmlAttributeShape.Name.get -> Qyl.Xml.XmlName!
+Qyl.Xml.XmlAttributeShape.Name.init -> void
+Qyl.Xml.XmlAttributeShape.Optional.get -> bool
+Qyl.Xml.XmlAttributeShape.Optional.init -> void
+override Qyl.Xml.XmlAttributeShape.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Qyl.Xml.XmlAttributeShape.ToString() -> string!
+Qyl.Xml.XmlAttributeShape.Value.get -> Qyl.Xml.XmlScalarShape!
+Qyl.Xml.XmlAttributeShape.Value.init -> void
+Qyl.Xml.XmlAttributeShape.XmlAttributeShape(string! PropertyName, Qyl.Xml.XmlName! Name, Qyl.Xml.XmlScalarShape! Value, bool Optional) -> void
+static Qyl.Xml.XmlAttributeShape.operator !=(Qyl.Xml.XmlAttributeShape? left, Qyl.Xml.XmlAttributeShape? right) -> bool
+static Qyl.Xml.XmlAttributeShape.operator ==(Qyl.Xml.XmlAttributeShape? left, Qyl.Xml.XmlAttributeShape? right) -> bool
+Qyl.Xml.XmlCollectionShape
+override Qyl.Xml.XmlCollectionShape.<Clone>$() -> Qyl.Xml.XmlCollectionShape!
+Qyl.Xml.XmlCollectionShape.Deconstruct(out string! PropertyName, out Qyl.Xml.XmlName? Wrapper, out Qyl.Xml.XmlName! Item, out Qyl.Xml.XmlScalarShape? ItemValue, out System.Func<Qyl.Xml.XmlShape!>? ItemShape, out bool Optional, out bool ItemNillable) -> void
+override Qyl.Xml.XmlCollectionShape.EqualityContract.get -> System.Type!
+Qyl.Xml.XmlCollectionShape.Equals(Qyl.Xml.XmlCollectionShape? other) -> bool
+override sealed Qyl.Xml.XmlCollectionShape.Equals(Qyl.Xml.XmlShapeNode? other) -> bool
+override Qyl.Xml.XmlCollectionShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlCollectionShape.GetHashCode() -> int
+Qyl.Xml.XmlCollectionShape.Item.get -> Qyl.Xml.XmlName!
+Qyl.Xml.XmlCollectionShape.Item.init -> void
+Qyl.Xml.XmlCollectionShape.ItemNillable.get -> bool
+Qyl.Xml.XmlCollectionShape.ItemNillable.init -> void
+Qyl.Xml.XmlCollectionShape.ItemShape.get -> System.Func<Qyl.Xml.XmlShape!>?
+Qyl.Xml.XmlCollectionShape.ItemShape.init -> void
+Qyl.Xml.XmlCollectionShape.ItemValue.get -> Qyl.Xml.XmlScalarShape?
+Qyl.Xml.XmlCollectionShape.ItemValue.init -> void
+Qyl.Xml.XmlCollectionShape.Optional.get -> bool
+Qyl.Xml.XmlCollectionShape.Optional.init -> void
+override Qyl.Xml.XmlCollectionShape.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Qyl.Xml.XmlCollectionShape.ToString() -> string!
+Qyl.Xml.XmlCollectionShape.Wrapper.get -> Qyl.Xml.XmlName?
+Qyl.Xml.XmlCollectionShape.Wrapper.init -> void
+Qyl.Xml.XmlCollectionShape.XmlCollectionShape(string! PropertyName, Qyl.Xml.XmlName? Wrapper, Qyl.Xml.XmlName! Item, Qyl.Xml.XmlScalarShape? ItemValue, System.Func<Qyl.Xml.XmlShape!>? ItemShape, bool Optional, bool ItemNillable) -> void
+static Qyl.Xml.XmlCollectionShape.operator !=(Qyl.Xml.XmlCollectionShape? left, Qyl.Xml.XmlCollectionShape? right) -> bool
+static Qyl.Xml.XmlCollectionShape.operator ==(Qyl.Xml.XmlCollectionShape? left, Qyl.Xml.XmlCollectionShape? right) -> bool
+Qyl.Xml.XmlElementShape
+override Qyl.Xml.XmlElementShape.<Clone>$() -> Qyl.Xml.XmlElementShape!
+Qyl.Xml.XmlElementShape.Deconstruct(out string! PropertyName, out Qyl.Xml.XmlName! Name, out Qyl.Xml.XmlScalarShape! Value, out bool Optional, out bool Nillable) -> void
+override Qyl.Xml.XmlElementShape.EqualityContract.get -> System.Type!
+Qyl.Xml.XmlElementShape.Equals(Qyl.Xml.XmlElementShape? other) -> bool
+override sealed Qyl.Xml.XmlElementShape.Equals(Qyl.Xml.XmlShapeNode? other) -> bool
+override Qyl.Xml.XmlElementShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlElementShape.GetHashCode() -> int
+Qyl.Xml.XmlElementShape.Name.get -> Qyl.Xml.XmlName!
+Qyl.Xml.XmlElementShape.Name.init -> void
+Qyl.Xml.XmlElementShape.Nillable.get -> bool
+Qyl.Xml.XmlElementShape.Nillable.init -> void
+Qyl.Xml.XmlElementShape.Optional.get -> bool
+Qyl.Xml.XmlElementShape.Optional.init -> void
+override Qyl.Xml.XmlElementShape.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Qyl.Xml.XmlElementShape.ToString() -> string!
+Qyl.Xml.XmlElementShape.Value.get -> Qyl.Xml.XmlScalarShape!
+Qyl.Xml.XmlElementShape.Value.init -> void
+Qyl.Xml.XmlElementShape.XmlElementShape(string! PropertyName, Qyl.Xml.XmlName! Name, Qyl.Xml.XmlScalarShape! Value, bool Optional, bool Nillable) -> void
+static Qyl.Xml.XmlElementShape.operator !=(Qyl.Xml.XmlElementShape? left, Qyl.Xml.XmlElementShape? right) -> bool
+static Qyl.Xml.XmlElementShape.operator ==(Qyl.Xml.XmlElementShape? left, Qyl.Xml.XmlElementShape? right) -> bool
+Qyl.Xml.XmlHttpResult<TValue>
+Qyl.Xml.XmlHttpResult<TValue>.ContentType.get -> string!
+Qyl.Xml.XmlHttpResult<TValue>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> System.Threading.Tasks.Task!
+const Qyl.Xml.XmlHttpResult<TValue>.MediaType = "application/xml; charset=utf-8" -> string!
+Qyl.Xml.XmlHttpResult<TValue>.StatusCode.get -> int
+Qyl.Xml.XmlHttpResult<TValue>.Value.get -> TValue
+Qyl.Xml.XmlHttpResult<TValue>.XmlHttpResult(TValue value) -> void
+Qyl.Xml.XmlModelShape
+override Qyl.Xml.XmlModelShape.<Clone>$() -> Qyl.Xml.XmlModelShape!
+Qyl.Xml.XmlModelShape.Deconstruct(out string! PropertyName, out Qyl.Xml.XmlName! Name, out System.Func<Qyl.Xml.XmlShape!>! Shape, out bool Optional, out bool Nillable) -> void
+override Qyl.Xml.XmlModelShape.EqualityContract.get -> System.Type!
+Qyl.Xml.XmlModelShape.Equals(Qyl.Xml.XmlModelShape? other) -> bool
+override sealed Qyl.Xml.XmlModelShape.Equals(Qyl.Xml.XmlShapeNode? other) -> bool
+override Qyl.Xml.XmlModelShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlModelShape.GetHashCode() -> int
+Qyl.Xml.XmlModelShape.Name.get -> Qyl.Xml.XmlName!
+Qyl.Xml.XmlModelShape.Name.init -> void
+Qyl.Xml.XmlModelShape.Nillable.get -> bool
+Qyl.Xml.XmlModelShape.Nillable.init -> void
+Qyl.Xml.XmlModelShape.Optional.get -> bool
+Qyl.Xml.XmlModelShape.Optional.init -> void
+override Qyl.Xml.XmlModelShape.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Qyl.Xml.XmlModelShape.Shape.get -> System.Func<Qyl.Xml.XmlShape!>!
+Qyl.Xml.XmlModelShape.Shape.init -> void
+override Qyl.Xml.XmlModelShape.ToString() -> string!
+Qyl.Xml.XmlModelShape.XmlModelShape(string! PropertyName, Qyl.Xml.XmlName! Name, System.Func<Qyl.Xml.XmlShape!>! Shape, bool Optional, bool Nillable) -> void
+static Qyl.Xml.XmlModelShape.operator !=(Qyl.Xml.XmlModelShape? left, Qyl.Xml.XmlModelShape? right) -> bool
+static Qyl.Xml.XmlModelShape.operator ==(Qyl.Xml.XmlModelShape? left, Qyl.Xml.XmlModelShape? right) -> bool
+Qyl.Xml.XmlName
+Qyl.Xml.XmlName.<Clone>$() -> Qyl.Xml.XmlName!
+Qyl.Xml.XmlName.Deconstruct(out string! LocalName, out string? Namespace) -> void
+Qyl.Xml.XmlName.Equals(Qyl.Xml.XmlName? other) -> bool
+override Qyl.Xml.XmlName.Equals(object? obj) -> bool
+override Qyl.Xml.XmlName.GetHashCode() -> int
+Qyl.Xml.XmlName.LocalName.get -> string!
+Qyl.Xml.XmlName.LocalName.init -> void
+Qyl.Xml.XmlName.Namespace.get -> string?
+Qyl.Xml.XmlName.Namespace.init -> void
+override Qyl.Xml.XmlName.ToString() -> string!
+Qyl.Xml.XmlName.XmlName(string! LocalName, string? Namespace) -> void
+static Qyl.Xml.XmlName.operator !=(Qyl.Xml.XmlName? left, Qyl.Xml.XmlName? right) -> bool
+static Qyl.Xml.XmlName.operator ==(Qyl.Xml.XmlName? left, Qyl.Xml.XmlName? right) -> bool
+Qyl.Xml.XmlResponseMetadata
+Qyl.Xml.XmlResponseMetadata.<Clone>$() -> Qyl.Xml.XmlResponseMetadata!
+Qyl.Xml.XmlResponseMetadata.Deconstruct(out int StatusCode, out Qyl.Xml.XmlShape! Shape) -> void
+Qyl.Xml.XmlResponseMetadata.Equals(Qyl.Xml.XmlResponseMetadata? other) -> bool
+override Qyl.Xml.XmlResponseMetadata.Equals(object? obj) -> bool
+override Qyl.Xml.XmlResponseMetadata.GetHashCode() -> int
+Qyl.Xml.XmlResponseMetadata.Shape.get -> Qyl.Xml.XmlShape!
+Qyl.Xml.XmlResponseMetadata.Shape.init -> void
+Qyl.Xml.XmlResponseMetadata.StatusCode.get -> int
+Qyl.Xml.XmlResponseMetadata.StatusCode.init -> void
+override Qyl.Xml.XmlResponseMetadata.ToString() -> string!
+Qyl.Xml.XmlResponseMetadata.XmlResponseMetadata(int StatusCode, Qyl.Xml.XmlShape! Shape) -> void
+static Qyl.Xml.XmlResponseMetadata.operator !=(Qyl.Xml.XmlResponseMetadata? left, Qyl.Xml.XmlResponseMetadata? right) -> bool
+static Qyl.Xml.XmlResponseMetadata.operator ==(Qyl.Xml.XmlResponseMetadata? left, Qyl.Xml.XmlResponseMetadata? right) -> bool
+Qyl.Xml.XmlScalarShape
+Qyl.Xml.XmlScalarShape.<Clone>$() -> Qyl.Xml.XmlScalarShape!
+Qyl.Xml.XmlScalarShape.Deconstruct(out Qyl.Xml.XmlScalarType Type, out System.Collections.Generic.IReadOnlyList<string!>? EnumValues) -> void
+Qyl.Xml.XmlScalarShape.EnumValues.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Qyl.Xml.XmlScalarShape.EnumValues.init -> void
+Qyl.Xml.XmlScalarShape.Equals(Qyl.Xml.XmlScalarShape? other) -> bool
+override Qyl.Xml.XmlScalarShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlScalarShape.GetHashCode() -> int
+override Qyl.Xml.XmlScalarShape.ToString() -> string!
+Qyl.Xml.XmlScalarShape.Type.get -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarShape.Type.init -> void
+Qyl.Xml.XmlScalarShape.XmlScalarShape(Qyl.Xml.XmlScalarType Type, System.Collections.Generic.IReadOnlyList<string!>? EnumValues = null) -> void
+static Qyl.Xml.XmlScalarShape.operator !=(Qyl.Xml.XmlScalarShape? left, Qyl.Xml.XmlScalarShape? right) -> bool
+static Qyl.Xml.XmlScalarShape.operator ==(Qyl.Xml.XmlScalarShape? left, Qyl.Xml.XmlScalarShape? right) -> bool
+Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Boolean = 1 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Date = 8 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.DateTime = 7 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Decimal = 6 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Double = 5 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Duration = 11 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Enum = 12 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Float = 4 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Integer = 2 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Long = 3 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.String = 0 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Time = 9 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlScalarType.Uuid = 10 -> Qyl.Xml.XmlScalarType
+Qyl.Xml.XmlShape
+Qyl.Xml.XmlShape.<Clone>$() -> Qyl.Xml.XmlShape!
+Qyl.Xml.XmlShape.Deconstruct(out string! TypeName, out Qyl.Xml.XmlName! Root, out System.Collections.Generic.IReadOnlyList<Qyl.Xml.XmlShapeNode!>! Nodes) -> void
+Qyl.Xml.XmlShape.Equals(Qyl.Xml.XmlShape? other) -> bool
+override Qyl.Xml.XmlShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlShape.GetHashCode() -> int
+Qyl.Xml.XmlShape.Nodes.get -> System.Collections.Generic.IReadOnlyList<Qyl.Xml.XmlShapeNode!>!
+Qyl.Xml.XmlShape.Nodes.init -> void
+Qyl.Xml.XmlShape.Root.get -> Qyl.Xml.XmlName!
+Qyl.Xml.XmlShape.Root.init -> void
+override Qyl.Xml.XmlShape.ToString() -> string!
+Qyl.Xml.XmlShape.TypeName.get -> string!
+Qyl.Xml.XmlShape.TypeName.init -> void
+Qyl.Xml.XmlShape.XmlShape(string! TypeName, Qyl.Xml.XmlName! Root, System.Collections.Generic.IReadOnlyList<Qyl.Xml.XmlShapeNode!>! Nodes) -> void
+static Qyl.Xml.XmlShape.operator !=(Qyl.Xml.XmlShape? left, Qyl.Xml.XmlShape? right) -> bool
+static Qyl.Xml.XmlShape.operator ==(Qyl.Xml.XmlShape? left, Qyl.Xml.XmlShape? right) -> bool
+Qyl.Xml.XmlShapeNode
+abstract Qyl.Xml.XmlShapeNode.<Clone>$() -> Qyl.Xml.XmlShapeNode!
+Qyl.Xml.XmlShapeNode.Deconstruct(out string! PropertyName) -> void
+virtual Qyl.Xml.XmlShapeNode.EqualityContract.get -> System.Type!
+virtual Qyl.Xml.XmlShapeNode.Equals(Qyl.Xml.XmlShapeNode? other) -> bool
+override Qyl.Xml.XmlShapeNode.Equals(object? obj) -> bool
+override Qyl.Xml.XmlShapeNode.GetHashCode() -> int
+virtual Qyl.Xml.XmlShapeNode.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Qyl.Xml.XmlShapeNode.PropertyName.get -> string!
+Qyl.Xml.XmlShapeNode.PropertyName.init -> void
+override Qyl.Xml.XmlShapeNode.ToString() -> string!
+Qyl.Xml.XmlShapeNode.XmlShapeNode(Qyl.Xml.XmlShapeNode! original) -> void
+Qyl.Xml.XmlShapeNode.XmlShapeNode(string! PropertyName) -> void
+static Qyl.Xml.XmlShapeNode.operator !=(Qyl.Xml.XmlShapeNode? left, Qyl.Xml.XmlShapeNode? right) -> bool
+static Qyl.Xml.XmlShapeNode.operator ==(Qyl.Xml.XmlShapeNode? left, Qyl.Xml.XmlShapeNode? right) -> bool
+Qyl.Xml.XmlTextShape
+override Qyl.Xml.XmlTextShape.<Clone>$() -> Qyl.Xml.XmlTextShape!
+Qyl.Xml.XmlTextShape.Deconstruct(out string! PropertyName, out Qyl.Xml.XmlScalarShape! Value, out bool Optional) -> void
+override Qyl.Xml.XmlTextShape.EqualityContract.get -> System.Type!
+override sealed Qyl.Xml.XmlTextShape.Equals(Qyl.Xml.XmlShapeNode? other) -> bool
+Qyl.Xml.XmlTextShape.Equals(Qyl.Xml.XmlTextShape? other) -> bool
+override Qyl.Xml.XmlTextShape.Equals(object? obj) -> bool
+override Qyl.Xml.XmlTextShape.GetHashCode() -> int
+Qyl.Xml.XmlTextShape.Optional.get -> bool
+Qyl.Xml.XmlTextShape.Optional.init -> void
+override Qyl.Xml.XmlTextShape.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Qyl.Xml.XmlTextShape.ToString() -> string!
+Qyl.Xml.XmlTextShape.Value.get -> Qyl.Xml.XmlScalarShape!
+Qyl.Xml.XmlTextShape.Value.init -> void
+Qyl.Xml.XmlTextShape.XmlTextShape(string! PropertyName, Qyl.Xml.XmlScalarShape! Value, bool Optional) -> void
+static Qyl.Xml.XmlTextShape.operator !=(Qyl.Xml.XmlTextShape? left, Qyl.Xml.XmlTextShape? right) -> bool
+static Qyl.Xml.XmlTextShape.operator ==(Qyl.Xml.XmlTextShape? left, Qyl.Xml.XmlTextShape? right) -> bool
+Qyl.Xml.XmlWritableExtensions
+static Qyl.Xml.XmlWritableExtensions.ToXml(this Qyl.Xml.IXmlWritable! value) -> string!
+static Qyl.Xml.XmlWritableExtensions.WriteXmlTo(this Qyl.Xml.IXmlWritable! value, System.IO.Stream! stream) -> void

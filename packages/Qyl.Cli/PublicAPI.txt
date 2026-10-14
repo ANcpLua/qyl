@@ -1,3 +1,2 @@
-#nullable enable
 Program
 Program.Program() -> void

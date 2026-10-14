@@ -6,6 +6,7 @@ One agent per qyl-dev repo (qyl, qyl.mcp, qyl-api-schema, Qyl.Telemetry.AutoInst
 
 - Publishes one NuGet release set: the `qyl` tool, its six runtime packages `qyl.<rid>` and `Qyl.Api.Sdk`.
 - Version source: `Version.props` `QylVersion`, bumped in its own commit before the first package-affecting change after a release. The README release lines are rendered from `Version.props` by `./eng/build.sh Check` (target `RenderReadmeVersions`): after a bump or a pin, commit the README it rewrote.
+- Bump: Check rewrites `PublicAPI.txt` beside `packages/Qyl.Cli` and the two libraries Qyl.Api.Sdk ships (`packages/Qyl.Api.Sdk/Qyl.Xml`, `Qyl.Api`) to their public API and notes `api: +N -M changed` or `api: unchanged`; it informs, never blocks. Read `git diff v<last release> -- '*PublicAPI.txt'`: a removed or changed line is major, only added lines minor, none patch.
 - Key: Vitals entry "qyl-dev manual publish and release (NuGet)", `~/.config/vitals/nuget-qyl-manual-publish-key`, read by the script. Never print, paste, commit or log it. Entry missing or note expired: stop and tell the owner.
 - Upstream pins: `Version.props` `QylApiContractsVersion` (qyl-api-schema), `QylSemanticConventionsVersion` (SemanticConventions), `QylTelemetryVersion` (AutoInstrumentation); `services/qyl.dashboard/package.json` and its `bun.lock` (`@ancplua/qyl-api-schema`).
 - A `release.sh` change keeps `python3 eng/scripts/test-release-publish-order.py` green.

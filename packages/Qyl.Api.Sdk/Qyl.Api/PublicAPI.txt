@@ -1,0 +1,36 @@
+Qyl.IQylApiBuilder
+Qyl.IQylApiBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Qyl.QylApiBuilder
+Qyl.QylApiBuilder.QylApiBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
+Qyl.QylApiBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Qyl.QylApiContract
+static Qyl.QylApiContract.IsSessionId(string? candidate) -> bool
+const Qyl.QylApiContract.MaxSessionIdLength = 128 -> int
+const Qyl.QylApiContract.RevisionAttributeName = "qyl.api.contract.revision" -> string!
+const Qyl.QylApiContract.SessionIdName = "session.id" -> string!
+const Qyl.QylApiContract.SessionIdPattern = "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$" -> string!
+Qyl.QylBuildTimeDocumentHost
+static Qyl.QylBuildTimeDocumentHost.IsCurrentProcess.get -> bool
+Qyl.QylProblemJsonContext
+static Qyl.QylProblemJsonContext.Default.get -> Qyl.QylProblemJsonContext!
+override Qyl.QylProblemJsonContext.GeneratedSerializerOptions.get -> System.Text.Json.JsonSerializerOptions?
+override Qyl.QylProblemJsonContext.GetTypeInfo(System.Type! type) -> System.Text.Json.Serialization.Metadata.JsonTypeInfo?
+Qyl.QylProblemJsonContext.HttpValidationProblemDetails.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Microsoft.AspNetCore.Http.HttpValidationProblemDetails>
+Qyl.QylProblemJsonContext.IDictionaryStringObject.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.IDictionary<string, object>>
+Qyl.QylProblemJsonContext.IDictionaryStringStringArray.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.IDictionary<string, string[]>>
+Qyl.QylProblemJsonContext.Int32.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<int>
+Qyl.QylProblemJsonContext.NullableInt32.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<int?>
+Qyl.QylProblemJsonContext.Object.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<object>
+Qyl.QylProblemJsonContext.ProblemDetails.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Microsoft.AspNetCore.Mvc.ProblemDetails>
+Qyl.QylProblemJsonContext.QylProblemJsonContext() -> void
+Qyl.QylProblemJsonContext.QylProblemJsonContext(System.Text.Json.JsonSerializerOptions! options) -> void
+Qyl.QylProblemJsonContext.String.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<string>
+Qyl.QylProblemJsonContext.StringArray.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<string[]>
+Qyl.QylResults
+static Qyl.QylResults.Xml<TValue>(TValue value) -> Qyl.Xml.XmlHttpResult<TValue>!
+Qyl.QylSessionBaggageStartupFilter
+Qyl.QylSessionBaggageStartupFilter.Configure(System.Action<Microsoft.AspNetCore.Builder.IApplicationBuilder!>! next) -> System.Action<Microsoft.AspNetCore.Builder.IApplicationBuilder!>!
+Qyl.QylSessionBaggageStartupFilter.QylSessionBaggageStartupFilter() -> void
+Qyl.QylXmlResponseTransformer
+Qyl.QylXmlResponseTransformer.QylXmlResponseTransformer() -> void
+Qyl.QylXmlResponseTransformer.TransformAsync(Microsoft.OpenApi.OpenApiOperation! operation, Microsoft.AspNetCore.OpenApi.OpenApiOperationTransformerContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!

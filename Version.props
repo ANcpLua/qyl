@@ -25,11 +25,6 @@
     <MicrosoftOpenApiVersion>2.12.2</MicrosoftOpenApiVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.CSharp -->
     <RoslynVersion>5.9.0</RoslynVersion>
-    <!-- Microsoft.CodeAnalysis.PublicApiAnalyzers ships on its own cadence and has no 5.9.0
-         (5.6.0 is its newest, checked on nuget.org 2026-09-02). Feeding it $(RoslynVersion) fails
-         restore with NU1102 the moment the compiler packages move ahead, so it gets its own property. -->
-    <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.PublicApiAnalyzers -->
-    <RoslynPublicApiAnalyzersVersion>5.6.0</RoslynPublicApiAnalyzersVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="qyl-owned packages">
