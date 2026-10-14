@@ -1459,8 +1459,9 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             throw new InvalidOperationException(
                 "DuckDbTable/DuckDbColumn metadata must generate the exact DDL, structural catalog and SHA-256 " +
-                "schema identity. Authoritative mismatches fail closed when data exists; disposable derived " +
-                "schemas are dropped and recreated. Do not restore ALTER/backfill migration machinery.");
+                "schema identity. Authoritative mismatches fail closed when data exists, except the tables and " +
+                "trailing nullable columns a release adds; disposable derived schemas are dropped and recreated. " +
+                "Do not restore ALTER COLUMN/backfill migration machinery.");
         });
 
     Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d

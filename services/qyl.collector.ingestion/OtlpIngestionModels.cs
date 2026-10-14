@@ -37,7 +37,10 @@ internal sealed record SpanIngestionRecord
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
     public IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs { get; init; } = [];
+    /// <summary>The scope's schema URL, or the resource's when the scope carries none; null when neither does.</summary>
     public string? SchemaUrl { get; init; }
+    public string? ScopeName { get; init; }
+    public string? ScopeVersion { get; init; }
     public string? StatusMessage { get; init; }
     public IReadOnlyList<SpanEventIngest> Events { get; init; } = [];
     public IReadOnlyList<SpanLinkIngest> Links { get; init; } = [];

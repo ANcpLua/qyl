@@ -27,13 +27,13 @@ internal static partial class OtlpConverter
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
             var projectIdHint = ExtractProjectIdHintFromProto(resourceSpan.Resource);
             var resource = ExtractResourceProjection(resourceSpan.Resource);
-            var schemaUrl = resourceSpan.SchemaUrl;
+            var resourceSchemaUrl = NullIfEmpty(resourceSpan.SchemaUrl);
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
             {
-                var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeSpan.SchemaUrl)
-                    ? scopeSpan.SchemaUrl
-                    : schemaUrl;
+                var schemaUrl = NullIfEmpty(scopeSpan.SchemaUrl) ?? resourceSchemaUrl;
+                var scopeName = NullIfEmpty(scopeSpan.Scope?.Name);
+                var scopeVersion = NullIfEmpty(scopeSpan.Scope?.Version);
 
                 foreach (var span in scopeSpan.Spans)
                 {
@@ -46,7 +46,9 @@ internal static partial class OtlpConverter
                             attributes,
                             resource.Attributes,
                             resource.EntityRefs,
-                            effectiveSchemaUrl);
+                            schemaUrl,
+                            scopeName,
+                            scopeVersion);
                     spans.Add(spanRecord);
                 }
             }
@@ -359,7 +361,9 @@ internal static partial class OtlpConverter
         Dictionary<string, OtlpAttributeValue> attributes,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
-        string? schemaUrl) =>
+        string? schemaUrl,
+        string? scopeName,
+        string? scopeVersion) =>
         new()
         {
             ProjectIdHint = projectIdHint,
@@ -377,6 +381,8 @@ internal static partial class OtlpConverter
             ResourceAttributes = resourceAttributes,
             ResourceEntityRefs = resourceEntityRefs,
             SchemaUrl = schemaUrl,
+            ScopeName = scopeName,
+            ScopeVersion = scopeVersion,
             Events = BuildSpanEvents(span),
             Links = BuildSpanLinks(span)
         };

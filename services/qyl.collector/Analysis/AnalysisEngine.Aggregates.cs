@@ -120,7 +120,7 @@ internal sealed partial class AnalysisEngine
         var lag = snapshot.Logs.Where(l => l.ObservedTimeUnixNano is not null).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
         return J.O(("silent_services", Silent(input)), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count == 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
             ("semconv_gaps", SemanticGaps(rows)), ("unknown_service_share", rows.Count == 0 ? 0 : rows.Count(s => s.Service.StartsWith("unknown", StringComparison.Ordinal)) / (double)rows.Count),
-            ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Distinct()), ("retention", J.O(("oldest", oldest == 0 ? null : J.Time(oldest)), ("days", oldest == 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
+            ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("retention", J.O(("oldest", oldest == 0 ? null : J.Time(oldest)), ("days", oldest == 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
             ("ingestion_lag_ms", lag.Count == 0 ? null : lag.Average()));
     }
     private static JsonArray SemanticGaps(List<AnalysisRecord> rows)

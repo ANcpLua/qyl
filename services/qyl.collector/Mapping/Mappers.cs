@@ -204,8 +204,8 @@ internal static class SpanMapper
             r.Name, r.Kind, r.StatusCode,
             r.StartTimeUnixNano, r.EndTimeUnixNano,
             r.ServiceName,
-            r.AttributesJson, r.ResourceJson, r.ResourceEntityRefsJson, r.SchemaUrl,
-            r.StatusMessage, r.EventsJson, r.LinksJson))
+            r.AttributesJson, r.ResourceJson, r.ResourceEntityRefsJson,
+            r.StatusMessage, r.EventsJson, r.LinksJson, r.ScopeName, r.ScopeVersion))
     ];
 
     public static TraceContract ToTrace(string traceId, IReadOnlyList<Span> spans)
@@ -305,8 +305,8 @@ internal static class SpanMapper
         string name, byte kind, byte statusCode,
         ulong startTimeUnixNano, ulong endTimeUnixNano,
         string? serviceName,
-        string? attributesJson, string? resourceJson, string? resourceEntityRefsJson, string? schemaUrl,
-        string? statusMessage, string? eventsJson, string? linksJson)
+        string? attributesJson, string? resourceJson, string? resourceEntityRefsJson,
+        string? statusMessage, string? eventsJson, string? linksJson, string? scopeName, string? scopeVersion)
     {
         var attributes = ContractJson.ParseAttributes(attributesJson);
         var resourceAttributes = ContractJson.ParseAttributes(resourceJson);
@@ -334,9 +334,10 @@ internal static class SpanMapper
                 Attributes = resourceAttributes,
                 EntityRefs = ResourceMapping.ParseEntityRefs(resourceEntityRefsJson, resourceAttributes)
             },
-            InstrumentationScope = schemaUrl is null
+            // The contract has no schema URL on a span; the stored one feeds check_telemetry_health.
+            InstrumentationScope = scopeName is null
                 ? null
-                : new InstrumentationScope { ScopeName = schemaUrl }
+                : new InstrumentationScope { ScopeName = scopeName, ScopeVersion = scopeVersion }
         };
     }
 }

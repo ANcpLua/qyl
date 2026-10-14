@@ -68,7 +68,9 @@ internal static class IngestionStorageMapper
             SchemaUrl = span.SchemaUrl,
             StatusMessage = span.StatusMessage,
             EventsJson = SpanChildStorage.SerializeEvents(span.Events),
-            LinksJson = SpanChildStorage.SerializeLinks(span.Links)
+            LinksJson = SpanChildStorage.SerializeLinks(span.Links),
+            ScopeName = span.ScopeName,
+            ScopeVersion = span.ScopeVersion
         };
     }
 

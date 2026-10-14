@@ -26,7 +26,9 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         schema_url = EXCLUDED.schema_url,
         status_message = EXCLUDED.status_message,
         events_json = EXCLUDED.events_json,
-        links_json = EXCLUDED.links_json
+        links_json = EXCLUDED.links_json,
+        scope_name = EXCLUDED.scope_name,
+        scope_version = EXCLUDED.scope_version
     """)]
 internal sealed partial record SpanStorageRow
 {
@@ -75,6 +77,13 @@ internal sealed partial record SpanStorageRow
     public string? EventsJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? LinksJson { get; init; }
+
+    // Columns a release appends stay last: DuckDbStore adds them to an existing table with
+    // ALTER TABLE ADD COLUMN, which only works while the stored columns are a prefix of these.
+    [DuckDbColumn(SqlType = "VARCHAR(256)")]
+    public string? ScopeName { get; init; }
+    [DuckDbColumn(SqlType = "VARCHAR(64)")]
+    public string? ScopeVersion { get; init; }
 }
 
 internal sealed record StorageStats

@@ -782,9 +782,16 @@ internal sealed partial class DuckDbStore : IQylStore
             DuckDbGeneratedSchema.AuthoritativeTables);
         if (stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash })
         {
-            authoritativeMismatches = IsAdditiveAuthoritativeRelease(con, transaction, stored, authoritativeMismatches)
-                ? []
-                : DuckDbGeneratedSchema.AuthoritativeTableNames;
+            var appended = PlanAdditiveRelease(con, transaction, authoritativeMismatches);
+            if (appended is null)
+            {
+                authoritativeMismatches = DuckDbGeneratedSchema.AuthoritativeTableNames;
+            }
+            else
+            {
+                AppendColumns(con, transaction, appended);
+                authoritativeMismatches = [];
+            }
         }
         var derivedMismatches = FindSchemaMismatches(
             con,
@@ -803,9 +810,10 @@ internal sealed partial class DuckDbStore : IQylStore
                       DuckDbGeneratedSchema.AuthoritativeHash
                     : $"incompatible tables: {string.Join(", ", authoritativeMismatches)}";
                 throw new QylSchemaMismatchException(
-                    "The authoritative DuckDB schema differs from this build while persisted data exists. " +
-                    "Start with a new database and replay or import the authoritative journal; qyl will not " +
-                    $"ALTER or delete that data automatically. Difference: {difference}");
+                    "The authoritative DuckDB schema differs from this build while persisted data exists, " +
+                    "beyond the tables and trailing nullable columns a release may add. Start with a new " +
+                    "database and replay or import the authoritative journal; qyl will not rewrite or delete " +
+                    $"that data automatically. Difference: {difference}");
             }
 
             DropExpectedIndexes(
@@ -841,31 +849,64 @@ internal sealed partial class DuckDbStore : IQylStore
         VerifyPersistedPrimaryKeys(con);
     }
 
-    // A release that only adds authoritative tables (annotations and saved queries joined the
-    // telemetry tables this way) needs no migration: every table the database holds is the one
-    // this build generates, byte for byte, and the stored identity is exactly the identity of
-    // those tables. Each absent table is then created empty by the regular IF NOT EXISTS DDL.
-    // Anything else (a changed column, index or default, or a table this build no longer knows)
-    // still fails closed while data exists.
-    private static bool IsAdditiveAuthoritativeRelease(
+    // A release may add authoritative tables (annotations and saved queries joined the telemetry
+    // tables this way) and append nullable columns to an existing one (the span instrumentation
+    // scope joined this way). Both keep every stored row: an absent table is created empty by the
+    // IF NOT EXISTS DDL, an appended column is added with NULL in every existing row. Each present
+    // table must otherwise be this build's, column for column; anything else (a changed, removed or
+    // reordered column, a changed default or primary key, a required or defaulted new column) is
+    // not additive and fails closed while data exists. Returns the columns to append per table, or
+    // null when the difference is not additive.
+    private static IReadOnlyList<(DuckDbExpectedTable Table, DuckDbExpectedColumn[] Columns)>? PlanAdditiveRelease(
         DuckDBConnection con,
         DbTransaction transaction,
-        SchemaIdentity stored,
-        IReadOnlyList<string> structuralMismatches)
+        IReadOnlyList<string> mismatches)
     {
-        var absent = DuckDbGeneratedSchema.AuthoritativeTableNames
-            .Where(table => !TableExists(con, transaction, table))
-            .ToHashSet(StringComparer.Ordinal);
-        if (absent.Count is 0 || !structuralMismatches.All(absent.Contains))
-            return false;
+        var plan = new List<(DuckDbExpectedTable, DuckDbExpectedColumn[])>();
+        foreach (var name in mismatches)
+        {
+            if (!TableExists(con, transaction, name))
+                continue;
 
-        var present = DuckDbGeneratedSchema.AuthoritativeTableNames
-            .Where(table => !absent.Contains(table))
-            .ToArray();
-        return string.Equals(
-            stored.AuthoritativeHash,
-            DuckDbGeneratedSchema.ComputeAuthoritativeHash(present),
-            StringComparison.Ordinal);
+            var table = DuckDbGeneratedSchema.AuthoritativeTables.Single(
+                expected => string.Equals(expected.Name, name, StringComparison.Ordinal));
+            var actual = ReadColumns(con, transaction, name);
+            if (actual.Count > table.Columns.Length)
+                return null;
+            for (var ordinal = 0; ordinal < actual.Count; ordinal++)
+            {
+                if (!ColumnMatches(actual[ordinal], table.Columns[ordinal]))
+                    return null;
+            }
+
+            var appended = table.Columns[actual.Count..];
+            if (appended.Any(static column => column.Required || column.DefaultSql is not null || column.PrimaryKeyOrdinal >= 0))
+                return null;
+            plan.Add((table, appended));
+        }
+
+        return plan;
+    }
+
+    private static void AppendColumns(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        IReadOnlyList<(DuckDbExpectedTable Table, DuckDbExpectedColumn[] Columns)> plan)
+    {
+        foreach (var (table, columns) in plan)
+        {
+            // DuckDB refuses to alter a table an index depends on; the generated IF NOT EXISTS
+            // index DDL recreates the expected set right after.
+            foreach (var index in ReadIndexNames(con, transaction, table.Name))
+                ExecuteSchemaSql(con, transaction, $"DROP INDEX IF EXISTS {QuoteIdentifier(index)}");
+            foreach (var column in columns)
+            {
+                ExecuteSchemaSql(
+                    con,
+                    transaction,
+                    $"ALTER TABLE {QuoteIdentifier(table.Name)} ADD COLUMN {QuoteIdentifier(column.Name)} {column.SqlType}");
+            }
+        }
     }
 
     private static SchemaIdentity? ReadSchemaIdentity(
@@ -915,51 +956,75 @@ internal sealed partial class DuckDbStore : IQylStore
         var mismatches = new List<string>();
         foreach (var table in expectedTables)
         {
-            var ordinal = 0;
-            var tableMatches = true;
-            {
-                using var command = con.CreateCommand();
-                command.Transaction = transaction;
-                command.CommandText = """
-                                      SELECT column_name, data_type, is_nullable, column_default
-                                      FROM duckdb_columns()
-                                      WHERE schema_name = 'main' AND table_name = $1
-                                      ORDER BY column_index
-                                      """;
-                AddParameters(command, table.Name);
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    if (ordinal >= table.Columns.Length)
-                    {
-                        tableMatches = false;
-                        continue;
-                    }
+            var actual = ReadColumns(con, transaction, table.Name);
+            var tableMatches = actual.Count == table.Columns.Length;
+            for (var ordinal = 0; tableMatches && ordinal < actual.Count; ordinal++)
+                tableMatches = ColumnMatches(actual[ordinal], table.Columns[ordinal]);
 
-                    var expected = table.Columns[ordinal++];
-                    var actualName = reader.GetString(0);
-                    var actualType = reader.GetString(1);
-                    var actualNullable = reader.GetBoolean(2);
-                    var actualDefault = reader.IsDBNull(3) ? null : reader.GetString(3);
-                    if (!string.Equals(actualName, expected.Name, StringComparison.Ordinal) ||
-                        !string.Equals(
-                            NormalizeDuckDbType(actualType),
-                            NormalizeDuckDbType(expected.SqlType),
-                            StringComparison.Ordinal) ||
-                        actualNullable == expected.Required ||
-                        !DefaultsMatch(actualDefault, expected.DefaultSql))
-                    {
-                        tableMatches = false;
-                    }
-                }
-            }
-
-            if (!tableMatches || ordinal != table.Columns.Length ||
-                !IndexesMatch(con, transaction, table))
+            if (!tableMatches || !IndexesMatch(con, transaction, table))
                 mismatches.Add(table.Name);
         }
 
         return mismatches;
+    }
+
+    private sealed record ActualColumn(string Name, string Type, bool Nullable, string? Default);
+
+    private static List<ActualColumn> ReadColumns(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        string table)
+    {
+        var columns = new List<ActualColumn>();
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              SELECT column_name, data_type, is_nullable, column_default
+                              FROM duckdb_columns()
+                              WHERE schema_name = 'main' AND table_name = $1
+                              ORDER BY column_index
+                              """;
+        AddParameters(command, table);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            columns.Add(new ActualColumn(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetBoolean(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3)));
+        }
+
+        return columns;
+    }
+
+    private static bool ColumnMatches(ActualColumn actual, DuckDbExpectedColumn expected) =>
+        string.Equals(actual.Name, expected.Name, StringComparison.Ordinal) &&
+        string.Equals(
+            NormalizeDuckDbType(actual.Type),
+            NormalizeDuckDbType(expected.SqlType),
+            StringComparison.Ordinal) &&
+        actual.Nullable != expected.Required &&
+        DefaultsMatch(actual.Default, expected.DefaultSql);
+
+    private static List<string> ReadIndexNames(
+        DuckDBConnection con,
+        DbTransaction transaction,
+        string table)
+    {
+        var names = new List<string>();
+        using var command = con.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+                              SELECT index_name
+                              FROM duckdb_indexes()
+                              WHERE schema_name = 'main' AND table_name = $1
+                              """;
+        AddParameters(command, table);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            names.Add(reader.GetString(0));
+        return names;
     }
 
     private static bool IndexesMatch(
