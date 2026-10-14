@@ -24,9 +24,10 @@ say() { printf '\n== %s\n' "$*"; }
 die() { echo "release: $*" >&2; exit 1; }
 indexed() { curl -fsSL "$NUGET_FLAT/$1/index.json" 2>/dev/null | grep -q "\"$2\""; }
 
+# Up to 20 minutes: the 43 MB osx runtime packages of 12.2.0 took about 15 minutes to index.
 wait_for_indexed() {
   local attempt package ready
-  for attempt in $(seq 1 20); do
+  for attempt in $(seq 1 40); do
     ready=1
     for package in "$@"; do indexed "$package" "$version" || ready=0; done
     (( ready )) && return 0
