@@ -83,7 +83,7 @@ The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.A
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
 | `qyl` (dotnet tool) | 13.0.0 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 25.0.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 25.0.1 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 10.0.1 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.1.2 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | [npm](https://www.npmjs.com/package/qyl-mcp-server) | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
