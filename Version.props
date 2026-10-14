@@ -91,7 +91,7 @@
     <!-- renovate: datasource=nuget depName=Microsoft.Testing.Extensions.CodeCoverage -->
     <MicrosoftTestingExtensionsCodeCoverageVersion>18.12.0</MicrosoftTestingExtensionsCodeCoverageVersion>
     <!-- renovate: datasource=nuget depName=DotCov.Fallout -->
-    <DotCovVersion>3.0.0</DotCovVersion>
+    <DotCovVersion>4.1.0</DotCovVersion>
     <!-- renovate: datasource=nuget depName=Valleysoft.DockerfileModel -->
     <DockerfileModelVersion>4.0.0</DockerfileModelVersion>
     <!-- renovate: datasource=nuget depName=YamlDotNet -->
