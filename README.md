@@ -78,7 +78,7 @@ dependency line is published, and this repository's own line is published when
 `./release.sh <version>` runs on the developer's machine (see `SKILL.md`). Package
 registries are authoritative for public availability.
 
-The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs and which rewrites them; commit the rendered text. The `qyl-mcp-server` row is not rendered: its version lives in [qyl.mcp](https://github.com/ANcpLua/qyl.mcp).
+The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs and which rewrites them; commit the rendered text. The `qyl-mcp-server` row names no version: qyl builds against none, and npm lists its releases.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.A
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 24.1.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 9.9.2 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.1.2 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
-| `qyl-mcp-server` | 8.1.1 | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
+| `qyl-mcp-server` | [npm](https://www.npmjs.com/package/qyl-mcp-server) | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 | `Qyl.Api.Sdk` (MSBuild SDK) | 12.2.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
