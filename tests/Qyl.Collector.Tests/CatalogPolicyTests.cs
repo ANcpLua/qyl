@@ -36,7 +36,9 @@ public sealed class CatalogPolicyTests
         Assert.Equal(Sorted(RegistryPolicy.VendorKeys), Sorted(CollectorSemanticAttributeCatalog.VendorKeys));
 
         // POL's five exemptions plus the five hot token counts the collector lifts into columns.
-        Assert.Equal(10, CollectorSemanticAttributeCatalog.TokenExemptKeys.Count);
+        // SemanticConventions 10.0.1: plus the ten plain token counts (gen_ai.request.max_tokens, gen_ai.usage.{text,audio,image}.*_tokens).
+        Assert.Equal(20, CollectorSemanticAttributeCatalog.TokenExemptKeys.Count);
+        Assert.Contains("gen_ai.request.max_tokens", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
         Assert.Contains("gen_ai.usage.reasoning.output_tokens", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
         Assert.DoesNotContain("gen_ai.agent.name", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.NotPersistedKeys);
     }
