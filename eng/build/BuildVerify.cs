@@ -2280,7 +2280,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 "Target E2ETests",
                 "qyl.e2e.tests",
                 "IQylTest",
-                "ICoverage",
+                // ICoverage and BuildCoverage.cs returned as the dotcov gate (2026-10-14); the
+                // ReportGenerator-based gate removed in June stays out.
                 "ReportGenerator",
                 "./eng/build.sh Test",
                 "Qyl.OpenTelemetry.Extensions",
@@ -2659,7 +2660,6 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 RootDirectory / "packages" / "Qyl.Host.Console",
                 RootDirectory / "packages" / "Qyl.Run.Host",
                 RootDirectory / "eng" / "build" / "BuildTest.cs",
-                RootDirectory / "eng" / "build" / "BuildCoverage.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "DevLogs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "GeneratedTelemetryRegistrationAttributes.cs",
                 RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "NoTraceAttribute.cs",

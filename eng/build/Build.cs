@@ -28,6 +28,7 @@ interface IQylTests : IHasSolution, IHasConfiguration
 sealed class Build : FalloutBuild,
     ICompile,
     IQylTests,
+    ICoverage,
     IDocker,
     IPipeline,
     INativeAot,
@@ -103,7 +104,7 @@ sealed class Build : FalloutBuild,
         .DependsOn<IPipeline>(static x => x.FrontendLint);
 
     public Target CheckFull => d => d
-        .Description("Everything: Check, NativeAOT, the pack smoke, the SDK proof, the dashboard end-to-end run and the vocabulary smoke")
+        .Description("Everything: Check, NativeAOT, the pack smoke, the SDK proof, the dashboard end-to-end run, the vocabulary smoke and the coverage gate")
         .DependsOn(Check)
         .DependsOn<INativeAot>(static x => x.NativeAot)
         // The pack lane builds with the AOT analyzers Compile disables, so it is the only gate that
@@ -113,7 +114,8 @@ sealed class Build : FalloutBuild,
         // The SDK's own nine-stage proof: it ships from here, so its gates are this gate.
         .DependsOn<IApiSdk>(static x => x.ApiSdk)
         .DependsOn<IPipeline>(static x => x.FrontendE2E)
-        .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke);
+        .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke)
+        .DependsOn<ICoverage>(static x => x.Coverage);
 
     public Target Dev => d => d
         .Description("Start development environment (Docker + compile)")

@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="Fallout.Common"/>
     <PackageReference Include="Fallout.Components"/>
+    <PackageReference Include="DotCov.Fallout"/>
     <!-- BuildCollectorSemanticCatalog reflects these assemblies. -->
     <PackageReference Include="Qyl.Telemetry.SemanticConventions" PrivateAssets="all"/>
     <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
