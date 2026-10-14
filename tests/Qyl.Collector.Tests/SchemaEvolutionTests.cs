@@ -92,6 +92,10 @@ public sealed class SchemaEvolutionTests
                 DropIndexes(con, "spans");
                 foreach (var column in s_appendedSpanColumns.Reverse())
                     Execute(con, $"ALTER TABLE spans DROP COLUMN {column}");
+                // The previous build's indexes are in place when the store opens, as on a live
+                // database: ADD COLUMN must work beside them (dropping and recreating them in the
+                // same transaction crashed DuckDB 1.5.6 with "pure virtual method called").
+                Execute(con, SpanStorageRow.IndexesDdl);
                 Stamp(con, PreviousHash);
             }
 
@@ -134,6 +138,7 @@ public sealed class SchemaEvolutionTests
                 // A column removed from the middle of spans: the stored columns are no prefix of this build's.
                 DropIndexes(con, "spans");
                 Execute(con, "ALTER TABLE spans DROP COLUMN status_message");
+                Execute(con, SpanStorageRow.IndexesDdl);
             }
 
             Assert.Throws<QylSchemaMismatchException>(() => new DuckDbStore(path));
@@ -185,7 +190,7 @@ public sealed class SchemaEvolutionTests
         stamp.ExecuteNonQuery();
     }
 
-    // DuckDB refuses to alter a table an index depends on.
+    // DuckDB refuses to drop a column of a table an index depends on.
     private static void DropIndexes(DuckDBConnection con, string table)
     {
         var names = new List<string>();

@@ -895,10 +895,6 @@ internal sealed partial class DuckDbStore : IQylStore
     {
         foreach (var (table, columns) in plan)
         {
-            // DuckDB refuses to alter a table an index depends on; the generated IF NOT EXISTS
-            // index DDL recreates the expected set right after.
-            foreach (var index in ReadIndexNames(con, transaction, table.Name))
-                ExecuteSchemaSql(con, transaction, $"DROP INDEX IF EXISTS {QuoteIdentifier(index)}");
             foreach (var column in columns)
             {
                 ExecuteSchemaSql(
@@ -1006,26 +1002,6 @@ internal sealed partial class DuckDbStore : IQylStore
             StringComparison.Ordinal) &&
         actual.Nullable != expected.Required &&
         DefaultsMatch(actual.Default, expected.DefaultSql);
-
-    private static List<string> ReadIndexNames(
-        DuckDBConnection con,
-        DbTransaction transaction,
-        string table)
-    {
-        var names = new List<string>();
-        using var command = con.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-                              SELECT index_name
-                              FROM duckdb_indexes()
-                              WHERE schema_name = 'main' AND table_name = $1
-                              """;
-        AddParameters(command, table);
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-            names.Add(reader.GetString(0));
-        return names;
-    }
 
     private static bool IndexesMatch(
         DuckDBConnection con,
