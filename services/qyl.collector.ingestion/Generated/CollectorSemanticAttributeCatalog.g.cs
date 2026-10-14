@@ -929,8 +929,10 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> NotPersistedKeys = FrozenSet.Create(
         StringComparer.OrdinalIgnoreCase,
+        "build.error.message", // incubating
         "code.file.path",
         "code.stacktrace",
+        "db.odp.user.statement", // incubating
         "db.query.text",
         "exception.message",
         "exception.stacktrace",
@@ -964,6 +966,8 @@ internal static class CollectorSemanticAttributeCatalog
         "mcp.resource.uri", // incubating
         "mcp.session.id", // incubating
         "message.content", // incubating
+        "nservicebus.originating_machine", // incubating
+        "nservicebus.processing_machine", // incubating
         "rpc.request.metadata", // incubating
         "rpc.response.metadata", // incubating
         "service.instance.id",
@@ -1011,12 +1015,22 @@ internal static class CollectorSemanticAttributeCatalog
     internal static readonly FrozenSet<string> TokenExemptKeys = FrozenSet.Create(
         StringComparer.Ordinal,
         "db.query.summary",
+        "gen_ai.request.max_tokens", // incubating
         "gen_ai.token.type", // incubating
+        "gen_ai.usage.audio.cache_read.input_tokens", // incubating
+        "gen_ai.usage.audio.input_tokens", // incubating
+        "gen_ai.usage.audio.output_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
         "gen_ai.usage.cache_write.input_tokens", // incubating
+        "gen_ai.usage.image.cache_read.input_tokens", // incubating
+        "gen_ai.usage.image.input_tokens", // incubating
+        "gen_ai.usage.image.output_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
+        "gen_ai.usage.text.cache_read.input_tokens", // incubating
+        "gen_ai.usage.text.input_tokens", // incubating
+        "gen_ai.usage.text.output_tokens", // incubating
         "messaging.kafka.message.offset",
         "messaging.message.body.size", // incubating
         "messaging.message.id" // incubating
