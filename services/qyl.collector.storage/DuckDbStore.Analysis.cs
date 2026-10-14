@@ -75,7 +75,7 @@ internal sealed partial class DuckDbStore
                         predicates.Add("(" + string.Join(" OR ", targets) + ")");
                     }
                 }
-                if (telemetry && targets.Count == 0)
+                if (telemetry && targets.Count is 0)
                 {
                     if (query.Start is { } start) Add(timeColumn, " >= ", (decimal)start);
                     if (query.End is { } end && table != "metric_series") Add(timeColumn, " < ", (decimal)end);
@@ -109,7 +109,7 @@ internal sealed partial class DuckDbStore
     public Task<IReadOnlyList<AnalysisStateRow>> ReadAnalysisStateAsync(string projectId, IReadOnlyList<string> keys, CancellationToken ct = default) =>
         ExecuteReadAsync<IReadOnlyList<AnalysisStateRow>>(con =>
         {
-            if (keys.Count == 0) return [];
+            if (keys.Count is 0) return [];
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + AnalysisStateRow.SelectColumnList + " FROM analysis_state WHERE project_id = $1 AND state_key IN ("
                 + string.Join(",", Enumerable.Range(2, keys.Count).Select(i => "$" + i)) + ")";

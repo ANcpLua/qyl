@@ -80,7 +80,7 @@ internal static partial class J
     public static string Time(ulong nanos) => DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / 1_000_000)).ToString("O");
     public static double Percentile(IEnumerable<double> source, double quantile)
     {
-        var values = source.Order().ToArray(); if (values.Length == 0) return double.NaN;
+        var values = source.Order().ToArray(); if (values.Length is 0) return double.NaN;
         var p = (values.Length - 1) * quantile; var i = (int)p;
         return values[i] + (values[Math.Min(i + 1, values.Length - 1)] - values[i]) * (p - i);
     }
@@ -127,7 +127,7 @@ internal static class AnalysisMatchers
             var op = J.String(m, "op");
             if (string.IsNullOrEmpty(J.String(m, "key"))) throw new AnalysisInputException("matchers.key", "A non-empty attribute key is required.");
             if (op is null || !Ops.Contains(op)) throw new AnalysisInputException("matchers.op", "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.");
-            if (J.String(m, "scope") is { } scope && scope is not ("span" or "resource" or "log")) throw new AnalysisInputException("matchers.scope", "Choose span, resource or log.");
+            if (J.String(m, "scope") is { } and not ("span" or "resource" or "log")) throw new AnalysisInputException("matchers.scope", "Choose span, resource or log.");
             if (op == "in" && m?["values"] is not JsonArray) throw new AnalysisInputException("matchers.values", "The in operator requires values.");
             if (op != "exists" && op != "in" && m?["value"] is null) throw new AnalysisInputException("matchers.value", "This operator requires a value.");
         }

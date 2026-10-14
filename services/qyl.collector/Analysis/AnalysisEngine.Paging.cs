@@ -25,7 +25,7 @@ internal sealed partial class AnalysisEngine
             "fetch_telemetry" when J.String(input, "view") == "trace" => ["trace.spans", "logs", "annotations", "links"],
             _ => []
         };
-        if (paths.Length == 0) { result["has_more"] ??= false; return result; }
+        if (paths.Length is 0) { result["has_more"] ??= false; return result; }
         var scope = input.DeepClone().AsObject(); scope.Remove("cursor"); scope.Remove("limit"); scope.Remove("max_spans"); scope.Remove("max_logs"); scope.Remove("max_steps");
         // The signed token fixes its absolute window. Relative and resolved spellings
         // identify the same query, including a budget retry with a smaller page.
@@ -50,7 +50,7 @@ internal sealed partial class AnalysisEngine
             if (path is "trace.spans" or "observed.error_spans") limit = Math.Min(limit, (int)J.Number(input, "max_spans", limit));
             if (path == "observed.logs") limit = Math.Min(limit, (int)J.Number(input, "max_logs", limit));
             if (path == "steps") limit = Math.Min(limit, (int)J.Number(input, "max_steps", limit));
-            if (limit == 0 && path == "observed.logs") { totals[path] = all.Count; owner[parts[^1]] = new JsonArray(); continue; }
+            if (limit is 0 && path == "observed.logs") { totals[path] = all.Count; owner[parts[^1]] = new JsonArray(); continue; }
             if (limit is < 1 or > 1000) throw new AnalysisInputException("limit", "Use a page size from 1 to 1000.");
             var offset = (int)J.Number(positions, path);
             if (offset < 0 || offset > all.Count) throw new AnalysisInputException("cursor", "The collection changed; start a new query.", "cursor.expired");

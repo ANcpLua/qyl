@@ -6,12 +6,12 @@ using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Storage;
-using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
-using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
-using ExportMetricsServiceRequest = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
-using ExportMetricsServiceResponse = global::OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
-using ExportTraceServiceRequest = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
-using ExportTraceServiceResponse = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
+using ExportLogsServiceRequest = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
+using ExportLogsServiceResponse = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
+using ExportMetricsServiceRequest = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
+using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
+using ExportTraceServiceRequest = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
+using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
 
 namespace Qyl.Collector.Hosting;
 
@@ -553,8 +553,7 @@ internal static partial class CollectorEndpointExtensions
         ContractErrorResults.Validation(
             field,
             "Value is required.",
-            "query.missing",
-            null);
+            "query.missing");
 
     internal static async Task<IResult> GetSessionsAsync(
         HttpContext httpContext,
@@ -715,7 +714,7 @@ internal static partial class CollectorEndpointExtensions
         {
             Items = [.. page.Items.Select(static item => SpanMapper.ToTrace(item.TraceId, SpanMapper.ToContracts(item.Spans)))],
             HasMore = page.HasMore,
-            NextCursor = page.HasMore && page.Items.Count > 0
+            NextCursor = page is { HasMore: true, Items.Count: > 0 }
                 ? PageCursorCodec.Encode(kind, new TracePageCursor(page.Items[^1].ActivityUnixNano, page.Items[^1].TraceId))
                 : null
         };

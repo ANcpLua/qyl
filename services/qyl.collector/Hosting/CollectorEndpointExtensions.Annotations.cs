@@ -308,7 +308,7 @@ internal static partial class CollectorEndpointExtensions
     };
     private static async Task<IReadOnlyList<Annotation>> AnnotationContractsAsync(IQylStore store, IReadOnlyList<AnnotationRow> rows, CancellationToken ct)
     {
-        if (rows.Count == 0) return [];
+        if (rows.Count is 0) return [];
         var state = await store.ReadAnalysisStateAsync(rows[0].ProjectId, rows.Select(row => "annotation:" + row.AnnotationId).ToArray(), ct).ConfigureAwait(false);
         return rows.Select(row => state.FirstOrDefault(s => s.StateKey == "annotation:" + row.AnnotationId) is { } metadata
             ? JsonSerializer.Deserialize(metadata.ValueJson, QylSerializerContext.Default.Annotation)!

@@ -438,8 +438,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
     private static IReadOnlyList<CatalogMemberReference> CollectorSemanticCatalogMemberReferences(CompilationUnitSyntax root) =>
         root.DescendantNodes()
             .OfType<MemberAccessExpressionSyntax>()
-            .Where(static memberAccess => memberAccess.Expression is IdentifierNameSyntax identifier &&
-                                          identifier.Identifier.ValueText is "CollectorSemanticAttributeCatalog")
+            .Where(static memberAccess => memberAccess.Expression is IdentifierNameSyntax { Identifier.ValueText: "CollectorSemanticAttributeCatalog" })
             .Select(static memberAccess => new CatalogMemberReference(
                 memberAccess.Name.Identifier.ValueText,
                 NodeLine(memberAccess)))

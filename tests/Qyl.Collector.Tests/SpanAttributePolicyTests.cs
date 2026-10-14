@@ -54,8 +54,7 @@ public sealed class SpanAttributePolicyTests
         {
             foreach (var tag in tags)
             {
-                if (tag.Key == CollectorSemanticAttributeCatalog.QylAttributeNamespace &&
-                    tag.Value is string attributeNamespace)
+                if (tag is { Key: CollectorSemanticAttributeCatalog.QylAttributeNamespace, Value: string attributeNamespace })
                 {
                     droppedNamespaces.Add(attributeNamespace);
                 }

@@ -216,7 +216,7 @@ internal sealed class QylConsoleUi(
             if (result.Status == QylResourceActionStatus.Accepted) accepted++;
         }
 
-        AnsiConsole.MarkupLine(accepted == 0
+        AnsiConsole.MarkupLine(accepted is 0
             ? "[yellow]No ready process resources accepted a restart.[/]"
             : $"[aqua]Restart accepted for {accepted} process resource(s).[/]");
     }

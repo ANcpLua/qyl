@@ -7,9 +7,13 @@ internal sealed partial class AnalysisEngine
 {
     private static readonly string[] MissingArguments = ["Arguments not captured; repeats cannot be confirmed without argument hashes."];
     private JsonObject AnnotationJson(AnnotationRow row) => _state.GetValueOrDefault("annotation:" + row.AnnotationId) is { } metadata ? JsonNode.Parse(metadata.ValueJson)!.AsObject() : JsonSerializer.SerializeToNode(AnnotationMapper.ToContract(row), QylSerializerContext.Default.Annotation)!.AsObject();
-    private List<JsonObject> TraceAnnotations(string traceId, IReadOnlySet<string>? spanIds = null) => snapshot.Annotations
-        .Where(note => note.TraceId == traceId && (note.SpanId is null || spanIds is null || spanIds.Contains(note.SpanId)))
-        .Select(AnnotationJson).ToList();
+    private List<JsonObject> TraceAnnotations(string traceId, IReadOnlySet<string>? spanIds = null) =>
+    [
+        .. snapshot.Annotations
+            .Where(note =>
+                note.TraceId == traceId && (note.SpanId is null || spanIds is null || spanIds.Contains(note.SpanId)))
+            .Select(AnnotationJson)
+    ];
     private static IEnumerable<string> AnnotationLabels(IEnumerable<JsonObject> notes) => notes
         .SelectMany(static note => (note["labels"] as JsonArray)?.Select(J.Text) ?? [])
         .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
@@ -38,10 +42,10 @@ internal sealed partial class AnalysisEngine
         }).ToList();
         var repeated = rows.Select(r => (Producer: r.Service, Tool: J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiToolName)), Hash: J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash))))
             .Where(r => r.Tool.Length > 0 && r.Hash.Length > 0).GroupBy(r => r).Where(g => g.Count() > 1).Select(g => J.O(("tool", g.Key.Tool), ("argument_hash", g.Key.Hash), ("count", g.Count())));
-        var total = TotalTokens(rows); var start = rows.Count == 0 ? now : DateTimeOffset.FromUnixTimeMilliseconds((long)(rows.Min(r => r.Start) / 1_000_000));
-        return J.O(("run", J.O(("agent_name", rows.Select(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiAgentName))).FirstOrDefault(v => v.Length > 0)), ("models", rows.Select(r => r.Span?.GenAiResponseModel ?? r.Span?.GenAiRequestModel).OfType<string>().Distinct()), ("started", start.ToString("O")), ("duration_ms", rows.Count == 0 ? 0 : (rows.Max(r => r.End) - rows.Min(r => r.Start)) / 1_000_000d), ("tokens", Tokens(rows)), ("errors", rows.Count(r => r.Error)), ("session_id", J.String(input, "session_id")), ("trace_id", J.String(input, "trace_id")))),
-            ("steps", J.A(steps)), ("findings", J.O(("repeated_calls", J.A(repeated)), ("failed_tool_calls", J.A(steps.Where(s => J.String(s, "kind") == "tool_call" && J.String(s, "status") == "ERROR").Take(10))), ("slowest_steps", J.A(steps.OrderByDescending(s => J.Number(s, "duration_ms")).Take(3))), ("token_share", J.A(rows.GroupBy(r => r.Name).Select(g => J.O(("name", g.Key), ("tokens", TotalTokens(g)), ("share", total == 0 ? 0 : TotalTokens(g) / (double)total))))))),
-            ("unknowns", J.N(rows.Any(r => r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null && r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash) is null) ? MissingArguments : Array.Empty<string>())),
+        var total = TotalTokens(rows); var start = rows.Count is 0 ? now : DateTimeOffset.FromUnixTimeMilliseconds((long)(rows.Min(r => r.Start) / 1_000_000));
+        return J.O(("run", J.O(("agent_name", rows.Select(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiAgentName))).FirstOrDefault(v => v.Length > 0)), ("models", rows.Select(r => r.Span?.GenAiResponseModel ?? r.Span?.GenAiRequestModel).OfType<string>().Distinct()), ("started", start.ToString("O")), ("duration_ms", rows.Count is 0 ? 0 : (rows.Max(r => r.End) - rows.Min(r => r.Start)) / 1_000_000d), ("tokens", Tokens(rows)), ("errors", rows.Count(r => r.Error)), ("session_id", J.String(input, "session_id")), ("trace_id", J.String(input, "trace_id")))),
+            ("steps", J.A(steps)), ("findings", J.O(("repeated_calls", J.A(repeated)), ("failed_tool_calls", J.A(steps.Where(s => J.String(s, "kind") == "tool_call" && J.String(s, "status") == "ERROR").Take(10))), ("slowest_steps", J.A(steps.OrderByDescending(s => J.Number(s, "duration_ms")).Take(3))), ("token_share", J.A(rows.GroupBy(r => r.Name).Select(g => J.O(("name", g.Key), ("tokens", TotalTokens(g)), ("share", total is 0 ? 0 : TotalTokens(g) / (double)total))))))),
+            ("unknowns", J.N(rows.Any(r => r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null && r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash) is null) ? MissingArguments : [])),
             ("coverage", Coverage(rows.Count, steps.Count, Math.Min(steps.Count, limit), steps.Count > limit)));
     }
     private JsonObject Sessions(JsonObject input)
@@ -70,7 +74,7 @@ internal sealed partial class AnalysisEngine
     private static long TotalOutput(IEnumerable<AnalysisRecord> rows) => rows.Sum(static s => s.Span?.GenAiOutputTokens ?? 0);
     private JsonObject Traces(JsonObject input)
     {
-        if (J.String(input, "trace_id") is { } requestedTrace && !_spans.Any(s => s.TraceId == requestedTrace))
+        if (J.String(input, "trace_id") is { } requestedTrace && _spans.All(s => s.TraceId != requestedTrace))
             throw new AnalysisInputException("trace", requestedTrace, "trace.not_found");
         var traces = _spans.GroupBy(s => s.TraceId!).Where(g =>
         {
@@ -91,7 +95,7 @@ internal sealed partial class AnalysisEngine
         }).Select(g =>
         {
             var items = g.ToList(); var root = items.OrderBy(s => Depth(s, items)).ThenBy(s => s.Start).First();
-            return J.O(("trace_id", g.Key), ("root_span", ContractSpan(root)), ("duration_ns", (ulong)(g.Max(s => s.End) - g.Min(s => s.Start))), ("services", g.Select(s => s.Service).Distinct()), ("has_error", g.Any(s => s.Error)), ("start_time", J.Time(g.Min(s => s.Start))), ("end_time", J.Time(g.Max(s => s.End))), ("duration_ms", (g.Max(s => s.End) - g.Min(s => s.Start)) / 1_000_000d), ("span_count", g.Count()), ("error_count", g.Count(s => s.Error)), ("root_span_name", root.Name), ("root_service_name", root.Service), ("service_names", g.Select(s => s.Service).Distinct()), ("root_error", root.Error), ("contained_error", g.Any(s => s.Error)), ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("annotation_labels", AnnotationLabels(TraceAnnotations(g.Key))));
+            return J.O(("trace_id", g.Key), ("root_span", ContractSpan(root)), ("duration_ns", g.Max(s => s.End) - g.Min(s => s.Start)), ("services", g.Select(s => s.Service).Distinct()), ("has_error", g.Any(s => s.Error)), ("start_time", J.Time(g.Min(s => s.Start))), ("end_time", J.Time(g.Max(s => s.End))), ("duration_ms", (g.Max(s => s.End) - g.Min(s => s.Start)) / 1_000_000d), ("span_count", g.Count()), ("error_count", g.Count(s => s.Error)), ("root_span_name", root.Name), ("root_service_name", root.Service), ("service_names", g.Select(s => s.Service).Distinct()), ("root_error", root.Error), ("contained_error", g.Any(s => s.Error)), ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("annotation_labels", AnnotationLabels(TraceAnnotations(g.Key))));
         }).OrderByDescending(t => J.String(t, "start_time"), StringComparer.Ordinal).ThenBy(t => J.String(t, "trace_id"), StringComparer.Ordinal).ToList();
         var result = Page(input, "traces", traces, 20, _operation == "fetch_telemetry" ? 200 : 100); result["mode"] = "live";
         if (_operation is "display_traces" or "fetch_telemetry")
@@ -113,12 +117,12 @@ internal sealed partial class AnalysisEngine
     private JsonObject Trace(JsonObject input)
     {
         var rows = Execution(input); var selection = J.String(input, "selection") ?? (J.Bool(input, "errors_only") ? "errors" : "all");
-        if (rows.Count == 0) throw new AnalysisInputException("trace", J.String(input, "trace_id") ?? "", "trace.not_found");
+        if (rows.Count is 0) throw new AnalysisInputException("trace", J.String(input, "trace_id") ?? "", "trace.not_found");
         if (J.Bool(input, "errors_only") && selection != "errors") throw new AnalysisInputException("selection", "errors_only=true requires selection=errors.");
         var matched = rows.Where(s => selection is "all" or "critical_path" || s.Error).ToHashSet(); var selected = matched.ToHashSet();
         var children = rows.ToLookup(s => s.Span?.ParentSpanId ?? "", StringComparer.Ordinal);
         if (selection == "errors_with_ancestors") foreach (var s in matched)
-        { var current = s; while (current.Span?.ParentSpanId is { } parent && SpanIndex.GetValueOrDefault((current.TraceId, parent)) is { } ancestor && selected.Add(ancestor)) current = ancestor; }
+            { var current = s; while (current.Span?.ParentSpanId is { } parent && SpanIndex.GetValueOrDefault((current.TraceId, parent)) is { } ancestor && selected.Add(ancestor)) current = ancestor; }
         if (selection == "critical_path" && rows.Count > 0)
         {
             selected.Clear(); var current = rows.OrderBy(s => Depth(s, rows)).ThenBy(s => s.Start).First(); selected.Add(current);
@@ -128,19 +132,19 @@ internal sealed partial class AnalysisEngine
         var roles = page.Select(s =>
         {
             var role = J.O(("span_id", s.Id), ("role", matched.Contains(s) ? "matched" : "context"));
-            if (selection == "critical_path") { var intervals = children[s.Id].Select(c => (Start: Math.Max(c.Start, s.Start), End: Math.Min(c.End, s.End))).Where(x => x.End > x.Start).OrderBy(x => x.Start).ToList(); ulong total = 0, end = 0; foreach (var interval in intervals) { total += interval.End - Math.Max(interval.Start, Math.Min(end, interval.End)); end = Math.Max(end, interval.End); } var self = Math.Max(0, s.Duration - total / 1_000_000d); role["self_time_ms"] = self; role["self_time_share"] = s.Duration == 0 ? 0 : self / s.Duration; }
+            if (selection == "critical_path") { var intervals = children[s.Id].Select(c => (Start: Math.Max(c.Start, s.Start), End: Math.Min(c.End, s.End))).Where(x => x.End > x.Start).OrderBy(x => x.Start).ToList(); ulong total = 0, end = 0; foreach (var interval in intervals) { total += interval.End - Math.Max(interval.Start, Math.Min(end, interval.End)); end = Math.Max(end, interval.End); } var self = Math.Max(0, s.Duration - total / 1_000_000d); role["self_time_ms"] = self; role["self_time_share"] = s.Duration is 0 ? 0 : self / s.Duration; }
             return role;
         });
         var spans = page.Select(s => { var span = ContractSpan(s); if (!J.Bool(input, "include_attributes", true)) { StripAttributes(span); } else if (input["attributes"] is JsonArray attrs && span["attributes"] is JsonArray values) span["attributes"] = J.A(values.Where(v => attrs.Any(a => J.Text(a) == J.String(v, "key")))); return span; }).ToList();
         var roleList = roles.ToList();
         for (var i = 0; i < spans.Count; i++) foreach (var pair in roleList[i]) if (pair.Key != "span_id") spans[i][pair.Key] = pair.Value?.DeepClone();
-        var trace = J.O(("trace_id", J.String(input, "trace_id") ?? rows.FirstOrDefault()?.TraceId ?? ""), ("spans", J.A(spans)), ("span_count", rows.Count), ("duration_ns", rows.Count == 0 ? 0UL : rows.Max(s => s.End) - rows.Min(s => s.Start)), ("start_time", rows.Count == 0 ? now.ToString("O") : J.Time(rows.Min(s => s.Start))), ("end_time", rows.Count == 0 ? now.ToString("O") : J.Time(rows.Max(s => s.End))), ("services", rows.Select(s => s.Service).Distinct()), ("has_error", rows.Any(s => s.Error)));
+        var trace = J.O(("trace_id", J.String(input, "trace_id") ?? rows.FirstOrDefault()?.TraceId ?? ""), ("spans", J.A(spans)), ("span_count", rows.Count), ("duration_ns", rows.Count is 0 ? 0UL : rows.Max(s => s.End) - rows.Min(s => s.Start)), ("start_time", rows.Count is 0 ? now.ToString("O") : J.Time(rows.Min(s => s.Start))), ("end_time", rows.Count is 0 ? now.ToString("O") : J.Time(rows.Max(s => s.End))), ("services", rows.Select(s => s.Service).Distinct()), ("has_error", rows.Any(s => s.Error)));
         var links = rows.SelectMany(s => JsonNode.Parse(s.Span?.LinksJson ?? "[]")?.AsArray() ?? []).OfType<JsonObject>().Select(l => { var traceId = J.String(l, "trace_id") ?? J.String(l, "traceId"); var spanId = J.String(l, "span_id") ?? J.String(l, "spanId"); return J.O(("trace_id", traceId), ("span_id", spanId), ("available", SpanIndex.ContainsKey((traceId, spanId ?? "")))); });
         var traceIds = rows.Select(s => s.TraceId).ToHashSet(StringComparer.Ordinal);
         return J.O(("trace", trace), ("mode", "live"), ("annotations", J.A(TraceAnnotations(J.String(trace, "trace_id")!, rows.Select(static row => row.Id).ToHashSet(StringComparer.Ordinal)))), ("span_roles", J.A(roleList)), ("omitted", J.O(("matched", matched.Count - page.Count(matched.Contains)), ("context", selected.Count - matched.Count - page.Count(s => !matched.Contains(s))))),
             ("missing_parent_span_ids", rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).Select(s => s.Span!.ParentSpanId!).Distinct()), ("links", J.A(links)),
             ("logs", J.A(J.Bool(input, "include_logs") || J.Number(input, "include_logs") > 0 ? _logs.Where(l => traceIds.Contains(l.TraceId)).Take((int)Math.Min(50, J.Number(input, "include_logs", 50))).Select(LogJson) : [])),
-            ("settled", rows.Count == 0 || now.ToUnixTimeMilliseconds() - (long)(rows.Max(s => s.End) / 1_000_000) >= 5000), ("coverage", Coverage(rows.Count, selected.Count, page.Count, page.Count < selected.Count)));
+            ("settled", rows.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(rows.Max(s => s.End) / 1_000_000) >= 5000), ("coverage", Coverage(rows.Count, selected.Count, page.Count, page.Count < selected.Count)));
     }
     private static void StripAttributes(JsonNode node)
     {
@@ -152,7 +156,7 @@ internal sealed partial class AnalysisEngine
         var rows = Select(input, "logs").Where(l => (J.String(input, "trace_id") is not { } trace || l.TraceId == trace) && (J.String(input, "span_id") is not { } span || l.SpanId == span) && (J.String(input, "session_id") is not { } session || l.SessionId == session)
             && (l.Log?.SeverityNumber ?? 0) >= J.Number(input, "severity_min") && (J.String(input, "query") is not { } query || LogBody(l).Contains(query, StringComparison.OrdinalIgnoreCase))).OrderByDescending(l => l.Start).ThenBy(l => l.Id, StringComparer.Ordinal).ToList();
         var context = (int)J.Number(input, "context"); if (context is < 0 or > 10) throw new AnalysisInputException("context", "context must be 0 to 10.");
-        var result = Page(input, "logs", rows.Select(LogJson), 100); result["mode"] = "live"; result["total_matched"] = rows.Count;
+        var result = Page(input, "logs", rows.Select(LogJson)); result["mode"] = "live"; result["total_matched"] = rows.Count;
         if (J.String(input, "group_by") == "pattern") result["patterns"] = J.A(rows.GroupBy(l => J.Normalize(LogBody(l))).Select(g => J.O(("template", g.Key), ("count", g.Count()), ("severity", g.Max(l => l.Log!.SeverityNumber)), ("first_seen", J.Time(g.Min(l => l.Start))), ("last_seen", J.Time(g.Max(l => l.Start))), ("example_ids", g.Select(l => l.TraceId).OfType<string>().Distinct().Take(3)))));
         if (context > 0 && result["logs"] is JsonArray page)
         {

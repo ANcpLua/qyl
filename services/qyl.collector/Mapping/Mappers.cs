@@ -385,7 +385,7 @@ internal static class LogMapper
             >= 13 => (SeverityText)3,
             >= 9 => (SeverityText)2,
             >= 5 => (SeverityText)1,
-            _ => (SeverityText)0
+            _ => 0
         };
     }
 }

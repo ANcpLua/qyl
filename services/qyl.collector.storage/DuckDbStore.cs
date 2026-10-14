@@ -1052,7 +1052,7 @@ internal sealed partial class DuckDbStore : IQylStore
     private static string[] ParseDuckDbIndexExpressions(string expressions)
     {
         var value = expressions.Trim();
-        if (value.Length >= 2 && value[0] == '[' && value[^1] == ']')
+        if (value is ['[', _, ..] && value[^1] == ']')
             value = value[1..^1];
         if (value.Length is 0)
             return [];

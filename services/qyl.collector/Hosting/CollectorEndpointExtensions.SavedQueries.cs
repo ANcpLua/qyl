@@ -223,11 +223,11 @@ internal static partial class CollectorEndpointExtensions
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
             var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct: ct).ConfigureAwait(false);
-            var result = new Qyl.Collector.Analysis.AnalysisEngine(snapshot, project, CreateAnalysisHandles(httpContext, project), timeProvider.GetUtcNow()).Run("run_saved_query", body);
+            var result = new Analysis.AnalysisEngine(snapshot, project, CreateAnalysisHandles(httpContext, project), timeProvider.GetUtcNow()).Run("run_saved_query", body);
             var typed = JsonSerializer.Deserialize(result["result"]!.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
             return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);
         }
-        catch (Qyl.Collector.Analysis.AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
+        catch (Analysis.AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide valid run options."); }
     }
 
@@ -274,8 +274,8 @@ internal static partial class CollectorEndpointExtensions
 
     private static IResult? ValidateSavedQueryFilter(SavedQueryFilter filter)
     {
-        try { Qyl.Collector.Analysis.AnalysisMatchers.Validate(System.Text.Json.Nodes.JsonNode.Parse(SavedQueryMapper.WriteFilter(filter))?["matchers"]); }
-        catch (Qyl.Collector.Analysis.AnalysisInputException invalid) { return ContractErrorResults.Validation("filter.matchers", invalid.Description, invalid.Code); }
+        try { Analysis.AnalysisMatchers.Validate(System.Text.Json.Nodes.JsonNode.Parse(SavedQueryMapper.WriteFilter(filter))?["matchers"]); }
+        catch (Analysis.AnalysisInputException invalid) { return ContractErrorResults.Validation("filter.matchers", invalid.Description, invalid.Code); }
 
         if (LookbackMinutes(filter) is { } lookback and (< 1 or > SavedQueryMaxLookbackMinutes))
         {

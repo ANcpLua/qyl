@@ -214,7 +214,7 @@ internal static class XmlWriterEmitter
                     code,
                     local,
                     () => EmitCollection(code, local, collection),
-                    collection.Wrapper is { } wrapper && collection.WrapperWriteNil ? () => EmitNilElement(code, wrapper) : null);
+                    collection is { Wrapper: { } wrapper, WrapperWriteNil: true } ? () => EmitNilElement(code, wrapper) : null);
                 break;
 
             default:

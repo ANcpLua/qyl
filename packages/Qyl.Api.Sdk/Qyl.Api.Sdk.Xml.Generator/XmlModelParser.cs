@@ -303,11 +303,7 @@ internal static class XmlModelParser
 
     private static bool IsSupportedModel(INamedTypeSymbol model)
     {
-        return model.TypeKind == TypeKind.Class &&
-            model.ContainingType is null &&
-            model.Arity == 0 &&
-            !model.IsStatic &&
-            !model.IsFileLocal;
+        return model is { TypeKind: TypeKind.Class, ContainingType: null, Arity: 0, IsStatic: false, IsFileLocal: false };
     }
 
     private static bool IsWritableModel(ITypeSymbol type)
@@ -662,12 +658,12 @@ internal static class XmlModelParser
                         name = namedName;
                     }
                 }
-                else if (argument.Key == "Namespace" && argument.Value.Value is string namedNamespace)
+                else if (argument is { Key: "Namespace", Value.Value: string namedNamespace })
                 {
                     // An empty string stays empty: XmlSerializer writes such a member in the empty namespace (xmlns="").
                     ns = namedNamespace;
                 }
-                else if (allowIsNullable && argument.Key == "IsNullable" && argument.Value.Value is bool namedIsNullable)
+                else if (allowIsNullable && argument is { Key: "IsNullable", Value.Value: bool namedIsNullable })
                 {
                     isNullable = namedIsNullable;
                 }
@@ -705,7 +701,7 @@ internal static class XmlModelParser
 
         foreach (var argument in attribute.NamedArguments)
         {
-            if (argument.Key == "Name" && argument.Value.Value is string namedName)
+            if (argument is { Key: "Name", Value.Value: string namedName })
             {
                 if (namedName.Length != 0)
                 {

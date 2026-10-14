@@ -28,11 +28,11 @@ internal static class MetricHistogram
     }
     internal static double? Histogram(List<MetricPointRow> points, string aggregation)
     {
-        if (points.Count == 0) return null;
+        if (points.Count is 0) return null;
         var count = points.Sum(static p => (double)(p.HistogramCount ?? 0)); var sum = points.Sum(static p => p.HistogramSum ?? 0);
         if (aggregation == "count") return count;
         if (aggregation == "sum") return sum;
-        if (aggregation == "avg") return count == 0 ? null : sum / count;
+        if (aggregation == "avg") return count is 0 ? null : sum / count;
         if (aggregation == "min") return points.Min(static p => p.HistogramMin);
         if (aggregation == "max") return points.Max(static p => p.HistogramMax);
         if (!double.TryParse(aggregation.AsSpan(1), CultureInfo.InvariantCulture, out var percentile)) throw new ArgumentOutOfRangeException(nameof(aggregation), "Choose a supported histogram aggregation.");

@@ -194,14 +194,13 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
                 if (declaration.Kind is "record" or "record struct")
                     return true;
 
-                if ((declaration.Kind is "struct" && declaration.Name is "SpanColumn") ||
-                    (declaration.Kind is "enum" && declaration.Name is "CompareOp"))
+                if (declaration is { Kind: "struct", Name: "SpanColumn" } ||
+                    declaration is { Kind: "enum", Name: "CompareOp" })
                 {
                     return true;
                 }
 
-                return declaration.Kind is "class" &&
-                       declaration.IsSealed &&
+                return declaration is { Kind: "class", IsSealed: true } &&
                        (declaration.Name.EndsWith("Options", StringComparison.Ordinal) ||
                         declaration.Name.EndsWith("Entry", StringComparison.Ordinal) ||
                         declaration.Name.EndsWith("Row", StringComparison.Ordinal) ||
@@ -656,8 +655,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
             // `api.MapX(...).RequireKeyRole(ApiKeyRoles.Y)` declares role Y for that route.
             static string? DeclaredKeyRole(InvocationExpressionSyntax map) =>
-                map.Parent is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "RequireKeyRole" } access &&
-                access.Parent is InvocationExpressionSyntax requirement &&
+                map.Parent is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "RequireKeyRole", Parent: InvocationExpressionSyntax requirement } &&
                 requirement.ArgumentList.Arguments.SingleOrDefault()?.Expression is MemberAccessExpressionSyntax
                 {
                     Expression: IdentifierNameSyntax { Identifier.ValueText: "ApiKeyRoles" }
@@ -3706,11 +3704,12 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         return root.DescendantNodes()
             .OfType<MemberAccessExpressionSyntax>()
             .Any(static memberAccess =>
-                memberAccess.Expression is IdentifierNameSyntax
-                {
-                    Identifier.ValueText: "DuckDbGeneratedSchema"
-                } &&
-                memberAccess.Name.Identifier.ValueText is "AuthoritativeDdl");
+                memberAccess is { Expression: IdentifierNameSyntax
+                    {
+                        Identifier.ValueText: "DuckDbGeneratedSchema"
+                    },
+                    Name.Identifier.ValueText: "AuthoritativeDdl"
+                });
     }
 
     private IEnumerable<UnsafeSqlOffender> UnsafeSpanIdentitySqlFragments()
@@ -3954,9 +3953,7 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
     }
 
     private static bool IsAllowedPublicCollectorType(DeclaredType declaration) =>
-        declaration.Name is "Program" &&
-        declaration.Kind is "class" &&
-        declaration.IsPartial &&
+        declaration is { Name: "Program", Kind: "class", IsPartial: true } &&
         declaration.Path.EndsWith("services/qyl.collector/Program.cs", StringComparison.Ordinal);
 
     private static string? InvocationName(ExpressionSyntax expression) =>

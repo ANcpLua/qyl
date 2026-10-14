@@ -23,7 +23,7 @@ internal static class CollectorAuthExtensions
             Keys = ParseProjectKeys(config["QYL_OTLP_PROJECT_KEYS"])
         };
 
-        if (otlpApiKeyOptions.IsApiKeyMode && otlpApiKeyOptions.Keys.Count is 0)
+        if (otlpApiKeyOptions is { IsApiKeyMode: true, Keys.Count: 0 })
         {
             throw new InvalidOperationException(
                 "OTLP auth mode is 'ApiKey' but no project keys are configured. " +

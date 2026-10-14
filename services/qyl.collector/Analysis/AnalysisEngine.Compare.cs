@@ -10,7 +10,7 @@ internal sealed partial class AnalysisEngine
         var trace = J.String(value, "trace_id"); var session = J.String(value, "session_id");
         if (value?.GetValueKind() == JsonValueKind.String) trace = value.GetValue<string>();
         if (trace is null && session is null) throw new AnalysisInputException("trace_id", "Provide trace_id or session_id.");
-        return _spans.Where(s => trace is not null ? s.TraceId == trace : s.SessionId == session).ToList();
+        return [.. _spans.Where(s => trace is not null ? s.TraceId == trace : s.SessionId == session)];
     }
     private int Depth(AnalysisRecord span, IReadOnlyList<AnalysisRecord> _)
     {
@@ -39,7 +39,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject CompareTracesCore(JsonObject input)
     {
         var a = Execution(input["a"]); var b = Execution(input["b"]);
-        if (a.Count == 0 || b.Count == 0) return J.O(("comparable", false), ("reason", "One execution was not found."), ("aligned", new JsonArray()), ("unmatched", new JsonArray()), ("after_divergence", new JsonArray()), ("first_divergence", null));
+        if (a.Count is 0 || b.Count is 0) return J.O(("comparable", false), ("reason", "One execution was not found."), ("aligned", new JsonArray()), ("unmatched", new JsonArray()), ("after_divergence", new JsonArray()), ("first_divergence", null));
         var rootA = a.OrderBy(s => Depth(s, a)).ThenBy(s => s.Start).First(); var rootB = b.OrderBy(s => Depth(s, b)).ThenBy(s => s.Start).First();
         if (rootA.Name != rootB.Name) return J.O(("comparable", false), ("reason", "Root operations differ."), ("aligned", new JsonArray()), ("unmatched", new JsonArray()), ("after_divergence", new JsonArray()), ("first_divergence", null));
         var groupsB = b.GroupBy(s => (s.Service, s.Name, Depth: Depth(s, b))).ToDictionary(g => g.Key, g => new Queue<AnalysisRecord>(g.OrderBy(s => s.Start)));
@@ -76,11 +76,15 @@ internal sealed partial class AnalysisEngine
         if (J.String(input, "failure_id") is { } failure)
         {
             var failures = FailureRecords(failure);
-            if (failures.Count == 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
-            spans = _spans.Where(s => s.TraceId == failures.OrderByDescending(s => s.Start).First().TraceId).ToList();
+            if (failures.Count is 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
+            spans = [.. _spans.Where(s => s.TraceId == failures.OrderByDescending(s => s.Start).First().TraceId)];
         }
         else if (J.String(input, "ci_run_id") is { } run)
-            spans = _spans.Where(s => s.SessionId == run || J.Text(s.Value(CollectorSemanticAttributeCatalog.CicdPipelineRunId)) == run).ToList();
+            spans =
+            [
+                .. _spans.Where(s =>
+                    s.SessionId == run || J.Text(s.Value(CollectorSemanticAttributeCatalog.CicdPipelineRunId)) == run)
+            ];
         else spans = Execution(input);
         var errors = spans.Where(s => s.Error).ToList();
         var byId = spans.ToDictionary(s => s.Id, StringComparer.Ordinal);
@@ -110,7 +114,7 @@ internal sealed partial class AnalysisEngine
             ("fanout", J.A(spans.GroupBy(s => s.Span?.ParentSpanId).Where(g => g.Key is not null && g.Count() > 1).Select(g => J.O(("parent_span_id", g.Key), ("name", "children"), ("count", g.Count()), ("trace_id", g.First().TraceId))))))),
             ("comparison", J.O(("nearest_success_trace_id", success?.TraceId), ("first_divergence", divergence))),
             ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId)).Select(AnnotationJson))))),
-            ("settled", spans.Count == 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
+            ("settled", spans.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
             ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, Math.Min(evidence.Count, maxSpans) + Math.Min(logs.Count, maxLogs), evidence.Count > maxSpans || logs.Count > maxLogs)));
     }
     private JsonArray Discriminators(List<AnalysisRecord> a, List<AnalysisRecord> b, string scope, int limit, HashSet<string>? predicates = null)
@@ -120,7 +124,7 @@ internal sealed partial class AnalysisEngine
         var countsA = a.SelectMany(Pairs).GroupBy(p => p).ToDictionary(g => g.Key, g => g.Count()); var countsB = b.SelectMany(Pairs).GroupBy(p => p).ToDictionary(g => g.Key, g => g.Count());
         return J.A(countsA.Where(p => !excluded.Contains(p.Key.Key) && !(predicates?.Contains(p.Key.Key) ?? false) && p.Value >= 5).Select(p =>
         { var bc = countsB.GetValueOrDefault(p.Key); var sa = p.Value / (double)Math.Max(1, a.Count); var sb = bc / (double)Math.Max(1, b.Count);
-            return J.O(("key", p.Key.Key), ("value", p.Key.Value), ("share_a", sa), ("share_b", sb), ("count_a", p.Value), ("count_b", bc), ("lift", sb == 0 ? null : sa / sb), ("difference", sa - sb)); })
+            return J.O(("key", p.Key.Key), ("value", p.Key.Value), ("share_a", sa), ("share_b", sb), ("count_a", p.Value), ("count_b", bc), ("lift", sb is 0 ? null : sa / sb), ("difference", sa - sb)); })
             .OrderByDescending(x => J.Number(x, "difference")).ThenBy(x => J.String(x, "key"), StringComparer.Ordinal).Take(limit));
     }
     private static bool IsUniqueKey(string key) => key.EndsWith(".id", StringComparison.Ordinal) || key.Contains("timestamp", StringComparison.Ordinal) || key.Contains("hash", StringComparison.Ordinal);
@@ -133,10 +137,11 @@ internal sealed partial class AnalysisEngine
             if (J.String(g, "failure_id") is { } fid) return FailureRecords(fid);
             AnalysisMatchers.Validate(g["matchers"]);
             var window = g["window"] is JsonObject w ? AnalysisWindow.Resolve(w, now) : fallback;
-            return Select(g, signal, window).Intersect(Select(input, signal, window)).ToList();
+            return [.. Select(g, signal, window).Intersect(Select(input, signal, window))];
         }
         var a = Group(ga, _window); var gb = input["group_b"];
-        var b = gb is JsonObject bg ? Group(bg, _window) : J.Text(gb) == "before" ? Group(ga, new(_window.Start - (_window.End - _window.Start), _window.Start)) : Select(input, signal).Except(a).ToList();
+        var b = gb is JsonObject bg ? Group(bg, _window) : J.Text(gb) == "before" ? Group(ga, new(_window.Start - (_window.End - _window.Start), _window.Start)) :
+            [.. Select(input, signal).Except(a)];
         var scope = J.String(input, "attribute_scope") ?? "both"; var limit = (int)J.Number(input, "limit", 10);
         var namesA = a.Select(s => s.Name).ToHashSet(); var namesB = b.Select(s => s.Name).ToHashSet();
         JsonObject Durations(List<AnalysisRecord> rows) => J.O(("p50_ms", J.Percentile(rows.Select(s => s.Duration), .5)), ("p95_ms", J.Percentile(rows.Select(s => s.Duration), .95)), ("p99_ms", J.Percentile(rows.Select(s => s.Duration), .99)));
@@ -166,8 +171,11 @@ internal sealed partial class AnalysisEngine
         if (J.String(input, "verify_id") is { } token) { input = handles.Read(token, project, "verify_id"); _window = AnalysisWindow.Resolve(input, now); }
         var fid = J.String(input, "failure_id");
         if ((fid is null) == (input["matchers"] is null)) throw new AnalysisInputException("failure_id", "Provide exactly one of failure_id or matchers.");
-        var failure = fid is not null ? FailureRecords(fid) : _spans.Where(s => s.Error && AnalysisMatchers.Match(s, input["matchers"])).ToList();
-        if (fid is not null && failure.Count == 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
+        var failure = fid is not null ? FailureRecords(fid) :
+        [
+            .. _spans.Where(s => s.Error && AnalysisMatchers.Match(s, input["matchers"]))
+        ];
+        if (fid is not null && failure.Count is 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
         var since = J.Date(input, "since");
         if (since is null && J.String(input, "release") is { } release)
         { var start = _spans.Where(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == release).Select(s => s.Start).DefaultIfEmpty().Min(); if (start > 0) since = DateTimeOffset.FromUnixTimeMilliseconds((long)(start / 1_000_000)); }
@@ -179,8 +187,8 @@ internal sealed partial class AnalysisEngine
         var after = requests.Where(s => s.Start >= ns).ToList(); var beforeStart = since.Value - duration;
         var before = requests.Where(s => s.Start < ns && s.Start >= (ulong)beforeStart.ToUnixTimeMilliseconds() * 1_000_000).ToList();
         var afterFailures = failure.Where(s => s.Start >= ns).ToList(); var beforeFailures = failure.Count(s => s.Start < ns && s.Start >= (ulong)beforeStart.ToUnixTimeMilliseconds() * 1_000_000);
-        var verdict = afterFailures.Count > 0 ? "failed" : after.Count < minRequests || duration.TotalMinutes < minMinutes ? "pending" : after.Count == 0 ? "inconclusive" : "passed";
-        JsonObject Segment(DateTimeOffset start, DateTimeOffset end, int occurrences, int count) => J.O(("window", new AnalysisWindow(start, end).Json), ("occurrences", occurrences), ("requests", count), ("rate", count == 0 ? null : occurrences / (double)count), ("unit", "requests"));
+        var verdict = afterFailures.Count > 0 ? "failed" : after.Count < minRequests || duration.TotalMinutes < minMinutes ? "pending" : after.Count is 0 ? "inconclusive" : "passed";
+        JsonObject Segment(DateTimeOffset start, DateTimeOffset end, int occurrences, int count) => J.O(("window", new AnalysisWindow(start, end).Json), ("occurrences", occurrences), ("requests", count), ("rate", count is 0 ? null : occurrences / (double)count), ("unit", "requests"));
         var knownFailures = _spans.Where(s => s.Error && s.Start < ns && s.Start >= (ulong)beforeStart.ToUnixTimeMilliseconds() * 1_000_000).Select(Signature).Concat(failure.Select(Signature)).ToHashSet(StringComparer.Ordinal);
         var guardrails = _spans.Where(s => s.Error && s.Start >= ns).GroupBy(Signature).Where(g => !knownFailures.Contains(g.Key)).Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; item["services"] = J.N(g.Select(s => s.Service).Distinct()); return item; });
         return J.O(("verdict", verdict), ("before", Segment(beforeStart, since.Value, beforeFailures, before.Count)), ("after", Segment(since.Value, now, afterFailures.Count, after.Count)),

@@ -143,7 +143,7 @@ internal sealed partial class QylRunnerApi(
         // Full fence on both sides: either this read sees the last request's release, or that release sees
         // the flag and completes the drain itself.
         Interlocked.Exchange(ref _draining, 1);
-        if (Volatile.Read(ref _activeRequests) == 0) _inFlightDrained.TrySetResult();
+        if (Volatile.Read(ref _activeRequests) is 0) _inFlightDrained.TrySetResult();
 
         try
         {
@@ -182,7 +182,7 @@ internal sealed partial class QylRunnerApi(
 
     private void ReleaseRequestSlot()
     {
-        if (Interlocked.Decrement(ref _activeRequests) == 0 && Volatile.Read(ref _draining) == 1)
+        if (Interlocked.Decrement(ref _activeRequests) is 0 && Volatile.Read(ref _draining) == 1)
             _inFlightDrained.TrySetResult();
     }
 

@@ -40,7 +40,7 @@ internal static class AnalysisReadPlan
         return new AnalysisReadQuery
         {
             Start = (ulong)start.ToUnixTimeMilliseconds() * 1_000_000, End = (ulong)end.ToUnixTimeMilliseconds() * 1_000_000,
-            TraceIds = traces.ToArray(), SessionIds = sessions.ToArray(),
+            TraceIds = [.. traces], SessionIds = [.. sessions],
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
             IncludeTelemetry = operation != "list_saved_queries"
         };
