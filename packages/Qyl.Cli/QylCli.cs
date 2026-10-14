@@ -32,15 +32,15 @@ internal static class QylCli
         switch (invocation.Action)
         {
             case QylCliAction.Help:
-                Console.Out.WriteLine(HelpText);
+                await Console.Out.WriteLineAsync(HelpText).ConfigureAwait(false);
                 return 0;
             case QylCliAction.Version:
-                Console.Out.WriteLine(GetVersion());
+                await Console.Out.WriteLineAsync(GetVersion()).ConfigureAwait(false);
                 return 0;
             case QylCliAction.Invalid:
-                Console.Error.WriteLine(invocation.Error);
-                Console.Error.WriteLine();
-                Console.Error.WriteLine(HelpText);
+                await Console.Error.WriteLineAsync(invocation.Error).ConfigureAwait(false);
+                await Console.Error.WriteLineAsync().ConfigureAwait(false);
+                await Console.Error.WriteLineAsync(HelpText).ConfigureAwait(false);
                 return 2;
             case QylCliAction.Up:
                 break;
@@ -55,14 +55,15 @@ internal static class QylCli
         }
         catch (FileNotFoundException exception)
         {
-            Console.Error.WriteLine(exception.Message);
+            await Console.Error.WriteLineAsync(exception.Message).ConfigureAwait(false);
             return 1;
         }
 
         if (!TryValidatePortsAvailable(s_requiredPorts, out var unavailablePort))
         {
-            Console.Error.WriteLine(
-                $"Cannot start qyl: 127.0.0.1:{unavailablePort} is unavailable. Free the port or grant permission to bind it, then run `qyl up` again.");
+            await Console.Error.WriteLineAsync(
+                $"Cannot start qyl: 127.0.0.1:{unavailablePort} is unavailable. Free the port or grant permission to bind it, then run `qyl up` again.")
+                .ConfigureAwait(false);
             return 1;
         }
 

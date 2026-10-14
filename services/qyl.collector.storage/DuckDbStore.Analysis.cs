@@ -82,6 +82,7 @@ internal sealed partial class DuckDbStore
                 }
                 if (query.ErrorsOnly && table == "spans") predicates.Add("status_code = 2");
                 cmd.CommandTimeout = 50;
+                // CA2100: columns, table and the predicate shapes are this method's constants; every value is a $n parameter.
                 cmd.CommandText = "SELECT " + columns + " FROM " + table + " WHERE " + string.Join(" AND ", predicates)
                     + (telemetry ? " ORDER BY " + timeColumn + " DESC" : "") + " LIMIT " + (AnalysisReadQuery.MaximumRows + 1);
                 AddParameters(cmd, values.ToArray());
@@ -111,6 +112,7 @@ internal sealed partial class DuckDbStore
         {
             if (keys.Count is 0) return [];
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list and $n placeholders only; the keys are bound parameters.
             cmd.CommandText = "SELECT " + AnalysisStateRow.SelectColumnList + " FROM analysis_state WHERE project_id = $1 AND state_key IN ("
                 + string.Join(",", Enumerable.Range(2, keys.Count).Select(i => "$" + i)) + ")";
             AddParameters(cmd, new object[] { projectId }.Concat(keys).ToArray());

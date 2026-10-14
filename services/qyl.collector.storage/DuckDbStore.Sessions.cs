@@ -45,6 +45,7 @@ internal sealed partial class DuckDbStore
             using var cmd = con.CreateCommand();
             // Keyset order: latest activity first, the session identity breaking ties, so a page
             // boundary is a position in that order rather than an offset that shifts under ingest.
+            // CA2100: SessionSelectColumns is a constant; every value is a $n parameter.
             cmd.CommandText = "SELECT * FROM ("
                               + SessionSelectColumns
                               + " WHERE project_id = $1"
@@ -80,6 +81,7 @@ internal sealed partial class DuckDbStore
         var results = await ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
+            // CA2100: SessionSelectColumns is a constant; the project and session are $1 and $2.
             cmd.CommandText = SessionSelectColumns
                               + " WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))"
                               + " GROUP BY COALESCE(session_id, trace_id)";

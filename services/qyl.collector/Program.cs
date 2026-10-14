@@ -41,4 +41,3 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
 await app.RunAsync().ConfigureAwait(false);
 
-public partial class Program;

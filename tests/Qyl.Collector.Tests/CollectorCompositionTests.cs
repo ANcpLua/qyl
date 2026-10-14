@@ -60,8 +60,10 @@ public sealed class CollectorCompositionTests
     {
         // The composition reads the endpoint from the process environment, so the
         // positive control sets it there (TEST-NET-3: never routable, never resolved).
+#pragma warning disable QYL0600 // TEST-NET-3 is never contacted; the composition only has to see an endpoint.
         Assert.True(ComposeHasOtlpRegistration("http://203.0.113.9:4318"),
             "A configured endpoint composed no OTLP exporter — the negative assertion above " +
             "would now pass for the wrong reason. The composition or this probe changed shape.");
+#pragma warning restore QYL0600
     }
 }

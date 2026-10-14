@@ -101,6 +101,7 @@ internal sealed partial class DuckDbStore
                     (decimal)after.CreatedAtUnixNano, after.AnnotationId);
 
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
             cmd.CommandText = "SELECT " + AnnotationRow.SelectColumnList
                               + " FROM annotations " + qb.WhereClause
                               + " ORDER BY created_at_unix_nano DESC, annotation_id DESC LIMIT " + qb.NextParam;
@@ -218,6 +219,7 @@ internal sealed partial class DuckDbStore
                 qb.Add("name > $N", afterName);
 
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
             cmd.CommandText = "SELECT " + SavedQueryRow.SelectColumnList
                               + " FROM saved_queries " + qb.WhereClause
                               + " ORDER BY name ASC LIMIT " + qb.NextParam;

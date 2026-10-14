@@ -34,8 +34,8 @@ internal sealed class OtlpCorsMiddleware
             if (IsOriginAllowed(origin))
             {
                 SetCorsHeaders(context.Response, origin);
-                context.Response.Headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
-                context.Response.Headers["Access-Control-Max-Age"] =
+                context.Response.Headers.AccessControlAllowMethods = "POST, OPTIONS";
+                context.Response.Headers.AccessControlMaxAge =
                     _options.MaxAge.ToString(CultureInfo.InvariantCulture);
                 context.Response.StatusCode = 204;
                 return;
@@ -58,12 +58,12 @@ internal sealed class OtlpCorsMiddleware
 
     private void SetCorsHeaders(HttpResponse response, string? origin)
     {
-        response.Headers["Access-Control-Allow-Origin"] = _allowAll ? "*" : origin;
-        response.Headers["Access-Control-Allow-Headers"] = _allowedHeadersHeader;
+        response.Headers.AccessControlAllowOrigin = _allowAll ? "*" : origin;
+        response.Headers.AccessControlAllowHeaders = _allowedHeadersHeader;
 
         if (!_allowAll)
         {
-            response.Headers["Access-Control-Allow-Credentials"] = "true";
+            response.Headers.AccessControlAllowCredentials = "true";
             response.Headers.Append("Vary", "Origin");
         }
     }

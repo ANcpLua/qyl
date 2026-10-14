@@ -117,7 +117,7 @@ internal static class OtlpPayloadParser
     private static async Task<MemoryStream> ReadBoundedPayloadAsync(HttpRequest request, CancellationToken ct)
     {
         request.EnableBuffering();
-        var contentEncoding = request.Headers["Content-Encoding"].ToString().Trim();
+        var contentEncoding = request.Headers.ContentEncoding.ToString().Trim();
         var isIdentity = contentEncoding.Length is 0 ||
                          string.Equals(contentEncoding, "identity", StringComparison.OrdinalIgnoreCase);
         if (!isIdentity && !string.Equals(contentEncoding, "gzip", StringComparison.OrdinalIgnoreCase))

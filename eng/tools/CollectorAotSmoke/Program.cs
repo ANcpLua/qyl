@@ -87,7 +87,7 @@ internal static class CollectorSmoke
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[driver] FAIL: {ex}");
+            await Console.Error.WriteLineAsync($"[driver] FAIL: {ex}").ConfigureAwait(false);
             return 1;
         }
     }

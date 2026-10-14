@@ -58,7 +58,7 @@ public static class GlobalExceptionHooks
         };
     }
 
-    private static void RecordGlobalException(Exception ex, string source)
+    internal static void RecordGlobalException(Exception ex, string source)
     {
         if (Activity.Current is { } activity)
         {

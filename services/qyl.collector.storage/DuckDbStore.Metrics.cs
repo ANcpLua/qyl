@@ -147,6 +147,7 @@ internal sealed partial class DuckDbStore
                     (decimal)after.LastSeenUnixNano, after.SeriesId);
 
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
             cmd.CommandText = "SELECT " + MetricSeriesRow.SelectColumnList
                               + " FROM metric_series " + qb.WhereClause
                               + " ORDER BY last_seen_unix_nano DESC, series_id LIMIT " + qb.NextParam;
@@ -250,6 +251,7 @@ internal sealed partial class DuckDbStore
         using var cmd = con.CreateCommand();
         cmd.CommandTimeout = 50;
         var columns = string.Join(", ", MetricPointRow.SelectColumnList.Split(',').Select(static name => "p." + name.Trim()));
+        // CA2100: generated columns, $n predicates and a numeric limit; group-by keys enter only as JsonPathLiteral-escaped literals.
         cmd.CommandText = "SELECT " + columns + ", s.temporality, " + BuildGroupExpression(request.GroupBy)
             + " FROM metric_points p JOIN metric_series s ON s.project_id = p.project_id AND s.series_id = p.series_id "
             + qb.WhereClause + " ORDER BY p.series_id, p.time_unix_nano LIMIT " + (MaxHistogramRowsPerQuery + 1);

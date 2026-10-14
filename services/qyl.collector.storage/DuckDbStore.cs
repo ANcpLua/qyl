@@ -310,6 +310,7 @@ internal sealed partial class DuckDbStore : IQylStore
             qb.Add("project_id = $N", projectId);
 
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans " + qb.WhereClause
                                         + " ORDER BY start_time_unix_nano DESC LIMIT "
@@ -341,6 +342,7 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             var spans = new List<SpanStorageRow>();
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list only; every value is a $n parameter.
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans WHERE project_id = $1 AND trace_id = $2"
                                         + " AND ($3::UBIGINT IS NULL OR start_time_unix_nano > $3"
@@ -443,6 +445,7 @@ internal sealed partial class DuckDbStore : IQylStore
                 var placeholders = string.Join(", ",
                     Enumerable.Range(2, heads.Count).Select(static index =>
                         "$" + index.ToString(CultureInfo.InvariantCulture)));
+                // CA2100: the generated column list and $n placeholders; the trace ids are bound parameters.
                 spansCommand.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                            + " FROM spans WHERE project_id = $1 AND trace_id IN ("
                                            + placeholders
@@ -563,6 +566,7 @@ internal sealed partial class DuckDbStore : IQylStore
                     (decimal)after.TimeUnixNano, after.LogId);
 
             using var cmd = con.CreateCommand();
+            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
             cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
                               + " FROM logs " + qb.WhereClause
                               + " ORDER BY time_unix_nano DESC, log_id DESC LIMIT "
@@ -608,6 +612,7 @@ internal sealed partial class DuckDbStore : IQylStore
             using var cmd = con.CreateCommand();
             if (afterIngestSequence.HasValue)
             {
+                // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
                 cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
                                   + " FROM logs " + qb.WhereClause
                                   + " ORDER BY ingest_sequence ASC LIMIT "
@@ -615,6 +620,7 @@ internal sealed partial class DuckDbStore : IQylStore
             }
             else
             {
+                // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
                 cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
                                   + " FROM (SELECT " + LogStorageRow.SelectColumnList
                                   + " FROM logs " + qb.WhereClause
@@ -646,6 +652,7 @@ internal sealed partial class DuckDbStore : IQylStore
             var chunk = Math.Min(maxBatch, rows.Count - offset);
             await using var cmd = con.CreateCommand();
             cmd.Transaction = tx;
+            // CA2100: buildSql is a generated row type's multi-row INSERT of $n placeholders; the rows are parameters.
             cmd.CommandText = buildSql(chunk);
             for (var i = 0; i < chunk; i++) addParams(cmd, rows[offset + i]);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -759,6 +766,7 @@ internal sealed partial class DuckDbStore : IQylStore
     private static void ExecutePragma(DuckDBConnection con, string sql)
     {
         using var cmd = con.CreateCommand();
+        // CA2100: the SET statements ConfigureDatabase writes from operator config; strings go through EscapeSqlLiteral.
         cmd.CommandText = sql;
         cmd.ExecuteNonQuery();
     }
@@ -1107,6 +1115,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
             using var command = con.CreateCommand();
             command.Transaction = transaction;
+            // CA2100: the table name is one of the generated schema's tables, quoted by QuoteIdentifier.
             command.CommandText = string.Concat(
                 "SELECT EXISTS (SELECT 1 FROM ",
                 QuoteIdentifier(table),
@@ -1192,6 +1201,7 @@ internal sealed partial class DuckDbStore : IQylStore
             return;
         using var command = con.CreateCommand();
         command.Transaction = transaction;
+        // CA2100: sql is the generated schema's DDL (DuckDbGeneratedSchema); nothing from a request reaches it.
         command.CommandText = sql;
         command.ExecuteNonQuery();
     }
@@ -1308,7 +1318,7 @@ internal sealed partial class DuckDbStore : IQylStore
             }
             finally
             {
-                _cancellationRegistration.Dispose();
+                await _cancellationRegistration.DisposeAsync().ConfigureAwait(false);
             }
         }
 
