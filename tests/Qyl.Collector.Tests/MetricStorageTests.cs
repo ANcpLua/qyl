@@ -38,7 +38,7 @@ public sealed class MetricStorageTests
         Assert.All(gauge, static point => Assert.Equal(MetricTemporality.Unspecified, point.Temporality));
         Assert.Equal([4d, 6d], gauge.Select(static point => point.Value));
 
-        var sum = Assert.Single(batch.Points.Where(static point => point.MetricName is "http.server.requests"));
+        var sum = Assert.Single(batch.Points, static point => point.MetricName is "http.server.requests");
         Assert.Equal(MetricKind.Sum, sum.Kind);
         Assert.Equal(MetricTemporality.Cumulative, sum.Temporality);
         Assert.True(sum.IsMonotonic);
@@ -184,9 +184,9 @@ public sealed class MetricStorageTests
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
 
-        await IngestAsync(store, ct, Request(
+        await IngestAsync(store, Request(
             GaugeWithRoute("http.server.active", "/a", (T0, 2d)),
-            GaugeWithRoute("http.server.active", "/b", (T0, 8d))));
+            GaugeWithRoute("http.server.active", "/b", (T0, 8d))), ct);
 
         var catalog = await store.ListMetricsAsync(ProjectScope.DefaultProjectId, ct: ct);
         var entry = Assert.Single(catalog);
@@ -220,8 +220,8 @@ public sealed class MetricStorageTests
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
 
-        await IngestAsync(store, ct, Request(Gauge("stable.gauge", (T0, 1d))));
-        await IngestAsync(store, ct, Request(Gauge("stable.gauge", (T0 + OneSecond, 2d))));
+        await IngestAsync(store, Request(Gauge("stable.gauge", (T0, 1d))), ct);
+        await IngestAsync(store, Request(Gauge("stable.gauge", (T0 + OneSecond, 2d))), ct);
 
         var series = Assert.Single(await store.ListMetricSeriesAsync(
             ProjectScope.DefaultProjectId, "stable.gauge", [], ct: ct));
@@ -244,11 +244,11 @@ public sealed class MetricStorageTests
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
 
-        await IngestAsync(store, ct, Request(Gauge(
+        await IngestAsync(store, Request(Gauge(
             "queue.depth",
             (T0, 10d),
             (T0 + OneSecond, 20d),
-            (T0 + 2 * OneSecond, 30d))));
+            (T0 + 2 * OneSecond, 30d))), ct);
 
         var result = await store.QueryMetricAsync(new MetricRangeQuery
         {
@@ -271,9 +271,9 @@ public sealed class MetricStorageTests
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
 
-        await IngestAsync(store, ct, Request(
+        await IngestAsync(store, Request(
             GaugeWithRoute("http.server.active", "/a", (T0, 1d), (T0 + 5 * OneSecond, 3d)),
-            GaugeWithRoute("http.server.active", "/b", (T0, 10d))));
+            GaugeWithRoute("http.server.active", "/b", (T0, 10d))), ct);
 
         var result = await store.QueryMetricAsync(new MetricRangeQuery
         {
@@ -304,9 +304,9 @@ public sealed class MetricStorageTests
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
 
-        await IngestAsync(store, ct, Request(
+        await IngestAsync(store, Request(
             GaugeWithRoute("http.server.active", "/a", (T0, 4d)),
-            GaugeWithRoute("http.server.active", "/b", (T0, 100d))));
+            GaugeWithRoute("http.server.active", "/b", (T0, 100d))), ct);
 
         var result = await store.QueryMetricAsync(new MetricRangeQuery
         {
@@ -330,10 +330,10 @@ public sealed class MetricStorageTests
 
         // Two points in one step, buckets (-inf,1] (1,5] (5,inf): counts 1,2,1 and 1,2,1
         // fold to 2,4,2, so the median falls in (1,5] at exactly its midpoint.
-        await IngestAsync(store, ct, Request(Histogram(
-            "http.server.duration", T0, count: 4, sum: 10, bounds: [1.0, 5.0], counts: [1, 2, 1])));
-        await IngestAsync(store, ct, Request(Histogram(
-            "http.server.duration", T0 + OneSecond, count: 4, sum: 30, bounds: [1.0, 5.0], counts: [1, 2, 1])));
+        await IngestAsync(store, Request(Histogram(
+            "http.server.duration", T0, count: 4, sum: 10, bounds: [1.0, 5.0], counts: [1, 2, 1])), ct);
+        await IngestAsync(store, Request(Histogram(
+            "http.server.duration", T0 + OneSecond, count: 4, sum: 30, bounds: [1.0, 5.0], counts: [1, 2, 1])), ct);
 
         var request = new MetricRangeQuery
         {
@@ -370,9 +370,9 @@ public sealed class MetricStorageTests
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
 
-        await IngestAsync(store, ct, Request(
+        await IngestAsync(store, Request(
             Gauge("old.gauge", (T0, 1d)),
-            Gauge("new.gauge", (T0 + 100 * OneSecond, 2d))));
+            Gauge("new.gauge", (T0 + 100 * OneSecond, 2d))), ct);
 
         var deleted = await store.DeleteExpiredMetricsBatchAsync(T0 + OneSecond, 100, ct);
         Assert.Equal(1, deleted.Points);
@@ -397,11 +397,11 @@ public sealed class MetricStorageTests
         second.TimeUnixNano = T0 + 2 * OneSecond; second.Count = 15; second.Sum = 160;
         second.BucketCounts[0] = 15;
         second.Exemplars.Add(new Exemplar { TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(traceId)), TimeUnixNano = second.TimeUnixNano, AsDouble = 12 });
-        await IngestAsync(store, ct, Request(new OtlpMetric
+        await IngestAsync(store, Request(new OtlpMetric
         {
             Name = "cumulative.latency", Histogram = new Histogram
             { AggregationTemporality = AggregationTemporality.Cumulative, DataPoints = { first, second } }
-        }));
+        }), ct);
         var query = new MetricRangeQuery
         {
             ProjectId = ProjectScope.DefaultProjectId, MetricName = "cumulative.latency",
@@ -418,8 +418,8 @@ public sealed class MetricStorageTests
 
     private static async Task IngestAsync(
         DuckDbStore store,
-        CancellationToken ct,
-        ExportMetricsServiceRequest request)
+        ExportMetricsServiceRequest request,
+        CancellationToken ct)
     {
         var write = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request));
         await store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, ct);
