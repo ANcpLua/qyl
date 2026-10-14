@@ -222,6 +222,26 @@ public sealed class MetricApiTests
     }
 
     [Fact]
+    public async Task The_query_route_rejects_a_percentile_on_a_metric_that_is_not_a_histogram()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var ct = TestContext.Current.CancellationToken;
+        await IngestAsync(store, ct, Gauge("http.server.active", "/a", (T0, 1d)));
+
+        var context = CreateContext($"start_time={T0Iso}&end_time={T0PlusMinuteIso}&aggregation=p95");
+        await (await CollectorEndpointExtensions.QueryMetricAsync(
+            context, "http.server.active", store, ct)).ExecuteAsync(context);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.Equal(Qyl.Api.Contracts.Common.Errors.ProblemDetailsMediaType.Value, context.Response.ContentType);
+        var error = Assert.Single(JsonSerializer.Deserialize(
+            await ReadBodyAsync(context), QylSerializerContext.Default.ValidationError)!.Errors);
+        Assert.Equal("aggregation", error.Field);
+        Assert.Equal("aggregation.requires_histogram", error.Code);
+        Assert.Equal("p95", error.RejectedValue);
+    }
+
+    [Fact]
     public async Task The_query_route_truncates_at_the_series_limit_and_says_so()
     {
         await using var store = new DuckDbStore(":memory:");

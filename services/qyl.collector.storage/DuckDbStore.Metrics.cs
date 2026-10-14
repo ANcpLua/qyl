@@ -318,10 +318,6 @@ internal sealed partial class DuckDbStore
     }
 
     /// <summary>
-    /// Grouping keys are read out of the persisted attribute JSON. With no keys every matching
-    /// series collapses into one stream, which is what an agent asking "what is X doing" wants.
-    /// </summary>
-    /// <summary>
     /// Floors a point's timestamp onto the step grid anchored at the range start. HUGEINT
     /// keeps the subtraction signed so a point exactly at the start does not wrap.
     /// </summary>
@@ -329,6 +325,10 @@ internal sealed partial class DuckDbStore
         "(((CAST(p.time_unix_nano AS HUGEINT) - " + start + ") // " + step + ") * " + step +
         " + " + start + ")";
 
+    /// <summary>
+    /// Grouping keys are read out of the persisted attribute JSON. With no keys every matching
+    /// series collapses into one stream, which is what an agent asking "what is X doing" wants.
+    /// </summary>
     private static string BuildGroupExpression(IReadOnlyList<string> groupBy)
     {
         if (groupBy.Count is 0)

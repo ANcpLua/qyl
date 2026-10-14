@@ -12,6 +12,7 @@ using ExportMetricsServiceRequest = OpenTelemetry.Proto.Collector.Metrics.V1.Exp
 using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceRequest = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
+using StorageMetricKind = Qyl.Collector.Primitives.MetricKind;
 
 namespace Qyl.Collector.Hosting;
 
@@ -522,6 +523,19 @@ internal static partial class CollectorEndpointExtensions
             .FirstOrDefault(entry => string.Equals(entry.MetricName, metricName, StringComparison.Ordinal));
         if (descriptor is null)
             return ContractErrorResults.NotFound("metric", metricName);
+
+        // A percentile interpolates over recorded bucket boundaries, which only a histogram
+        // carries; the contract limits p50-p99 to histogram kinds.
+        if (query.Aggregation is MetricAggregation.P50 or MetricAggregation.P90 or MetricAggregation.P95
+                or MetricAggregation.P99
+            && descriptor.MetricKind < (byte)StorageMetricKind.Histogram)
+        {
+            return ContractErrorResults.Validation(
+                "aggregation",
+                "Percentile aggregations require a histogram metric; use avg, min, max, sum, count or last.",
+                "aggregation.requires_histogram",
+                httpContext.Request.Query["aggregation"].ToString());
+        }
 
         // Ask for one extra stream so the truncation flag reports a fact rather than the
         // coincidence of the result exactly filling the limit.

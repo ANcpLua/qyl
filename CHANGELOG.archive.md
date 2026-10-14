@@ -2,6 +2,18 @@
 
 Entries older than the newest three, which stay in [CHANGELOG.md](CHANGELOG.md).
 
+## 12.1.1 — 2026-10-12
+
+- Complete the 32-tool analysis contracts: stable failure identities, continuation cursors,
+  validated writes, histogram deltas, exemplars and honest coverage. Share histogram
+  calculations, cache immutable protocol inputs by verified digest, and keep the product API
+  routes the dashboard uses.
+- Viewer refreshes report `mode: live` and embedded trace comparisons are complete; a requested
+  trace that does not exist answers 404 instead of an empty view. Invalid analysis responses,
+  exceeded deadlines and exhausted scan budgets return contract problem bodies.
+- Pin API contracts 12.1.1 and semantic conventions 9.9.1; generate semantic metadata through
+  Fallout.
+
 ## 12.1.0 — 2026-10-12
 
 - Add the collector analysis engine for qyl.mcp's 32-tool catalog: failure triage,

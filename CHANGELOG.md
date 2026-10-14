@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.2.2 — unreleased
+
+- Collector: a metric range query with a percentile aggregation (`p50`, `p90`, `p95`, `p99`)
+  on a gauge or sum answers 400 `aggregation.requires_histogram` on field `aggregation`
+  instead of 500; the contract already limits percentiles to histogram kinds.
+
 ## 12.2.1 — 2026-10-14
 
 - Security: .NET runtime packages 10.0.13, System.Security.Cryptography.Pkcs and .Xml pinned to it (High advisories of 2026-10-13).
@@ -25,17 +31,5 @@
   Fallout is back on 10.4.0.
 - Pin `Qyl.Telemetry.Hosting` and `Qyl.Telemetry.AutoInstrumentation*` 24.1.0, semantic
   conventions 9.9.2, API contracts 12.1.2 and `ANcpLua.Roslyn.Utilities` 2.2.48.
-
-## 12.1.1 — 2026-10-12
-
-- Complete the 32-tool analysis contracts: stable failure identities, continuation cursors,
-  validated writes, histogram deltas, exemplars and honest coverage. Share histogram
-  calculations, cache immutable protocol inputs by verified digest, and keep the product API
-  routes the dashboard uses.
-- Viewer refreshes report `mode: live` and embedded trace comparisons are complete; a requested
-  trace that does not exist answers 404 instead of an empty view. Invalid analysis responses,
-  exceeded deadlines and exhausted scan budgets return contract problem bodies.
-- Pin API contracts 12.1.1 and semantic conventions 9.9.1; generate semantic metadata through
-  Fallout.
 
 Older entries: [CHANGELOG.archive.md](CHANGELOG.archive.md).
