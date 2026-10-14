@@ -21,8 +21,9 @@ on:
 permissions:
   contents: read
 
+# A push cancels the previous push's gate, never a running full=true run.
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.ref }}-${{ inputs.full && 'full' || 'gate' }}
   cancel-in-progress: true
 
 jobs:
