@@ -4,16 +4,10 @@ namespace Qyl.Collector.Telemetry;
 
 internal static class QylTelemetry
 {
-    // The registry's own name for this scope, so the ActivitySource, the Meter and the collector's
-    // ingest catalog cannot disagree about what the collector calls itself.
+    // The registry's own name for this scope, so the Meter and the collector's ingest catalog
+    // cannot disagree about what the collector calls itself. The collector starts no spans of its
+    // own; its traces are the ones AddQyl's instrumentation records.
     public const string ServiceName = QylTelemetryNames.Scopes.QylCollector;
-
-    public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
-    {
-        Version = BuildVersion.InformationalVersion,
-        TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
-    });
-
 }
 
 internal static class QylLatencyNames

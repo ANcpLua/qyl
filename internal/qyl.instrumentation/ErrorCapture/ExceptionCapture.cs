@@ -32,15 +32,15 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
 
 public static class GlobalExceptionHooks
 {
-    private static int s_registered;
+    private const string LoggerCategory = "Qyl.Instrumentation.ErrorCapture";
 
-    private static readonly ActivitySource s_source = new(ActivitySources.ErrorCapture);
+    private static int s_registered;
 
     public static void Register(ILoggerFactory loggerFactory)
     {
         if (Interlocked.Exchange(ref s_registered, 1) is not 0) return;
 
-        var logger = loggerFactory.CreateLogger(ActivitySources.ErrorCapture);
+        var logger = loggerFactory.CreateLogger(LoggerCategory);
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
@@ -60,16 +60,17 @@ public static class GlobalExceptionHooks
 
     private static void RecordGlobalException(Exception ex, string source)
     {
-        var activity = Activity.Current;
-        if (activity is null)
+        if (Activity.Current is { } activity)
         {
-            if (s_source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default) is not
-                { } fallback) return;
-            TagActivity(fallback, ex, source);
+            TagActivity(activity, ex, source);
             return;
         }
 
-        TagActivity(activity, ex, source);
+        // No span to annotate: the failure gets a span of its own on the application scope, which
+        // AddQyl subscribes. It ends here, so it is exported; a span nobody stops never leaves the process.
+        using var fallback = Spans.Work("UnhandledException");
+        if (fallback is not null)
+            TagActivity(fallback, ex, source);
     }
 
     private static void TagActivity(Activity activity, Exception ex, string source)

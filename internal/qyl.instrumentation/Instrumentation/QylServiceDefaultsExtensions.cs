@@ -12,7 +12,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Trace;
 using Qyl.Instrumentation.ErrorCapture;
-using OtelSchemaUrl = Qyl.Telemetry.SemanticConventions.SchemaUrl;
 using ContractHealthCheckEntry = Qyl.Api.Contracts.Health.HealthCheckEntry;
 using ContractHealthReport = Qyl.Api.Contracts.Health.HealthReport;
 using ContractHealthStatus = Qyl.Api.Contracts.Health.HealthStatus;
@@ -137,17 +136,12 @@ public static class QylServiceDefaultsExtensions
             // port, and exporting there would feed our output back into our input.
             qyl.RequireConfiguredEndpoint = true;
 
-            qyl.ResourceAttributes.Add(
-                new KeyValuePair<string, object>("telemetry.schema_url", OtelSchemaUrl.Current));
-
             qyl.AdditionalSources.Add(serviceName);
 
             // OTEL_SERVICE_NAME may rename the service, but apps following the assembly-name
             // ActivitySource convention must stay subscribed.
             if (!string.Equals(serviceName, builder.Environment.ApplicationName, StringComparison.Ordinal))
                 qyl.AdditionalSources.Add(builder.Environment.ApplicationName);
-
-            qyl.AdditionalSources.Add(ActivitySources.ErrorCapture);
 
             foreach (var source in options.AdditionalActivitySources)
                 qyl.AdditionalSources.Add(source);

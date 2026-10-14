@@ -23,16 +23,16 @@ internal sealed partial class WorkloadEmitter(
     // Nothing resolves these against a catalog any more; they only need to look real.
     private static readonly ModelSpec[] Models =
     [
-        new("anthropic", "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),
-        new("anthropic", "anthropic/claude-sonnet-5", 400, 4000, 150, 1500, 400, 1800),
-        new("anthropic", "anthropic/claude-haiku-4.5", 200, 2000, 60, 700, 150, 700),
-        new("openai", "openai/gpt-5.6-sol", 400, 4000, 150, 1400, 350, 1600),
-        new("openai", "openai/gpt-5.4-mini", 200, 2500, 80, 900, 200, 900),
-        new("openai", "openai/gpt-5.5", 300, 3000, 200, 1800, 700, 2800),
-        new("google", "google/gemini-3.1-pro-preview", 500, 5000, 200, 1600, 500, 2200),
-        new("google", "google/gemini-3.5-flash", 200, 2200, 60, 800, 150, 800),
-        new("mistralai", "mistralai/mistral-large-2512", 300, 2800, 100, 1000, 300, 1300),
-        new("deepseek", "deepseek/deepseek-v4-flash", 300, 3500, 250, 2000, 800, 3000),
+        new(GenAiProviderName.Anthropic, "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),
+        new(GenAiProviderName.Anthropic, "anthropic/claude-sonnet-5", 400, 4000, 150, 1500, 400, 1800),
+        new(GenAiProviderName.Anthropic, "anthropic/claude-haiku-4.5", 200, 2000, 60, 700, 150, 700),
+        new(GenAiProviderName.Openai, "openai/gpt-5.6-sol", 400, 4000, 150, 1400, 350, 1600),
+        new(GenAiProviderName.Openai, "openai/gpt-5.4-mini", 200, 2500, 80, 900, 200, 900),
+        new(GenAiProviderName.Openai, "openai/gpt-5.5", 300, 3000, 200, 1800, 700, 2800),
+        new(GenAiProviderName.GcpGemini, "google/gemini-3.1-pro-preview", 500, 5000, 200, 1600, 500, 2200),
+        new(GenAiProviderName.GcpGemini, "google/gemini-3.5-flash", 200, 2200, 60, 800, 150, 800),
+        new(GenAiProviderName.MistralAi, "mistralai/mistral-large-2512", 300, 2800, 100, 1000, 300, 1300),
+        new(GenAiProviderName.Deepseek, "deepseek/deepseek-v4-flash", 300, 3500, 250, 2000, 800, 3000),
     ];
 
     private static readonly string[] Routes = ["/api/chat", "/api/agents/plan", "/api/summarize", "/api/search"];
@@ -96,7 +96,7 @@ internal sealed partial class WorkloadEmitter(
             return;
         }
 
-        root.SetHttpRequestMethod(HttpActivityExtensions.HttpRequestMethodValues.Post)
+        root.SetHttpRequestMethod(HttpRequestMethod.Post)
             .SetHttpRoute(route)
             .SetServerAddress("127.0.0.1")
             .SetSessionId(sessionId);
@@ -109,13 +109,9 @@ internal sealed partial class WorkloadEmitter(
         root.SetHttpResponseStatusCode(statusCode);
         if (failed)
         {
-            root.SetErrorType(statusCode.ToString(CultureInfo.InvariantCulture));
-            root.SetStatus(ActivityStatusCode.Error, "upstream model rate limited");
-        }
-
-        if (failed)
-        {
-            LogTurnFailed(logger, model.Provider, model.Model, latencyMs);
+            root.RecordFailure(ErrorType.Custom(statusCode.ToString(CultureInfo.InvariantCulture)),
+                "upstream model rate limited");
+            LogTurnFailed(logger, model.Provider.Value, model.Model, latencyMs);
         }
     }
 
@@ -124,12 +120,9 @@ internal sealed partial class WorkloadEmitter(
         var table = Tables[Random.Shared.Next(Tables.Length)];
         var durationMs = Random.Shared.Next(2, 28);
 
-        using var span = WorkloadTelemetry.Source.StartActivity($"SELECT qyl_demo.{table}", ActivityKind.Client);
-        span?.SetDbSystemName("postgresql")
-            .SetDbNamespace("qyl_demo")
-            .SetDbOperationName("SELECT")
-            .SetDbCollectionName(table)
-            .SetSessionId(sessionId);
+        using var span = Spans.DbClient(DbSystemName.Postgresql, collectionName: table, @namespace: "qyl_demo",
+            operationName: "SELECT", serverPort: null);
+        span?.SetSessionId(sessionId);
 
         await Task.Delay(durationMs, stoppingToken).ConfigureAwait(false);
     }
@@ -142,10 +135,8 @@ internal sealed partial class WorkloadEmitter(
         var outputTokens = Random.Shared.Next(model.OutputMin, model.OutputMax);
 
         using var span = WorkloadTelemetry.Source.StartActivity($"chat {model.Model}", ActivityKind.Client);
-        span?.SetGenAiOperationName(GenAiIncubatingActivityExtensions.GenAiOperationNameValues.Chat)
-            .SetGenAiOutputType(route is "/api/search"
-                ? GenAiIncubatingActivityExtensions.GenAiOutputTypeValues.Json
-                : GenAiIncubatingActivityExtensions.GenAiOutputTypeValues.Text)
+        span?.SetGenAiOperationName(GenAiOperationName.Chat)
+            .SetGenAiOutputType(route is "/api/search" ? GenAiOutputType.Json : GenAiOutputType.Text)
             .SetGenAiProviderName(model.Provider)
             .SetGenAiRequestModel(model.Model)
             .SetGenAiRequestTemperature(Math.Round(Random.Shared.NextDouble(), 2, MidpointRounding.AwayFromZero))
@@ -155,9 +146,7 @@ internal sealed partial class WorkloadEmitter(
 
         if (failed)
         {
-            span?.SetErrorType("rate_limit_exceeded");
-            span?.SetStatus(ActivityStatusCode.Error, "429 from provider");
-
+            span?.RecordFailure(ErrorType.Custom("rate_limit_exceeded"), "429 from provider");
         }
         else
         {
@@ -166,7 +155,7 @@ internal sealed partial class WorkloadEmitter(
                 .SetGenAiUsageInputTokens(inputTokens)
                 .SetGenAiUsageOutputTokens(outputTokens);
 
-            LogTurnCompleted(logger, model.Provider, model.Model, inputTokens, outputTokens, latencyMs);
+            LogTurnCompleted(logger, model.Provider.Value, model.Model, inputTokens, outputTokens, latencyMs);
         }
 
         return latencyMs;
@@ -188,6 +177,6 @@ internal sealed partial class WorkloadEmitter(
         Message = "chat failed: {Provider}/{Model} rate limited after {LatencyMs} ms")]
     private static partial void LogTurnFailed(ILogger logger, string provider, string model, int latencyMs);
 
-    private sealed record ModelSpec(string Provider, string Model, int InputMin, int InputMax, int OutputMin,
+    private sealed record ModelSpec(GenAiProviderName Provider, string Model, int InputMin, int InputMax, int OutputMin,
         int OutputMax, int LatencyMinMs, int LatencyMaxMs);
 }

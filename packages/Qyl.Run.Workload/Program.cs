@@ -27,7 +27,7 @@ builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(static level => level >= 
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(static tracing => tracing
-        .AddSource(WorkloadTelemetry.SourceName)
+        .AddSource(WorkloadTelemetry.SourceName, Qyl.Spans.Source.Name)
         .AddOtlpExporter());
 
 builder.Logging.AddOpenTelemetry(logging =>

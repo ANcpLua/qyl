@@ -735,32 +735,25 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
     Target VerifyCollectorTelemetryUsesBuildVersion => d => d
         .ProceedAfterFailure()
         .Unlisted()
-        .Description("Verify collector telemetry source versions use the generated build version")
+        .Description("Verify the collector's meter version uses the generated build version")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var telemetryFile = CollectorDirectory / "Telemetry" / "QylTelemetry.cs";
-            if (!telemetryFile.FileExists())
-                throw new FileNotFoundException("Missing collector telemetry source", telemetryFile.ToString());
+            // The collector's own telemetry is its meter (it starts no spans of its own), versioned
+            // by the generated BuildVersion like every other qyl-built artifact.
+            var metricsFile = CollectorIngestionDirectory / "QylCollectorMetrics.cs";
+            if (!metricsFile.FileExists())
+                throw new FileNotFoundException("Missing collector metrics", metricsFile.ToString());
 
-            var text = File.ReadAllText(telemetryFile);
-            var hasBuildVersion = text.Contains("Version = BuildVersion.InformationalVersion", StringComparison.Ordinal);
-            var hasHardcodedVersion =
-                text.Contains("ServiceVersion = \"", StringComparison.Ordinal) ||
-                text.Contains("Version = \"", StringComparison.Ordinal);
-
-            if (hasBuildVersion && !hasHardcodedVersion)
+            var meterDeclaration = File.ReadAllLines(metricsFile)
+                .SingleOrDefault(static line => line.Contains("Meter s_meter = new(", StringComparison.Ordinal));
+            if (meterDeclaration?.Contains("BuildVersion.InformationalVersion)", StringComparison.Ordinal) == true)
             {
-                Log.Information("Collector telemetry source versions use generated build version");
+                Log.Information("Collector meter version uses the generated build version");
                 return;
             }
 
-            if (!hasBuildVersion)
-                Log.Error("  QylTelemetry.cs must set the ActivitySource version from BuildVersion.InformationalVersion");
-
-            if (hasHardcodedVersion)
-                Log.Error("  QylTelemetry.cs must not hardcode telemetry source versions");
-
+            Log.Error("  QylCollectorMetrics.cs must declare one Meter s_meter versioned by BuildVersion.InformationalVersion");
             throw new InvalidOperationException(
                 "Collector telemetry version has one source of truth: the generated BuildVersion.InformationalVersion constant.");
         });

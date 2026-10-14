@@ -14,7 +14,6 @@ builder.UseQyl(options =>
     // and flows in via Qyl.Api.Contracts. The collector is not a contract/client-generation source.
     options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
-    options.AdditionalActivitySources.Add(QylTelemetry.ServiceName);
     options.AdditionalMeters.Add(QylTelemetry.ServiceName);
 });
 

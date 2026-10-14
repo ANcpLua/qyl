@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+using OpenTelemetry.Resources;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -126,9 +127,12 @@ public static class QylApiHostApplicationBuilderExtensions
             options.EnableCollectorDiscovery = !QylBuildTimeDocumentHost.IsCurrentProcess;
             options.EnableLogExport = !QylBuildTimeDocumentHost.IsCurrentProcess;
             options.RequireConfiguredEndpoint = QylBuildTimeDocumentHost.IsCurrentProcess;
-            options.ResourceAttributes.Add(
-                new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylApiSdkBuild.ContractRevision));
         });
+
+        // The contract revision is a fact AddQyl cannot derive, so it joins the resource AddQyl built: ConfigureResource
+        // adds to the one resource every signal shares instead of replacing it.
+        services.AddOpenTelemetry().ConfigureResource(static resource => resource.AddAttributes(
+            [new KeyValuePair<string, object>(QylApiContract.RevisionAttributeName, QylApiSdkBuild.ContractRevision)]));
 
         // The agent contract: `baggage: session.id=<id>` on the request becomes session.id on the server span, which the
         // session processor then copies to every descendant span in the process. An agent that sends the header finds
