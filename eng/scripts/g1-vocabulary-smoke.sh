@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# G1 vocabulary smoke (cheap CI cross-check, not the gate — QYL0200 is authoritative).
+# G1 vocabulary smoke (cheap CheckFull cross-check, not the gate — QYL0200 is authoritative).
 #
 # Greps for '"qyl.' string literals in the telemetry-emitting projects of this
 # repository: the collector process source (services/qyl.collector) and its

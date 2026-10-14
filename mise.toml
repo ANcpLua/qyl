@@ -7,7 +7,9 @@
 "node" = "24.21.0"
 
 [tasks.check]
-description = "The local release gate: Fallout Ci"
-run = [
-  "./eng/build.sh Ci --Configuration Release",
-]
+description = "The gate before every push: ./eng/build.sh Check"
+run = "./eng/build.sh Check --Configuration Release"
+
+[tasks.check-full]
+description = "Everything, on demand: ./eng/build.sh CheckFull (NativeAOT, pack smoke, SDK proof, dashboard e2e, vocabulary smoke)"
+run = "./eng/build.sh CheckFull --Configuration Release"

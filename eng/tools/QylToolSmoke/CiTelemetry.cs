@@ -7,14 +7,14 @@ using System.Text.Json.Serialization;
 namespace QylToolSmoke;
 
 /// <summary>
-/// CI dogfooding emitter: mirrors the smoke's phase markers as OTLP/JSON spans
+/// ci_log dogfooding emitter: mirrors the smoke's phase markers as OTLP/JSON spans
 /// so qyl.mcp's ci_log tool can answer "which leg hung on what" from qyl's own
 /// telemetry. Convention (must match ci_log in qyl.mcp): resource service.name
-/// "qyl-ci-smoke", session.id = one workflow run, one span per phase carrying a
+/// "qyl-ci-smoke", session.id = one smoke run, one span per phase carrying a
 /// cicd.pipeline.task.name attribute, failures as span status error.
 ///
 /// Entirely inert unless QYL_CI_OTLP_ENDPOINT is set, and a failed export never
-/// fails the smoke — telemetry about CI must not become a new way to break CI.
+/// fails the smoke — telemetry about the smoke must not become a new way to break it.
 /// </summary>
 internal static class CiTelemetry
 {

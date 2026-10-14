@@ -773,7 +773,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
 
     // Version.props is the one source for the qyl-owned release lines. The README's release-line
     // table rows and the consumer `<Project Sdk="Qyl.Api.Sdk/x">` line are rendered from it: locally
-    // the target rewrites them, on CI it fails when the committed text differs from the rendering.
+    // the target rewrites them; under --server (IsServerBuild) it fails when the committed text differs
+    // from the rendering.
     // The `qyl-mcp-server` row is not rendered; its version lives in qyl.mcp.
     Target RenderReadmeVersions => d => d
         .ProceedAfterFailure()
@@ -2807,8 +2808,8 @@ interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKn
         .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
         .DependsOn<IConfigurationKnobs>(static x => x.VerifyConfigurationKnobs)
         .DependsOn(VerifyNoRemovedBuildSurface)
-        // G7/G11 and G10(a) run wherever VerifyBackend runs — CI's backend lane invokes
-        // VerifyBackend, not Verify, so a gate hung only on Verify never executes in CI.
+        // G7/G11 and G10(a) run wherever VerifyBackend runs, so a caller of VerifyBackend alone
+        // (not Verify) still gets them.
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly);
 

@@ -106,7 +106,7 @@ TypeSpec repository generates the collector's API surface and every first-party 
 Sharing telemetry definitions does not add a telemetry dependency to the API contracts.
 
 Every rule is owned by a compiler, an analyzer, a generator, or a gate. The gates live in
-`eng/build` and run from the `Verify` and `Ci` targets; the package edge list they enforce
+`eng/build` and run from the `Verify`, `Check` and `CheckFull` targets; the package edge list they enforce
 is the table in `eng/build/BuildDependencyEdges.cs`.
 
 One graph, one truth, many artifacts.
@@ -180,23 +180,26 @@ unchanged, every compile-time generator's output present, the HTTP scenario agai
 host, a Native AOT publish carrying no managed files beside the binary, the same scenario
 against the native executable, the container image, a consumer built from the packed SDK
 producing the identical contract, and the API observing itself against a real collector while an
-agent is its first consumer. `Ci` runs it.
+agent is its first consumer. `CheckFull` runs it.
 
 ## Build and verify
 
-`mise.toml` pins the toolchain (dotnet, bun, node); `mise run check` runs the `Ci` target.
+`mise.toml` pins the toolchain (dotnet, bun, node); `mise run check` runs the `Check` target,
+`mise run check-full` the `CheckFull` target.
 
 ```bash
 mise install && mise run check
 ```
 
-Single targets run through `./eng/build.sh <Target>`. `Ci` is the full gate; `./eng/build.sh --help`
-lists every target it depends on.
+Single targets run through `./eng/build.sh <Target>`. `Check` is the gate before every push
+(compile, tests, verification, SDK pins, dashboard lint, tests and build); `CheckFull` adds
+NativeAOT, the pack smoke (the only gate that sees trim regressions), the SDK proof, the
+dashboard end-to-end run and the vocabulary smoke. `./eng/build.sh --help` lists every target.
 
 Run one gate at a time on the development Mac and cap each MSBuild invocation at four
 nodes (`-maxcpucount:4`), including tool-package RID builds. The Docker NativeAOT publish
 script applies the same cap. After an interrupted gate, use
-`./eng/build.sh Ci --Configuration Release --continue`
+`./eng/build.sh CheckFull --Configuration Release --continue`
 to reuse the completed stages recorded in `.fallout/temp/build-attempt.log`; retain its
 compiled artifacts. Tool packaging preserves each RID's compiler cache, while clearing
 its final publish directory so removed files cannot enter a package. Generated version

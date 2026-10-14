@@ -104,9 +104,9 @@ finally
     await DeleteDirectoryAsync(scratch, TimeSpan.FromSeconds(30));
 }
 
-// Timestamped phase markers: the CI leg has hung without any output before, so make it
-// obvious from a cancelled step's log which phase never returned. Each marker also
-// opens a CI telemetry phase span (inert unless QYL_CI_OTLP_ENDPOINT is set).
+// Timestamped phase markers: the smoke has hung without any output before, so make it
+// obvious from a cancelled run's log which phase never returned. Each marker also
+// opens a ci_log phase span (inert unless QYL_CI_OTLP_ENDPOINT is set).
 static void Progress(string message)
 {
     Console.WriteLine($"[{DateTimeOffset.UtcNow:HH:mm:ss}] {message}");

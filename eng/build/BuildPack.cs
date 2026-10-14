@@ -19,10 +19,10 @@ interface IPack : IHasSourcePaths, IHasConfiguration
 {
     AbsolutePath NuGetArtifactsDirectory => ArtifactsDirectory / "nuget";
 
-    /// <summary>Where a release workflow platform leg packs its <c>qyl.&lt;rid&gt;</c> package.</summary>
+    /// <summary>Where <c>PackPlatform</c> packs the host runtime's <c>qyl.&lt;rid&gt;</c> package.</summary>
     AbsolutePath PlatformPackagesDirectory => ArtifactsDirectory / "qyl-packages";
 
-    [Parameter("Package version PackPlatform and PackRelease stamp (the release workflow passes Version.props' QylVersion)")]
+    [Parameter("Package version PackPlatform and PackRelease stamp (release.sh passes Version.props' QylVersion)")]
     string? PackageVersion => TryGetValue(() => PackageVersion);
 
     [Parameter("Commit PackPlatform and PackRelease stamp as RepositoryCommit and SourceRevisionId")]
@@ -33,7 +33,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
 
     /// <summary>
     /// What both release packs share. Neither builds the dashboard nor compiles the solution first:
-    /// the release workflow builds the embedded dashboard in its own step, and each pack builds its project.
+    /// the embedded dashboard is built beforehand (FrontendBuild, in Check), and each pack builds its project.
     /// </summary>
     private Configure<DotNetPackSettings> ReleasePackSettings => s => s
         .SetConfiguration(Configuration)
@@ -42,12 +42,12 @@ interface IPack : IHasSourcePaths, IHasConfiguration
         .SetProperty("SourceRevisionId", RepositoryCommit!);
 
     Target PackPlatform => d => d
-        .Description("Pack the qyl tool for the host runtime into Artifacts/qyl-packages (release workflow platform leg)")
+        .Description("Pack the qyl tool for the host runtime into Artifacts/qyl-packages (one platform of the release set)")
         .Requires(() => PackageVersion, () => RepositoryCommit, () => ToolRuntimeIdentifier)
         .Executes(() =>
         {
-            // The first ` RID:` line of `dotnet --info`, as the workflow's awk read it: a runner whose
-            // dotnet reports another runtime (an x64 SDK on an arm64 host) would pack the wrong package.
+            // The first ` RID:` line of `dotnet --info`: a host whose dotnet reports another runtime
+            // (an x64 SDK on an arm64 host) would pack the wrong package.
             var hostRuntime = DotNetTasks.DotNet("--info", RootDirectory, logOutput: false)
                 .Select(static line => line.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
                 .Where(static fields => fields.Length > 1 && fields[0] == "RID:")
@@ -65,7 +65,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
         });
 
     Target PackRelease => d => d
-        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk) into a clean Artifacts/nuget (release workflow pack job)")
+        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk) into a clean Artifacts/nuget (release.sh's pack step)")
         .Requires(() => PackageVersion, () => RepositoryCommit)
         .Executes(() =>
         {

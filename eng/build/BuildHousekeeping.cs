@@ -18,14 +18,14 @@ interface IHousekeeping : IHasSourcePaths, IHasConfiguration
 
     Target VerifySdkVersions => d => d
         .ProceedAfterFailure()
-        .Description("Verify pinned .NET SDK versions in workflows and dockerfiles match global.json")
+        .Description("Verify pinned .NET SDK versions in dockerfiles (and any workflow files) match global.json")
         .Executes(() =>
             DotNetTasks.DotNet(
                 $"run --project \"{ToolsDirectory / "SdkVersionAnalyzer"}\" --configuration {Configuration} --no-build -- --verify \"{RootDirectory}\"",
                 workingDirectory: RootDirectory));
 
     Target UpdateSdkVersions => d => d
-        .Description("Rewrite pinned .NET SDK versions in workflows and dockerfiles (pass --housekeeping-sdk-version)")
+        .Description("Rewrite pinned .NET SDK versions in dockerfiles (and any workflow files) (pass --housekeeping-sdk-version)")
         .Requires(() => SdkVersion)
         .Executes(() =>
             DotNetTasks.DotNet(

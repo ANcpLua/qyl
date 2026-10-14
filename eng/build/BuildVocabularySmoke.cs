@@ -10,15 +10,11 @@ using Serilog;
 namespace Qyl.Build;
 
 /// <summary>
-/// The workflow's job graph and the <c>Ci</c> target are two hand-maintained answers to
-/// "what is the gate". Nothing made them agree, and they drifted twice: <c>PackSmoke</c> and
-/// the G1 vocabulary smoke ran only in CI, so the documented local gate was a strict subset of
-/// the real one and a trim/AOT regression reached <c>main</c> past a green local run.
-/// This gate removes the second answer's freedom to differ — every target and script CI invokes
-/// must be reachable from <c>Ci</c>, so adding a CI step without wiring it in fails the build.
-/// The reverse direction is deliberately unconstrained: <c>Ci</c> may run more than CI does.
+/// The G1 vocabulary smoke, <c>eng/scripts/g1-vocabulary-smoke.sh</c>: the cheap cross-check that no
+/// hand-written <c>"qyl.</c> vocabulary literal lives in runtime source (QYL0200 is the authoritative
+/// gate). <c>CheckFull</c> runs it; a script only a gate definition names is a gate nobody runs.
 /// </summary>
-interface ICiCoverage : IHasSourcePaths
+interface IVocabularySmoke : IHasSourcePaths
 {
 
     AbsolutePath BuildSourceDirectory => RootDirectory / "eng" / "build";

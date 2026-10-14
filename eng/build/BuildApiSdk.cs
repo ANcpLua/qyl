@@ -97,7 +97,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
     Target ApiSdkBuildAndTest => d => d
         .Unlisted()
         // The sample and SDK tests belong to the solution. Share its build and test
-        // targets with Ci so each runs once, including when ApiSdk is invoked alone.
+        // targets with Check so each runs once, including when ApiSdk is invoked alone.
         .DependsOn<IQylTests>(static x => x.Test)
         .Executes(() =>
         {

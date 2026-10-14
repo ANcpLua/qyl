@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using Fallout.Common;
-using Fallout.Common.CI.GitHubActions;
 using Fallout.Common.IO;
 using Fallout.Common.Tooling;
 using Fallout.Common.Tools.DotNet;
@@ -21,14 +20,11 @@ interface IQylTests : IHasSolution, IHasConfiguration
             workingDirectory: RootDirectory));
 }
 
-[GitHubActions(
-    "ci",
-    GitHubActionsImage.UbuntuLatest,
-    AutoGenerate = false,
-    OnPushBranches = ["main"],
-    OnPullRequestBranches = ["main"],
-    InvokedTargets = ["Ci"],
-    FetchDepth = 0)]
+/// <summary>
+/// Every build, pack and gate of this repository. <c>./eng/build.sh --help</c> lists the targets;
+/// <c>Check</c> is the gate before every push (<c>mise run check</c>), <c>CheckFull</c> runs everything
+/// (<c>mise run check-full</c>).
+/// </summary>
 sealed class Build : FalloutBuild,
     ICompile,
     IQylTests,
@@ -43,7 +39,7 @@ sealed class Build : FalloutBuild,
     IHousekeeping,
     IPack,
     IApiSdk,
-    ICiCoverage
+    IVocabularySmoke
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
 
@@ -93,24 +89,30 @@ sealed class Build : FalloutBuild,
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 
-    public Target Ci => d => d
-        .Description("Local CI gate: backend, frontend, and generated artifacts")
+    // Trim and AOT regressions (IL2026/IL3050) are CheckFull's job: Compile builds with the AOT
+    // analyzers off; PackSmoke and NativeAot are the gates that see them.
+    public Target Check => d => d
+        .Description("The gate before every push: compile, tests, verification, SDK pins and the dashboard's lint, tests and build")
         .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IQylTests>(static x => x.Test)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<IPipeline>(static x => x.FrontendTest)
-        .DependsOn<IPipeline>(static x => x.FrontendE2E)
-        .DependsOn<IPipeline>(static x => x.FrontendLint)
+        .DependsOn<IPipeline>(static x => x.FrontendLint);
+
+    public Target CheckFull => d => d
+        .Description("Everything: Check, NativeAOT, the pack smoke, the SDK proof, the dashboard end-to-end run and the vocabulary smoke")
+        .DependsOn(Check)
         .DependsOn<INativeAot>(static x => x.NativeAot)
-        // CI's pack lane builds with the AOT analyzers the backend lane disables, so it is the
-        // only gate that sees IL2026/IL3050. Omitting it here is what let a trim regression reach
+        // The pack lane builds with the AOT analyzers Compile disables, so it is the only gate that
+        // sees IL2026/IL3050. Omitting it from the full gate is what let a trim regression reach
         // main past a green local run.
         .DependsOn<IPack>(static x => x.PackSmoke)
         // The SDK's own nine-stage proof: it ships from here, so its gates are this gate.
         .DependsOn<IApiSdk>(static x => x.ApiSdk)
-        .DependsOn<ICiCoverage>(static x => x.G1VocabularySmoke);
+        .DependsOn<IPipeline>(static x => x.FrontendE2E)
+        .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke);
 
     public Target Dev => d => d
         .Description("Start development environment (Docker + compile)")
@@ -131,28 +133,10 @@ sealed class Build : FalloutBuild,
 
     AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
 
-    /// <summary>
-    /// ci.yml's backend lane restores and builds differently from every other <c>Compile</c> caller:
-    /// it restores against nuget.config alone with NuGet warnings kept as warnings, and builds without
-    /// the CI build properties. The flag reproduces exactly those two commands; without it nothing changes.
-    /// </summary>
-    [Parameter("Restore and compile as ci.yml's backend lane does: nuget.config only, NuGet warnings stay warnings, no CI build properties")]
-    readonly bool BackendLane = false;
-
-    Configure<DotNetRestoreSettings> IRestore.RestoreSettings => s => BackendLane
-        ? s
-            .SetConfigFile(RootDirectory / "nuget.config")
-            .SetProperty("TreatWarningsAsErrors", "false")
-        : s;
-
-    Configure<DotNetBuildSettings> ICompile.CompileSettings => s => BackendLane
-        ? s
-            .ResetContinuousIntegrationBuild()
-            .SetProperty("QylAot", "false")
-        : s
-            .SetDeterministic(IsServerBuild)
-            .SetContinuousIntegrationBuild(IsServerBuild)
-            .SetProperty("QylAot", false);
+    Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
+        .SetDeterministic(IsServerBuild)
+        .SetContinuousIntegrationBuild(IsServerBuild)
+        .SetProperty("QylAot", false);
 
     T From<T>() where T : IFalloutBuild => (T)(object)this;
 
