@@ -120,18 +120,25 @@ internal sealed partial class AnalysisEngine
     {
         var mapInput = input.DeepClone().AsObject(); mapInput.Remove("service_name");
         var rows = Select(mapInput); var edges = new List<(string From, string To, AnalysisRecord Span)>(); var kinds = new Dictionary<string, string>();
+        // A client span whose callee reports its own span already has its edge through that span.
+        var calledThrough = rows.Where(s => SpanIndex.GetValueOrDefault((s.TraceId, s.Span?.ParentSpanId ?? "")) is { } parent && parent.Service != s.Service)
+            .Select(static s => (s.TraceId, s.Span?.ParentSpanId)).ToHashSet();
         foreach (var s in rows)
         {
             ct.ThrowIfCancellationRequested();
             kinds[s.Service] = "service";
             var parent = SpanIndex.GetValueOrDefault((s.TraceId, s.Span?.ParentSpanId ?? ""));
             if (parent is not null && parent.Service != s.Service) edges.Add((parent.Service, s.Service, s));
-            if (J.Bool(input, "include_external", true) && s.Span?.Kind is 3 or 4 or 5)
+            if (J.Bool(input, "include_external", true) && s.Span?.Kind is 3 or 4 or 5 && !calledThrough.Contains((s.TraceId, s.SpanId)))
             {
-                var db = J.Text(s.Value(CollectorSemanticAttributeCatalog.DbSystemName)); var server = J.Text(s.Value(CollectorSemanticAttributeCatalog.ServerAddress));
-                var messaging = J.Text(s.Value(CollectorSemanticAttributeCatalog.MessagingSystem));
-                var target = server.Length > 0 ? server : db.Length > 0 ? db : messaging;
-                if (target.Length > 0 && target != s.Service) { kinds[target] = db.Length > 0 ? "database" : messaging.Length > 0 ? "messaging" : "external"; edges.Add((s.Service, target, s)); }
+                var peer = J.Text(s.Value(CollectorSemanticAttributeCatalog.ServicePeerName)); var server = J.Text(s.Value(CollectorSemanticAttributeCatalog.ServerAddress));
+                var db = J.Text(s.Value(CollectorSemanticAttributeCatalog.DbSystemName)); var messaging = J.Text(s.Value(CollectorSemanticAttributeCatalog.MessagingSystem));
+                var target = peer.Length > 0 ? peer : server.Length > 0 ? server : db.Length > 0 ? db : messaging;
+                if (target.Length > 0 && target != s.Service)
+                {
+                    if (kinds.GetValueOrDefault(target) is not "service") kinds[target] = db.Length > 0 ? "database" : messaging.Length > 0 ? "messaging" : "external";
+                    edges.Add((s.Service, target, s));
+                }
             }
         }
         if (J.String(input, "service_name") is { } focus)

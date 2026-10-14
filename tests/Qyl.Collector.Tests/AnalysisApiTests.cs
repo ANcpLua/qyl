@@ -123,17 +123,24 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
-    /// An outbound call is an edge to the store or service its client span names: <c>server.address</c>, then the
-    /// database or messaging system. <c>peer.service</c> is no target: ingest keeps no <c>peer.</c> key.
+    /// An outbound call is an edge to the service or store its client span names: <c>service.peer.name</c> (ingest
+    /// renames the deprecated <c>peer.service</c> to it), then <c>server.address</c>, then the database or messaging system.
+    /// A call whose callee reports its own span counts once, through that span, and a named callee that reports spans
+    /// stays a service node.
     /// </summary>
     [Fact]
-    public async Task The_service_map_names_an_external_target_by_server_address()
+    public async Task The_service_map_names_a_target_by_peer_service_then_server_address_and_counts_each_call_once()
     {
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         await host.Store.EnqueueAsync(new SpanBatch([
-            Span(TraceId(1), SpanId(1), time, time + 1000) with { Kind = 3, AttributesJson = """{"server.address":"payments.internal"}""" },
-            Span(TraceId(2), SpanId(2), time, time + 1000) with { Kind = 3, AttributesJson = """{"db.system.name":"postgresql"}""" }
+            Span(TraceId(1), SpanId(1), time, time + 1000) with { Kind = 3, AttributesJson = """{"service.peer.name":"payments","server.address":"10.0.4.17"}""" },
+            Span(TraceId(2), SpanId(2), time, time + 1000) with { Kind = 3, AttributesJson = """{"server.address":"ledger.internal"}""" },
+            Span(TraceId(3), SpanId(3), time, time + 1000) with { Kind = 3, AttributesJson = """{"db.system.name":"postgresql"}""" },
+            Span(TraceId(4), SpanId(4), time, time + 1000) with { Kind = 4, AttributesJson = """{"messaging.system":"kafka"}""" },
+            Span(TraceId(5), SpanId(5), time, time + 1000) with { Kind = 3, AttributesJson = """{"service.peer.name":"inventory"}""" },
+            Span(TraceId(5), SpanId(6), time + 10, time + 900, parentSpanId: SpanId(5), service: "inventory") with { Kind = 2 },
+            Span(TraceId(7), SpanId(7), time + 2000, time + 3000) with { Kind = 3, AttributesJson = """{"service.peer.name":"inventory"}""" }
         ]), TestContext.Current.CancellationToken);
 
         var map = await Read(host, "get_service_map", "{}");
@@ -141,8 +148,16 @@ public sealed partial class AnalysisApiTests
         var edges = map.GetProperty("edges").EnumerateArray()
             .Select(static edge => (edge.GetProperty("from").GetString(), edge.GetProperty("to").GetString()))
             .ToArray();
-        Assert.Contains(("checkout", "payments.internal"), edges);
-        Assert.Contains(("checkout", "postgresql"), edges);
+        (string?, string?)[] expected =
+        [
+            ("checkout", "inventory"), ("checkout", "kafka"), ("checkout", "ledger.internal"), ("checkout", "payments"),
+            ("checkout", "postgresql")
+        ];
+        Assert.Equal(expected, edges.Order());
+        var inventory = map.GetProperty("edges").EnumerateArray().Single(static edge => edge.GetProperty("to").GetString() == "inventory");
+        Assert.Equal(2, inventory.GetProperty("calls").GetInt32());
+        Assert.Equal("service", map.GetProperty("nodes").EnumerateArray()
+            .Single(static node => node.GetProperty("name").GetString() == "inventory").GetProperty("kind").GetString());
     }
 
     private static async Task<JsonElement> Read(CollectorApiTestHost host, string operation, string input)

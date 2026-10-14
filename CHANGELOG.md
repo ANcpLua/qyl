@@ -26,9 +26,11 @@
   `AddQylApi` registers nothing for it. The contract revision reaches the resource through
   `AddOpenTelemetry().ConfigureResource`, since `QylTelemetryOptions.ResourceAttributes` is gone.
 - Collector: the analysis reads only keys ingest keeps. The service map names an outbound target by
-  `server.address`, then the database or messaging system (`peer.service` was never persisted), and a
-  failure's message is the span's status description (`exception.message` is denied on spans, events
-  and logs). The catalog drops the `PeerService` and `ExceptionMessage` constants.
+  `service.peer.name` (ingest renames the deprecated `peer.service` to it), then `server.address`, then the
+  database or messaging system; a call whose callee reports its own span counts once, through that span,
+  and such a callee stays a service node. A failure's message is the span's status description
+  (`exception.message` is denied on spans, events and logs). The catalog drops the `PeerService` and
+  `ExceptionMessage` constants and gains `ServicePeerName`.
 - Collector: an unhandled or unobserved exception with no current span is recorded on a
   `Spans.Work("UnhandledException")` span that now ends, so it is exported; the old fallback span on
   its own `Qyl.Instrumentation.ErrorCapture` source was never stopped. The collector's unused

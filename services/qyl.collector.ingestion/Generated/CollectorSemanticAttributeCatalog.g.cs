@@ -1210,6 +1210,7 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.44.0";
     internal const string ServerAddress = "server.address";
     internal const string ServiceName = "service.name";
+    internal const string ServicePeerName = "service.peer.name"; // incubating
     internal const string ServiceVersion = "service.version";
     internal const string State = "state";
     internal const string VcsRefHeadName = "vcs.ref.head.name"; // incubating

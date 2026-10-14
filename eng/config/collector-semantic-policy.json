@@ -196,6 +196,7 @@
     "DeploymentEnvironmentName": "deployment.environment.name",
     "VcsRefHeadRevision": "vcs.ref.head.revision",
     "ServerAddress": "server.address",
+    "ServicePeerName": "service.peer.name",
     "ErrorType": "error.type",
     "VcsRefHeadName": "vcs.ref.head.name",
     "CicdPipelineRunId": "cicd.pipeline.run.id",
