@@ -98,7 +98,7 @@ public sealed class InstrumentationScopeTests
 
         var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
         Assert.Equal("Qyl.Telemetry.Application", stored.ScopeName);
-        Assert.Equal(["https://qyl.at/schemas/10.0.0"],
+        Assert.Equal(["https://qyl.at/schemas/10.0.1"],
             (await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
     }
 

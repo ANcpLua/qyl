@@ -35,7 +35,7 @@
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
     <QylTelemetryVersion>25.0.0</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
-    <QylSemanticConventionsVersion>10.0.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>10.0.1</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <QylApiContractsVersion>12.1.2</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
