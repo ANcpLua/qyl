@@ -13,7 +13,7 @@ version=12.0.0
 rids='linux-x64 osx-arm64'
 printf dummy > "$NUGET_KEY_FILE"
 say() { :; }
-sleep() { :; }
+sleep() { SECONDS=$(( SECONDS + $1 )); }
 indexed() { test -f "$scratch/index-$1"; }
 dotnet() {
   local filename id
