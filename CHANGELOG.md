@@ -1,5 +1,9 @@
 # Changelog
 
+## 12.2.1 — 2026-10-14
+
+- Security: .NET runtime packages 10.0.13, System.Security.Cryptography.Pkcs and .Xml pinned to it (High advisories of 2026-10-13).
+
 ## 12.2.0 — 2026-10-14
 
 - Collector: spans keep the instrumentation scope name, version and schema URL apart. Ingestion
@@ -33,17 +37,5 @@
   exceeded deadlines and exhausted scan budgets return contract problem bodies.
 - Pin API contracts 12.1.1 and semantic conventions 9.9.1; generate semantic metadata through
   Fallout.
-
-## 12.1.0 — 2026-10-12
-
-- Add the collector analysis engine for qyl.mcp's 32-tool catalog: failure triage,
-  evidence and comparison, fix verification, aggregate queries, agent runs, releases,
-  service maps, telemetry health, MCP diagnostics and viewer refreshes.
-- Apply one project-scoped matcher/window/pagination implementation across direct and
-  saved queries. Return measured coverage, denominators and metric units, with signed
-  continuation and verification handles.
-- Persist failure status and annotation labels/classification atomically, using ETags.
-  Add only the new analysis-state table when opening an existing compatible database.
-- Pin API contracts 12.1.0; include real OTLP answer-key and HTTP regression coverage.
 
 Older entries: [CHANGELOG.archive.md](CHANGELOG.archive.md).

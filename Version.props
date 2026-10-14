@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The manual release script reads this exact product version. Bump it before
          any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>12.2.0</QylVersion>
+    <QylVersion>12.2.1</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -11,12 +11,14 @@
        shared lines (a runtime, a release train) cannot drift apart by being typed twice. -->
 
   <PropertyGroup Label="Platform">
+    <!-- One .NET servicing line for every runtime package, including the transitive
+         System.Security.Cryptography pins (10.0.13 carries the fixes for the advisories of 2026-10-13). -->
     <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
-    <DotNetRuntimeVersion>10.0.12</DotNetRuntimeVersion>
+    <DotNetRuntimeVersion>10.0.13</DotNetRuntimeVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
     <MicrosoftExtensionsVersion>10.10.0</MicrosoftExtensionsVersion>
-    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.12 declares Microsoft.OpenApi
-         [2.7.5, 3.0.0), and its source generator fails to compile against 3.x with CS0012
+    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.13 declares Microsoft.OpenApi
+         [2.12.2, 3.0.0), and its source generator fails to compile against 3.x with CS0012
          (the type it emits lives in an assembly the generated code does not reference).
          3.x arrives with the .NET release that widens the declared range. -->
     <!-- renovate: datasource=nuget depName=Microsoft.OpenApi -->

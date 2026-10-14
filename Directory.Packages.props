@@ -27,6 +27,9 @@
   <ItemGroup Label="Platform">
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
+    <!-- Transitive-only pins: NuGet.Packaging and MSBuild in the build host and the ASP.NET Core
+         packages bring both; the runtime line's servicing build carries the advisory fixes. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
