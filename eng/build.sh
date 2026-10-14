@@ -1,9 +1,30 @@
 #!/usr/bin/env bash
 
-bash --version 2>&1 | head -n 1
-
 set -eo pipefail
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+
+# Quiet unless --verbose or QYL_VERBOSE=1: eng/scripts/quiet.sh prints the target table, PASS or
+# FAIL and the failing target's last lines, and keeps the whole output in
+# artifacts/logs/build-<targets>.log. --help and the targets whose output is the point (Dev,
+# DockerUp, DockerLogs, FrontendDev, Print) print as before.
+verbose=${QYL_VERBOSE:-0}
+arguments=()
+name=build
+for argument in "$@"; do
+    case $argument in
+        --verbose) verbose=1; continue ;;
+        --help | -h | Dev | DockerUp | DockerLogs | FrontendDev | Print) verbose=1 ;;
+        -*) parameters=1 ;;
+        *) [[ -n ${parameters:-} ]] || name+="-$argument" ;;
+    esac
+    arguments+=("$argument")
+done
+if [[ $verbose != 1 ]]; then
+    exec "$SCRIPT_DIR/scripts/quiet.sh" "${name//[^A-Za-z0-9._-]/_}" -- "$SCRIPT_DIR/build.sh" ${arguments[@]+"${arguments[@]}"}
+fi
+set -- ${arguments[@]+"${arguments[@]}"}
+
+bash --version 2>&1 | head -n 1
 
 BUILD_PROJECT_FILE="$SCRIPT_DIR/build/build.csproj"
 TEMP_DIRECTORY="$SCRIPT_DIR/../.fallout/temp"

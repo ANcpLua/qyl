@@ -8,8 +8,10 @@
 
 [tasks.check]
 description = "The gate before every push: ./eng/build.sh Check"
+quiet = true
 run = "./eng/build.sh Check --Configuration Release"
 
 [tasks.check-full]
 description = "Everything, on demand: ./eng/build.sh CheckFull (NativeAOT, pack smoke, SDK proof, dashboard e2e, vocabulary smoke)"
+quiet = true
 run = "./eng/build.sh CheckFull --Configuration Release"

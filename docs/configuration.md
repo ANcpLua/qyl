@@ -36,6 +36,7 @@ cannot rot into decoration.
 | `QYL_SMOKE_OTLP_HTTP_PORT` | NativeAOT smoke | Host OTLP/HTTP port; defaults to `4318`. |
 | `QYL_SMOKE_PLATFORM` | NativeAOT smoke | Docker build/run platform; defaults to `linux/amd64`. |
 | `QYL_STORAGE_MIN_FREE_MB` | Collector | Free-space threshold for degraded `/health`; defaults to `2048`, and `0` disables the threshold. |
+| `QYL_VERBOSE` | Build scripts | `1` makes `./eng/build.sh` (and `mise run check`, `check-full`) print the whole Fallout output, like `--verbose`; unset prints one line per target, the failed target's last lines and the log path under `artifacts/logs/`. |
 | `QYL_WORKLOAD_ONESHOT` | Synthetic workload | `1` emits one acceptance turn and exits; unset runs continuously. |
 
 `Unsecured` mode is intended for local development. It continues to accept caller-provided
