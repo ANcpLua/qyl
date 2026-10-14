@@ -1,0 +1,135 @@
+# Weekly reports, Monday mornings and on demand, never on push: vulnerable NuGet and dashboard
+# packages (fails when it finds one), CodeQL for C# (job summary + SARIF artifact, no upload to
+# code scanning, which would need security-events: write) and the Markdown links (lychee.toml,
+# never fails). Read-only token, no secrets.
+name: weekly
+
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: Restore
+        run: dotnet restore qyl.slnx -p:TreatWarningsAsErrors=false
+
+      - name: Vulnerable NuGet packages
+        run: |
+          set -euo pipefail
+          report=$RUNNER_TEMP/nuget-vulnerable.json
+          # Exits 1 for the .esproj problem below; the report itself decides.
+          dotnet list qyl.slnx package --vulnerable --include-transitive --format json >"$report" || true
+          jq -e '.projects | length > 0' "$report" >/dev/null || { cat "$report"; echo "::error::dotnet list wrote no project report"; exit 1; }
+          # The dashboard's .esproj has no PackageReference graph; any other problem leaves the audit incomplete.
+          problems=$(jq -r '.problems[]? | select((.project // "") | endswith(".esproj") | not) | "- \(.project // "solution"): \(.text)"' "$report")
+          rows=$(jq -r --arg root "$GITHUB_WORKSPACE/" '
+            [.projects[] | (.path | ltrimstr($root)) as $project | .frameworks[]? |
+              ((.topLevelPackages[]? | . + {reference: "direct"}), (.transitivePackages[]? | . + {reference: "transitive"})) |
+              {package: "\(.id) \(.resolvedVersion)", reference, project: $project,
+               severity: ([.vulnerabilities[]?.severity] | unique | join(", ")),
+               advisories: ([.vulnerabilities[]?.advisoryurl | split("/") | last] | unique | join(" "))}]
+            | group_by(.package)[]
+            | "| \(.[0].package) | \([.[].reference] | unique | join(", ")) | \(.[0].severity) | \(.[0].advisories) | \([.[].project] | unique | join("<br>")) |"' "$report")
+          {
+            echo "### Vulnerable NuGet packages"
+            if [[ -n $rows ]]; then
+              echo "| Package | Reference | Severity | Advisories | Projects |"
+              echo "|---|---|---|---|---|"
+              echo "$rows"
+            else
+              echo "None."
+            fi
+            [[ -z $problems ]] || printf '\nNot audited:\n%s\n' "$problems"
+          } >>"$GITHUB_STEP_SUMMARY"
+          [[ -z $problems ]] || { echo "::error::the NuGet audit is incomplete (see the job summary)"; exit 1; }
+          [[ -z $rows ]] || { echo "::error::$(grep -c '' <<<"$rows") vulnerable NuGet packages (see the job summary)"; exit 1; }
+
+      - name: Vulnerable dashboard packages
+        if: ${{ !cancelled() }}
+        working-directory: services/qyl.dashboard
+        run: |
+          bun install --frozen-lockfile
+          bun audit --audit-level=moderate
+
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # build-mode none reads the C# sources directly: no SDK setup, restore or build here.
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: csharp
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:csharp
+          upload: never
+          output: ${{ runner.temp }}/codeql
+
+      - name: Findings
+        run: |
+          set -euo pipefail
+          sarif=$RUNNER_TEMP/codeql/csharp.sarif
+          rows=$(jq -r '.runs[] | [.tool.driver.rules[]?, .tool.extensions[]?.rules[]?] as $rules | [.results[]? |
+              (.ruleId // .rule.id) as $id | ($rules | map(select(.id == $id)) | first // {}) as $rule |
+              {id: $id, level: (.level // $rule.defaultConfiguration.level // "warning"),
+               severity: ($rule.properties["security-severity"] // ""), title: ($rule.shortDescription.text // ""),
+               at: "\(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"}]
+            | group_by(.id)[] | "| \(.[0].id) | \(.[0].level) | \(.[0].severity) | \(length) | \(.[0].title) | \(.[0].at) |"' "$sarif")
+          {
+            echo "### CodeQL (C#)"
+            if [[ -n $rows ]]; then
+              echo "| Rule | Level | Security severity | Results | Title | First at |"
+              echo "|---|---|---|---|---|---|"
+              echo "$rows"
+              echo
+              echo "Every result is in the codeql-sarif artifact."
+            else
+              echo "No results."
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+          [[ -z $rows ]] || echo "::warning::CodeQL reported $(jq '[.runs[].results[]?] | length' "$sarif") results (see the job summary)"
+
+      - name: Keep the SARIF
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: codeql-sarif
+          path: ${{ runner.temp }}/codeql/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # lychee reads ./lychee.toml; the job summary lists every broken link.
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --no-progress --root-dir "${{ github.workspace }}" .
+          fail: false
