@@ -147,8 +147,8 @@ proves it is `samples/qyl.sample/`, and both build with that repository's `Direc
 `Directory.Packages.props` and analyzer settings. Every entry above still holds; the paths and gate names
 they cite are the ones this tree has.
 
-The version is the repository's: `QylVersion` in `Version.props` versions this package with the repository
-(12.1.1 today), and `./release.sh` releases it from the developer machine together with the `qyl` tool. The
+The version is the repository's: `QylVersion` in `Version.props` versions this package with the repository,
+and `./release.sh` releases it from the developer machine together with the `qyl` tool. The
 project packs itself instead of listing files in a nuspec, and resolves the two libraries and the analyzer from
 the referenced projects' build output rather than from `bin/<configuration>/<tfm>` paths, which that
 repository's artifacts layout does not have. The packed
@@ -156,7 +156,7 @@ repository's artifacts layout does not have. The packed
 reads them from a `Version.props` a consumer does not have.
 
 The proof is `eng/build/BuildApiSdk.cs`, nine stages run locally through the Fallout `ApiSdk` target and as
-part of `Ci`. The first eight run in the same order and assert the same things as the shell script they replace —
+part of `CheckFull`. The first eight run in the same order and assert the same things as the shell script they replace —
 with the HTTP scenario written against the .NET stacks rather than curl, jq and xmllint, so a missing shell tool
 fails nothing silently; the ninth, the session scenario, is added by an entry below.
 
