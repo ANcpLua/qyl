@@ -7,6 +7,7 @@
   The instrumentation-scope test follows the pinned registry schema URL.
 - Release verification bypasses stale registry caches and keeps the GitHub release in draft until
   the published tool and orchestration consumer pass. Gate startup reports its live log immediately.
+  The standalone orchestration consumer declares its imports independently of the repository SDK.
 - Apply JetBrains cleanup across the generator, Collector and tests, including disposal-safe resource
   setup, asynchronous test cleanup and redundant imports and null suppressions.
 

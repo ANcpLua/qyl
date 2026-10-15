@@ -19,6 +19,8 @@ for name, value in [('TargetFramework', 'net10.0'), ('OutputType', 'Exe'),
                     ('ImplicitUsings', 'enable'), ('Nullable', 'enable')]:
     ET.SubElement(properties, name).text = value
 items = ET.SubElement(project, 'ItemGroup')
+# The copied program normally receives this global using from the repository SDK.
+ET.SubElement(items, 'Using', Include='System.Diagnostics')
 ET.SubElement(items, 'PackageReference', Include='Qyl.Orchestration', Version=version)
 ET.ElementTree(project).write(root / 'Smoke.csproj')
 config = ET.Element('configuration')
