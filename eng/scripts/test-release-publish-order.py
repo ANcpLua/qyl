@@ -13,6 +13,7 @@ version=12.0.0
 rids='linux-x64 osx-arm64'
 printf dummy > "$NUGET_KEY_FILE"
 say() { :; }
+phase() { say "$@"; }
 sleep() { SECONDS=$(( SECONDS + $1 )); }
 indexed() { test -f "$scratch/index-$1"; }
 dotnet() {
@@ -65,13 +66,18 @@ if tool == 'git':
 elif tool == 'gh':
     if args[:2] == ['release', 'view']:
         if not (root / 'github').exists(): sys.exit(1)
-        if '--json' in args:
+        if '--json' in args and args[args.index('--json') + 1] == 'isDraft':
+            print('false' if (root / 'github').read_text() == 'published' else 'true')
+        elif '--json' in args:
             print('\n'.join(p + '.' + version + '.nupkg' for p in packages))
     elif args[:2] in (['release', 'create'], ['release', 'upload']):
         if mode == 'github-failure': sys.exit(45)
         existed = (root / 'github').exists()
         (root / 'github').touch()
         if mode == 'github-transient' and not existed: sys.exit(45)
+    elif args[:2] == ['release', 'edit']:
+        if mode == 'github-publish-failure': sys.exit(48)
+        (root / 'github').write_text('published')
 elif tool == 'orchestration-smoke':
     if mode == 'orchestration-smoke-failure': sys.exit(47)
 elif tool == 'dotnet':
@@ -88,6 +94,7 @@ elif tool == 'curl':
     else:
         package = url.split('/')[-2]
         indexed = (root / ('index-' + package)).exists()
+        if mode == 'stale-index' and ('Cache-Control: no-cache' not in args or '?qyl-release=' not in url): indexed = False
         if mode == 'runtime-timeout' and package == 'qyl.osx-arm64': indexed = False
         print(json.dumps({'versions': ['12.0.0', version] if indexed else ['12.0.0']}))
 elif tool == 'build':
@@ -166,6 +173,7 @@ class ReleaseOutcomeTests(unittest.TestCase):
                  ('orchestration-smoke-failure', 47, 'dotnet nuget push'),
                  ('push-failure', 42, 'git tag'), ('tag-push-failure', 43, 'gh release create'),
                  ('github-failure', 45, 'build VerifyRelease'), ('verify-failure', 42, 'refresh '),
+                 ('github-publish-failure', 48, 'refresh '),
                  ('bad-index-status', 1, 'refresh '), ('snapshot-failure', 46, None)]
         for mode, code, forbidden in cases:
             with self.subTest(mode=mode):
@@ -217,6 +225,7 @@ class ReleaseOutcomeTests(unittest.TestCase):
         result = self.run_release('runtime-timeout')
         self.assertEqual(3, result.returncode, result.stdout + result.stderr)
         self.assertEqual('PENDING', self.status()['state'])
+        self.assertEqual('runtime package indexing', self.status()['phase'])
         self.assertFalse(any(call.startswith(('git tag', 'dotnet nuget push artifacts/nuget/qyl.13'))
                              for call in self.events()))
 
@@ -246,6 +255,12 @@ class ReleaseOutcomeTests(unittest.TestCase):
         result = self.run_release('github-transient')
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertTrue(any(call.startswith('gh release upload') for call in self.events()))
+        self.assertEqual('VERIFIED', self.status()['state'])
+        self.assertEqual('published', (self.root / 'github').read_text())
+
+    def test_stale_cached_indexes_are_bypassed(self):
+        result = self.run_release('stale-index')
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertEqual('VERIFIED', self.status()['state'])
 
     def test_dry_run_is_not_a_verified_release(self):

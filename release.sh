@@ -8,7 +8,7 @@
 #                                   the nine package ids; nothing is pushed, registry and git stay unchanged.
 #                                   Checks the real run enforces (tag, already on NuGet) only warn. Prints
 #                                   what verification would do; the result is DRY_RUN, never VERIFIED
-#   ./release.sh --verify <x.y.z>   verify an already published release without republishing
+#   ./release.sh --verify <x.y.z>   verify uploaded packages and finish a matching GitHub draft; no NuGet pushes
 #   ./release.sh --status <x.y.z>   print the last attempt's JSON status and return its recorded exit code
 #                                   (4 = still running; 1 = interrupted without a final result)
 #
@@ -135,11 +135,11 @@ trap finish EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 exec > >(tee "$run_log") 2>&1
-phase() { step=$1; write_status RUNNING -1; say "$step"; }
+phase() { step=$1; write_status RUNNING -1 || return $?; say "$step"; }
 phase start
 
 verify_published() {
-  local code=0
+  local code=0 draft
   phase VerifyRelease
   rm -f "$index_status"
   say "$VERIFY_COMMAND --published-version $version ($VERIFY_WHAT)"
@@ -154,18 +154,29 @@ verify_published() {
     exit "$code"
   fi
   [[ $(index_state) == indexed ]] || die "VerifyRelease passed without indexed status; snapshot not refreshed"
+  phase "publish GitHub release"
+  draft=$(gh release view "v$version" --json isDraft --jq '.isDraft')
+  if [[ $draft == true ]]; then
+    gh release edit "v$version" --draft=false
+    draft=$(gh release view "v$version" --json isDraft --jq '.isDraft')
+  fi
+  [[ $draft == false ]] || die "GitHub release is still a draft; snapshot not refreshed"
   phase "snapshot refresh"
-  "$QYL_AT_DIR/scripts/refresh-published-versions.sh"
+  "$QYL_AT_DIR/scripts/refresh-published-versions.sh" --expect-nuget "$version" "${package_ids[@]}"
   result=VERIFIED
 }
 
 lower() { tr '[:upper:]' '[:lower:]' <<<"$1"; }
-indexed() { curl -fsSL --connect-timeout 10 --max-time 30 "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -q "\"$2\""; }
-latest() { curl -fsSL "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -o '"[0-9][^"]*"' | tail -1 | tr -d '"'; }
+package_index() {
+  curl -fsSL --connect-timeout 10 --max-time 30 -H 'Cache-Control: no-cache' \
+    "$NUGET_FLAT/$(lower "$1")/index.json?qyl-release=$(date +%s)-$$"
+}
+indexed() { package_index "$1" 2>/dev/null | grep -q "\"$2\""; }
+latest() { package_index "$1" 2>/dev/null | grep -o '"[0-9][^"]*"' | tail -1 | tr -d '"'; }
 
 if [[ $mode == verify ]]; then
   phase "check published release"
-  [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || die "tag v$version is not on origin; nothing will be published by --verify"
+  [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || die "tag v$version is not on origin; no packages will be published by --verify"
   assets=$(gh release view "v$version" --json assets --jq '.assets[].name')
   git fetch -q origin tag "v$version"
   release_commit=$(git rev-parse "v$version^{commit}")
@@ -175,7 +186,7 @@ if [[ $mode == verify ]]; then
   expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
   [[ $(sort <<<"$assets") == "$expected" ]] || die "GitHub release assets do not match the release set; verification cannot repair publication"
   # A manually created tag/release is not proof that NuGet accepted any package. Do not start a
-  # 45-minute verifier against an unpublished version. This read-only mode is safe to retry later.
+  # 45-minute verifier against an unpublished version. This mode never pushes packages.
   for id in "${package_ids[@]}"; do
     if ! indexed "$id" "$version"; then
       echo "release: $id $version is not available; retry ./release.sh --verify $version after indexing"
@@ -221,11 +232,12 @@ publish_release_set() {
     # --skip-duplicate here and below: a rerun after a partial push (pushed, not indexed yet) goes on.
     NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/qyl.$runtime.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return $?
   done
-  say "wait for all runtime package indexes before publishing the tool pointer"
+  phase "runtime package indexing" || return $?
   if ! wait_for_indexed "${runtime_ids[@]}"; then
     result=PENDING
     return 3
   fi
+  phase "publish libraries and tool pointer" || return $?
   for package in Qyl.Orchestration Qyl.Api.Sdk qyl; do
     NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/$package.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return $?
   done
@@ -306,7 +318,7 @@ for attempt in 1 2 3; do
   if gh release view "v$version" >/dev/null 2>&1; then
     gh release upload "v$version" "$OUT"/*.nupkg --clobber || github_code=$?
   else
-    gh release create "v$version" --title "v$version" --generate-notes "$OUT"/*.nupkg || github_code=$?
+    gh release create "v$version" --draft --title "v$version" --generate-notes "$OUT"/*.nupkg || github_code=$?
   fi
   (( github_code != 0 )) || break
   (( attempt == 3 )) || sleep 5

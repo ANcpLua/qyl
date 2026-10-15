@@ -20,6 +20,13 @@ export default defineRailway(() => {
       builder: "DOCKERFILE",
       dockerfilePath: "services/qyl.collector/Dockerfile",
       buildEnvironment: "V3",
+      // Keep source, generators and build inputs covered; root docs and tests do not
+      // rebuild an unchanged Collector. Include new top-level build inputs here.
+      watchPatterns: [
+        "services/**", "packages/**", "internal/**", "eng/**", ".railway/**",
+        "Directory.*", "Version.props", "global.json", "nuget.config", "qyl.slnx",
+        ".dockerignore", ".editorconfig", ".globalconfig",
+      ],
     },
     deploy: {
       healthcheckPath: "/health",

@@ -10,6 +10,7 @@
 #                                                         stopping at the first failure
 #   eng/scripts/quiet.sh <name> -- <program> [<argument> ...]  one step with exactly this argv
 #
+# The first line names the live log; a previous artifacts log belongs to the previous run.
 # Everything runs inside main, which bash parses whole before running, so editing this file
 # while a gate runs cannot change the running gate.
 set -uo pipefail
@@ -122,6 +123,7 @@ main() {
   # cleans artifacts/ cannot delete it mid-run.
   trap 'mkdir -p "${log%/*}" && mv -f "$work/log" "$log"; rm -rf "$work"' EXIT
   : >"$work/log"
+  printf 'RUNNING %s (pid %s), live log %s\n' "$name" "$$" "$work/log"
 
   local started=$SECONDS status=0 failed= named=
   run_step() {

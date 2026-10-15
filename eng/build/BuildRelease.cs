@@ -27,8 +27,8 @@ interface IVerifyRelease : IPack
     [Parameter("VerifyRelease: the released version to verify on nuget.org")]
     string? PublishedVersion => TryGetValue(() => PublishedVersion);
 
-    Target VerifyRelease => d => d
-        .Description("Wait until nuget.org serves --published-version, then smoke the published qyl tool")
+    Target VerifyReleaseIndex => d => d
+        .Description("Wait for the published release package indexes")
         .Requires(() => PublishedVersion)
         .Executes(() =>
         {
@@ -37,7 +37,14 @@ interface IVerifyRelease : IPack
                 RootDirectory / "artifacts" / $"release-{version}-index.status",
                 TimeSpan.FromMinutes(45),
                 [.. ShippablePackageIds.Select(id => ReleaseIndex.NuGet(id, version))]);
+        });
 
+    Target VerifyRelease => d => d
+        .Description("Verify the published qyl tool and orchestration package")
+        .DependsOn(VerifyReleaseIndex)
+        .Executes(() =>
+        {
+            var version = PublishedVersion!;
             var scratch = (AbsolutePath)Path.Combine(Path.GetTempPath(), $"qyl-verify-release-{Guid.NewGuid():N}");
             try
             {
@@ -116,6 +123,7 @@ static class ReleaseIndex
                     $"not indexed after {(int)clock.Elapsed.TotalSeconds} s: {string.Join(", ", pending.Select(static probe => probe.Name))}");
             }
 
+            Write(statusFile, "waiting", clock);
             Thread.Sleep(delay);
             delay = TimeSpan.FromSeconds(Math.Min(60, delay.TotalSeconds * 2));
         }
@@ -125,7 +133,8 @@ static class ReleaseIndex
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, probe.Url);
+            var url = new UriBuilder(probe.Url) { Query = $"qyl-release={Guid.NewGuid():N}" }.Uri;
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
             using var response = Http.Send(request);
             if (!response.IsSuccessStatusCode)
