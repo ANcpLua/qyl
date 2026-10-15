@@ -1,5 +1,11 @@
 # Changelog
 
+## 13.1.0 — 2026-10-15
+
+- Add `Qyl.Orchestration`, a reusable .NET process host extracted from the qyl CLI's supervisor.
+  Applications can compose executables, pass environment and service references, wait for readiness,
+  and stop the whole application. The CLI and library use the same process lifecycle implementation.
+
 ## 13.0.1 — 2026-10-15
 
 - Pin semantic conventions 10.0.1 and `Qyl.Telemetry.Hosting` / `Qyl.Telemetry.AutoInstrumentation*` 25.0.1.
