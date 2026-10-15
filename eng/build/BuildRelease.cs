@@ -17,7 +17,7 @@ using Serilog;
 namespace Qyl.Build;
 
 /// <summary>
-/// release.sh's detached verification, rerunnable by hand after a patch release: wait until
+/// release.sh's verification, rerunnable without republishing: wait until
 /// nuget.org serves all eight packages of the release, then install the published qyl tool from
 /// nuget.org into a clean tool path (its own NuGet packages folder, no HTTP cache) and run
 /// QylToolSmoke's installed-tool mode against it.
@@ -47,7 +47,7 @@ interface IVerifyRelease : IPack
                 environment["NUGET_PACKAGES"] = scratch / "packages";
                 ProcessTasks.StartProcess(
                         "dotnet",
-                        $"tool install qyl --tool-path \"{scratch / "tool"}\" --version {version} --add-source https://api.nuget.org/v3/index.json --no-cache",
+                        $"tool install qyl --tool-path \"{scratch / "tool"}\" --version {version} --source https://api.nuget.org/v3/index.json --no-http-cache",
                         scratch,
                         environment)
                     .AssertZeroExitCode();

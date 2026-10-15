@@ -2,23 +2,24 @@
 # Publish and release qyl's NuGet packages (the qyl tool, its six runtime packages and
 # Qyl.Api.Sdk) from this machine with the key registered in Vitals. No workflow publishes.
 #
-#   ./release.sh <x.y.z>            pack, push the eight packages, tag v<x.y.z>, GitHub release; returns once
-#                                   NuGet accepted the push and the tag and the GitHub release exist, and leaves
-#                                   the verification below running detached
+#   ./release.sh <x.y.z>            pack, smoke, publish, tag, GitHub release, verify, refresh; exit 0 only
+#                                   when the complete release is VERIFIED
 #   ./release.sh <x.y.z> --dry-run  every check, the real pack and smoke, and a NuGet key probe for each of
 #                                   the eight package ids; nothing is pushed, registry and git stay unchanged.
 #                                   Checks the real run enforces (tag, already on NuGet) only warn. Prints
-#                                   what the detached job would do
-#   ./release.sh --wait <x.y.z>     blocks until artifacts/release-<x.y.z>-verify.log ends in VERIFIED (exit 0)
-#                                   or FAILED (exit 1; exit 3 when not indexed in time), printing the log
-#   ./release.sh --verify <x.y.z>   starts the detached verification again for a released version
+#                                   what verification would do; the result is DRY_RUN, never VERIFIED
+#   ./release.sh --verify <x.y.z>   verify an already published release without republishing
+#   ./release.sh --status <x.y.z>   print the last attempt's JSON status and return its recorded exit code
+#                                   (4 = still running; 1 = interrupted without a final result)
 #
 # Order: the six runtime packages are pushed and must be indexed (up to 20 min, in the foreground)
 # before the tool pointer qyl and Qyl.Api.Sdk are pushed; then the tag names the commit the checks
-# and the pack ran on. The detached verification (own session, survives the caller's shell) runs
+# and the pack ran on. Verification runs in the same invocation:
 # `./eng/build.sh VerifyRelease --published-version <x.y.z>` (waits until nuget.org serves all eight,
 # up to 45 min, then installs the published tool from nuget.org and runs QylToolSmoke against it),
-# then qyl.at's scripts/refresh-published-versions.sh, and ends its log with VERIFIED or FAILED.
+# then qyl.at's scripts/refresh-published-versions.sh. Every attempt keeps its own log and JSON status
+# under artifacts/release-<version>-<attempt>/; artifacts/release-<version>.status.json names the latest.
+# Nonzero exits stop the release immediately; exit 3 with PENDING means registry indexing is unresolved.
 # Registry versions are immutable: a failed smoke after the fact is a patch release, and the log
 # says so.
 #
@@ -39,103 +40,152 @@ VERIFY_WHAT="nuget.org index of all eight up to 45 min, then the published tool 
 QYL_AT_DIR=${QYL_AT_DIR:-$(cd .. && pwd)/qyl.at}
 
 mode=release
-case ${1:-} in --wait | --verify | __verify) mode=${1#--}; shift ;; esac
+case ${1:-} in --verify | --status) mode=${1#--}; shift ;; esac
 version=${1:-}
 dry=0; [[ $mode == release && ${2:-} == --dry-run ]] && dry=1
-[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: $0 <x.y.z> [--dry-run] | --wait <x.y.z> | --verify <x.y.z>" >&2; exit 2; }
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: $0 <x.y.z> [--dry-run] | --verify <x.y.z> | --status <x.y.z>" >&2; exit 2; }
 say() { printf '\n== %s\n' "$*"; }
 die() { echo "release: $*" >&2; exit 1; }
 utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
-verify_log="$PWD/artifacts/release-$version-verify.log"
+latest_status="$PWD/artifacts/release-$version.status.json"
 index_status="$PWD/artifacts/release-$version-index.status"  # "waiting|indexed|timed-out elapsed=<s>s at=<utc>"
-verify_pid() { sed -n '1s/.* pid \([0-9][0-9]*\) .*/\1/p' "$verify_log"; }
 index_state() { [[ -f $index_status ]] && cut -d' ' -f1 "$index_status"; }
 index_elapsed() { sed -n 's/.* elapsed=\([^ ]*\) .*/\1/p' "$index_status" 2>/dev/null; }
 
-# The detached job: VerifyRelease (index wait, then the registry consumers), then the snapshot
-# refresh. Its first log line names its pid, its last line is the verdict; exit 3 = not indexed in time.
-verify_published() {
-  local step="start" next_patch="${version%.*}.$(( ${version##*.} + 1 ))"
-  printf 'verify %s %s pid %s started %s\n' "$RELEASE_NAME" "$version" "$$" "$(utc)"
-  trap 'rc=$?; (( rc == 0 )) || printf "FAILED %s %s %s: %s stopped (exit %s); fix the cause, then ./release.sh --verify %s\n" "$RELEASE_NAME" "$version" "$(utc)" "$step" "$rc" "$version"' EXIT
-  fail() { local code=$1; shift; printf 'FAILED %s %s %s: %s\n' "$RELEASE_NAME" "$version" "$(utc)" "$*"; trap - EXIT; exit "$code"; }
-  rm -f "$index_status"
+if [[ $mode == status ]]; then
+  python3 -I - "$latest_status" <<'PY'
+import json, os, sys
+try:
+    with open(sys.argv[1]) as stream:
+        status = json.load(stream)
+except (OSError, ValueError) as error:
+    print(f"release: no readable result: {error}", file=sys.stderr)
+    sys.exit(1)
+if status["state"] == "RUNNING":
+    try:
+        os.kill(status["pid"], 0)
+    except ProcessLookupError:
+        status["state"] = "INTERRUPTED"
+        code = 1
+    else:
+        code = 4
+else:
+    code = status["exit_code"]
+print(json.dumps(status, indent=2))
+sys.exit(code)
+PY
+  exit
+fi
 
-  step="VerifyRelease"
-  say "$VERIFY_COMMAND --published-version $version ($VERIFY_WHAT)"
-  if ! $VERIFY_COMMAND --published-version "$version"; then
-    [[ $(index_state) == timed-out ]] &&
-      fail 3 "not indexed after $(index_elapsed); nothing is wrong with the release yet: ./release.sh --verify $version checks again"
-    fail 1 "a published package failed VerifyRelease (above; full log under artifacts/logs/); $version is immutable: fix the cause and ship $next_patch as a patch release (a transient network failure: ./release.sh --verify $version)"
-  fi
-
-  step="snapshot refresh"
-  [[ $(index_state) == indexed ]] || fail 1 "VerifyRelease passed but $index_status does not say indexed; the snapshot stays as it is"
-  say "refresh the published-versions snapshot in qyl.at"
-  "$QYL_AT_DIR/scripts/refresh-published-versions.sh" ||
-    fail 1 "$version is published and verified, but the snapshot refresh failed (above); ./release.sh --verify $version retries it"
-
+# Preserve each attempt, including pre-publication failures. A later successful verification never
+# erases the failed run. The latest status is atomic and carries the script's actual exit code.
+if [[ -f $latest_status ]]; then
+  previous_pid=$(python3 -I - "$latest_status" <<'PY'
+import json, sys
+with open(sys.argv[1]) as stream:
+    status = json.load(stream)
+if status["state"] == "RUNNING":
+    print(status["pid"])
+PY
+  )
+  [[ -z $previous_pid ]] || ! kill -0 "$previous_pid" 2>/dev/null ||
+    die "a release attempt is still running (pid $previous_pid); ./release.sh --status $version"
+fi
+mkdir -p artifacts
+attempt_dir=$(mktemp -d "$PWD/artifacts/release-$version-XXXXXXXX")
+run_log="$attempt_dir/release.log"
+status_file="$attempt_dir/status.json"
+started=$(utc)
+step=start
+release_commit=unknown
+result=FAILED
+write_status() {
+  python3 -I - "$status_file" "$latest_status" "$version" "$mode" "$step" "$1" "$2" "$release_commit" "$$" "$started" "$run_log" <<'PY'
+import datetime, json, os, sys
+attempt, latest, version, mode, phase, state, code, commit, pid, started, log = sys.argv[1:]
+status = dict(version=version, mode=mode, phase=phase, state=state,
+              exit_code=None if code == "-1" else int(code), commit=commit, pid=int(pid),
+              started=started, updated=datetime.datetime.now(datetime.timezone.utc).isoformat(), log=log)
+for path in (attempt, latest):
+    temporary = path + ".tmp"
+    with open(temporary, "w") as stream:
+        json.dump(status, stream, indent=2)
+        stream.write("\n")
+    os.replace(temporary, path)
+PY
+}
+finish() {
+  local code=$?
   trap - EXIT
-  printf 'VERIFIED %s %s %s: indexed after %s, registry consumers passed, snapshot refreshed\n' "$RELEASE_NAME" "$version" "$(utc)" "$(index_elapsed)"
-}
-
-# A new session (python3's setsid; macOS has no setsid command) without a controlling terminal: neither
-# the end of the caller's shell nor a signal to its process group reaches the job. SIGINT, SIGQUIT and
-# SIGHUP go back to their defaults first: `&` ignores SIGINT and SIGQUIT for the child, an ignored
-# signal stays ignored across exec, and a smoke that stops its tool with Ctrl-C (qyl's) would hang.
-# The job needs no registry credential.
-start_verification() {
-  local pid
-  mkdir -p artifacts
-  if [[ -f $verify_log ]] && ! tail -n 1 "$verify_log" | grep -Eq '^(VERIFIED|FAILED) '; then
-    pid=$(verify_pid)
-    [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null && die "the verification of $version is still running (pid $pid): ./release.sh --wait $version"
+  if (( code != 0 )); then
+    [[ $result == PENDING ]] || result=FAILED
+  elif [[ $result != VERIFIED && $result != DRY_RUN ]]; then
+    code=1
+    result=FAILED
   fi
-  : >"$verify_log"
-  env -u NPM_CONFIG_USERCONFIG -u NPM_CONFIG_TOKEN python3 -I -c 'import os, signal, sys
-os.setsid()
-for number in (signal.SIGINT, signal.SIGQUIT, signal.SIGHUP): signal.signal(number, signal.SIG_DFL)
-os.execv(sys.argv[1], sys.argv[1:])' \
-    "$PWD/release.sh" __verify "$version" </dev/null >>"$verify_log" 2>&1 &
-  disown
-  # Return only once the job has logged its pid, so a --wait right after this finds it.
-  for _ in $(seq 1 50); do [[ -n $(verify_pid) ]] && break; sleep 0.2; done
-  [[ -n $(verify_pid) ]] || die "the detached verification did not start; read $verify_log"
-  say "verification runs detached (pid $!)"
-  echo "log:  $verify_log"
-  echo "wait: ./release.sh --wait $version   (or: tail -f $verify_log)"
+  if ! write_status "$result" "$code"; then
+    result=FAILED
+    code=1
+    echo "release: could not record the final result" >&2
+  fi
+  printf '%s %s %s %s: phase=%s exit=%s log=%s\n' "$result" "$RELEASE_NAME" "$version" "$(utc)" "$step" "$code" "$run_log"
+  exit "$code"
 }
+trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+exec > >(tee "$run_log") 2>&1
+phase() { step=$1; write_status RUNNING -1; say "$step"; }
+phase start
 
-wait_for_verification() {
-  local printed=0 lines pid alive
-  [[ -f $verify_log ]] || die "no verification log for $version at $verify_log; ./release.sh --verify $version starts one"
-  while :; do
-    pid=$(verify_pid); alive=0
-    [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null && alive=1
-    lines=$(wc -l <"$verify_log" | tr -d ' ')
-    (( lines > printed )) && { sed -n "$((printed + 1)),${lines}p" "$verify_log"; printed=$lines; }
-    case $(tail -n 1 "$verify_log") in
-      VERIFIED\ *) return 0 ;;
-      FAILED\ *) [[ $(index_state) == timed-out ]] && return 3; return 1 ;;
-    esac
-    (( alive )) || die "the verification job (pid ${pid:-unknown}) ended without VERIFIED or FAILED; read $verify_log, then ./release.sh --verify $version"
-    sleep 5
-  done
+verify_published() {
+  local code=0
+  phase VerifyRelease
+  rm -f "$index_status"
+  say "$VERIFY_COMMAND --published-version $version ($VERIFY_WHAT)"
+  $VERIFY_COMMAND --published-version "$version" || code=$?
+  if (( code != 0 )); then
+    if [[ $(index_state) == timed-out ]]; then
+      echo "release: indexing pending after $(index_elapsed); resume with ./release.sh --verify $version"
+      result=PENDING
+      exit 3
+    fi
+    echo "release: published verification failed; inspect this attempt's log. Retry transient failures with ./release.sh --verify $version; a broken published package needs a patch release."
+    exit "$code"
+  fi
+  [[ $(index_state) == indexed ]] || die "VerifyRelease passed without indexed status; snapshot not refreshed"
+  phase "snapshot refresh"
+  "$QYL_AT_DIR/scripts/refresh-published-versions.sh"
+  result=VERIFIED
 }
-
-case $mode in
-  __verify) verify_published; exit 0 ;;
-  wait) wait_for_verification; exit ;;
-  verify)
-    [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || die "tag v$version is not on origin; release it first"
-    gh release view "v$version" >/dev/null 2>&1 || die "GitHub release v$version does not exist; release it first"
-    start_verification
-    exit 0 ;;
-esac
 
 lower() { tr '[:upper:]' '[:lower:]' <<<"$1"; }
-indexed() { curl -fsSL "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -q "\"$2\""; }
+indexed() { curl -fsSL --connect-timeout 10 --max-time 30 "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -q "\"$2\""; }
 latest() { curl -fsSL "$NUGET_FLAT/$(lower "$1")/index.json" 2>/dev/null | grep -o '"[0-9][^"]*"' | tail -1 | tr -d '"'; }
+
+if [[ $mode == verify ]]; then
+  phase "check published release"
+  [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || die "tag v$version is not on origin; nothing will be published by --verify"
+  assets=$(gh release view "v$version" --json assets --jq '.assets[].name')
+  git fetch -q origin tag "v$version"
+  release_commit=$(git rev-parse "v$version^{commit}")
+  rids=$(sed -n 's:.*<QylToolRuntimeIdentifiers>\([^<]*\)</QylToolRuntimeIdentifiers>.*:\1:p' packages/Qyl.Cli/Qyl.Cli.csproj | tr ';' ' ')
+  [[ -n $rids ]] || die "QylToolRuntimeIdentifiers not found"
+  package_ids=(qyl Qyl.Api.Sdk $(for r in $rids; do echo "qyl.$r"; done))
+  expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
+  [[ $(sort <<<"$assets") == "$expected" ]] || die "GitHub release assets do not match the release set; verification cannot repair publication"
+  # A manually created tag/release is not proof that NuGet accepted any package. Do not start a
+  # 45-minute verifier against an unpublished version. This read-only mode is safe to retry later.
+  for id in "${package_ids[@]}"; do
+    if ! indexed "$id" "$version"; then
+      echo "release: $id $version is not available; retry ./release.sh --verify $version after indexing"
+      result=PENDING
+      exit 3
+    fi
+  done
+  verify_published
+  exit 0
+fi
 # The key probe publishes nothing: it is NuGet's push-symbols handshake. The key mints a one-use
 # package verification key for <id> <version> (only a live key with push scope can), and that key
 # verifies with 200 only when the key's account owns <id>; the verify call consumes it. The key
@@ -169,16 +219,19 @@ publish_release_set() {
   for runtime in $rids; do
     runtime_ids+=("qyl.$runtime")
     # --skip-duplicate here and below: a rerun after a partial push (pushed, not indexed yet) goes on.
-    NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/qyl.$runtime.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return 1
+    NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/qyl.$runtime.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return $?
   done
   say "wait for all runtime package indexes before publishing the tool pointer"
-  wait_for_indexed "${runtime_ids[@]}" || return 1
+  if ! wait_for_indexed "${runtime_ids[@]}"; then
+    result=PENDING
+    return 3
+  fi
   for package in Qyl.Api.Sdk qyl; do
-    NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/$package.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return 1
+    NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/$package.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return $?
   done
 }
 
-say "checks"
+phase checks
 [[ -r $NUGET_KEY_FILE ]] || die "NuGet key missing: $NUGET_KEY_FILE (vitals keys)"
 [[ $(git branch --show-current) == main ]] || die "not on main"
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "working tree not clean"
@@ -201,18 +254,18 @@ package_ids=(qyl Qyl.Api.Sdk $(for r in $rids; do echo "qyl.$r"; done))
 expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
 echo "expected package set: ${#package_ids[@]} packages"
 
-say "pack (Fallout PackRelease)"
+phase "pack (Fallout PackRelease)"
 ./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$release_commit"
 actual=$(find "$OUT" -maxdepth 1 -name '*.nupkg' -exec basename {} \; | sort)
 [[ $actual == "$expected" ]] || { echo "expected:"; echo "$expected"; echo "packed:"; echo "$actual"; die "package set mismatch"; }
 
-say "smoke the tool packages on this host"
+phase "smoke the tool packages on this host"
 dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release --no-build -- "$OUT"
 
 [[ $(git rev-parse HEAD) == "$release_commit" ]] || die "HEAD changed during packing; rerun from the intended release commit"
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "tracked files changed during packing; commit them and rerun"
 
-say "NuGet push"
+phase "NuGet push"
 if (( dry )); then
   for id in "${package_ids[@]}"; do
     published=$(latest "$id" || true)
@@ -229,23 +282,34 @@ if (( dry )); then
   say "dry run finished: ${#package_ids[@]} packages at $version in $OUT; nothing published, nothing tagged"
   git status --short --untracked-files=no
   echo "The real run pushes the runtime packages, waits for their index, pushes Qyl.Api.Sdk and qyl, tags"
-  echo "$release_commit and creates the GitHub release, then starts the detached verification ($verify_log,"
-  echo "./release.sh --wait $version): $VERIFY_COMMAND --published-version $version ($VERIFY_WHAT),"
-  echo "then $QYL_AT_DIR/scripts/refresh-published-versions.sh; the log ends with VERIFIED or FAILED."
+  echo "$release_commit and creates the GitHub release, then runs $VERIFY_COMMAND --published-version $version ($VERIFY_WHAT),"
+  echo "then $QYL_AT_DIR/scripts/refresh-published-versions.sh in the same invocation."
+  result=DRY_RUN
   exit 0
 fi
-publish_release_set || die "package publication incomplete; runtime packages must be indexed before the tool pointer can publish; a rerun of ./release.sh $version skips what NuGet already holds and goes on"
+publish_code=0
+publish_release_set || publish_code=$?
+if (( publish_code != 0 )); then
+  echo "release: package publication incomplete; no tag, GitHub release or verification will be started. Inspect the log; if only runtime packages were pushed, rerun ./release.sh $version to continue."
+  exit "$publish_code"
+fi
 
-say "tag and GitHub release"
+phase "tag and GitHub release"
 [[ $(git rev-parse HEAD) == "$release_commit" ]] ||
   echo "warning: HEAD moved to $(git rev-parse --short HEAD) during the release; v$version tags the packed $release_commit"
 git tag -a "v$version" "$release_commit" -m "v$version"
 git push -q origin "v$version"
-if gh release view "v$version" >/dev/null 2>&1; then
-  gh release upload "v$version" "$OUT"/*.nupkg --clobber
-else
-  gh release create "v$version" --title "v$version" --generate-notes "$OUT"/*.nupkg
-fi
+github_code=0
+for attempt in 1 2 3; do
+  github_code=0
+  if gh release view "v$version" >/dev/null 2>&1; then
+    gh release upload "v$version" "$OUT"/*.nupkg --clobber || github_code=$?
+  else
+    gh release create "v$version" --title "v$version" --generate-notes "$OUT"/*.nupkg || github_code=$?
+  fi
+  (( github_code != 0 )) || break
+  (( attempt == 3 )) || sleep 5
+done
+(( github_code == 0 )) || exit "$github_code"
 
-start_verification
-say "next (SKILL.md): ./release.sh --wait $version, then notify qyl.at (src/data/site.ts); pushing main already deployed api.qyl.at"
+verify_published

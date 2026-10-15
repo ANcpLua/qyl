@@ -69,7 +69,7 @@ try
             [
                 "tool", "install", "qyl", "--tool-path", toolDirectory,
                 "--version", expectedVersion, "--add-source", packageDirectory!,
-                "--ignore-failed-sources", "--no-cache"
+                "--ignore-failed-sources", "--no-http-cache"
             ],
             scratch,
             TimeSpan.FromMinutes(2));
