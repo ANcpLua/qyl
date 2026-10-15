@@ -5,8 +5,8 @@ namespace Qyl.Collector.Analysis;
 
 internal sealed partial class AnalysisEngine
 {
-    private static readonly string[] HistogramAggregations = ["count", "sum", "avg", "min", "max", "p50", "p90", "p95", "p99"];
-    private static readonly string[] ScalarAggregations = ["avg", "min", "max", "sum", "count", "last"];
+    private static readonly string[] s_histogramAggregations = ["count", "sum", "avg", "min", "max", "p50", "p90", "p95", "p99"];
+    private static readonly string[] s_scalarAggregations = ["avg", "min", "max", "sum", "count", "last"];
     private static string MetricKind(byte kind) => kind switch { 1 => "gauge", 2 => "sum", 3 => "histogram", 4 => "exponential_histogram", _ => "gauge" };
     private static AnalysisRecord SeriesRecord(MetricSeriesRow s) => new(s.SeriesId, null, null, null, s.ServiceName ?? "unknown_service", s.MetricName, s.LastSeenUnixNano, s.LastSeenUnixNano, false, 0, J.Attributes(s.AttributesJson), J.Attributes(s.ResourceJson));
     private List<MetricSeriesRow> SeriesRows(JsonObject input) =>
@@ -29,7 +29,7 @@ internal sealed partial class AnalysisEngine
         {
             var first = g.First(); var result = JsonSerializer.SerializeToNode(MetricMapper.ToContract(new MetricCatalogEntry(first.MetricName, first.MetricKind, first.Temporality, first.IsMonotonic, first.Unit, first.Description, g.Count(), g.Max(static s => s.LastSeenUnixNano))), QylSerializerContext.Default.MetricDescriptor)!.AsObject();
             result["description"] = first.Description; result["temporality"] = first.Temporality == 2 ? "cumulative" : first.Temporality == 1 ? "delta" : "unspecified";
-            result["monotonic"] = first.IsMonotonic is not 0; result["supported_aggregations"] = J.N(first.MetricKind >= 3 ? HistogramAggregations : ScalarAggregations);
+            result["monotonic"] = first.IsMonotonic is not 0; result["supported_aggregations"] = J.N(first.MetricKind >= 3 ? s_histogramAggregations : s_scalarAggregations);
             result["services"] = J.N(g.Select(static s => s.ServiceName).OfType<string>().Distinct());
             result["conflicts"] = J.A(g.Select(static s => (s.MetricKind, s.Unit)).Distinct().Skip(1).Select(static s => J.O(("kind", MetricKind(s.MetricKind)), ("unit", s.Unit))));
             return result;
@@ -63,7 +63,7 @@ internal sealed partial class AnalysisEngine
         var rows = SeriesRows(input); var name = J.String(input, "metric_name") ?? throw new AnalysisInputException("metric_name", "metric_name is required.");
         if (rows.Count is 0) throw new AnalysisInputException("metric_name", "Metric was not found in this project.", "metric.not_found");
         var aggregation = J.String(input, "aggregation") ?? "avg"; var function = J.String(input, "function") ?? "none";
-        var supported = rows.All(s => s.MetricKind >= 3) ? HistogramAggregations : ScalarAggregations;
+        var supported = rows.All(s => s.MetricKind >= 3) ? s_histogramAggregations : s_scalarAggregations;
         if (!supported.Contains(aggregation, StringComparer.Ordinal))
             throw new AnalysisInputException("aggregation", $"'{aggregation}' does not apply to this metric; use one of: {string.Join(", ", supported)}.",
                 aggregation.StartsWith('p') ? "aggregation.requires_histogram" : "aggregation.unsupported");
@@ -169,7 +169,7 @@ internal sealed partial class AnalysisEngine
     {
         var prefix = J.String(input, "service_prefix") ?? "qyl-ci";
         var all = _spans.Where(s => s.Service.StartsWith(prefix, StringComparison.Ordinal)).GroupBy(s => s.SessionId ?? s.TraceId!).ToList();
-        bool Matches(IEnumerable<AnalysisRecord> g) => g.Any(s => _window.Contains(s.Start) && AnalysisMatchers.Match(s, input["matchers"]))
+        bool Matches(IGrouping<string, AnalysisRecord> g) => g.Any(s => _window.Contains(s.Start) && AnalysisMatchers.Match(s, input["matchers"]))
             && (J.String(input, "branch") is not { } branch || g.Any(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.VcsRefHeadName)) == branch))
             && (J.String(input, "commit") is not { } commit || g.Any(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.VcsRefHeadRevision)) == commit))
             && (J.String(input, "outcome") switch { "failed" => g.Any(s => s.Error), "passed" => g.All(s => !s.Error), _ => true });

@@ -1128,7 +1128,7 @@ internal static partial class CollectorEndpointExtensions
         public static bool TryResolve(int? requested, int defaultValue, int maxValue, out int resolved)
         {
             resolved = requested ?? defaultValue;
-            return resolved is >= 1 && resolved <= maxValue;
+            return resolved >= 1 && resolved <= maxValue;
         }
     }
 }

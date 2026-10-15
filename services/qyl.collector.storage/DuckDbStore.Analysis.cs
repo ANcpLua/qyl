@@ -115,7 +115,7 @@ internal sealed partial class DuckDbStore
             // CA2100: the generated column list and $n placeholders only; the keys are bound parameters.
             cmd.CommandText = "SELECT " + AnalysisStateRow.SelectColumnList + " FROM analysis_state WHERE project_id = $1 AND state_key IN ("
                 + string.Join(",", Enumerable.Range(2, keys.Count).Select(i => "$" + i)) + ")";
-            AddParameters(cmd, new object[] { projectId }.Concat(keys).ToArray());
+            AddParameters(cmd, [projectId, .. keys]);
             using var reader = cmd.ExecuteReader(); var rows = new List<AnalysisStateRow>();
             while (reader.Read()) { ct.ThrowIfCancellationRequested(); rows.Add(AnalysisStateRow.MapFromReader(reader)); }
             return rows;

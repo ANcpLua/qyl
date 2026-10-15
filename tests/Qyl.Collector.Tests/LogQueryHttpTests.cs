@@ -51,17 +51,18 @@ public sealed class LogQueryHttpTests
         await using var app = builder.Build();
         app.MapGet("/api/v1/logs", CollectorEndpointExtensions.GetLogsAsync);
         await app.StartAsync(ct);
-        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+        using var client = new HttpClient();
+        client.BaseAddress = new Uri(Assert.Single(app.Urls));
         try
         {
             using var unfiltered = JsonDocument.Parse(await client.GetStringAsync("/api/v1/logs", ct));
             Assert.Equal(8, unfiltered.RootElement.GetProperty("items").GetArrayLength());
 
-            const string filters = "service_name=checkout&severity_min=17"
+            const string Filters = "service_name=checkout&severity_min=17"
                 + "&trace_id=11111111111111111111111111111111&session_id=session-a"
                 + "&start_time=1970-01-01T00%3A00%3A01Z&end_time=1970-01-01T00%3A00%3A03Z"
                 + "&query=target&limit=20";
-            using var filtered = JsonDocument.Parse(await client.GetStringAsync($"/api/v1/logs?{filters}", ct));
+            using var filtered = JsonDocument.Parse(await client.GetStringAsync($"/api/v1/logs?{Filters}", ct));
             var item = Assert.Single(filtered.RootElement.GetProperty("items").EnumerateArray());
             Assert.Equal("target log", item.GetProperty("body").GetString());
             Assert.Equal("checkout", item.GetProperty("resource").GetProperty("service_name").GetString());
@@ -106,7 +107,8 @@ public sealed class LogQueryHttpTests
         await using var app = builder.Build();
         app.MapGet("/api/v1/logs", CollectorEndpointExtensions.GetLogsAsync);
         await app.StartAsync(ct);
-        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+        using var client = new HttpClient();
+        client.BaseAddress = new Uri(Assert.Single(app.Urls));
         try
         {
             using var page = JsonDocument.Parse(await client.GetStringAsync($"/api/v1/logs?limit={limit}", ct));
@@ -131,7 +133,8 @@ public sealed class LogQueryHttpTests
         await using var app = builder.Build();
         app.MapFallback(CollectorEndpointExtensions.FallbackHandler);
         await app.StartAsync(ct);
-        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+        using var client = new HttpClient();
+        client.BaseAddress = new Uri(Assert.Single(app.Urls));
         try
         {
             using var response = await client.GetAsync(path, ct);

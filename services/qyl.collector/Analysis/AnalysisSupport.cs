@@ -41,9 +41,15 @@ internal static partial class J
     public static JsonObject O(params (string Key, object? Value)[] items)
     { var obj = new JsonObject(); foreach (var item in items) obj[item.Key] = N(item.Value); return obj; }
     public static JsonArray A(IEnumerable<JsonNode?> items) => new(items.Select(static v => v?.DeepClone()).ToArray());
-    public static string? String(JsonNode? input, string name) => (input as JsonObject)?[name]?.GetValueKind() == JsonValueKind.String ? ((JsonObject)input!)[name]!.GetValue<string>() : null;
-    public static double Number(JsonNode? input, string name, double fallback = 0) => (input as JsonObject)?[name]?.GetValueKind() == JsonValueKind.Number ? double.Parse(((JsonObject)input!)[name]!.ToJsonString(), CultureInfo.InvariantCulture) : fallback;
-    public static bool Bool(JsonNode? input, string name, bool fallback = false) => (input as JsonObject)?[name]?.GetValueKind() is JsonValueKind.True or JsonValueKind.False ? ((JsonObject)input!)[name]!.GetValue<bool>() : fallback;
+    public static string? String(JsonNode? input, string name) =>
+        input is JsonObject obj && obj[name] is { } value && value.GetValueKind() is JsonValueKind.String
+            ? value.GetValue<string>() : null;
+    public static double Number(JsonNode? input, string name, double fallback = 0) =>
+        input is JsonObject obj && obj[name] is { } value && value.GetValueKind() is JsonValueKind.Number
+            ? double.Parse(value.ToJsonString(), CultureInfo.InvariantCulture) : fallback;
+    public static bool Bool(JsonNode? input, string name, bool fallback = false) =>
+        input is JsonObject obj && obj[name] is { } value && value.GetValueKind() is JsonValueKind.True or JsonValueKind.False
+            ? value.GetValue<bool>() : fallback;
     public static string Text(JsonNode? value) => value is null ? "" : value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>() : value.ToJsonString();
     public static DateTimeOffset? Date(JsonNode? input, string name)
     {
@@ -74,7 +80,7 @@ internal static partial class J
     public static string Normalize(string message) => Numbers().Replace(Quoted().Replace(Hex().Replace(Uuid().Replace(message, "#"), "#"), "#"), "#");
     [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$")] private static partial Regex Rfc3339();
     [GeneratedRegex(@"\b\d+(?:\.\d+)?\b")] private static partial Regex Numbers();
-    [GeneratedRegex(@"[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}")] private static partial Regex Uuid();
+    [GeneratedRegex("[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}")] private static partial Regex Uuid();
     [GeneratedRegex(@"\b(?:0x)?[0-9a-fA-F]{8,}\b")] private static partial Regex Hex();
     [GeneratedRegex("\"[^\"]*\"|'[^']*'")] private static partial Regex Quoted();
     public static string Time(ulong nanos) => DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / 1_000_000)).ToString("O");
@@ -117,7 +123,7 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
 
 internal static class AnalysisMatchers
 {
-    private static readonly HashSet<string> Ops = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
+    private static readonly HashSet<string> s_ops = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
     public static void Validate(JsonNode? node)
     {
         if (node is null) return;
@@ -126,7 +132,7 @@ internal static class AnalysisMatchers
         {
             var op = J.String(m, "op");
             if (string.IsNullOrEmpty(J.String(m, "key"))) throw new AnalysisInputException("matchers.key", "A non-empty attribute key is required.");
-            if (op is null || !Ops.Contains(op)) throw new AnalysisInputException("matchers.op", "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.");
+            if (op is null || !s_ops.Contains(op)) throw new AnalysisInputException("matchers.op", "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.");
             if (J.String(m, "scope") is { } and not ("span" or "resource" or "log")) throw new AnalysisInputException("matchers.scope", "Choose span, resource or log.");
             if (op == "in" && m?["values"] is not JsonArray) throw new AnalysisInputException("matchers.values", "The in operator requires values.");
             if (op != "exists" && op != "in" && m?["value"] is null) throw new AnalysisInputException("matchers.value", "This operator requires a value.");

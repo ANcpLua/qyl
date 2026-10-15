@@ -13,16 +13,14 @@ public sealed class GlobalExceptionHooksTests
     public void An_exception_outside_any_span_is_recorded_on_an_ended_application_span()
     {
         var stopped = new List<Activity>();
-        using var listener = new ActivityListener
+        using var listener = new ActivityListener();
+        // The name, not Spans.Source: creating that source consults this callback inside Spans' type initializer.
+        listener.ShouldListenTo = static source => source.Name == QylTelemetryNames.Scopes.QylTelemetryApplication;
+        listener.Sample = static (ref _) => ActivitySamplingResult.AllData;
+        listener.ActivityStopped = activity =>
         {
-            // The name, not Spans.Source: creating that source consults this callback inside Spans' type initializer.
-            ShouldListenTo = static source => source.Name == QylTelemetryNames.Scopes.QylTelemetryApplication,
-            Sample = static (ref _) => ActivitySamplingResult.AllData,
-            ActivityStopped = activity =>
-            {
-                lock (stopped)
-                    stopped.Add(activity);
-            }
+            lock (stopped)
+                stopped.Add(activity);
         };
         ActivitySource.AddActivityListener(listener);
 

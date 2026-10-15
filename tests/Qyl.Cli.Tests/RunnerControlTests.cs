@@ -28,7 +28,7 @@ public sealed class RunnerControlTests
         // The first python3 exec on a fresh macOS CI runner can take tens of seconds
         // (Gatekeeper/XProtect scan). Pay that cost here so the readiness window below
         // measures orchestration, not the AV scan.
-        using (var warmup = Process.Start(new ProcessStartInfo(python!)
+        using (var warmup = Process.Start(new ProcessStartInfo(python)
                {
                    ArgumentList = { "-c", "pass" },
                    RedirectStandardOutput = true,
@@ -131,7 +131,7 @@ public sealed class RunnerControlTests
         }
         finally
         {
-            lifetime.Cancel();
+            await lifetime.CancelAsync();
             using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await orchestrator.StopAsync(stopTimeout.Token);
             await api.StopAsync(stopTimeout.Token);

@@ -47,7 +47,7 @@ static class ApiBaselineReport
 {
     /// <summary>The line format of Roslyn's PublicApiAnalyzers: one line per type and member,
     /// property accessors instead of properties, nullable annotations included.</summary>
-    private static readonly SymbolDisplayFormat Format = new(
+    private static readonly SymbolDisplayFormat s_format = new(
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
         typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
         propertyStyle: SymbolDisplayPropertyStyle.ShowReadWriteDescriptor,
@@ -62,6 +62,8 @@ static class ApiBaselineReport
             | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
             | SymbolDisplayMiscellaneousOptions.IncludeNotNullableReferenceTypeModifier);
 
+    /// <param name="root">The repository root containing the package baselines.</param>
+    /// <param name="projects">The projects whose compiled public APIs are reported.</param>
     /// <param name="configuration">The lower-case configuration: the artifacts layout's pivot.</param>
     public static string Run(AbsolutePath root, IReadOnlyCollection<AbsolutePath> projects, string configuration)
     {
@@ -155,7 +157,7 @@ static class ApiBaselineReport
                 continue;
 
             var type = member switch { IMethodSymbol method => method.ReturnType, IFieldSymbol field => field.Type, IEventSymbol @event => @event.Type, _ => null };
-            lines.Add(type is null ? member.ToDisplayString(Format) : $"{member.ToDisplayString(Format)} -> {type.ToDisplayString(Format)}");
+            lines.Add(type is null ? member.ToDisplayString(s_format) : $"{member.ToDisplayString(s_format)} -> {type.ToDisplayString(s_format)}");
             if (member is INamedTypeSymbol namedType)
                 Collect(namedType, lines);
         }

@@ -89,7 +89,7 @@ public sealed class MetricApiTests
         Assert.Equal(2, allPage.Items.Count);
         Assert.All(allPage.Items, static item => Assert.StartsWith("ms_", item.SeriesId, StringComparison.Ordinal));
         Assert.All(allPage.Items, static item =>
-            Assert.Contains(item.Attributes!, static a => a.Key is "http.route"));
+            Assert.Contains(item.Attributes, static a => a.Key is "http.route"));
 
         var exact = CreateContext("attr=http.route%3D/a");
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
@@ -99,7 +99,7 @@ public sealed class MetricApiTests
         var only = Assert.Single(exactPage.Items);
         Assert.Equal(
             "/a",
-            AttributeString(Assert.Single(only.Attributes!, static a => a.Key is "http.route")));
+            AttributeString(Assert.Single(only.Attributes, static a => a.Key is "http.route")));
 
         var prefixed = CreateContext("attr_prefix=http.route%3D/");
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
@@ -153,7 +153,7 @@ public sealed class MetricApiTests
         Assert.Equal(2, result.Series.Count);
 
         var routeA = result.Series.Single(stream =>
-            stream.Attributes!.Any(static a => a.Key is "http.route" && AttributeString(a) is "/a"));
+            stream.Attributes.Any(static a => a.Key is "http.route" && AttributeString(a) is "/a"));
         Assert.Equal(2, routeA.Buckets.Count);
         Assert.Equal(1d, BucketValue(routeA.Buckets[0]), 9);
         Assert.Equal(3d, BucketValue(routeA.Buckets[1]), 9);
@@ -164,7 +164,7 @@ public sealed class MetricApiTests
             routeA.Buckets[1].BucketStart);
 
         var routeB = result.Series.Single(stream =>
-            stream.Attributes!.Any(static a => a.Key is "http.route" && AttributeString(a) is "/b"));
+            stream.Attributes.Any(static a => a.Key is "http.route" && AttributeString(a) is "/b"));
         Assert.Equal(10d, BucketValue(Assert.Single(routeB.Buckets)), 9);
     }
 

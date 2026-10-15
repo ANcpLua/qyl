@@ -30,7 +30,7 @@ public sealed class LogStreamingTests
                 await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             }
 
-            await using (var store = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            await using (new DuckDbStore(databasePath, maxConcurrentReads: 1))
             {
             }
 
@@ -146,9 +146,9 @@ public sealed class LogStreamingTests
     {
         var context = new DefaultHttpContext
         {
-            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider()
+            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider(),
+            Response = { Body = new MemoryStream() }
         };
-        context.Response.Body = new MemoryStream();
         return context;
     }
 }

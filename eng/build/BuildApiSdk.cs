@@ -303,7 +303,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
 
             var consumer = ApiSdkConsumerDirectory / "qyl.sample";
             consumer.CreateDirectory();
-            foreach (var name in ApiSdkScenario.ConsumerSourceFiles)
+            foreach (var name in ApiSdkScenario.s_consumerSourceFiles)
                 (SampleDirectory / name).Copy(consumer / name);
             (SampleDirectory / "Todos").Copy(consumer / "Todos");
 
@@ -365,7 +365,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
                 if (generated is null)
                     throw new InvalidOperationException("The packaged generator did not run in the consumer");
 
-                foreach (var assembly in ApiSdkScenario.PackagedAssemblies)
+                foreach (var assembly in ApiSdkScenario.s_packagedAssemblies)
                 {
                     if (consumer.GlobFiles($"bin/**/{assembly}").Count == 0)
                         throw new InvalidOperationException($"The packaged {assembly} was not referenced by the consumer");
@@ -620,11 +620,11 @@ internal static class ApiSdkScenario
     /// Without it the consumer would be a project building its API for the first time, which is the one case
     /// where there is no revision to compile in.
     /// </summary>
-    internal static readonly string[] ConsumerSourceFiles =
+    internal static readonly string[] s_consumerSourceFiles =
         ["Program.cs", "AppJsonSerializerContext.cs", "appsettings.json", "openapi/qyl.sample.json"];
 
     /// <summary>The assemblies the package must put on a consumer's reference list.</summary>
-    internal static readonly string[] PackagedAssemblies = ["Qyl.Xml.dll", "Qyl.Api.dll"];
+    internal static readonly string[] s_packagedAssemblies = ["Qyl.Xml.dll", "Qyl.Api.dll"];
 
     public static void Run(AbsolutePath executable, string label, AbsolutePath contract)
     {
@@ -652,7 +652,9 @@ internal static class ApiSdkScenario
 
     public static void RunAgainst(Uri baseAddress, string label, AbsolutePath contract, Action assertAlive)
     {
-        using var client = new HttpClient { BaseAddress = baseAddress, Timeout = TimeSpan.FromSeconds(30) };
+        using var client = new HttpClient();
+        client.BaseAddress = baseAddress;
+        client.Timeout = TimeSpan.FromSeconds(30);
         WaitUntilServing(client, label, assertAlive);
 
         AssertValidationProblem(client, label);
@@ -942,7 +944,9 @@ internal static class ApiSdkSession
         try
         {
             var collectorAddress = new Uri($"http://127.0.0.1:{apiPort.ToString(CultureInfo.InvariantCulture)}");
-            using var collectorClient = new HttpClient { BaseAddress = collectorAddress, Timeout = TimeSpan.FromSeconds(30) };
+            using var collectorClient = new HttpClient();
+            collectorClient.BaseAddress = collectorAddress;
+            collectorClient.Timeout = TimeSpan.FromSeconds(30);
             WaitUntil(collectorClient, "/health", "collector", collectorHost);
 
             var sampleAddress = new Uri($"http://127.0.0.1:{samplePort.ToString(CultureInfo.InvariantCulture)}");
@@ -961,7 +965,9 @@ internal static class ApiSdkSession
 
             try
             {
-                using var sampleClient = new HttpClient { BaseAddress = sampleAddress, Timeout = TimeSpan.FromSeconds(30) };
+                using var sampleClient = new HttpClient();
+                sampleClient.BaseAddress = sampleAddress;
+                sampleClient.Timeout = TimeSpan.FromSeconds(30);
                 WaitUntil(sampleClient, "/todos", "native sample", sampleHost);
 
                 Drive(sampleClient, sessionId);
@@ -1032,7 +1038,7 @@ internal static class ApiSdkSession
     /// </remarks>
     private static List<JsonNode> AwaitSession(HttpClient collector, string sessionId, ApiSdkHost collectorHost)
     {
-        const int settledPollsRequired = 2;
+        const int SettledPollsRequired = 2;
         var deadline = DateTime.UtcNow + s_sessionTimeout;
         var lastBody = string.Empty;
         List<JsonNode>? candidate = null;
@@ -1045,7 +1051,7 @@ internal static class ApiSdkSession
             {
                 settled = candidate is not null && candidate.Count == spans.Count ? settled + 1 : 0;
                 candidate = spans;
-                if (settled >= settledPollsRequired)
+                if (settled >= SettledPollsRequired)
                     return spans;
             }
             else
@@ -1287,10 +1293,8 @@ internal static class ApiSdkSession
     /// <summary>The agent's whole contribution: one header. Sent synchronously so the request outlives no task.</summary>
     private static HttpResponseMessage Post(HttpClient client, string path, string json, string sessionId)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, path)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json"),
-        };
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
         request.Headers.TryAddWithoutValidation(BaggageHeader, $"{SessionIdName}={sessionId}");
         return client.Send(request);
     }

@@ -1,6 +1,4 @@
-global using System.Buffers;
 global using System.Collections.Frozen;
-global using System.Data.Common;
 global using System.Globalization;
 global using System.IO.Compression;
 global using System.Runtime.CompilerServices;
@@ -8,9 +6,7 @@ global using System.Runtime.InteropServices;
 global using System.Security.Cryptography;
 global using System.Text.Json;
 global using System.Text.Json.Serialization;
-global using System.Threading.Channels;
 global using Grpc.Core;
-global using Microsoft.AspNetCore.Http.HttpResults;
 global using Qyl.Collector.Ingestion;
 global using QylSessionActivity = Qyl.Collector.Primitives.SessionActivity;
 global using QylTimeConversions = Qyl.Collector.Primitives.TimeConversions;

@@ -70,7 +70,7 @@ internal static partial class CollectorEndpointExtensions
             },
             SpanId = (request.Target as SpanAnnotationTarget)?.SpanId,
             SessionId = (request.Target as SessionAnnotationTarget)?.SessionId,
-            Text = request.Text!,
+            Text = request.Text,
             CreatedAtUnixNano = now,
             UpdatedAtUnixNano = now,
             Etag = ResourceHttp.NewEtag()

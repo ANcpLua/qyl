@@ -53,20 +53,14 @@ internal sealed class OtlpHttpResult : IResult
 }
 
 internal sealed class OtlpUnsupportedMediaTypeException(string? contentType)
-    : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.")
-{
-}
+    : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.");
 
 internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding)
-    : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.")
-{
-}
+    : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.");
 
 /// <summary>
 /// The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
 /// requires 413 Content Too Large, which the endpoint handlers answer for this exception.
 /// </summary>
 internal sealed class OtlpPayloadTooLargeException()
-    : IOException(OtlpPayloadParser.PayloadTooLargeMessage)
-{
-}
+    : IOException(OtlpPayloadParser.PayloadTooLargeMessage);

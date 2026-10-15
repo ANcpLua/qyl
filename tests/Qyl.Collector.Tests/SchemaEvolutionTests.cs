@@ -39,9 +39,9 @@ public sealed class SchemaEvolutionTests
                     TestContext.Current.CancellationToken));
             }
 
-            using var con = Open(path);
+            await using var con = Open(path);
             Assert.All(s_addedTables, table => Assert.True(TableExists(con, table)));
-            using var cmd = con.CreateCommand();
+            await using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
             Assert.Equal(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
         }
@@ -61,7 +61,7 @@ public sealed class SchemaEvolutionTests
         {
             await using (var previous = new DuckDbStore(path))
                 await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]), TestContext.Current.CancellationToken);
-            using (var con = Open(path))
+            await using (var con = Open(path))
             {
                 Execute(con, "DROP TABLE " + newTable);
                 Stamp(con, PreviousHash);
@@ -87,7 +87,7 @@ public sealed class SchemaEvolutionTests
                     TestContext.Current.CancellationToken);
             }
 
-            using (var con = Open(path))
+            await using (var con = Open(path))
             {
                 DropIndexes(con, "spans");
                 foreach (var column in s_appendedSpanColumns.Reverse())
@@ -111,9 +111,9 @@ public sealed class SchemaEvolutionTests
                 Assert.Equal("3.1.0", scoped.ScopeVersion);
             }
 
-            using (var con = Open(path))
+            await using (var con = Open(path))
             {
-                using var cmd = con.CreateCommand();
+                await using var cmd = con.CreateCommand();
                 cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
                 Assert.Equal(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
                 var expected = DuckDbGeneratedSchema.AuthoritativeTables.Single(static table => table.Name == "spans");
@@ -133,7 +133,7 @@ public sealed class SchemaEvolutionTests
         var path = await PreviousBuildDatabaseAsync(PreviousHash);
         try
         {
-            using (var con = Open(path))
+            await using (var con = Open(path))
             {
                 // A column removed from the middle of spans: the stored columns are no prefix of this build's.
                 DropIndexes(con, "spans");
@@ -161,7 +161,7 @@ public sealed class SchemaEvolutionTests
                 TestContext.Current.CancellationToken);
         }
 
-        using var con = Open(path);
+        await using var con = Open(path);
         foreach (var table in s_addedTables)
             Execute(con, $"DROP TABLE \"{table}\"");
         Stamp(con, storedHash);

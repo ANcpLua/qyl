@@ -19,9 +19,9 @@ internal static class SdkConformance
     private const string TraceIdHeader = "X-Qyl-Conformance-Trace-Id";
     private const string SpanIdHeader = "X-Qyl-Conformance-Span-Id";
     private const string WorkCompletedEventName = "WorkCompleted";
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan ProcessExitTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan ReadbackTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan s_startupTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan s_processExitTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan s_readbackTimeout = TimeSpan.FromSeconds(30);
 
     private static readonly HttpClient s_http = new()
     {
@@ -180,7 +180,7 @@ internal static class SdkConformance
         ConcurrentQueue<string> output)
     {
         var endpoint = new Uri(appBase, "conformance");
-        var deadline = DateTimeOffset.UtcNow + StartupTimeout;
+        var deadline = DateTimeOffset.UtcNow + s_startupTimeout;
 
         while (DateTimeOffset.UtcNow < deadline)
         {
@@ -217,14 +217,14 @@ internal static class SdkConformance
         }
 
         throw new TimeoutException(
-            $"Native AOT conformance app did not listen at {endpoint} within {StartupTimeout}.{FormatOutput(output)}");
+            $"Native AOT conformance app did not listen at {endpoint} within {s_startupTimeout}.{FormatOutput(output)}");
     }
 
     private static async Task WaitForSuccessfulExitAsync(
         Process process,
         ConcurrentQueue<string> output)
     {
-        using var timeout = new CancellationTokenSource(ProcessExitTimeout);
+        using var timeout = new CancellationTokenSource(s_processExitTimeout);
         try
         {
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
@@ -246,14 +246,13 @@ internal static class SdkConformance
         QylApiContractClient client,
         string traceId)
     {
-        var deadline = DateTimeOffset.UtcNow + ReadbackTimeout;
+        var deadline = DateTimeOffset.UtcNow + s_readbackTimeout;
         ContractTrace? trace = null;
-        CursorPageLogRecord? logs = null;
 
         while (DateTimeOffset.UtcNow < deadline)
         {
             trace ??= await client.TryGetTraceAsync(traceId).ConfigureAwait(false);
-            logs = await client.GetLogsAsync(traceId).ConfigureAwait(false);
+            var logs = await client.GetLogsAsync(traceId).ConfigureAwait(false);
             if (trace is not null && logs.Items.Any(log =>
                     string.Equals(log.EventName, WorkCompletedEventName, StringComparison.Ordinal)))
                 return (trace, logs);

@@ -615,8 +615,8 @@ internal static class XmlModelParser
     private static string ShortName(AttributeData attribute)
     {
         var name = attribute.AttributeClass?.Name ?? "Attribute";
-        const string suffix = "Attribute";
-        return name.EndsWith(suffix, StringComparison.Ordinal) ? name.Substring(0, name.Length - suffix.Length) : name;
+        const string Suffix = "Attribute";
+        return name.EndsWith(Suffix, StringComparison.Ordinal) ? name.Substring(0, name.Length - Suffix.Length) : name;
     }
 
     private static XmlNameSpec ToName(XmlNameOptions options) => new(options.Name!, options.Namespace);
@@ -750,19 +750,14 @@ internal static class XmlModelParser
     }
 
     /// <summary>Diagnostics, the enum formatters discovered so far, and the model name, for one parse.</summary>
-    private sealed class ParseState
+    private sealed class ParseState(INamedTypeSymbol model)
     {
         private readonly ImmutableArray<DiagnosticSpec>.Builder _diagnostics = ImmutableArray.CreateBuilder<DiagnosticSpec>();
         private readonly Dictionary<string, XmlEnumSpec> _enumsByType = new(StringComparer.Ordinal);
         private readonly List<XmlEnumSpec> _enums = new();
         private readonly HashSet<string> _formatterNames = new(StringComparer.Ordinal);
 
-        public ParseState(INamedTypeSymbol model)
-        {
-            ModelName = model.ToDisplayString();
-        }
-
-        public string ModelName { get; }
+        public string ModelName { get; } = model.ToDisplayString();
 
         public bool HasErrors { get; private set; }
 

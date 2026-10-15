@@ -49,8 +49,7 @@ internal sealed class SessionBaggageHost : IAsyncDisposable
         _app.MapGet("/probe", async () =>
         {
             ServerSpan = Activity.Current;
-            using var client = new HttpClient();
-            ForwardedBaggage = await client.GetStringAsync(new Uri(BaseAddress, "/echo"));
+            ForwardedBaggage = await Client.GetStringAsync(new Uri(BaseAddress, "/echo"));
             return Results.Ok();
         });
         _app.MapGet("/echo", static (HttpContext context) => Results.Text(

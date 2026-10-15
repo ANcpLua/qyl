@@ -16,12 +16,9 @@ internal sealed partial class DuckDbStore : IQylStore
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
-    private readonly string _connectionString;
     private readonly string _databasePath;
     private readonly bool _isInMemory;
-    private readonly int _jobQueueCapacity;
     private readonly ILogger<DuckDbStore> _logger;
-    private readonly ILoggerFactory _loggerFactory;
     private readonly Channel<WriteJob> _jobs;
     private readonly Channel<IReadJob>? _reads;
     private readonly Task[] _readerTasks;
@@ -40,14 +37,14 @@ internal sealed partial class DuckDbStore : IQylStore
         Func<CancellationToken, ValueTask>? beforeWrite = null,
         ILoggerFactory? loggerFactory = null)
     {
-        _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-        _logger = _loggerFactory.CreateLogger<DuckDbStore>();
+        var resolvedLoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+        _logger = resolvedLoggerFactory.CreateLogger<DuckDbStore>();
         _isInMemory = databasePath == ":memory:";
         _databasePath = _isInMemory ? databasePath : Path.GetFullPath(databasePath);
-        _connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
-        _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
+        var connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
+        var boundedJobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
-        var connection = new DuckDBConnection(_connectionString);
+        var connection = new DuckDBConnection(connectionString);
         try
         {
             connection.Open();
@@ -62,7 +59,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
         Connection = connection;
 
-        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(_jobQueueCapacity)
+        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(boundedJobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = false
         });
@@ -97,7 +94,7 @@ internal sealed partial class DuckDbStore : IQylStore
             var connections = new DuckDBConnection[concurrency];
             for (var i = 0; i < concurrency; i++)
             {
-                var con = new DuckDBConnection(_connectionString);
+                var con = new DuckDBConnection(connectionString);
                 con.Open();
                 connections[i] = con;
             }

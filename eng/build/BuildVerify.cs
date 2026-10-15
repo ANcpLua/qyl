@@ -43,20 +43,20 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            const string packageName = "@ancplua/qyl-api-schema";
+            const string PackageName = "@ancplua/qyl-api-schema";
             var packageFile = DashboardDirectory / "package.json";
             using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageFile));
             if (!packageDocument.RootElement.TryGetProperty("dependencies", out var dependencies) ||
-                !dependencies.TryGetProperty(packageName, out var dependency))
+                !dependencies.TryGetProperty(PackageName, out var dependency))
             {
-                throw new InvalidOperationException($"{DashboardDirectory} must depend on {packageName}.");
+                throw new InvalidOperationException($"{DashboardDirectory} must depend on {PackageName}.");
             }
 
             // One exact SemVer version, a release candidate included; never a range.
             var version = dependency.GetString();
             if (version is null || !NuGet.Versioning.NuGetVersion.TryParseStrict(version, out _))
                 throw new InvalidOperationException(
-                    $"{DashboardDirectory} must pin {packageName} to one exact version; found '{version}'.");
+                    $"{DashboardDirectory} must pin {PackageName} to one exact version; found '{version}'.");
 
             // bun.lock is JSONC; each package entry is an array whose first element is "<name>@<version>".
             var lockFile = DashboardDirectory / "bun.lock";
@@ -64,25 +64,25 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 File.ReadAllText(lockFile),
                 new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
             var lockedSpec = lockDocument.RootElement.GetProperty("packages")
-                .GetProperty(packageName)[0]
+                .GetProperty(PackageName)[0]
                 .GetString() ?? string.Empty;
             var lockedVersion = lockedSpec[(lockedSpec.LastIndexOf('@') + 1)..];
             if (!string.Equals(version, lockedVersion, StringComparison.Ordinal))
                 throw new InvalidOperationException(
-                    $"{DashboardDirectory} lock file resolves {packageName} {lockedVersion}, expected {version}.");
+                    $"{DashboardDirectory} lock file resolves {PackageName} {lockedVersion}, expected {version}.");
 
             var installedPackageFile = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema" / "package.json";
             using var installedDocument = JsonDocument.Parse(File.ReadAllText(installedPackageFile));
             var installedVersion = installedDocument.RootElement.GetProperty("version").GetString();
             if (!string.Equals(version, installedVersion, StringComparison.Ordinal))
                 throw new InvalidOperationException(
-                    $"{DashboardDirectory} installed {packageName} {installedVersion}, expected {version}.");
+                    $"{DashboardDirectory} installed {PackageName} {installedVersion}, expected {version}.");
 
             var importsGeneratedContracts = DashboardDirectory.GlobFiles("src/**/*.ts", "src/**/*.tsx")
-                .Any(file => File.ReadAllText(file).Contains(packageName, StringComparison.Ordinal));
+                .Any(file => File.ReadAllText(file).Contains(PackageName, StringComparison.Ordinal));
             if (!importsGeneratedContracts)
                 throw new InvalidOperationException(
-                    $"{DashboardDirectory} does not import generated {packageName} contracts.");
+                    $"{DashboardDirectory} does not import generated {PackageName} contracts.");
 
             AbsolutePath[] forbiddenCopies =
             [
@@ -105,7 +105,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 throw new InvalidOperationException(
                     $"Generated contract versions disagree: dashboard uses {version}, .NET uses {dotnetVersion}.");
 
-            Log.Information("Product dashboard consumes {Package} {Version} directly", packageName, version);
+            Log.Information("Product dashboard consumes {Package} {Version} directly", PackageName, version);
         });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
@@ -458,7 +458,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
         });
 
     // The product list routes whose `limit` is the contract's shared PageLimit.
-    private static readonly string[] SharedPageLimitRoutes =
+    private static readonly string[] s_sharedPageLimitRoutes =
     [
         "/api/v1/sessions",
         "/api/v1/sessions/{session_id}/traces",
@@ -499,13 +499,13 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
             // reference the same schema (1 to 1000) with the same default (100). The collector keeps that
             // pair once, so every route is held to the first one; only the metric query's series_limit and
             // step_ms carry their own ranges.
-            var shared = ReadOpenApiQueryBounds(document, SharedPageLimitRoutes[0], "limit");
-            foreach (var route in SharedPageLimitRoutes.Skip(1))
+            var shared = ReadOpenApiQueryBounds(document, s_sharedPageLimitRoutes[0], "limit");
+            foreach (var route in s_sharedPageLimitRoutes.Skip(1))
             {
                 var bounds = ReadOpenApiQueryBounds(document, route, "limit");
                 if (bounds != shared)
                     throw new InvalidOperationException(
-                        $"{route} limit bounds {bounds} differ from {SharedPageLimitRoutes[0]}'s {shared}; the collector keeps one PageLimit.");
+                        $"{route} limit bounds {bounds} differ from {s_sharedPageLimitRoutes[0]}'s {shared}; the collector keeps one PageLimit.");
             }
 
             var runLimit = ResolveOpenApiSchema(document, document.RootElement.GetProperty("components").GetProperty("schemas")
@@ -793,14 +793,14 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 cells[2] = $" {Version(property)} ";
                 rendered[index] = string.Join('|', cells);
             }
-            const string latestPrefix = "This checkout targets qyl ";
-            var latest = Array.FindIndex(lines, line => line.StartsWith(latestPrefix, StringComparison.Ordinal));
+            const string LatestPrefix = "This checkout targets qyl ";
+            var latest = Array.FindIndex(lines, line => line.StartsWith(LatestPrefix, StringComparison.Ordinal));
             if (latest < 0) throw new InvalidOperationException("README.md has no `This checkout targets qyl …` sentence");
-            rendered[latest] = CheckoutTargetsLine().Replace(lines[latest], $"{latestPrefix}{Version("QylVersion")}");
-            const string consumerPrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
-            var consumer = Array.FindIndex(lines, line => line.StartsWith(consumerPrefix, StringComparison.Ordinal));
+            rendered[latest] = CheckoutTargetsLine().Replace(lines[latest], $"{LatestPrefix}{Version("QylVersion")}");
+            const string ConsumerPrefix = "<Project Sdk=\"Qyl.Api.Sdk/";
+            var consumer = Array.FindIndex(lines, line => line.StartsWith(ConsumerPrefix, StringComparison.Ordinal));
             if (consumer < 0) throw new InvalidOperationException("README.md has no `<Project Sdk=\"Qyl.Api.Sdk/…\">` consumer line");
-            rendered[consumer] = $"{consumerPrefix}{Version("QylVersion")}\">";
+            rendered[consumer] = $"{ConsumerPrefix}{Version("QylVersion")}\">";
             if (rendered.SequenceEqual(lines))
             {
                 Log.Information("README release lines already match Version.props");
@@ -1579,8 +1579,10 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 throw new InvalidOperationException(
                     "The vendored protocol file set differs from Protos/upstream.lock.json. Update the pin and every hash together.");
 
-            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(120) };
+            using var handler = new HttpClientHandler();
+            handler.AllowAutoRedirect = false;
+            using var client = new HttpClient(handler);
+            client.Timeout = TimeSpan.FromSeconds(120);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("qyl-build-provenance/1.0");
 
             foreach (var pinnedFile in expected.Values.OrderBy(static file => file.Path, StringComparer.Ordinal))
@@ -2143,7 +2145,6 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 },
                 "on conflict (project_id, log_id)");
             var storageMapperText = File.ReadAllText(storageMapperFile);
-            var converterText = File.ReadAllText(converterFile);
             var persistedPolicyText = File.ReadAllText(persistedPolicyFile);
             var attributeValueText = File.ReadAllText(attributeValueFile);
 
@@ -3087,9 +3088,9 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
 
     private static byte[] DownloadPinnedProtoSource(HttpClient client, PinnedProtoFile pinnedFile, AbsolutePath cacheDirectory)
     {
-        const int maximumProtoBytes = 4 * 1024 * 1024;
+        const int MaximumProtoBytes = 4 * 1024 * 1024;
         var cachedPath = cacheDirectory / pinnedFile.UpstreamSha256;
-        if (File.Exists(cachedPath) && new FileInfo(cachedPath).Length <= maximumProtoBytes)
+        if (File.Exists(cachedPath) && new FileInfo(cachedPath).Length <= MaximumProtoBytes)
         {
             var cached = File.ReadAllBytes(cachedPath);
             // Immutable revision plus an independently checked digest: the cache
@@ -3110,16 +3111,16 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 throw new InvalidOperationException(
                     $"Immutable upstream protocol URL {uri} returned HTTP {(int)response.StatusCode}.");
 
-            if (response.Content.Headers.ContentLength is > maximumProtoBytes)
+            if (response.Content.Headers.ContentLength is > MaximumProtoBytes)
                 throw new InvalidOperationException(
-                    $"Immutable upstream protocol URL {uri} exceeded the {maximumProtoBytes}-byte limit.");
+                    $"Immutable upstream protocol URL {uri} exceeded the {MaximumProtoBytes}-byte limit.");
 
             using var stream = response.Content.ReadAsStream();
             using var buffer = new MemoryStream();
             stream.CopyTo(buffer);
-            if (buffer.Length > maximumProtoBytes)
+            if (buffer.Length > MaximumProtoBytes)
                 throw new InvalidOperationException(
-                    $"Immutable upstream protocol URL {uri} exceeded the {maximumProtoBytes}-byte limit.");
+                    $"Immutable upstream protocol URL {uri} exceeded the {MaximumProtoBytes}-byte limit.");
 
             var bytes = buffer.ToArray();
             if (ComputePinnedProtoSha256(bytes) == pinnedFile.UpstreamSha256)
@@ -3834,12 +3835,12 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
         JsonElement? referenced = null;
         if (schema.TryGetProperty("$ref", out var reference))
         {
-            const string prefix = "#/components/schemas/";
+            const string Prefix = "#/components/schemas/";
             var target = reference.GetString() ?? "";
-            if (!target.StartsWith(prefix, StringComparison.Ordinal))
+            if (!target.StartsWith(Prefix, StringComparison.Ordinal))
                 throw new InvalidOperationException($"Unsupported OpenAPI $ref '{target}'.");
             referenced = document.RootElement.GetProperty("components").GetProperty("schemas")
-                .GetProperty(target[prefix.Length..]);
+                .GetProperty(target[Prefix.Length..]);
         }
 
         return new OpenApiIntegerBounds(ReadInteger("default"), ReadInteger("maximum"));

@@ -84,9 +84,9 @@ interface IVerifyRelease : IPack
 /// </summary>
 static class ReleaseIndex
 {
-    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    static readonly HttpClient s_http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
-    internal sealed record Probe(string Name, Uri Url, Func<JsonElement, bool> Serves);
+    internal sealed record Probe(string Name, Uri Url, Func<JsonElement, bool> IsAvailable);
 
     internal static Probe NuGet(string id, string version) => new(
         $"{id} {version} (nuget.org)",
@@ -136,11 +136,11 @@ static class ReleaseIndex
             var url = new UriBuilder(probe.Url) { Query = $"qyl-release={Guid.NewGuid():N}" }.Uri;
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
-            using var response = Http.Send(request);
+            using var response = s_http.Send(request);
             if (!response.IsSuccessStatusCode)
                 return false;
             using var document = JsonDocument.Parse(response.Content.ReadAsStream());
-            return probe.Serves(document.RootElement);
+            return probe.IsAvailable(document.RootElement);
         }
         catch (HttpRequestException)
         {

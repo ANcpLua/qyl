@@ -147,7 +147,7 @@ public sealed class ApiKeyRoleTests
                 "POST" when endpoint.RoutePattern.RawText!.EndsWith(":run", StringComparison.Ordinal) || endpoint.RoutePattern.RawText.StartsWith("/api/v1/analysis/", StringComparison.Ordinal) => ApiKeyRoles.Read,
                 _ => ApiKeyRoles.Write
             };
-            Assert.Equal(expected, role!.Role);
+            Assert.Equal(expected, role.Role);
         });
     }
 

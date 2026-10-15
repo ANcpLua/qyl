@@ -6,9 +6,9 @@ namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 /// <summary>The OpenAPI schema a Qyl API publishes for an application/xml response, built from the generated shape.</summary>
 public sealed class SchemaTests
 {
-    private static readonly string[] OrderComponents = ["OrderXml", "CustomerXml", "AddressXml", "OrderLineXml", "MoneyXml"];
+    private static readonly string[] s_orderComponents = ["OrderXml", "CustomerXml", "AddressXml", "OrderLineXml", "MoneyXml"];
 
-    private static readonly string[] StatusNames = ["open", "paid", "Shipped"];
+    private static readonly string[] s_statusNames = ["open", "paid", "Shipped"];
 
     [Fact]
     public void OrderSchemaDescribesAttributesElementsWrappersEnumsAndNestedModels()
@@ -18,7 +18,7 @@ public sealed class SchemaTests
         QylXmlSchema.Reference(document, Order.XmlShape);
 
         var schemas = document.Components!.Schemas!;
-        Assert.Equal(OrderComponents.Order(StringComparer.Ordinal), schemas.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(s_orderComponents.Order(StringComparer.Ordinal), schemas.Keys.Order(StringComparer.Ordinal));
 
         var order = (OpenApiSchema)schemas["OrderXml"];
         Assert.Equal(JsonSchemaType.Object, order.Type);
@@ -32,7 +32,7 @@ public sealed class SchemaTests
 
         var status = (OpenApiSchema)order.Properties["status"];
         Assert.True(status.Xml!.Attribute);
-        Assert.Equal(StatusNames, status.Enum!.Select(static value => value!.GetValue<string>()).ToArray());
+        Assert.Equal(s_statusNames, status.Enum!.Select(static value => value.GetValue<string>()).ToArray());
 
         var days = (OpenApiSchema)order.Properties["days"];
         Assert.Equal(JsonSchemaType.String, days.Type);

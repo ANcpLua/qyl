@@ -5,7 +5,7 @@ namespace Qyl.Cli.Tests;
 public sealed class BoundedStreamTests
 {
     [Fact]
-    public async Task Resource_state_bursts_conflate_to_a_full_snapshot_resync()
+    public void Resource_state_bursts_conflate_to_a_full_snapshot_resync()
     {
         var resources = Enumerable.Range(0, 96)
             .Select(index => new QylResource

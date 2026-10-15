@@ -166,16 +166,14 @@ public sealed partial class RunnerApiTests
 
             using var simpleForm = new HttpRequestMessage(
                 HttpMethod.Post,
-                new Uri($"http://127.0.0.1:{port}/runner/resources/demo/stop"))
-            {
-                Content = new FormUrlEncodedContent([])
-            };
+                new Uri($"http://127.0.0.1:{port}/runner/resources/demo/stop"));
+            simpleForm.Content = new FormUrlEncodedContent([]);
             using var simpleFormResponse = await securityClient.SendAsync(simpleForm, lifetime.Token);
             Assert.Equal(HttpStatusCode.Forbidden, simpleFormResponse.StatusCode);
         }
         finally
         {
-            lifetime.Cancel();
+            await lifetime.CancelAsync();
             await StopAsync(api);
         }
     }
@@ -210,7 +208,7 @@ public sealed partial class RunnerApiTests
         }
         finally
         {
-            lifetime.Cancel();
+            await lifetime.CancelAsync();
             await StopAsync(api);
         }
     }
