@@ -6,6 +6,7 @@ using OpenTelemetry.Proto.Resource.V1;
 using OtlpSpan = OpenTelemetry.Proto.Trace.V1.Span;
 using OtlpResourceSpans = OpenTelemetry.Proto.Trace.V1.ResourceSpans;
 using OtlpScopeSpans = OpenTelemetry.Proto.Trace.V1.ScopeSpans;
+using QylSchemaUrl = Qyl.Telemetry.SemanticConventions.SchemaUrl;
 
 namespace Qyl.Collector.Tests;
 
@@ -98,7 +99,7 @@ public sealed class InstrumentationScopeTests
 
         var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
         Assert.Equal("Qyl.Telemetry.Application", stored.ScopeName);
-        Assert.Equal(["https://qyl.at/schemas/10.0.1"],
+        Assert.Equal([QylSchemaUrl.Qyl],
             (await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
     }
 

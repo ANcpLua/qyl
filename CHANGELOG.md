@@ -1,5 +1,15 @@
 # Changelog
 
+## 13.2.0 — 2026-10-15
+
+- Pin semantic conventions 10.1.0 and `Qyl.Telemetry.Hosting` / `Qyl.Telemetry.AutoInstrumentation*` 25.1.0
+  across the Collector, CLI and API SDK. The API contracts stay at 12.1.2.
+  The instrumentation-scope test follows the pinned registry schema URL.
+- Release verification bypasses stale registry caches and keeps the GitHub release in draft until
+  the published tool and orchestration consumer pass. Gate startup reports its live log immediately.
+- Apply JetBrains cleanup across the generator, Collector and tests, including disposal-safe resource
+  setup, asynchronous test cleanup and redundant imports and null suppressions.
+
 ## 13.1.0 — 2026-10-15
 
 - Add `Qyl.Orchestration`, a reusable .NET process host extracted from the qyl CLI's supervisor.
