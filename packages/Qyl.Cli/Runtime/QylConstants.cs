@@ -19,7 +19,7 @@ internal static class QylConstants
     public static class Ports
     {
         public const int RunnerApi = 18889;
-        public const int DynamicAllocation = 0;
+        public const int DynamicAllocation = OrchestrationDefaults.Ports.DynamicAllocation;
     }
 
     public static class Environments
@@ -29,14 +29,14 @@ internal static class QylConstants
 
     public static class Network
     {
-        public const string Loopback = "127.0.0.1";
-        public const string LocalhostUrlTemplate = "http://{0}:{1}";
+        public const string Loopback = OrchestrationDefaults.Network.Loopback;
+        public const string LocalhostUrlTemplate = OrchestrationDefaults.Network.LocalhostUrlTemplate;
         public const string HttpScheme = "http";
     }
 
     public static class Env
     {
-        public const string AspNetCoreUrls = "ASPNETCORE_URLS";
+        public const string AspNetCoreUrls = OrchestrationDefaults.Env.AspNetCoreUrls;
         public const string AspNetCoreEnvironment = "ASPNETCORE_ENVIRONMENT";
         public const string DotnetEnvironment = "DOTNET_ENVIRONMENT";
         public const string OtelServiceName = "OTEL_SERVICE_NAME";
@@ -69,13 +69,13 @@ internal static class QylConstants
 
     public static class Routes
     {
-        public const string Health = "/health";
+        public const string Health = OrchestrationDefaults.Routes.Health;
         public const string Runner = "/runner";
     }
 
     public static class HttpClients
     {
-        public const string HealthProbe = "qyl-run-health";
+        public const string HealthProbe = OrchestrationDefaults.HttpClients.HealthProbe;
     }
 
     public static class Keys
@@ -89,23 +89,23 @@ internal static class QylConstants
     public static class Orchestrator
     {
         public const string DotnetExecutable = "dotnet";
-        public const int HealthPollIntervalMs = 500;
-        public const int HealthProbeAttemptTimeoutSeconds = 5;
-        public const int StartupTimeoutSeconds = 60;
-        public const int MaxRestarts = 3;
+        public const int HealthPollIntervalMs = OrchestrationDefaults.Orchestrator.HealthPollIntervalMs;
+        public const int HealthProbeAttemptTimeoutSeconds = OrchestrationDefaults.Orchestrator.HealthProbeAttemptTimeoutSeconds;
+        public const int StartupTimeoutSeconds = OrchestrationDefaults.Orchestrator.StartupTimeoutSeconds;
+        public const int MaxRestarts = OrchestrationDefaults.Orchestrator.MaxRestarts;
     }
 
     public static class LogEvents
     {
-        public const int OrchestratorStarted = 1100;
-        public const int ResourceReady = 1102;
-        public const int ResourceFailed = 1103;
-        public const int ResourceRestarting = 1113;
-        public const int ChildStdout = 1105;
-        public const int ChildStderr = 1106;
+        public const int OrchestratorStarted = OrchestrationDefaults.LogEvents.OrchestratorStarted;
+        public const int ResourceReady = OrchestrationDefaults.LogEvents.ResourceReady;
+        public const int ResourceFailed = OrchestrationDefaults.LogEvents.ResourceFailed;
+        public const int ResourceRestarting = OrchestrationDefaults.LogEvents.ResourceRestarting;
+        public const int ChildStdout = OrchestrationDefaults.LogEvents.ChildStdout;
+        public const int ChildStderr = OrchestrationDefaults.LogEvents.ChildStderr;
         public const int RunnerApiListening = 1107;
         public const int RunnerApiBindFailed = 1108;
         public const int RunnerApiRequestFailed = 1109;
-        public const int ResourceUserRestart = 1114;
+        public const int ResourceUserRestart = OrchestrationDefaults.LogEvents.ResourceUserRestart;
     }
 }

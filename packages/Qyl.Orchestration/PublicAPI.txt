@@ -1,0 +1,21 @@
+Qyl.Orchestration.QylApplication
+Qyl.Orchestration.QylApplication.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Qyl.Orchestration.QylApplication.GetEndpoint(string! name) -> System.Uri!
+Qyl.Orchestration.QylApplication.GetOutput(string! name) -> System.Collections.Generic.IReadOnlyList<string!>!
+Qyl.Orchestration.QylApplication.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Qyl.Orchestration.QylApplicationBuilder
+Qyl.Orchestration.QylApplicationBuilder.AddDotnetService(string! name, string! assemblyPath) -> Qyl.Orchestration.QylProcessBuilder!
+Qyl.Orchestration.QylApplicationBuilder.AddExecutable(string! name, string! executable, System.Collections.Generic.IReadOnlyList<string!>! arguments, string? workingDirectory = null) -> Qyl.Orchestration.QylProcessBuilder!
+Qyl.Orchestration.QylApplicationBuilder.Build() -> Qyl.Orchestration.QylApplication!
+Qyl.Orchestration.QylApplicationBuilder.MaxRestarts.get -> int
+Qyl.Orchestration.QylApplicationBuilder.MaxRestarts.set -> void
+Qyl.Orchestration.QylApplicationBuilder.QylApplicationBuilder() -> void
+Qyl.Orchestration.QylApplicationBuilder.StartupTimeoutSeconds.get -> int
+Qyl.Orchestration.QylApplicationBuilder.StartupTimeoutSeconds.set -> void
+Qyl.Orchestration.QylProcessBuilder
+Qyl.Orchestration.QylProcessBuilder.Name.get -> string!
+Qyl.Orchestration.QylProcessBuilder.WaitFor(params Qyl.Orchestration.QylProcessBuilder![]! services) -> Qyl.Orchestration.QylProcessBuilder!
+Qyl.Orchestration.QylProcessBuilder.WithEnvironment(string! name, string! value) -> Qyl.Orchestration.QylProcessBuilder!
+Qyl.Orchestration.QylProcessBuilder.WithHealthCheck(string! path = "/health", bool requireProcessId = false) -> Qyl.Orchestration.QylProcessBuilder!
+Qyl.Orchestration.QylProcessBuilder.WithReference(Qyl.Orchestration.QylProcessBuilder! service) -> Qyl.Orchestration.QylProcessBuilder!
+Qyl.Orchestration.QylProcessBuilder.WithoutEnvironmentPrefix(string! prefix) -> Qyl.Orchestration.QylProcessBuilder!

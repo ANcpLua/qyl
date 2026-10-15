@@ -4,12 +4,12 @@ using System.Net.Sockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Cli.Runtime;
+namespace Qyl.Orchestration.Internal;
 
 internal sealed partial class QylOrchestrator(
     IReadOnlyList<QylResource> resources,
     QylResourceRegistry registry,
-    QylAppOptions options,
+    OrchestratorOptions options,
     IHttpClientFactory httpClientFactory,
     QylProcessLauncher launcher,
     QylResourceActions resourceActions,
@@ -17,7 +17,7 @@ internal sealed partial class QylOrchestrator(
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
     private static readonly CompositeFormat s_urlFormat =
-        CompositeFormat.Parse(QylConstants.Network.LocalhostUrlTemplate);
+        CompositeFormat.Parse(OrchestrationDefaults.Network.LocalhostUrlTemplate);
 
     private static readonly TimeSpan s_processExitTimeout = TimeSpan.FromSeconds(5);
 
@@ -31,23 +31,23 @@ internal sealed partial class QylOrchestrator(
     // would be indistinguishable from a crash and would be relaunched by the normal bounded policy.
     private readonly ConcurrentDictionary<string, byte> _userStops = new(StringComparer.Ordinal);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
         Message = "qyl runtime orchestrator booting with {Count} resource(s)")]
     private static partial void LogBoot(ILogger logger, int count);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.ResourceReady, Level = LogLevel.Information,
         Message = "Resource '{Name}' ready on {Endpoint}")]
     private static partial void LogReady(ILogger logger, string name, Uri endpoint);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceFailed, Level = LogLevel.Error,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.ResourceFailed, Level = LogLevel.Error,
         Message = "Resource '{Name}' failed to start: {Reason}")]
     private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceRestarting, Level = LogLevel.Warning,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.ResourceRestarting, Level = LogLevel.Warning,
         Message = "Resource '{Name}' exited (code {ExitCode}); restarting (attempt {Attempt})")]
     private static partial void LogRestarting(ILogger logger, string name, int exitCode, int attempt);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceUserRestart, Level = LogLevel.Information,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.ResourceUserRestart, Level = LogLevel.Information,
         Message = "Resource '{Name}' restarting on request")]
     private static partial void LogUserRestart(ILogger logger, string name);
 
@@ -85,12 +85,12 @@ internal sealed partial class QylOrchestrator(
 
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
 
-            var port = resource.Port == QylConstants.Ports.DynamicAllocation
-                ? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback)
+            var port = resource.Port == OrchestrationDefaults.Ports.DynamicAllocation
+                ? PortAllocator.ClaimFreePort(OrchestrationDefaults.Network.Loopback)
                 : resource.Port;
 
             var endpoint =
-                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, QylConstants.Network.Loopback, port));
+                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, OrchestrationDefaults.Network.Loopback, port));
 
             var process = launcher.Launch(resource, endpoint);
             _processes[resource.Name] = process;
@@ -138,7 +138,7 @@ internal sealed partial class QylOrchestrator(
                 try
                 {
                     await Task.WhenAny(ready,
-                            Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs),
+                            Task.Delay(TimeSpan.FromMilliseconds(OrchestrationDefaults.Orchestrator.HealthPollIntervalMs),
                                 time, stoppingToken))
                         .ConfigureAwait(false);
                 }
@@ -169,9 +169,9 @@ internal sealed partial class QylOrchestrator(
 
         try
         {
-            if (!await ProbeReadinessAsync(resource, port, endpoint, stoppingToken).ConfigureAwait(false))
+            if (!await ProbeReadinessAsync(resource, current, port, endpoint, stoppingToken).ConfigureAwait(false))
             {
-                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, "Health probe timed out");
+                await PublishStartupFailureAsync(resource, current, port, endpoint, stoppingToken).ConfigureAwait(false);
                 return;
             }
 
@@ -206,10 +206,10 @@ internal sealed partial class QylOrchestrator(
                     registry.Publish(resource.Name, ResourceLifecycle.Starting, port, endpoint,
                         "Restart requested from TUI");
                 }
-                else if (restarts >= QylConstants.Orchestrator.MaxRestarts)
+                else if (restarts >= options.MaxRestarts)
                 {
                     registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
-                        $"Process exited (code {exitCode}); restart limit ({QylConstants.Orchestrator.MaxRestarts}) reached");
+                        $"Process exited (code {exitCode}); restart limit ({options.MaxRestarts}) reached");
                     return;
                 }
                 else
@@ -217,7 +217,7 @@ internal sealed partial class QylOrchestrator(
                     restarts++;
                     LogRestarting(logger, resource.Name, exitCode, restarts);
                     registry.Publish(resource.Name, ResourceLifecycle.Starting, port, endpoint,
-                        $"Process exited (code {exitCode}); restarting ({restarts}/{QylConstants.Orchestrator.MaxRestarts})");
+                        $"Process exited (code {exitCode}); restarting ({restarts}/{options.MaxRestarts})");
                 }
 
                 _processes.TryRemove(resource.Name, out _);
@@ -236,10 +236,9 @@ internal sealed partial class QylOrchestrator(
                     return;
                 }
 
-                if (!await ProbeReadinessAsync(resource, port, endpoint, stoppingToken).ConfigureAwait(false))
+                if (!await ProbeReadinessAsync(resource, current, port, endpoint, stoppingToken).ConfigureAwait(false))
                 {
-                    registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
-                        "Health probe timed out after restart");
+                    await PublishStartupFailureAsync(resource, current, port, endpoint, stoppingToken).ConfigureAwait(false);
                     return;
                 }
 
@@ -392,7 +391,20 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
-    private Task<bool> ProbeReadinessAsync(QylResource resource, int? port, Uri? endpoint,
+    private async Task PublishStartupFailureAsync(QylResource resource, Process process, int port,
+        Uri endpoint, CancellationToken cancellationToken)
+    {
+        if (process.HasExited)
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        var reason = process.HasExited
+            ? $"Process exited with code {process.ExitCode} before becoming ready"
+            : "Health probe timed out";
+        var output = string.Join(Environment.NewLine, launcher.Output(resource.Name).Select(static line => line.Line));
+        registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
+            output.Length == 0 ? reason : reason + Environment.NewLine + output);
+    }
+
+    private Task<bool> ProbeReadinessAsync(QylResource resource, Process process, int? port, Uri? endpoint,
         CancellationToken stoppingToken)
     {
         var probe = new HttpHealthProbe(
@@ -408,7 +420,7 @@ internal sealed partial class QylOrchestrator(
             Timestamp = time.GetUtcNow(),
             AllocatedPort = port,
             Endpoint = endpoint
-        }, stoppingToken);
+        }, stoppingToken, process, resource.Launch.RequireProcessId);
     }
 
 }

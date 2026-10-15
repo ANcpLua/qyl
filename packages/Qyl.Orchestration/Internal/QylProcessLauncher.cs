@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Cli.Runtime;
+namespace Qyl.Orchestration.Internal;
 
 // Spawns a child process for a launchable resource and keeps its redirected stdout/stderr drained.
 // The orchestrator owns the returned process's lifecycle (tracking + shutdown); this type only starts it.
@@ -10,16 +10,18 @@ internal sealed partial class QylProcessLauncher(
 {
     // Child stdout/stderr are drained on a Debug channel so they never block the child's pipe buffer
     // while staying out of the Spectre.Console live table at the default Information level.
-    [LoggerMessage(EventId = QylConstants.LogEvents.ChildStdout, Level = LogLevel.Debug,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.ChildStdout, Level = LogLevel.Debug,
         Message = "[{Name}] {Line}")]
     private static partial void LogChildStdout(ILogger logger, string name, string line);
 
-    [LoggerMessage(EventId = QylConstants.LogEvents.ChildStderr, Level = LogLevel.Debug,
+    [LoggerMessage(EventId = OrchestrationDefaults.LogEvents.ChildStderr, Level = LogLevel.Debug,
         Message = "[{Name}] {Line}")]
     private static partial void LogChildStderr(ILogger logger, string name, string line);
 
     // Starts the process synchronously and returns it already draining. Ownership transfers to the caller:
     // on success the caller must track and dispose it; on failure this method disposes before throwing.
+    internal IReadOnlyList<QylLogLine> Output(string name) => logStore.Snapshot(name);
+
     public Process Launch(QylResource resource, Uri endpoint)
     {
         if (resource.Launch is not { } launch)
@@ -37,9 +39,12 @@ internal sealed partial class QylProcessLauncher(
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        foreach (var key in startInfo.Environment.Keys.Where(key => launch.RemovedEnvironmentPrefixes
+            .Any(prefix => key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))).ToArray())
+            startInfo.Environment.Remove(key);
         foreach (var arg in launch.Args) startInfo.ArgumentList.Add(arg);
         foreach (var kv in launch.Env) startInfo.Environment[kv.Key] = kv.Value;
-        startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
+        startInfo.Environment[OrchestrationDefaults.Env.AspNetCoreUrls] = endpoint.ToString();
 
         var process = new Process { StartInfo = startInfo };
         var childName = resource.Name;
@@ -58,6 +63,7 @@ internal sealed partial class QylProcessLauncher(
 
         try
         {
+            resource.Reservation?.Dispose();
             if (!process.Start())
             {
                 throw new InvalidOperationException($"Process.Start returned false for '{resource.Name}'");

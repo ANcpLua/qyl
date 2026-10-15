@@ -16,6 +16,7 @@
 
   <Folder Name="/packages/">
     <Project Path="packages/Qyl.Cli/Qyl.Cli.csproj" />
+    <Project Path="packages/Qyl.Orchestration/Qyl.Orchestration.csproj" />
     <Project Path="packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj" />
   </Folder>
 
@@ -65,6 +66,7 @@
   <Folder Name="/eng/tools/">
     <Project Path="eng/tools/CollectorAotSmoke/CollectorAotSmoke.csproj" />
     <Project Path="eng/tools/QylToolSmoke/QylToolSmoke.csproj" />
+    <Project Path="eng/tools/QylOrchestrationSmoke/QylOrchestrationSmoke.csproj" />
     <Project Path="eng/tools/QylSdkConformance/QylSdkConformance.csproj" />
     <Project Path="eng/tools/SdkVersionAnalyzer/SdkVersionAnalyzer.csproj" />
   </Folder>

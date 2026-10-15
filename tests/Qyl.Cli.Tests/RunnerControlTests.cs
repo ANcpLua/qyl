@@ -75,7 +75,7 @@ public sealed class RunnerControlTests
         var orchestrator = new QylOrchestrator(
             resources,
             registry,
-            options,
+            new OrchestratorOptions { StartupTimeoutSeconds = options.StartupTimeoutSeconds },
             services.GetRequiredService<IHttpClientFactory>(),
             launcher,
             actions,

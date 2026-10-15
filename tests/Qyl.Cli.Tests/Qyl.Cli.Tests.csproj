@@ -29,4 +29,8 @@
     <ProjectReference Include="../../packages/Qyl.Cli/Qyl.Cli.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Qyl.Orchestration.Internal" />
+  </ItemGroup>
+
 </Project>

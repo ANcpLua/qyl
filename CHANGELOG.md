@@ -5,6 +5,11 @@
 - Add `Qyl.Orchestration`, a reusable .NET process host extracted from the qyl CLI's supervisor.
   Applications can compose executables, pass environment and service references, wait for readiness,
   and stop the whole application. The CLI and library use the same process lifecycle implementation.
+- The shared supervisor detects early process exits during health checks and retains the exit code and
+  child output. The public host cleans up on failed startup, cancellation and readiness deadlines;
+  optional process-ID health responses prevent another listener from satisfying readiness.
+- Release checks pack and smoke `Qyl.Orchestration` as a standalone consumer before publication and
+  again from nuget.org after indexing. The prototype consumes the package without a sibling clone.
 
 ## 13.0.1 — 2026-10-15
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Publish and release qyl's NuGet packages (the qyl tool, its six runtime packages and
-# Qyl.Api.Sdk) from this machine with the key registered in Vitals. No workflow publishes.
+# Qyl.Api.Sdk and Qyl.Orchestration) from this machine with the key registered in Vitals. No workflow publishes.
 #
 #   ./release.sh <x.y.z>            pack, smoke, publish, tag, GitHub release, verify, refresh; exit 0 only
 #                                   when the complete release is VERIFIED
 #   ./release.sh <x.y.z> --dry-run  every check, the real pack and smoke, and a NuGet key probe for each of
-#                                   the eight package ids; nothing is pushed, registry and git stay unchanged.
+#                                   the nine package ids; nothing is pushed, registry and git stay unchanged.
 #                                   Checks the real run enforces (tag, already on NuGet) only warn. Prints
 #                                   what verification would do; the result is DRY_RUN, never VERIFIED
 #   ./release.sh --verify <x.y.z>   verify an already published release without republishing
@@ -15,7 +15,7 @@
 # Order: the six runtime packages are pushed and must be indexed (up to 20 min, in the foreground)
 # before the tool pointer qyl and Qyl.Api.Sdk are pushed; then the tag names the commit the checks
 # and the pack ran on. Verification runs in the same invocation:
-# `./eng/build.sh VerifyRelease --published-version <x.y.z>` (waits until nuget.org serves all eight,
+# `./eng/build.sh VerifyRelease --published-version <x.y.z>` (waits until nuget.org serves all nine,
 # up to 45 min, then installs the published tool from nuget.org and runs QylToolSmoke against it),
 # then qyl.at's scripts/refresh-published-versions.sh. Every attempt keeps its own log and JSON status
 # under artifacts/release-<version>-<attempt>/; artifacts/release-<version>.status.json names the latest.
@@ -34,9 +34,9 @@ NUGET_FLAT=https://api.nuget.org/v3-flatcontainer
 NUGET_GALLERY=https://www.nuget.org/api/v2
 NUGET_KEY_FILE=$HOME/.config/vitals/nuget-qyl-manual-publish-key  # vitals keys: "qyl-dev manual publish and release (NuGet)"
 OUT=artifacts/nuget
-RELEASE_NAME="qyl + qyl.<rid> + Qyl.Api.Sdk"
+RELEASE_NAME="qyl + qyl.<rid> + Qyl.Api.Sdk + Qyl.Orchestration"
 VERIFY_COMMAND="./eng/build.sh VerifyRelease"
-VERIFY_WHAT="nuget.org index of all eight up to 45 min, then the published tool through QylToolSmoke"
+VERIFY_WHAT="nuget.org index of all nine up to 45 min, then the published tool through QylToolSmoke"
 QYL_AT_DIR=${QYL_AT_DIR:-$(cd .. && pwd)/qyl.at}
 
 mode=release
@@ -171,7 +171,7 @@ if [[ $mode == verify ]]; then
   release_commit=$(git rev-parse "v$version^{commit}")
   rids=$(sed -n 's:.*<QylToolRuntimeIdentifiers>\([^<]*\)</QylToolRuntimeIdentifiers>.*:\1:p' packages/Qyl.Cli/Qyl.Cli.csproj | tr ';' ' ')
   [[ -n $rids ]] || die "QylToolRuntimeIdentifiers not found"
-  package_ids=(qyl Qyl.Api.Sdk $(for r in $rids; do echo "qyl.$r"; done))
+  package_ids=(qyl Qyl.Api.Sdk Qyl.Orchestration $(for r in $rids; do echo "qyl.$r"; done))
   expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
   [[ $(sort <<<"$assets") == "$expected" ]] || die "GitHub release assets do not match the release set; verification cannot repair publication"
   # A manually created tag/release is not proof that NuGet accepted any package. Do not start a
@@ -226,7 +226,7 @@ publish_release_set() {
     result=PENDING
     return 3
   fi
-  for package in Qyl.Api.Sdk qyl; do
+  for package in Qyl.Orchestration Qyl.Api.Sdk qyl; do
     NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$OUT/$package.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate || return $?
   done
 }
@@ -244,13 +244,13 @@ if [[ -n $(git ls-remote --tags origin "refs/tags/v$version") ]] || git rev-pars
 fi
 qv=$(sed -n 's:.*<QylVersion>\([^<]*\)</QylVersion>.*:\1:p' Version.props)
 [[ $qv == "$version" ]] || die "Version.props QylVersion is $qv, not $version; bump it in its own commit first"
-for id in qyl Qyl.Api.Sdk; do
+for id in qyl Qyl.Api.Sdk Qyl.Orchestration; do
   if indexed "$id" "$version"; then (( dry )) || die "$id $version is already on NuGet"; echo "warning: $id $version is already on NuGet; the real run refuses"; fi
 done
 gh auth status >/dev/null 2>&1 || die "gh is not logged in"
 rids=$(sed -n 's:.*<QylToolRuntimeIdentifiers>\([^<]*\)</QylToolRuntimeIdentifiers>.*:\1:p' packages/Qyl.Cli/Qyl.Cli.csproj | tr ';' ' ')
 [[ -n $rids ]] || die "QylToolRuntimeIdentifiers not found in packages/Qyl.Cli/Qyl.Cli.csproj"
-package_ids=(qyl Qyl.Api.Sdk $(for r in $rids; do echo "qyl.$r"; done))
+package_ids=(qyl Qyl.Api.Sdk Qyl.Orchestration $(for r in $rids; do echo "qyl.$r"; done))
 expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
 echo "expected package set: ${#package_ids[@]} packages"
 
@@ -261,6 +261,7 @@ actual=$(find "$OUT" -maxdepth 1 -name '*.nupkg' -exec basename {} \; | sort)
 
 phase "smoke the tool packages on this host"
 dotnet run --project eng/tools/QylToolSmoke/QylToolSmoke.csproj --configuration Release --no-build -- "$OUT"
+./eng/scripts/smoke-orchestration-package.sh "$version" "$PWD/$OUT"
 
 [[ $(git rev-parse HEAD) == "$release_commit" ]] || die "HEAD changed during packing; rerun from the intended release commit"
 [[ -z $(git status --porcelain --untracked-files=no) ]] || die "tracked files changed during packing; commit them and rerun"
@@ -281,7 +282,7 @@ if (( dry )); then
   done
   say "dry run finished: ${#package_ids[@]} packages at $version in $OUT; nothing published, nothing tagged"
   git status --short --untracked-files=no
-  echo "The real run pushes the runtime packages, waits for their index, pushes Qyl.Api.Sdk and qyl, tags"
+  echo "The real run pushes the runtime packages, waits for their index, pushes Qyl.Orchestration, Qyl.Api.Sdk and qyl, tags"
   echo "$release_commit and creates the GitHub release, then runs $VERIFY_COMMAND --published-version $version ($VERIFY_WHAT),"
   echo "then $QYL_AT_DIR/scripts/refresh-published-versions.sh in the same invocation."
   result=DRY_RUN

@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Qyl.Cli.Runtime;
+namespace Qyl.Orchestration.Internal;
 
 internal enum QylResourceAction
 {

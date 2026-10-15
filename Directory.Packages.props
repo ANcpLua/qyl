@@ -2,6 +2,10 @@
   <Import Project="$(MSBuildThisFileDirectory)../framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props"
           Condition="Exists('$(MSBuildThisFileDirectory)../framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props')"/>
   <Import Project="Version.props"/>
+  <ItemGroup>
+    <PackageVersion Include="Qyl.Orchestration" Version="$(QylVersion)" />
+  </ItemGroup>
+
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>

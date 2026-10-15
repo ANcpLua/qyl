@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 
-namespace Qyl.Cli.Runtime;
+namespace Qyl.Orchestration.Internal;
 
 internal sealed record QylResource
 {
@@ -20,6 +20,8 @@ internal sealed record QylResource
     public IReadOnlyList<string> WaitsFor { get; init; } = [];
 
     public required QylLaunchSpec Launch { get; init; }
+
+    internal PortReservation? Reservation { get; init; }
 }
 
 internal sealed record QylLaunchSpec
@@ -28,7 +30,9 @@ internal sealed record QylLaunchSpec
     public ReadOnlyCollection<string> Args { get; init; } = ReadOnlyCollection<string>.Empty;
     public IReadOnlyDictionary<string, string> Env { get; init; } = new Dictionary<string, string>();
     public string? WorkingDirectory { get; init; }
-    public string HealthPath { get; init; } = QylConstants.Routes.Health;
+    public string HealthPath { get; init; } = OrchestrationDefaults.Routes.Health;
+    public bool RequireProcessId { get; init; }
+    public IReadOnlyList<string> RemovedEnvironmentPrefixes { get; init; } = [];
 }
 
 internal sealed record QylProcessCommand

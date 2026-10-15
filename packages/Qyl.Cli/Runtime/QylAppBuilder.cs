@@ -119,7 +119,7 @@ internal sealed class QylAppBuilder
 
     internal QylApp Build()
     {
-        ValidateWaitForGraph();
+        QylResourceGraph.Validate(_resources);
 
         // The runner observes itself the way every qyl process does: AddQyl() from Qyl.Telemetry.Hosting,
         // which brings the AutoInstrumentation runtime (the health-probe HttpClient calls become client
@@ -143,20 +143,8 @@ internal sealed class QylAppBuilder
             _host.Logging.AddFilter($"System.Net.Http.HttpClient.{exporter}", LogLevel.None);
 
         _host.Services.AddSingleton(_options);
-        _host.Services.AddSingleton(TimeProvider.System);
-        _host.Services.AddSingleton<IReadOnlyList<QylResource>>(new ReadOnlyCollection<QylResource>([.. _resources]));
-#pragma warning disable AL1105 // health probing IS the retry loop; a resilience pipeline here would double-retry and drags non-AOT config binding back in
-        _host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe, static client =>
-                client.Timeout = TimeSpan.FromSeconds(QylConstants.Orchestrator.HealthProbeAttemptTimeoutSeconds))
-            // Per-attempt HTTP logging is noise by the same argument: connection-refused during
-            // startup is the probe working, not an error, and the recurring poll chatter shreds
-            // the interactive console table. The orchestrator reports the state transitions.
-            .RemoveAllLoggers();
-#pragma warning restore AL1105
-        _host.Services.AddSingleton<QylResourceRegistry>();
-        _host.Services.AddSingleton<QylResourceActions>();
-        _host.Services.AddSingleton<QylLogStore>();
-        _host.Services.AddSingleton<QylProcessLauncher>();
+        OrchestrationServices.Register(_host.Services, _resources,
+            new OrchestratorOptions { StartupTimeoutSeconds = _options.StartupTimeoutSeconds });
         _host.Services.AddHostedService<QylRunnerApi>();
         // Bind the control endpoint before dynamic resource ports are claimed.
         // This removes the free-port TOCTOU where a child could take the runner's
@@ -164,42 +152,6 @@ internal sealed class QylAppBuilder
         _host.Services.AddHostedService<QylOrchestrator>();
         _host.Services.AddHostedService<QylConsoleUi>();
         return new QylApp(_host.Build());
-    }
-
-    // A WaitFor edge naming an unknown resource would wait forever; a cycle would deadlock the whole
-    // composition. Both are composition bugs, so both fail Build() loudly.
-    private void ValidateWaitForGraph()
-    {
-        var byName = _resources.ToDictionary(static r => r.Name, StringComparer.Ordinal);
-
-        foreach (var resource in _resources)
-            foreach (var dep in resource.WaitsFor.Where(dep => !byName.ContainsKey(dep)))
-            {
-                throw new InvalidOperationException(
-                    $"Resource '{resource.Name}' waits for unknown resource '{dep}'.");
-            }
-
-        var visiting = new HashSet<string>(StringComparer.Ordinal);
-        var done = new HashSet<string>(StringComparer.Ordinal);
-
-        void Visit(string name)
-        {
-            if (done.Contains(name))
-                return;
-            if (!visiting.Add(name))
-            {
-                throw new InvalidOperationException(
-                    $"WaitFor cycle detected involving resource '{name}' — a cycle can never become ready.");
-            }
-
-            foreach (var dep in byName[name].WaitsFor)
-                Visit(dep);
-            visiting.Remove(name);
-            done.Add(name);
-        }
-
-        foreach (var resource in _resources)
-            Visit(resource.Name);
     }
 
     // First caller of a well-known port keeps it; later collectors get freshly claimed ports so the

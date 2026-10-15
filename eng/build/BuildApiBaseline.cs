@@ -23,17 +23,18 @@ namespace Qyl.Build;
 /// </summary>
 interface IApiBaseline : IHasSourcePaths, IHasConfiguration
 {
-    /// <summary>The qyl tool's assembly and the two libraries Qyl.Api.Sdk packs under lib/net10.0;
+    /// <summary>The qyl tool, orchestration library and two libraries Qyl.Api.Sdk packs under lib/net10.0;
     /// the SDK project itself compiles nothing.</summary>
     AbsolutePath[] ApiReportProjects =>
     [
         CliPackProject,
+        OrchestrationProject,
         PackagesDirectory / "Qyl.Api.Sdk" / "Qyl.Xml" / "Qyl.Xml.csproj",
         PackagesDirectory / "Qyl.Api.Sdk" / "Qyl.Api" / "Qyl.Api.csproj"
     ];
 
     Target ApiBaseline => d => d
-        .Description("Public API report: rewrites PublicAPI.txt beside the qyl tool, Qyl.Xml and Qyl.Api to their Release surface and notes the change against HEAD; never fails")
+        .Description("Public API report: rewrites PublicAPI.txt beside the qyl tool, Qyl.Orchestration, Qyl.Xml and Qyl.Api to their Release surface and notes the change against HEAD; never fails")
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() =>
         {

@@ -18,7 +18,7 @@ namespace Qyl.Build;
 
 /// <summary>
 /// release.sh's verification, rerunnable without republishing: wait until
-/// nuget.org serves all eight packages of the release, then install the published qyl tool from
+/// nuget.org serves all nine packages of the release, then install the published qyl tool from
 /// nuget.org into a clean tool path (its own NuGet packages folder, no HTTP cache) and run
 /// QylToolSmoke's installed-tool mode against it.
 /// </summary>
@@ -55,6 +55,11 @@ interface IVerifyRelease : IPack
                     .SetProjectFile(QylToolSmokeProject)
                     .SetConfiguration(Configuration)
                     .SetApplicationArguments("--installed", scratch / "tool" / (OperatingSystem.IsWindows() ? "qyl.exe" : "qyl"), "--version", version));
+                ProcessTasks.StartProcess(
+                        "bash",
+                        $"\"{RootDirectory / "eng" / "scripts" / "smoke-orchestration-package.sh"}\" {version}",
+                        RootDirectory)
+                    .AssertZeroExitCode();
             }
             finally
             {

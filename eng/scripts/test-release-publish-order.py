@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='qyl-release-order-test-') as root:
   case=p/mode; case.mkdir(); subprocess.run(['bash',str(script),str(case),mode],check=True)
   uploads=(case/'uploads').read_text().splitlines(); status=int((case/'result').read_text())
   if mode=='success':
-   assert status==0 and uploads==['qyl.linux-x64.12.0.0.nupkg','qyl.osx-arm64.12.0.0.nupkg','Qyl.Api.Sdk.12.0.0.nupkg','qyl.12.0.0.nupkg'],uploads
+   assert status==0 and uploads==['qyl.linux-x64.12.0.0.nupkg','qyl.osx-arm64.12.0.0.nupkg','Qyl.Orchestration.12.0.0.nupkg','Qyl.Api.Sdk.12.0.0.nupkg','qyl.12.0.0.nupkg'],uploads
   else:
    assert status!=0 and 'qyl.12.0.0.nupkg' not in uploads and 'Qyl.Api.Sdk.12.0.0.nupkg' not in uploads,(status,uploads)
   print(mode+': PASS')
@@ -50,7 +50,7 @@ tool = pathlib.Path(sys.argv[0]).resolve().name
 args = sys.argv[1:]
 version = '13.0.1'
 commit = '0123456789abcdef'
-packages = ['qyl', 'Qyl.Api.Sdk', 'qyl.linux-x64', 'qyl.osx-arm64']
+packages = ['qyl', 'Qyl.Api.Sdk', 'Qyl.Orchestration', 'qyl.linux-x64', 'qyl.osx-arm64']
 with (root / 'events.log').open('a') as events:
     events.write(tool + ' ' + ' '.join(args) + '\n')
 if tool == 'git':
@@ -72,6 +72,8 @@ elif tool == 'gh':
         existed = (root / 'github').exists()
         (root / 'github').touch()
         if mode == 'github-transient' and not existed: sys.exit(45)
+elif tool == 'orchestration-smoke':
+    if mode == 'orchestration-smoke-failure': sys.exit(47)
 elif tool == 'dotnet':
     if args[0] == 'run' and mode == 'smoke-failure': sys.exit(134)
     if args[:2] == ['nuget', 'push']:
@@ -112,12 +114,14 @@ class ReleaseOutcomeTests(unittest.TestCase):
         commands = self.root / 'commands'
         commands.mkdir()
         self.env['PATH'] = str(commands) + os.pathsep + self.env['PATH']
-        for name in ('git', 'gh', 'curl', 'dotnet', 'build', 'refresh'):
+        for name in ('git', 'gh', 'curl', 'dotnet', 'orchestration-smoke', 'build', 'refresh'):
             path = commands / name
             path.write_text(MOCK)
             path.chmod(0o755)
         (self.root / 'eng').mkdir()
         (self.root / 'eng/build.sh').symlink_to(commands / 'build')
+        (self.root / 'eng/scripts').mkdir()
+        (self.root / 'eng/scripts/smoke-orchestration-package.sh').symlink_to(commands / 'orchestration-smoke')
         (self.root / 'site/scripts').mkdir(parents=True)
         (self.root / 'site/scripts/refresh-published-versions.sh').symlink_to(commands / 'refresh')
         self.env['QYL_AT_DIR'] = str(self.root / 'site')
@@ -159,6 +163,7 @@ class ReleaseOutcomeTests(unittest.TestCase):
 
     def test_failures_stop_subsequent_stages_and_preserve_exit_codes(self):
         cases = [('pack-failure', 41, 'dotnet run'), ('smoke-failure', 134, 'dotnet nuget push'),
+                 ('orchestration-smoke-failure', 47, 'dotnet nuget push'),
                  ('push-failure', 42, 'git tag'), ('tag-push-failure', 43, 'gh release create'),
                  ('github-failure', 45, 'build VerifyRelease'), ('verify-failure', 42, 'refresh '),
                  ('bad-index-status', 1, 'refresh '), ('snapshot-failure', 46, None)]

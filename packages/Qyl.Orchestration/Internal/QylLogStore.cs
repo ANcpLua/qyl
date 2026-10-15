@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace Qyl.Cli.Runtime;
+namespace Qyl.Orchestration.Internal;
 
 // Bounded, per-resource log buffer with lossy bounded broadcast fan-out. A slow live subscriber can
 // reconnect and replay the latest MaxLinesPerResource snapshot if older live frames were dropped.

@@ -65,7 +65,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
         });
 
     Target PackRelease => d => d
-        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk) into a clean artifacts/nuget (release.sh's pack step)")
+        .Description("Pack the versioned release set (qyl, Qyl.Api.Sdk, Qyl.Orchestration) into a clean artifacts/nuget (release.sh's pack step)")
         .Requires(() => PackageVersion, () => RepositoryCommit)
         .Executes(() =>
         {

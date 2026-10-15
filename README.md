@@ -6,7 +6,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-This checkout targets qyl 13.0.1. The
+This checkout targets qyl 13.1.0. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -23,6 +23,24 @@ qyl up
 on `:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889`.
 Telemetry is stored under `~/.qyl/`, never in the working directory. All five ports are
 checked up front, so a conflict fails the command instead of leaving a half-bound stack.
+
+## Host application processes
+
+`Qyl.Orchestration` exposes the process supervisor the CLI uses as a reusable .NET library:
+
+```csharp
+using Qyl.Orchestration;
+
+var host = new QylApplicationBuilder { MaxRestarts = 0 };
+var payments = host.AddDotnetService("payments-api", paymentsAssembly);
+host.AddDotnetService("orders-api", ordersAssembly).WithReference(payments).WaitFor(payments);
+await using var app = host.Build();
+await app.StartAsync();
+```
+
+It reserves loopback endpoints, passes service references, waits for HTTP readiness, captures
+child output and owns cleanup on failure, cancellation and disposal. It starts no collector,
+control API or console UI. Package usage and lifecycle details: [Qyl.Orchestration](packages/Qyl.Orchestration/README.md).
 
 ## Analysis for agents
 
@@ -78,16 +96,17 @@ dependency line is published, and this repository's own line is published when
 `./release.sh <version>` runs on the developer's machine (see `SKILL.md`). Package
 registries are authoritative for public availability.
 
-The `qyl`, `Qyl.Api.Sdk` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs and which rewrites them; commit the rendered text. The `qyl-mcp-server` row names no version: qyl builds against none, and npm lists its releases.
+The `qyl`, `Qyl.Api.Sdk`, `Qyl.Orchestration` and three dependency rows, and the `<Project Sdk="Qyl.Api.Sdk/…">` line further down, are rendered from `Version.props` by `./eng/build.sh RenderReadmeVersions`, which `VerifyBackend` runs and which rewrites them; commit the rendered text. The `qyl-mcp-server` row names no version: qyl builds against none, and npm lists its releases.
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 13.0.1 | this one |
+| `qyl` (dotnet tool) | 13.1.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 25.0.2 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 10.0.1 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.1.2 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | [npm](https://www.npmjs.com/package/qyl-mcp-server) | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 13.0.1 | this one |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 13.1.0 | this one |
+| `Qyl.Orchestration` (process host) | 13.1.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -153,7 +172,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/13.0.1">
+<Project Sdk="Qyl.Api.Sdk/13.1.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

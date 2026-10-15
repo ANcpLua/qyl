@@ -93,10 +93,19 @@ sealed class Build : FalloutBuild,
 
     // Trim and AOT regressions (IL2026/IL3050) are CheckFull's job: Compile builds with the AOT
     // analyzers off; PackSmoke and NativeAot are the gates that see them.
+    public Target OrchestrationSmoke => d => d
+        .Description("Exercise the reusable orchestrator with real .NET services, failure, cancellation and timeout")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() => DotNetTasks.DotNetRun(s => s
+            .SetProjectFile(From<IHasSourcePaths>().OrchestrationSmokeProject)
+            .SetConfiguration(From<IHasConfiguration>().Configuration)
+            .EnableNoBuild()));
+
     public Target Check => d => d
         .Description("The gate before every push: compile, tests, verification, the public API report, SDK and SemConv pins and the dashboard's lint, tests and build")
         .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IQylTests>(static x => x.Test)
+        .DependsOn(OrchestrationSmoke)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IApiBaseline>(static x => x.ApiBaseline)
         .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)

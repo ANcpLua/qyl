@@ -26,6 +26,7 @@ interface IDependencyEdges : IHasSourcePaths
             ["Qyl.Telemetry.SemanticConventions", "Qyl.Telemetry.SemanticConventions.Incubating"],
         // Conformance/smoke tooling exercises the published contracts and producer stack.
         ["eng/tools/QylSdkConformance/QylSdkConformance.csproj"] = ["Qyl.Api.Contracts"],
+        ["eng/tools/QylOrchestrationSmoke/QylOrchestrationSmoke.csproj"] = ["Qyl.Orchestration"],
         // Collector-defaults layer: consumes the published composition (self-telemetry via
         // AddQyl) plus the shared vocabulary; never a private copy of the producer pipeline.
         ["internal/qyl.instrumentation/qyl.instrumentation.csproj"] =

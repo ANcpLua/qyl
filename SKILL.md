@@ -4,9 +4,9 @@ One agent per qyl-dev repo (qyl, qyl.mcp, qyl-api-schema, Qyl.Telemetry.AutoInst
 
 ## This repository
 
-- Publishes one NuGet release set: the `qyl` tool, its six runtime packages `qyl.<rid>` and `Qyl.Api.Sdk`.
+- Publishes one NuGet release set: the `qyl` tool, its six runtime packages `qyl.<rid>`, `Qyl.Api.Sdk` and `Qyl.Orchestration`.
 - Version source: `Version.props` `QylVersion`, bumped in its own commit before the first package-affecting change after a release. The README release lines are rendered from `Version.props` by `./eng/build.sh Check` (target `RenderReadmeVersions`): after a bump or a pin, commit the README it rewrote.
-- Bump: Check rewrites `PublicAPI.txt` beside `packages/Qyl.Cli` and the two libraries Qyl.Api.Sdk ships (`packages/Qyl.Api.Sdk/Qyl.Xml`, `Qyl.Api`) to their public API and notes `api: +N -M changed` or `api: unchanged`; it informs, never blocks. Read `git diff v<last release> -- '*PublicAPI.txt'`: a removed or changed line is major, only added lines minor, none patch.
+- Bump: Check rewrites `PublicAPI.txt` beside `packages/Qyl.Cli`, `packages/Qyl.Orchestration` and the two libraries Qyl.Api.Sdk ships (`packages/Qyl.Api.Sdk/Qyl.Xml`, `Qyl.Api`) to their public API and notes `api: +N -M changed` or `api: unchanged`; it informs, never blocks. Read `git diff v<last release> -- '*PublicAPI.txt'`: a removed or changed line is major, only added lines minor, none patch.
 - Key: Vitals entry "qyl-dev manual publish and release (NuGet)", `~/.config/vitals/nuget-qyl-manual-publish-key`, read by the script. Never print, paste, commit or log it. Entry missing or note expired: stop and tell the owner.
 - Upstream pins: `Version.props` `QylApiContractsVersion` (qyl-api-schema), `QylSemanticConventionsVersion` (SemanticConventions), `QylTelemetryVersion` (AutoInstrumentation); `services/qyl.dashboard/package.json` and its `bun.lock` (`@ancplua/qyl-api-schema`).
 - A `release.sh` change keeps `python3 eng/scripts/test-release-publish-order.py` green.
@@ -19,7 +19,7 @@ One agent per qyl-dev repo (qyl, qyl.mcp, qyl-api-schema, Qyl.Telemetry.AutoInst
 ## Release
 
 1. Land the `QylVersion` bump on `main`.
-2. Run `./release.sh <x.y.z>` directly as the main agent, without a shell fallback or a waiting subagent. One invocation checks, packs, smokes, publishes, tags the packed commit, creates the GitHub release, runs `./eng/build.sh VerifyRelease --published-version <x.y.z>`, and refreshes `published-versions.yaml` in qyl.at. Runtime packages must index before the tool pointer publishes (up to 20 min); verification waits for all eight (up to 45 min), then installs the published tool with an isolated packages folder and `--no-http-cache` and runs QylToolSmoke. GitHub upload failures retry at most three times, only after publication succeeds. Do not create tags/releases or refresh the snapshot by hand.
+2. Run `./release.sh <x.y.z>` directly as the main agent, without a shell fallback or a waiting subagent. One invocation checks, packs, smokes, publishes, tags the packed commit, creates the GitHub release, runs `./eng/build.sh VerifyRelease --published-version <x.y.z>`, and refreshes `published-versions.yaml` in qyl.at. Runtime packages must index before the tool pointer publishes (up to 20 min); verification waits for all nine (up to 45 min), then installs the published tool with an isolated packages folder and `--no-http-cache` and runs QylToolSmoke plus the standalone Qyl.Orchestration package consumer. GitHub upload failures retry at most three times, only after publication succeeds. Do not create tags/releases or refresh the snapshot by hand.
 3. Require exit 0 **and VERIFIED** before notifying consumers. Every attempt preserves its complete log and JSON status under `artifacts/release-<version>-<attempt>/`; `artifacts/release-<version>.status.json` names the latest attempt and records its phase, commit, PID and exit code. `./release.sh --status <version>` returns that result even if an outer shell masked the original exit: 4 means still running, 1 means interrupted without a final result. Exit 3 with PENDING means indexing is unresolved. A dry run returns DRY_RUN, never VERIFIED; `--dry-run` is optional and still probes the NuGet key without publishing.
 4. Resume published verification with `./release.sh --verify <version>`; it never republishes, checks that the tag, GitHub assets and registry package set exist, then runs verification and snapshot refresh in the foreground. If only runtime packages were pushed, rerun `./release.sh <version>` to continue its duplicate-safe push. Other failures stop immediately: inspect the attempt's log and fix the reported cause; a broken immutable package needs a patch release. There is no detached verifier or separate `--wait` command.
 5. VERIFIED: notify the consumers.
@@ -33,7 +33,7 @@ One agent per qyl-dev repo (qyl, qyl.mcp, qyl-api-schema, Qyl.Telemetry.AutoInst
 One message per consumer through the session's agent-messaging tool (Claude Code: `ListAgents`, then `SendMessage`):
 
 ```
-RELEASE qyl + qyl.<rid> + Qyl.Api.Sdk <version> indexed <UTC time>
+RELEASE qyl + qyl.<rid> + Qyl.Api.Sdk + Qyl.Orchestration <version> indexed <UTC time>
 repo: qyl.at
 re-pin: src/data/site.ts
 then: regenerate the lockfile, run the gate, commit, push main

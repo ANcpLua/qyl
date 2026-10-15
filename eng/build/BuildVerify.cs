@@ -777,6 +777,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
             [
                 ("| `qyl` (dotnet tool) |", "QylVersion"),
                 ("| `Qyl.Api.Sdk` (MSBuild SDK) |", "QylVersion"),
+                ("| `Qyl.Orchestration` (process host) |", "QylVersion"),
                 ("| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` |", "QylTelemetryVersion"),
                 ("| `Qyl.Telemetry.SemanticConventions*` |", "QylSemanticConventionsVersion"),
                 ("| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` |", "QylApiContractsVersion")
