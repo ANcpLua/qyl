@@ -233,7 +233,7 @@ public sealed class MetricApiTests
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
         Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-        Assert.Equal(Qyl.Api.Contracts.Common.Errors.ProblemDetailsMediaType.Value, context.Response.ContentType);
+        Assert.Equal(Api.Contracts.Common.Errors.ProblemDetailsMediaType.Value, context.Response.ContentType);
         var error = Assert.Single(JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.ValidationError)!.Errors);
         Assert.Equal("aggregation", error.Field);
