@@ -227,7 +227,8 @@ static async Task StopLiveAsync(Process process, string workingDirectory)
     }
     catch (OperationCanceledException)
     {
-        if (!process.HasExited) process.Kill();
+        // The whole tree: a bare Kill() leaves qyl's collector children running on their ports.
+        if (!process.HasExited) process.Kill(entireProcessTree: true);
         using var forced = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         await process.WaitForExitAsync(forced.Token);
     }
