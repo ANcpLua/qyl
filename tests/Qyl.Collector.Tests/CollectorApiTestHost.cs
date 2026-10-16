@@ -171,9 +171,10 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        await using var store = Store;
+        await using var app = _app;
         Client.Dispose();
-        await _app.StopAsync();
-        await _app.DisposeAsync();
-        await Store.DisposeAsync();
+        // Cleanup must still stop the host and release the database when the test was cancelled.
+        await _app.StopAsync(CancellationToken.None);
     }
 }

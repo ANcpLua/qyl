@@ -121,8 +121,8 @@ The `qyl`, `Qyl.Api.Sdk`, `Qyl.Orchestration` and three dependency rows, and the
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
 | `qyl` (dotnet tool) | 14.0.0 | this one |
-| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 25.1.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
-| `Qyl.Telemetry.SemanticConventions*` | 10.1.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
+| `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 26.0.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
+| `Qyl.Telemetry.SemanticConventions*` | 12.0.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 14.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | [npm](https://www.npmjs.com/package/qyl-mcp-server) | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
 | `Qyl.Api.Sdk` (MSBuild SDK) | 14.0.0 | this one |

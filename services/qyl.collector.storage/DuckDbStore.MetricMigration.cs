@@ -22,14 +22,14 @@ internal sealed partial class DuckDbStore
             using (var read = connection.CreateCommand())
             {
                 read.Transaction = transaction;
-                const string columns = "p.project_id, p.series_id, p.time_unix_nano, p.start_time_unix_nano, " +
+                const string Columns = "p.project_id, p.series_id, p.time_unix_nano, p.start_time_unix_nano, " +
                     "p.value, p.histogram_count, p.histogram_sum, p.histogram_min, p.histogram_max, " +
                     "p.bucket_bounds_json, p.bucket_counts_json";
                 var traces = hasExemplars
                     ? "(SELECT to_json(list(e.trace_id ORDER BY e.trace_id)) FROM metric_exemplars e " +
                       "WHERE e.project_id = p.project_id AND e.series_id = p.series_id AND e.time_unix_nano = p.time_unix_nano)"
                     : "NULL";
-                read.CommandText = "SELECT " + columns + ", " + traces + " FROM metric_points p " +
+                read.CommandText = "SELECT " + Columns + ", " + traces + " FROM metric_points p " +
                     (after is null ? "" : "WHERE (p.project_id, p.series_id, p.time_unix_nano) > ($1, $2, $3) ") +
                     "ORDER BY p.project_id, p.series_id, p.time_unix_nano LIMIT 1000";
                 if (after is not null)

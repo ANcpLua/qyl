@@ -91,8 +91,8 @@ public sealed class ProjectIsolationTests(TestContext testContext)
         var point = new MetricPointIngestionRecord
         {
             MetricName = "requests", Kind = MetricKind.Gauge, Temporality = MetricTemporality.Unspecified,
-            IsMonotonic = false, ServiceName = "service", TimeUnixNano = 1, Data = new Qyl.Api.Contracts.OTel.Metrics.MetricNumberPointData
-            { Value = new Qyl.Api.Contracts.Common.AttributeDoubleValue { Value = 1 } },
+            IsMonotonic = false, ServiceName = "service", TimeUnixNano = 1, Data = new Api.Contracts.OTel.Metrics.MetricNumberPointData
+            { Value = new Api.Contracts.Common.AttributeDoubleValue { Value = 1 } },
             Attributes = empty, ResourceAttributes = empty
         };
 

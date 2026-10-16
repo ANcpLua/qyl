@@ -11,7 +11,7 @@ namespace Qyl.Collector.Tests;
 [TestClass]
 public sealed class LoggingPipelineTests(TestContext testContext)
 {
-    private const string Category = "qyl.tests.logging-pipeline";
+    private const string LogCategory = "qyl.tests.logging-pipeline";
     private const string Template = "Telemetry probe {probe_id}";
 
     [TestMethod]
@@ -29,13 +29,12 @@ public sealed class LoggingPipelineTests(TestContext testContext)
         var previous = accessor.HttpContext;
         try
         {
-            var context = new DefaultHttpContext();
-            context.Request.Method = "POST";
+            var context = new DefaultHttpContext { Request = { Method = "POST" } };
             context.SetEndpoint(new RouteEndpoint(static _ => Task.CompletedTask,
                 RoutePatternFactory.Parse("/api/v1/metrics/{metric_name}"), 0,
                 EndpointMetadataCollection.Empty, "logging probe"));
             accessor.HttpContext = context;
-            var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(Category);
+            var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory);
             if (modern)
             {
                 var state = new LoggerMessageState();
@@ -51,7 +50,7 @@ public sealed class LoggingPipelineTests(TestContext testContext)
                 logger.Log(LogLevel.Information, new EventId(70), state, null,
                     static (_, _) => "Telemetry probe visible");
             }
-            var record = Assert.ContainsSingle(capture.Records.Where(static record => record.Category == Category));
+            var record = Assert.ContainsSingle(capture.Records.Where(static record => record.Category == LogCategory));
             Assert.IsNotNull(record.Tags);
             var tags = record.Tags;
             Assert.AreEqual("{OriginalFormat}", tags[^1].Key);

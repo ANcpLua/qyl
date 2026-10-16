@@ -42,7 +42,7 @@ test.describe('historical logs', () => {
         test.skip(Boolean(process.env.QYL_BASE_URL), 'Log fixtures belong to the local ephemeral collector.');
     });
 
-    test('uses observation time when an event timestamp is absent and keeps the raw timestamp', async ({page, request}) => {
+    test('uses observation time while the missing event timestamp stays unknown', async ({page, request}) => {
         const marker = `observation-${randomBytes(6).toString('hex')}`;
         const observed = Date.now();
         const response = await request.post('/v1/logs', {data: {resourceLogs: [{
@@ -59,7 +59,9 @@ test.describe('historical logs', () => {
             new Date(observed).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3}));
         await expect(row.getByTitle('NOTICE/remote')).toBeVisible();
         const stored = await request.get(`/api/v1/logs?query=${marker}`);
-        expect((await stored.json()).items[0].time_unix_nano).toBe('0');
+        const record = (await stored.json()).items[0];
+        expect(record).not.toHaveProperty('time_unix_nano');
+        expect(record.observed_time_unix_nano).toBe(String(BigInt(observed) * 1_000_000n));
     });
 
     test('error filtering queries stored records before any older pages are loaded', async ({page, request}) => {

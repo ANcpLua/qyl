@@ -11,32 +11,30 @@ namespace Qyl.Collector.Tests;
 public sealed class ContractQueryParserTests(TestContext testContext)
 {
     public static IEnumerable<object[]> MalformedTypedQueries =>
-        new object[][]
-        {
-            new object[] { QueryEndpoint.Sessions, "is_active", "not-a-boolean", "query.invalid_boolean" },
-            new object[] { QueryEndpoint.Sessions, "start_time", "yesterday", "query.invalid_date_time" },
-            new object[] { QueryEndpoint.Sessions, "end_time", "2026-07-13", "query.invalid_date_time" },
-            new object[] { QueryEndpoint.Sessions, "limit", "many", "query.invalid_integer" },
-            new object[] { QueryEndpoint.SessionStats, "start_time", "now", "query.invalid_date_time" },
-            new object[] { QueryEndpoint.SessionStats, "end_time", "later", "query.invalid_date_time" },
-            new object[] { QueryEndpoint.Traces, "limit", "1.5", "query.invalid_integer" },
-            new object[] { QueryEndpoint.Traces, "cursor", "not-a-qyl-cursor", "cursor.invalid" },
-            new object[] { QueryEndpoint.Logs, "severity_min", "info", "query.invalid_integer" },
-            new object[] { QueryEndpoint.Logs, "start_time", "13/07/2026", "query.invalid_date_time" },
-            new object[] { QueryEndpoint.Logs, "end_time", "2026-07-13T10:00:00", "query.invalid_date_time" },
-            new object[] { QueryEndpoint.Logs, "limit", "0x10", "query.invalid_integer" },
-            new object[] { QueryEndpoint.LogStream, "min_severity", "warning", "query.invalid_integer" }
-        };
+        [
+            [ QueryEndpoint.Sessions, "is_active", "not-a-boolean", "query.invalid_boolean" ],
+            [ QueryEndpoint.Sessions, "start_time", "yesterday", "query.invalid_date_time" ],
+            [ QueryEndpoint.Sessions, "end_time", "2026-07-13", "query.invalid_date_time" ],
+            [ QueryEndpoint.Sessions, "limit", "many", "query.invalid_integer" ],
+            [ QueryEndpoint.SessionStats, "start_time", "now", "query.invalid_date_time" ],
+            [ QueryEndpoint.SessionStats, "end_time", "later", "query.invalid_date_time" ],
+            [ QueryEndpoint.Traces, "limit", "1.5", "query.invalid_integer" ],
+            [ QueryEndpoint.Traces, "cursor", "not-a-qyl-cursor", "cursor.invalid" ],
+            [ QueryEndpoint.Logs, "severity_min", "info", "query.invalid_integer" ],
+            [ QueryEndpoint.Logs, "start_time", "13/07/2026", "query.invalid_date_time" ],
+            [ QueryEndpoint.Logs, "end_time", "2026-07-13T10:00:00", "query.invalid_date_time" ],
+            [ QueryEndpoint.Logs, "limit", "0x10", "query.invalid_integer" ],
+            [ QueryEndpoint.LogStream, "min_severity", "warning", "query.invalid_integer" ]
+        ];
 
     public static IEnumerable<object[]> OutOfRangeQueries =>
-        new object[][]
-        {
-            new object[] { QueryEndpoint.Sessions, "limit", "0", "limit.out_of_range" },
-            new object[] { QueryEndpoint.Traces, "limit", "1001", "limit.out_of_range" },
-            new object[] { QueryEndpoint.Logs, "severity_min", "25", "severity.out_of_range" },
-            new object[] { QueryEndpoint.Logs, "limit", "10001", "limit.out_of_range" },
-            new object[] { QueryEndpoint.LogStream, "min_severity", "0", "severity.out_of_range" }
-        };
+        [
+            [ QueryEndpoint.Sessions, "limit", "0", "limit.out_of_range" ],
+            [ QueryEndpoint.Traces, "limit", "1001", "limit.out_of_range" ],
+            [ QueryEndpoint.Logs, "severity_min", "25", "severity.out_of_range" ],
+            [ QueryEndpoint.Logs, "limit", "10001", "limit.out_of_range" ],
+            [ QueryEndpoint.LogStream, "min_severity", "0", "severity.out_of_range" ]
+        ];
 
     [TestMethod]
     [DynamicData(nameof(MalformedTypedQueries))]

@@ -12,7 +12,6 @@ using ExportMetricsServiceRequest = OpenTelemetry.Proto.Collector.Metrics.V1.Exp
 using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceRequest = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
-using StorageMetricKind = Qyl.Collector.Ingestion.Primitives.MetricKind;
 
 namespace Qyl.Collector.Hosting;
 

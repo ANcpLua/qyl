@@ -56,7 +56,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
                 Assert.AreEqual(long.MaxValue - i, Assert.IsInstanceOfType<AttributeIntValue>(exemplar.Value).Value);
                 Assert.AreEqual(string.Concat(Enumerable.Repeat("12", 16)), exemplar.TraceId);
                 Assert.AreEqual(Convert.ToHexStringLower(Enumerable.Repeat((byte)(0x34 + i), 8).ToArray()), exemplar.SpanId);
-                Assert.AreEqual((long)i, Assert.IsInstanceOfType<AttributeIntValue>(Assert.IsInstanceOfType<AttributeValue.ObjectValue>(Assert.ContainsSingle(exemplar.FilteredAttributes).Value).Value).Value);
+                Assert.AreEqual(i, Assert.IsInstanceOfType<AttributeIntValue>(Assert.IsInstanceOfType<AttributeValue.ObjectValue>(Assert.ContainsSingle(exemplar.FilteredAttributes).Value).Value).Value);
             }
             var json = JsonSerializer.Serialize(contract, QylSerializerContext.Default.MetricPoint);
             using var parsed = JsonDocument.Parse(json);
@@ -252,10 +252,10 @@ public sealed class CanonicalMetricTests(TestContext testContext)
         var path = Path.Combine(Path.GetTempPath(), $"qyl-v13-upgrade-{Guid.NewGuid():N}.duckdb");
         try
         {
-            using (var connection = new DuckDBConnection($"DataSource={path}"))
+            await using (var connection = new DuckDBConnection($"DataSource={path}"))
             {
                 connection.Open();
-                using var command = connection.CreateCommand();
+                await using var command = connection.CreateCommand();
                 command.CommandText = await File.ReadAllTextAsync(Path.Combine(fixture, "schema.sql"), Ct);
                 command.ExecuteNonQuery();
                 command.CommandText = (await File.ReadAllTextAsync(Path.Combine(fixture, "load.sql"), Ct)).Replace("__FIXTURE_DIRECTORY__", fixture.Replace("'", "''", StringComparison.Ordinal), StringComparison.Ordinal);
@@ -285,10 +285,10 @@ public sealed class CanonicalMetricTests(TestContext testContext)
         try
         {
             await using (var store = new DuckDbStore(path)) await Insert(store, [Number(long.MaxValue)]);
-            using (var connection = new DuckDBConnection($"DataSource={path}"))
+            await using (var connection = new DuckDBConnection($"DataSource={path}"))
             {
                 connection.Open();
-                using var command = connection.CreateCommand();
+                await using var command = connection.CreateCommand();
                 command.CommandText = "DELETE FROM metric_points; DELETE FROM metric_exemplars";
                 command.ExecuteNonQuery();
             }

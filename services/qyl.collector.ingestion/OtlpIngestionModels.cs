@@ -136,8 +136,8 @@ internal sealed record MetricPointIngestionRecord
     public required ulong TimeUnixNano { get; init; }
     public ulong? StartTimeUnixNano { get; init; }
 
-    public required Qyl.Api.Contracts.OTel.Metrics.MetricPointData Data { get; init; }
+    public required Api.Contracts.OTel.Metrics.MetricPointData Data { get; init; }
     public uint Flags { get; init; }
-    public IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricExemplar> Exemplars { get; init; } = [];
+    public IReadOnlyList<Api.Contracts.OTel.Metrics.MetricExemplar> Exemplars { get; init; } = [];
     public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> InstrumentMetadata { get; init; } = [];
 }

@@ -78,7 +78,7 @@
     <PackageVersion Include="Valleysoft.DockerfileModel" Version="$(DockerfileModelVersion)"/>
     <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="$(NetFrameworkReferenceAssembliesVersion)"/>
-    <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)"/>
+    <PackageVersion Include="Microsoft.Build" Version="[$(MicrosoftBuildVersion)]"/>
     <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
   </ItemGroup>
 </Project>

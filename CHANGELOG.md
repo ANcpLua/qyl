@@ -2,6 +2,13 @@
 
 ## 14.0.0 — 2026-10-16
 
+- Pin semantic-convention bindings and analyzers to 12.0.0 and the instrumentation
+  package family to 26.0.0 across the Collector, CLI and API SDK.
+- Update the OpenTelemetry SDK and OTLP exporter to 1.20.0 for concurrent metric
+  collection, async suppression isolation and HTTP/protobuf shutdown log delivery.
+- Freeze Microsoft.Build at 18.9.6 for the .NET 10 build host; 18.10/18.11 target
+  .NET 11 and .NET Framework rather than a compatible modern host framework.
+
 - Upgrade the coordinated Extensions packages to 10.11.0, which includes the
   [bounded log-tag enumeration fix](https://github.com/dotnet/extensions/pull/7819).
   Verify enabled request enrichment, classified redaction and original-format ordering.

@@ -1,5 +1,3 @@
-using MetricContract = Qyl.Api.Contracts.OTel.Metrics;
-using CommonContract = Qyl.Api.Contracts.Common;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -7,6 +5,8 @@ using OpenTelemetry.Proto.Resource.V1;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
+using MetricContract = Qyl.Api.Contracts.OTel.Metrics;
+using CommonContract = Qyl.Api.Contracts.Common;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 
 namespace Qyl.Collector.Tests;

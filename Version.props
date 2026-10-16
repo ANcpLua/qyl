@@ -33,14 +33,14 @@
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Api.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>25.1.0</QylTelemetryVersion>
+    <QylTelemetryVersion>26.0.0</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
-    <QylSemanticConventionsVersion>10.1.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>12.0.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <QylApiContractsVersion>14.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.48</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>3.0.0</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
   <!-- The versions the Qyl.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
@@ -58,7 +58,7 @@
 
   <PropertyGroup Label="Telemetry and wire">
     <!-- renovate: datasource=nuget depName=OpenTelemetry -->
-    <OpenTelemetryVersion>1.19.1</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.20.0</OpenTelemetryVersion>
     <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
          it (2026-07-26). Retention's space reuse rides the experimental
          vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
@@ -96,8 +96,10 @@
     <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.NETFramework.ReferenceAssemblies -->
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
-    <!-- Latest MSBuild line with net10.0 assets. 18.10.1 targets net11.0 and net472,
-         so a net10.0 host otherwise falls back to .NET Framework assets (NU1701). -->
+    <!-- Frozen for the net10.0 build host. Microsoft.Build 18.10.1 and 18.11.0 ship
+         net11.0/net472 assets, with no compatible modern asset for this host.
+         https://www.nuget.org/packages/Microsoft.Build/18.11.0#supportedframeworks-body-tab
+         Move this pin only with a verified build-host framework migration. -->
     <!-- renovate: datasource=nuget depName=Microsoft.Build -->
     <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
     <!-- Match the NuGet libraries used by the pinned .NET SDK. -->

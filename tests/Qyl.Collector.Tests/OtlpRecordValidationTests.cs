@@ -145,7 +145,7 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct); timeout.CancelAfter(TimeSpan.FromSeconds(5));
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(host.Store, "alpha", null, 17, null, null, timeout.Token).GetAsyncEnumerator(timeout.Token);
         Assert.IsTrue(await stream.MoveNextAsync());
-        Assert.IsNull(Assert.IsInstanceOfType<Qyl.Api.Contracts.Streaming.LogStreamEvent>(stream.Current.Log).Timestamp);
+        Assert.IsNull(Assert.IsInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(stream.Current.Log).Timestamp);
     }
 
     [TestMethod]
@@ -173,13 +173,15 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
         {
             await using (var store = new DuckDbStore(path))
                 await store.InsertLogsAsync([new LogStorageRow { ProjectId = "default", LogId = "kept", SeverityNumber = 17 }], Ct);
-            using (var connection = new DuckDBConnection($"DataSource={path}"))
+            await using (var connection = new DuckDBConnection($"DataSource={path}"))
             {
-                connection.Open(); using var transaction = connection.BeginTransaction();
+                connection.Open();
+                await using var transaction = connection.BeginTransaction();
                 foreach (var index in DuckDbGeneratedSchema.AuthoritativeTables.Single(static table => table.Name == "logs").Indexes)
                 {
                     Assert.IsFalse(index.Unique);
-                    using var drop = connection.CreateCommand(); drop.Transaction = transaction;
+                    await using var drop = connection.CreateCommand();
+                    drop.Transaction = transaction;
                     drop.CommandText = $"DROP INDEX \"{index.Name}\"";
                     drop.ExecuteNonQuery();
                 }
@@ -187,8 +189,8 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
             }
             await using (var reopened = new DuckDbStore(path))
                 Assert.AreEqual("kept", Assert.ContainsSingle(await reopened.GetLogsAsync("default", ct: Ct)).LogId);
-            using var verified = new DuckDBConnection($"DataSource={path}"); verified.Open();
-            using var query = verified.CreateCommand(); query.CommandText = "SELECT count(*) FROM duckdb_indexes() WHERE schema_name = 'main' AND table_name = 'logs'";
+            await using var verified = new DuckDBConnection($"DataSource={path}"); verified.Open();
+            await using var query = verified.CreateCommand(); query.CommandText = "SELECT count(*) FROM duckdb_indexes() WHERE schema_name = 'main' AND table_name = 'logs'";
             Assert.AreEqual(DuckDbGeneratedSchema.AuthoritativeTables.Single(static table => table.Name == "logs").Indexes.Length,
                 Convert.ToInt32(query.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture));
         }
@@ -221,9 +223,10 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
         var fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "metrics-v13.2.1");
         try
         {
-            using (var connection = new DuckDBConnection($"DataSource={path}"))
+            await using (var connection = new DuckDBConnection($"DataSource={path}"))
             {
-                connection.Open(); using var command = connection.CreateCommand();
+                connection.Open();
+                await using var command = connection.CreateCommand();
                 command.CommandText = await File.ReadAllTextAsync(Path.Combine(fixture, "schema.sql"), Ct); command.ExecuteNonQuery();
                 command.CommandText = (await File.ReadAllTextAsync(Path.Combine(fixture, "load.sql"), Ct)).Replace("__FIXTURE_DIRECTORY__", fixture.Replace("'", "''", StringComparison.Ordinal), StringComparison.Ordinal); command.ExecuteNonQuery();
                 command.CommandText = "INSERT INTO logs (project_id, log_id, time_unix_nano, observed_time_unix_nano, severity_number) VALUES ('default', 'unknown', 0, 0, 17), ('default', 'old', 1, 1, 17)"; command.ExecuteNonQuery();

@@ -1,5 +1,3 @@
-using MetricContract = Qyl.Api.Contracts.OTel.Metrics;
-using CommonContract = Qyl.Api.Contracts.Common;
 using Google.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +11,8 @@ using Qyl.Collector.Ingestion;
 using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Mapping;
 using Qyl.Collector.Storage;
+using MetricContract = Qyl.Api.Contracts.OTel.Metrics;
+using CommonContract = Qyl.Api.Contracts.Common;
 using WireSpan = OpenTelemetry.Proto.Trace.V1.Span;
 
 namespace Qyl.Collector.Tests;
@@ -24,8 +24,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     private const ulong Time = 1_700_000_000_000_000_000;
     private const string ResourceSchema = "https://opentelemetry.io/schemas/1.44.0";
     private const string ScopeSchema = "https://example.test/instrumentation/2";
-    private static readonly ByteString TraceId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x12, 16).ToArray());
-    private static readonly ByteString SpanId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x34, 8).ToArray());
+    private static readonly ByteString s_traceId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x12, 16).ToArray());
+    private static readonly ByteString s_spanId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x34, 8).ToArray());
 
 
     [TestMethod]
@@ -48,13 +48,13 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
                             {
                                 new WireSpan
                                 {
-                                    TraceId = TraceId, SpanId = SpanId, Name = "operation",
+                                    TraceId = s_traceId, SpanId = s_spanId, Name = "operation",
                                     StartTimeUnixNano = Time, EndTimeUnixNano = Time + 1,
                                     TraceState = "tenant=blue", Flags = uint.MaxValue,
                                     DroppedAttributesCount = 3, DroppedEventsCount = 5, DroppedLinksCount = 7,
                                     Events = { new WireSpan.Types.Event { Name = "exception", TimeUnixNano = Time,
                                         DroppedAttributesCount = 11, Attributes = { Attribute("exception.type", "ExpectedException") } } },
-                                    Links = { new WireSpan.Types.Link { TraceId = TraceId, SpanId = SpanId,
+                                    Links = { new WireSpan.Types.Link { TraceId = s_traceId, SpanId = s_spanId,
                                         TraceState = "linked=green", Flags = uint.MaxValue, DroppedAttributesCount = 13 } }
                                 }
                             }
@@ -109,8 +109,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
             ObservedTimeUnixNano = Time + 99,
             SeverityNumber = SeverityNumber.Warn2,
             SeverityText = "NOTICE/remote",
-            TraceId = TraceId,
-            SpanId = SpanId,
+            TraceId = s_traceId,
+            SpanId = s_spanId,
             Flags = uint.MaxValue,
             DroppedAttributesCount = 23,
             Body = new AnyValue { BytesValue = ByteString.CopyFrom([0, 128, 255]) },
@@ -132,8 +132,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         Assert.AreEqual(ScopeSchema, log.InstrumentationScope.SchemaUrl);
         Assert.AreEqual(19U, log.InstrumentationScope.DroppedAttributesCount);
         Assert.AreEqual("instrumentation.build", Assert.ContainsSingle(log.InstrumentationScope.ScopeAttributes!).Key);
-        var body = Assert.IsExactInstanceOfType<Qyl.Api.Contracts.Common.AttributeValue.ObjectValue>(log.Body);
-        var bytes = Assert.IsExactInstanceOfType<Qyl.Api.Contracts.Common.AttributeBytesValue>(body.Value);
+        var body = Assert.IsExactInstanceOfType<Api.Contracts.Common.AttributeValue.ObjectValue>(log.Body);
+        var bytes = Assert.IsExactInstanceOfType<Api.Contracts.Common.AttributeBytesValue>(body.Value);
         Assert.AreSequenceEqual(new byte[] { 0, 128, 255 }, bytes.Base64);
     }
 
@@ -143,7 +143,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         var instant = DateTimeOffset.FromUnixTimeMilliseconds(1_900_000_000_123).AddTicks(4567);
         var clock = new FixedTimeProvider(instant);
         var log = Assert.ContainsSingle(OtlpConverter.ConvertLogs(LogRequest(new LogRecord { TimeUnixNano = Time }), clock).Logs);
-        Assert.AreEqual(Qyl.Collector.Ingestion.Primitives.TimeConversions.ToUnixNanoUnsigned(instant), log.ObservedTimeUnixNano);
+        Assert.AreEqual(TimeConversions.ToUnixNanoUnsigned(instant), log.ObservedTimeUnixNano);
         Assert.AreNotEqual(Time, log.ObservedTimeUnixNano);
         Assert.AreEqual("", LogMapper.ToContract(Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(new([log])))).SeverityText);
     }
@@ -154,7 +154,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         var clock = new FixedTimeProvider(DateTimeOffset.UnixEpoch);
         var services = new ServiceCollection();
         services.AddSingleton<TimeProvider>(clock);
-        Qyl.Collector.Hosting.CollectorCoreExtensions.AddQylCollectorCore(services,
+        Hosting.CollectorCoreExtensions.AddQylCollectorCore(services,
             new ConfigurationBuilder().Build());
         using var provider = services.BuildServiceProvider();
         Assert.AreSame(clock, provider.GetRequiredService<TimeProvider>());
@@ -173,11 +173,11 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         }], testContext.CancellationToken);
         var stored = Assert.ContainsSingle(await store.GetLogsAsync("metadata", ct: testContext.CancellationToken));
         Assert.IsNull(stored.ObservedTimeUnixNano);
-        Assert.AreEqual(eventTime == 0 ? (ulong?)null : eventTime, stored.TimeUnixNano);
-        Assert.AreEqual(eventTime == 0 ? (ulong?)null : eventTime, stored.EffectiveTimeUnixNano());
+        Assert.AreEqual(eventTime == 0 ? null : eventTime, stored.TimeUnixNano);
+        Assert.AreEqual(eventTime == 0 ? null : eventTime, stored.EffectiveTimeUnixNano());
         var contract = LogMapper.ToContract(stored);
         Assert.IsNull(contract.ObservedTimeUnixNano);
-        Assert.AreEqual(eventTime == 0 ? (ulong?)null : eventTime, contract.TimeUnixNano);
+        Assert.AreEqual(eventTime == 0 ? null : eventTime, contract.TimeUnixNano);
     }
 
     [TestMethod]
@@ -374,10 +374,10 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
                     await store.InsertMetricsAsync(next.Series, next.Observations, ct: testContext.CancellationToken);
                 }
             }
-            using (var connection = new DuckDB.NET.Data.DuckDBConnection($"DataSource={path}"))
+            await using (var connection = new DuckDB.NET.Data.DuckDBConnection($"DataSource={path}"))
             {
                 connection.Open();
-                using var command = connection.CreateCommand();
+                await using var command = connection.CreateCommand();
                 command.CommandText = "UPDATE metric_series SET instrument_id = NULL WHERE series_id = 'historical'";
                 command.ExecuteNonQuery();
             }
@@ -412,10 +412,10 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
                 await store.InsertMetricsAsync([current with { SeriesId = "historical" }],
                     [Assert.ContainsSingle(other.Observations) with { SeriesId = "historical" }], testContext.CancellationToken);
             }
-            using (var connection = new DuckDB.NET.Data.DuckDBConnection($"DataSource={path}"))
+            await using (var connection = new DuckDB.NET.Data.DuckDBConnection($"DataSource={path}"))
             {
                 connection.Open();
-                using var command = connection.CreateCommand();
+                await using var command = connection.CreateCommand();
                 command.CommandText = "UPDATE metric_series SET instrument_id = NULL WHERE series_id = 'historical'";
                 command.ExecuteNonQuery();
             }
@@ -426,7 +426,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
             }, testContext.CancellationToken);
             Assert.HasCount(2, observations);
             Assert.IsTrue(observations.All(static item => item.HasConflict));
-            Assert.AreSequenceEqual(new double?[] { 1, 999 }, observations.Select(static item => MetricProjection.Project(item.Observation, false).Value).Order());
+            Assert.AreSequenceEqual((double?[])[1, 999], observations.Select(static item => MetricProjection.Project(item.Observation, false).Value).Order());
             await Assert.ThrowsExactlyAsync<MetricQueryConflictException>(() => reopened.QueryMetricAsync(new MetricRangeQuery
             {
                 ProjectId = "metadata", MetricName = "requests", SeriesId = current.SeriesId,
@@ -465,7 +465,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Same_metric_name_in_two_scopes_produces_two_paged_catalog_entries()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        var first = Point() with { TimeUnixNano = Qyl.Collector.Ingestion.Primitives.TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow()) };
+        var first = Point() with { TimeUnixNano = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow()) };
         var second = first with { ScopeName = "library-b" };
         var writes = MetricStorageMapper.ToStorageRows(new([first, second], 0, null), "alpha");
         await host.Store.InsertMetricsAsync(writes.Series, writes.Observations, testContext.CancellationToken);
@@ -504,7 +504,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         var rows = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(MetricRequest(metric)), "metadata");
         Assert.HasCount(1, rows.Series);
         Assert.HasCount(2, rows.Observations);
-        Assert.AreSequenceEqual(new double?[] { 42, 43 }, rows.Observations.OrderBy(static point => point.TimeUnixNano)
+        Assert.AreSequenceEqual((double?[])[42, 43], rows.Observations.OrderBy(static point => point.TimeUnixNano)
             .Select(static point => MetricProjection.Project(point, false).Value));
     }
 
@@ -614,8 +614,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         Assert.HasCount(2, await store.ListMetricSeriesAsync("metadata", first.MetricName, [], ct: testContext.CancellationToken));
         var descriptor = MetricMapper.ToContract(Assert.ContainsSingle(await store.ListMetricsAsync("metadata", ct: testContext.CancellationToken)));
         Assert.HasCount(2, descriptor.Conflicts!);
-        Assert.IsTrue(descriptor.Conflicts!.Any(static conflict => conflict.Kind == Qyl.Api.Contracts.OTel.Metrics.MetricKind.Gauge && !conflict.Monotonic));
-        Assert.IsTrue(descriptor.Conflicts!.Any(static conflict => conflict.Kind == Qyl.Api.Contracts.OTel.Metrics.MetricKind.Sum && conflict.Monotonic && conflict.Unit == "{item}"));
+        Assert.IsTrue(descriptor.Conflicts!.Any(static conflict => conflict is { Kind: Api.Contracts.OTel.Metrics.MetricKind.Gauge, Monotonic: false }));
+        Assert.IsTrue(descriptor.Conflicts!.Any(static conflict => conflict is { Kind: Api.Contracts.OTel.Metrics.MetricKind.Sum, Monotonic: true, Unit: "{item}" }));
         var query = new MetricRangeQuery
         {
             ProjectId = "metadata",

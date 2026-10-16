@@ -142,10 +142,10 @@ public sealed partial class AnalysisApiTests
         var second = first with { TimeUnixNano = time + 1_000_000_000, HistogramCount = 15, HistogramSum = 160, BucketCountsJson = "[15,0]" };
         await host.Store.InsertMetricsAsync([series],
             [MetricFixtures.Observation(series, first), MetricFixtures.Observation(series, second,
-                [new Qyl.Api.Contracts.OTel.Metrics.MetricExemplar
+                [new Api.Contracts.OTel.Metrics.MetricExemplar
                 {
                     TimeUnixNano = second.TimeUnixNano, TraceId = TraceId(1), FilteredAttributes = [],
-                    Value = new Qyl.Api.Contracts.Common.AttributeDoubleValue { Value = 12 }
+                    Value = new Api.Contracts.Common.AttributeDoubleValue { Value = 12 }
                 }])], testContext.CancellationToken);
         var result = await Read(host, "query_metric", """{"metric_name":"latency","aggregation":"count","step_ms":3600000}""");
         Assert.AreEqual(15, result.GetProperty("series")[0].GetProperty("buckets")[0].GetProperty("value").GetInt32());

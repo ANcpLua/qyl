@@ -125,10 +125,10 @@ public sealed class SemanticPolicyJsonRpcTests
         Assert.AreEqual(0L, logBatch.RejectedLogRecords);
         var log = Assert.ContainsSingle(logBatch.Logs);
         Assert.IsEmpty(log.ScopeAttributes);
-        var body = Assert.IsInstanceOfType<Qyl.Api.Contracts.Common.AttributeKeyValueListValue>(
-            Assert.IsInstanceOfType<Qyl.Api.Contracts.Common.AttributeValue.ObjectValue>(log.Body.ToContract()).Value);
+        var body = Assert.IsInstanceOfType<Api.Contracts.Common.AttributeKeyValueListValue>(
+            Assert.IsInstanceOfType<Api.Contracts.Common.AttributeValue.ObjectValue>(log.Body.ToContract()).Value);
         Assert.HasCount(1, body.Values);
-        Assert.AreEqual("original", Assert.IsInstanceOfType<Qyl.Api.Contracts.Common.AttributeValue.StringValue>(body.Values["retained"]).Value);
+        Assert.AreEqual("original", Assert.IsInstanceOfType<Api.Contracts.Common.AttributeValue.StringValue>(body.Values["retained"]).Value);
 
         var metrics = new OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest
         {
