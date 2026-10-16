@@ -1,0 +1,1 @@
+project_id,log_id,trace_id,span_id,event_name,session_id,time_unix_nano,observed_time_unix_nano,severity_number,severity_text,body,service_name,attributes_json,resource_json,resource_entity_refs_json,ingest_sequence

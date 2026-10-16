@@ -22,7 +22,7 @@ internal static partial class CollectorEndpointExtensions
     private const int SavedQueryMaxMatcherKeyLength = 256;
     private const int SavedQueryMaxMatcherValueLength = 1024;
 
-    internal static async Task<IResult> CreateSavedQueryAsync(
+    private static async Task<IResult> CreateSavedQueryAsync(
         HttpContext httpContext,
         IQylStore store,
         TimeProvider timeProvider,
@@ -84,7 +84,7 @@ internal static partial class CollectorEndpointExtensions
         };
     }
 
-    internal static async Task<IResult> ListSavedQueriesAsync(
+    private static async Task<IResult> ListSavedQueriesAsync(
         HttpContext httpContext,
         IQylStore store,
         CancellationToken ct)
@@ -119,7 +119,7 @@ internal static partial class CollectorEndpointExtensions
         }, QylSerializerContext.Default.CursorPageSavedQuery);
     }
 
-    internal static async Task<IResult> GetSavedQueryAsync(
+    private static async Task<IResult> GetSavedQueryAsync(
         HttpContext httpContext,
         [FromRoute(Name = "saved_query_id")] string savedQueryId,
         IQylStore store,
@@ -130,7 +130,7 @@ internal static partial class CollectorEndpointExtensions
             : ResourceHttp.WithEtag(httpContext, row.Etag, SavedQueryMapper.ToContract(row),
                 QylSerializerContext.Default.SavedQuery);
 
-    internal static async Task<IResult> UpdateSavedQueryAsync(
+    private static async Task<IResult> UpdateSavedQueryAsync(
         HttpContext httpContext,
         [FromRoute(Name = "saved_query_id")] string savedQueryId,
         IQylStore store,
@@ -182,7 +182,7 @@ internal static partial class CollectorEndpointExtensions
         };
     }
 
-    internal static async Task<IResult> DeleteSavedQueryAsync(
+    private static async Task<IResult> DeleteSavedQueryAsync(
         HttpContext httpContext,
         [FromRoute(Name = "saved_query_id")] string savedQueryId,
         IQylStore store,
@@ -207,7 +207,7 @@ internal static partial class CollectorEndpointExtensions
     /// run's <c>next_cursor</c> carries the saved query's id and the window of its first page,
     /// so every later page reads the same window and no other saved query accepts it.
     /// </summary>
-    internal static async Task<IResult> RunSavedQueryAsync(
+    private static async Task<IResult> RunSavedQueryAsync(
         HttpContext httpContext,
         [FromRoute(Name = "saved_query_id")] string savedQueryId,
         IQylStore store,

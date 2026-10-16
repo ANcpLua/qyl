@@ -90,6 +90,8 @@ internal static class PageCursorCodec
         return true;
     }
 
+    internal static string Hex(ulong? value) => value.HasValue ? Hex(value.Value) : "";
+
     internal static string Hex(ulong value) => value.ToString("x16", CultureInfo.InvariantCulture);
 
     internal static bool TryParseHex(string value, out ulong parsed)
@@ -111,6 +113,7 @@ internal static class PageCursorCodec
         PageCursorKind.Logs => "logs",
         PageCursorKind.Metrics => "metrics",
         PageCursorKind.MetricSeries => "metric-series",
+        PageCursorKind.MetricPoints => "metric-points",
         PageCursorKind.SavedQueries => "saved-queries",
         PageCursorKind.Annotations => "annotations",
         PageCursorKind.SavedTraceRun => "saved-query-traces",
@@ -128,6 +131,7 @@ internal enum PageCursorKind
     Logs,
     Metrics,
     MetricSeries,
+    MetricPoints,
     SavedQueries,
     Annotations,
     SavedTraceRun,

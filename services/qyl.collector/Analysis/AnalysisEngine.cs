@@ -21,12 +21,10 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             return AnalysisRecord.From(s);
         }).OrderBy(static s => s.Start).ThenBy(static s => s.Id, StringComparer.Ordinal)
     ];
-    private Dictionary<(string? Trace, string Id), AnalysisRecord>? _spanIndex;
-    private Dictionary<(string? Trace, string Id), AnalysisRecord> SpanIndex => _spanIndex ??= _spans.ToDictionary(static s => (s.TraceId, s.Id));
+    private Dictionary<(string? Trace, string Id), AnalysisRecord> SpanIndex => field ??= _spans.ToDictionary(static s => (s.TraceId, s.Id));
     private readonly Dictionary<(string? Trace, string Id), int> _depths = [];
     private readonly Dictionary<string, AnalysisStateRow> _state = snapshot.State.ToDictionary(static s => s.StateKey, StringComparer.Ordinal);
-    private ILookup<string, MetricPointRow>? _pointsBySeries;
-    private ILookup<string, MetricPointRow> PointsBySeries => _pointsBySeries ??= snapshot.Points.ToLookup(static p => p.SeriesId, StringComparer.Ordinal);
+    private ILookup<string, MetricPointRow> PointsBySeries => field ??= snapshot.Points.ToLookup(static p => p.SeriesId, StringComparer.Ordinal);
     private AnalysisWindow _window;
     private string _operation = "";
 

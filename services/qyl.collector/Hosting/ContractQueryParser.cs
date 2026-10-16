@@ -56,6 +56,8 @@ internal readonly record struct ParsedSavedQueriesParameters(
     int? Limit,
     string? Cursor);
 
+internal readonly record struct ParsedMetricPointParameters(DateTimeOffset? Start, DateTimeOffset? End, int? Limit, string? Cursor);
+
 internal readonly record struct ParsedMetricQueryParameters(
     DateTimeOffset? StartTime,
     DateTimeOffset? EndTime,
@@ -63,7 +65,8 @@ internal readonly record struct ParsedMetricQueryParameters(
     MetricAggregation Aggregation,
     IReadOnlyList<string> GroupBy,
     IReadOnlyList<MetricAttributeMatcher> Matchers,
-    int? SeriesLimit);
+    int? SeriesLimit,
+    string? SeriesId);
 
 internal static class ContractQueryParser
 {
@@ -94,6 +97,18 @@ internal static class ContractQueryParser
         return null;
     }
 
+    internal static IResult? ParseMetricPoints(HttpRequest request, out ParsedMetricPointParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadDateTime("start_time", out var start) is { } startError) return startError;
+        if (reader.ReadDateTime("end_time", out var end) is { } endError) return endError;
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
+        parsed = new(start, end, limit, cursor);
+        return null;
+    }
+
     internal static IResult? ParseMetricQuery(HttpRequest request, out ParsedMetricQueryParameters parsed)
     {
         parsed = default;
@@ -104,6 +119,7 @@ internal static class ContractQueryParser
         if (reader.ReadStringList("group_by", out var groupBy) is { } groupError) return groupError;
         if (ReadMatchers(reader, out var matchers) is { } matcherError) return matcherError;
         if (reader.ReadInteger("series_limit", out var seriesLimit) is { } seriesError) return seriesError;
+        if (reader.ReadString("series_id", out var seriesId) is { } seriesIdError) return seriesIdError;
 
         var aggregation = MetricAggregation.Avg;
         if (reader.ReadString("aggregation", out var rawAggregation) is { } aggregationError)
@@ -124,7 +140,8 @@ internal static class ContractQueryParser
             aggregation,
             groupBy,
             matchers,
-            seriesLimit);
+            seriesLimit,
+            seriesId);
         return null;
     }
 

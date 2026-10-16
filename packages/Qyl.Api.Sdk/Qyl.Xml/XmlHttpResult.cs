@@ -29,7 +29,7 @@ public sealed class XmlHttpResult<TValue> : IResult, IEndpointMetadataProvider, 
     /// <summary>The document being written.</summary>
     public TValue Value { get; }
 
-    object? IValueHttpResult.Value => Value;
+    object IValueHttpResult.Value => Value;
 
     /// <summary>Always <see cref="StatusCodes.Status200OK"/>.</summary>
     public int StatusCode => StatusCodes.Status200OK;
@@ -39,7 +39,7 @@ public sealed class XmlHttpResult<TValue> : IResult, IEndpointMetadataProvider, 
     /// <summary>Always <see cref="MediaType"/>.</summary>
     public string ContentType => MediaType;
 
-    string? IContentTypeHttpResult.ContentType => ContentType;
+    string IContentTypeHttpResult.ContentType => ContentType;
 
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)

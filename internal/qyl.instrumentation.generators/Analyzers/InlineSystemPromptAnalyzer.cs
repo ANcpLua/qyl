@@ -7,7 +7,7 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
 {
-    public const string DiagnosticId = "QYL0136";
+    private const string DiagnosticId = "QYL0136";
 
     private const int LengthThreshold = 40;
     private const string OptionsTypeName = "Microsoft.Agents.AI.ChatClientAgentOptions";

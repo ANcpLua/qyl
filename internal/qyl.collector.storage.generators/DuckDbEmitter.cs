@@ -229,6 +229,7 @@ internal static class DuckDbEmitter
             "string" or "System.String" => "VARCHAR",
             "byte" or "System.Byte" => "TINYINT",
             "int" or "System.Int32" => "INTEGER",
+            "uint" or "System.UInt32" => "UINTEGER",
             "long" or "System.Int64" => "BIGINT",
             "ulong" or "System.UInt64" => "UBIGINT",
             "double" or "System.Double" => "DOUBLE",
@@ -399,6 +400,7 @@ internal static class DuckDbEmitter
                 "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal})",
                 "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? null : reader.GetDecimal({ordinal})",
                 "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal})",
+                "uint" or "System.UInt32" => $"DuckDbValueReader.ReadUInt32(reader, {ordinal})",
                 "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal})",
                 "byte[]" or "System.Byte[]" => $"reader.IsDBNull({ordinal}) ? null : DuckDbValueReader.ReadBytes(reader, {ordinal})",
                 "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal})",
@@ -413,6 +415,7 @@ internal static class DuckDbEmitter
             "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}, 0d)",
             "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? 0m : reader.GetDecimal({ordinal})",
             "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}, 0)",
+            "uint" or "System.UInt32" => $"DuckDbValueReader.ReadUInt32(reader, {ordinal}, 0U)",
             "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}, 0)",
             "byte[]" or "System.Byte[]" => $"DuckDbValueReader.ReadBytes(reader, {ordinal})",
             "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
@@ -464,6 +467,7 @@ internal static class DuckDbEmitter
             "string" or "System.String" => $"((StringArray)batch.Column({ordinal})).GetString(rowIndex)",
             "byte" or "System.Byte" => $"((Int8Array)batch.Column({ordinal})).GetValue(rowIndex)",
             "int" or "System.Int32" => $"((Int32Array)batch.Column({ordinal})).GetValue(rowIndex)",
+            "uint" or "System.UInt32" => $"((UInt32Array)batch.Column({ordinal})).GetValue(rowIndex)",
             "long" or "System.Int64" => $"((Int64Array)batch.Column({ordinal})).GetValue(rowIndex)",
             "ulong" or "System.UInt64" => $"((UInt64Array)batch.Column({ordinal})).GetValue(rowIndex)",
             "double" or "System.Double" => $"((DoubleArray)batch.Column({ordinal})).GetValue(rowIndex)",
@@ -477,7 +481,7 @@ internal static class DuckDbEmitter
             return access;
 
         return type is "string" or "System.String" or "byte" or "System.Byte" or
-            "int" or "System.Int32" or "long" or "System.Int64" or
+            "int" or "System.Int32" or "uint" or "System.UInt32" or "long" or "System.Int64" or
             "ulong" or "System.UInt64" or "double" or "System.Double" or
             "System.DateTimeOffset" or "DateTimeOffset"
             ? $"{access} ?? throw new InvalidDataException(\"Arrow column '{column.ColumnName}' contains NULL.\")"

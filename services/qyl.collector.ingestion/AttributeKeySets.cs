@@ -2,7 +2,7 @@ namespace Qyl.Collector.Ingestion;
 
 internal static class AttributeKeySets
 {
-    internal const string BaggagePrefix = CollectorSemanticAttributeCatalog.BaggagePrefix;
+    private const string BaggagePrefix = CollectorSemanticAttributeCatalog.BaggagePrefix;
 
     internal static FrozenSet<string> SessionCorrelation => CollectorSemanticAttributeCatalog.SessionCorrelation;
 

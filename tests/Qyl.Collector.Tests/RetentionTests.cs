@@ -2,17 +2,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Qyl.Collector.Health;
-using Qyl.Collector.Primitives;
+using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Retention;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class RetentionTests
+[TestClass]
+public sealed class RetentionTests(TestContext testContext)
 {
     private static readonly DateTimeOffset s_now = new(2026, 7, 21, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact]
+    [TestMethod]
     public async Task One_cycle_removes_expired_telemetry_without_orphans_or_boundary_loss()
     {
         var databasePath = DatabasePath("boundary");
@@ -28,24 +29,24 @@ public sealed class RetentionTests
                 CreateSpan("fresh", "fresh-root", cutoff),
                 CreateSpan("mixed", "mixed-old-root", cutoff - 20),
                 CreateSpan("mixed", "mixed-fresh-child", cutoff + 10, "mixed-old-root")
-            ]), TestContext.Current.CancellationToken);
+            ]), testContext.CancellationToken);
             await store.InsertLogsAsync(
             [
                 CreateLog("expired-log", cutoff - 1, "expired", "expired-child"),
                 CreateLog("fresh-log", cutoff, "fresh", "fresh-root")
-            ], TestContext.Current.CancellationToken);
+            ], testContext.CancellationToken);
 
             using var service = CreateService(store, days: 30);
-            var result = await service.RunCycleAsync(TestContext.Current.CancellationToken);
+            var result = await service.RunCycleAsync(testContext.CancellationToken);
 
-            Assert.Equal(1, result.DeletedLogRows);
-            Assert.Equal(2, result.DeletedSpanRows);
-            Assert.Empty(await store.GetTraceAsync(
-                "expired", "default", TestContext.Current.CancellationToken));
+            Assert.AreEqual(1, result.DeletedLogRows);
+            Assert.AreEqual(2, result.DeletedSpanRows);
+            Assert.IsEmpty(await store.GetTraceAsync(
+                "expired", "default", testContext.CancellationToken));
 
             var spans = await store.GetSpansAsync(
-                "default", 100, TestContext.Current.CancellationToken);
-            Assert.Equal(
+                "default", 100, testContext.CancellationToken);
+            Assert.AreSequenceEqual(
                 ["fresh-root", "mixed-fresh-child", "mixed-old-root"],
                 spans.Select(static span => span.SpanId).Order(StringComparer.Ordinal));
 
@@ -53,14 +54,13 @@ public sealed class RetentionTests
                 .Select(static span => (span.TraceId, span.SpanId))
                 .ToHashSet();
             Assert.DoesNotContain(
-                spans,
-                span => span.ParentSpanId is not null && !spanKeys.Contains((span.TraceId, span.ParentSpanId)));
+                span => span.ParentSpanId is not null && !spanKeys.Contains((span.TraceId, span.ParentSpanId)),                spans);
 
             var logs = await store.GetLogsAsync(
-                "default", limit: 100, ct: TestContext.Current.CancellationToken);
-            var freshLog = Assert.Single(logs);
-            Assert.Equal("fresh-log", freshLog.LogId);
-            Assert.Contains(spans, span => span.TraceId == freshLog.TraceId);
+                "default", limit: 100, ct: testContext.CancellationToken);
+            var freshLog = Assert.ContainsSingle(logs);
+            Assert.AreEqual("fresh-log", freshLog.LogId);
+            Assert.Contains(span => span.TraceId == freshLog.TraceId,spans);
         }
         finally
         {
@@ -68,7 +68,7 @@ public sealed class RetentionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Disabled_retention_is_idle_and_preserves_expired_rows()
     {
         var databasePath = DatabasePath("disabled");
@@ -87,16 +87,16 @@ public sealed class RetentionTests
             await store.EnqueueAsync(new SpanBatch(
             [
                 CreateSpan("expired", "expired-root", 1)
-            ]), TestContext.Current.CancellationToken);
+            ]), testContext.CancellationToken);
             var writesAfterSeed = Volatile.Read(ref writeCalls);
 
             using var service = CreateService(store, days: 0);
-            var result = await service.RunCycleAsync(TestContext.Current.CancellationToken);
+            var result = await service.RunCycleAsync(testContext.CancellationToken);
 
-            Assert.Equal(RetentionCycleOutcome.Empty, result);
-            Assert.Equal(writesAfterSeed, Volatile.Read(ref writeCalls));
-            Assert.Single(await store.GetTraceAsync(
-                "expired", "default", TestContext.Current.CancellationToken));
+            Assert.AreEqual(RetentionCycleOutcome.Empty, result);
+            Assert.AreEqual(writesAfterSeed, Volatile.Read(ref writeCalls));
+            Assert.ContainsSingle(await store.GetTraceAsync(
+                "expired", "default", testContext.CancellationToken));
         }
         finally
         {
@@ -104,7 +104,7 @@ public sealed class RetentionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Repeated_retention_cycles_bound_the_database_file_at_a_steady_state()
     {
         // The guarantee retention provides is a bounded file across repeated delete/ingest
@@ -134,13 +134,13 @@ public sealed class RetentionTests
             }
 
             await using (var seedStore = new DuckDbStore(databasePath, maxConcurrentReads: 1))
-                await seedStore.InsertLogsAsync(rows, TestContext.Current.CancellationToken);
+                await seedStore.InsertLogsAsync(rows, testContext.CancellationToken);
 
             await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
             using var service = CreateService(store, days: 1);
-            var seedCycle = await service.RunCycleAsync(TestContext.Current.CancellationToken);
-            Assert.Equal(RowCount, seedCycle.DeletedLogRows);
-            Assert.Equal(0, FileLength($"{databasePath}.wal"));
+            var seedCycle = await service.RunCycleAsync(testContext.CancellationToken);
+            Assert.AreEqual(RowCount, seedCycle.DeletedLogRows);
+            Assert.AreEqual(0, FileLength($"{databasePath}.wal"));
 
             var sizes = new long[Cycles];
             for (var cycle = 0; cycle < Cycles; cycle++)
@@ -148,10 +148,10 @@ public sealed class RetentionTests
                 rows.Clear();
                 for (var i = 0; i < RowCount; i++)
                     rows.Add(CreateLog($"c{cycle}-{i}", oldTimestamp, body: bodies[i]));
-                await store.InsertLogsAsync(rows, TestContext.Current.CancellationToken);
+                await store.InsertLogsAsync(rows, testContext.CancellationToken);
 
-                var result = await service.RunCycleAsync(TestContext.Current.CancellationToken);
-                Assert.Equal(RowCount, result.DeletedLogRows);
+                var result = await service.RunCycleAsync(testContext.CancellationToken);
+                Assert.AreEqual(RowCount, result.DeletedLogRows);
                 sizes[cycle] = result.FileSizeAfterBytes;
             }
 
@@ -160,11 +160,11 @@ public sealed class RetentionTests
             // blocks every cycle (~50% growth), so the 10% allowance is a crisp discriminator.
             var establishedSteadyState = Math.Max(sizes[0], sizes[1]);
             var finalSize = sizes[Cycles - 1];
-            Assert.True(
+            Assert.IsTrue(
                 finalSize <= establishedSteadyState * 110 / 100,
                 $"Expected repeated cycles to hold the file near {establishedSteadyState} bytes, but it "
                 + $"trended upward to {finalSize} bytes (sizes: {string.Join(", ", sizes)}).");
-            Assert.Equal(0, FileLength($"{databasePath}.wal"));
+            Assert.AreEqual(0, FileLength($"{databasePath}.wal"));
         }
         finally
         {
@@ -172,7 +172,7 @@ public sealed class RetentionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Batched_retention_interleaves_with_active_ingest_without_deadlock()
     {
         var databasePath = DatabasePath("concurrency");
@@ -211,12 +211,12 @@ public sealed class RetentionTests
             var oldLogs = Enumerable.Range(0, 2501)
                 .Select(index => CreateLog($"old-{index}", oldTimestamp))
                 .ToArray();
-            await store.InsertLogsAsync(oldLogs, TestContext.Current.CancellationToken);
+            await store.InsertLogsAsync(oldLogs, testContext.CancellationToken);
 
             Volatile.Write(ref observeWrites, 1);
             using var service = CreateService(store, days: 1);
-            var cycle = service.RunCycleAsync(TestContext.Current.CancellationToken);
-            await firstRetentionEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+            var cycle = service.RunCycleAsync(testContext.CancellationToken);
+            await firstRetentionEntered.Task.WaitAsync(testContext.CancellationToken);
 
             var ingest = store.EnqueueAsync(new SpanBatch(
             [
@@ -224,19 +224,19 @@ public sealed class RetentionTests
                     "active-ingest",
                     "active-span",
                     TimeConversions.ToUnixNanoUnsigned(s_now))
-            ]), TestContext.Current.CancellationToken).AsTask();
+            ]), testContext.CancellationToken).AsTask();
             releaseFirstRetention.TrySetResult();
 
-            await ingest.WaitAsync(TestContext.Current.CancellationToken);
-            await secondRetentionEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
-            Assert.False(cycle.IsCompleted);
+            await ingest.WaitAsync(testContext.CancellationToken);
+            await secondRetentionEntered.Task.WaitAsync(testContext.CancellationToken);
+            Assert.IsFalse(cycle.IsCompleted);
             releaseSecondRetention.TrySetResult();
 
             var result = await cycle;
-            Assert.Equal(2501, result.DeletedLogRows);
-            Assert.True(result.WriteBatches > 1);
-            Assert.Single(await store.GetTraceAsync(
-                "active-ingest", "default", TestContext.Current.CancellationToken));
+            Assert.AreEqual(2501, result.DeletedLogRows);
+            Assert.IsTrue(result.WriteBatches > 1);
+            Assert.ContainsSingle(await store.GetTraceAsync(
+                "active-ingest", "default", testContext.CancellationToken));
         }
         finally
         {
@@ -246,7 +246,7 @@ public sealed class RetentionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Disk_pressure_health_is_degraded_and_carries_file_and_volume_numbers()
     {
         var databasePath = DatabasePath("health");
@@ -260,11 +260,11 @@ public sealed class RetentionTests
 
             var result = await check.CheckHealthAsync(
                 new HealthCheckContext(),
-                TestContext.Current.CancellationToken);
+                testContext.CancellationToken);
 
-            Assert.Equal(HealthStatus.Degraded, result.Status);
-            Assert.True(Assert.IsType<long>(result.Data["database_file_size_bytes"]) > 0);
-            Assert.True(Assert.IsType<long>(result.Data["storage_free_bytes"]) >= 0);
+            Assert.AreEqual(HealthStatus.Degraded, result.Status);
+            Assert.IsTrue(Assert.IsExactInstanceOfType<long>(result.Data["database_file_size_bytes"]) > 0);
+            Assert.IsTrue(Assert.IsExactInstanceOfType<long>(result.Data["storage_free_bytes"]) >= 0);
         }
         finally
         {
@@ -272,13 +272,13 @@ public sealed class RetentionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Retention_configuration_binds_the_three_operator_variables()
     {
         var defaults = RetentionOptions.FromConfiguration(new ConfigurationBuilder().Build());
-        Assert.Equal(30, defaults.Days);
-        Assert.Equal(TimeSpan.FromMinutes(60), defaults.Interval);
-        Assert.Equal(2048L * 1024L * 1024L, defaults.StorageMinimumFreeBytes);
+        Assert.AreEqual(30, defaults.Days);
+        Assert.AreEqual(TimeSpan.FromMinutes(60), defaults.Interval);
+        Assert.AreEqual(2048L * 1024L * 1024L, defaults.StorageMinimumFreeBytes);
 
         var configured = RetentionOptions.FromConfiguration(
             new ConfigurationBuilder()
@@ -289,18 +289,18 @@ public sealed class RetentionTests
                     ["QYL_STORAGE_MIN_FREE_MB"] = "4096"
                 })
                 .Build());
-        Assert.False(configured.IsEnabled);
-        Assert.Equal(TimeSpan.FromMinutes(15), configured.Interval);
-        Assert.Equal(4096L * 1024L * 1024L, configured.StorageMinimumFreeBytes);
+        Assert.IsFalse(configured.IsEnabled);
+        Assert.AreEqual(TimeSpan.FromMinutes(15), configured.Interval);
+        Assert.AreEqual(4096L * 1024L * 1024L, configured.StorageMinimumFreeBytes);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_cycle_expires_annotations_with_the_window_and_idempotency_keys_after_a_day()
     {
         var databasePath = DatabasePath("resources");
         var cutoff = TimeConversions.ToUnixNanoUnsigned(s_now.AddDays(-30));
         var dayAgo = TimeConversions.ToUnixNanoUnsigned(s_now.AddHours(-24));
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
 
         try
         {
@@ -335,13 +335,13 @@ public sealed class RetentionTests
             using var service = CreateService(store, days: 30);
             var result = await service.RunCycleAsync(ct);
 
-            Assert.Equal(1, result.DeletedAnnotations);
-            Assert.Equal(1, result.DeletedIdempotencyKeys);
-            Assert.Null(await store.GetAnnotationAsync("alpha", "stale", ct));
-            Assert.NotNull(await store.GetAnnotationAsync("alpha", "edited", ct));
-            Assert.Equal(2, (await store.ListSavedQueriesAsync("alpha", null, null, 10, ct)).Count);
-            Assert.Null(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "old", 0, ct));
-            Assert.NotNull(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "new", 0, ct));
+            Assert.AreEqual(1, result.DeletedAnnotations);
+            Assert.AreEqual(1, result.DeletedIdempotencyKeys);
+            Assert.IsNull(await store.GetAnnotationAsync("alpha", "stale", ct));
+            Assert.IsNotNull(await store.GetAnnotationAsync("alpha", "edited", ct));
+            Assert.AreEqual(2, (await store.ListSavedQueriesAsync("alpha", null, null, 10, ct)).Count);
+            Assert.IsNull(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "old", 0, ct));
+            Assert.IsNotNull(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "new", 0, ct));
         }
         finally
         {

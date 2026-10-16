@@ -10,23 +10,32 @@ namespace Qyl.Collector.Tests;
 /// build appends to a table (the span instrumentation scope) are added with NULL in every stored
 /// row, and any other difference refuses to open the database.
 /// </summary>
-public sealed class SchemaEvolutionTests
+[TestClass]
+public sealed class SchemaEvolutionTests(TestContext testContext)
 {
     private const string PreviousHash = "a20800b2a7d212fc3d284bf43b0ade1bf4dde1203f312623bad6a53d09911c19";
 
-    private static readonly string[] s_telemetryTables = ["logs", "metric_points", "metric_series", "spans"];
-    private static readonly string[] s_addedTables = ["analysis_state", "annotations", "idempotency_keys", "metric_exemplars", "saved_queries"];
-    private static readonly string[] s_appendedSpanColumns = ["scope_name", "scope_version"];
+    private static readonly string[] s_telemetryTables = ["logs", "metric_observations", "metric_series", "spans"];
+    private static readonly string[] s_addedTables = ["analysis_state", "annotations", "idempotency_keys", "saved_queries"];
+    private static readonly string[] s_derivedMetricTables = ["metric_exemplars", "metric_points"];
+    private static readonly string[] s_appendedSpanColumns =
+    [
+        "scope_name", "scope_version", "scope_schema_url", "scope_attributes_json",
+        "scope_dropped_attributes_count", "resource_schema_url", "resource_dropped_attributes_count",
+        "trace_state", "flags", "dropped_attributes_count", "dropped_events_count", "dropped_links_count"
+    ];
 
-    [Fact]
+    [TestMethod]
     public void The_authoritative_tables_are_the_telemetry_tables_plus_the_added_ones()
     {
-        Assert.Equal(
+        Assert.AreSequenceEqual(
             s_telemetryTables.Concat(s_addedTables).Order(StringComparer.Ordinal),
             DuckDbGeneratedSchema.AuthoritativeTableNames.Order(StringComparer.Ordinal));
+        Assert.AreSequenceEqual(s_derivedMetricTables,
+            DuckDbGeneratedSchema.DerivedTableNames.Order(StringComparer.Ordinal));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_previous_database_with_telemetry_opens_and_gains_the_resource_tables()
     {
         var path = await PreviousBuildDatabaseAsync(PreviousHash);
@@ -34,16 +43,16 @@ public sealed class SchemaEvolutionTests
         {
             await using (var store = new DuckDbStore(path))
             {
-                Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-                Assert.Empty(await store.ListSavedQueriesAsync("alpha", null, null, 10,
-                    TestContext.Current.CancellationToken));
+                Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+                Assert.IsEmpty(await store.ListSavedQueriesAsync("alpha", null, null, 10,
+                    testContext.CancellationToken));
             }
 
             await using var con = Open(path);
-            Assert.All(s_addedTables, table => Assert.True(TableExists(con, table)));
+            s_addedTables.ToList().ForEach(table => Assert.IsTrue(TableExists(con, table)));
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
-            Assert.Equal(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
+            Assert.AreEqual(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
         }
         finally
         {
@@ -51,31 +60,31 @@ public sealed class SchemaEvolutionTests
         }
     }
 
-    [Theory]
-    [InlineData("analysis_state")]
-    [InlineData("metric_exemplars")]
+    [TestMethod]
+    [DataRow("analysis_state")]
+    [DataRow("metric_exemplars")]
     public async Task A_previous_resource_schema_gains_only_the_new_table(string newTable)
     {
         var path = Path.Combine(Path.GetTempPath(), $"qyl-analysis-schema-{Guid.NewGuid():N}.duckdb");
         try
         {
             await using (var previous = new DuckDbStore(path))
-                await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]), TestContext.Current.CancellationToken);
+                await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]), testContext.CancellationToken);
             await using (var con = Open(path))
             {
                 Execute(con, "DROP TABLE " + newTable);
                 Stamp(con, PreviousHash);
             }
             await using var store = new DuckDbStore(path);
-            Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-            var snapshot = await store.ReadAnalysisSnapshotAsync("alpha", ct: TestContext.Current.CancellationToken);
-            Assert.Empty(snapshot.State);
-            Assert.Empty(snapshot.Exemplars);
+            Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+            var snapshot = await store.ReadAnalysisSnapshotAsync("alpha", ct: testContext.CancellationToken);
+            Assert.IsEmpty(snapshot.State);
+            Assert.IsEmpty(snapshot.Exemplars);
         }
         finally { DeleteDatabase(path); }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_spans_table_without_the_scope_columns_gains_them_and_keeps_its_rows()
     {
         var path = Path.Combine(Path.GetTempPath(), $"qyl-scope-schema-{Guid.NewGuid():N}.duckdb");
@@ -84,7 +93,7 @@ public sealed class SchemaEvolutionTests
             await using (var previous = new DuckDbStore(path))
             {
                 await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]),
-                    TestContext.Current.CancellationToken);
+                    testContext.CancellationToken);
             }
 
             await using (var con = Open(path))
@@ -101,33 +110,33 @@ public sealed class SchemaEvolutionTests
 
             await using (var store = new DuckDbStore(path))
             {
-                var kept = Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-                Assert.Null(kept.ScopeName);
-                Assert.Null(kept.ScopeVersion);
+                var kept = Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+                Assert.IsNull(kept.ScopeName);
+                Assert.IsNull(kept.ScopeVersion);
 
                 await store.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(2), CollectorApiTestHost.SpanId(2), 3, 4)
-                    with { ScopeName = "Qyl.Telemetry.AutoInstrumentation", ScopeVersion = "3.1.0" }]), TestContext.Current.CancellationToken);
-                var scoped = Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken), static span => span.ScopeName is not null);
-                Assert.Equal("3.1.0", scoped.ScopeVersion);
+                    with { ScopeName = "Qyl.Telemetry.AutoInstrumentation", ScopeVersion = "3.1.0" }]), testContext.CancellationToken);
+                var scoped = Assert.ContainsSingle(static span => span.ScopeName is not null,await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+                Assert.AreEqual("3.1.0", scoped.ScopeVersion);
             }
 
             await using (var con = Open(path))
             {
                 await using var cmd = con.CreateCommand();
                 cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
-                Assert.Equal(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
+                Assert.AreEqual(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
                 var expected = DuckDbGeneratedSchema.AuthoritativeTables.Single(static table => table.Name == "spans");
-                Assert.Equal(expected.Indexes.Length, IndexCount(con, "spans"));
+                Assert.AreEqual(expected.Indexes.Length, IndexCount(con, "spans"));
             }
 
             // Re-opening the migrated database is a plain match: nothing left to add.
             await using (var reopened = new DuckDbStore(path))
-                Assert.Equal(2, (await reopened.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken)).Count);
+                Assert.AreEqual(2, (await reopened.GetSpansAsync("alpha", ct: testContext.CancellationToken)).Count);
         }
         finally { DeleteDatabase(path); }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_non_additive_difference_still_fails_closed_while_telemetry_exists()
     {
         var path = await PreviousBuildDatabaseAsync(PreviousHash);
@@ -141,7 +150,7 @@ public sealed class SchemaEvolutionTests
                 Execute(con, SpanStorageRow.IndexesDdl);
             }
 
-            Assert.Throws<QylSchemaMismatchException>(() => new DuckDbStore(path));
+            Assert.ThrowsExactly<QylSchemaMismatchException>(() => new DuckDbStore(path));
         }
         finally
         {
@@ -151,14 +160,14 @@ public sealed class SchemaEvolutionTests
 
     // Writes a database with today's build, then turns it into what the previous build left on
     // disk: no resource tables and the given stored identity, with one span of telemetry.
-    private static async Task<string> PreviousBuildDatabaseAsync(string storedHash)
+    private async Task<string> PreviousBuildDatabaseAsync(string storedHash)
     {
         var path = Path.Combine(Path.GetTempPath(), $"qyl-schema-{Guid.NewGuid():N}.duckdb");
         await using (var store = new DuckDbStore(path))
         {
             await store.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(
                 CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]),
-                TestContext.Current.CancellationToken);
+                testContext.CancellationToken);
         }
 
         await using var con = Open(path);

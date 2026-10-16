@@ -18,7 +18,7 @@ using Serilog;
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IVerify))]
-partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigurationKnobs
+partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
 {
     [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
@@ -1406,11 +1406,13 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 "DuckDbGeneratedSchema.AuthoritativeDdl",
                 "DuckDbGeneratedSchema.DerivedDdl",
                 "QylSchemaMismatchException",
-                "FindSchemaMismatches"
+                "FindSchemaMismatches",
+                "PreserveHistoricalMetricPoints(connection)",
+                "MigrateUnknownLogTimes(connection)",
+                "RebuildMetricProjections(connection)"
             ];
             string[] forbiddenMigrationSurface =
             [
-                "ALTER COLUMN",
                 "MigrateTableDdl",
                 "OmitDefaultFromMigration"
             ];
@@ -1427,6 +1429,19 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 .Where(token => storageAndGeneratorText.Contains(token, StringComparison.Ordinal))
                 .ToList();
             var forbidden = ManualStorageDdlOffenders().ToList();
+            var migrationOrder = text.IndexOf("PreserveHistoricalMetricPoints(connection)", StringComparison.Ordinal) <
+                text.IndexOf("InitializeSchema(connection)", StringComparison.Ordinal);
+            if (!migrationOrder) missing.Add("Preserve historical authoritative points before derived schema initialization");
+            foreach (var file in CollectorStorageDirectory.GlobFiles("*.cs"))
+            foreach (var literal in ParseCompilationUnit(file).DescendantNodes().OfType<LiteralExpressionSyntax>())
+            {
+                if (!literal.IsKind(SyntaxKind.StringLiteralExpression) ||
+                    !literal.Token.ValueText.Contains("ALTER COLUMN", StringComparison.OrdinalIgnoreCase)) continue;
+                var owner = literal.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault()?.Identifier.ValueText;
+                if (owner != "MigrateUnknownLogTimes" || literal.Token.ValueText !=
+                    "ALTER TABLE logs ALTER COLUMN time_unix_nano DROP NOT NULL")
+                    obsolete.Add("Unapproved destructive schema alteration: " + literal.Token.ValueText);
+            }
 
             if (missing.Count is 0 && obsolete.Count is 0 && forbidden.Count is 0)
             {
@@ -1450,7 +1465,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 "DuckDbTable/DuckDbColumn metadata must generate the exact DDL, structural catalog and SHA-256 " +
                 "schema identity. Authoritative mismatches fail closed when data exists, except the tables and " +
                 "trailing nullable columns a release adds; disposable derived schemas are dropped and recreated. " +
-                "Do not restore ALTER COLUMN/backfill migration machinery.");
+                "Only the known nullable log-time relaxation is permitted; preserve old metric originals before resetting derived projections.");
         });
 
     Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d
@@ -1471,7 +1486,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
 
             string[] requiredGeneratedInsertHelpers =
             [
-                "InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters",
+                "InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters",
                 "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters"
             ];
 
@@ -1859,9 +1874,10 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 (storageRowsFile, "public required ulong StartTimeUnixNano"),
                 (storageRowsFile, "public required ulong EndTimeUnixNano"),
                 (storageRowsFile, "public required ulong DurationNs"),
-                (storageRowsFile, "public required ulong TimeUnixNano"),
+                (storageRowsFile, "public ulong? TimeUnixNano"),
                 (storageRowsFile, "public ulong? ObservedTimeUnixNano"),
-                (mappersFile, "ulong startTimeUnixNano, ulong endTimeUnixNano,")
+                (mappersFile, "StartTimeUnixNano = row.StartTimeUnixNano"),
+                (mappersFile, "EndTimeUnixNano = row.EndTimeUnixNano")
             };
 
             var textByFile = new Dictionary<AbsolutePath, string>
@@ -1881,6 +1897,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 "public required long EndTimeUnixNano",
                 "public required long TimeUnixNano",
                 "public long? ObservedTimeUnixNano",
+                "public long? TimeUnixNano",
                 "(long)startTimeUnixNano",
                 "(long)endTimeUnixNano",
                 "(long)durationNs",
@@ -2489,7 +2506,6 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 "source_line",
                 "source_column",
                 "source_method",
-                "dropped_attributes_count",
                 "instrumentation_scope",
                 "endpoint.DisplayName",
                 "Name.Split(' ')",
@@ -2903,8 +2919,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
 
     private readonly record struct DuckDbTableDdlInfo(
         string TypeName,
-        string TableName,
-        bool HasIndexes);
+        string TableName);
 
     private readonly record struct ManualDdlOffender(
         string File,
@@ -2933,7 +2948,6 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
         PinnedProtoCanonicalization? Canonicalization);
 
     private readonly record struct PinnedProtoCanonicalization(
-        string Justification,
         IReadOnlyList<PinnedProtoCommentReplacement> CommentReplacements,
         int AppendTrailingLineFeeds);
 
@@ -3028,7 +3042,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
             "replaceLineComments",
             "appendTrailingLineFeeds");
 
-        var justification = ReadRequiredLockString(canonicalization, "justification", path);
+        ReadRequiredLockString(canonicalization, "justification", path);
         var appendTrailingLineFeeds = 0;
         if (canonicalization.TryGetProperty("appendTrailingLineFeeds", out var appendProperty))
         {
@@ -3078,7 +3092,6 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                 $"Protocol lock canonicalization for {path} declares no bounded transformation.");
 
         return new PinnedProtoCanonicalization(
-            justification,
             replacements,
             appendTrailingLineFeeds);
     }
@@ -3510,9 +3523,7 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
 
                 tables.Add(new DuckDbTableDdlInfo(
                     declaration.Identifier.ValueText,
-                    ReadRequiredPositionalStringAttributeArgument(tableAttribute, 0),
-                    !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "Indexes")) ||
-                    !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "UniqueIndexes"))));
+                    ReadRequiredPositionalStringAttributeArgument(tableAttribute, 0)));
             }
         }
 
@@ -3558,6 +3569,9 @@ partial interface IVerify : IHasSourcePaths, ICollectorSemanticCatalog, IConfigu
                     continue;
                 }
 
+                var method = literal.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+                if (method is null || !method.DescendantNodes().OfType<MemberAccessExpressionSyntax>()
+                        .Any(static member => member.Name.Identifier.ValueText == "MapFromReader")) continue;
                 yield return new ManualSelectOffender(relativePath, NodeLine(literal), NodePreview(literal));
             }
         }

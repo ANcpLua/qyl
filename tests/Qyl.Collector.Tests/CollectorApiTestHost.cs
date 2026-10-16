@@ -13,7 +13,7 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
-using Qyl.Collector.Primitives;
+using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
@@ -44,10 +44,12 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
         """;
 
     private readonly WebApplication _app;
+    private readonly CancellationToken _cancellationToken;
 
-    private CollectorApiTestHost(WebApplication app, DuckDbStore store, HttpClient client, string grpcAddress)
+    private CollectorApiTestHost(WebApplication app, DuckDbStore store, HttpClient client, string grpcAddress, CancellationToken cancellationToken)
     {
         _app = app;
+        _cancellationToken = cancellationToken;
         Store = store;
         Client = client;
         GrpcAddress = grpcAddress;
@@ -55,7 +57,7 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
 
     public DuckDbStore Store { get; }
 
-    public HttpClient Client { get; }
+    private HttpClient Client { get; }
 
     /// <summary>The HTTP/2-only loopback address for <c>GrpcChannel.ForAddress</c>.</summary>
     public string GrpcAddress { get; }
@@ -86,8 +88,8 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
         await app.StartAsync(ct);
         // Kestrel binds the endpoints in the order they were listed.
         var urls = app.Urls.ToArray();
-        Assert.Equal(2, urls.Length);
-        return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(urls[0]) }, urls[1]);
+        Assert.AreEqual(2, urls.Length);
+        return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(urls[0]) }, urls[1], ct);
     }
 
     public async Task<HttpResponseMessage> SendAsync(
@@ -106,7 +108,16 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
             request.Headers.TryAddWithoutValidation(name, value);
         if (json is not null)
             request.Content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
-        return await Client.SendAsync(request, TestContext.Current.CancellationToken);
+        return await Client.SendAsync(request, _cancellationToken);
+    }
+
+    public async Task<HttpResponseMessage> SendProtobufAsync(string path, IMessage payload, string key)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
+        request.Headers.Add(OtlpConstants.ApiKeyHeaderName, key);
+        request.Content = new ByteArrayContent(payload.ToByteArray());
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(OtlpPayloadParser.ProtobufContentType);
+        return await Client.SendAsync(request, _cancellationToken);
     }
 
     /// <summary>Posts an OTLP/protobuf trace export with the ingest-only key, the way an SDK exporter sends it.</summary>
@@ -116,13 +127,13 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
         message.Headers.Add(OtlpConstants.ApiKeyHeaderName, "ingester");
         message.Content = new ByteArrayContent(request.ToByteArray());
         message.Content.Headers.ContentType = new MediaTypeHeaderValue(OtlpPayloadParser.ProtobufContentType);
-        using var response = await Client.SendAsync(message, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var response = await Client.SendAsync(message, _cancellationToken);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
     }
 
-    public static async Task<JsonElement> JsonAsync(HttpResponseMessage response)
+    public async Task<JsonElement> JsonAsync(HttpResponseMessage response)
     {
-        var text = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var text = await response.Content.ReadAsStringAsync(_cancellationToken);
         using var document = JsonDocument.Parse(text);
         return document.RootElement.Clone();
     }

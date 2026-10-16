@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSTest.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -16,14 +16,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="Xunit"/>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting"/>
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
-    <PackageReference Include="xunit.v3.mtp-v2"/>
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
     <!-- Storage keeps DuckDB's compile assets private; the tests that seed and inspect a database
          file directly take their own reference. -->
     <PackageReference Include="DuckDB.NET.Data.Full"/>
@@ -32,6 +30,10 @@
   <ItemGroup>
     <ProjectReference Include="../../services/qyl.collector/qyl.collector.csproj"/>
     <ProjectReference Include="../../internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

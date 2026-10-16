@@ -20,7 +20,8 @@ namespace Qyl.Collector.Tests;
 /// U+FFFD instead of refusing the export. One regression per ingestion path; before the change
 /// each path rejected the whole export as undecodable.
 /// </summary>
-public sealed class OtlpUtf8Tests
+[TestClass]
+public sealed class OtlpUtf8Tests(TestContext testContext)
 {
     // Serialized with this ASCII byte in place, then patched to 0xFF on the wire: a C# string
     // cannot carry an invalid UTF-8 sequence, so the bytes are corrupted after encoding.
@@ -28,38 +29,38 @@ public sealed class OtlpUtf8Tests
     private const string SpanName = "span\u007Fname";
     private const string Route = "/orders/\u007F";
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_http_protobuf_decodes_invalid_utf8_as_replacement_characters()
     {
         await using var store = new DuckDbStore(":memory:");
         var context = NewOtlpEndpointContext(OtlpPayloadParser.ProtobufContentType, CorruptedTracePayload());
 
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
-            context, store, TestContext.Current.CancellationToken);
+            context, store, testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-        AssertReplaced(Assert.Single(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: TestContext.Current.CancellationToken)));
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
+        AssertReplaced(Assert.ContainsSingle(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: testContext.CancellationToken)));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_grpc_decodes_invalid_utf8_as_replacement_characters()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         using var channel = GrpcChannel.ForAddress(host.GrpcAddress);
         var headers = new Metadata { { OtlpConstants.ApiKeyHeaderName, "ingester" } };
 
         var response = await channel.CreateCallInvoker().AsyncUnaryCall(
             RawTraceExport(),
             null,
-            new CallOptions(headers, cancellationToken: TestContext.Current.CancellationToken),
+            new CallOptions(headers, cancellationToken: testContext.CancellationToken),
             CorruptedTracePayload());
 
-        Assert.Null(response.PartialSuccess);
-        AssertReplaced(Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken)));
+        Assert.IsNull(response.PartialSuccess);
+        AssertReplaced(Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken)));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_json_decodes_invalid_utf8_and_unpaired_surrogate_escapes_as_replacement_characters()
     {
         // An unpaired high-surrogate escape in the span name and a raw invalid byte in the route.
@@ -73,18 +74,18 @@ public sealed class OtlpUtf8Tests
         var context = NewOtlpEndpointContext(OtlpPayloadParser.JsonContentType, payload);
 
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
-            context, store, TestContext.Current.CancellationToken);
+            context, store, testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-        AssertReplaced(Assert.Single(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: TestContext.Current.CancellationToken)));
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
+        AssertReplaced(Assert.ContainsSingle(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: testContext.CancellationToken)));
     }
 
     private static void AssertReplaced(SpanStorageRow span)
     {
-        Assert.Equal("span�name", span.Name);
+        Assert.AreEqual("span�name", span.Name);
         using var attributes = JsonDocument.Parse(span.AttributesJson!);
-        Assert.Equal("/orders/�", attributes.RootElement.GetProperty("http.route").GetString());
+        Assert.AreEqual("/orders/�", attributes.RootElement.GetProperty("http.route").GetString());
     }
 
     private static byte[] CorruptedTracePayload() =>
@@ -93,7 +94,7 @@ public sealed class OtlpUtf8Tests
     private static byte[] Corrupt(byte[] payload, string text)
     {
         var at = payload.AsSpan().IndexOf(Encoding.UTF8.GetBytes(text));
-        Assert.True(at >= 0, $"'{text}' must be serialized verbatim");
+        Assert.IsTrue(at >= 0, $"'{text}' must be serialized verbatim");
         payload[at + text.IndexOf(Placeholder, StringComparison.Ordinal)] = 0xFF;
         return payload;
     }
@@ -148,12 +149,19 @@ public sealed class OtlpUtf8Tests
 
     private static DefaultHttpContext NewOtlpEndpointContext(string contentType, byte[] payload)
     {
-        var context = new DefaultHttpContext();
-        context.Response.Body = new MemoryStream();
-        context.RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider();
-        context.Request.ContentType = contentType;
-        context.Request.ContentLength = payload.Length;
-        context.Request.Body = new MemoryStream(payload);
-        return context;
+        return new DefaultHttpContext
+        {
+            Response =
+            {
+                Body = new MemoryStream()
+            },
+            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider(),
+            Request =
+            {
+                ContentType = contentType,
+                ContentLength = payload.Length,
+                Body = new MemoryStream(payload)
+            }
+        };
     }
 }

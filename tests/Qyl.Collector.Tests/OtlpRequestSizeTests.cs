@@ -14,11 +14,12 @@ namespace Qyl.Collector.Tests;
 /// OTLP 1.11 request size limits: an OTLP/HTTP body over the decompressed bound answers
 /// 413 Content Too Large with the OTLP status envelope, in the request's encoding, and never 400.
 /// </summary>
-public sealed class OtlpRequestSizeTests
+[TestClass]
+public sealed class OtlpRequestSizeTests(TestContext testContext)
 {
     private const int MaxPayloadBytes = 16 * 1024 * 1024;
 
-    [Fact]
+    [TestMethod]
     public async Task A_declared_oversized_identity_body_answers_413_before_it_is_read()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -26,36 +27,36 @@ public sealed class OtlpRequestSizeTests
         context.Request.ContentLength = MaxPayloadBytes + 1L;
 
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
-            context, store, TestContext.Current.CancellationToken);
+            context, store, testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
-        Assert.Equal(OtlpPayloadParser.ProtobufContentType, context.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
+        Assert.AreEqual(OtlpPayloadParser.ProtobufContentType, context.Response.ContentType);
         var status = RpcStatus.Parser.ParseFrom(ResponseBytes(context));
-        Assert.Equal(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
-        Assert.Empty(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: TestContext.Current.CancellationToken));
+        Assert.AreEqual(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
+        Assert.IsEmpty(await store.GetSpansAsync(ProjectScope.DefaultProjectId, ct: testContext.CancellationToken));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_gzip_body_that_inflates_past_the_bound_answers_413_in_the_request_encoding()
     {
         await using var store = new DuckDbStore(":memory:");
         var compressed = Gzip(new byte[MaxPayloadBytes + 1]);
-        Assert.True(compressed.Length < MaxPayloadBytes / 64, $"the bomb should be small on the wire, was {compressed.Length} bytes");
+        Assert.IsTrue(compressed.Length < MaxPayloadBytes / 64, $"the bomb should be small on the wire, was {compressed.Length} bytes");
         var context = NewOtlpEndpointContext(OtlpPayloadParser.JsonContentType, compressed);
         context.Request.Headers.ContentEncoding = "gzip";
 
         var result = await CollectorEndpointExtensions.IngestOtlpLogsAsync(
-            context, store, TestContext.Current.CancellationToken);
+            context, store, TimeProvider.System, testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
-        Assert.Equal(OtlpPayloadParser.JsonContentType, context.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
+        Assert.AreEqual(OtlpPayloadParser.JsonContentType, context.Response.ContentType);
         var status = JsonParser.Default.Parse<RpcStatus>(Encoding.UTF8.GetString(ResponseBytes(context)));
-        Assert.Equal(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
+        Assert.AreEqual(OtlpPayloadParser.PayloadTooLargeMessage, status.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_body_at_the_bound_is_decoded_not_refused()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -63,10 +64,10 @@ public sealed class OtlpRequestSizeTests
         var context = NewOtlpEndpointContext(OtlpPayloadParser.ProtobufContentType, new byte[MaxPayloadBytes]);
 
         var result = await CollectorEndpointExtensions.IngestOtlpMetricsAsync(
-            context, store, TestContext.Current.CancellationToken);
+            context, store, testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
     }
 
     private static byte[] Gzip(byte[] payload)
@@ -79,15 +80,22 @@ public sealed class OtlpRequestSizeTests
 
     private static DefaultHttpContext NewOtlpEndpointContext(string contentType, byte[] payload)
     {
-        var context = new DefaultHttpContext();
-        context.Response.Body = new MemoryStream();
-        context.RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider();
-        context.Request.ContentType = contentType;
-        context.Request.ContentLength = payload.Length;
-        context.Request.Body = new MemoryStream(payload);
-        return context;
+        return new DefaultHttpContext
+        {
+            Response =
+            {
+                Body = new MemoryStream()
+            },
+            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider(),
+            Request =
+            {
+                ContentType = contentType,
+                ContentLength = payload.Length,
+                Body = new MemoryStream(payload)
+            }
+        };
     }
 
     private static byte[] ResponseBytes(DefaultHttpContext context) =>
-        Assert.IsType<MemoryStream>(context.Response.Body).ToArray();
+        Assert.IsExactInstanceOfType<MemoryStream>(context.Response.Body).ToArray();
 }

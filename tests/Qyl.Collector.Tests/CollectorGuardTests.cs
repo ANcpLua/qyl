@@ -14,6 +14,7 @@ namespace Qyl.Collector.Tests;
 /// an absent endpoint is silent (the required-endpoint layer in the hosting package owns
 /// "no endpoint means do not export"); an unwired health surface fails boot.
 /// </summary>
+[TestClass]
 public sealed class CollectorGuardTests
 {
     private static CollectorPortOptions Ports => new()
@@ -32,13 +33,13 @@ public sealed class CollectorGuardTests
         return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
     }
 
-    [Theory]
-    [InlineData("http://localhost:4318")]
-    [InlineData("http://127.0.0.1:4317")]
-    [InlineData("http://[::1]:5100")]
+    [TestMethod]
+    [DataRow("http://localhost:4318")]
+    [DataRow("http://127.0.0.1:4317")]
+    [DataRow("http://[::1]:5100")]
     public void SelfExport_to_an_own_ingest_port_throws_at_startup(string endpoint)
     {
-        var exception = Assert.Throws<InvalidOperationException>(
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(
             () => CollectorSelfExportGuard.ThrowIfSelfExporting(ConfigWith(endpoint), Ports));
 
         Assert.Contains("own port", exception.Message, StringComparison.Ordinal);
@@ -47,16 +48,16 @@ public sealed class CollectorGuardTests
     // Foreign endpoints are IP literals from TEST-NET-3 (RFC 5737): never routable, never
     // on a local interface, and — being literals — resolved without a DNS query, so the
     // assertion cannot depend on the resolver environment of the machine running it.
-    [Theory]
-    [InlineData(null)]
-    [InlineData("http://203.0.113.9:9999")]
-    [InlineData("http://203.0.113.9:4318")]
+    [TestMethod]
+    [DataRow(null)]
+    [DataRow("http://203.0.113.9:9999")]
+    [DataRow("http://203.0.113.9:4318")]
     public void SelfExport_guard_is_silent_for_absent_or_foreign_endpoints(string? endpoint)
     {
         CollectorSelfExportGuard.ThrowIfSelfExporting(ConfigWith(endpoint), Ports);
     }
 
-    [Fact]
+    [TestMethod]
     public void Missing_health_routes_fail_boot_even_when_storage_checks_are_registered()
     {
         // The duckdb check is registered so only the route-mapping branch can throw:
@@ -66,14 +67,14 @@ public sealed class CollectorGuardTests
             .AddCheck("duckdb", static () => HealthCheckResult.Healthy());
         var app = builder.Build();
 
-        var exception = Assert.Throws<InvalidOperationException>(
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(
             () => CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app));
 
         Assert.Contains("booted without a mapped", exception.Message, StringComparison.Ordinal);
         Assert.Contains(QylEndpoints.Health, exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Health_surface_without_the_duckdb_check_fails_boot()
     {
         var builder = WebApplication.CreateSlimBuilder();
@@ -83,13 +84,13 @@ public sealed class CollectorGuardTests
         app.MapGet(QylEndpoints.Health, static () => "ok");
         app.MapGet(QylEndpoints.Alive, static () => "ok");
 
-        var exception = Assert.Throws<InvalidOperationException>(
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(
             () => CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app));
 
         Assert.Contains("duckdb", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Fully_wired_health_surface_boots()
     {
         var builder = WebApplication.CreateSlimBuilder();

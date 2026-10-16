@@ -10,9 +10,10 @@ using RpcStatus = Google.Rpc.Status;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class ContractErrorResultsTests
+[TestClass]
+public sealed class ContractErrorResultsTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Analysis_failures_preserve_the_generated_problem_contract()
     {
         foreach (var (result, status, code) in new[]
@@ -22,17 +23,17 @@ public sealed class ContractErrorResultsTests
         })
         {
             var context = await ExecuteAsync(result);
-            Assert.Equal(status, context.Response.StatusCode);
-            Assert.Equal(ProblemDetailsMediaType.Value, context.Response.ContentType);
+            Assert.AreEqual(status, context.Response.StatusCode);
+            Assert.AreEqual(ProblemDetailsMediaType.Value, context.Response.ContentType);
             var body = await JsonSerializer.DeserializeAsync(context.Response.Body,
-                QylSerializerContext.Default.ProblemDetails, TestContext.Current.CancellationToken);
-            Assert.NotNull(body);
-            Assert.Equal(status, body.Status);
-            Assert.Equal(code, body.Code);
+                QylSerializerContext.Default.ProblemDetails, testContext.CancellationToken);
+            Assert.IsNotNull(body);
+            Assert.AreEqual(status, body.Status);
+            Assert.AreEqual(code, body.Code);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Endpoint_problem_results_use_the_generated_media_type_and_source_generated_json()
     {
         var validation = await ExecuteAsync(ContractErrorResults.Validation(
@@ -41,26 +42,26 @@ public sealed class ContractErrorResultsTests
             "limit.invalid",
             "0"));
 
-        Assert.Equal(StatusCodes.Status400BadRequest, validation.Response.StatusCode);
-        Assert.Equal(ProblemDetailsMediaType.Value, validation.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, validation.Response.StatusCode);
+        Assert.AreEqual(ProblemDetailsMediaType.Value, validation.Response.ContentType);
         var validationBody = await JsonSerializer.DeserializeAsync(
             validation.Response.Body,
             QylSerializerContext.Default.ValidationError,
-            TestContext.Current.CancellationToken);
-        Assert.Equal("limit.invalid", Assert.Single(Assert.IsType<ValidationError>(validationBody).Errors).Code);
+            testContext.CancellationToken);
+        Assert.AreEqual("limit.invalid", Assert.ContainsSingle(Assert.IsExactInstanceOfType<ValidationError>(validationBody).Errors).Code);
 
         var notFound = await ExecuteAsync(ContractErrorResults.NotFound("trace", "trace-42"));
 
-        Assert.Equal(StatusCodes.Status404NotFound, notFound.Response.StatusCode);
-        Assert.Equal(ProblemDetailsMediaType.Value, notFound.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status404NotFound, notFound.Response.StatusCode);
+        Assert.AreEqual(ProblemDetailsMediaType.Value, notFound.Response.ContentType);
         var notFoundBody = await JsonSerializer.DeserializeAsync(
             notFound.Response.Body,
             QylSerializerContext.Default.NotFoundError,
-            TestContext.Current.CancellationToken);
-        Assert.Equal("trace-42", Assert.IsType<NotFoundError>(notFoundBody).ResourceId);
+            testContext.CancellationToken);
+        Assert.AreEqual("trace-42", Assert.IsExactInstanceOfType<NotFoundError>(notFoundBody).ResourceId);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Api_key_rejection_preserves_the_generated_media_type_status_and_challenge_header()
     {
         var nextInvoked = false;
@@ -81,24 +82,24 @@ public sealed class ContractErrorResultsTests
 
         await middleware.InvokeAsync(context);
 
-        Assert.False(nextInvoked);
-        Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
-        Assert.Equal(ProblemDetailsMediaType.Value, context.Response.ContentType);
-        Assert.Equal(
+        Assert.IsFalse(nextInvoked);
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+        Assert.AreEqual(ProblemDetailsMediaType.Value, context.Response.ContentType);
+        Assert.AreEqual(
             "x-otlp-api-key realm=\"qyl-otlp\"",
             context.Response.Headers.WWWAuthenticate.ToString());
-        Assert.Equal("private, no-store", context.Response.Headers.CacheControl.ToString());
+        Assert.AreEqual("private, no-store", context.Response.Headers.CacheControl.ToString());
         context.Response.Body.Position = 0;
         var error = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
             QylSerializerContext.Default.UnauthorizedError,
-            TestContext.Current.CancellationToken);
-        Assert.Equal(StatusCodes.Status401Unauthorized, Assert.IsType<UnauthorizedError>(error).Status);
+            testContext.CancellationToken);
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, Assert.IsExactInstanceOfType<UnauthorizedError>(error).Status);
     }
 
-    [Theory]
-    [InlineData(OtlpPayloadParser.ProtobufContentType)]
-    [InlineData(OtlpPayloadParser.JsonContentType)]
+    [TestMethod]
+    [DataRow(OtlpPayloadParser.ProtobufContentType)]
+    [DataRow(OtlpPayloadParser.JsonContentType)]
     public async Task Otlp_api_key_rejection_preserves_the_official_request_wire_envelope(
         string contentType)
     {
@@ -111,7 +112,7 @@ public sealed class ContractErrorResultsTests
 
         await middleware.InvokeAsync(context);
 
-        Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
         context.Response.Body.Position = 0;
         RpcStatus status;
         if (contentType == OtlpPayloadParser.ProtobufContentType)
@@ -122,13 +123,13 @@ public sealed class ContractErrorResultsTests
         {
             using var reader = new StreamReader(context.Response.Body);
             status = JsonParser.Default.Parse<RpcStatus>(
-                await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
+                await reader.ReadToEndAsync(testContext.CancellationToken));
         }
 
-        Assert.Equal("Missing or invalid API key.", status.Message);
+        Assert.AreEqual("Missing or invalid API key.", status.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Product_api_cache_is_private_and_whitespace_keys_are_never_credentials()
     {
         var options = new OtlpApiKeyOptions
@@ -136,8 +137,8 @@ public sealed class ContractErrorResultsTests
             AuthMode = "ApiKey",
             Keys = [new ProjectApiKey("tenant-a", "real-key", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
-        Assert.Null(OtlpApiKeyValidator.Resolve("   ", options)?.ProjectId);
-        Assert.Equal("tenant-a", OtlpApiKeyValidator.Resolve("real-key", options)?.ProjectId);
+        Assert.IsNull(OtlpApiKeyValidator.Resolve("   ", options)?.ProjectId);
+        Assert.AreEqual("tenant-a", OtlpApiKeyValidator.Resolve("real-key", options)?.ProjectId);
 
         var nextInvoked = false;
         var middleware = new CollectorApiKeyMiddleware(
@@ -154,12 +155,12 @@ public sealed class ContractErrorResultsTests
 
         await middleware.InvokeAsync(context);
 
-        Assert.True(nextInvoked);
-        Assert.Equal("private, no-store", context.Response.Headers.CacheControl.ToString());
-        Assert.Equal("tenant-a", AuthenticatedProject.ForHttpRead(context));
+        Assert.IsTrue(nextInvoked);
+        Assert.AreEqual("private, no-store", context.Response.Headers.CacheControl.ToString());
+        Assert.AreEqual("tenant-a", AuthenticatedProject.ForHttpRead(context));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Credentialed_specific_origin_cors_responses_vary_by_origin()
     {
         var middleware = new OtlpCorsMiddleware(
@@ -171,25 +172,25 @@ public sealed class ContractErrorResultsTests
 
         await middleware.InvokeAsync(context);
 
-        Assert.Equal("https://console.example", context.Response.Headers.AccessControlAllowOrigin.ToString());
-        Assert.Equal(
+        Assert.AreEqual("https://console.example", context.Response.Headers.AccessControlAllowOrigin.ToString());
+        Assert.AreEqual(
             "content-type, x-otlp-api-key",
             context.Response.Headers.AccessControlAllowHeaders.ToString());
         Assert.Contains("Origin", context.Response.Headers.Vary.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Startup_banner_does_not_claim_a_dashboard_for_api_key_deployments()
     {
-        Assert.Equal(
+        Assert.AreEqual(
             "product API",
             StartupBanner.HttpSurfaceLabel(new OtlpApiKeyOptions { AuthMode = "ApiKey" }));
-        Assert.Equal(
+        Assert.AreEqual(
             "dashboard + API",
             StartupBanner.HttpSurfaceLabel(new OtlpApiKeyOptions { AuthMode = "Unsecured" }));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Exception_handler_preserves_the_generated_media_type_status_and_trace_header()
     {
         var context = CreateContext();
@@ -198,18 +199,18 @@ public sealed class ContractErrorResultsTests
 
         await CollectorMiddlewareExtensions.WriteUnhandledExceptionAsync(context);
 
-        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
-        Assert.Equal(ProblemDetailsMediaType.Value, context.Response.ContentType);
-        Assert.Equal("trace-from-server", context.Response.Headers["X-Trace-Id"].ToString());
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+        Assert.AreEqual(ProblemDetailsMediaType.Value, context.Response.ContentType);
+        Assert.AreEqual("trace-from-server", context.Response.Headers["X-Trace-Id"].ToString());
         context.Response.Body.Position = 0;
         var error = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
             QylSerializerContext.Default.ContractInternalServerError,
-            TestContext.Current.CancellationToken);
-        var problem = Assert.IsType<InternalServerError>(error);
-        Assert.Equal(ProblemType.InternalError, problem.Type);
-        Assert.Equal(ProblemCode.InternalError, problem.Code);
-        Assert.Equal("collector.unhandled_exception", problem.Detail);
+            testContext.CancellationToken);
+        var problem = Assert.IsExactInstanceOfType<InternalServerError>(error);
+        Assert.AreEqual(ProblemType.InternalError, problem.Type);
+        Assert.AreEqual(ProblemCode.InternalError, problem.Code);
+        Assert.AreEqual("collector.unhandled_exception", problem.Detail);
     }
 
     private static async Task<DefaultHttpContext> ExecuteAsync(IResult result)
@@ -222,14 +223,19 @@ public sealed class ContractErrorResultsTests
 
     private static DefaultHttpContext CreateContext()
     {
-        var context = new DefaultHttpContext
+        return new DefaultHttpContext
         {
             RequestServices = new ServiceCollection()
                 .AddLogging()
-                .BuildServiceProvider()
+                .BuildServiceProvider(),
+            Request =
+            {
+                Method = HttpMethods.Get
+            },
+            Response =
+            {
+                Body = new MemoryStream()
+            }
         };
-        context.Request.Method = HttpMethods.Get;
-        context.Response.Body = new MemoryStream();
-        return context;
     }
 }

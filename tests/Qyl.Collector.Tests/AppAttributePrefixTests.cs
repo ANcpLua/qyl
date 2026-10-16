@@ -15,9 +15,10 @@ namespace Qyl.Collector.Tests;
 /// most 256 characters, a 64-bit integer, a double or a bool; no key containing a token the registry denies, and
 /// no key whose part after the prefix the registry denies.
 /// </summary>
-public sealed class AppAttributePrefixTests
+[TestClass]
+public sealed class AppAttributePrefixTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task A_business_key_is_persisted_with_each_of_the_four_value_types()
     {
         var attributes = await PersistedAttributesAsync(
@@ -26,31 +27,31 @@ public sealed class AppAttributePrefixTests
             Double("qyl.app.order.total", 42.5),
             Bool("qyl.app.order.express", true));
 
-        Assert.Equal(Json(OtlpAttributeValue.FromString("ord-1042")), attributes.GetProperty("qyl.app.order.id").GetRawText());
-        Assert.Equal(Json(OtlpAttributeValue.FromInt(3)), attributes.GetProperty("qyl.app.order.items").GetRawText());
-        Assert.Equal(Json(OtlpAttributeValue.FromDouble(42.5)), attributes.GetProperty("qyl.app.order.total").GetRawText());
-        Assert.Equal(Json(OtlpAttributeValue.FromBool(true)), attributes.GetProperty("qyl.app.order.express").GetRawText());
+        Assert.AreEqual(Json(OtlpAttributeValue.FromString("ord-1042")), attributes.GetProperty("qyl.app.order.id").GetRawText());
+        Assert.AreEqual(Json(OtlpAttributeValue.FromInt(3)), attributes.GetProperty("qyl.app.order.items").GetRawText());
+        Assert.AreEqual(Json(OtlpAttributeValue.FromDouble(42.5)), attributes.GetProperty("qyl.app.order.total").GetRawText());
+        Assert.AreEqual(Json(OtlpAttributeValue.FromBool(true)), attributes.GetProperty("qyl.app.order.express").GetRawText());
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_key_with_a_denied_token_is_dropped()
     {
         var attributes = await PersistedAttributesAsync(
             String("qyl.app.order.id", "ord-1042"),
             String("qyl.app.order.message", "leave it at the door"));
 
-        Assert.True(attributes.TryGetProperty("qyl.app.order.id", out _));
-        Assert.False(attributes.TryGetProperty("qyl.app.order.message", out _));
+        Assert.IsTrue(attributes.TryGetProperty("qyl.app.order.id", out _));
+        Assert.IsFalse(attributes.TryGetProperty("qyl.app.order.message", out _));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_seventeenth_key_is_dropped()
     {
         var attributes = await PersistedAttributesAsync(
             [.. Enumerable.Range(1, 17).Select(static i => String($"qyl.app.field{i:00}", "v"))]);
 
         var kept = AppKeys(attributes);
-        Assert.Equal(16, kept.Length);
+        Assert.AreEqual(16, kept.Length);
         Assert.DoesNotContain("qyl.app.field17", kept);
     }
 
@@ -58,37 +59,37 @@ public sealed class AppAttributePrefixTests
     /// <c>SetAppTag</c> names the key, so the registry's key and prefix denials apply after the prefix too:
     /// <c>qyl.app.user.email</c> is as personal as <c>user.email</c>.
     /// </summary>
-    [Theory]
-    [InlineData("qyl.app.user.email")]
-    [InlineData("qyl.app.session.id")]
-    [InlineData("qyl.app.host.name")]
-    [InlineData("qyl.app.url.full")]
+    [TestMethod]
+    [DataRow("qyl.app.user.email")]
+    [DataRow("qyl.app.session.id")]
+    [DataRow("qyl.app.host.name")]
+    [DataRow("qyl.app.url.full")]
     public async Task A_key_the_registry_denies_after_the_prefix_is_dropped(string key)
     {
         var attributes = await PersistedAttributesAsync(
             String("qyl.app.order.id", "ord-1042"),
             String(key, "alice@example.com"));
 
-        Assert.Equal(["qyl.app.order.id"], AppKeys(attributes));
+        Assert.AreSequenceEqual(["qyl.app.order.id"], AppKeys(attributes));
     }
 
     /// <summary>The span's keys leave an event's or a link's 16 untouched, and the 17th key on the child is dropped.</summary>
-    [Theory]
-    [InlineData("event")]
-    [InlineData("link")]
+    [TestMethod]
+    [DataRow("event")]
+    [DataRow("link")]
     public async Task Each_event_and_link_keeps_sixteen_app_keys_of_its_own(string carrier)
     {
         var (span, child) = await PersistedAppKeysAsync(carrier, spanAttributes: Fields(17), childAttributes: Fields(17));
 
-        Assert.Equal(FieldNames(16), span);
-        Assert.Equal(FieldNames(16), child);
+        Assert.AreSequenceEqual(FieldNames(16), span);
+        Assert.AreSequenceEqual(FieldNames(16), child);
     }
 
     /// <summary>A key ingest drops (denied, too long, not a scalar) is not counted: the 16 slots go to keys that are kept.</summary>
-    [Theory]
-    [InlineData("span")]
-    [InlineData("event")]
-    [InlineData("link")]
+    [TestMethod]
+    [DataRow("span")]
+    [DataRow("event")]
+    [DataRow("link")]
     public async Task A_dropped_app_key_does_not_use_up_one_of_the_sixteen_slots(string carrier)
     {
         KeyValue[] attributes =
@@ -96,7 +97,7 @@ public sealed class AppAttributePrefixTests
             String("qyl.app.user.email", "alice@example.com"),
             String("qyl.app.order.message", "leave it at the door"),
             String("qyl.app.note", new string('x', 257)),
-            new KeyValue { Key = "qyl.app.tags", Value = new AnyValue { ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = "a" } } } } },
+            new() { Key = "qyl.app.tags", Value = new AnyValue { ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = "a" } } } } },
             .. Fields(17)
         ];
 
@@ -104,19 +105,19 @@ public sealed class AppAttributePrefixTests
             ? await PersistedAppKeysAsync(carrier, spanAttributes: attributes, childAttributes: [])
             : await PersistedAppKeysAsync(carrier, spanAttributes: [], childAttributes: attributes);
 
-        Assert.Equal(FieldNames(16), carrier is "span" ? span : child);
+        Assert.AreSequenceEqual(FieldNames(16), carrier is "span" ? span : child);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_value_longer_than_256_characters_is_dropped()
     {
         var attributes = await PersistedAttributesAsync(
             String("qyl.app.note.short", new string('x', 256)),
             String("qyl.app.note.long", new string('x', 257)),
-            new KeyValue { Key = "qyl.app.tags", Value = new AnyValue { ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = "a" } } } } });
+            new() { Key = "qyl.app.tags", Value = new AnyValue { ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = "a" } } } } });
 
-        Assert.Equal(256, attributes.GetProperty("qyl.app.note.short").GetString()!.Length);
-        Assert.Equal(["qyl.app.note.short"], AppKeys(attributes));
+        Assert.AreEqual(256, attributes.GetProperty("qyl.app.note.short").GetString()!.Length);
+        Assert.AreSequenceEqual(["qyl.app.note.short"], AppKeys(attributes));
     }
 
     /// <summary>
@@ -124,19 +125,19 @@ public sealed class AppAttributePrefixTests
     /// <c>gen_ai.invoke_agent</c> and <c>gen_ai.execute_tool</c>. The collector allowlists the key and keeps any
     /// value; no reader switches on it, so a span from <c>Spans.Work</c> arrives with its domain.
     /// </summary>
-    [Fact]
+    [TestMethod]
     public async Task An_application_span_keeps_its_instrumentation_domain()
     {
         var attributes = await PersistedAttributesAsync(String("qyl.instrumentation.domain", "app"));
 
-        Assert.Equal("app", attributes.GetProperty("qyl.instrumentation.domain").GetString());
+        Assert.AreEqual("app", attributes.GetProperty("qyl.instrumentation.domain").GetString());
     }
 
     private static KeyValue[] Fields(int count) => [.. FieldNames(count).Select(static name => String(name, "v"))];
 
     private static string[] FieldNames(int count) => [.. Enumerable.Range(1, count).Select(static i => $"qyl.app.field{i:00}")];
 
-    private static async Task<(string[] Span, string[] Child)> PersistedAppKeysAsync(
+    private async Task<(string[] Span, string[] Child)> PersistedAppKeysAsync(
         string carrier,
         KeyValue[] spanAttributes,
         KeyValue[] childAttributes)
@@ -160,14 +161,14 @@ public sealed class AppAttributePrefixTests
             span.Links.Add(link);
         }
 
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         await host.IngestTracesAsync(request);
-        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
+        var stored = Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
 
         var childJson = carrier switch
         {
-            "event" => Assert.Single(SpanChildStorage.DeserializeEvents(stored.EventsJson)!).AttributesJson,
-            "link" => Assert.Single(SpanChildStorage.DeserializeLinks(stored.LinksJson)!).AttributesJson,
+            "event" => Assert.ContainsSingle(SpanChildStorage.DeserializeEvents(stored.EventsJson)!).AttributesJson,
+            "link" => Assert.ContainsSingle(SpanChildStorage.DeserializeLinks(stored.LinksJson)!).AttributesJson,
             _ => null
         };
         return (AppKeys(stored.AttributesJson), AppKeys(childJson));
@@ -189,12 +190,12 @@ public sealed class AppAttributePrefixTests
     private static string Json(OtlpAttributeValue value) =>
         JsonSerializer.Serialize(value.ToContract(), OtlpAttributeJsonContext.Default.AttributeValue);
 
-    private static async Task<JsonElement> PersistedAttributesAsync(params KeyValue[] attributes)
+    private async Task<JsonElement> PersistedAttributesAsync(params KeyValue[] attributes)
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         await host.IngestTracesAsync(Request(QylTelemetryNames.Scopes.QylTelemetryApplication, attributes));
 
-        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
+        var stored = Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
         using var document = JsonDocument.Parse(stored.AttributesJson ?? "{}");
         return document.RootElement.Clone();
     }

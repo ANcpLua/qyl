@@ -6,12 +6,10 @@ internal sealed class OtlpCorsMiddleware
     private readonly string _allowedHeadersHeader;
     private readonly HashSet<string> _allowedOrigins;
     private readonly RequestDelegate _next;
-    private readonly OtlpCorsOptions _options;
 
     public OtlpCorsMiddleware(RequestDelegate next, OtlpCorsOptions options)
     {
         _next = next;
-        _options = options;
         _allowedOrigins = options.GetOrigins().ToHashSet(StringComparer.OrdinalIgnoreCase);
         _allowedHeadersHeader = string.Join(", ", options.GetHeaders());
         _allowAll = _allowedOrigins.Contains("*");
@@ -36,7 +34,7 @@ internal sealed class OtlpCorsMiddleware
                 SetCorsHeaders(context.Response, origin);
                 context.Response.Headers.AccessControlAllowMethods = "POST, OPTIONS";
                 context.Response.Headers.AccessControlMaxAge =
-                    _options.MaxAge.ToString(CultureInfo.InvariantCulture);
+                    OtlpCorsOptions.MaxAge.ToString(CultureInfo.InvariantCulture);
                 context.Response.StatusCode = 204;
                 return;
             }

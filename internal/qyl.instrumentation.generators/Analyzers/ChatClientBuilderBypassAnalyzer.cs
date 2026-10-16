@@ -7,7 +7,7 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
 {
-    public const string DiagnosticId = "QYL0137";
+    private const string DiagnosticId = "QYL0137";
 
     private static readonly string[] s_providerClients =
     [

@@ -9,22 +9,23 @@ using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
-using Qyl.Collector.Primitives;
+using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class ProjectIsolationTests
+[TestClass]
+public sealed class ProjectIsolationTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public void Api_key_mode_requires_explicit_unique_project_bindings()
     {
         var environment = new TestEnvironment();
         IServiceCollection services = new ServiceCollection();
-        Assert.Throws<InvalidOperationException>(() => services.AddQylCollectorAuth(
+        Assert.ThrowsExactly<InvalidOperationException>(() => services.AddQylCollectorAuth(
             Config(("QYL_OTLP_AUTH_MODE", "ApiKey")), environment));
 
-        Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddQylCollectorAuth(
+        Assert.ThrowsExactly<InvalidOperationException>(() => new ServiceCollection().AddQylCollectorAuth(
             Config(("QYL_OTLP_AUTH_MODE", "ApiKey"),
                 ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"same","roles":["read"]}],"beta":[{"key":"same","roles":["read"]}]}""")),
             environment));
@@ -35,12 +36,12 @@ public sealed class ProjectIsolationTests
             environment);
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<OtlpApiKeyOptions>();
-        Assert.Equal("alpha", OtlpApiKeyValidator.Resolve("a2", options)?.ProjectId);
-        Assert.Equal("beta", OtlpApiKeyValidator.Resolve("b1", options)?.ProjectId);
-        Assert.Null(OtlpApiKeyValidator.Resolve("unknown", options)?.ProjectId);
+        Assert.AreEqual("alpha", OtlpApiKeyValidator.Resolve("a2", options)?.ProjectId);
+        Assert.AreEqual("beta", OtlpApiKeyValidator.Resolve("b1", options)?.ProjectId);
+        Assert.IsNull(OtlpApiKeyValidator.Resolve("unknown", options)?.ProjectId);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Http_key_selects_its_project_and_rejects_a_conflicting_read_header()
     {
         var options = new OtlpApiKeyOptions
@@ -60,7 +61,7 @@ public sealed class ProjectIsolationTests
         context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "a1";
 
         await middleware.InvokeAsync(context);
-        Assert.Equal("alpha", reachedProject);
+        Assert.AreEqual("alpha", reachedProject);
 
         reachedProject = null;
         context = Context(options);
@@ -68,11 +69,11 @@ public sealed class ProjectIsolationTests
         context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "a1";
         context.Request.Headers["X-Qyl-Project"] = "beta";
         await middleware.InvokeAsync(context);
-        Assert.Null(reachedProject);
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.IsNull(reachedProject);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
     }
 
-    [Fact]
+    [TestMethod]
     public void All_signal_mappers_use_the_authenticated_project_and_reject_conflicting_hints()
     {
         var empty = new Dictionary<string, OtlpAttributeValue>();
@@ -90,26 +91,27 @@ public sealed class ProjectIsolationTests
         var point = new MetricPointIngestionRecord
         {
             MetricName = "requests", Kind = MetricKind.Gauge, Temporality = MetricTemporality.Unspecified,
-            IsMonotonic = false, ServiceName = "service", TimeUnixNano = 1, Value = 1,
+            IsMonotonic = false, ServiceName = "service", TimeUnixNano = 1, Data = new Qyl.Api.Contracts.OTel.Metrics.MetricNumberPointData
+            { Value = new Qyl.Api.Contracts.Common.AttributeDoubleValue { Value = 1 } },
             Attributes = empty, ResourceAttributes = empty
         };
 
-        Assert.Equal("alpha", Assert.Single(IngestionStorageMapper.ToSpanStorageRows(
+        Assert.AreEqual("alpha", Assert.ContainsSingle(IngestionStorageMapper.ToSpanStorageRows(
             new TraceIngestionBatch([span]), "alpha")).ProjectId);
-        Assert.Equal("alpha", Assert.Single(IngestionStorageMapper.ToLogStorageRows(
+        Assert.AreEqual("alpha", Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(
             new LogIngestionBatch([log]), "alpha")).ProjectId);
-        Assert.Equal("alpha", Assert.Single(MetricStorageMapper.ToStorageRows(
-            new MetricIngestionBatch([point], 0, null), "alpha").Points).ProjectId);
+        Assert.AreEqual("alpha", Assert.ContainsSingle(MetricStorageMapper.ToStorageRows(
+            new MetricIngestionBatch([point], 0, null), "alpha").Observations).ProjectId);
 
-        Assert.Throws<InvalidDataException>(() => IngestionStorageMapper.ToSpanStorageRows(
+        Assert.ThrowsExactly<InvalidDataException>(() => IngestionStorageMapper.ToSpanStorageRows(
             new TraceIngestionBatch([span with { ProjectIdHint = "beta" }]), "alpha"));
-        Assert.Throws<InvalidDataException>(() => IngestionStorageMapper.ToLogStorageRows(
+        Assert.ThrowsExactly<InvalidDataException>(() => IngestionStorageMapper.ToLogStorageRows(
             new LogIngestionBatch([log with { ProjectIdHint = "beta" }]), "alpha"));
-        Assert.Throws<InvalidDataException>(() => MetricStorageMapper.ToStorageRows(
+        Assert.ThrowsExactly<InvalidDataException>(() => MetricStorageMapper.ToStorageRows(
             new MetricIngestionBatch([point with { ProjectIdHint = "beta" }], 0, null), "alpha"));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Authenticated_read_endpoint_returns_only_its_projects_logs()
     {
         var options = new OtlpApiKeyOptions
@@ -129,12 +131,12 @@ public sealed class ProjectIsolationTests
                 .. IngestionStorageMapper.ToLogStorageRows(new LogIngestionBatch([log]), "alpha"),
                 .. IngestionStorageMapper.ToLogStorageRows(new LogIngestionBatch(
                     [log with { Body = OtlpAttributeValue.FromString("beta-only") }]), "beta")
-            ], TestContext.Current.CancellationToken);
+            ], testContext.CancellationToken);
 
         var middleware = new CollectorApiKeyMiddleware(async context =>
         {
             var result = await CollectorEndpointExtensions.GetLogsAsync(
-                context, store, null, null, null, null, null, TestContext.Current.CancellationToken);
+                context, store, null, null, null, null, null, testContext.CancellationToken);
             await result.ExecuteAsync(context);
         }, options);
         var request = Context(options);
@@ -142,15 +144,15 @@ public sealed class ProjectIsolationTests
         request.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "a1";
         await middleware.InvokeAsync(request);
 
-        Assert.Equal(StatusCodes.Status200OK, request.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status200OK, request.Response.StatusCode);
         request.Response.Body.Position = 0;
         using var reader = new StreamReader(request.Response.Body);
-        var body = await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
+        var body = await reader.ReadToEndAsync(testContext.CancellationToken);
         Assert.Contains("alpha-only", body, StringComparison.Ordinal);
         Assert.DoesNotContain("beta-only", body, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Http_export_without_a_project_attribute_writes_to_the_key_project()
     {
         var options = new OtlpApiKeyOptions
@@ -173,8 +175,8 @@ public sealed class ProjectIsolationTests
                             {
                                 new Span
                                 {
-                                    TraceId = ByteString.CopyFrom(new byte[16]),
-                                    SpanId = ByteString.CopyFrom(new byte[8]),
+                                    TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
+                                    SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
                                     Name = "alpha-trace",
                                     StartTimeUnixNano = 1,
                                     EndTimeUnixNano = 2
@@ -189,7 +191,7 @@ public sealed class ProjectIsolationTests
         var middleware = new CollectorApiKeyMiddleware(async context =>
         {
             var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
-                context, store, TestContext.Current.CancellationToken);
+                context, store, testContext.CancellationToken);
             await result.ExecuteAsync(context);
         }, options);
         var request = Context(options);
@@ -201,10 +203,10 @@ public sealed class ProjectIsolationTests
 
         await middleware.InvokeAsync(request);
 
-        Assert.Equal(StatusCodes.Status200OK, request.Response.StatusCode);
-        Assert.Single(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-        Assert.Empty(await store.GetSpansAsync(ProjectScope.DefaultProjectId,
-            ct: TestContext.Current.CancellationToken));
+        Assert.AreEqual(StatusCodes.Status200OK, request.Response.StatusCode);
+        Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+        Assert.IsEmpty(await store.GetSpansAsync(ProjectScope.DefaultProjectId,
+            ct: testContext.CancellationToken));
     }
 
     private static IConfiguration Config(params (string Key, string Value)[] values) =>
@@ -216,13 +218,18 @@ public sealed class ProjectIsolationTests
         var services = new ServiceCollection().AddLogging().AddSingleton(options);
         services.ConfigureHttpJsonOptions(static json =>
             json.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default));
-        var context = new DefaultHttpContext
+        return new DefaultHttpContext
         {
-            RequestServices = services.BuildServiceProvider()
+            RequestServices = services.BuildServiceProvider(),
+            Request =
+            {
+                Method = HttpMethods.Get
+            },
+            Response =
+            {
+                Body = new MemoryStream()
+            }
         };
-        context.Request.Method = HttpMethods.Get;
-        context.Response.Body = new MemoryStream();
-        return context;
     }
 
     private sealed class TestEnvironment : IHostEnvironment

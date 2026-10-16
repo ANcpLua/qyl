@@ -13,9 +13,10 @@ namespace Qyl.Api.Tests;
 /// The key is a different matter: it comes from the pinned semantic-convention package, so this pins what the
 /// registry is expected to call it, and a rename upstream fails here instead of arriving silently.
 /// </remarks>
+[TestClass]
 public sealed class ContractAttributeTests
 {
-    [Fact]
+    [TestMethod]
     public void The_revision_attribute_is_the_registry_key() =>
-        Assert.Equal("qyl.api.contract.revision", QylApiContract.RevisionAttributeName, StringComparer.Ordinal);
+        Assert.AreEqual("qyl.api.contract.revision", QylApiContract.RevisionAttributeName, StringComparer.Ordinal);
 }

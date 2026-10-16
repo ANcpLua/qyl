@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup Label="qyl Product Version">
-    <!-- The manual release script reads this exact product version. Bump it before
-         any package-affecting main commit once the current immutable version has been published. -->
-    <QylVersion>13.3.0</QylVersion>
+    <!-- The manual release script reads this exact product version. Candidate versions
+         may be developed locally; publish only the complete checked release commit. -->
+    <QylVersion>14.0.0</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -16,7 +16,7 @@
     <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
     <DotNetRuntimeVersion>10.0.13</DotNetRuntimeVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
-    <MicrosoftExtensionsVersion>10.10.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>10.11.0</MicrosoftExtensionsVersion>
     <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.13 declares Microsoft.OpenApi
          [2.12.2, 3.0.0), and its source generator fails to compile against 3.x with CS0012
          (the type it emits lives in an assembly the generated code does not reference).
@@ -37,7 +37,7 @@
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>10.1.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
-    <QylApiContractsVersion>12.1.2</QylApiContractsVersion>
+    <QylApiContractsVersion>14.0.0</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.48</ANcpLuaRoslynUtilitiesVersion>
@@ -85,13 +85,11 @@
     <FalloutVersion>10.4.0</FalloutVersion>
     <!-- renovate: datasource=nuget depName=Spectre.Console -->
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
-    <!-- renovate: datasource=nuget depName=xunit.v3.mtp-v2 -->
-    <XunitVersion>4.0.2</XunitVersion>
     <!-- The Cobertura producer for the test projects; dotcov reads its reports. -->
     <!-- renovate: datasource=nuget depName=Microsoft.Testing.Extensions.CodeCoverage -->
     <MicrosoftTestingExtensionsCodeCoverageVersion>18.12.0</MicrosoftTestingExtensionsCodeCoverageVersion>
     <!-- renovate: datasource=nuget depName=DotCov.Fallout -->
-    <DotCovVersion>4.1.0</DotCovVersion>
+    <DotCovVersion>4.7.0</DotCovVersion>
     <!-- renovate: datasource=nuget depName=Valleysoft.DockerfileModel -->
     <DockerfileModelVersion>4.0.0</DockerfileModelVersion>
     <!-- renovate: datasource=nuget depName=YamlDotNet -->

@@ -4,13 +4,14 @@ using Qyl.Api.Sdk.Xml.Generator.Tests.Models;
 namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>The OpenAPI schema a Qyl API publishes for an application/xml response, built from the generated shape.</summary>
+[TestClass]
 public sealed class SchemaTests
 {
     private static readonly string[] s_orderComponents = ["OrderXml", "CustomerXml", "AddressXml", "OrderLineXml", "MoneyXml"];
 
     private static readonly string[] s_statusNames = ["open", "paid", "Shipped"];
 
-    [Fact]
+    [TestMethod]
     public void OrderSchemaDescribesAttributesElementsWrappersEnumsAndNestedModels()
     {
         var document = new OpenApiDocument();
@@ -18,52 +19,52 @@ public sealed class SchemaTests
         QylXmlSchema.Reference(document, Order.XmlShape);
 
         var schemas = document.Components!.Schemas!;
-        Assert.Equal(s_orderComponents.Order(StringComparer.Ordinal), schemas.Keys.Order(StringComparer.Ordinal));
+        Assert.AreSequenceEqual(s_orderComponents.Order(StringComparer.Ordinal), schemas.Keys.Order(StringComparer.Ordinal));
 
         var order = (OpenApiSchema)schemas["OrderXml"];
-        Assert.Equal(JsonSchemaType.Object, order.Type);
-        Assert.Equal("order", order.Xml!.Name);
-        Assert.Equal(new Uri("urn:qyl:orders"), order.Xml.Namespace);
+        Assert.AreEqual(JsonSchemaType.Object, order.Type);
+        Assert.AreEqual("order", order.Xml!.Name);
+        Assert.AreEqual(new Uri("urn:qyl:orders"), order.Xml.Namespace);
 
         var id = (OpenApiSchema)order.Properties!["id"];
-        Assert.True(id.Xml!.Attribute);
-        Assert.Equal(JsonSchemaType.Integer, id.Type);
-        Assert.Equal("int32", id.Format);
+        Assert.IsTrue(id.Xml!.Attribute);
+        Assert.AreEqual(JsonSchemaType.Integer, id.Type);
+        Assert.AreEqual("int32", id.Format);
 
         var status = (OpenApiSchema)order.Properties["status"];
-        Assert.True(status.Xml!.Attribute);
-        Assert.Equal(s_statusNames, status.Enum!.Select(static value => value.GetValue<string>()).ToArray());
+        Assert.IsTrue(status.Xml!.Attribute);
+        Assert.AreSequenceEqual(s_statusNames, status.Enum!.Select(static value => value.GetValue<string>()).ToArray());
 
         var days = (OpenApiSchema)order.Properties["days"];
-        Assert.Equal(JsonSchemaType.String, days.Type);
-        Assert.Null(days.Enum);
+        Assert.AreEqual(JsonSchemaType.String, days.Type);
+        Assert.IsNull(days.Enum);
 
         var weight = (OpenApiSchema)order.Properties["weight"];
-        Assert.Equal(JsonSchemaType.Number | JsonSchemaType.Null, weight.Type);
+        Assert.AreEqual(JsonSchemaType.Number | JsonSchemaType.Null, weight.Type);
 
         var lines = (OpenApiSchema)order.Properties["lines"];
-        Assert.Equal(JsonSchemaType.Array, lines.Type);
-        Assert.Equal("lines", lines.Xml!.Name);
-        Assert.True(lines.Xml.Wrapped);
+        Assert.AreEqual(JsonSchemaType.Array, lines.Type);
+        Assert.AreEqual("lines", lines.Xml!.Name);
+        Assert.IsTrue(lines.Xml.Wrapped);
         var line = (OpenApiSchema)lines.Items!;
-        Assert.Equal("line", line.Xml!.Name);
-        Assert.Equal("OrderLineXml", ((OpenApiSchemaReference)line.AllOf![0]).Reference.Id);
+        Assert.AreEqual("line", line.Xml!.Name);
+        Assert.AreEqual("OrderLineXml", ((OpenApiSchemaReference)line.AllOf![0]).Reference.Id);
 
         var tag = (OpenApiSchema)order.Properties["tag"];
-        Assert.Equal(JsonSchemaType.Array, tag.Type);
-        Assert.Null(tag.Xml);
-        Assert.Equal(JsonSchemaType.String, ((OpenApiSchema)tag.Items!).Type);
+        Assert.AreEqual(JsonSchemaType.Array, tag.Type);
+        Assert.IsNull(tag.Xml);
+        Assert.AreEqual(JsonSchemaType.String, ((OpenApiSchema)tag.Items!).Type);
 
         var counts = (OpenApiSchema)order.Properties["Counts"];
-        Assert.Equal("int", ((OpenApiSchema)counts.Items!).Xml!.Name);
+        Assert.AreEqual("int", ((OpenApiSchema)counts.Items!).Xml!.Name);
 
         var customer = (OpenApiSchema)order.Properties["customer"];
-        Assert.Equal("customer", customer.Xml!.Name);
-        Assert.Equal("CustomerXml", ((OpenApiSchemaReference)customer.AllOf![0]).Reference.Id);
+        Assert.AreEqual("customer", customer.Xml!.Name);
+        Assert.AreEqual("CustomerXml", ((OpenApiSchemaReference)customer.AllOf![0]).Reference.Id);
 
         var money = (OpenApiSchema)schemas["MoneyXml"];
-        Assert.Equal(JsonSchemaType.Number, ((OpenApiSchema)money.Properties![QylXmlSchema.TextProperty]).Type);
-        Assert.True(((OpenApiSchema)money.Properties["currency"]).Xml!.Attribute);
+        Assert.AreEqual(JsonSchemaType.Number, ((OpenApiSchema)money.Properties![QylXmlSchema.TextProperty]).Type);
+        Assert.IsTrue(((OpenApiSchema)money.Properties["currency"]).Xml!.Attribute);
 
         var required = order.Required!.ToArray();
         Assert.Contains("id", required, StringComparer.Ordinal);
@@ -72,22 +73,22 @@ public sealed class SchemaTests
         Assert.DoesNotContain("note", required, StringComparer.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void SelfReferencingModelResolvesToItsOwnComponent()
     {
         var document = new OpenApiDocument();
 
         var reference = QylXmlSchema.Reference(document, Node.XmlShape);
 
-        Assert.Equal("NodeXml", reference.Reference.Id);
+        Assert.AreEqual("NodeXml", reference.Reference.Id);
         var schemas = document.Components!.Schemas!;
-        Assert.Single(schemas);
+        Assert.ContainsSingle(schemas);
         var node = (OpenApiSchema)schemas["NodeXml"];
         var child = (OpenApiSchema)node.Properties!["child"];
-        Assert.Equal("NodeXml", ((OpenApiSchemaReference)child.AllOf![0]).Reference.Id);
+        Assert.AreEqual("NodeXml", ((OpenApiSchemaReference)child.AllOf![0]).Reference.Id);
     }
 
-    [Fact]
+    [TestMethod]
     public void ReferenceIsRegisteredOnce()
     {
         var document = new OpenApiDocument();
@@ -96,6 +97,6 @@ public sealed class SchemaTests
         QylXmlSchema.Reference(document, Customer.XmlShape);
         QylXmlSchema.Reference(document, Order.XmlShape);
 
-        Assert.Equal(5, document.Components!.Schemas!.Count);
+        Assert.AreEqual(5, document.Components!.Schemas!.Count);
     }
 }

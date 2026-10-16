@@ -12,11 +12,14 @@ namespace Qyl.Build;
 
 interface IQylTests : IHasSolution, IHasConfiguration
 {
+    [Parameter("Optional native MSTest filter for focused OTLP persistence investigations")]
+    string? TelemetryTestFilter => TryGetValue(() => TelemetryTestFilter);
+
     Target Test => d => d
         .Description("Run every .NET test project in the solution using the completed build")
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => DotNetTasks.DotNet(
-            $"test --solution \"{Solution}\" --configuration {Configuration} --no-build --no-restore --max-parallel-test-modules 1",
+            $"test --solution {Solution} --configuration {Configuration} --no-build --no-restore --max-parallel-test-modules 1",
             workingDirectory: RootDirectory));
 }
 
@@ -27,27 +30,30 @@ interface IQylTests : IHasSolution, IHasConfiguration
 /// </summary>
 sealed class Build : FalloutBuild,
     ICompile,
-    IQylTests,
     ICoverage,
     IPipeline,
     INativeAot,
     IVerify,
     IDependencyEdges,
     ICliContractLoop,
-    ICollectorSemanticCatalog,
-    IConfigurationKnobs,
     IHousekeeping,
-    IPack,
     IApiSdk,
     IApiBaseline,
     IVocabularySmoke,
     IVerifyRelease
 {
-    internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
+    public Target VerifyTelemetryMetadata => d => d
+        .Description("Verify OTLP persistence, scope identity, descriptor conflicts and missing timestamps")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() => DotNetTasks.DotNet(
+            $"test --project {RootDirectory / "tests" / "Qyl.Collector.Tests" / "Qyl.Collector.Tests.csproj"} --configuration {From<IHasConfiguration>().Configuration} --no-build --no-restore --max-parallel-test-modules 1 --results-directory {RootDirectory / "artifacts" / "telemetry-metadata-tests"} -- --filter {From<IQylTests>().TelemetryTestFilter ?? "FullyQualifiedName~Qyl.Collector.Tests.TelemetryMetadataTests|FullyQualifiedName~Qyl.Collector.Tests.CanonicalMetricTests|FullyQualifiedName~Qyl.Collector.Tests.OtlpRecordValidationTests"} --report-trx",
+            workingDirectory: RootDirectory));
 
-    internal static string BranchLabel => GitScalar("branch --show-current", "local");
+    private static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
 
-    internal static string CommitLabel => GitScalar("rev-parse --short HEAD", "N/A");
+    private static string BranchLabel => GitScalar("branch --show-current", "local");
+
+    private static string CommitLabel => GitScalar("rev-parse --short HEAD", "N/A");
 
 
     public Target Clean => d => d

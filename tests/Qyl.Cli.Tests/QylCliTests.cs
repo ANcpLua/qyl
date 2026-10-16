@@ -4,60 +4,63 @@ using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;
 
-[Collection(ProcessEnvironmentTestGroup.Name)]
+[DoNotParallelize]
+[TestClass]
 public sealed class QylCliTests
 {
-    [Theory]
-    [InlineData]
-    [InlineData("--help")]
-    [InlineData("help")]
-    [InlineData("help", "up")]
-    [InlineData("up", "--help")]
+    [TestMethod]
+    [DataRow]
+    [DataRow("--help")]
+    [DataRow("help")]
+    [DataRow("help", "up")]
+    [DataRow("up", "--help")]
     public void Help_forms_parse_without_starting_the_product(params string[] args)
     {
-        Assert.Equal(QylCliAction.Help, QylCli.Parse(args).Action);
+        Assert.AreEqual(QylCliAction.Help, QylCli.Parse(args).Action);
     }
 
-    [Theory]
-    [InlineData("--version")]
-    [InlineData("-v")]
+    [TestMethod]
+    [DataRow("--version")]
+    [DataRow("-v")]
     public void Version_forms_parse_without_starting_the_product(params string[] args)
     {
-        Assert.Equal(QylCliAction.Version, QylCli.Parse(args).Action);
+        Assert.AreEqual(QylCliAction.Version, QylCli.Parse(args).Action);
     }
 
-    [Fact]
+    [TestMethod]
     public void Up_is_the_only_launch_command()
     {
         var bare = QylCli.Parse(["up"]);
-        Assert.Equal(QylCliAction.Up, bare.Action);
+        Assert.AreEqual(QylCliAction.Up, bare.Action);
 
         var oldFlag = QylCli.Parse(["up", "--dev"]);
-        Assert.Equal(QylCliAction.Invalid, oldFlag.Action);
+        Assert.AreEqual(QylCliAction.Invalid, oldFlag.Action);
+        Assert.IsNotNull(oldFlag.Error);
         Assert.Contains("Unknown qyl command: up --dev", oldFlag.Error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("--mcp-stdio", "node", "server.js")]
-    [InlineData("--mcp-http", "http://127.0.0.1:3001/mcp")]
+    [TestMethod]
+    [DataRow("--mcp-stdio", "node", "server.js")]
+    [DataRow("--mcp-http", "http://127.0.0.1:3001/mcp")]
     public void Removed_mcp_attachment_flags_are_rejected(params string[] flags)
     {
         var invocation = QylCli.Parse(["up", .. flags]);
 
-        Assert.Equal(QylCliAction.Invalid, invocation.Action);
+        Assert.AreEqual(QylCliAction.Invalid, invocation.Action);
+        Assert.IsNotNull(invocation.Error);
         Assert.Contains("Unknown qyl command", invocation.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Up_keeps_the_two_collector_composition()
     {
         var builder = QylCli.CreateApp(Path.Combine(Path.GetTempPath(), "qyl.collector.dll"));
 
-        Assert.Equal(["collector", "diagnostics"],
+        Assert.AreSequenceEqual(["collector", "diagnostics"],
             builder.Resources.Select(static resource => resource.Name).Order(StringComparer.Ordinal));
     }
 
-    [Fact]
+    [TestMethod]
     public void Packaged_collector_path_is_resolved_from_the_tool_installation()
     {
         var root = Path.Combine(Path.GetTempPath(), $"qyl-cli-{Guid.NewGuid():N}");
@@ -68,7 +71,7 @@ public sealed class QylCliTests
 
         try
         {
-            Assert.Equal(Path.GetFullPath(expected), QylCli.ResolveCollectorAssembly(root));
+            Assert.AreEqual(Path.GetFullPath(expected), QylCli.ResolveCollectorAssembly(root));
         }
         finally
         {
@@ -76,28 +79,28 @@ public sealed class QylCliTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Missing_packaged_collector_fails_with_a_reinstall_instruction()
     {
         var root = Path.Combine(Path.GetTempPath(), $"qyl-cli-missing-{Guid.NewGuid():N}");
-        var error = Assert.Throws<FileNotFoundException>(() => QylCli.ResolveCollectorAssembly(root));
+        var error = Assert.ThrowsExactly<FileNotFoundException>(() => QylCli.ResolveCollectorAssembly(root));
 
         Assert.Contains("installation is incomplete", error.Message, StringComparison.Ordinal);
         Assert.Contains("Reinstall the qyl dotnet tool", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Port_preflight_reports_the_exact_collision()
     {
         using var occupied = new TcpListener(IPAddress.Loopback, 0);
         occupied.Start();
         var port = ((IPEndPoint)occupied.LocalEndpoint).Port;
 
-        Assert.False(QylCli.TryValidatePortsAvailable([port], out var unavailable));
-        Assert.Equal(port, unavailable);
+        Assert.IsFalse(QylCli.TryValidatePortsAvailable([port], out var unavailable));
+        Assert.AreEqual(port, unavailable);
     }
 
-    [Fact]
+    [TestMethod]
     public void Up_composes_both_collectors_from_the_same_packaged_runtime()
     {
         var collectorAssembly = Path.GetFullPath(Path.Combine(
@@ -107,20 +110,20 @@ public sealed class QylCliTests
         var collector = builder.Resources.Single(static resource => resource.Name == "collector");
         var diagnostics = builder.Resources.Single(static resource => resource.Name == "diagnostics");
 
-        Assert.Equal(QylResourceKind.Collector, collector.Kind);
-        Assert.Equal(5100, collector.Port);
-        Assert.Equal("dotnet", collector.Launch.Executable);
-        Assert.Equal([collectorAssembly], collector.Launch.Args);
-        Assert.Equal([diagnostics.Name], collector.WaitsFor);
+        Assert.AreEqual(QylResourceKind.Collector, collector.Kind);
+        Assert.AreEqual(5100, collector.Port);
+        Assert.AreEqual("dotnet", collector.Launch.Executable);
+        Assert.AreSequenceEqual([collectorAssembly], collector.Launch.Args);
+        Assert.AreSequenceEqual([diagnostics.Name], collector.WaitsFor);
 
-        Assert.Equal(QylResourceKind.Collector, diagnostics.Kind);
-        Assert.Equal(5200, diagnostics.Port);
-        Assert.Equal("dotnet", diagnostics.Launch.Executable);
-        Assert.Equal([collectorAssembly], diagnostics.Launch.Args);
-        Assert.Equal(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+        Assert.AreEqual(QylResourceKind.Collector, diagnostics.Kind);
+        Assert.AreEqual(5200, diagnostics.Port);
+        Assert.AreEqual("dotnet", diagnostics.Launch.Executable);
+        Assert.AreSequenceEqual([collectorAssembly], diagnostics.Launch.Args);
+        Assert.AreEqual(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
     }
 
-    [Fact]
+    [TestMethod]
     public void Up_pins_its_zero_configuration_contract()
     {
         var originalAuthMode = Environment.GetEnvironmentVariable(QylConstants.Env.QylOtlpAuthMode);
@@ -132,9 +135,9 @@ public sealed class QylCliTests
             var collector = builder.Resources.Single(static resource => resource.Name == "collector");
             var diagnostics = builder.Resources.Single(static resource => resource.Name == "diagnostics");
 
-            Assert.Equal(QylConstants.Collector.UnsecuredAuthMode,
+            Assert.AreEqual(QylConstants.Collector.UnsecuredAuthMode,
                 collector.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
-            Assert.Equal(QylConstants.Collector.UnsecuredAuthMode,
+            Assert.AreEqual(QylConstants.Collector.UnsecuredAuthMode,
                 diagnostics.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
         }
         finally

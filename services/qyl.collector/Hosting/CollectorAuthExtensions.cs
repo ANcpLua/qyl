@@ -32,7 +32,6 @@ internal static class CollectorAuthExtensions
 
         services.AddSingleton(otlpApiKeyOptions);
 
-        services.AddSingleton(TimeProvider.System);
 
         return services;
     }

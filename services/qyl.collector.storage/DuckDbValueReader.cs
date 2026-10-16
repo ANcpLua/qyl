@@ -49,6 +49,14 @@ internal static class DuckDbValueReader
     public static int ReadInt32(DbDataReader reader, int ordinal, int defaultValue) =>
         ReadInt32(reader, ordinal) ?? defaultValue;
 
+    public static uint? ReadUInt32(DbDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal)
+            ? null
+            : Convert.ToUInt32(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+
+    public static uint ReadUInt32(DbDataReader reader, int ordinal, uint defaultValue) =>
+        ReadUInt32(reader, ordinal) ?? defaultValue;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte? ReadByte(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)

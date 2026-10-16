@@ -1,7 +1,7 @@
 namespace Qyl.Collector.Storage;
 
 /// <summary>
-/// One row per distinct (metric, attribute set, resource) stream — the series index.
+/// One row per distinct resource, scope, metric shape and attribute set — the series index.
 /// It answers "which metrics exist" and "which series carry attribute X" without touching
 /// the point table, which is the pair of questions an agent asks before it asks for values.
 /// </summary>
@@ -16,13 +16,24 @@ namespace Qyl.Collector.Storage;
         temporality = EXCLUDED.temporality,
         is_monotonic = EXCLUDED.is_monotonic,
         unit = EXCLUDED.unit,
-        description = EXCLUDED.description,
+        description = CASE
+            WHEN length(coalesce(EXCLUDED.description, '')) > length(coalesce(description, '')) THEN EXCLUDED.description
+            WHEN length(coalesce(EXCLUDED.description, '')) < length(coalesce(description, '')) THEN description
+            ELSE greatest(description, EXCLUDED.description) END,
         schema_url = EXCLUDED.schema_url,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
         resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,
         first_seen_unix_nano = least(first_seen_unix_nano, EXCLUDED.first_seen_unix_nano),
-        last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano)
+        last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano),
+        scope_name = EXCLUDED.scope_name,
+        scope_version = EXCLUDED.scope_version,
+        scope_schema_url = EXCLUDED.scope_schema_url,
+        scope_attributes_json = EXCLUDED.scope_attributes_json,
+        scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,
+        resource_schema_url = EXCLUDED.resource_schema_url,
+        resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,
+        instrument_id = EXCLUDED.instrument_id
     """)]
 internal sealed partial record MetricSeriesRow
 {
@@ -30,8 +41,8 @@ internal sealed partial record MetricSeriesRow
     public required string ProjectId { get; init; }
 
     /// <summary>
-    /// Deterministic digest of metric name, persisted attributes, service name and resource
-    /// projection. Stable across restarts and exporters, so re-ingesting the same stream
+    /// Deterministic digest of resource, instrumentation scope, metric name, identifying
+    /// descriptor fields and point attributes. Stable across restarts, so re-ingesting the same stream
     /// updates one row instead of forking a new series.
     /// </summary>
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
@@ -60,6 +71,15 @@ internal sealed partial record MetricSeriesRow
 
     public required ulong FirstSeenUnixNano { get; init; }
     public required ulong LastSeenUnixNano { get; init; }
+    public string? ScopeName { get; init; }
+    public string? ScopeVersion { get; init; }
+    public string? ScopeSchemaUrl { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ScopeAttributesJson { get; init; }
+    public uint? ScopeDroppedAttributesCount { get; init; }
+    public string? ResourceSchemaUrl { get; init; }
+    public uint? ResourceDroppedAttributesCount { get; init; }
+    public string? InstrumentId { get; init; }
 }
 
 /// <summary>
@@ -68,6 +88,7 @@ internal sealed partial record MetricSeriesRow
 /// </summary>
 [DuckDbTable(
     "metric_points",
+    Derived = true,
     // The primary key already orders points by (project, series, time), which is the range
     // scan every value query performs. This one extra index serves the two queries that cross
     // series: the retention sweep and "what happened in this project between t0 and t1".
@@ -81,7 +102,9 @@ internal sealed partial record MetricSeriesRow
         histogram_min = EXCLUDED.histogram_min,
         histogram_max = EXCLUDED.histogram_max,
         bucket_bounds_json = EXCLUDED.bucket_bounds_json,
-        bucket_counts_json = EXCLUDED.bucket_counts_json
+        bucket_counts_json = EXCLUDED.bucket_counts_json,
+        has_conflict = EXCLUDED.has_conflict,
+        projection_unavailable_reason = EXCLUDED.projection_unavailable_reason
     """)]
 internal sealed partial record MetricPointRow
 {
@@ -117,9 +140,11 @@ internal sealed partial record MetricPointRow
 
     [DuckDbColumn(SqlType = "JSON")]
     public string? BucketCountsJson { get; init; }
+    public byte HasConflict { get; init; }
+    public string? ProjectionUnavailableReason { get; init; }
 }
 
-/// <summary>A metric name and the shape shared by every series recorded under it.</summary>
+/// <summary>A resource, scope and name with its actual descriptor variants.</summary>
 internal sealed record MetricCatalogEntry(
     string MetricName,
     byte MetricKind,
@@ -128,7 +153,24 @@ internal sealed record MetricCatalogEntry(
     string? Unit,
     string? Description,
     long SeriesCount,
-    ulong LastSeenUnixNano);
+    ulong LastSeenUnixNano)
+{
+    public required string InstrumentId { get; init; }
+    public string? ServiceName { get; init; }
+    public string? ResourceJson { get; init; }
+    public string? ResourceEntityRefsJson { get; init; }
+    public string? ResourceSchemaUrl { get; init; }
+    public uint? ResourceDroppedAttributesCount { get; init; }
+    public string? ScopeName { get; init; }
+    public string? ScopeVersion { get; init; }
+    public string? ScopeSchemaUrl { get; init; }
+    public string? ScopeAttributesJson { get; init; }
+    public uint? ScopeDroppedAttributesCount { get; init; }
+    public IReadOnlyList<MetricDescriptorVariant> Variants { get; init; } = [];
+}
+
+internal sealed record MetricDescriptorVariant(
+    byte Kind, byte Temporality, byte IsMonotonic, string? Unit, IReadOnlyList<string> Services);
 
 /// <summary>One aggregated time bucket of a metric query.</summary>
 internal sealed record MetricAggregatePoint(

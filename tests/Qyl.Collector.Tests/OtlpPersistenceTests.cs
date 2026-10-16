@@ -13,9 +13,10 @@ using RpcStatus = Google.Rpc.Status;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class OtlpPersistenceTests
+[TestClass]
+public sealed class OtlpPersistenceTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Http_persistence_failure_is_retryable_and_uses_the_official_status_envelope()
     {
         await using var store = new DuckDbStore(
@@ -30,16 +31,16 @@ public sealed class OtlpPersistenceTests
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
             context,
             store,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
         var status = RpcStatus.Parser.ParseFrom(((MemoryStream)context.Response.Body).ToArray());
-        Assert.Equal("The collector could not persist the OTLP traces payload.", status.Message);
+        Assert.AreEqual("The collector could not persist the OTLP traces payload.", status.Message);
     }
 
-    [Fact]
-    public async Task Http_sender_corruption_remains_a_non_retryable_bad_request()
+    [TestMethod]
+    public async Task Http_malformed_span_is_acknowledged_with_a_rejected_item_count()
     {
         await using var store = new DuckDbStore(":memory:");
         var request = TraceRequest(1);
@@ -52,15 +53,17 @@ public sealed class OtlpPersistenceTests
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
             context,
             store,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-        var status = RpcStatus.Parser.ParseFrom(((MemoryStream)context.Response.Body).ToArray());
-        Assert.Equal("The OTLP traces payload is invalid.", status.Message);
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
+        var response = ExportTraceServiceResponse.Parser.ParseFrom(((MemoryStream)context.Response.Body).ToArray());
+        Assert.AreEqual(1L, response.PartialSuccess.RejectedSpans);
+        Assert.Contains("trace_id", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        Assert.IsEmpty(await store.GetSpansAsync("default", ct: testContext.CancellationToken));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Grpc_persistence_failure_is_unavailable_so_exporters_retry()
     {
         await using var store = new DuckDbStore(
@@ -68,16 +71,16 @@ public sealed class OtlpPersistenceTests
             beforeWrite: _ => ValueTask.FromException(new IOException("Injected persistence failure.")));
         var batch = Batch(1);
 
-        var error = await Assert.ThrowsAsync<RpcException>(() => GrpcExport.ExecuteAsync(async () =>
+        var error = await Assert.ThrowsExactlyAsync<RpcException>(() => GrpcExport.ExecuteAsync(async () =>
         {
-            await store.EnqueueAsync(batch, TestContext.Current.CancellationToken);
+            await store.EnqueueAsync(batch, testContext.CancellationToken);
             return new ExportTraceServiceResponse();
         }, "trace"));
 
-        Assert.Equal(StatusCode.Unavailable, error.StatusCode);
+        Assert.AreEqual(StatusCode.Unavailable, error.StatusCode);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Full_write_queue_fails_fast_instead_of_dropping_an_acknowledged_trace_batch()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -91,27 +94,29 @@ public sealed class OtlpPersistenceTests
                 await release.Task.WaitAsync(token);
             });
 
-        var first = store.EnqueueAsync(Batch(1), TestContext.Current.CancellationToken).AsTask();
-        await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
-        var queued = store.EnqueueAsync(Batch(2), TestContext.Current.CancellationToken).AsTask();
-        var saturated = store.EnqueueAsync(Batch(3), TestContext.Current.CancellationToken).AsTask();
+        var first = store.EnqueueAsync(Batch(1), testContext.CancellationToken).AsTask();
+        await entered.Task.WaitAsync(testContext.CancellationToken);
+        var queued = store.EnqueueAsync(Batch(2), testContext.CancellationToken).AsTask();
+        var saturated = store.EnqueueAsync(Batch(3), testContext.CancellationToken).AsTask();
 
-        await Assert.ThrowsAsync<QylStoreUnavailableException>(() => saturated);
+        await Assert.ThrowsExactlyAsync<QylStoreUnavailableException>(() => saturated);
         release.TrySetResult();
         await Task.WhenAll(first, queued);
 
-        var rows = await store.GetSpansAsync("default", ct: TestContext.Current.CancellationToken);
-        Assert.Equal(2, rows.Count);
+        var rows = await store.GetSpansAsync("default", ct: testContext.CancellationToken);
+        Assert.AreEqual(2, rows.Count);
     }
 
     private static DefaultHttpContext ResponseContext()
     {
-        var context = new DefaultHttpContext
+        return new DefaultHttpContext
         {
-            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider()
+            RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider(),
+            Response =
+            {
+                Body = new MemoryStream()
+            }
         };
-        context.Response.Body = new MemoryStream();
-        return context;
     }
 
     private static ExportTraceServiceRequest TraceRequest(int identity) => new()

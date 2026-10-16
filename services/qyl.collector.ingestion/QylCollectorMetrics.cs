@@ -1,10 +1,9 @@
 using System.Diagnostics.Metrics;
-using Qyl.Collector.Ingestion;
 using Qyl.Telemetry.SemanticConventions.Incubating.Mapping;
 using Qyl.Telemetry.SemanticConventions.Incubating.Metrics;
 using Qyl.Telemetry.SemanticConventions.Names;
 
-namespace Qyl.Collector.Telemetry;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 /// The collector's own instruments. One Meter, named by the same scope constant as the

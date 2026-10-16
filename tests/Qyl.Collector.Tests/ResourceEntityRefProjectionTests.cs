@@ -15,9 +15,10 @@ using OtlpScopeSpans = OpenTelemetry.Proto.Trace.V1.ScopeSpans;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class ResourceEntityRefProjectionTests
+[TestClass]
+public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Entity_references_survive_trace_and_log_storage_projection_in_canonical_order()
     {
         var traceRequest = new ExportTraceServiceRequest
@@ -35,8 +36,8 @@ public sealed class ResourceEntityRefProjectionTests
                             {
                                 new OtlpSpan
                                 {
-                                    TraceId = ByteString.CopyFrom(new byte[16]),
-                                    SpanId = ByteString.CopyFrom(new byte[8]),
+                                    TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
+                                    SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
                                     Name = "entity-ref-trace",
                                     StartTimeUnixNano = 1,
                                     EndTimeUnixNano = 2
@@ -47,10 +48,10 @@ public sealed class ResourceEntityRefProjectionTests
                 }
             }
         };
-        var spanRow = Assert.Single(IngestionStorageMapper.ToSpanStorageRows(
+        var spanRow = Assert.ContainsSingle(IngestionStorageMapper.ToSpanStorageRows(
             OtlpConverter.ConvertTraceRequest(traceRequest)));
-        Assert.NotNull(spanRow.ResourceEntityRefsJson);
-        AssertCanonicalRefs(Assert.Single(SpanMapper.ToContracts([spanRow])).Resource.EntityRefs);
+        Assert.IsNotNull(spanRow.ResourceEntityRefsJson);
+        AssertCanonicalRefs(Assert.ContainsSingle(SpanMapper.ToContracts([spanRow])).Resource.EntityRefs);
 
         const string EventName = "entity.ref.log";
         var logRequest = new ExportLogsServiceRequest
@@ -77,28 +78,28 @@ public sealed class ResourceEntityRefProjectionTests
                 }
             }
         };
-        var logRow = Assert.Single(IngestionStorageMapper.ToLogStorageRows(
-            OtlpConverter.ConvertLogs(logRequest)));
-        Assert.Equal(EventName, logRow.EventName);
+        var logRow = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(
+            OtlpConverter.ConvertLogs(logRequest, TimeProvider.System)));
+        Assert.AreEqual(EventName, logRow.EventName);
         var log = LogMapper.ToContract(logRow);
-        Assert.Equal(EventName, log.EventName);
+        Assert.AreEqual(EventName, log.EventName);
         AssertCanonicalRefs(log.Resource.EntityRefs);
 
         await using var store = new DuckDbStore(":memory:");
-        await store.EnqueueAsync(new SpanBatch([spanRow]), TestContext.Current.CancellationToken);
-        await store.InsertLogsAsync([logRow], TestContext.Current.CancellationToken);
+        await store.EnqueueAsync(new SpanBatch([spanRow]), testContext.CancellationToken);
+        await store.InsertLogsAsync([logRow], testContext.CancellationToken);
 
-        AssertCanonicalRefs(Assert.Single(SpanMapper.ToContracts(await store.GetSpansAsync(
+        AssertCanonicalRefs(Assert.ContainsSingle(SpanMapper.ToContracts(await store.GetSpansAsync(
             "default",
-            ct: TestContext.Current.CancellationToken))).Resource.EntityRefs);
-        var storedLog = Assert.Single(await store.GetLogsAsync(
+            ct: testContext.CancellationToken))).Resource.EntityRefs);
+        var storedLog = Assert.ContainsSingle(await store.GetLogsAsync(
             "default",
-            ct: TestContext.Current.CancellationToken));
-        Assert.Equal(EventName, storedLog.EventName);
+            ct: testContext.CancellationToken));
+        Assert.AreEqual(EventName, storedLog.EventName);
         AssertCanonicalRefs(LogMapper.ToContract(storedLog).Resource.EntityRefs);
     }
 
-    [Fact]
+    [TestMethod]
     public void Description_metadata_updates_do_not_change_log_identity()
     {
         var request = new ExportLogsServiceRequest
@@ -118,28 +119,28 @@ public sealed class ResourceEntityRefProjectionTests
                 }
             }
         };
-        var original = Assert.Single(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request)));
+        var original = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request, TimeProvider.System)));
 
         var changed = request.Clone();
         changed.ResourceLogs[0].Resource.EntityRefs
             .Single(static entityRef => entityRef.Type == "service")
             .DescriptionKeys.Clear();
-        var updated = Assert.Single(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed)));
+        var updated = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed, TimeProvider.System)));
 
-        Assert.Equal(original.LogId, updated.LogId);
-        Assert.NotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
+        Assert.AreEqual(original.LogId, updated.LogId);
+        Assert.AreNotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
 
         changed = request.Clone();
         changed.ResourceLogs[0].Resource.EntityRefs
             .Single(static entityRef => entityRef.Type == "service")
             .SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
-        updated = Assert.Single(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed)));
+        updated = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed, TimeProvider.System)));
 
-        Assert.Equal(original.LogId, updated.LogId);
-        Assert.NotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
+        Assert.AreEqual(original.LogId, updated.LogId);
+        Assert.AreNotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
     }
 
-    [Fact]
+    [TestMethod]
     public void Entity_references_preserve_only_their_non_denied_custom_resource_attributes()
     {
         var resource = BuildResource();
@@ -154,13 +155,13 @@ public sealed class ResourceEntityRefProjectionTests
         });
 
         var span = SpanMapper.ToContracts([ProjectSingleSpan(resource)]).Single();
-        var attributes = Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
+        var attributes = Assert.IsInstanceOfType<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
             span.Resource.Attributes);
-        Assert.Contains(attributes, static attribute =>
-            attribute is { Key: "custom.entity.id", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "custom-1" } });
-        Assert.Contains(attributes, static attribute =>
-            attribute is { Key: "custom.entity.description", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "Custom entity" } });
-        Assert.DoesNotContain(attributes, static attribute => attribute.Key == "custom.unreferenced");
+        Assert.Contains(static attribute =>
+            attribute is { Key: "custom.entity.id", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "custom-1" } },attributes);
+        Assert.Contains(static attribute =>
+            attribute is { Key: "custom.entity.description", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "Custom entity" } },attributes);
+        Assert.DoesNotContain(static attribute => attribute.Key == "custom.unreferenced",attributes);
 
         var denied = BuildResource();
         denied.Attributes.Add(StringAttribute("custom.api_key", "do-not-store"));
@@ -169,14 +170,16 @@ public sealed class ResourceEntityRefProjectionTests
             Type = "custom.entity",
             IdKeys = { "custom.api_key" }
         });
-        Assert.Throws<InvalidDataException>(() => ProjectSingleSpan(denied));
+        var rejected = ProjectResource(denied);
+        Assert.AreEqual(1L, rejected.RejectedSpans);
+        Assert.IsEmpty(rejected.Spans);
     }
 
     /// <summary>
     /// <c>qyl.app.*</c> is bounded per span, event and link; a resource has no such bound, so an entity reference
     /// cannot carry one onto it.
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void An_entity_reference_does_not_carry_an_app_attribute_onto_the_resource()
     {
         var resource = BuildResource();
@@ -187,11 +190,16 @@ public sealed class ResourceEntityRefProjectionTests
             IdKeys = { "qyl.app.tenant" }
         });
 
-        Assert.False(AttributeKeySets.IsSafeEntityReferencedResourceAttribute("qyl.app.tenant"));
-        Assert.Throws<InvalidDataException>(() => ProjectSingleSpan(resource));
+        Assert.IsFalse(AttributeKeySets.IsSafeEntityReferencedResourceAttribute("qyl.app.tenant"));
+        var rejected = ProjectResource(resource);
+        Assert.AreEqual(1L, rejected.RejectedSpans);
+        Assert.IsEmpty(rejected.Spans);
     }
 
-    private static SpanStorageRow ProjectSingleSpan(Resource resource)
+    private static SpanStorageRow ProjectSingleSpan(Resource resource) =>
+        Assert.ContainsSingle(IngestionStorageMapper.ToSpanStorageRows(ProjectResource(resource)));
+
+    private static TraceIngestionBatch ProjectResource(Resource resource)
     {
         var request = new ExportTraceServiceRequest
         {
@@ -208,8 +216,8 @@ public sealed class ResourceEntityRefProjectionTests
                             {
                                 new OtlpSpan
                                 {
-                                    TraceId = ByteString.CopyFrom(new byte[16]),
-                                    SpanId = ByteString.CopyFrom(new byte[8]),
+                                    TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
+                                    SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
                                     Name = "entity-ref-custom-resource",
                                     StartTimeUnixNano = 1,
                                     EndTimeUnixNano = 2
@@ -221,8 +229,7 @@ public sealed class ResourceEntityRefProjectionTests
             }
         };
 
-        return Assert.Single(IngestionStorageMapper.ToSpanStorageRows(
-            OtlpConverter.ConvertTraceRequest(request)));
+        return OtlpConverter.ConvertTraceRequest(request);
     }
 
     private static Resource BuildResource() =>
@@ -257,19 +264,15 @@ public sealed class ResourceEntityRefProjectionTests
 
     private static void AssertCanonicalRefs(IReadOnlyList<Qyl.Api.Contracts.Common.EntityRef>? entityRefs)
     {
-        Assert.Collection(
-            Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.EntityRef>>(entityRefs),
-            deployment =>
-            {
-                Assert.Equal("deployment", deployment.Type);
-                Assert.Equal(["deployment.environment.name"], deployment.IdKeys);
-                Assert.Null(deployment.DescriptionKeys);
-            },
-            service =>
-            {
-                Assert.Equal("service", service.Type);
-                Assert.Equal(["service.name"], service.IdKeys);
-                Assert.Equal(["service.namespace"], service.DescriptionKeys);
-            });
+        Assert.IsNotNull(entityRefs);
+        Assert.HasCount(2, entityRefs);
+        var deployment = entityRefs[0];
+        Assert.AreEqual("deployment", deployment.Type);
+        Assert.AreSequenceEqual(["deployment.environment.name"], deployment.IdKeys);
+        Assert.IsNull(deployment.DescriptionKeys);
+        var service = entityRefs[1];
+        Assert.AreEqual("service", service.Type);
+        Assert.AreSequenceEqual(["service.name"], service.IdKeys);
+        Assert.AreSequenceEqual(["service.namespace"], service.DescriptionKeys);
     }
 }

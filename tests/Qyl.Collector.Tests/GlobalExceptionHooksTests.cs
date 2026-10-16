@@ -7,9 +7,10 @@ namespace Qyl.Collector.Tests;
 /// An unhandled or unobserved exception with no span current gets a span of its own on the application scope,
 /// which AddQyl subscribes, and that span ends: a span nobody stops is never exported.
 /// </summary>
+[TestClass]
 public sealed class GlobalExceptionHooksTests
 {
-    [Fact]
+    [TestMethod]
     public void An_exception_outside_any_span_is_recorded_on_an_ended_application_span()
     {
         var stopped = new List<Activity>();
@@ -37,9 +38,9 @@ public sealed class GlobalExceptionHooksTests
 
         Activity span;
         lock (stopped)
-            span = Assert.Single(stopped, static activity => activity.DisplayName == "UnhandledException");
-        Assert.Equal(ActivityStatusCode.Error, span.Status);
-        Assert.Equal("app", span.GetTagItem("qyl.instrumentation.domain"));
-        Assert.Contains(span.Events, static activityEvent => activityEvent.Name == "exception");
+            span = Assert.ContainsSingle(static activity => activity.DisplayName == "UnhandledException",stopped);
+        Assert.AreEqual(ActivityStatusCode.Error, span.Status);
+        Assert.AreEqual("app", span.GetTagItem("qyl.instrumentation.domain"));
+        Assert.Contains(static activityEvent => activityEvent.Name == "exception",span.Events);
     }
 }

@@ -194,10 +194,8 @@ internal sealed partial class DuckDbStore
                 SpanCount = spanCount,
                 TraceCount = DuckDbValueReader.ReadInt64(reader, 4, 0),
                 ErrorCount = errorCount,
-                ErrorRate = spanCount > 0 ? (double)errorCount / spanCount : 0,
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
-                TotalTokens = inputTokens + outputTokens,
                 GenAiRequestCount = DuckDbValueReader.ReadInt64(reader, 8, 0),
                 Providers = ReadStringList(reader, 9),
                 Models = ReadStringList(reader, 10),
@@ -235,10 +233,8 @@ internal sealed record SessionQueryRow
     public long SpanCount { get; init; }
     public long TraceCount { get; init; }
     public long ErrorCount { get; init; }
-    public double ErrorRate { get; init; }
     public long InputTokens { get; init; }
     public long OutputTokens { get; init; }
-    public long TotalTokens { get; init; }
     public long GenAiRequestCount { get; init; }
     public IReadOnlyList<string> Providers { get; init; } = [];
     public IReadOnlyList<string> Models { get; init; } = [];

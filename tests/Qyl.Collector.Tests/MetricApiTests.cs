@@ -13,18 +13,19 @@ using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class MetricApiTests
+[TestClass]
+public sealed class MetricApiTests(TestContext testContext)
 {
     private const ulong T0 = 1_700_000_000_000_000_000UL;
     private const ulong OneSecond = 1_000_000_000UL;
     private const string T0Iso = "2023-11-14T22:13:20Z";
     private const string T0PlusMinuteIso = "2023-11-14T22:14:20Z";
 
-    [Fact]
+    [TestMethod]
     public async Task The_catalog_route_lists_metric_names_with_their_shape()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct,
             Gauge("http.server.active", "/a", (T0, 2d)),
             Gauge("http.server.active", "/b", (T0, 8d)),
@@ -34,30 +35,30 @@ public sealed class MetricApiTests
         var result = await CollectorEndpointExtensions.GetMetricsAsync(context, store, ct);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var body = await ReadBodyAsync(context);
         var page = JsonSerializer.Deserialize(body, QylSerializerContext.Default.CursorPageMetricDescriptor)!;
 
-        Assert.Equal(2, page.Items.Count);
+        Assert.AreEqual(2, page.Items.Count);
         var active = page.Items.Single(static item => item.Name is "http.server.active");
         // Two attribute sets under one name are two series, not two metrics.
-        Assert.Equal(2, active.SeriesCount);
-        Assert.Equal(Api.Contracts.OTel.Metrics.MetricKind.Gauge, active.Kind);
-        Assert.False(active.Monotonic);
+        Assert.AreEqual(2, active.SeriesCount);
+        Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricKind.Gauge, active.Kind);
+        Assert.IsFalse(active.Monotonic);
 
         var requests = page.Items.Single(static item => item.Name is "http.server.requests");
-        Assert.Equal(Api.Contracts.OTel.Metrics.MetricKind.Sum, requests.Kind);
-        Assert.Equal(Api.Contracts.OTel.Metrics.MetricTemporality.Cumulative, requests.Temporality);
-        Assert.True(requests.Monotonic);
-        Assert.Equal("{request}", requests.Unit);
-        Assert.False(page.HasMore);
+        Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricKind.Sum, requests.Kind);
+        Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricTemporality.Cumulative, requests.Temporality);
+        Assert.IsTrue(requests.Monotonic);
+        Assert.AreEqual("{request}", requests.Unit);
+        Assert.IsFalse(page.HasMore);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_catalog_route_honours_the_contract_name_prefix_parameter()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct,
             Gauge("http.server.active", "/a", (T0, 1d)),
             Gauge("db.client.connections", "/a", (T0, 1d)));
@@ -69,14 +70,14 @@ public sealed class MetricApiTests
         var page = JsonSerializer.Deserialize(
             await ReadBodyAsync(context),
             QylSerializerContext.Default.CursorPageMetricDescriptor)!;
-        Assert.Equal("http.server.active", Assert.Single(page.Items).Name);
+        Assert.AreEqual("http.server.active", Assert.ContainsSingle(page.Items).Name);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_series_route_lists_streams_and_filters_them_by_attribute()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct,
             Gauge("http.server.active", "/a", (T0, 2d)),
             Gauge("http.server.active", "/b", (T0, 8d)));
@@ -86,52 +87,52 @@ public sealed class MetricApiTests
             all, "http.server.active", store, ct)).ExecuteAsync(all);
         var allPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(all), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        Assert.Equal(2, allPage.Items.Count);
-        Assert.All(allPage.Items, static item => Assert.StartsWith("ms_", item.SeriesId, StringComparison.Ordinal));
-        Assert.All(allPage.Items, static item =>
-            Assert.Contains(item.Attributes, static a => a.Key is "http.route"));
+        Assert.AreEqual(2, allPage.Items.Count);
+        allPage.Items.ToList().ForEach(static item => Assert.StartsWith("ms_", item.SeriesId, StringComparison.Ordinal));
+        allPage.Items.ToList().ForEach(static item =>
+            Assert.Contains(static a => a.Key is "http.route",item.Attributes));
 
         var exact = CreateContext("attr=http.route%3D/a");
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             exact, "http.server.active", store, ct)).ExecuteAsync(exact);
         var exactPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(exact), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        var only = Assert.Single(exactPage.Items);
-        Assert.Equal(
+        var only = Assert.ContainsSingle(exactPage.Items);
+        Assert.AreEqual(
             "/a",
-            AttributeString(Assert.Single(only.Attributes, static a => a.Key is "http.route")));
+            AttributeString(Assert.ContainsSingle(static a => a.Key is "http.route",only.Attributes)));
 
         var prefixed = CreateContext("attr_prefix=http.route%3D/");
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             prefixed, "http.server.active", store, ct)).ExecuteAsync(prefixed);
         var prefixedPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(prefixed), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        Assert.Equal(2, prefixedPage.Items.Count);
+        Assert.AreEqual(2, prefixedPage.Items.Count);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_unrecorded_metric_name_is_a_not_found_on_both_series_and_query()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct, Gauge("http.server.active", "/a", (T0, 1d)));
 
         var series = CreateContext();
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             series, "never.recorded", store, ct)).ExecuteAsync(series);
-        Assert.Equal(StatusCodes.Status404NotFound, series.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status404NotFound, series.Response.StatusCode);
 
         var query = CreateContext($"start_time={T0Iso}&end_time={T0PlusMinuteIso}");
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             query, "never.recorded", store, ct)).ExecuteAsync(query);
-        Assert.Equal(StatusCodes.Status404NotFound, query.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status404NotFound, query.Response.StatusCode);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_query_route_aggregates_into_buckets_and_splits_by_group_by()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct,
             Gauge("http.server.active", "/a", (T0, 1d), (T0 + 30 * OneSecond, 3d)),
             Gauge("http.server.active", "/b", (T0, 10d)));
@@ -142,37 +143,37 @@ public sealed class MetricApiTests
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var result = JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
 
-        Assert.Equal("http.server.active", result.Name);
-        Assert.Equal(Api.Contracts.OTel.Metrics.MetricAggregation.Avg, result.Aggregation);
-        Assert.Equal(30_000, result.StepMs);
-        Assert.False(result.Truncated);
-        Assert.Equal(2, result.Series.Count);
+        Assert.AreEqual("http.server.active", result.Name);
+        Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricAggregation.Avg, result.Aggregation);
+        Assert.AreEqual(30_000, result.StepMs);
+        Assert.IsFalse(result.Truncated);
+        Assert.AreEqual(2, result.Series.Count);
 
         var routeA = result.Series.Single(stream =>
             stream.Attributes.Any(static a => a.Key is "http.route" && AttributeString(a) is "/a"));
-        Assert.Equal(2, routeA.Buckets.Count);
-        Assert.Equal(1d, BucketValue(routeA.Buckets[0]), 9);
-        Assert.Equal(3d, BucketValue(routeA.Buckets[1]), 9);
-        Assert.Equal(1, routeA.Buckets[0].PointCount);
+        Assert.AreEqual(2, routeA.Buckets.Count);
+        Assert.AreEqual(1d, BucketValue(routeA.Buckets[0]), 0.0000000005d);
+        Assert.AreEqual(3d, BucketValue(routeA.Buckets[1]), 0.0000000005d);
+        Assert.AreEqual(1, routeA.Buckets[0].PointCount);
         // The second bucket starts exactly one step after the range start.
-        Assert.Equal(
+        Assert.AreEqual(
             routeA.Buckets[0].BucketStart.AddMilliseconds(30_000),
             routeA.Buckets[1].BucketStart);
 
         var routeB = result.Series.Single(stream =>
             stream.Attributes.Any(static a => a.Key is "http.route" && AttributeString(a) is "/b"));
-        Assert.Equal(10d, BucketValue(Assert.Single(routeB.Buckets)), 9);
+        Assert.AreEqual(10d, BucketValue(Assert.ContainsSingle(routeB.Buckets)), 0.0000000005d);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_query_route_interpolates_a_histogram_percentile_over_the_folded_buckets()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
 
         // Buckets (-inf,1] (1,5] (5,inf) with counts 1,2,1 twice fold to 2,4,2, so the
         // median lands in (1,5] at its midpoint.
@@ -184,68 +185,68 @@ public sealed class MetricApiTests
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             context, "http.server.duration", store, ct)).ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var result = JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
 
-        Assert.Equal(Api.Contracts.OTel.Metrics.MetricKind.Histogram, result.Kind);
-        Assert.Equal(Api.Contracts.OTel.Metrics.MetricAggregation.P50, result.Aggregation);
-        Assert.Equal("s", result.Unit);
-        var bucket = Assert.Single(Assert.Single(result.Series).Buckets);
-        Assert.Equal(3d, BucketValue(bucket), 9);
-        Assert.Equal(8, bucket.PointCount);
+        Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricKind.Histogram, result.Kind);
+        Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricAggregation.P50, result.Aggregation);
+        Assert.AreEqual("s", result.Unit);
+        var bucket = Assert.ContainsSingle(Assert.ContainsSingle(result.Series).Buckets);
+        Assert.AreEqual(3d, BucketValue(bucket), 0.0000000005d);
+        Assert.AreEqual(8, bucket.PointCount);
     }
 
-    [Theory]
-    [InlineData("", "start_time")]
-    [InlineData("start_time=2023-11-14T22:13:20Z", "end_time")]
-    [InlineData("start_time=2023-11-14T22:14:20Z&end_time=2023-11-14T22:13:20Z", "end_time")]
-    [InlineData("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&step_ms=0", "step_ms")]
-    [InlineData("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&step_ms=86400001", "step_ms")]
-    [InlineData("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&series_limit=501", "series_limit")]
-    [InlineData("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&aggregation=median", "aggregation")]
-    [InlineData("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&attr=noequalssign", "attr")]
+    [TestMethod]
+    [DataRow("", "start_time")]
+    [DataRow("start_time=2023-11-14T22:13:20Z", "end_time")]
+    [DataRow("start_time=2023-11-14T22:14:20Z&end_time=2023-11-14T22:13:20Z", "end_time")]
+    [DataRow("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&step_ms=0", "step_ms")]
+    [DataRow("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&step_ms=86400001", "step_ms")]
+    [DataRow("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&series_limit=501", "series_limit")]
+    [DataRow("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&aggregation=median", "aggregation")]
+    [DataRow("start_time=2023-11-14T22:13:20Z&end_time=2023-11-14T22:14:20Z&attr=noequalssign", "attr")]
     public async Task The_query_route_rejects_a_malformed_request_naming_the_field(
         string queryString,
         string expectedField)
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct, Gauge("http.server.active", "/a", (T0, 1d)));
 
         var context = CreateContext(queryString);
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
         Assert.Contains(expectedField, await ReadBodyAsync(context), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_query_route_rejects_a_percentile_on_a_metric_that_is_not_a_histogram()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct, Gauge("http.server.active", "/a", (T0, 1d)));
 
         var context = CreateContext($"start_time={T0Iso}&end_time={T0PlusMinuteIso}&aggregation=p95");
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-        Assert.Equal(Api.Contracts.Common.Errors.ProblemDetailsMediaType.Value, context.Response.ContentType);
-        var error = Assert.Single(JsonSerializer.Deserialize(
+        Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.AreEqual(Api.Contracts.Common.Errors.ProblemDetailsMediaType.Value, context.Response.ContentType);
+        var error = Assert.ContainsSingle(JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.ValidationError)!.Errors);
-        Assert.Equal("aggregation", error.Field);
-        Assert.Equal("aggregation.requires_histogram", error.Code);
-        Assert.Equal("p95", error.RejectedValue);
+        Assert.AreEqual("aggregation", error.Field);
+        Assert.AreEqual("aggregation.requires_histogram", error.Code);
+        Assert.AreEqual("p95", error.RejectedValue);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_query_route_truncates_at_the_series_limit_and_says_so()
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await IngestAsync(store, ct,
             Gauge("http.server.active", "/a", (T0, 1d)),
             Gauge("http.server.active", "/b", (T0, 2d)),
@@ -258,18 +259,18 @@ public sealed class MetricApiTests
 
         var result = JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
-        Assert.Equal(2, result.Series.Count);
-        Assert.True(result.Truncated);
+        Assert.AreEqual(2, result.Series.Count);
+        Assert.IsTrue(result.Truncated);
     }
 
-    [Theory]
-    [InlineData(2, 2, false)]
-    [InlineData(1, 1, true)]
+    [TestMethod]
+    [DataRow(2, 2, false)]
+    [DataRow(1, 1, true)]
     public async Task The_catalog_and_series_routes_report_has_more_only_when_a_row_lies_past_the_limit(
         int limit, int expectedItems, bool expectedHasMore)
     {
         await using var store = new DuckDbStore(":memory:");
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         // Two names and two series under the first: a page that exactly fills the limit has no more.
         await IngestAsync(store, ct,
             Gauge("http.server.active", "/a", (T0, 1d)),
@@ -280,16 +281,16 @@ public sealed class MetricApiTests
         await (await CollectorEndpointExtensions.GetMetricsAsync(catalog, store, ct)).ExecuteAsync(catalog);
         var catalogPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(catalog), QylSerializerContext.Default.CursorPageMetricDescriptor)!;
-        Assert.Equal(expectedItems, catalogPage.Items.Count);
-        Assert.Equal(expectedHasMore, catalogPage.HasMore);
+        Assert.AreEqual(expectedItems, catalogPage.Items.Count);
+        Assert.AreEqual(expectedHasMore, catalogPage.HasMore);
 
         var series = CreateContext($"limit={limit}");
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             series, "http.server.active", store, ct)).ExecuteAsync(series);
         var seriesPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(series), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        Assert.Equal(expectedItems, seriesPage.Items.Count);
-        Assert.Equal(expectedHasMore, seriesPage.HasMore);
+        Assert.AreEqual(expectedItems, seriesPage.Items.Count);
+        Assert.AreEqual(expectedHasMore, seriesPage.HasMore);
     }
 
     private static async Task IngestAsync(DuckDbStore store, CancellationToken ct, params OtlpMetric[] metrics)
@@ -309,7 +310,7 @@ public sealed class MetricApiTests
         };
 
         var write = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request));
-        await store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, ct);
+        await store.InsertMetricsAsync(write.Series, write.Observations, ct);
     }
 
     private static OtlpMetric Gauge(string name, string route, params (ulong Time, double Value)[] points)
@@ -358,15 +359,8 @@ public sealed class MetricApiTests
     private static string? AttributeString(Qyl.Api.Contracts.Common.Attribute attribute) =>
         attribute.Value is Api.Contracts.Common.AttributeValue.StringValue { Value: var text } ? text : null;
 
-    // MetricBucket.value is a `float64 | null` union, which the C# emitter lands on `object`;
-    // over the wire it is a JSON number, so a round-tripped bucket carries a JsonElement.
     private static double BucketValue(Api.Contracts.OTel.Metrics.MetricBucket bucket) =>
-        bucket.Value switch
-        {
-            JsonElement element => element.GetDouble(),
-            double value => value,
-            _ => throw new InvalidOperationException($"Bucket carried no numeric value: {bucket.Value ?? "null"}")
-        };
+        bucket.Value ?? throw new InvalidOperationException("Bucket carried no numeric value.");
 
     private static KeyValue Attr(string key, string value) =>
         new() { Key = key, Value = new AnyValue { StringValue = value } };
@@ -387,10 +381,10 @@ public sealed class MetricApiTests
         return context;
     }
 
-    private static async Task<string> ReadBodyAsync(DefaultHttpContext context)
+    private async Task<string> ReadBodyAsync(DefaultHttpContext context)
     {
         context.Response.Body.Position = 0;
         using var reader = new StreamReader(context.Response.Body, Encoding.UTF8, leaveOpen: true);
-        return await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
+        return await reader.ReadToEndAsync(testContext.CancellationToken);
     }
 }

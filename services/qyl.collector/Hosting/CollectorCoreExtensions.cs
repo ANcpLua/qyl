@@ -18,7 +18,8 @@ internal static class CollectorCoreExtensions
         services.AddSingleton(ports);
         services.AddSingleton<CollectorStreamCapacity>();
 
-        services.AddSingleton(TimeProvider.System);
+        // Preserve a host-supplied clock for observation times and analysis windows.
+        services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton(_ => new Analysis.AnalysisSigningKey(config));
 
         services.ConfigureHttpJsonOptions(static options =>

@@ -65,7 +65,7 @@ internal static class OtlpPayloadParser
     /// <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is
     /// parsed again. A failure that no replacement explains stands.
     /// </summary>
-    internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, ReadOnlySpan<byte> payload)
+    private static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, ReadOnlySpan<byte> payload)
         where T : IMessage<T>
     {
         try

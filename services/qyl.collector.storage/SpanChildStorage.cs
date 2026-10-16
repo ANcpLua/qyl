@@ -5,6 +5,7 @@ internal sealed class SpanEventJson
     public string Name { get; set; } = "";
     public ulong TimeUnixNano { get; set; }
     public string? AttributesJson { get; set; }
+    public uint DroppedAttributesCount { get; set; }
 }
 
 internal sealed class SpanLinkJson
@@ -12,6 +13,9 @@ internal sealed class SpanLinkJson
     public string TraceId { get; set; } = "";
     public string SpanId { get; set; } = "";
     public string? AttributesJson { get; set; }
+    public uint DroppedAttributesCount { get; set; }
+    public uint Flags { get; set; }
+    public string? TraceState { get; set; }
 }
 
 internal static class SpanChildStorage
@@ -28,7 +32,8 @@ internal static class SpanChildStorage
             {
                 Name = e.Name,
                 TimeUnixNano = e.TimeUnixNano,
-                AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(e.Attributes)
+                AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(e.Attributes),
+                DroppedAttributesCount = e.DroppedAttributesCount
             });
         }
 
@@ -47,7 +52,10 @@ internal static class SpanChildStorage
             {
                 TraceId = l.TraceId,
                 SpanId = l.SpanId,
-                AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(l.Attributes)
+                AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(l.Attributes),
+                DroppedAttributesCount = l.DroppedAttributesCount,
+                Flags = l.Flags,
+                TraceState = l.TraceState
             });
         }
 

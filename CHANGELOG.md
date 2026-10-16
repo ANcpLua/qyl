@@ -1,5 +1,46 @@
 # Changelog
 
+## 14.0.0 — 2026-10-16
+
+- Upgrade the coordinated Extensions packages to 10.11.0, which includes the
+  [bounded log-tag enumeration fix](https://github.com/dotnet/extensions/pull/7819).
+  Verify enabled request enrichment, classified redaction and original-format ordering.
+- Accept the API schema's default point limit on metadata-only metric-series reads;
+  require an exact series only for original-point continuations.
+- Preserve independent resource and instrumentation-scope metadata, trace flags,
+  trace state and dropped counts through ingestion, storage and API responses.
+  Keep producer log severity text and record receive time when observation time
+  is absent. Separate differently scoped metric streams and report incompatible
+  instrument descriptors instead of overwriting them.
+- Page metric catalogs by resource, scope and instrument name. Keep the longer
+  description without changing identity, and allow exact `series_id` selection
+  when a metric name has conflicting descriptors.
+- Use observation time to find and display logs without an event timestamp,
+  preserving the original fields. Reject metric points without an end timestamp
+  through OTLP partial-success accounting and leave unknown start times unknown.
+- Retain original metric numbers, native exponential histograms, summaries and full
+  ordered exemplars in an authoritative observation journal. Page original points
+  through HTTP and the existing `get_metric_series` tool. Aggregate queries disclose
+  their float64 representation and reject contradictory measurements. Preserve old
+  projections during database upgrades without inventing erased originals.
+- Reject malformed spans and logs per item through OTLP partial-success responses.
+  Preserve valid records from the same export. Store unknown log event times as
+  NULL, use observation time for analysis, and preserve undated historical logs
+  during time-based retention. Keep identical untimed records distinct within an export.
+- Continue legacy zero-time log cursors without repeating undated records. Treat
+  profiling-only key indexes as non-fatal in the other OTLP signals.
+- Hash complete original log bodies before applying the existing storage limit, so
+  distinct messages with the same retained prefix do not merge. Recover missing
+  declared nonunique indexes on open without repeating DuckDB's unsafe combined DDL.
+- Run the .NET suites with MSTest 4.5.1 and Microsoft.Testing.Platform 2.5.1.
+  Use DotCov 4.7.0 for the existing coverage gates.
+- Make internal helpers private, remove unused session calculations and build
+  metadata, and align source namespaces with their projects.
+- Keep configuration immutable after construction and reuse HTTP clients in the
+  network tests. Keep orchestration's retained output readable after failed
+  startup or disposal, verified with a real child process.
+- Validate repaired protobuf output in Release builds as well as Debug builds.
+
 ## 13.2.1 — 2026-10-16
 
 - Query stored logs with cursor pagination in the dashboard. Severity, exact service

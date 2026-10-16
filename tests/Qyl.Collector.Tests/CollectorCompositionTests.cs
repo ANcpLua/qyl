@@ -14,7 +14,8 @@ namespace Qyl.Collector.Tests;
 /// the probe honest — if the OTel SDK ever stops registering Otlp-named services, that test goes
 /// red instead of the negative one passing vacuously.
 /// </summary>
-[Collection(ProcessEnvironmentTestGroup.Name)]
+[DoNotParallelize]
+[TestClass]
 public sealed class CollectorCompositionTests
 {
     private const string OtlpEndpointVariable = "OTEL_EXPORTER_OTLP_ENDPOINT";
@@ -46,22 +47,22 @@ public sealed class CollectorCompositionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void No_configured_endpoint_composes_no_otlp_exporter()
     {
-        Assert.False(ComposeHasOtlpRegistration(endpoint: null),
+        Assert.IsFalse(ComposeHasOtlpRegistration(endpoint: null),
             "With no OTEL_EXPORTER_OTLP_ENDPOINT configured, the composition registered an OTLP " +
             "exporter — the localhost fallback would be this collector's own ingest port. " +
             "RequireConfiguredEndpoint must stay set in ConfigureQylTelemetry.");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_configured_foreign_endpoint_composes_the_otlp_exporter()
     {
         // The composition reads the endpoint from the process environment, so the
         // positive control sets it there (TEST-NET-3: never routable, never resolved).
 #pragma warning disable QYL0600 // TEST-NET-3 is never contacted; the composition only has to see an endpoint.
-        Assert.True(ComposeHasOtlpRegistration("http://203.0.113.9:4318"),
+        Assert.IsTrue(ComposeHasOtlpRegistration("http://203.0.113.9:4318"),
             "A configured endpoint composed no OTLP exporter — the negative assertion above " +
             "would now pass for the wrong reason. The composition or this probe changed shape.");
 #pragma warning restore QYL0600

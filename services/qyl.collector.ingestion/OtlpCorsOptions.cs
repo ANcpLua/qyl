@@ -2,17 +2,11 @@ namespace Qyl.Collector.Ingestion;
 
 internal sealed class OtlpCorsOptions
 {
-    public string? AllowedOrigins { get; set; }
+    public string? AllowedOrigins { get; init; }
 
-    public string? AllowedHeaders { get; set; }
+    public string? AllowedHeaders { get; init; }
 
-    public int MaxAge
-    {
-        get;
-        set => field = value > 0
-            ? value
-            : throw new ArgumentOutOfRangeException(nameof(value), "MaxAge must be positive");
-    } = 86400;
+    internal const int MaxAge = 86400;
 
     public bool IsEnabled => !string.IsNullOrWhiteSpace(AllowedOrigins);
 

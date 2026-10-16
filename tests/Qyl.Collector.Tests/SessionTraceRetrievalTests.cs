@@ -8,9 +8,10 @@ using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class SessionTraceRetrievalTests
+[TestClass]
+public sealed class SessionTraceRetrievalTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Session_query_returns_the_full_trace_when_only_one_non_root_span_carries_the_session_id()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -47,20 +48,20 @@ public sealed class SessionTraceRetrievalTests
         request.ResourceSpans[0].ScopeSpans[0].Spans.Add(
             Span(untaggedTraceId, spanId: 4, name: "unrelated", startNano: 4));
 
-        await store.EnqueueAsync(ToBatch(request), TestContext.Current.CancellationToken);
+        await store.EnqueueAsync(ToBatch(request), testContext.CancellationToken);
 
         var page = await store.GetTracePageAsync(
             new TracePageQuery { ProjectId = "default", Limit = 10, SessionId = "sess-1" },
-            TestContext.Current.CancellationToken);
-        var spans = Assert.Single(page.Items).Spans;
+            testContext.CancellationToken);
+        var spans = Assert.ContainsSingle(page.Items).Spans;
 
         var taggedHex = Convert.ToHexString(taggedTraceId).ToLowerInvariant();
-        Assert.Equal(3, spans.Count);
-        Assert.All(spans, s => Assert.Equal(taggedHex, s.TraceId));
-        Assert.Equal(["root", "request-handler", "gen_ai.chat"], spans.Select(s => s.Name));
+        Assert.AreEqual(3, spans.Count);
+        spans.ToList().ForEach(s => Assert.AreEqual(taggedHex, s.TraceId));
+        Assert.AreSequenceEqual(["root", "request-handler", "gen_ai.chat"], spans.Select(s => s.Name));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Untagged_telemetry_is_still_addressable_by_its_trace_id_session_key()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -88,17 +89,17 @@ public sealed class SessionTraceRetrievalTests
             }
         };
 
-        await store.EnqueueAsync(ToBatch(request), TestContext.Current.CancellationToken);
+        await store.EnqueueAsync(ToBatch(request), testContext.CancellationToken);
 
         // NULL session_id falls back to trace_id as the session key.
         var sessionKey = Convert.ToHexString(traceId).ToLowerInvariant();
         var page = await store.GetTracePageAsync(
             new TracePageQuery { ProjectId = "default", Limit = 10, SessionId = sessionKey },
-            TestContext.Current.CancellationToken);
-        var spans = Assert.Single(page.Items).Spans;
+            testContext.CancellationToken);
+        var spans = Assert.ContainsSingle(page.Items).Spans;
 
-        Assert.Equal(2, spans.Count);
-        Assert.All(spans, s => Assert.Equal(sessionKey, s.TraceId));
+        Assert.AreEqual(2, spans.Count);
+        spans.ToList().ForEach(s => Assert.AreEqual(sessionKey, s.TraceId));
     }
 
     private static byte[] TraceIdBytes(byte identity) => [.. new byte[15], identity];

@@ -36,9 +36,10 @@ internal readonly record struct SpanPageCursor(ulong StartTimeUnixNano, string S
 
 internal readonly record struct SessionPageCursor(ulong LastActivityUnixNano, string SessionId);
 
-internal readonly record struct LogPageCursor(ulong TimeUnixNano, string LogId);
+internal readonly record struct LogPageCursor(ulong? TimeUnixNano, string LogId);
 
 internal readonly record struct MetricSeriesPageCursor(ulong LastSeenUnixNano, string SeriesId);
+internal readonly record struct MetricCatalogCursor(string MetricName, string InstrumentId);
 
 internal sealed record TraceStoragePage(
     IReadOnlyList<TraceStoragePageItem> Items,
@@ -72,8 +73,7 @@ internal interface IQylStore : IAsyncDisposable
 
     Task InsertMetricsAsync(
         IReadOnlyList<MetricSeriesRow> series,
-        IReadOnlyList<MetricPointRow> points,
-        IReadOnlyList<MetricExemplarRow>? exemplars = null,
+        IReadOnlyList<MetricObservationRow> observations,
         CancellationToken ct = default);
 
     /// <summary>Metric names recorded for a project, with the shape shared by their series.</summary>
@@ -81,7 +81,9 @@ internal interface IQylStore : IAsyncDisposable
         string projectId,
         string? namePrefix = null,
         int limit = 200,
-        string? afterMetricName = null,
+        MetricCatalogCursor? cursor = null,
+        IReadOnlyList<MetricAttributeMatcher>? matchers = null,
+        string? seriesId = null,
         CancellationToken ct = default);
 
     /// <summary>The distinct attribute streams recorded under one metric name.</summary>
@@ -91,12 +93,16 @@ internal interface IQylStore : IAsyncDisposable
         IReadOnlyList<MetricAttributeMatcher> matchers,
         int limit = 200,
         MetricSeriesPageCursor? cursor = null,
+        string? seriesId = null,
         CancellationToken ct = default);
 
     /// <summary>Aggregates one metric into time buckets server-side; never returns raw points.</summary>
     Task<IReadOnlyList<MetricQuerySeries>> QueryMetricAsync(
         MetricRangeQuery request,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<MetricObservationPageItem>> ListMetricPointsAsync(
+        MetricPointQuery query, CancellationToken ct = default);
 
     Task<MetricRetentionResult> DeleteExpiredMetricsBatchAsync(
         ulong cutoffUnixNano,
@@ -135,11 +141,6 @@ internal interface IQylStore : IAsyncDisposable
     Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(
         string traceId,
         string projectId,
-        CancellationToken ct = default);
-
-    Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
-        string projectId,
-        int limit = 100,
         CancellationToken ct = default);
 
     Task<TraceStoragePage> GetTracePageAsync(

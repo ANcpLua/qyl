@@ -6,10 +6,12 @@ using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;
 
-[Collection(RunnerNetworkTestGroup.Name)]
-public sealed class RunnerControlTests
+[DoNotParallelize]
+[TestClass]
+public sealed class RunnerControlTests(TestContext testContext)
 {
-    [Fact]
+
+    [TestMethod]
     public async Task Loopback_actions_restart_and_stop_a_real_supervised_process()
     {
         if (OperatingSystem.IsWindows()) return;
@@ -20,10 +22,10 @@ public sealed class RunnerControlTests
         // fine, and the Linux leg exercises this exact Unix supervisor path; the macOS leg
         // still smoke-tests the real packed product end-to-end via QylToolSmoke.
         if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
-            Assert.Skip("Supervised python3 workers never become observable on GitHub macOS runners.");
+            Assert.Inconclusive("Supervised python3 workers never become observable on GitHub macOS runners.");
 
         var python = FindExecutable("python3");
-        Assert.NotNull(python);
+        Assert.IsNotNull(python);
 
         // The first python3 exec on a fresh macOS CI runner can take tens of seconds
         // (Gatekeeper/XProtect scan). Pay that cost here so the readiness window below
@@ -35,8 +37,8 @@ public sealed class RunnerControlTests
                    RedirectStandardError = true
                }))
         {
-            Assert.NotNull(warmup);
-            await warmup.WaitForExitAsync(TestContext.Current.CancellationToken);
+            Assert.IsNotNull(warmup);
+            await warmup.WaitForExitAsync(testContext.CancellationToken);
         }
 
         var processResource = new QylResource
@@ -88,7 +90,7 @@ public sealed class RunnerControlTests
             options,
             NullLogger<QylRunnerApi>.Instance);
 
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
         // 60s, not 20: must exceed the 30s readiness window above, and CI macOS runners
         // are slow enough that the restart/stop round-trips need real headroom.
         lifetime.CancelAfter(TimeSpan.FromSeconds(60));
@@ -106,7 +108,7 @@ public sealed class RunnerControlTests
                 client,
                 $"http://127.0.0.1:{port}/runner/resources/worker/restart",
                 lifetime.Token);
-            Assert.Equal(HttpStatusCode.Accepted, restart.StatusCode);
+            Assert.AreEqual(HttpStatusCode.Accepted, restart.StatusCode);
 
             await WaitForLogCountAsync(logs, "worker", 2, lifetime.Token);
             await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Ready, lifetime.Token);
@@ -115,18 +117,18 @@ public sealed class RunnerControlTests
                 client,
                 $"http://127.0.0.1:{port}/runner/resources/missing/stop",
                 lifetime.Token);
-            Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+            Assert.AreEqual(HttpStatusCode.NotFound, unknown.StatusCode);
 
             using var stop = await PostBodylessAsync(
                 client,
                 $"http://127.0.0.1:{port}/runner/resources/worker/stop",
                 lifetime.Token);
-            Assert.Equal(HttpStatusCode.Accepted, stop.StatusCode);
+            Assert.AreEqual(HttpStatusCode.Accepted, stop.StatusCode);
             await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Stopped, lifetime.Token);
 
             var startsAfterStop = logs.Snapshot("worker").Count(static line => line.Line == "started");
             await Task.Delay(250, lifetime.Token);
-            Assert.Equal(startsAfterStop,
+            Assert.AreEqual(startsAfterStop,
                 logs.Snapshot("worker").Count(static line => line.Line == "started"));
         }
         finally
@@ -140,12 +142,12 @@ public sealed class RunnerControlTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Resource_action_queue_is_bounded_and_reports_saturation_immediately()
     {
         var actions = new QylResourceActions();
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         var pending = Enumerable.Range(0, QylResourceActions.Capacity)
             .Select(index => actions.RequestAsync(
                 $"resource-{index}",
@@ -156,12 +158,13 @@ public sealed class RunnerControlTests
         var saturated = await actions.RequestAsync(
             "overflow",
             QylResourceAction.Restart,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
 
-        Assert.Equal(QylResourceActionStatus.Conflict, saturated.Status);
+        Assert.AreEqual(QylResourceActionStatus.Conflict, saturated.Status);
+        Assert.IsNotNull(saturated.Reason);
         Assert.Contains("capacity", saturated.Reason, StringComparison.OrdinalIgnoreCase);
         await cancellation.CancelAsync();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.WhenAll(pending));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => Task.WhenAll(pending));
     }
 
     private static int ClaimLoopbackPort()

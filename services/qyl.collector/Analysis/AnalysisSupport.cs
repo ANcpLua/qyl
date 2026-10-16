@@ -14,7 +14,7 @@ internal sealed class AnalysisInputException(string field, string message, strin
 internal readonly record struct AnalysisWindow(DateTimeOffset Start, DateTimeOffset End)
 {
     public ulong StartNs => (ulong)Start.ToUnixTimeMilliseconds() * 1_000_000;
-    public ulong EndNs => (ulong)End.ToUnixTimeMilliseconds() * 1_000_000;
+    private ulong EndNs => (ulong)End.ToUnixTimeMilliseconds() * 1_000_000;
     public JsonObject Json => J.O(("start_time", Start.ToString("O")), ("end_time", End.ToString("O")));
     public bool Contains(ulong time) => time >= StartNs && time < EndNs;
     public static AnalysisWindow Resolve(JsonObject input, DateTimeOffset now, double defaultMinutes = 60)
@@ -68,7 +68,7 @@ internal static partial class J
             if (String(pair, "key") is { } key) result[key] = Unwrap(pair?["value"]);
         return result;
     }
-    public static JsonNode? Unwrap(JsonNode? value)
+    private static JsonNode? Unwrap(JsonNode? value)
     {
         if (value is not JsonObject obj) return value?.DeepClone();
         if (String(obj, "type") == "int" && long.TryParse(Text(obj["value"]), CultureInfo.InvariantCulture, out var integer)) return JsonValue.Create(integer);
@@ -117,7 +117,7 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
         return attributes;
     }
     public static AnalysisRecord From(LogStorageRow l) => new(l.LogId, l.TraceId, l.SpanId, l.SessionId,
-        l.ServiceName ?? "unknown_service", l.EventName ?? "", l.TimeUnixNano, l.TimeUnixNano, l.SeverityNumber >= 17,
+        l.ServiceName ?? "unknown_service", l.EventName ?? "", l.EffectiveTimeUnixNano() ?? 0, l.EffectiveTimeUnixNano() ?? 0, l.SeverityNumber >= 17,
         0, J.Attributes(l.AttributesJson), J.Attributes(l.ResourceJson), Log: l);
 }
 

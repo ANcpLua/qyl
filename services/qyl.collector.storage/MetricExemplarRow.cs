@@ -1,7 +1,7 @@
 namespace Qyl.Collector.Storage;
 
-// Only trace identities are retained; exemplar attributes may contain customer content.
-[DuckDbTable("metric_exemplars", Indexes = "ProjectId,TimeUnixNano", OnConflict = "ON CONFLICT DO NOTHING")]
+// Derived trace index for queries; complete policy-filtered exemplars live in the observation journal.
+[DuckDbTable("metric_exemplars", Derived = true, Indexes = "ProjectId,TimeUnixNano", OnConflict = "ON CONFLICT DO NOTHING")]
 internal sealed partial record MetricExemplarRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]

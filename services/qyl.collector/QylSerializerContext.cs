@@ -43,6 +43,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(MetricSeries))]
 [JsonSerializable(typeof(MetricSeries[]))]
 [JsonSerializable(typeof(CursorPageMetricSeries))]
+[JsonSerializable(typeof(MetricPoint))]
+[JsonSerializable(typeof(CursorPageMetricPoint))]
 [JsonSerializable(typeof(MetricBucket))]
 [JsonSerializable(typeof(MetricBucket[]))]
 [JsonSerializable(typeof(MetricSeriesResult))]

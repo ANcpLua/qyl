@@ -28,11 +28,11 @@ internal sealed partial class QylRunnerApi(
     QylAppOptions options,
     ILogger<QylRunnerApi> logger) : BackgroundService
 {
-    internal const int MaxConcurrentRequests = 32;
+    private const int MaxConcurrentRequests = 32;
     internal const int MaxConcurrentStreams = 8;
 
     // How long shutdown waits for the in-flight requests to answer before the listener is stopped.
-    internal static readonly TimeSpan s_shutdownGracePeriod = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan s_shutdownGracePeriod = TimeSpan.FromSeconds(2);
 
     private readonly HttpListener _listener = new();
     private readonly TaskCompletionSource _inFlightDrained = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -329,7 +329,7 @@ internal sealed partial class QylRunnerApi(
         }
     }
 
-    internal static bool IsTrustedLocalRequest(HttpListenerRequest request)
+    private static bool IsTrustedLocalRequest(HttpListenerRequest request)
     {
         if (request.RemoteEndPoint is not { Address: var remote } || !IPAddress.IsLoopback(remote)) return false;
 
@@ -338,7 +338,7 @@ internal sealed partial class QylRunnerApi(
         return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
     }
 
-    internal static bool IsTrustedMutationRequest(HttpListenerRequest request)
+    private static bool IsTrustedMutationRequest(HttpListenerRequest request)
     {
         var mediaType = request.ContentType?.Split(';', 2)[0].Trim();
         var isJson = string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase);

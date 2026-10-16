@@ -4,12 +4,12 @@ internal static class OtlpConstants
 {
     public const string ApiKeyHeaderName = "x-otlp-api-key";
 
-    public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1/metrics"];
+    private static readonly string[] s_paths = ["/v1/traces", "/v1/logs", "/v1/metrics"];
 
     private static readonly string[] s_namespacePaths = ["/v1", "/v1development"];
 
     public static bool IsOtlpPath(string path) =>
-        Paths.Any(candidate => IsExactPathOrTrailingSlash(path, candidate));
+        s_paths.Any(candidate => IsExactPathOrTrailingSlash(path, candidate));
 
     // The dashboard must never claim an OTLP namespace, including unknown routes that should
     // remain protocol 404s instead of becoming an HTML SPA fallback.

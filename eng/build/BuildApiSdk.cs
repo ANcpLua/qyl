@@ -305,7 +305,6 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
             consumer.CreateDirectory();
             foreach (var name in ApiSdkScenario.s_consumerSourceFiles)
                 (SampleDirectory / name).Copy(consumer / name);
-            (SampleDirectory / "Todos").Copy(consumer / "Todos");
 
             (consumer / "qyl.sample.csproj").WriteAllText(
                 $"""
@@ -469,7 +468,7 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
             file.Copy(destination, ExistsPolicy.FileOverwrite);
         }
 
-        var endpoints = stale / "Todos" / "TodoEndpoints.cs";
+        var endpoints = stale / "TodoEndpoints.cs";
         endpoints.WriteAllText(endpoints.ReadAllText().Replace(
             "<summary>Lists every todo.</summary>",
             "<summary>Lists every todo, and this summary is not in the committed contract.</summary>",
@@ -580,7 +579,7 @@ internal sealed class ApiSdkHost : IDisposable
         return host;
     }
 
-    internal void Stop()
+    private void Stop()
     {
         if (_process.HasExited)
             return;
@@ -619,7 +618,8 @@ internal static class ApiSdkScenario
     /// where there is no revision to compile in.
     /// </summary>
     internal static readonly string[] s_consumerSourceFiles =
-        ["Program.cs", "AppJsonSerializerContext.cs", "appsettings.json", "openapi/qyl.sample.json"];
+        ["Program.cs", "AppJsonSerializerContext.cs", "appsettings.json", "openapi/qyl.sample.json",
+            "CreateTodoRequest.cs", "Todo.cs", "TodoEndpoints.cs", "TodoStore.cs"];
 
     /// <summary>The assemblies the package must put on a consumer's reference list.</summary>
     internal static readonly string[] s_packagedAssemblies = ["Qyl.Xml.dll", "Qyl.Api.dll"];

@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>Qyl.Build</RootNamespace>
     <FalloutRootDirectory>..</FalloutRootDirectory>
     <FalloutScriptDirectory>..</FalloutScriptDirectory>
     <FalloutExcludeConfig>True</FalloutExcludeConfig>

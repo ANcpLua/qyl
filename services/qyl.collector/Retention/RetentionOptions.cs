@@ -6,7 +6,7 @@ internal sealed record RetentionOptions
 
     public int Days { get; init; } = 30;
 
-    public TimeSpan Interval { get; init; } = TimeSpan.FromMinutes(60);
+    public TimeSpan Interval { get; private init; } = TimeSpan.FromMinutes(60);
 
     public long StorageMinimumFreeBytes { get; init; } = 2048L * BytesPerMegabyte;
 

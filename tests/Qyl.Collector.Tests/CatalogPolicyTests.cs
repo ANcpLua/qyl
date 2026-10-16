@@ -9,35 +9,36 @@ namespace Qyl.Collector.Tests;
 /// generated from it, the policy file holds no deny section and no exception of its own, and every key the
 /// policy file names for persistence is one the registry persists. A typed view can then only assert what ingest keeps.
 /// </summary>
+[TestClass]
 public sealed class CatalogPolicyTests
 {
     private const string AppPrefix = "qyl.app.";
 
-    [Theory]
-    [InlineData("deniedExactPrefixes")]
-    [InlineData("deniedExactKeys")]
-    [InlineData("deniedKeyTokens")]
-    [InlineData("deniedTokenExemptKeys")]
-    [InlineData("safeHttpSpanHeaderAttributeKeys")]
+    [TestMethod]
+    [DataRow("deniedExactPrefixes")]
+    [DataRow("deniedExactKeys")]
+    [DataRow("deniedKeyTokens")]
+    [DataRow("deniedTokenExemptKeys")]
+    [DataRow("safeHttpSpanHeaderAttributeKeys")]
     public void The_policy_file_carries_no_deny_section_and_no_exception(string section)
     {
         using var policy = PolicyFile();
 
-        Assert.False(policy.RootElement.TryGetProperty(section, out _), $"{section} belongs to RegistryPolicy");
+        Assert.IsFalse(policy.RootElement.TryGetProperty(section, out _), $"{section} belongs to RegistryPolicy");
     }
 
-    [Fact]
+    [TestMethod]
     public void The_generated_catalog_is_RegistryPolicy()
     {
-        Assert.Equal(Sorted(RegistryPolicy.NotPersistedKeys), Sorted(CollectorSemanticAttributeCatalog.NotPersistedKeys));
-        Assert.Equal(Sorted(RegistryPolicy.NotPersistedPrefixes), Sorted(CollectorSemanticAttributeCatalog.NotPersistedPrefixes));
-        Assert.Equal(Sorted(RegistryPolicy.DeniedKeyTokens), Sorted(CollectorSemanticAttributeCatalog.DeniedKeyTokens));
-        Assert.Equal(Sorted(RegistryPolicy.TokenExemptKeys), Sorted(CollectorSemanticAttributeCatalog.TokenExemptKeys));
-        Assert.Equal(Sorted(RegistryPolicy.VendorKeys), Sorted(CollectorSemanticAttributeCatalog.VendorKeys));
+        Assert.AreSequenceEqual(Sorted(RegistryPolicy.NotPersistedKeys), Sorted(CollectorSemanticAttributeCatalog.NotPersistedKeys));
+        Assert.AreSequenceEqual(Sorted(RegistryPolicy.NotPersistedPrefixes), Sorted(CollectorSemanticAttributeCatalog.NotPersistedPrefixes));
+        Assert.AreSequenceEqual(Sorted(RegistryPolicy.DeniedKeyTokens), Sorted(CollectorSemanticAttributeCatalog.DeniedKeyTokens));
+        Assert.AreSequenceEqual(Sorted(RegistryPolicy.TokenExemptKeys), Sorted(CollectorSemanticAttributeCatalog.TokenExemptKeys));
+        Assert.AreSequenceEqual(Sorted(RegistryPolicy.VendorKeys), Sorted(CollectorSemanticAttributeCatalog.VendorKeys));
 
         // POL's five exemptions plus the five hot token counts the collector lifts into columns.
         // SemanticConventions 10.0.1: plus the ten plain token counts (gen_ai.request.max_tokens, gen_ai.usage.{text,audio,image}.*_tokens).
-        Assert.Equal(20, CollectorSemanticAttributeCatalog.TokenExemptKeys.Count);
+        Assert.AreEqual(20, CollectorSemanticAttributeCatalog.TokenExemptKeys.Count);
         Assert.Contains("gen_ai.request.max_tokens", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
         Assert.Contains("gen_ai.usage.reasoning.output_tokens", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
         Assert.DoesNotContain("gen_ai.agent.name", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.NotPersistedKeys);
@@ -48,7 +49,7 @@ public sealed class CatalogPolicyTests
     /// in three ways only: a denied key or prefix matches in any case, <c>baggage.*</c> is never persisted, and
     /// <c>qyl.app.&lt;key&gt;</c> is denied when <c>&lt;key&gt;</c> is. No boundary keeps a key around it.
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void The_collector_persists_exactly_what_RegistryPolicy_persists()
     {
         var corpus = Corpus().ToArray();
@@ -66,11 +67,11 @@ public sealed class CatalogPolicyTests
                  AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
             .ToArray();
 
-        Assert.Empty(disagreements);
-        Assert.Empty(bypasses);
+        Assert.IsEmpty(disagreements);
+        Assert.IsEmpty(bypasses);
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_key_the_policy_file_names_for_persistence_is_one_the_registry_persists()
     {
         using var policy = PolicyFile();
@@ -83,8 +84,8 @@ public sealed class CatalogPolicyTests
             .Select(static key => key.GetString()!)
             .ToArray();
 
-        Assert.NotEmpty(named);
-        Assert.All(named, static key => Assert.True(RegistryPolicy.IsPersisted(key), key));
+        Assert.IsNotEmpty(named);
+        named.ToList().ForEach(static key => Assert.IsTrue(RegistryPolicy.IsPersisted(key), key));
     }
 
     private static bool Expected(string key) =>

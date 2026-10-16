@@ -3,6 +3,7 @@ using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 
+[TestClass]
 public sealed class HeaderPrivacyBoundaryTests
 {
     /// <summary>
@@ -10,7 +11,7 @@ public sealed class HeaderPrivacyBoundaryTests
     /// the collector names no exception: <c>mcp_name</c> carries the resource URIs and prompt names the registry denies
     /// as attributes of their own, and a header value is whatever the caller chose to send.
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void No_http_header_is_persisted_on_spans()
     {
         var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal)
@@ -30,25 +31,25 @@ public sealed class HeaderPrivacyBoundaryTests
                 OtlpAttributeValue.FromString("session=credential")
         };
 
-        var json = Assert.IsType<string>(PersistedAttributePolicy.SerializeSpanAttributes(attributes));
+        var json = Assert.IsExactInstanceOfType<string>(PersistedAttributePolicy.SerializeSpanAttributes(attributes));
 
-        Assert.Equal("""{"http.request.method":"POST"}""", json);
+        Assert.AreEqual("""{"http.request.method":"POST"}""", json);
     }
 
-    [Theory]
-    [InlineData("http.request.header.x_any_name")]
-    [InlineData("http.request.header.mcp-param-innocent")]
-    [InlineData("http.request.header.mcp_param_innocent")]
-    [InlineData("http.request.header.mcp%2dparam%2dinnocent")]
-    [InlineData("http.response.header.x_any_name")]
-    [InlineData("http.request.header.mcp_name")]
-    [InlineData("HTTP.REQUEST.HEADER.MCP_NAME")]
+    [TestMethod]
+    [DataRow("http.request.header.x_any_name")]
+    [DataRow("http.request.header.mcp-param-innocent")]
+    [DataRow("http.request.header.mcp_param_innocent")]
+    [DataRow("http.request.header.mcp%2dparam%2dinnocent")]
+    [DataRow("http.response.header.x_any_name")]
+    [DataRow("http.request.header.mcp_name")]
+    [DataRow("HTTP.REQUEST.HEADER.MCP_NAME")]
     public void Headers_are_rejected_from_every_boundary(string key)
     {
-        Assert.False(AttributeKeySets.IsSafeSpanAttribute(key));
-        Assert.False(AttributeKeySets.IsSafeLogAttribute(key));
-        Assert.False(AttributeKeySets.IsSafeMetricAttribute(key));
-        Assert.False(AttributeKeySets.IsSafeResourceAttribute(key));
-        Assert.False(AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key));
+        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute(key));
+        Assert.IsFalse(AttributeKeySets.IsSafeLogAttribute(key));
+        Assert.IsFalse(AttributeKeySets.IsSafeMetricAttribute(key));
+        Assert.IsFalse(AttributeKeySets.IsSafeResourceAttribute(key));
+        Assert.IsFalse(AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key));
     }
 }

@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Primitives;
+namespace Qyl.Collector.Ingestion.Primitives;
 
 internal static class SessionActivity
 {

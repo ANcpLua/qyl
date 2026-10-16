@@ -7,11 +7,12 @@ using Qyl.Collector.Ingestion;
 
 namespace Qyl.Collector.Tests;
 
+[TestClass]
 public sealed class DeprecatedAttributeNormalizationTests
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
     public void Proven_producer_keys_are_normalized_before_capture_and_canonical_values_win(
         bool canonicalFirst)
     {
@@ -33,8 +34,8 @@ public sealed class DeprecatedAttributeNormalizationTests
         };
         var span = new Span
         {
-            TraceId = ByteString.CopyFrom(new byte[16]),
-            SpanId = ByteString.CopyFrom(new byte[8]),
+            TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
+            SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
             Name = "compatibility-boundary",
             StartTimeUnixNano = 1,
             EndTimeUnixNano = 2
@@ -54,13 +55,13 @@ public sealed class DeprecatedAttributeNormalizationTests
             }
         };
 
-        var attributes = Assert.Single(OtlpConverter.ConvertTraceRequest(request).Spans).Attributes;
-        Assert.Equal("canonical-provider", attributes[CollectorSemanticAttributeCatalog.GenAiProviderName].AsString());
-        Assert.Equal(20, attributes[CollectorSemanticAttributeCatalog.GenAiInputTokens].AsInt64());
-        Assert.Equal(40, attributes[CollectorSemanticAttributeCatalog.GenAiOutputTokens].AsInt64());
-        Assert.Equal("canonical-db", attributes[CollectorSemanticAttributeCatalog.DbSystemName].AsString());
-        Assert.True(DeprecatedAttributeNormalizer.TryNormalize("agents.tool.call_id", out var toolCallKey));
-        Assert.Equal(CollectorSemanticAttributeCatalog.GenAiToolCallId, toolCallKey);
+        var attributes = Assert.ContainsSingle(OtlpConverter.ConvertTraceRequest(request).Spans).Attributes;
+        Assert.AreEqual("canonical-provider", attributes[CollectorSemanticAttributeCatalog.GenAiProviderName].AsString());
+        Assert.AreEqual(20, attributes[CollectorSemanticAttributeCatalog.GenAiInputTokens].AsInt64());
+        Assert.AreEqual(40, attributes[CollectorSemanticAttributeCatalog.GenAiOutputTokens].AsInt64());
+        Assert.AreEqual("canonical-db", attributes[CollectorSemanticAttributeCatalog.DbSystemName].AsString());
+        Assert.IsTrue(DeprecatedAttributeNormalizer.TryNormalize("agents.tool.call_id", out var toolCallKey));
+        Assert.AreEqual(CollectorSemanticAttributeCatalog.GenAiToolCallId, toolCallKey);
         Assert.DoesNotContain(CollectorSemanticAttributeCatalog.GenAiToolCallId, attributes.Keys);
         Assert.DoesNotContain("gen_ai.system", attributes.Keys);
         Assert.DoesNotContain("gen_ai.usage.prompt_tokens", attributes.Keys);

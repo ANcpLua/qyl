@@ -2,7 +2,7 @@ namespace Qyl.Collector.Telemetry;
 
 internal static class HttpTelemetryNames
 {
-    public const string OtherMethod = "OTHER";
+    private const string OtherMethod = "OTHER";
 
     public static string NormalizeMethod(string? method)
     {

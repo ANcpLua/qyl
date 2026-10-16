@@ -49,7 +49,12 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             connection.Open();
             ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
-            InitializeSchema(connection);
+            var preservedHistory = PreserveHistoricalMetricPoints(connection);
+            MigrateUnknownLogTimes(connection);
+            var resetDerived = InitializeSchema(connection);
+            var migratedSeries = BackfillMetricInstrumentIds(connection);
+            if (preservedHistory || resetDerived || migratedSeries || MetricProjectionsNeedRebuild(connection))
+                RebuildMetricProjections(connection);
         }
         catch
         {
@@ -511,10 +516,15 @@ internal sealed partial class DuckDbStore : IQylStore
         if (logs.Count is 0)
             return;
 
+        IReadOnlyList<LogStorageRow> knownTimes = logs.Any(static row => row.TimeUnixNano == 0 || row.ObservedTimeUnixNano == 0)
+            ? logs.Select(static row => row with
+            { TimeUnixNano = row.TimeUnixNano is > 0 ? row.TimeUnixNano : null,
+              ObservedTimeUnixNano = row.ObservedTimeUnixNano is > 0 ? row.ObservedTimeUnixNano : null }).ToArray()
+            : logs;
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            await InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters,
+            await InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters,
                 LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
@@ -555,18 +565,20 @@ internal sealed partial class DuckDbStore : IQylStore
             if (!string.IsNullOrEmpty(serviceName))
                 qb.Add("service_name = $N", serviceName);
             if (start.HasValue)
-                qb.Add("time_unix_nano >= $N", (decimal)start.Value);
+                qb.Add(LogStorageRow.EffectiveTimeSql + " >= $N", (decimal)start.Value);
             if (before.HasValue)
-                qb.Add("time_unix_nano <= $N", (decimal)before.Value);
-            if (cursor is { } after)
-                qb.Add("(time_unix_nano < $A OR (time_unix_nano = $A AND log_id < $B))",
-                    (decimal)after.TimeUnixNano, after.LogId);
+                qb.Add(LogStorageRow.EffectiveTimeSql + " <= $N", (decimal)before.Value);
+            if (cursor is { TimeUnixNano: { } time } after)
+                qb.Add("(" + LogStorageRow.EffectiveTimeSql + " IS NULL OR " + LogStorageRow.EffectiveTimeSql + " < $A OR (" + LogStorageRow.EffectiveTimeSql + " = $A AND log_id < $B))",
+                    (decimal)time, after.LogId);
+            else if (cursor is { } unknownTime)
+                qb.Add("(" + LogStorageRow.EffectiveTimeSql + " IS NULL AND log_id < $N)", unknownTime.LogId);
 
             using var cmd = con.CreateCommand();
             // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
             cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
                               + " FROM logs " + qb.WhereClause
-                              + " ORDER BY time_unix_nano DESC, log_id DESC LIMIT "
+                              + " ORDER BY " + LogStorageRow.EffectiveTimeSql + " DESC, log_id DESC LIMIT "
                               + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
             qb.ApplyTo(cmd);
@@ -773,7 +785,7 @@ internal sealed partial class DuckDbStore : IQylStore
     // the statement.
     private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
 
-    private static void InitializeSchema(DuckDBConnection con)
+    private static bool InitializeSchema(DuckDBConnection con)
     {
         using var transaction = con.BeginTransaction();
         ExecuteSchemaSql(con, transaction, DuckDbGeneratedSchema.BootstrapDdl);
@@ -782,7 +794,7 @@ internal sealed partial class DuckDbStore : IQylStore
         var authoritativeMismatches = FindSchemaMismatches(
             con,
             transaction,
-            DuckDbGeneratedSchema.AuthoritativeTables);
+            DuckDbGeneratedSchema.AuthoritativeTables, allowMissingNonUniqueIndexes: true);
         if (stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash })
         {
             var appended = PlanAdditiveRelease(con, transaction, authoritativeMismatches);
@@ -800,6 +812,8 @@ internal sealed partial class DuckDbStore : IQylStore
             con,
             transaction,
             DuckDbGeneratedSchema.DerivedTables);
+        var resetDerived = derivedMismatches.Count > 0 ||
+            stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash };
 
         if (authoritativeMismatches.Count > 0)
         {
@@ -850,6 +864,7 @@ internal sealed partial class DuckDbStore : IQylStore
         transaction.Commit();
 
         VerifyPersistedPrimaryKeys(con);
+        return resetDerived;
     }
 
     // A release may add authoritative tables (annotations and saved queries joined the telemetry
@@ -950,7 +965,8 @@ internal sealed partial class DuckDbStore : IQylStore
     private static IReadOnlyList<string> FindSchemaMismatches(
         DuckDBConnection con,
         DbTransaction transaction,
-        IReadOnlyList<DuckDbExpectedTable> expectedTables)
+        IReadOnlyList<DuckDbExpectedTable> expectedTables,
+        bool allowMissingNonUniqueIndexes = false)
     {
         var mismatches = new List<string>();
         foreach (var table in expectedTables)
@@ -960,7 +976,7 @@ internal sealed partial class DuckDbStore : IQylStore
             for (var ordinal = 0; tableMatches && ordinal < actual.Count; ordinal++)
                 tableMatches = ColumnMatches(actual[ordinal], table.Columns[ordinal]);
 
-            if (!tableMatches || !IndexesMatch(con, transaction, table))
+            if (!tableMatches || !IndexesMatch(con, transaction, table, allowMissingNonUniqueIndexes))
                 mismatches.Add(table.Name);
         }
 
@@ -1009,7 +1025,8 @@ internal sealed partial class DuckDbStore : IQylStore
     private static bool IndexesMatch(
         DuckDBConnection con,
         DbTransaction transaction,
-        DuckDbExpectedTable table)
+        DuckDbExpectedTable table,
+        bool allowMissingNonUniqueIndexes = false)
     {
         var actualIndexes = new Dictionary<
             string,
@@ -1037,13 +1054,20 @@ internal sealed partial class DuckDbStore : IQylStore
             }
         }
 
-        if (actualIndexes.Count != table.Indexes.Length)
-            return false;
+        if (actualIndexes.Count > table.Indexes.Length ||
+            !allowMissingNonUniqueIndexes && actualIndexes.Count != table.Indexes.Length ||
+            actualIndexes.Keys.Any(name => !table.Indexes.Any(expected => expected.Name == name))) return false;
 
         foreach (var expected in table.Indexes)
         {
-            if (!actualIndexes.TryGetValue(expected.Name, out var actual) ||
-                !string.Equals(actual.Table, table.Name, StringComparison.Ordinal) ||
+            if (!actualIndexes.TryGetValue(expected.Name, out var actual))
+            {
+                // Declared nonunique indexes contain no authoritative facts. Missing ones
+                // are recreated by the normal generated DDL before exposing the store.
+                if (allowMissingNonUniqueIndexes && !expected.Unique) continue;
+                return false;
+            }
+            if (!string.Equals(actual.Table, table.Name, StringComparison.Ordinal) ||
                 actual.Unique != expected.Unique ||
                 !actual.Columns.SequenceEqual(expected.Columns, StringComparer.Ordinal))
             {

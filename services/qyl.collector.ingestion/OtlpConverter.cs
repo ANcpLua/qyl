@@ -2,7 +2,6 @@ using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
-using Qyl.Collector.Telemetry;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
@@ -20,40 +19,44 @@ internal static partial class OtlpConverter
     public static TraceIngestionBatch ConvertTraceRequest(ExportTraceServiceRequest request)
     {
         var spans = new List<SpanIngestionRecord>();
-
+        long rejected = 0;
+        var reasons = new SortedSet<string>(StringComparer.Ordinal);
+        void Reject(int count, InvalidDataException error) { rejected += count; reasons.Add(error.Message); }
         foreach (var resourceSpan in request.ResourceSpans)
         {
+            ResourceProjection resource;
+            try { resource = ExtractResourceProjection(resourceSpan.Resource); }
+            catch (InvalidDataException error) { Reject(resourceSpan.ScopeSpans.Sum(static scope => scope.Spans.Count), error); continue; }
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
-            var projectIdHint = ExtractProjectIdHintFromProto(resourceSpan.Resource);
-            var resource = ExtractResourceProjection(resourceSpan.Resource);
-            var resourceSchemaUrl = NullIfEmpty(resourceSpan.SchemaUrl);
-
-            foreach (var scopeSpan in resourceSpan.ScopeSpans)
+            var project = ExtractProjectIdHintFromProto(resourceSpan.Resource);
+            var resourceSchema = NullIfEmpty(resourceSpan.SchemaUrl);
+            foreach (var scope in resourceSpan.ScopeSpans)
             {
-                var schemaUrl = NullIfEmpty(scopeSpan.SchemaUrl) ?? resourceSchemaUrl;
-                var scopeName = NullIfEmpty(scopeSpan.Scope?.Name);
-                var scopeVersion = NullIfEmpty(scopeSpan.Scope?.Version);
-
-                foreach (var span in scopeSpan.Spans)
+                Dictionary<string, OtlpAttributeValue> scopeAttributes;
+                try { scopeAttributes = ConvertMetadataAttributes(scope.Scope?.Attributes ?? []); }
+                catch (InvalidDataException error) { Reject(scope.Spans.Count, error); continue; }
+                foreach (var span in scope.Spans)
                 {
-                    var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
-                    var spanRecord =
-                        CreateSpanRecordFromProto(
-                            span,
-                            projectIdHint,
-                            serviceName,
-                            attributes,
-                            resource.Attributes,
-                            resource.EntityRefs,
-                            schemaUrl,
-                            scopeName,
-                            scopeVersion);
-                    spans.Add(spanRecord);
+                    try
+                    {
+                        // OTLP spans have required bounds, unlike optional log event timestamps.
+                        // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/trace/v1/trace.proto
+                        if (span.EndTimeUnixNano < span.StartTimeUnixNano || span.StartTimeUnixNano == 0 && span.EndTimeUnixNano == 0)
+                            throw new InvalidDataException("OTLP span requires start and end times with end >= start.");
+                        spans.Add(CreateSpanRecordFromProto(span, project, serviceName,
+                            ExtractAttributesFromProto(span.Attributes, serviceName), resource.Attributes, resource.EntityRefs,
+                            NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name), NullIfEmpty(scope.Scope?.Version)) with
+                        {
+                            ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl), ScopeAttributes = scopeAttributes,
+                            ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
+                            ResourceSchemaUrl = resourceSchema, ResourceDroppedAttributesCount = resourceSpan.Resource?.DroppedAttributesCount ?? 0
+                        });
+                    }
+                    catch (InvalidDataException error) { Reject(1, error); }
                 }
             }
         }
-
-        return new TraceIngestionBatch(spans);
+        return new TraceIngestionBatch(spans) { RejectedSpans = rejected, RejectionMessage = reasons.Count == 0 ? null : string.Join("; ", reasons) };
     }
 
     private static string ExtractServiceNameFromProto(ProtoResource? resource)
@@ -110,6 +113,7 @@ internal static partial class OtlpConverter
 
         foreach (var attr in resource.Attributes)
         {
+            if (IsUnresolvedProfilingKey(attr)) continue;
             if (string.IsNullOrWhiteSpace(attr.Key))
                 throw new InvalidDataException("OTLP resource attribute key must not be empty.");
             if (!sourceKeys.Add(attr.Key))
@@ -248,6 +252,7 @@ internal static partial class OtlpConverter
         Dictionary<string, OtlpAttributeValue> attributes,
         RepeatedField<ProtoKeyValue> protoAttributes)
     {
+        ValidateAttributeKeys(protoAttributes);
         var appAttributes = 0;
         foreach (var attr in protoAttributes)
         {
@@ -304,13 +309,44 @@ internal static partial class OtlpConverter
         return attributes;
     }
 
+    private static void ValidateAttributeKeys(RepeatedField<ProtoKeyValue> attributes)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var attribute in attributes)
+        {
+            if (IsUnresolvedProfilingKey(attribute)) continue;
+            if (string.IsNullOrWhiteSpace(attribute.Key) || !keys.Add(attribute.Key))
+                throw new InvalidDataException("OTLP attributes require nonempty, unique keys.");
+        }
+    }
+
+    // A profiling string-table key has no meaning in these signals. OTLP requires its
+    // presence to be non-fatal; do not mistake it for a malformed ordinary empty key.
+    // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/common/v1/common.proto
+    private static bool IsUnresolvedProfilingKey(ProtoKeyValue attribute) =>
+        attribute.Key.Length == 0 && attribute.KeyStrindex != 0;
+
+    private static Dictionary<string, OtlpAttributeValue> ConvertMetadataAttributes(
+        RepeatedField<ProtoKeyValue> attributes)
+    {
+        var result = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        foreach (var attribute in attributes)
+        {
+            if (IsUnresolvedProfilingKey(attribute)) continue;
+            if (string.IsNullOrWhiteSpace(attribute.Key) ||
+                !result.TryAdd(attribute.Key, ConvertProtoAnyValue(attribute.Value)))
+                throw new InvalidDataException("OTLP metadata attributes require nonempty, unique keys.");
+        }
+        return result;
+    }
+
     private static IReadOnlyList<SpanEventIngest> BuildSpanEvents(ProtoSpan span)
     {
         if (span.Events.Count is 0) return [];
 
         var events = new List<SpanEventIngest>(span.Events.Count);
         foreach (var e in span.Events)
-            events.Add(new SpanEventIngest(e.Name ?? "", e.TimeUnixNano, ConvertSpanChildAttributes(e.Attributes)));
+            events.Add(new SpanEventIngest(e.Name ?? "", e.TimeUnixNano, ConvertSpanChildAttributes(e.Attributes), e.DroppedAttributesCount));
 
         return events;
     }
@@ -325,7 +361,7 @@ internal static partial class OtlpConverter
             links.Add(new SpanLinkIngest(
                 RequireId(l.TraceId, 16, "link.trace_id"),
                 RequireId(l.SpanId, 8, "link.span_id"),
-                ConvertSpanChildAttributes(l.Attributes)));
+                ConvertSpanChildAttributes(l.Attributes), NullIfEmpty(l.TraceState), l.Flags, l.DroppedAttributesCount));
         }
 
         return links;
@@ -369,6 +405,7 @@ internal static partial class OtlpConverter
         var items = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var item in value.Values)
         {
+            if (IsUnresolvedProfilingKey(item)) continue;
             if (string.IsNullOrWhiteSpace(item.Key))
                 throw new InvalidDataException("OTLP key-value-list contains an empty key.");
 
@@ -395,6 +432,11 @@ internal static partial class OtlpConverter
             SpanId = RequireId(span.SpanId, 8, "span_id"),
             TraceId = RequireId(span.TraceId, 16, "trace_id"),
             ParentSpanId = RequireIdOrAbsent(span.ParentSpanId, 8, "parent_span_id"),
+            TraceState = NullIfEmpty(span.TraceState),
+            Flags = span.Flags,
+            DroppedAttributesCount = span.DroppedAttributesCount,
+            DroppedEventsCount = span.DroppedEventsCount,
+            DroppedLinksCount = span.DroppedLinksCount,
             Name = span.Name ?? "unknown",
             Kind = (int)span.Kind,
             StartTimeUnixNano = span.StartTimeUnixNano,
@@ -416,15 +458,15 @@ internal static partial class OtlpConverter
 
     #region Shared Helpers
 
-    // The spec fixes trace ids at 16 bytes and span ids at 8; anything else is sender corruption
-    // and must reject the request cleanly (HTTP 400 / gRPC InvalidArgument), never store an
-    // unjoinable id.
+    // OTLP requires nonzero trace/span IDs with exact byte lengths; malformed records are
+    // rejected through partial_success rather than storing unjoinable identifiers.
+    // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/trace/v1/trace.proto
     private static string RequireId(ByteString value, int requiredBytes, string field)
     {
-        if (value.Length != requiredBytes)
+        if (value.Length != requiredBytes || value.Span.IndexOfAnyExcept((byte)0) < 0)
         {
             throw new InvalidDataException(
-                $"OTLP field '{field}' must be {requiredBytes} bytes; got {value.Length}.");
+                $"OTLP field '{field}' must be a nonzero {requiredBytes}-byte identifier; got {value.Length}.");
         }
 
         return Convert.ToHexStringLower(value.Span);
@@ -444,29 +486,51 @@ internal static partial class OtlpConverter
 
     #region Logs Conversion
 
-    public static LogIngestionBatch ConvertLogs(ExportLogsServiceRequest otlp)
+    public static LogIngestionBatch ConvertLogs(ExportLogsServiceRequest otlp, TimeProvider timeProvider)
     {
         var logs = new List<LogIngestionRecord>();
-
+        long rejected = 0;
+        var ordinal = 0;
+        var reasons = new SortedSet<string>(StringComparer.Ordinal);
+        void Reject(int count, InvalidDataException error) { rejected += count; reasons.Add(error.Message); }
+        // Observation time belongs to the injected receive clock only when the producer omitted it.
+        // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/logs/data-model.md#field-observedtimestamp
+        var observedTime = Primitives.TimeConversions.ToUnixNanoUnsigned(timeProvider.GetUtcNow());
         foreach (var resourceLogs in otlp.ResourceLogs)
         {
-            var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
-            var projectIdHint = ExtractProjectIdHintFromProto(resourceLogs.Resource);
-            var resource = ExtractResourceProjection(resourceLogs.Resource);
-
-            foreach (var scopeLogs in resourceLogs.ScopeLogs)
-            foreach (var log in scopeLogs.LogRecords)
+            ResourceProjection resource;
+            try { resource = ExtractResourceProjection(resourceLogs.Resource); }
+            catch (InvalidDataException error)
             {
-                logs.Add(CreateLogRecord(
-                    log,
-                    projectIdHint,
-                    serviceName,
-                    resource.Attributes,
-                    resource.EntityRefs));
+                var count = resourceLogs.ScopeLogs.Sum(static scope => scope.LogRecords.Count);
+                Reject(count, error); ordinal += count; continue;
+            }
+            var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
+            var project = ExtractProjectIdHintFromProto(resourceLogs.Resource);
+            foreach (var scope in resourceLogs.ScopeLogs)
+            {
+                Dictionary<string, OtlpAttributeValue> scopeAttributes;
+                try { scopeAttributes = ConvertMetadataAttributes(scope.Scope?.Attributes ?? []); }
+                catch (InvalidDataException error) { Reject(scope.LogRecords.Count, error); ordinal += scope.LogRecords.Count; continue; }
+                foreach (var log in scope.LogRecords)
+                {
+                    var requestOrdinal = ordinal++;
+                    try
+                    {
+                        logs.Add(CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs, observedTime) with
+                        {
+                            UntimedRequestOrdinal = log.TimeUnixNano == 0 && log.ObservedTimeUnixNano == 0 ? requestOrdinal : null,
+                            ScopeName = NullIfEmpty(scope.Scope?.Name), ScopeVersion = NullIfEmpty(scope.Scope?.Version),
+                            ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl), ScopeAttributes = scopeAttributes,
+                            ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
+                            ResourceSchemaUrl = NullIfEmpty(resourceLogs.SchemaUrl), ResourceDroppedAttributesCount = resourceLogs.Resource?.DroppedAttributesCount ?? 0
+                        });
+                    }
+                    catch (InvalidDataException error) { Reject(1, error); }
+                }
             }
         }
-
-        return new LogIngestionBatch(logs);
+        return new LogIngestionBatch(logs) { RejectedLogRecords = rejected, RejectionMessage = reasons.Count == 0 ? null : string.Join("; ", reasons) };
     }
 
     private static LogIngestionRecord CreateLogRecord(
@@ -474,7 +538,8 @@ internal static partial class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
-        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs)
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
+        ulong observedTime)
     {
         var attributes = ExtractLogAttributes(log.Attributes);
 
@@ -486,8 +551,11 @@ internal static partial class OtlpConverter
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
             EventName = NullIfEmpty(log.EventName),
-            TimeUnixNano = log.TimeUnixNano,
-            ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
+            Flags = log.Flags,
+            DroppedAttributesCount = log.DroppedAttributesCount,
+            TimeUnixNano = log.TimeUnixNano == 0 ? null : log.TimeUnixNano,
+            ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : observedTime,
+            ObservedTimeProvided = log.ObservedTimeUnixNano > 0,
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
             Body = ConvertProtoAnyValue(log.Body),
@@ -500,6 +568,7 @@ internal static partial class OtlpConverter
 
     private static Dictionary<string, OtlpAttributeValue> ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
     {
+        ValidateAttributeKeys(attributes);
         var dict = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var attr in attributes)
         {

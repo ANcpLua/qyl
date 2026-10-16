@@ -1,4 +1,4 @@
-using Qyl.Collector.Primitives;
+using Qyl.Collector.Ingestion.Primitives;
 
 namespace Qyl.Collector.Storage;
 

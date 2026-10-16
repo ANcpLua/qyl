@@ -59,7 +59,13 @@ internal sealed partial class DuckDbStore
                 if (telemetry && !query.IncludeTelemetry) return [];
                 var predicates = new List<string> { "project_id = $1" }; var values = new List<object> { projectId };
                 void Add(string column, string comparison, object value) { values.Add(value); predicates.Add(column + comparison + "$" + values.Count); }
-                var timeColumn = table == "spans" ? "start_time_unix_nano" : table == "metric_series" ? "last_seen_unix_nano" : "time_unix_nano";
+                var timeColumn = table switch
+                {
+                    "spans" => "start_time_unix_nano",
+                    "metric_series" => "last_seen_unix_nano",
+                    "logs" => LogStorageRow.EffectiveTimeSql,
+                    _ => "time_unix_nano"
+                };
                 var targets = new List<string>();
                 if (table is "spans" or "logs")
                 {

@@ -2,9 +2,10 @@ using System.Globalization;
 
 namespace Qyl.Cli.Tests;
 
+[TestClass]
 public sealed class BoundedStreamTests
 {
-    [Fact]
+    [TestMethod]
     public void Resource_state_bursts_conflate_to_a_full_snapshot_resync()
     {
         var resources = Enumerable.Range(0, 96)
@@ -22,14 +23,14 @@ public sealed class BoundedStreamTests
         foreach (var resource in resources)
             registry.Publish(resource.Name, ResourceLifecycle.Ready, resource.Port);
 
-        Assert.True(subscription.Events.TryRead(out _));
-        Assert.False(subscription.Events.TryRead(out _));
-        Assert.Equal(resources.Length, registry.Snapshot.Count);
-        Assert.All(registry.Snapshot.Values, static state =>
-            Assert.Equal(ResourceLifecycle.Ready, state.Lifecycle));
+        Assert.IsTrue(subscription.Events.TryRead(out _));
+        Assert.IsFalse(subscription.Events.TryRead(out _));
+        Assert.AreEqual(resources.Length, registry.Snapshot.Count);
+        foreach (var state in registry.Snapshot.Values)
+            Assert.AreEqual(ResourceLifecycle.Ready, state.Lifecycle);
     }
 
-    [Fact]
+    [TestMethod]
     public void Slow_log_subscribers_retain_only_the_bounded_replay_window()
     {
         var logs = new QylLogStore();
@@ -40,8 +41,8 @@ public sealed class BoundedStreamTests
         var retained = new List<QylLogLine>();
         while (subscription.Events.TryRead(out var line)) retained.Add(line);
 
-        Assert.Equal(QylLogStore.SubscriberCapacity, retained.Count);
-        Assert.Equal("100", retained[0].Line);
-        Assert.Equal((QylLogStore.SubscriberCapacity + 99).ToString(CultureInfo.InvariantCulture), retained[^1].Line);
+        Assert.AreEqual(QylLogStore.SubscriberCapacity, retained.Count);
+        Assert.AreEqual("100", retained[0].Line);
+        Assert.AreEqual((QylLogStore.SubscriberCapacity + 99).ToString(CultureInfo.InvariantCulture), retained[^1].Line);
     }
 }

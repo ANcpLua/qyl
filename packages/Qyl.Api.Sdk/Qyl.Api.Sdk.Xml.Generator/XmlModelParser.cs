@@ -639,14 +639,16 @@ internal static class XmlModelParser
 
         if (attribute is not null)
         {
-            if (attribute.ConstructorArguments.Length > 1 ||
-                (attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is not string))
+            if (attribute.ConstructorArguments.Length > 1)
             {
                 state.ReportUnsupportedAttribute(target, attribute);
             }
-            else if (attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is string { Length: > 0 } constructorName)
+            else if (attribute.ConstructorArguments.Length is 1)
             {
-                name = constructorName;
+                if (attribute.ConstructorArguments[0].Value is not string constructorName)
+                    state.ReportUnsupportedAttribute(target, attribute);
+                else if (constructorName.Length > 0)
+                    name = constructorName;
             }
 
             foreach (var argument in attribute.NamedArguments)
@@ -689,14 +691,16 @@ internal static class XmlModelParser
     {
         string? name = null;
 
-        if (attribute.ConstructorArguments.Length > 1 ||
-            (attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is not string))
+        if (attribute.ConstructorArguments.Length > 1)
         {
             state.ReportUnsupportedAttribute(target, attribute);
         }
-        else if (attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is string { Length: > 0 } constructorName)
+        else if (attribute.ConstructorArguments.Length is 1)
         {
-            name = constructorName;
+            if (attribute.ConstructorArguments[0].Value is not string constructorName)
+                state.ReportUnsupportedAttribute(target, attribute);
+            else if (constructorName.Length > 0)
+                name = constructorName;
         }
 
         foreach (var argument in attribute.NamedArguments)

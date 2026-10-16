@@ -28,7 +28,17 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         events_json = EXCLUDED.events_json,
         links_json = EXCLUDED.links_json,
         scope_name = EXCLUDED.scope_name,
-        scope_version = EXCLUDED.scope_version
+        scope_version = EXCLUDED.scope_version,
+        scope_schema_url = EXCLUDED.scope_schema_url,
+        scope_attributes_json = EXCLUDED.scope_attributes_json,
+        scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,
+        resource_schema_url = EXCLUDED.resource_schema_url,
+        resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,
+        trace_state = EXCLUDED.trace_state,
+        flags = EXCLUDED.flags,
+        dropped_attributes_count = EXCLUDED.dropped_attributes_count,
+        dropped_events_count = EXCLUDED.dropped_events_count,
+        dropped_links_count = EXCLUDED.dropped_links_count
     """)]
 internal sealed partial record SpanStorageRow
 {
@@ -84,6 +94,17 @@ internal sealed partial record SpanStorageRow
     public string? ScopeName { get; init; }
     [DuckDbColumn(SqlType = "VARCHAR(64)")]
     public string? ScopeVersion { get; init; }
+    public string? ScopeSchemaUrl { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ScopeAttributesJson { get; init; }
+    public uint? ScopeDroppedAttributesCount { get; init; }
+    public string? ResourceSchemaUrl { get; init; }
+    public uint? ResourceDroppedAttributesCount { get; init; }
+    public string? TraceState { get; init; }
+    public uint? Flags { get; init; }
+    public uint? DroppedAttributesCount { get; init; }
+    public uint? DroppedEventsCount { get; init; }
+    public uint? DroppedLinksCount { get; init; }
 }
 
 internal sealed record StorageStats
@@ -111,17 +132,32 @@ internal sealed record SessionStatsRow
         event_name = EXCLUDED.event_name,
         session_id = EXCLUDED.session_id,
         time_unix_nano = EXCLUDED.time_unix_nano,
-        observed_time_unix_nano = EXCLUDED.observed_time_unix_nano,
+        observed_time_unix_nano = least(observed_time_unix_nano, EXCLUDED.observed_time_unix_nano),
         severity_number = EXCLUDED.severity_number,
         severity_text = EXCLUDED.severity_text,
         body = EXCLUDED.body,
         service_name = EXCLUDED.service_name,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
-        resource_entity_refs_json = EXCLUDED.resource_entity_refs_json
+        resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,
+        scope_name = EXCLUDED.scope_name,
+        scope_version = EXCLUDED.scope_version,
+        scope_schema_url = EXCLUDED.scope_schema_url,
+        scope_attributes_json = EXCLUDED.scope_attributes_json,
+        scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,
+        resource_schema_url = EXCLUDED.resource_schema_url,
+        resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,
+        flags = EXCLUDED.flags,
+        dropped_attributes_count = EXCLUDED.dropped_attributes_count
     """)]
 internal sealed partial record LogStorageRow
 {
+    // Preserve raw event time while ordering absent event times by observation.
+    // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/logs/data-model.md#field-observedtimestamp
+    internal const string EffectiveTimeSql = "COALESCE(NULLIF(time_unix_nano, 0), NULLIF(observed_time_unix_nano, 0))";
+
+    internal ulong? EffectiveTimeUnixNano() => TimeUnixNano is > 0 ? TimeUnixNano : ObservedTimeUnixNano is > 0 ? ObservedTimeUnixNano : null;
+
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
@@ -131,7 +167,7 @@ internal sealed partial record LogStorageRow
     public string? EventName { get; init; }
     public string? SessionId { get; init; }
 
-    public required ulong TimeUnixNano { get; init; }
+    public ulong? TimeUnixNano { get; init; }
     public ulong? ObservedTimeUnixNano { get; init; }
 
     public required byte SeverityNumber { get; init; }
@@ -149,5 +185,15 @@ internal sealed partial record LogStorageRow
     // Monotonic collector arrival order. Event timestamps are supplied by producers and may arrive
     // late or out of order, so they cannot be used as a lossless live-stream cursor.
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "nextval('logs_ingest_sequence')")]
-    public long IngestSequence { get; init; }
+    public long IngestSequence { get; private init; }
+    public string? ScopeName { get; init; }
+    public string? ScopeVersion { get; init; }
+    public string? ScopeSchemaUrl { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ScopeAttributesJson { get; init; }
+    public uint? ScopeDroppedAttributesCount { get; init; }
+    public string? ResourceSchemaUrl { get; init; }
+    public uint? ResourceDroppedAttributesCount { get; init; }
+    public uint? Flags { get; init; }
+    public uint? DroppedAttributesCount { get; init; }
 }

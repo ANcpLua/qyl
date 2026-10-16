@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSTest.Sdk">
   <!--
     Proof for the Qyl.Api runtime that is not the XML generator: the agent contract. A request's
     W3C `baggage` header carries `session.id`; the server span must carry it afterwards, and must
@@ -20,13 +20,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="Xunit"/>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting"/>
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
-    <PackageReference Include="xunit.v3.mtp-v2"/>
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
     <PackageReference Include="Qyl.Telemetry.Hosting"/>
   </ItemGroup>
 

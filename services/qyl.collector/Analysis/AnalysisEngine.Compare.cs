@@ -77,7 +77,7 @@ internal sealed partial class AnalysisEngine
         {
             var failures = FailureRecords(failure);
             if (failures.Count is 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
-            spans = [.. _spans.Where(s => s.TraceId == failures.OrderByDescending(s => s.Start).First().TraceId)];
+            spans = [.. _spans.Where(s => s.TraceId == failures.OrderByDescending(item => item.Start).First().TraceId)];
         }
         else if (J.String(input, "ci_run_id") is { } run)
             spans =

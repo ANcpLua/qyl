@@ -12,9 +12,10 @@ using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class TracePagingTests
+[TestClass]
+public sealed class TracePagingTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Equal_activity_times_page_by_trace_id_without_duplicates_or_gaps()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -28,7 +29,7 @@ public sealed class TracePagingTests
             }
         };
         var rows = IngestionStorageMapper.ToSpanStorageRows(OtlpConverter.ConvertTraceRequest(request));
-        await store.EnqueueAsync(new SpanBatch(rows), TestContext.Current.CancellationToken);
+        await store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
 
         var traceIds = new List<string>();
         string? cursor = null;
@@ -39,20 +40,20 @@ public sealed class TracePagingTests
             var result = await CollectorEndpointExtensions.GetTracesAsync(
                 context,
                 store,
-                TestContext.Current.CancellationToken);
+                testContext.CancellationToken);
             await result.ExecuteAsync(context);
             var page = await ReadPageAsync(context);
 
-            traceIds.Add(Assert.Single(page.Items).TraceId);
+            traceIds.Add(Assert.ContainsSingle(page.Items).TraceId);
             cursor = page.NextCursor;
-            Assert.Equal(cursor is not null, page.HasMore);
+            Assert.AreEqual(cursor is not null, page.HasMore);
         } while (cursor is not null);
 
-        Assert.Equal(3, traceIds.Count);
-        Assert.Equal(3, traceIds.Distinct(StringComparer.Ordinal).Count());
+        Assert.AreEqual(3, traceIds.Count);
+        Assert.AreEqual(3, traceIds.Distinct(StringComparer.Ordinal).Count());
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Trace_limit_pages_complete_traces_and_emits_a_stable_next_cursor()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -66,40 +67,40 @@ public sealed class TracePagingTests
             }
         };
         var rows = IngestionStorageMapper.ToSpanStorageRows(OtlpConverter.ConvertTraceRequest(request));
-        await store.EnqueueAsync(new SpanBatch(rows), TestContext.Current.CancellationToken);
+        await store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
 
         var firstContext = CreateContext("?limit=2");
         var firstResult = await CollectorEndpointExtensions.GetTracesAsync(
             firstContext,
             store,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         await firstResult.ExecuteAsync(firstContext);
         var first = await ReadPageAsync(firstContext);
 
-        Assert.Equal(2, first.Items.Count);
-        Assert.True(first.HasMore);
-        Assert.False(string.IsNullOrWhiteSpace(first.NextCursor));
-        Assert.Equal(3, first.Items[0].SpanCount);
-        Assert.Equal(3, first.Items[0].Spans.Count);
-        Assert.Equal<ulong>(200, first.Items[0].DurationNs);
-        Assert.Equal(2, first.Items[1].SpanCount);
-        Assert.Equal(2, first.Items[1].Spans.Count);
+        Assert.AreEqual(2, first.Items.Count);
+        Assert.IsTrue(first.HasMore);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(first.NextCursor));
+        Assert.AreEqual(3, first.Items[0].SpanCount);
+        Assert.AreEqual(3, first.Items[0].Spans.Count);
+        Assert.AreEqual<ulong>(200, first.Items[0].DurationNs);
+        Assert.AreEqual(2, first.Items[1].SpanCount);
+        Assert.AreEqual(2, first.Items[1].Spans.Count);
 
         var secondContext = CreateContext(
             "?limit=2&cursor=" + Uri.EscapeDataString(first.NextCursor!));
         var secondResult = await CollectorEndpointExtensions.GetTracesAsync(
             secondContext,
             store,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         await secondResult.ExecuteAsync(secondContext);
         var second = await ReadPageAsync(secondContext);
 
-        var remaining = Assert.Single(second.Items);
-        Assert.Equal(1, remaining.SpanCount);
-        Assert.Single(remaining.Spans);
-        Assert.False(second.HasMore);
-        Assert.Null(second.NextCursor);
-        Assert.DoesNotContain(second.Items, trace => first.Items.Any(previous => previous.TraceId == trace.TraceId));
+        var remaining = Assert.ContainsSingle(second.Items);
+        Assert.AreEqual(1, remaining.SpanCount);
+        Assert.ContainsSingle(remaining.Spans);
+        Assert.IsFalse(second.HasMore);
+        Assert.IsNull(second.NextCursor);
+        Assert.DoesNotContain(trace => first.Items.Any(previous => previous.TraceId == trace.TraceId),second.Items);
     }
 
     private static ResourceSpans Trace(byte identity, params (ulong Start, ulong End)[] timings)
@@ -132,26 +133,31 @@ public sealed class TracePagingTests
 
     private static DefaultHttpContext CreateContext(string query)
     {
-        var context = new DefaultHttpContext
+        return new DefaultHttpContext
         {
             RequestServices = new ServiceCollection()
                 .AddLogging()
                 .ConfigureHttpJsonOptions(static options =>
                     options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default))
-                .BuildServiceProvider()
+                .BuildServiceProvider(),
+            Request =
+            {
+                QueryString = new QueryString(query)
+            },
+            Response =
+            {
+                Body = new MemoryStream()
+            }
         };
-        context.Request.QueryString = new QueryString(query);
-        context.Response.Body = new MemoryStream();
-        return context;
     }
 
-    private static async Task<CursorPageTrace> ReadPageAsync(DefaultHttpContext context)
+    private async Task<CursorPageTrace> ReadPageAsync(DefaultHttpContext context)
     {
         context.Response.Body.Position = 0;
         var page = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
             QylSerializerContext.Default.CursorPageTrace,
-            TestContext.Current.CancellationToken);
-        return Assert.IsType<CursorPageTrace>(page);
+            testContext.CancellationToken);
+        return Assert.IsExactInstanceOfType<CursorPageTrace>(page);
     }
 }

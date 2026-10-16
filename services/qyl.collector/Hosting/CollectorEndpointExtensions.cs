@@ -12,7 +12,7 @@ using ExportMetricsServiceRequest = OpenTelemetry.Proto.Collector.Metrics.V1.Exp
 using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceRequest = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
-using StorageMetricKind = Qyl.Collector.Primitives.MetricKind;
+using StorageMetricKind = Qyl.Collector.Ingestion.Primitives.MetricKind;
 
 namespace Qyl.Collector.Hosting;
 
@@ -45,6 +45,7 @@ internal static partial class CollectorEndpointExtensions
 
         api.MapGet("/metrics", GetMetricsAsync).RequireKeyRole(ApiKeyRoles.Read);
         api.MapGet("/metrics/{metric_name}/series", GetMetricSeriesAsync).RequireKeyRole(ApiKeyRoles.Read);
+        api.MapGet("/metrics/{metric_name}/series/{series_id}/points", GetMetricPointsAsync).RequireKeyRole(ApiKeyRoles.Read);
         api.MapGet("/metrics/{metric_name}/query", QueryMetricAsync).RequireKeyRole(ApiKeyRoles.Read);
 
         api.MapGet("/logs", GetLogsAsync).RequireKeyRole(ApiKeyRoles.Read);
@@ -156,16 +157,8 @@ internal static partial class CollectorEndpointExtensions
             var spans = IngestionStorageMapper.ToSpanStorageRows(
                 traceBatch, AuthenticatedProject.ForHttpIngest(context));
 
-            if (spans.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportTraceServiceResponse());
-
-            await store.EnqueueAsync(new SpanBatch(spans), ct);
-
-            return OtlpHttpResult.Success(
-                encoding,
-                new ExportTraceServiceResponse());
+            if (spans.Count > 0) await store.EnqueueAsync(new SpanBatch(spans), ct);
+            return OtlpHttpResult.Success(encoding, OtlpExportAck.Create(traceBatch));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -196,6 +189,7 @@ internal static partial class CollectorEndpointExtensions
     internal static async Task<IResult> IngestOtlpLogsAsync(
         HttpContext context,
         IQylStore store,
+        TimeProvider timeProvider,
         CancellationToken ct)
     {
         var encoding = OtlpPayloadEncoding.Json;
@@ -248,19 +242,12 @@ internal static partial class CollectorEndpointExtensions
                     encoding,
                     new ExportLogsServiceResponse());
 
-            var logBatch = OtlpConverter.ConvertLogs(otlpData);
+            var logBatch = OtlpConverter.ConvertLogs(otlpData, timeProvider);
             var logs = IngestionStorageMapper.ToLogStorageRows(
                 logBatch, AuthenticatedProject.ForHttpIngest(context));
 
-            if (logs.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportLogsServiceResponse());
-
-            await store.InsertLogsAsync(logs, ct);
-            return OtlpHttpResult.Success(
-                encoding,
-                new ExportLogsServiceResponse());
+            if (logs.Count > 0) await store.InsertLogsAsync(logs, ct);
+            return OtlpHttpResult.Success(encoding, OtlpExportAck.Create(logBatch));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -346,10 +333,10 @@ internal static partial class CollectorEndpointExtensions
             var write = MetricStorageMapper.ToStorageRows(
                 batch, AuthenticatedProject.ForHttpIngest(context));
 
-            if (write.Points.Count > 0)
-                await store.InsertMetricsAsync(write.Series, write.Points, write.Exemplars, ct);
+            if (write.Observations.Count > 0)
+                await store.InsertMetricsAsync(write.Series, write.Observations, ct);
 
-            return OtlpHttpResult.Success(encoding, MetricsExportAck.Create(batch));
+            return OtlpHttpResult.Success(encoding, OtlpExportAck.Create(batch));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -392,12 +379,12 @@ internal static partial class CollectorEndpointExtensions
             return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
         }
 
-        string? afterName = null;
+        MetricCatalogCursor? cursor = null;
         if (query.Cursor is { } encoded)
         {
-            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.Metrics, 1, out var fields))
+            if (!PageCursorCodec.TryDecode(encoded, PageCursorKind.Metrics, 2, out var fields))
                 return InvalidCursor(encoded);
-            afterName = fields[0];
+            cursor = new MetricCatalogCursor(fields[0], fields[1]);
         }
 
         // One extra row makes HasMore a fact rather than the coincidence of a page that exactly
@@ -406,8 +393,8 @@ internal static partial class CollectorEndpointExtensions
             ResolveProjectScope(httpContext),
             query.NamePrefix,
             boundedLimit + 1,
-            afterName,
-            ct);
+            cursor,
+            ct: ct);
 
         var hasMore = metrics.Count > boundedLimit;
         IReadOnlyList<MetricCatalogEntry> page = hasMore ? [.. metrics.Take(boundedLimit)] : metrics;
@@ -415,7 +402,7 @@ internal static partial class CollectorEndpointExtensions
         {
             Items = MetricMapper.ToContracts(page),
             HasMore = hasMore,
-            NextCursor = hasMore ? PageCursorCodec.Encode(PageCursorKind.Metrics, page[^1].MetricName) : null
+            NextCursor = hasMore ? PageCursorCodec.Encode(PageCursorKind.Metrics, page[^1].MetricName, page[^1].InstrumentId) : null
         });
     }
 
@@ -453,7 +440,7 @@ internal static partial class CollectorEndpointExtensions
             query.Matchers,
             boundedLimit + 1,
             cursor,
-            ct);
+            ct: ct);
 
         // An empty first page under a name that was never recorded is a 404: the caller asked
         // about an instrument, not about a filter, and "no such metric" is the answer that
@@ -519,37 +506,42 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var projectId = ResolveProjectScope(httpContext);
-        if ((await store.ListMetricsAsync(projectId, metricName, limit: 1, ct: ct))
+        if ((await store.ListMetricsAsync(projectId, metricName, limit: 1, matchers: query.Matchers, seriesId: query.SeriesId, ct: ct))
             .FirstOrDefault(entry => string.Equals(entry.MetricName, metricName, StringComparison.Ordinal)) is not { } descriptor)
-            return ContractErrorResults.NotFound("metric", metricName);
-
-        // A percentile interpolates over recorded bucket boundaries, which only a histogram
-        // carries; the contract limits p50-p99 to histogram kinds.
-        if (query.Aggregation is MetricAggregation.P50 or MetricAggregation.P90 or MetricAggregation.P95
-                or MetricAggregation.P99
-            && descriptor.MetricKind < (byte)StorageMetricKind.Histogram)
-        {
-            return ContractErrorResults.Validation(
-                "aggregation",
-                "Percentile aggregations require a histogram metric; use avg, min, max, sum, count or last.",
-                "aggregation.requires_histogram",
-                httpContext.Request.Query["aggregation"].ToString());
-        }
+            return ContractErrorResults.NotFound(query.SeriesId is null ? "metric" : "metric series", query.SeriesId ?? metricName);
 
         // Ask for one extra stream so the truncation flag reports a fact rather than the
         // coincidence of the result exactly filling the limit.
-        var series = await store.QueryMetricAsync(new MetricRangeQuery
+        IReadOnlyList<MetricQuerySeries> series;
+        try
         {
-            ProjectId = projectId,
-            MetricName = metricName,
-            StartUnixNano = QylTimeConversions.ToUnixNanoUnsigned(startTime.ToUniversalTime()),
-            EndUnixNano = QylTimeConversions.ToUnixNanoUnsigned(endTime.ToUniversalTime()),
-            StepUnixNano = (ulong)stepMs * 1_000_000UL,
-            Aggregation = query.Aggregation,
-            GroupBy = query.GroupBy,
-            Matchers = query.Matchers,
-            SeriesLimit = boundedSeriesLimit + 1
-        }, ct);
+            series = await store.QueryMetricAsync(new MetricRangeQuery
+            {
+                ProjectId = projectId,
+                MetricName = metricName,
+                SeriesId = query.SeriesId,
+                StartUnixNano = QylTimeConversions.ToUnixNanoUnsigned(startTime.ToUniversalTime()),
+                EndUnixNano = QylTimeConversions.ToUnixNanoUnsigned(endTime.ToUniversalTime()),
+                StepUnixNano = (ulong)stepMs * 1_000_000UL,
+                Aggregation = query.Aggregation,
+                GroupBy = query.GroupBy,
+                Matchers = query.Matchers,
+                SeriesLimit = boundedSeriesLimit + 1
+            }, ct);
+        }
+        catch (MetricQueryConflictException exception)
+        {
+            return ContractErrorResults.Conflict(metricName, exception.Message);
+        }
+        catch (MetricQueryRequiresHistogramException exception)
+        {
+            return ContractErrorResults.Validation("aggregation", exception.Message,
+                "aggregation.requires_histogram", httpContext.Request.Query["aggregation"].ToString());
+        }
+        catch (MetricProjectionUnavailableException exception)
+        {
+            return ContractErrorResults.Validation("aggregation", exception.Message, "metric.projection_unavailable");
+        }
 
         var truncated = series.Count > boundedSeriesLimit;
         return Results.Ok(MetricMapper.ToQueryResult(
@@ -649,7 +641,7 @@ internal static partial class CollectorEndpointExtensions
 
     // Session traces are paged like the trace list (QYL-A4): a long-lived session can touch
     // thousands of traces, and an unbounded response is one no client can hold.
-    internal static async Task<IResult> GetSessionTracesAsync(
+    private static async Task<IResult> GetSessionTracesAsync(
         HttpContext httpContext,
         [FromRoute(Name = "session_id")] string sessionId,
         IQylStore store,
@@ -722,7 +714,7 @@ internal static partial class CollectorEndpointExtensions
         return Results.Ok(ToTracePage(page, PageCursorKind.Traces));
     }
 
-    internal static CursorPageTrace ToTracePage(TraceStoragePage page, PageCursorKind kind) =>
+    private static CursorPageTrace ToTracePage(TraceStoragePage page, PageCursorKind kind) =>
         new()
         {
             Items = [.. page.Items.Select(static item => SpanMapper.ToTrace(item.TraceId, SpanMapper.ToContracts(item.Spans)))],
@@ -732,7 +724,7 @@ internal static partial class CollectorEndpointExtensions
                 : null
         };
 
-    internal static async Task<IResult> GetTraceSpansAsync(
+    private static async Task<IResult> GetTraceSpansAsync(
         HttpContext httpContext,
         [FromRoute(Name = "trace_id")] string traceId,
         IQylStore store,
@@ -851,7 +843,7 @@ internal static partial class CollectorEndpointExtensions
         return Results.Ok(ToLogPage(logs, boundedLimit, PageCursorKind.Logs));
     }
 
-    internal static CursorPageLogRecord ToLogPage(
+    private static CursorPageLogRecord ToLogPage(
         IReadOnlyList<LogStorageRow> logs,
         int limit,
         PageCursorKind kind,
@@ -866,20 +858,22 @@ internal static partial class CollectorEndpointExtensions
             NextCursor = hasMore
                 ? PageCursorCodec.Encode(
                     kind,
-                    [.. cursorPrefix, PageCursorCodec.Hex(page[^1].TimeUnixNano), page[^1].LogId])
+                    [.. cursorPrefix, PageCursorCodec.Hex(page[^1].EffectiveTimeUnixNano()), page[^1].LogId])
                 : null
         };
     }
 
-    internal static bool TryDecodeLogCursor(string encoded, PageCursorKind kind, out LogPageCursor cursor)
+    private static bool TryDecodeLogCursor(string encoded, PageCursorKind kind, out LogPageCursor cursor)
     {
         cursor = default;
-        if (!PageCursorCodec.TryDecode(encoded, kind, 2, out var fields) ||
-            !PageCursorCodec.TryParseHex(fields[0], out var time))
+        if (!PageCursorCodec.TryDecode(encoded, kind, 2, out var fields)) return false;
+        ulong? time = null;
+        if (fields[0].Length > 0)
         {
-            return false;
+            if (!PageCursorCodec.TryParseHex(fields[0], out var known)) return false;
+            // Cursors issued before nullable log times represented unknown time as zero.
+            time = known == 0 ? null : known;
         }
-
         cursor = new LogPageCursor(time, fields[1]);
         return true;
     }
@@ -1002,7 +996,7 @@ internal static partial class CollectorEndpointExtensions
                         {
                             Type = "log",
                             Data = LogMapper.ToContract(log),
-                            Timestamp = QylTimeConversions.NanosToDateTimeOffset(log.TimeUnixNano)
+                            Timestamp = log.EffectiveTimeUnixNano() is { } timestamp ? QylTimeConversions.NanosToDateTimeOffset(timestamp) : null
                         },
                         null);
                     afterIngestSequence = log.IngestSequence;
@@ -1054,14 +1048,14 @@ internal static partial class CollectorEndpointExtensions
     }
 
 
-    internal static IResult InvalidLimit(int? limit, int maximum) =>
+    private static IResult InvalidLimit(int? limit, int maximum) =>
         ContractErrorResults.Validation(
             "limit",
             $"Limit must be between 1 and {maximum}.",
             "limit.out_of_range",
             limit?.ToString(CultureInfo.InvariantCulture));
 
-    internal static string ResolveProjectScope(HttpContext httpContext) =>
+    private static string ResolveProjectScope(HttpContext httpContext) =>
         AuthenticatedProject.ForHttpRead(httpContext);
 
     internal static Task FallbackHandler(HttpContext context)

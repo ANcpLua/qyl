@@ -16,8 +16,8 @@ using ContractMetricKind = Qyl.Api.Contracts.OTel.Metrics.MetricKind;
 using ContractMetricTemporality = Qyl.Api.Contracts.OTel.Metrics.MetricTemporality;
 using ContractMetricAggregation = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation;
 using StorageMetricAggregation = Qyl.Collector.Storage.MetricAggregation;
-using StorageMetricKind = Qyl.Collector.Primitives.MetricKind;
-using StorageMetricTemporality = Qyl.Collector.Primitives.MetricTemporality;
+using StorageMetricKind = Qyl.Collector.Ingestion.Primitives.MetricKind;
+using StorageMetricTemporality = Qyl.Collector.Ingestion.Primitives.MetricTemporality;
 
 namespace Qyl.Collector.Mapping;
 
@@ -29,7 +29,7 @@ internal static class ContractJson
         throw new InvalidDataException("Stored attributes do not match the generated AttributeValue contract.");
     }
 
-    public static bool TryParseAttributes(string? json, out IReadOnlyList<ContractAttribute>? attributes)
+    private static bool TryParseAttributes(string? json, out IReadOnlyList<ContractAttribute>? attributes)
     {
         attributes = null;
         if (string.IsNullOrWhiteSpace(json))
@@ -97,7 +97,7 @@ internal static class ResourceMapping
     public static IReadOnlyList<EntityRef>? ParseEntityRefs(string? json, string? resourceJson) =>
         ParseEntityRefs(json, ContractJson.ParseAttributes(resourceJson));
 
-    public static bool TryParseEntityRefs(
+    private static bool TryParseEntityRefs(
         string? json,
         IReadOnlyList<ContractAttribute>? resourceAttributes,
         out IReadOnlyList<EntityRef>? entityRefs)
@@ -199,13 +199,7 @@ internal static class SpanMapper
 {
     public static List<Span> ToContracts(IEnumerable<SpanStorageRow> records) =>
     [
-        .. records.Select(static r => ToContractCore(
-            r.TraceId, r.SpanId, r.ParentSpanId,
-            r.Name, r.Kind, r.StatusCode,
-            r.StartTimeUnixNano, r.EndTimeUnixNano,
-            r.ServiceName,
-            r.AttributesJson, r.ResourceJson, r.ResourceEntityRefsJson,
-            r.StatusMessage, r.EventsJson, r.LinksJson, r.ScopeName, r.ScopeVersion))
+        .. records.Select(ToContractCore)
     ];
 
     public static TraceContract ToTrace(string traceId, IReadOnlyList<Span> spans)
@@ -260,7 +254,8 @@ internal static class SpanMapper
             {
                 Name = e.Name,
                 TimeUnixNano = e.TimeUnixNano,
-                Attributes = ContractJson.ParseAttributes(e.AttributesJson)
+                Attributes = ContractJson.ParseAttributes(e.AttributesJson),
+                DroppedAttributesCount = e.DroppedAttributesCount
             });
         }
 
@@ -279,51 +274,63 @@ internal static class SpanMapper
             {
                 TraceId = l.TraceId,
                 SpanId = l.SpanId,
-                Attributes = ContractJson.ParseAttributes(l.AttributesJson)
+                Attributes = ContractJson.ParseAttributes(l.AttributesJson),
+                TraceState = l.TraceState,
+                Flags = l.Flags,
+                DroppedAttributesCount = l.DroppedAttributesCount
             });
         }
 
         return result;
     }
 
-    private static Span ToContractCore(
-        string traceId, string spanId, string? parentSpanId,
-        string name, byte kind, byte statusCode,
-        ulong startTimeUnixNano, ulong endTimeUnixNano,
-        string? serviceName,
-        string? attributesJson, string? resourceJson, string? resourceEntityRefsJson,
-        string? statusMessage, string? eventsJson, string? linksJson, string? scopeName, string? scopeVersion)
+    private static Span ToContractCore(SpanStorageRow row)
     {
-        var attributes = ContractJson.ParseAttributes(attributesJson);
-        var resourceAttributes = ContractJson.ParseAttributes(resourceJson);
+        var attributes = ContractJson.ParseAttributes(row.AttributesJson);
+        var resourceAttributes = ContractJson.ParseAttributes(row.ResourceJson);
 
         return new Span
         {
-            TraceId = traceId,
-            SpanId = spanId,
-            ParentSpanId = parentSpanId,
-            Name = name,
-            Kind = MapSpanKind(kind),
-            StartTimeUnixNano = startTimeUnixNano,
-            EndTimeUnixNano = endTimeUnixNano,
+            TraceId = row.TraceId,
+            SpanId = row.SpanId,
+            ParentSpanId = row.ParentSpanId,
+            Name = row.Name,
+            Kind = MapSpanKind(row.Kind),
+            StartTimeUnixNano = row.StartTimeUnixNano,
+            EndTimeUnixNano = row.EndTimeUnixNano,
+            TraceState = row.TraceState,
+            Flags = row.Flags,
+            DroppedAttributesCount = row.DroppedAttributesCount,
+            DroppedEventsCount = row.DroppedEventsCount,
+            DroppedLinksCount = row.DroppedLinksCount,
             Attributes = attributes,
-            Events = MapEvents(eventsJson),
-            Links = MapLinks(linksJson),
+            Events = MapEvents(row.EventsJson),
+            Links = MapLinks(row.LinksJson),
             Status = new SpanStatus
             {
-                Code = MapStatus(statusCode),
-                Message = statusMessage
+                Code = MapStatus(row.StatusCode),
+                Message = row.StatusMessage
             },
             Resource = new Resource
             {
-                ServiceName = ResourceMapping.ServiceNameOrUnknown(serviceName),
+                ServiceName = ResourceMapping.ServiceNameOrUnknown(row.ServiceName),
                 Attributes = resourceAttributes,
-                EntityRefs = ResourceMapping.ParseEntityRefs(resourceEntityRefsJson, resourceAttributes)
+                EntityRefs = ResourceMapping.ParseEntityRefs(row.ResourceEntityRefsJson, resourceAttributes),
+                SchemaUrl = row.ResourceSchemaUrl,
+                DroppedAttributesCount = row.ResourceDroppedAttributesCount
             },
-            // The contract has no schema URL on a span; the stored one feeds check_telemetry_health.
-            InstrumentationScope = scopeName is null
+            InstrumentationScope = row.ScopeName is null && row.ScopeVersion is null &&
+                                   row.ScopeSchemaUrl is null && row.ScopeAttributesJson is null &&
+                                   row.ScopeDroppedAttributesCount is null or 0
                 ? null
-                : new InstrumentationScope { ScopeName = scopeName, ScopeVersion = scopeVersion }
+                : new InstrumentationScope
+                {
+                    ScopeName = row.ScopeName,
+                    ScopeVersion = row.ScopeVersion,
+                    SchemaUrl = row.ScopeSchemaUrl,
+                    ScopeAttributes = ContractJson.ParseAttributes(row.ScopeAttributesJson),
+                    DroppedAttributesCount = row.ScopeDroppedAttributesCount
+                }
         };
     }
 }
@@ -333,20 +340,36 @@ internal static class LogMapper
     public static LogRecord ToContract(LogStorageRow record) =>
         new()
         {
-            TimeUnixNano = record.TimeUnixNano,
-            ObservedTimeUnixNano = record.ObservedTimeUnixNano ?? record.TimeUnixNano,
+            TimeUnixNano = record.TimeUnixNano is > 0 ? record.TimeUnixNano : null,
+            ObservedTimeUnixNano = record.ObservedTimeUnixNano,
             SeverityNumber = MapSeverityNumber(record.SeverityNumber),
-            SeverityText = MapSeverityText(record.SeverityText, record.SeverityNumber),
+            SeverityText = record.SeverityText,
             Body = ContractJson.ParseLogBody(record.Body),
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             TraceId = record.TraceId,
             SpanId = record.SpanId,
             EventName = record.EventName,
+            Flags = record.Flags,
+            DroppedAttributesCount = record.DroppedAttributesCount,
+            InstrumentationScope = record.ScopeName is null && record.ScopeVersion is null &&
+                                   record.ScopeSchemaUrl is null && record.ScopeAttributesJson is null &&
+                                   record.ScopeDroppedAttributesCount is null or 0
+                ? null
+                : new InstrumentationScope
+                {
+                    ScopeName = record.ScopeName,
+                    ScopeVersion = record.ScopeVersion,
+                    SchemaUrl = record.ScopeSchemaUrl,
+                    ScopeAttributes = ContractJson.ParseAttributes(record.ScopeAttributesJson),
+                    DroppedAttributesCount = record.ScopeDroppedAttributesCount
+                },
             Resource = new Resource
             {
                 ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
                 Attributes = ContractJson.ParseAttributes(record.ResourceJson),
-                EntityRefs = ResourceMapping.ParseEntityRefs(record.ResourceEntityRefsJson, record.ResourceJson)
+                EntityRefs = ResourceMapping.ParseEntityRefs(record.ResourceEntityRefsJson, record.ResourceJson),
+                SchemaUrl = record.ResourceSchemaUrl,
+                DroppedAttributesCount = record.ResourceDroppedAttributesCount
             }
         };
 
@@ -358,22 +381,6 @@ internal static class LogMapper
             ? (SeverityNumber)severityNumber
             : SeverityNumber.Unspecified;
 
-    private static SeverityText MapSeverityText(string? severityText, byte severityNumber)
-    {
-        var normalized = severityText?.Trim();
-        if (Enum.TryParse<SeverityText>(normalized, ignoreCase: true, out var parsed))
-            return parsed;
-
-        return severityNumber switch
-        {
-            >= 21 => (SeverityText)5,
-            >= 17 => (SeverityText)4,
-            >= 13 => (SeverityText)3,
-            >= 9 => (SeverityText)2,
-            >= 5 => (SeverityText)1,
-            _ => 0
-        };
-    }
 }
 
 internal static class SessionMapper
@@ -437,17 +444,59 @@ internal static class MetricMapper
         new()
         {
             Name = entry.MetricName,
+            InstrumentId = entry.InstrumentId,
+            HasConflict = entry.Variants.Count > 1,
+            Resource = new Resource
+            {
+                ServiceName = ResourceMapping.ServiceNameOrUnknown(entry.ServiceName),
+                Attributes = ContractJson.ParseAttributes(entry.ResourceJson),
+                EntityRefs = ResourceMapping.ParseEntityRefs(entry.ResourceEntityRefsJson, entry.ResourceJson),
+                SchemaUrl = entry.ResourceSchemaUrl,
+                DroppedAttributesCount = entry.ResourceDroppedAttributesCount
+            },
+            InstrumentationScope = entry.ScopeName is null && entry.ScopeVersion is null &&
+                                   entry.ScopeSchemaUrl is null && entry.ScopeAttributesJson is null &&
+                                   entry.ScopeDroppedAttributesCount is null or 0 ? null : new InstrumentationScope
+            {
+                ScopeName = entry.ScopeName, ScopeVersion = entry.ScopeVersion, SchemaUrl = entry.ScopeSchemaUrl,
+                ScopeAttributes = ContractJson.ParseAttributes(entry.ScopeAttributesJson),
+                DroppedAttributesCount = entry.ScopeDroppedAttributesCount
+            },
             Kind = ToKind(entry.MetricKind),
             Temporality = ToTemporality(entry.Temporality),
             Monotonic = entry.IsMonotonic is not 0,
             Unit = entry.Unit,
             Description = entry.Description,
+            Services = entry.Variants.SelectMany(static variant => variant.Services)
+                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(),
+            Conflicts = entry.Variants.Count <= 1 ? null : entry.Variants.Select(static variant => new MetricDescriptorConflict
+            {
+                Kind = ToKind(variant.Kind),
+                Temporality = ToTemporality(variant.Temporality),
+                Monotonic = variant.IsMonotonic is not 0,
+                Unit = variant.Unit,
+                Services = variant.Services
+            }).ToArray(),
+            SupportedAggregations = SupportedAggregations(entry.Variants.Count is 0
+                ? [entry.MetricKind] : entry.Variants.Select(static variant => variant.Kind)),
             SeriesCount = entry.SeriesCount,
             LastSeen = QylTimeConversions.NanosToDateTimeOffset(entry.LastSeenUnixNano)
         };
 
     public static IReadOnlyList<MetricDescriptor> ToContracts(IReadOnlyList<MetricCatalogEntry> entries) =>
         [.. entries.Select(static entry => ToContract(entry))];
+
+    internal static IReadOnlyList<ContractMetricAggregation> SupportedAggregations(IEnumerable<byte> kinds)
+    {
+        var present = kinds.ToArray();
+        if (present.Contains((byte)StorageMetricKind.Summary)) return [];
+        return present.All(static kind => kind is (byte)StorageMetricKind.Histogram or (byte)StorageMetricKind.ExponentialHistogram)
+            ? [ContractMetricAggregation.Avg, ContractMetricAggregation.Min, ContractMetricAggregation.Max,
+                ContractMetricAggregation.Sum, ContractMetricAggregation.Count, ContractMetricAggregation.Last,
+                ContractMetricAggregation.P50, ContractMetricAggregation.P90, ContractMetricAggregation.P95, ContractMetricAggregation.P99]
+            : [ContractMetricAggregation.Avg, ContractMetricAggregation.Min, ContractMetricAggregation.Max,
+                ContractMetricAggregation.Sum, ContractMetricAggregation.Count, ContractMetricAggregation.Last];
+    }
 
     public static MetricSeries ToContract(MetricSeriesRow row) =>
         new()
@@ -458,12 +507,59 @@ internal static class MetricMapper
             Attributes = ContractJson.ParseAttributes(row.AttributesJson) ?? [],
             ServiceName = row.ServiceName,
             Unit = row.Unit,
+            Resource = new Resource
+            {
+                ServiceName = ResourceMapping.ServiceNameOrUnknown(row.ServiceName),
+                Attributes = ContractJson.ParseAttributes(row.ResourceJson),
+                EntityRefs = ResourceMapping.ParseEntityRefs(row.ResourceEntityRefsJson, row.ResourceJson),
+                SchemaUrl = row.ResourceSchemaUrl,
+                DroppedAttributesCount = row.ResourceDroppedAttributesCount
+            },
+            InstrumentationScope = row.ScopeName is null && row.ScopeVersion is null &&
+                                   row.ScopeSchemaUrl is null && row.ScopeAttributesJson is null &&
+                                   row.ScopeDroppedAttributesCount is null or 0
+                ? null
+                : new InstrumentationScope
+                {
+                    ScopeName = row.ScopeName,
+                    ScopeVersion = row.ScopeVersion,
+                    SchemaUrl = row.ScopeSchemaUrl,
+                    ScopeAttributes = ContractJson.ParseAttributes(row.ScopeAttributesJson),
+                    DroppedAttributesCount = row.ScopeDroppedAttributesCount
+                },
             FirstSeen = QylTimeConversions.NanosToDateTimeOffset(row.FirstSeenUnixNano),
             LastSeen = QylTimeConversions.NanosToDateTimeOffset(row.LastSeenUnixNano)
         };
 
     public static IReadOnlyList<MetricSeries> ToContracts(IReadOnlyList<MetricSeriesRow> rows) =>
         [.. rows.Select(static row => ToContract(row))];
+
+    public static MetricPoint ToContract(MetricObservationPageItem item, MetricSeriesRow series)
+    {
+        var row = item.Observation;
+        var projection = MetricProjection.Project(row, item.HasConflict);
+        return new MetricPoint
+        {
+            ObservationId = row.ObservationId, HasConflict = item.HasConflict,
+            SeriesId = row.SeriesId, TimeUnixNano = row.TimeUnixNano,
+            StartTimeUnixNano = row.StartTimeUnixNano, Flags = row.Flags,
+            ResourceDroppedAttributesCount = row.ResourceDroppedAttributesCount,
+            ScopeDroppedAttributesCount = row.ScopeDroppedAttributesCount,
+            Attributes = ContractJson.ParseAttributes(series.AttributesJson) ?? [],
+            Data = row.DataJson is null ? null : JsonSerializer.Deserialize(row.DataJson, StorageJsonSerializerContext.Default.MetricData),
+            Exemplars = row.ExemplarsJson is null ? null : JsonSerializer.Deserialize(row.ExemplarsJson, StorageJsonSerializerContext.Default.MetricExemplars),
+            InstrumentMetadata = row.InstrumentMetadataJson is null ? null : JsonSerializer.Deserialize(row.InstrumentMetadataJson, StorageJsonSerializerContext.Default.MetricMetadata),
+            HistoricalExemplarTraceIds = row.HistoricalExemplarTraceIdsJson is null ? null : JsonSerializer.Deserialize(row.HistoricalExemplarTraceIdsJson, StorageJsonSerializerContext.Default.IReadOnlyListString),
+            Projection = item.HasConflict ? null : new MetricPointProjection
+            {
+                Value = projection.Value, Count = projection.HistogramCount, Sum = projection.HistogramSum,
+                Min = projection.HistogramMin, Max = projection.HistogramMax,
+                ExplicitBounds = projection.BucketBoundsJson is null ? null : JsonSerializer.Deserialize(projection.BucketBoundsJson, StorageJsonSerializerContext.Default.Doubles),
+                BucketCounts = projection.BucketCountsJson is null ? null : JsonSerializer.Deserialize(projection.BucketCountsJson, StorageJsonSerializerContext.Default.Counts)
+            },
+            ProjectionUnavailableReason = projection.ProjectionUnavailableReason
+        };
+    }
 
     /// <summary>
     /// Builds the whole query answer from the catalog entry that identified the metric and
@@ -488,7 +584,9 @@ internal static class MetricMapper
             StartTime = startTime,
             EndTime = endTime,
             Series = [.. series.Select(static stream => ToContract(stream))],
-            Truncated = truncated
+            Truncated = truncated,
+            NumericRepresentation = "float64",
+            Approximate = aggregation is StorageMetricAggregation.P50 or StorageMetricAggregation.P90 or StorageMetricAggregation.P95 or StorageMetricAggregation.P99
         };
 
     private static MetricSeriesResult ToContract(MetricQuerySeries stream) =>
@@ -514,7 +612,9 @@ internal static class MetricMapper
         (byte)StorageMetricKind.Sum => ContractMetricKind.Sum,
         (byte)StorageMetricKind.Histogram => ContractMetricKind.Histogram,
         (byte)StorageMetricKind.ExponentialHistogram => ContractMetricKind.Exponential_histogram,
-        _ => ContractMetricKind.Gauge
+        (byte)StorageMetricKind.Summary => ContractMetricKind.Summary,
+        (byte)StorageMetricKind.Gauge => ContractMetricKind.Gauge,
+        _ => throw new InvalidDataException("Unknown persisted metric kind.")
     };
 
     private static ContractMetricTemporality ToTemporality(byte temporality) => temporality switch
@@ -583,7 +683,7 @@ internal static class SavedQueryMapper
     public static IReadOnlyList<SavedQuery> ToContracts(IReadOnlyList<SavedQueryRow> rows) =>
         [.. rows.Select(static row => ToContract(row))];
 
-    public static SavedQueryFilter ReadFilter(string filterJson) =>
+    private static SavedQueryFilter ReadFilter(string filterJson) =>
         JsonSerializer.Deserialize(filterJson, QylSerializerContext.Default.SavedQueryFilter)
         ?? throw new InvalidDataException("A stored saved-query filter is empty.");
 

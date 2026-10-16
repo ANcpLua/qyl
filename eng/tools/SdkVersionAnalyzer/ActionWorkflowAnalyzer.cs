@@ -69,8 +69,7 @@ internal static class ActionWorkflowAnalyzer
         var newline = content.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         var indentation = GetLineIndentation(content, checked((int)keyScalar.Start.Index)) + "  ";
         string?[] versions = [newDotnetSdkVersion.Net8SdkVersion, newDotnetSdkVersion.Net9SdkVersion, newDotnetSdkVersion.Net10SdkVersion];
-        List<string> lines = ["|"];
-        lines.AddRange(versions.Where(v => v is not null).Select(v => $"{indentation}{v}"));
+        List<string> lines = ["|", .. versions.Where(v => v is not null).Select(v => $"{indentation}{v}")];
         var replacement = string.Join(newline, lines);
 
         var originalValue = content[checked((int)valueScalar.Start.Index)..checked((int)valueScalar.End.Index)];

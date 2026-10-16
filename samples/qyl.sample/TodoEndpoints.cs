@@ -6,6 +6,7 @@ namespace Qyl.Sample;
 /// <summary>HTTP surface for todos. Handlers are method groups so the Request Delegate Generator binds them at compile time.</summary>
 internal static class TodoEndpoints
 {
+    // The OpenAPI XML-comment generator discovers public handler methods.
     /// <summary>Maps the <c>/todos</c> endpoints.</summary>
     /// <param name="endpoints">The route builder of the host.</param>
     /// <returns>The supplied route builder for chaining calls.</returns>

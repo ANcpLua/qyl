@@ -14,8 +14,13 @@ namespace Qyl.Api.Tests;
 internal sealed class SessionBaggageHost : IAsyncDisposable
 {
     private readonly WebApplication _app;
+    private readonly CancellationToken _cancellationToken;
 
-    private SessionBaggageHost(WebApplication app) => _app = app;
+    private SessionBaggageHost(WebApplication app, CancellationToken cancellationToken)
+    {
+        _app = app;
+        _cancellationToken = cancellationToken;
+    }
 
     /// <summary>A client of the started host.</summary>
     public HttpClient Client { get; private set; } = null!;
@@ -26,7 +31,7 @@ internal sealed class SessionBaggageHost : IAsyncDisposable
 
     private Uri BaseAddress => new(_app.Urls.First());
 
-    public static async Task<SessionBaggageHost> StartAsync()
+    public static async Task<SessionBaggageHost> StartAsync(CancellationToken cancellationToken)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -39,7 +44,7 @@ internal sealed class SessionBaggageHost : IAsyncDisposable
             options.EnableMetricsExport = false;
         });
 
-        var host = new SessionBaggageHost(builder.Build());
+        var host = new SessionBaggageHost(builder.Build(), cancellationToken);
         await host.MapAndStartAsync();
         return host;
     }
@@ -55,7 +60,7 @@ internal sealed class SessionBaggageHost : IAsyncDisposable
         _app.MapGet("/echo", static (HttpContext context) => Results.Text(
             $"{Activity.Current?.GetBaggageItem(QylApiContract.SessionIdName)}|{context.Request.Headers["baggage"]}"));
         _app.MapGet("/propagator", static () => Results.Text(DistributedContextPropagator.Current.GetType().Name));
-        await _app.StartAsync();
+        await _app.StartAsync(_cancellationToken);
         Client = new HttpClient { BaseAddress = BaseAddress };
     }
 
@@ -72,7 +77,7 @@ internal sealed class SessionBaggageHost : IAsyncDisposable
             request.Headers.TryAddWithoutValidation("traceparent", traceparent);
 
         Activity.Current = null;
-        using var response = await Client.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response = await Client.SendAsync(request, _cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 

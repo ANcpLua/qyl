@@ -65,7 +65,7 @@ internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, 
         });
     }
 
-    public void Publish(QylResourceState state)
+    private void Publish(QylResourceState state)
     {
         _latest[state.Name] = state;
         if (state.Lifecycle == ResourceLifecycle.Ready) Signal(state.Name).TrySetResult();

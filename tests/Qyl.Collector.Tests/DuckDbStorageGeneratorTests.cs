@@ -6,9 +6,10 @@ using Qyl.Collector.Storage.Generators;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class DuckDbStorageGeneratorTests
+[TestClass]
+public sealed class DuckDbStorageGeneratorTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public void Schema_appender_and_arrow_output_share_one_deterministic_table_model()
     {
         const string Source = """
@@ -33,7 +34,7 @@ public sealed class DuckDbStorageGeneratorTests
         var first = Generate(Source);
         var second = Generate(Source);
 
-        Assert.Equal(first, second);
+        Assert.AreEqual(first, second);
         Assert.Contains("\"payload\" BLOB NOT NULL", first, StringComparison.Ordinal);
         Assert.Contains("public const string DerivedHash = \"", first, StringComparison.Ordinal);
         Assert.Contains("appender.AppendRow(state, static (row, value) =>", first, StringComparison.Ordinal);
@@ -47,7 +48,7 @@ public sealed class DuckDbStorageGeneratorTests
             StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Named_parameter_set_tracks_property_rename_from_canonical_metadata()
     {
         const string Source = """
@@ -77,7 +78,7 @@ public sealed class DuckDbStorageGeneratorTests
         Assert.DoesNotContain("\"sequence\", \"id\"", generated, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Named_parameter_set_order_is_independent_of_physical_declaration_order()
     {
         const string First = """
@@ -102,7 +103,7 @@ public sealed class DuckDbStorageGeneratorTests
         foreach (var generated in new[] { Generate(First), Generate(Reordered) })
         {
             Assert.Contains("\"id\", \"sequence\"", generated, StringComparison.Ordinal);
-            Assert.True(
+            Assert.IsTrue(
                 generated.IndexOf("string id,", StringComparison.Ordinal) <
                 generated.IndexOf("ulong sequence)", StringComparison.Ordinal));
         }
@@ -124,7 +125,7 @@ public sealed class DuckDbStorageGeneratorTests
             parseOptions: parseOptions);
         driver = driver.RunGenerators(compilation);
         var result = driver.GetRunResult();
-        Assert.Empty(result.Diagnostics.Where(static diagnostic =>
+        Assert.IsEmpty(result.Diagnostics.Where(static diagnostic =>
             diagnostic.Severity is DiagnosticSeverity.Error));
         return string.Join(
             "\n",
@@ -134,10 +135,10 @@ public sealed class DuckDbStorageGeneratorTests
                 .Select(static generated => generated.SourceText.ToString()));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_uuid_default_matches_the_form_DuckDB_reports_for_it()
     {
-        var ct = TestContext.Current.CancellationToken;
+        var ct = testContext.CancellationToken;
         await using var connection = new DuckDBConnection("Data Source=:memory:");
         await connection.OpenAsync(ct);
         await using (var create = connection.CreateCommand())
@@ -150,19 +151,19 @@ public sealed class DuckDbStorageGeneratorTests
         read.CommandText = "SELECT column_default FROM duckdb_columns() WHERE table_name = 'defaults_probe'";
         var reported = (string?)await read.ExecuteScalarAsync(ct);
 
-        Assert.True(DuckDbStore.DefaultsMatch(reported, "uuid()::varchar"), reported);
+        Assert.IsTrue(DuckDbStore.DefaultsMatch(reported, "uuid()::varchar"), reported);
     }
 
-    [Theory]
-    [InlineData("nextval('logs_ingest_sequence')", "nextval('logs_ingest_sequence')")]
-    [InlineData("(0)", "0")]
+    [TestMethod]
+    [DataRow("nextval('logs_ingest_sequence')", "nextval('logs_ingest_sequence')")]
+    [DataRow("(0)", "0")]
     public void Live_defaults_match_their_declared_form(string reported, string declared) =>
-        Assert.True(DuckDbStore.DefaultsMatch(reported, declared));
+        Assert.IsTrue(DuckDbStore.DefaultsMatch(reported, declared));
 
-    [Theory]
-    [InlineData("nextval('other_sequence')", "nextval('logs_ingest_sequence')")]
-    [InlineData("1", "0")]
-    [InlineData(null, "0")]
+    [TestMethod]
+    [DataRow("nextval('other_sequence')", "nextval('logs_ingest_sequence')")]
+    [DataRow("1", "0")]
+    [DataRow(null, "0")]
     public void Different_defaults_do_not_match(string? reported, string declared) =>
-        Assert.False(DuckDbStore.DefaultsMatch(reported, declared));
+        Assert.IsFalse(DuckDbStore.DefaultsMatch(reported, declared));
 }

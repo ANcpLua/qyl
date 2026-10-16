@@ -23,12 +23,13 @@ using OtlpSpan = OpenTelemetry.Proto.Trace.V1.Span;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class PublishedContractV1Tests
+[TestClass]
+public sealed class PublishedContractV1Tests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Official_otlp_traces_and_logs_emit_lossless_v1_rest_and_sse_json()
     {
-        var cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = testContext.CancellationToken;
         await using var store = new DuckDbStore(":memory:");
 
         var traceRequest = new ExportTraceServiceRequest
@@ -136,7 +137,7 @@ public sealed class PublishedContractV1Tests
             }
         };
         await store.InsertLogsAsync(
-            IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(logsRequest)),
+            IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(logsRequest, TimeProvider.System)),
             cancellationToken);
 
         var traceJson = await ExecuteAsync(
@@ -148,8 +149,8 @@ public sealed class PublishedContractV1Tests
                 context, state, null, null, null, null, null, ct),
             store,
             cancellationToken);
-        Assert.NotNull(JsonSerializer.Deserialize(traceJson, QylSerializerContext.Default.CursorPageTrace));
-        Assert.NotNull(JsonSerializer.Deserialize(logJson, QylSerializerContext.Default.CursorPageLogRecord));
+        Assert.IsNotNull(JsonSerializer.Deserialize(traceJson, QylSerializerContext.Default.CursorPageTrace));
+        Assert.IsNotNull(JsonSerializer.Deserialize(logJson, QylSerializerContext.Default.CursorPageLogRecord));
 
         var traceNode = JsonNode.Parse(traceJson)!;
         var logNode = JsonNode.Parse(logJson)!;
@@ -159,19 +160,19 @@ public sealed class PublishedContractV1Tests
         AssertPublishedResource(logRecordNode["resource"]!);
 
         var spanAttributes = ReadAttributes(spanNode["attributes"]!);
-        Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture),
+        Assert.AreEqual(long.MaxValue.ToString(CultureInfo.InvariantCulture),
             spanAttributes["server.port"]["value"]!["value"]!.GetValue<string>());
-        Assert.Equal("Infinity",
+        Assert.AreEqual("Infinity",
             spanAttributes["http.response.status_code"]["value"]!["value"]!.GetValue<string>());
-        Assert.True(spanAttributes["http.request.method"]["value"]!["values"]!["nested"]!.GetValue<bool>());
-        Assert.True(spanAttributes["error.type"].ContainsKey("value"));
-        Assert.Null(spanAttributes["error.type"]["value"]);
-        Assert.Equal("-Infinity", spanAttributes["network.type"]["value"]![0]!["value"]!.GetValue<string>());
-        Assert.Equal("BAUG", spanAttributes["server.address"]["value"]!["base64"]!.GetValue<string>());
+        Assert.IsTrue(spanAttributes["http.request.method"]["value"]!["values"]!["nested"]!.GetValue<bool>());
+        Assert.IsTrue(spanAttributes["error.type"].ContainsKey("value"));
+        Assert.IsNull(spanAttributes["error.type"]["value"]);
+        Assert.AreEqual("-Infinity", spanAttributes["network.type"]["value"]![0]!["value"]!.GetValue<string>());
+        Assert.AreEqual("BAUG", spanAttributes["server.address"]["value"]!["base64"]!.GetValue<string>());
         AssertV1Attributes(spanAttributes.Values);
 
         var logAttributes = ReadAttributes(logRecordNode["attributes"]!);
-        Assert.Equal(long.MinValue.ToString(CultureInfo.InvariantCulture),
+        Assert.AreEqual(long.MinValue.ToString(CultureInfo.InvariantCulture),
             logAttributes["error.type"]["value"]!["value"]!.GetValue<string>());
         AssertV1Attributes(logAttributes.Values);
 
@@ -186,10 +187,10 @@ public sealed class PublishedContractV1Tests
                 afterIngestSequence: null,
                 timeout.Token)
             .GetAsyncEnumerator(timeout.Token);
-        Assert.True(await stream.MoveNextAsync());
-        var streamEvent = Assert.IsType<LogStreamEvent>(stream.Current.Log);
+        Assert.IsTrue(await stream.MoveNextAsync());
+        var streamEvent = Assert.IsExactInstanceOfType<LogStreamEvent>(stream.Current.Log);
         var streamJson = JsonSerializer.Serialize(streamEvent, QylSerializerContext.Default.LogStreamEvent);
-        Assert.NotNull(JsonSerializer.Deserialize(streamJson, QylSerializerContext.Default.LogStreamEvent));
+        Assert.IsNotNull(JsonSerializer.Deserialize(streamJson, QylSerializerContext.Default.LogStreamEvent));
         AssertPublishedResource(JsonNode.Parse(streamJson)!["data"]!["resource"]!);
     }
 
@@ -276,12 +277,15 @@ public sealed class PublishedContractV1Tests
                 .AddLogging()
                 .ConfigureHttpJsonOptions(static options =>
                     options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default))
-                .BuildServiceProvider()
+                .BuildServiceProvider(),
+            Response =
+            {
+                Body = new MemoryStream()
+            }
         };
-        context.Response.Body = new MemoryStream();
         var result = await endpoint(context, store, cancellationToken);
         await result.ExecuteAsync(context);
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         context.Response.Body.Position = 0;
         using var reader = new StreamReader(context.Response.Body, Encoding.UTF8, leaveOpen: true);
         return await reader.ReadToEndAsync(cancellationToken);
@@ -291,46 +295,46 @@ public sealed class PublishedContractV1Tests
     {
         var resource = resourceNode.AsObject();
         var attributes = ReadAttributes(resource["attributes"]!);
-        Assert.Equal("published-contract", attributes["service.name"]["value"]!.GetValue<string>());
+        Assert.AreEqual("published-contract", attributes["service.name"]["value"]!.GetValue<string>());
 
         var empty = attributes["service.namespace"];
-        Assert.True(empty.ContainsKey("value"));
-        Assert.Null(empty["value"]);
+        Assert.IsTrue(empty.ContainsKey("value"));
+        Assert.IsNull(empty["value"]);
 
         var integer = attributes["service.version"]["value"]!.AsObject();
-        Assert.Equal("int", integer["type"]!.GetValue<string>());
-        Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture), integer["value"]!.GetValue<string>());
+        Assert.AreEqual("int", integer["type"]!.GetValue<string>());
+        Assert.AreEqual(long.MaxValue.ToString(CultureInfo.InvariantCulture), integer["value"]!.GetValue<string>());
 
         var infinity = attributes["os.version"]["value"]!.AsObject();
-        Assert.Equal("double", infinity["type"]!.GetValue<string>());
-        Assert.Equal("Infinity", infinity["value"]!.GetValue<string>());
+        Assert.AreEqual("double", infinity["type"]!.GetValue<string>());
+        Assert.AreEqual("Infinity", infinity["value"]!.GetValue<string>());
 
         var array = attributes["deployment.environment.name"]["value"]!.AsArray();
-        Assert.Null(array[0]);
-        Assert.Equal(long.MinValue.ToString(CultureInfo.InvariantCulture), array[1]!["value"]!.GetValue<string>());
-        Assert.Equal("-Infinity", array[2]!["value"]!.GetValue<string>());
-        Assert.True(array[3]!["values"]!["nested"]!.GetValue<bool>());
+        Assert.IsNull(array[0]);
+        Assert.AreEqual(long.MinValue.ToString(CultureInfo.InvariantCulture), array[1]!["value"]!.GetValue<string>());
+        Assert.AreEqual("-Infinity", array[2]!["value"]!.GetValue<string>());
+        Assert.IsTrue(array[3]!["values"]!["nested"]!.GetValue<bool>());
 
         var keyValueList = attributes["os.description"]["value"]!.AsObject();
-        Assert.Equal("kvlist", keyValueList["type"]!.GetValue<string>());
-        Assert.Equal(3.5, keyValueList["values"]!["answer"]!["value"]!.GetValue<double>());
-        Assert.Equal("value", keyValueList["values"]!["nested"]![0]!.GetValue<string>());
-        Assert.Null(keyValueList["values"]!["nested"]![1]);
+        Assert.AreEqual("kvlist", keyValueList["type"]!.GetValue<string>());
+        Assert.AreEqual(3.5, keyValueList["values"]!["answer"]!["value"]!.GetValue<double>());
+        Assert.AreEqual("value", keyValueList["values"]!["nested"]![0]!.GetValue<string>());
+        Assert.IsNull(keyValueList["values"]!["nested"]![1]);
 
         var bytes = attributes["os.name"]["value"]!.AsObject();
-        Assert.Equal("bytes", bytes["type"]!.GetValue<string>());
-        Assert.Equal("AAH/", bytes["base64"]!.GetValue<string>());
-        Assert.True(attributes["os.type"]["value"]!.GetValue<bool>());
+        Assert.AreEqual("bytes", bytes["type"]!.GetValue<string>());
+        Assert.AreEqual("AAH/", bytes["base64"]!.GetValue<string>());
+        Assert.IsTrue(attributes["os.type"]["value"]!.GetValue<bool>());
 
         AssertV1Attributes(attributes.Values);
 
-        var entityRef = Assert.Single(resource["entity_refs"]!.AsArray())!.AsObject();
-        Assert.Equal("https://opentelemetry.io/schemas/1.39.0", entityRef["schema_url"]!.GetValue<string>());
-        Assert.Equal("service", entityRef["type"]!.GetValue<string>());
-        Assert.Equal("service.name", Assert.Single(entityRef["id_keys"]!.AsArray())!.GetValue<string>());
-        Assert.Equal(
+        var entityRef = Assert.ContainsSingle(resource["entity_refs"]!.AsArray())!.AsObject();
+        Assert.AreEqual("https://opentelemetry.io/schemas/1.39.0", entityRef["schema_url"]!.GetValue<string>());
+        Assert.AreEqual("service", entityRef["type"]!.GetValue<string>());
+        Assert.AreEqual("service.name", Assert.ContainsSingle(entityRef["id_keys"]!.AsArray())!.GetValue<string>());
+        Assert.AreEqual(
             "service.version",
-            Assert.Single(entityRef["description_keys"]!.AsArray())!.GetValue<string>());
+            Assert.ContainsSingle(entityRef["description_keys"]!.AsArray())!.GetValue<string>());
     }
 
     private static Dictionary<string, JsonObject> ReadAttributes(JsonNode attributes) =>
@@ -376,11 +380,11 @@ public sealed class PublishedContractV1Tests
         {
             case "bytes":
                 AssertExactProperties(wrapper, "type", "base64");
-                Assert.NotNull(Convert.FromBase64String(wrapper["base64"]!.GetValue<string>()));
+                Assert.IsNotNull(Convert.FromBase64String(wrapper["base64"]!.GetValue<string>()));
                 return;
             case "int":
                 AssertExactProperties(wrapper, "type", "value");
-                Assert.True(long.TryParse(
+                Assert.IsTrue(long.TryParse(
                     wrapper["value"]!.GetValue<string>(),
                     NumberStyles.AllowLeadingSign,
                     CultureInfo.InvariantCulture,
@@ -389,7 +393,7 @@ public sealed class PublishedContractV1Tests
             case "double":
                 AssertExactProperties(wrapper, "type", "value");
                 var doubleValue = wrapper["value"]!;
-                Assert.True(
+                Assert.IsTrue(
                     doubleValue.GetValueKind() is JsonValueKind.Number ||
                     doubleValue.GetValue<string>() is "NaN" or "Infinity" or "-Infinity");
                 return;
@@ -406,8 +410,8 @@ public sealed class PublishedContractV1Tests
 
     private static void AssertExactProperties(JsonObject value, params string[] expected)
     {
-        Assert.Equal(expected.Length, value.Count);
+        Assert.AreEqual(expected.Length, value.Count);
         foreach (var property in expected)
-            Assert.True(value.ContainsKey(property), $"Missing required property '{property}'.");
+            Assert.IsTrue(value.ContainsKey(property), $"Missing required property '{property}'.");
     }
 }

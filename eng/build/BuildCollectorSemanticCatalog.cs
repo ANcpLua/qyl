@@ -754,9 +754,7 @@ internal sealed class CollectorDevelopmentAttributePolicy
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     ReadCommentHandling = JsonCommentHandling.Skip)]
 [JsonSerializable(typeof(CollectorSemanticPolicyConfig))]
-internal sealed partial class CollectorSemanticPolicyJsonContext : JsonSerializerContext
-{
-}
+internal sealed partial class CollectorSemanticPolicyJsonContext : JsonSerializerContext;
 
 internal sealed partial class SemConvAttributeResolver(IReadOnlyDictionary<string, string> packageAssemblyPaths)
 {

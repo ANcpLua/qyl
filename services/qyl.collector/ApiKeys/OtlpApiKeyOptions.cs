@@ -7,14 +7,14 @@ internal sealed class OtlpApiKeyOptions
     public string AuthMode
     {
         get;
-        set => field = s_validAuthModes.Contains(value, StringComparer.OrdinalIgnoreCase)
+        init => field = s_validAuthModes.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? value
             : throw new ArgumentException($"AuthMode must be one of: {string.Join(", ", s_validAuthModes)}",
                 nameof(value));
     } = "Unsecured";
 
     // Each credential belongs to exactly one project. Multiple credentials can rotate within a project.
-    public IReadOnlyList<ProjectApiKey> Keys { get; set; } = [];
+    public IReadOnlyList<ProjectApiKey> Keys { get; init; } = [];
 
     public bool IsApiKeyMode =>
         string.Equals(AuthMode, "ApiKey", StringComparison.OrdinalIgnoreCase);

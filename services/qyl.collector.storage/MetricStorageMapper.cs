@@ -1,23 +1,22 @@
+using Qyl.Collector.Ingestion.Primitives;
+
 namespace Qyl.Collector.Storage;
 
 /// <summary>
 /// Folds the flat OTLP data points the converter produces into the two-table storage shape:
-/// one <see cref="MetricSeriesRow" /> per distinct stream and one <see cref="MetricPointRow" />
-/// per sample.
+/// one <see cref="MetricSeriesRow" /> per distinct stream and canonical observations
+/// for every nonidentical producer record.
 /// </summary>
 internal static class MetricStorageMapper
 {
     internal readonly record struct MetricWriteSet(
         IReadOnlyList<MetricSeriesRow> Series,
-        IReadOnlyList<MetricPointRow> Points,
-        IReadOnlyList<MetricExemplarRow> Exemplars);
+        IReadOnlyList<MetricObservationRow> Observations);
 
     public static MetricWriteSet ToStorageRows(MetricIngestionBatch batch, string? authenticatedProjectId = null)
     {
         var series = new Dictionary<(string ProjectId, string SeriesId), MetricSeriesRow>();
-        var points = new Dictionary<(string ProjectId, string SeriesId, ulong Time), MetricPointRow>();
-
-        var exemplars = new Dictionary<(string Project, string Series, ulong Time, string Trace), MetricExemplarRow>();
+        var observations = new Dictionary<(string ProjectId, string SeriesId, string ObservationId), MetricObservationRow>();
 
         foreach (var record in batch.Points)
         {
@@ -27,20 +26,28 @@ internal static class MetricStorageMapper
                 record.ResourceAttributes,
                 record.ResourceEntityRefs);
             var resourceEntityRefsJson = SerializeResourceEntityRefs(record.ResourceEntityRefs);
-            var seriesId = ComputeSeriesId(
+            var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(record.ScopeAttributes);
+            var instrumentId = ComputeInstrumentId(
                 record.MetricName,
                 record.ServiceName,
-                attributesJson,
-                resourceJson);
-
-            foreach (var traceId in record.ExemplarTraceIds)
-                exemplars[(projectId, seriesId, record.TimeUnixNano, traceId)] = new MetricExemplarRow { ProjectId = projectId, SeriesId = seriesId, TimeUnixNano = record.TimeUnixNano, TraceId = traceId };
+                resourceJson,
+                record.ScopeName,
+                record.ScopeVersion,
+                record.ScopeSchemaUrl,
+                scopeAttributesJson,
+                record.ResourceSchemaUrl);
+            var seriesId = ComputeSeriesId(instrumentId, attributesJson,
+                record.Kind,
+                record.Temporality,
+                record.IsMonotonic,
+                record.Unit);
 
             var key = (projectId, seriesId);
             var row = new MetricSeriesRow
             {
                 ProjectId = projectId,
                 SeriesId = seriesId,
+                InstrumentId = instrumentId,
                 MetricName = record.MetricName,
                 MetricKind = (byte)record.Kind,
                 Temporality = (byte)record.Temporality,
@@ -52,6 +59,13 @@ internal static class MetricStorageMapper
                 AttributesJson = attributesJson,
                 ResourceJson = resourceJson,
                 ResourceEntityRefsJson = resourceEntityRefsJson,
+                ScopeName = record.ScopeName,
+                ScopeVersion = record.ScopeVersion,
+                ScopeSchemaUrl = record.ScopeSchemaUrl,
+                ScopeAttributesJson = scopeAttributesJson,
+                ScopeDroppedAttributesCount = record.ScopeDroppedAttributesCount,
+                ResourceSchemaUrl = record.ResourceSchemaUrl,
+                ResourceDroppedAttributesCount = record.ResourceDroppedAttributesCount,
                 FirstSeenUnixNano = record.TimeUnixNano,
                 LastSeenUnixNano = record.TimeUnixNano
             };
@@ -61,52 +75,102 @@ internal static class MetricStorageMapper
             series[key] = series.TryGetValue(key, out var existing)
                 ? row with
                 {
+                    Description = LongerDescription(existing.Description, row.Description),
                     FirstSeenUnixNano = Math.Min(existing.FirstSeenUnixNano, record.TimeUnixNano),
                     LastSeenUnixNano = Math.Max(existing.LastSeenUnixNano, record.TimeUnixNano)
                 }
                 : row;
 
-            points[(projectId, seriesId, record.TimeUnixNano)] = new MetricPointRow
-            {
-                ProjectId = projectId,
-                SeriesId = seriesId,
-                TimeUnixNano = record.TimeUnixNano,
-                StartTimeUnixNano = record.StartTimeUnixNano,
-                Value = record.Value,
-                HistogramCount = record.Count,
-                HistogramSum = record.Sum,
-                HistogramMin = record.Min,
-                HistogramMax = record.Max,
-                BucketBoundsJson = SerializeDoubles(record.BucketBounds),
-                BucketCountsJson = SerializeCounts(record.BucketCounts)
-            };
+            var observation = MetricObservationCodec.FromIngestion(record, projectId, seriesId);
+            observations[(projectId, seriesId, observation.ObservationId)] = observation;
         }
 
-        return new MetricWriteSet([.. series.Values], [.. points.Values], [.. exemplars.Values]);
+        return new MetricWriteSet([.. series.Values], [.. observations.Values]);
     }
 
     /// <summary>
-    /// Series identity is metric name plus everything that distinguishes one stream of it from
-    /// another: the persisted point attributes, the service, and the resource projection. It
-    /// deliberately excludes unit, description, temporality and monotonicity — those describe
-    /// the instrument, and an SDK correcting one of them must update the series, not fork it.
+    /// Resource, scope and name identify the catalog instrument. Point attributes and
+    /// conflicting identifying properties distinguish streams within that instrument.
+    /// https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md#opentelemetry-protocol-data-model
     /// </summary>
-    internal static string ComputeSeriesId(
+    internal static string ComputeInstrumentId(
         string metricName,
         string? serviceName,
-        string? attributesJson,
-        string? resourceJson)
+        string? resourceJson,
+        string? scopeName,
+        string? scopeVersion,
+        string? scopeSchemaUrl,
+        string? scopeAttributesJson,
+        string? resourceSchemaUrl)
+    {
+        var builder = new StringBuilder("metric_instrument\n");
+        AppendIdentityPart(builder, metricName);
+        AppendIdentityPart(builder, serviceName);
+        AppendIdentityPart(builder, resourceJson);
+        AppendIdentityPart(builder, scopeName);
+        AppendIdentityPart(builder, scopeVersion);
+        AppendIdentityPart(builder, scopeSchemaUrl);
+        AppendIdentityPart(builder, scopeAttributesJson);
+        AppendIdentityPart(builder, resourceSchemaUrl);
+        return "mi_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
+    }
+
+    internal static string InstrumentId(MetricSeriesRow row) => ComputeInstrumentId(
+        row.MetricName, row.ServiceName, row.ResourceJson, row.ScopeName, row.ScopeVersion,
+        row.ScopeSchemaUrl, row.ScopeAttributesJson, row.ResourceSchemaUrl);
+
+    internal static string SeriesId(MetricSeriesRow row) => ComputeSeriesId(
+        row.InstrumentId ?? InstrumentId(row), row.AttributesJson,
+        (MetricKind)row.MetricKind, (MetricTemporality)row.Temporality, row.IsMonotonic != 0, row.Unit);
+
+    internal static MetricCatalogEntry ToCatalogEntry(IReadOnlyCollection<MetricSeriesRow> rows)
+    {
+        var first = rows.OrderBy(static row => row.SeriesId, StringComparer.Ordinal).First();
+        var variants = rows.GroupBy(static row => (row.MetricKind, row.Temporality, row.IsMonotonic, row.Unit))
+            .OrderBy(static group => group.Key.MetricKind).ThenBy(static group => group.Key.Temporality)
+            .ThenBy(static group => group.Key.IsMonotonic).ThenBy(static group => group.Key.Unit, StringComparer.Ordinal)
+            .Select(static group => new MetricDescriptorVariant(group.Key.MetricKind, group.Key.Temporality,
+                group.Key.IsMonotonic, group.Key.Unit,
+                group.Select(static row => row.ServiceName).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()))
+            .ToArray();
+        var shape = variants[0];
+        return new MetricCatalogEntry(first.MetricName, shape.Kind, shape.Temporality, shape.IsMonotonic, shape.Unit,
+            rows.Select(static row => row.Description).Aggregate(LongerDescription), rows.Count,
+            rows.Max(static row => row.LastSeenUnixNano))
+        {
+            InstrumentId = first.InstrumentId ?? InstrumentId(first), Variants = variants,
+            ServiceName = first.ServiceName, ResourceJson = first.ResourceJson, ResourceEntityRefsJson = first.ResourceEntityRefsJson,
+            ResourceSchemaUrl = first.ResourceSchemaUrl, ResourceDroppedAttributesCount = first.ResourceDroppedAttributesCount,
+            ScopeName = first.ScopeName, ScopeVersion = first.ScopeVersion, ScopeSchemaUrl = first.ScopeSchemaUrl,
+            ScopeAttributesJson = first.ScopeAttributesJson, ScopeDroppedAttributesCount = first.ScopeDroppedAttributesCount
+        };
+    }
+
+    private static string ComputeSeriesId(string instrumentId, string? attributesJson,
+        MetricKind kind,
+        MetricTemporality temporality,
+        bool isMonotonic,
+        string? unit)
     {
         var builder = new StringBuilder(512);
         builder.Append("metric_series\n");
-        AppendIdentityPart(builder, metricName);
-        AppendIdentityPart(builder, serviceName);
+        AppendIdentityPart(builder, instrumentId);
         AppendIdentityPart(builder, attributesJson);
-        AppendIdentityPart(builder, resourceJson);
+        AppendIdentityPart(builder, ((byte)kind).ToString(CultureInfo.InvariantCulture));
+        AppendIdentityPart(builder, ((byte)temporality).ToString(CultureInfo.InvariantCulture));
+        AppendIdentityPart(builder, isMonotonic ? "1" : "0");
+        AppendIdentityPart(builder, unit);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return "ms_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
     }
+
+    // Description is non-identifying; retain the longer value on re-registration.
+    // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md#opentelemetry-protocol-data-model-producer-recommendations
+    private static string? LongerDescription(string? left, string? right) =>
+        (left?.Length ?? 0) > (right?.Length ?? 0) ? left :
+        (left?.Length ?? 0) < (right?.Length ?? 0) ? right :
+        StringComparer.Ordinal.Compare(left, right) >= 0 ? left : right;
 
     private static void AppendIdentityPart(StringBuilder builder, string? value)
     {
@@ -121,40 +185,6 @@ internal static class MetricStorageMapper
             .Append(':')
             .Append(value)
             .Append('\n');
-    }
-
-    private static string? SerializeDoubles(IReadOnlyList<double>? values)
-    {
-        if (values is null || values.Count is 0)
-            return null;
-
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStartArray();
-            foreach (var value in values)
-                writer.WriteNumberValue(value);
-            writer.WriteEndArray();
-        }
-
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
-    }
-
-    private static string? SerializeCounts(IReadOnlyList<ulong>? values)
-    {
-        if (values is null || values.Count is 0)
-            return null;
-
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStartArray();
-            foreach (var value in values)
-                writer.WriteNumberValue(value);
-            writer.WriteEndArray();
-        }
-
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     private static string? SerializeResourceEntityRefs(

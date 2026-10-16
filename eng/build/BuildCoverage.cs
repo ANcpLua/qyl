@@ -27,8 +27,8 @@ interface ICoverage : IQylTests, ICoverageReport
     // A few points under what the four test projects measured when the gate was added (test and
     // generated code excluded, identical over two runs): line 78.4 %, branch 59.9 %.
     // --coverage-min-line and --coverage-min-branch override a threshold for one run.
-    string? ICoverageReport.MinLine => TryGetValue(() => MinLine) ?? "75";
-    string? ICoverageReport.MinBranch => TryGetValue(() => MinBranch) ?? "57";
+    string ICoverageReport.MinLine => TryGetValue(() => MinLine) ?? "75";
+    string ICoverageReport.MinBranch => TryGetValue(() => MinBranch) ?? "57";
     string ICoverageReport.ExcludeTestCodeParam => "true";
     // The source generators' output under artifacts/obj (JSON contexts, regex, storage, logging) is
     // most of the instrumented lines; it measures the generators, not qyl.
@@ -55,8 +55,7 @@ interface ICoverage : IQylTests, ICoverageReport
             try
             {
                 DotNetTasks.DotNet(
-                    $"test --solution \"{Solution}\" --configuration {Configuration} --no-build --no-restore --max-parallel-test-modules 1 " +
-                    $"--coverage --coverage-output-format cobertura --coverage-settings \"{settings}\" --results-directory \"{CoverageDirectory}\"",
+                    $"test --solution {Solution} --configuration {Configuration} --no-build --no-restore --max-parallel-test-modules 1 --results-directory {CoverageDirectory} -- --coverage --coverage-output-format cobertura --coverage-settings {settings}",
                     workingDirectory: RootDirectory);
             }
             catch (ProcessException exception)

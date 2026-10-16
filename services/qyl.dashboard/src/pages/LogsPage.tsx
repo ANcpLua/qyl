@@ -40,7 +40,6 @@ const minLevelSchema = logLevelSchema.catch('trace');
 interface LogViewRecord {
     original: LogRecord;
     timestamp: string;
-    observedTimestamp: string;
     traceId?: string;
     spanId?: string;
     eventName?: string;
@@ -49,7 +48,6 @@ interface LogViewRecord {
     body: string;
     attributes: Record<string, AttributeValue>;
     serviceName: string;
-    serviceVersion?: string;
 }
 
 const LOG_LEVEL_CONFIG: Record<
@@ -71,8 +69,7 @@ function normalizeLogRecord(log: LogRecord): LogViewRecord {
 
     return {
         original: log,
-        timestamp: unixNanoToIso(timeUnixNano),
-        observedTimestamp: unixNanoToIso(observedUnixNano),
+        timestamp: unixNanoToIso(!timeUnixNano || timeUnixNano === '0' ? observedUnixNano : timeUnixNano),
         traceId: log.trace_id,
         spanId: log.span_id,
         eventName: log.event_name,
@@ -81,7 +78,6 @@ function normalizeLogRecord(log: LogRecord): LogViewRecord {
         body: normalizeBody(log.body),
         attributes: normalizeAttributes(log.attributes),
         serviceName: log.resource.service_name,
-        serviceVersion: log.resource.service_version,
     };
 }
 
@@ -114,7 +110,8 @@ function normalizeAttributes(
 
 // Absolute nanosecond timestamps arrive as decimal strings and exceed Number.MAX_SAFE_INTEGER;
 // the millisecond floor is taken in BigInt so no precision is assumed before narrowing.
-function unixNanoToIso(value: string): string {
+function unixNanoToIso(value: string | undefined): string {
+    if (!value || value === '0') return '';
     return new Date(Number(BigInt(value) / 1_000_000n)).toISOString();
 }
 
@@ -156,11 +153,12 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                     )}
                 </div>
 
-                <span className="font-mono text-xs text-brutal-slate w-24 flex-shrink-0">
-          {formatTimestamp(log.timestamp)}
+                <span className="font-mono text-xs text-brutal-slate w-24 flex-shrink-0"
+                      title={!log.timestamp ? 'Timestamp unavailable' : !log.original.time_unix_nano || log.original.time_unix_nano === '0' ? 'Observed time (event time not supplied)' : 'Event time'}>
+          {log.timestamp ? formatTimestamp(log.timestamp) : 'Unknown'}
         </span>
 
-                <Badge variant="outline" className={cn('text-xs', config.className)}>
+                <Badge variant="outline" className={cn('text-xs', config.className)} title={log.original.severity_text || 'Unspecified severity text'}>
                     <Icon className="w-3 h-3 mr-1"/>
                     {log.severityText.toUpperCase()}
                 </Badge>

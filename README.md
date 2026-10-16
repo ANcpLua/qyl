@@ -6,7 +6,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-This checkout targets qyl 13.2.1. The
+This checkout targets qyl 14.0.0. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -89,12 +89,23 @@ the qyl activity sources and meters, and exports traces, metrics, and logs over 
 discovered on localhost. Environment variables on their own export nothing; without the
 call there is no exporter to configure.
 
-qyl stores and serves traces, logs, and metrics. Metric points land in a series index plus
-a point table, and are queried by metric name, attribute matchers, a time range, and a step
-— aggregated server-side into buckets, never returned as raw points. OTLP's summary point
-is the one shape qyl declines: its pre-computed quantiles cannot be re-aggregated over a
-window or merged across series, so it is reported back as a `partial_success` naming the
-instrument rather than stored unqueryable.
+qyl stores and serves traces, logs, and metrics. Metric observations retain exact
+integer values, native histogram data, summaries and full exemplars. Read one series'
+original points in pages through `/api/v1/metrics/{name}/series/{id}/points` or select
+`series_id` with the existing `get_metric_series` tool.
+
+Aggregate queries use a separate float64 projection and identify percentile estimates
+as approximate. Contradictory measurements at one timestamp remain visible and block
+aggregation of that window. Summaries and histograms without a usable distribution
+remain readable as original points; unsupported reducers return an explicit error.
+Database upgrades preserve old projections and partial exemplar references, with
+`data: null` where an earlier release erased the original representation.
+
+Malformed records receive OTLP partial-success diagnostics while valid records in the
+same export remain stored. Logs with no event timestamp use observation time for
+queries. Historical logs with neither timestamp stay unknown and are outside the
+age-based retention sweep. Log identity uses the original body even when its stored
+rendering is limited in size.
 
 ## Artifacts and release lines
 
@@ -109,13 +120,13 @@ The `qyl`, `Qyl.Api.Sdk`, `Qyl.Orchestration` and three dependency rows, and the
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 13.2.1 | this one |
+| `qyl` (dotnet tool) | 14.0.0 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 25.1.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 10.1.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
-| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.1.2 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
+| `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 14.0.0 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | [npm](https://www.npmjs.com/package/qyl-mcp-server) | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 13.2.1 | this one |
-| `Qyl.Orchestration` (process host) | 13.2.1 | this one |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 14.0.0 | this one |
+| `Qyl.Orchestration` (process host) | 14.0.0 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -181,7 +192,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/13.2.1">
+<Project Sdk="Qyl.Api.Sdk/14.0.0">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

@@ -1,5 +1,4 @@
 using Fallout.Common;
-using Fallout.Common.IO;
 using Fallout.Common.Tooling;
 
 namespace Qyl.Build;
@@ -12,7 +11,6 @@ namespace Qyl.Build;
 interface IVocabularySmoke : IHasSourcePaths
 {
 
-    AbsolutePath BuildSourceDirectory => RootDirectory / "eng" / "build";
 
     Target G1VocabularySmoke => d => d
         .Unlisted()

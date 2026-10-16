@@ -17,7 +17,8 @@ namespace Qyl.Collector.Tests;
 /// <c>check_telemetry_health</c>. None of them may stand in for another, and an absent one is
 /// absent, never an empty string.
 /// </summary>
-public sealed class InstrumentationScopeTests
+[TestClass]
+public sealed class InstrumentationScopeTests(TestContext testContext)
 {
     private const string ScopeName = "Qyl.Telemetry.AutoInstrumentation";
     private const string ScopeVersion = "3.1.0";
@@ -29,77 +30,77 @@ public sealed class InstrumentationScopeTests
 
     private static ulong Now => (ulong)DateTimeOffset.UtcNow.AddMinutes(-2).ToUnixTimeMilliseconds() * 1_000_000;
 
-    [Fact]
+    [TestMethod]
     public async Task Scope_name_version_and_schema_url_stay_distinct_from_ingest_to_the_api()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         var request = TraceRequest(scope: new InstrumentationScope { Name = ScopeName, Version = ScopeVersion },
             resourceSchemaUrl: ResourceSchemaUrl, scopeSchemaUrl: ScopeSchemaUrl);
         await host.IngestTracesAsync(request);
 
-        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-        Assert.Equal(ScopeName, stored.ScopeName);
-        Assert.Equal(ScopeVersion, stored.ScopeVersion);
-        Assert.Equal(ScopeSchemaUrl, stored.SchemaUrl);
+        var stored = Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+        Assert.AreEqual(ScopeName, stored.ScopeName);
+        Assert.AreEqual(ScopeVersion, stored.ScopeVersion);
+        Assert.AreEqual(ScopeSchemaUrl, stored.SchemaUrl);
 
         var span = await SingleSpanAsync(host);
         var scope = span.GetProperty("instrumentation_scope");
-        Assert.Equal(ScopeName, scope.GetProperty("name").GetString());
-        Assert.Equal(ScopeVersion, scope.GetProperty("version").GetString());
+        Assert.AreEqual(ScopeName, scope.GetProperty("name").GetString());
+        Assert.AreEqual(ScopeVersion, scope.GetProperty("version").GetString());
 
         var health = await HealthAsync(host);
-        Assert.Equal([ScopeSchemaUrl], health.GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
+        Assert.AreSequenceEqual([ScopeSchemaUrl], health.GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_resource_schema_url_applies_when_the_scope_has_none()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         await host.IngestTracesAsync(TraceRequest(scope: new InstrumentationScope { Name = ScopeName },
             resourceSchemaUrl: ResourceSchemaUrl, scopeSchemaUrl: ""));
 
-        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-        Assert.Equal(ScopeName, stored.ScopeName);
-        Assert.Null(stored.ScopeVersion);
-        Assert.Equal(ResourceSchemaUrl, stored.SchemaUrl);
+        var stored = Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+        Assert.AreEqual(ScopeName, stored.ScopeName);
+        Assert.IsNull(stored.ScopeVersion);
+        Assert.AreEqual(ResourceSchemaUrl, stored.SchemaUrl);
 
         var scope = (await SingleSpanAsync(host)).GetProperty("instrumentation_scope");
-        Assert.Equal(ScopeName, scope.GetProperty("name").GetString());
-        Assert.False(scope.TryGetProperty("version", out _));
-        Assert.Equal([ResourceSchemaUrl], (await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
+        Assert.AreEqual(ScopeName, scope.GetProperty("name").GetString());
+        Assert.IsFalse(scope.TryGetProperty("version", out _));
+        Assert.AreSequenceEqual([ResourceSchemaUrl], (await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_absent_scope_and_schema_url_are_absent_not_empty_strings()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         await host.IngestTracesAsync(TraceRequest(scope: null, resourceSchemaUrl: "", scopeSchemaUrl: ""));
 
-        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-        Assert.Null(stored.ScopeName);
-        Assert.Null(stored.ScopeVersion);
-        Assert.Null(stored.SchemaUrl);
+        var stored = Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+        Assert.IsNull(stored.ScopeName);
+        Assert.IsNull(stored.ScopeVersion);
+        Assert.IsNull(stored.SchemaUrl);
 
         var span = await SingleSpanAsync(host);
-        Assert.False(span.TryGetProperty("instrumentation_scope", out _));
-        Assert.Empty((await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray());
+        Assert.IsFalse(span.TryGetProperty("instrumentation_scope", out _));
+        Assert.IsEmpty((await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray());
     }
 
     /// <summary>
     /// The application scope carries the qyl registry's schema URL, so <c>check_telemetry_health</c> reports which
     /// registry release a producer compiled its starters against: the pin check made observable at runtime.
     /// </summary>
-    [Fact]
+    [TestMethod]
     public async Task An_application_span_reports_the_qyl_registry_schema_url()
     {
-        await using var host = await CollectorApiTestHost.StartAsync(TestContext.Current.CancellationToken);
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         await host.IngestTracesAsync(TraceRequest(
             scope: new InstrumentationScope { Name = Spans.Source.Name, Version = Spans.Source.Version },
             resourceSchemaUrl: "", scopeSchemaUrl: Spans.Source.TelemetrySchemaUrl!));
 
-        var stored = Assert.Single(await host.Store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-        Assert.Equal("Qyl.Telemetry.Application", stored.ScopeName);
-        Assert.Equal([QylSchemaUrl.Qyl],
+        var stored = Assert.ContainsSingle(await host.Store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+        Assert.AreEqual("Qyl.Telemetry.Application", stored.ScopeName);
+        Assert.AreSequenceEqual([QylSchemaUrl.Qyl],
             (await HealthAsync(host)).GetProperty("schema_urls").EnumerateArray().Select(static url => url.GetString()));
     }
 
@@ -149,16 +150,16 @@ public sealed class InstrumentationScopeTests
     {
         var traceId = Convert.ToHexStringLower(s_traceId);
         using var response = await host.SendAsync(HttpMethod.Get, $"/api/v1/traces/{traceId}/spans", "reader");
-        var body = await CollectorApiTestHost.JsonAsync(response);
-        Assert.True(response.IsSuccessStatusCode, body.GetRawText());
-        return Assert.Single(body.GetProperty("items").EnumerateArray());
+        var body = await host.JsonAsync(response);
+        Assert.IsTrue(response.IsSuccessStatusCode, body.GetRawText());
+        return Assert.ContainsSingle(body.GetProperty("items").EnumerateArray());
     }
 
     private static async Task<JsonElement> HealthAsync(CollectorApiTestHost host)
     {
         using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/check_telemetry_health", "reader", "{}");
-        var body = await CollectorApiTestHost.JsonAsync(response);
-        Assert.True(response.IsSuccessStatusCode, body.GetRawText());
+        var body = await host.JsonAsync(response);
+        Assert.IsTrue(response.IsSuccessStatusCode, body.GetRawText());
         return body;
     }
 }

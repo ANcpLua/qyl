@@ -42,6 +42,26 @@ test.describe('historical logs', () => {
         test.skip(Boolean(process.env.QYL_BASE_URL), 'Log fixtures belong to the local ephemeral collector.');
     });
 
+    test('uses observation time when an event timestamp is absent and keeps the raw timestamp', async ({page, request}) => {
+        const marker = `observation-${randomBytes(6).toString('hex')}`;
+        const observed = Date.now();
+        const response = await request.post('/v1/logs', {data: {resourceLogs: [{
+            resource: {attributes: [{key: 'service.name', value: {stringValue: marker}}]},
+            scopeLogs: [{logRecords: [{timeUnixNano: '0', observedTimeUnixNano: String(BigInt(observed) * 1_000_000n),
+                severityNumber: 13, severityText: 'NOTICE/remote', body: {stringValue: marker}}]}],
+        }]}});
+        expect(response.status()).toBe(200);
+        await page.goto('/logs');
+        await page.getByRole('textbox', {name: 'Search logs', exact: true}).fill(marker);
+        const row = page.getByRole('button', {name: new RegExp(marker)});
+        await expect(row).toBeVisible();
+        await expect(row.getByTitle('Observed time (event time not supplied)')).toHaveText(
+            new Date(observed).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3}));
+        await expect(row.getByTitle('NOTICE/remote')).toBeVisible();
+        const stored = await request.get(`/api/v1/logs?query=${marker}`);
+        expect((await stored.json()).items[0].time_unix_nano).toBe('0');
+    });
+
     test('error filtering queries stored records before any older pages are loaded', async ({page, request}) => {
         const marker = `history-${randomBytes(6).toString('hex')}`;
         await seedHistory(request, marker);

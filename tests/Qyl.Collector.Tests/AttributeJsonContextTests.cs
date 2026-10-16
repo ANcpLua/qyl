@@ -3,12 +3,14 @@ using Qyl.Collector.Ingestion;
 
 namespace Qyl.Collector.Tests;
 
+[TestClass]
 public sealed class AttributeJsonContextTests
 {
-    public static TheoryData<string> Shapes => ["empty", "string", "bool", "int", "double", "nan", "bytes", "array", "map"];
+    private static readonly string[] s_shapes = ["empty", "string", "bool", "int", "double", "nan", "bytes", "array", "map"];
+    public static IEnumerable<object[]> Shapes => s_shapes.Select(static shape => new object[] { shape });
 
-    [Theory]
-    [MemberData(nameof(Shapes))]
+    [TestMethod]
+    [DynamicData(nameof(Shapes))]
     public void Ingestion_and_http_contexts_write_the_same_attribute_json(string shape)
     {
         var value = shape switch
@@ -34,22 +36,22 @@ public sealed class AttributeJsonContextTests
 
         var contract = value.ToContract();
 
-        Assert.Equal(
+        Assert.AreEqual(
             JsonSerializer.Serialize(contract, QylSerializerContext.Default.AttributeValue),
             JsonSerializer.Serialize(contract, OtlpAttributeJsonContext.Default.AttributeValue));
     }
 
-    [Fact]
+    [TestMethod]
     public void Ingestion_context_carries_the_http_context_options()
     {
         var http = QylSerializerContext.Default.Options;
         var ingestion = OtlpAttributeJsonContext.Default.Options;
 
-        Assert.Equal(http.PropertyNamingPolicy, ingestion.PropertyNamingPolicy);
-        Assert.Equal(http.DefaultIgnoreCondition, ingestion.DefaultIgnoreCondition);
-        Assert.Equal(http.NumberHandling, ingestion.NumberHandling);
-        Assert.Equal(http.AllowOutOfOrderMetadataProperties, ingestion.AllowOutOfOrderMetadataProperties);
-        Assert.Equal(http.WriteIndented, ingestion.WriteIndented);
-        Assert.Equal(http.Converters.Count, ingestion.Converters.Count);
+        Assert.AreEqual(http.PropertyNamingPolicy, ingestion.PropertyNamingPolicy);
+        Assert.AreEqual(http.DefaultIgnoreCondition, ingestion.DefaultIgnoreCondition);
+        Assert.AreEqual(http.NumberHandling, ingestion.NumberHandling);
+        Assert.AreEqual(http.AllowOutOfOrderMetadataProperties, ingestion.AllowOutOfOrderMetadataProperties);
+        Assert.AreEqual(http.WriteIndented, ingestion.WriteIndented);
+        Assert.AreEqual(http.Converters.Count, ingestion.Converters.Count);
     }
 }

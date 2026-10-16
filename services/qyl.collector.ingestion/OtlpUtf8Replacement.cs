@@ -48,8 +48,8 @@ internal static class OtlpUtf8Replacement
         plan.BeginWrite();
         replaced = new byte[measure.Length];
         var write = new Sink(replaced, write: true);
-        var rewritten = Rewrite(message, descriptor, 0, plan, ref write);
-        Debug.Assert(rewritten && write.Length == replaced.Length, "the write pass reads the bytes the measure pass accepted");
+        if (!Rewrite(message, descriptor, 0, plan, ref write) || write.Length != replaced.Length)
+            throw new InvalidOperationException("The UTF-8 rewrite did not match its measured output.");
         return true;
     }
 
@@ -273,13 +273,12 @@ internal static class OtlpUtf8Replacement
     private ref struct Sink(Span<byte> output, bool write)
     {
         private readonly Span<byte> _output = output;
-        private readonly bool _write = write;
 
         public int Length { get; private set; }
 
         public void Copy(ReadOnlySpan<byte> bytes)
         {
-            if (_write)
+            if (write)
                 bytes.CopyTo(_output[Length..]);
             Length += bytes.Length;
         }
@@ -292,13 +291,13 @@ internal static class OtlpUtf8Replacement
                 value >>= 7;
                 if (value is not 0)
                     b |= 0x80;
-                if (_write)
+                if (write)
                     _output[Length] = b;
                 Length++;
             } while (value is not 0);
         }
 
-        public readonly Sink Nested(int length) => new(_write ? _output.Slice(Length, length) : default, _write);
+        public readonly Sink Nested(int length) => new(write ? _output.Slice(Length, length) : default, write);
 
         public void Advance(int length) => Length += length;
     }

@@ -9,7 +9,7 @@ internal static partial class CollectorEndpointExtensions
 {
     private static AnalysisHandles CreateAnalysisHandles(HttpContext context, string project) =>
         context.RequestServices.GetRequiredService<AnalysisSigningKey>().ForProject(project);
-    internal static async Task<IResult> AnalyzeAsync(string operation, HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
+    private static async Task<IResult> AnalyzeAsync(string operation, HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromSeconds(55));
         try
@@ -19,6 +19,12 @@ internal static partial class CollectorEndpointExtensions
             ValidateAnalysisInput(operation, input);
             var project = ResolveProjectScope(context);
             var now = time.GetUtcNow(); var handles = CreateAnalysisHandles(context, project);
+            if (operation == "get_metric_series" && J.String(input, "series_id") is not null)
+                return AnalysisResult(operation, await SelectedMetricSeriesAsync(input, store, project, handles, now, deadline.Token));
+            // The shared schema supplies a default points_limit even for metadata-only reads.
+            // Only a continuation refers to original points and requires an exact series.
+            if (operation == "get_metric_series" && input["points_cursor"] is not null)
+                throw new AnalysisInputException("series_id", "Select exactly one series to page its original points.");
             var readInput = input;
             if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
             {
@@ -33,6 +39,7 @@ internal static partial class CollectorEndpointExtensions
             try { return AnalysisResult(operation, result); }
             catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
+        catch (MetricQueryConflictException conflict) { return ContractErrorResults.Conflict("metric", conflict.Message); }
         catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return ContractErrorResults.AnalysisDeadlineExceeded(); }
         catch (JsonException invalid) { return ContractErrorResults.Validation(invalid.Path ?? "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid"); }
@@ -80,7 +87,7 @@ internal static partial class CollectorEndpointExtensions
         return Results.Json(typed, typeInfo);
     }
 
-    internal static async Task<IResult> UpdateFailureStatusAsync(HttpContext context, [FromRoute(Name = "failure_id")] string failureId, IQylStore store, TimeProvider time, CancellationToken ct)
+    private static async Task<IResult> UpdateFailureStatusAsync(HttpContext context, [FromRoute(Name = "failure_id")] string failureId, IQylStore store, TimeProvider time, CancellationToken ct)
     {
         try
         {
@@ -108,6 +115,7 @@ internal static partial class CollectorEndpointExtensions
             try { return AnalysisResult("update_failure_status", J.O(("failure", result["failures"]?[0]))); }
             catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
+        catch (MetricQueryConflictException conflict) { return ContractErrorResults.Conflict("metric", conflict.Message); }
         catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide a valid failure status request."); }
     }

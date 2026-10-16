@@ -7,16 +7,18 @@ using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;
 
-[Collection(RunnerNetworkTestGroup.Name)]
-public sealed class RunnerCapacityAndResumeTests
+[DoNotParallelize]
+[TestClass]
+public sealed class RunnerCapacityAndResumeTests(TestContext testContext)
 {
-    [Fact]
+
+    [TestMethod]
     public async Task Log_stream_resumes_after_last_event_id_without_replaying_delivered_lines()
     {
         var (api, port, logs) = CreateApi();
         using var ownedApi = api;
         logs.Append("worker", isError: false, "first");
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(5);
@@ -29,7 +31,7 @@ public sealed class RunnerCapacityAndResumeTests
             await using var initialBody = await initial.Content.ReadAsStreamAsync(timeout.Token);
             using var initialReader = new StreamReader(initialBody);
             var first = await ReadLogFrameAsync(initialReader, timeout.Token);
-            Assert.Equal("1", first.Id);
+            Assert.AreEqual("1", first.Id);
             Assert.Contains("\"line\":\"first\"", first.Data, StringComparison.Ordinal);
 
             logs.Append("worker", isError: false, "second");
@@ -41,9 +43,9 @@ public sealed class RunnerCapacityAndResumeTests
             var second = await ReadLogFrameAsync(resumedReader, timeout.Token);
             var third = await ReadLogFrameAsync(resumedReader, timeout.Token);
 
-            Assert.Equal("2", second.Id);
+            Assert.AreEqual("2", second.Id);
             Assert.Contains("\"line\":\"second\"", second.Data, StringComparison.Ordinal);
-            Assert.Equal("3", third.Id);
+            Assert.AreEqual("3", third.Id);
             Assert.Contains("\"line\":\"third\"", third.Data, StringComparison.Ordinal);
         }
         finally
@@ -52,12 +54,12 @@ public sealed class RunnerCapacityAndResumeTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Runner_rejects_excess_long_lived_streams_with_the_generated_503()
     {
         var (api, port, _) = CreateApi();
         using var ownedApi = api;
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(20));
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(5);
@@ -70,15 +72,15 @@ public sealed class RunnerCapacityAndResumeTests
             for (var index = 0; index < QylRunnerApi.MaxConcurrentStreams; index++)
             {
                 var response = await SendStreamAsync(client, uri, lastEventId: null, timeout.Token);
-                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 admitted.Add(response);
             }
 
             using var rejected = await SendStreamAsync(client, uri, lastEventId: null, timeout.Token);
-            Assert.Equal(HttpStatusCode.ServiceUnavailable, rejected.StatusCode);
-            Assert.Equal(ProblemDetailsMediaType.Value, rejected.Content.Headers.ContentType?.MediaType);
+            Assert.AreEqual(HttpStatusCode.ServiceUnavailable, rejected.StatusCode);
+            Assert.AreEqual(ProblemDetailsMediaType.Value, rejected.Content.Headers.ContentType?.MediaType);
             var problem = await rejected.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ServiceUnavailableError, timeout.Token);
-            Assert.Equal("runner.stream_capacity", Assert.IsType<ServiceUnavailableError>(problem).Reason);
+            Assert.AreEqual("runner.stream_capacity", Assert.IsExactInstanceOfType<ServiceUnavailableError>(problem).Reason);
         }
         finally
         {
@@ -134,12 +136,12 @@ public sealed class RunnerCapacityAndResumeTests
         StreamReader reader,
         CancellationToken cancellationToken)
     {
-        var idLine = Assert.IsType<string>(await reader.ReadLineAsync(cancellationToken));
-        var eventLine = Assert.IsType<string>(await reader.ReadLineAsync(cancellationToken));
-        var dataLine = Assert.IsType<string>(await reader.ReadLineAsync(cancellationToken));
-        Assert.Equal(string.Empty, await reader.ReadLineAsync(cancellationToken));
+        var idLine = Assert.IsExactInstanceOfType<string>(await reader.ReadLineAsync(cancellationToken));
+        var eventLine = Assert.IsExactInstanceOfType<string>(await reader.ReadLineAsync(cancellationToken));
+        var dataLine = Assert.IsExactInstanceOfType<string>(await reader.ReadLineAsync(cancellationToken));
+        Assert.AreEqual(string.Empty, await reader.ReadLineAsync(cancellationToken));
         Assert.StartsWith("id: ", idLine, StringComparison.Ordinal);
-        Assert.Equal("event: message", eventLine);
+        Assert.AreEqual("event: message", eventLine);
         Assert.StartsWith("data: ", dataLine, StringComparison.Ordinal);
         return (idLine[4..], dataLine[6..]);
     }
@@ -153,9 +155,9 @@ public sealed class RunnerCapacityAndResumeTests
         return port;
     }
 
-    private static async Task StopAsync(QylRunnerApi api)
+    private async Task StopAsync(QylRunnerApi api)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(5));
         await api.StopAsync(timeout.Token);
     }

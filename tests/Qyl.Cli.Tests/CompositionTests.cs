@@ -3,15 +3,17 @@ using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;
 
-public sealed class CompositionTests
+[TestClass]
+public sealed class CompositionTests(TestContext testContext)
 {
-    [Fact]
+
+    [TestMethod]
     public async Task Command_arguments_reach_a_real_process_without_shell_parsing()
     {
         if (OperatingSystem.IsWindows()) return;
 
         const string Executable = "/bin/echo";
-        Assert.True(File.Exists(Executable), $"Expected the platform executable {Executable}.");
+        Assert.IsTrue(File.Exists(Executable), $"Expected the platform executable {Executable}.");
 
         var resource = new QylResource
         {
@@ -28,7 +30,7 @@ public sealed class CompositionTests
         var logs = new QylLogStore();
         var launcher = new QylProcessLauncher(logs, NullLogger<QylProcessLauncher>.Instance);
         using var process = launcher.Launch(resource, new Uri("http://127.0.0.1:54321"));
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(10));
 
         await process.WaitForExitAsync(timeout.Token);
@@ -39,17 +41,17 @@ public sealed class CompositionTests
             await Task.Delay(10, timeout.Token);
         }
 
-        var line = Assert.Single(logs.Snapshot(resource.Name));
-        Assert.Equal("hello world", line.Line);
-        Assert.Equal(QylLogStream.Stdout, line.Stream);
-        Assert.Equal(0, process.ExitCode);
+        var line = Assert.ContainsSingle(logs.Snapshot(resource.Name));
+        Assert.AreEqual("hello world", line.Line);
+        Assert.AreEqual(QylLogStream.Stdout, line.Stream);
+        Assert.AreEqual(0, process.ExitCode);
     }
 
-    [Fact]
+    [TestMethod]
     public void Runner_self_telemetry_targets_the_dedicated_diagnostics_collector_only()
     {
         var builder = QylAppBuilder.Create();
-        Assert.Null(builder.SelfTelemetryEndpoint);
+        Assert.IsNull(builder.SelfTelemetryEndpoint);
 
         builder.AddCollector(
             "collector",
@@ -59,23 +61,23 @@ public sealed class CompositionTests
             selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", 55111));
 
         var diagnostics = builder.Resources.Single(static resource => resource.Name == "diagnostics");
-        Assert.Equal(new Uri($"http://127.0.0.1:{diagnostics.OtlpHttpPort}"), builder.SelfTelemetryEndpoint);
+        Assert.AreEqual(new Uri($"http://127.0.0.1:{diagnostics.OtlpHttpPort}"), builder.SelfTelemetryEndpoint);
         // The same dead end the collector exports to: its own exporter is blanked, so no loop can form.
-        Assert.Equal(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+        Assert.AreEqual(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Runner_host_builds_with_its_telemetry_pipeline_and_without_a_sink_exports_nothing()
     {
         var builder = QylAppBuilder.Create();
         builder.AddCollector("collector", "dotnet", ["/work/qyl.collector.dll"], port: 55120);
-        Assert.Null(builder.SelfTelemetryEndpoint);
+        Assert.IsNull(builder.SelfTelemetryEndpoint);
 
         await using var app = builder.Build();
-        Assert.NotNull(app);
+        Assert.IsNotNull(app);
     }
 
-    [Fact]
+    [TestMethod]
     public void Collector_composition_pins_every_unauthenticated_listener_to_loopback()
     {
         var builder = QylAppBuilder.Create();
@@ -89,37 +91,37 @@ public sealed class CompositionTests
         var owner = builder.Resources.Single(static resource => resource.Name == "collector");
         var diagnostics = builder.Resources.Single(static resource => resource.Name == "diagnostics");
 
-        Assert.Equal(QylResourceKind.Collector, owner.Kind);
-        Assert.Equal(QylResourceKind.Collector, diagnostics.Kind);
-        Assert.Equal("127.0.0.1", owner.Launch.Env[QylConstants.Env.QylBindAddress]);
-        Assert.Equal("127.0.0.1", diagnostics.Launch.Env[QylConstants.Env.QylBindAddress]);
-        Assert.Equal(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
-        Assert.Equal("Unsecured", diagnostics.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
-        Assert.Equal(
+        Assert.AreEqual(QylResourceKind.Collector, owner.Kind);
+        Assert.AreEqual(QylResourceKind.Collector, diagnostics.Kind);
+        Assert.AreEqual("127.0.0.1", owner.Launch.Env[QylConstants.Env.QylBindAddress]);
+        Assert.AreEqual("127.0.0.1", diagnostics.Launch.Env[QylConstants.Env.QylBindAddress]);
+        Assert.AreEqual(string.Empty, diagnostics.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
+        Assert.AreEqual("Unsecured", diagnostics.Launch.Env[QylConstants.Env.QylOtlpAuthMode]);
+        Assert.AreEqual(
             Path.Combine(QylConstants.Collector.DefaultDataHome, "qyl.diagnostics.duckdb"),
             diagnostics.Launch.Env[QylConstants.Env.QylDataPath]);
-        Assert.Equal(
+        Assert.AreEqual(
             Path.Combine(QylConstants.Collector.DefaultDataHome, "qyl.collector.duckdb"),
             owner.Launch.Env[QylConstants.Env.QylDataPath]);
-        Assert.Equal([diagnostics.Name], owner.WaitsFor);
-        Assert.Equal(
+        Assert.AreSequenceEqual([diagnostics.Name], owner.WaitsFor);
+        Assert.AreEqual(
             $"http://127.0.0.1:{diagnostics.OtlpHttpPort}",
             owner.Launch.Env[QylConstants.Env.OtelExporterOtlpEndpoint]);
-        Assert.Equal("http/protobuf", owner.Launch.Env[QylConstants.Env.OtelExporterOtlpProtocol]);
+        Assert.AreEqual("http/protobuf", owner.Launch.Env[QylConstants.Env.OtelExporterOtlpProtocol]);
     }
 
-    [Fact]
+    [TestMethod]
     public void Composition_rejects_invalid_and_cross_kind_port_collisions()
     {
         var invalid = QylAppBuilder.Create();
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             invalid.AddCollector("collector", "dotnet", ["/work/qyl.collector.dll"], port: 0));
 
         var builder = QylAppBuilder.Create();
         builder.AddCollector("collector", "dotnet", ["/work/qyl.collector.dll"], port: 55100);
-        var otlpPort = Assert.Single(builder.Resources).OtlpHttpPort;
+        var otlpPort = Assert.ContainsSingle(builder.Resources).OtlpHttpPort;
 
-        var error = Assert.Throws<InvalidOperationException>(() =>
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() =>
             builder.AddCollector("overlap", "dotnet", ["/work/qyl.collector.dll"], port: otlpPort));
         Assert.Contains("every api/otlp/grpc port must be unique", error.Message, StringComparison.Ordinal);
     }

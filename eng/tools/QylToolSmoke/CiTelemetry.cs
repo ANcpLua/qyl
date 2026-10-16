@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace QylToolSmoke;
+namespace Qyl.ToolSmoke;
 
 /// <summary>
 /// ci_log dogfooding emitter: mirrors the smoke's phase markers as OTLP/JSON spans

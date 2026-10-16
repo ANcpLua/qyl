@@ -15,35 +15,13 @@ internal sealed class MetricsServiceImpl(IQylStore store, OtlpApiKeyOptions? opt
             var write = MetricStorageMapper.ToStorageRows(
                 batch, AuthenticatedProject.ForGrpcIngest(context, options));
 
-            if (write.Points.Count > 0)
+            if (write.Observations.Count > 0)
             {
                 await store
-                    .InsertMetricsAsync(write.Series, write.Points, write.Exemplars, context.CancellationToken)
+                    .InsertMetricsAsync(write.Series, write.Observations, context.CancellationToken)
                     .ConfigureAwait(false);
             }
 
-            return MetricsExportAck.Create(batch);
+            return OtlpExportAck.Create(batch);
         }, "metric");
-}
-
-/// <summary>
-/// Builds the one OTLP response shape both transports return, so a shape qyl declines is
-/// reported identically over gRPC and HTTP.
-/// </summary>
-internal static class MetricsExportAck
-{
-    public static ExportMetricsServiceResponse Create(MetricIngestionBatch batch)
-    {
-        if (batch.RejectedDataPoints is 0)
-            return new ExportMetricsServiceResponse();
-
-        return new ExportMetricsServiceResponse
-        {
-            PartialSuccess = new ExportMetricsPartialSuccess
-            {
-                RejectedDataPoints = batch.RejectedDataPoints,
-                ErrorMessage = batch.RejectionMessage ?? ""
-            }
-        };
-    }
 }

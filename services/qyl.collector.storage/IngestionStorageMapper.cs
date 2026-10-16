@@ -27,9 +27,9 @@ internal static class IngestionStorageMapper
 
     private static SpanStorageRow ToSpanStorageRow(SpanIngestionRecord span, string? authenticatedProjectId)
     {
-        var durationNs = span.EndTimeUnixNano >= span.StartTimeUnixNano
-            ? span.EndTimeUnixNano - span.StartTimeUnixNano
-            : 0UL;
+        if (span.EndTimeUnixNano < span.StartTimeUnixNano)
+            throw new InvalidDataException("Span end time must not precede its start.");
+        var durationNs = span.EndTimeUnixNano - span.StartTimeUnixNano;
         var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span.Attributes);
         var resourceEntityRefsJson = SerializeResourceEntityRefs(span.ResourceEntityRefs);
 
@@ -67,24 +67,36 @@ internal static class IngestionStorageMapper
             EventsJson = SpanChildStorage.SerializeEvents(span.Events),
             LinksJson = SpanChildStorage.SerializeLinks(span.Links),
             ScopeName = span.ScopeName,
-            ScopeVersion = span.ScopeVersion
+            ScopeVersion = span.ScopeVersion,
+            ScopeSchemaUrl = span.ScopeSchemaUrl,
+            ScopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(span.ScopeAttributes),
+            ScopeDroppedAttributesCount = span.ScopeDroppedAttributesCount,
+            ResourceSchemaUrl = span.ResourceSchemaUrl,
+            ResourceDroppedAttributesCount = span.ResourceDroppedAttributesCount,
+            TraceState = span.TraceState,
+            Flags = span.Flags,
+            DroppedAttributesCount = span.DroppedAttributesCount,
+            DroppedEventsCount = span.DroppedEventsCount,
+            DroppedLinksCount = span.DroppedLinksCount
         };
     }
 
     private static LogStorageRow ToLogStorageRow(LogIngestionRecord log, string? authenticatedProjectId)
     {
         var projectId = ProjectScope.ForIngest(log.ProjectIdHint, authenticatedProjectId);
-        var severityText = string.IsNullOrEmpty(log.SeverityText)
-            ? SeverityNumberToText(log.SeverityNumber)
-            : log.SeverityText;
+        var severityText = log.SeverityText;
         var severityNumber = (byte)Math.Clamp(log.SeverityNumber, 0, 24);
         var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelationPrecedence);
-        var body = ToPersistedLogBody(log.Body);
+        // Identity uses complete canonical content; the retention rendering may be bounded.
+        // Omitted suffixes contribute only to the digest and are never stored.
+        var originalBody = log.Body.Kind == OtlpAttributeValueKind.Empty ? null : EncodeBody(log.Body);
+        var body = ToPersistedLogBody(log.Body, originalBody);
         var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
             log.ResourceAttributes,
             log.ResourceEntityRefs);
         var resourceEntityRefsJson = SerializeResourceEntityRefs(log.ResourceEntityRefs);
+        var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(log.ScopeAttributes);
         var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
             log.ResourceEntityRefs,
             log.ResourceAttributes);
@@ -100,13 +112,23 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, log.EventName);
                 AppendIdentityPart(builder, sessionId);
                 AppendIdentityPart(builder, log.TimeUnixNano);
-                AppendIdentityPart(builder, log.ObservedTimeUnixNano);
+                AppendIdentityPart(builder, log.ObservedTimeProvided ? log.ObservedTimeUnixNano : null);
+                if (log.UntimedRequestOrdinal is { } ordinal) AppendIdentityPart(builder, ordinal);
                 AppendIdentityPart(builder, severityNumber);
                 AppendIdentityPart(builder, severityText);
-                AppendIdentityPart(builder, body);
+                AppendIdentityPart(builder, originalBody);
                 AppendIdentityPart(builder, log.ServiceName);
                 AppendIdentityPart(builder, attributesJson);
                 AppendIdentityPart(builder, resourceJson);
+                AppendIdentityPart(builder, log.ScopeName);
+                AppendIdentityPart(builder, log.ScopeVersion);
+                AppendIdentityPart(builder, log.ScopeSchemaUrl);
+                AppendIdentityPart(builder, scopeAttributesJson);
+                AppendIdentityPart(builder, log.ScopeDroppedAttributesCount);
+                AppendIdentityPart(builder, log.ResourceSchemaUrl);
+                AppendIdentityPart(builder, log.ResourceDroppedAttributesCount);
+                AppendIdentityPart(builder, log.Flags);
+                AppendIdentityPart(builder, log.DroppedAttributesCount);
                 if (!string.IsNullOrEmpty(resourceEntityRefsIdentity))
                     AppendIdentityPart(builder, resourceEntityRefsIdentity);
             }),
@@ -122,7 +144,16 @@ internal static class IngestionStorageMapper
             ServiceName = log.ServiceName,
             AttributesJson = attributesJson,
             ResourceJson = resourceJson,
-            ResourceEntityRefsJson = resourceEntityRefsJson
+            ResourceEntityRefsJson = resourceEntityRefsJson,
+            ScopeName = log.ScopeName,
+            ScopeVersion = log.ScopeVersion,
+            ScopeSchemaUrl = log.ScopeSchemaUrl,
+            ScopeAttributesJson = scopeAttributesJson,
+            ScopeDroppedAttributesCount = log.ScopeDroppedAttributesCount,
+            ResourceSchemaUrl = log.ResourceSchemaUrl,
+            ResourceDroppedAttributesCount = log.ResourceDroppedAttributesCount,
+            Flags = log.Flags,
+            DroppedAttributesCount = log.DroppedAttributesCount
         };
     }
 
@@ -169,15 +200,16 @@ internal static class IngestionStorageMapper
     /// exceeds the limit is stored as its truncated text rendering, so the column always holds
     /// valid JSON.
     /// </summary>
-    private static string? ToPersistedLogBody(OtlpAttributeValue body)
+    private static string? ToPersistedLogBody(OtlpAttributeValue body, string? original)
     {
         if (body.Kind is OtlpAttributeValueKind.Empty)
             return null;
 
         if (body.AsString() is { } text)
-            return EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(text)));
+            return Encoding.UTF8.GetByteCount(text) <= MaxPersistedLogBodyUtf8Bytes
+                ? original : EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(text)));
 
-        var encoded = EncodeBody(body);
+        var encoded = original ?? throw new InvalidDataException("Nonempty log bodies require canonical content.");
         return Encoding.UTF8.GetByteCount(encoded) <= MaxPersistedLogBodyUtf8Bytes
             ? encoded
             : EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(body.ToStableString())));
@@ -220,17 +252,6 @@ internal static class IngestionStorageMapper
         1 => 1,
         2 => 2,
         _ => 0
-    };
-
-    private static string SeverityNumberToText(int severityNumber) => severityNumber switch
-    {
-        >= 1 and <= 4 => "TRACE",
-        >= 5 and <= 8 => "DEBUG",
-        >= 9 and <= 12 => "INFO",
-        >= 13 and <= 16 => "WARN",
-        >= 17 and <= 20 => "ERROR",
-        >= 21 => "FATAL",
-        _ => "UNSPECIFIED"
     };
 
     private static string? SerializeResourceEntityRefs(

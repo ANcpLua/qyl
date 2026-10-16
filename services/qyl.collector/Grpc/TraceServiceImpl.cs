@@ -15,10 +15,10 @@ internal sealed class TraceServiceImpl(IQylStore store, OtlpApiKeyOptions? optio
             var spans = IngestionStorageMapper.ToSpanStorageRows(
                 traceBatch, AuthenticatedProject.ForGrpcIngest(context, options));
 
-            if (spans.Count <= 0) return new ExportTraceServiceResponse();
+            if (spans.Count <= 0) return OtlpExportAck.Create(traceBatch);
 
             await store.EnqueueAsync(new SpanBatch(spans), context.CancellationToken).ConfigureAwait(false);
 
-            return new ExportTraceServiceResponse();
+            return OtlpExportAck.Create(traceBatch);
         }, "trace");
 }

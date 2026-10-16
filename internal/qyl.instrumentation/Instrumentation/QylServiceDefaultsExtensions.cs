@@ -84,20 +84,20 @@ public static class QylServiceDefaultsExtensions
     };
 
 
-    internal static void ConfigureServiceProvider<TBuilder>(TBuilder builder)
+    private static void ConfigureServiceProvider<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder =>
         builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
         {
             ValidateOnBuild = true, ValidateScopes = true
         }));
 
-    internal static void ConfigureKestrel(IServiceCollection services) =>
+    private static void ConfigureKestrel(IServiceCollection services) =>
         services.Configure<KestrelServerOptions>(static options =>
         {
             options.AddServerHeader = false;
         });
 
-    internal static void ConfigureJson(IServiceCollection services)
+    private static void ConfigureJson(IServiceCollection services)
     {
         static void Json(JsonSerializerOptions json)
         {
@@ -154,13 +154,13 @@ public static class QylServiceDefaultsExtensions
         });
     }
 
-    internal static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
+    private static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder =>
         builder.Services.AddHealthChecks()
             .AddCheck("self", static () => HealthCheckResult.Healthy(), [QylEndpoints.LiveTag])
             .AddCheck("ready", static () => HealthCheckResult.Healthy(), [QylEndpoints.ReadyTag]);
 
-    internal static void ConfigureHttpClients<TBuilder>(TBuilder builder)
+    private static void ConfigureHttpClients<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddServiceDiscovery();

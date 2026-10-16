@@ -10,10 +10,10 @@ namespace Qyl.Collector.Hosting;
 // project. A note never changes the telemetry it points at.
 internal static partial class CollectorEndpointExtensions
 {
-    internal const int AnnotationMaxTextLength = 2000;
+    private const int AnnotationMaxTextLength = 2000;
     private const string AnnotationOperation = "annotations";
 
-    internal static async Task<IResult> CreateAnnotationAsync(
+    private static async Task<IResult> CreateAnnotationAsync(
         HttpContext httpContext,
         IQylStore store,
         TimeProvider timeProvider,
@@ -100,7 +100,7 @@ internal static partial class CollectorEndpointExtensions
         };
     }
 
-    internal static async Task<IResult> ListAnnotationsAsync(
+    private static async Task<IResult> ListAnnotationsAsync(
         HttpContext httpContext,
         IQylStore store,
         CancellationToken ct)
@@ -151,7 +151,7 @@ internal static partial class CollectorEndpointExtensions
         }, QylSerializerContext.Default.CursorPageAnnotation);
     }
 
-    internal static async Task<IResult> GetAnnotationAsync(HttpContext httpContext,
+    private static async Task<IResult> GetAnnotationAsync(HttpContext httpContext,
         [FromRoute(Name = "annotation_id")] string annotationId, IQylStore store, CancellationToken ct)
     {
         if (await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false) is not { } row) return ContractErrorResults.NotFound("annotation", annotationId);
@@ -159,7 +159,7 @@ internal static partial class CollectorEndpointExtensions
         return ResourceHttp.WithEtag(httpContext, row.Etag, contracts[0], QylSerializerContext.Default.Annotation);
     }
 
-    internal static async Task<IResult> UpdateAnnotationAsync(
+    private static async Task<IResult> UpdateAnnotationAsync(
         HttpContext httpContext,
         [FromRoute(Name = "annotation_id")] string annotationId,
         IQylStore store,
@@ -201,7 +201,7 @@ internal static partial class CollectorEndpointExtensions
         };
     }
 
-    internal static async Task<IResult> DeleteAnnotationAsync(
+    private static async Task<IResult> DeleteAnnotationAsync(
         HttpContext httpContext,
         [FromRoute(Name = "annotation_id")] string annotationId,
         IQylStore store,

@@ -14,7 +14,7 @@ internal static class QylXmlSchema
     /// <summary>The property key under which text content is described; OpenAPI has no keyword for it.</summary>
     public const string TextProperty = "#text";
 
-    public static string SchemaId(XmlShape shape) => shape.TypeName + "Xml";
+    private static string SchemaId(XmlShape shape) => shape.TypeName + "Xml";
 
     /// <summary>Registers the component schema for <paramref name="shape"/> once and returns a reference to it.</summary>
     public static OpenApiSchemaReference Reference(OpenApiDocument document, XmlShape shape)

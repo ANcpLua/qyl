@@ -4,24 +4,26 @@ using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;
 
-[Collection(RunnerNetworkTestGroup.Name)]
-public sealed class ConsoleUiTests
+[DoNotParallelize]
+[TestClass]
+public sealed class ConsoleUiTests(TestContext testContext)
 {
-    [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, false)]
+
+    [TestMethod]
+    [DataRow(true, true)]
+    [DataRow(true, false)]
+    [DataRow(false, false)]
     public void Redirected_or_noninteractive_output_selects_the_headless_ui(
         bool outputRedirected,
         bool interactive)
     {
-        Assert.True(QylConsoleUi.ShouldUseHeadlessUi(outputRedirected, interactive));
+        Assert.IsTrue(QylConsoleUi.ShouldUseHeadlessUi(outputRedirected, interactive));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Headless_in_process_host_stays_alive_and_serves_the_runner_api()
     {
-        Assert.True(
+        Assert.IsTrue(
             QylConsoleUi.ShouldUseHeadlessUi(
                 Console.IsOutputRedirected,
                 Spectre.Console.AnsiConsole.Profile.Capabilities.Interactive),
@@ -31,7 +33,7 @@ public sealed class ConsoleUiTests
         var builder = QylAppBuilder.Create(new QylAppOptions { RunnerPort = port });
         await using var app = builder.Build();
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         lifetime.CancelAfter(TimeSpan.FromSeconds(15));
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(2);
@@ -44,14 +46,14 @@ public sealed class ConsoleUiTests
                 new Uri($"http://127.0.0.1:{port}/runner/resources"),
                 lifetime.Token);
 
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.False(runTask.IsCompleted, "The host exited while its output was non-interactive.");
-            Assert.Equal("[]", await response.Content.ReadAsStringAsync(lifetime.Token));
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.IsFalse(runTask.IsCompleted, "The host exited while its output was non-interactive.");
+            Assert.AreEqual("[]", await response.Content.ReadAsStringAsync(lifetime.Token));
         }
         finally
         {
             await lifetime.CancelAsync();
-            await runTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await runTask.WaitAsync(TimeSpan.FromSeconds(5), testContext.CancellationToken);
         }
     }
 

@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Primitives;
+namespace Qyl.Collector.Ingestion.Primitives;
 
 /// <summary>
 /// Project identity shared by the auth boundaries, the read API and storage stamping. It sits

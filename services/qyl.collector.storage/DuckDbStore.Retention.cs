@@ -135,8 +135,8 @@ internal sealed partial class DuckDbStore
                               WHERE (project_id, log_id) IN (
                                   SELECT project_id, log_id
                                   FROM logs
-                                  WHERE COALESCE(NULLIF(time_unix_nano, 0), observed_time_unix_nano, 0) < $1
-                                  ORDER BY COALESCE(NULLIF(time_unix_nano, 0), observed_time_unix_nano, 0), project_id, log_id
+                                  WHERE COALESCE(NULLIF(time_unix_nano, 0), NULLIF(observed_time_unix_nano, 0)) < $1
+                                  ORDER BY COALESCE(NULLIF(time_unix_nano, 0), NULLIF(observed_time_unix_nano, 0)), project_id, log_id
                                   LIMIT $2
                               )
                               RETURNING log_id

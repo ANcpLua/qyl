@@ -6,7 +6,7 @@ namespace Qyl.Collector.Hosting;
 /// </summary>
 internal sealed class CollectorStreamCapacity(int maximum = CollectorStreamCapacity.DefaultMaximum)
 {
-    internal const int DefaultMaximum = 16;
+    private const int DefaultMaximum = 16;
 
     private readonly int _maximum = maximum > 0
         ? maximum

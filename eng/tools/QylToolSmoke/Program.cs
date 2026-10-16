@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
-using QylToolSmoke;
+using Qyl.ToolSmoke;
 
 var installedMode = args is ["--installed", _, "--version", _];
 var packageMode = args is [_];

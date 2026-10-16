@@ -84,16 +84,18 @@ public sealed class QylApplication : IAsyncDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (!_registry.Contains(name))
             throw new ArgumentException($"No service named '{name}' belongs to this application.", nameof(name));
-        if (_registry.Snapshot.TryGetValue(name, out var state) && state.Lifecycle == ResourceLifecycle.Ready
-            && state.Endpoint is { } endpoint)
+        if (_registry.Snapshot.TryGetValue(name, out var state)
+            && state is { Lifecycle: ResourceLifecycle.Ready, Endpoint: { } endpoint })
             return endpoint;
         throw new InvalidOperationException($"Service '{name}' is not ready.");
     }
 
-    /// <summary>Returns a snapshot of a service's most recent standard-output and standard-error lines.</summary>
+    /// <summary>
+    /// Returns a snapshot of a service's most recent standard-output and standard-error lines.
+    /// Retained output remains readable after failed startup or disposal.
+    /// </summary>
     public IReadOnlyList<string> GetOutput(string name)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (!_registry.Contains(name))
             throw new ArgumentException($"No service named '{name}' belongs to this application.", nameof(name));

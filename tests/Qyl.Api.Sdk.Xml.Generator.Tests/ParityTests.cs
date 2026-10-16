@@ -6,6 +6,7 @@ using Qyl.Xml;
 namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 
 /// <summary>XmlSerializer is the oracle: the generated writer must produce the same document for the same attributes.</summary>
+[TestClass]
 public sealed class ParityTests
 {
     private static readonly XmlWriterSettings s_settings = new()
@@ -19,7 +20,7 @@ public sealed class ParityTests
 
     private static readonly string[] s_statusNames = ["open", "paid", "Shipped"];
 
-    [Fact]
+    [TestMethod]
     public void TreeWithNamespacesEnumsCollectionsAndText()
     {
         var order = new Order
@@ -42,7 +43,7 @@ public sealed class ParityTests
         AssertParity(order);
     }
 
-    [Fact]
+    [TestMethod]
     public void AbsentMembersAndEmptyCollections()
     {
         var order = new Order
@@ -59,17 +60,17 @@ public sealed class ParityTests
         AssertParity(order);
     }
 
-    [Theory]
-    [InlineData(Weekdays.All)]
-    [InlineData(Weekdays.Weekend)]
-    [InlineData(Weekdays.Monday | Weekdays.Saturday | Weekdays.Sunday)]
-    [InlineData(Weekdays.Monday | Weekdays.Wednesday)]
+    [TestMethod]
+    [DataRow(Weekdays.All)]
+    [DataRow(Weekdays.Weekend)]
+    [DataRow(Weekdays.Monday | Weekdays.Saturday | Weekdays.Sunday)]
+    [DataRow(Weekdays.Monday | Weekdays.Wednesday)]
     public void FlagsFollowXmlSerializerMemberSelection(Weekdays days)
     {
         AssertParity(new Order { Id = 2, Placed = s_placed, Days = days });
     }
 
-    [Fact]
+    [TestMethod]
     public void NilAndSkippedItemsFollowIsNullable()
     {
         var order = new Order
@@ -85,67 +86,67 @@ public sealed class ParityTests
         AssertParity(order);
     }
 
-    [Fact]
+    [TestMethod]
     public void NilWrapperForAbsentCollectionWithIsNullable()
     {
         AssertParity(new Order { Id = 4, Placed = s_placed, Scores = null, Labels = null });
     }
 
-    [Fact]
+    [TestMethod]
     public void BaseClassMembersComeFirst()
     {
         AssertParity(new Document { CreatedBy = "ada", Created = s_placed, Title = "Notes" });
     }
 
-    [Fact]
+    [TestMethod]
     public void DateOnlyAndTimeOnly()
     {
         AssertParity(new Reminder { Id = 3, Title = "Read obj/generated", DueBy = new DateOnly(2026, 9, 5), At = new TimeOnly(10, 30, 0, 123) });
         AssertParity(new Reminder { Id = 4, Title = "Whole seconds", DueBy = null, At = new TimeOnly(10, 30) });
     }
 
-    [Fact]
+    [TestMethod]
     public void SelfReferencingModel()
     {
         AssertParity(new Node { Name = "root", Child = new Node { Name = "leaf" } });
     }
 
-    [Fact]
+    [TestMethod]
     public void XmlShapeDescribesTheTree()
     {
-        Assert.Equal(new XmlName("order", "urn:qyl:orders"), Order.XmlShape.Root);
-        Assert.Equal("Order", Order.XmlShape.TypeName);
-        Assert.Equal(new XmlName("document", null), Document.XmlShape.Root);
-        Assert.Equal(3, Document.XmlShape.Nodes.Count);
-        Assert.Equal(new XmlName("Customer", null), Customer.XmlShape.Root);
+        Assert.AreEqual(new XmlName("order", "urn:qyl:orders"), Order.XmlShape.Root);
+        Assert.AreEqual("Order", Order.XmlShape.TypeName);
+        Assert.AreEqual(new XmlName("document", null), Document.XmlShape.Root);
+        Assert.AreEqual(3, Document.XmlShape.Nodes.Count);
+        Assert.AreEqual(new XmlName("Customer", null), Customer.XmlShape.Root);
 
         var lines = Order.XmlShape.Nodes.OfType<XmlCollectionShape>().Single(node => node.PropertyName == "Lines");
-        Assert.Equal(new XmlName("lines", null), lines.Wrapper);
-        Assert.Equal("line", lines.Item.LocalName);
-        Assert.Equal("OrderLine", lines.ItemShape!().TypeName);
-        Assert.True(lines.ItemNillable);
+        Assert.AreEqual(new XmlName("lines", null), lines.Wrapper);
+        Assert.AreEqual("line", lines.Item.LocalName);
+        Assert.AreEqual("OrderLine", lines.ItemShape!().TypeName);
+        Assert.IsTrue(lines.ItemNillable);
 
         var status = Order.XmlShape.Nodes.OfType<XmlAttributeShape>().Single(node => node.PropertyName == "Status");
-        Assert.Equal(s_statusNames, status.Value.EnumValues!.ToArray());
+        Assert.AreSequenceEqual(s_statusNames, status.Value.EnumValues!.ToArray());
 
         var days = Order.XmlShape.Nodes.OfType<XmlElementShape>().Single(node => node.PropertyName == "Days");
-        Assert.Null(days.Value.EnumValues);
+        Assert.IsNull(days.Value.EnumValues);
 
         var weight = Order.XmlShape.Nodes.OfType<XmlElementShape>().Single(node => node.PropertyName == "Weight");
-        Assert.True(weight.Nillable);
-        Assert.False(weight.Optional);
+        Assert.IsTrue(weight.Nillable);
+        Assert.IsFalse(weight.Optional);
 
         var customer = Order.XmlShape.Nodes.OfType<XmlModelShape>().Single(node => node.PropertyName == "Customer");
-        Assert.True(customer.Optional);
-        Assert.Same(Customer.XmlShape, customer.Shape());
+        Assert.IsTrue(customer.Optional);
+        Assert.AreSame(Customer.XmlShape, customer.Shape());
     }
 
-    [Fact]
+    [TestMethod]
     public void ChildWritesUnderTheNameTheParentChooses()
     {
         var customer = new Customer { Name = "Ada" };
 
-        Assert.Equal("<Customer><name>Ada</name></Customer>", customer.ToXml());
+        Assert.AreEqual("<Customer><name>Ada</name></Customer>", customer.ToXml());
 
         var buffer = new StringWriter();
         using (var writer = XmlWriter.Create(buffer, s_settings))
@@ -153,7 +154,7 @@ public sealed class ParityTests
             customer.WriteXml(writer, "buyer", "urn:b");
         }
 
-        Assert.Equal("<buyer xmlns=\"urn:b\"><name>Ada</name></buyer>", buffer.ToString());
+        Assert.AreEqual("<buyer xmlns=\"urn:b\"><name>Ada</name></buyer>", buffer.ToString());
     }
 
     private static void AssertParity<T>(T value)
@@ -162,7 +163,7 @@ public sealed class ParityTests
         var expected = SerializeWithXmlSerializer(value);
         var actual = value.ToXml();
 
-        Assert.Equal(expected, actual);
+        Assert.AreEqual(expected, actual);
     }
 
     private static string SerializeWithXmlSerializer<T>(T value)

@@ -209,7 +209,7 @@ internal sealed class QylConsoleUi(
     private async Task RequestRestartsAsync(CancellationToken cancellationToken)
     {
         var accepted = 0;
-        foreach (var resource in resources.Where(static resource => resource.Launch is not null))
+        foreach (var resource in resources)
         {
             var result = await resourceActions.RequestAsync(
                 resource.Name, QylResourceAction.Restart, cancellationToken).ConfigureAwait(false);

@@ -74,9 +74,11 @@ try
         Smoke.Require(error.Message.Contains("exited with code 17", StringComparison.Ordinal)
             && error.Message.Contains("orchestration smoke startup failure", StringComparison.Ordinal),
             "Startup failure lost the exit code or child's stderr: " + error.Message);
+        Smoke.Require(app.GetOutput("broken").Any(line => line.Contains("orchestration smoke startup failure", StringComparison.Ordinal)),
+            "The output snapshot lost the failed child's stderr.");
         Smoke.RequireStopped(failedPeer);
     }
-    Console.WriteLine("PASS: early exit diagnostics and peer cleanup");
+    Console.WriteLine("PASS: early exit diagnostics, output snapshot and peer cleanup");
 
     var cancelledPid = Path.Combine(scratch, "cancelled.pid");
     var cancelled = new QylApplicationBuilder { StartupTimeoutSeconds = 10, MaxRestarts = 0 };
@@ -111,7 +113,7 @@ try
     var first = cycle.AddExecutable("first", "unused", []);
     var second = cycle.AddExecutable("second", "unused", []).WaitFor(first);
     first.WaitFor(second);
-    var cycleError = await Smoke.ThrowsAsync<InvalidOperationException>(() => Task.Run(() => cycle.Build()));
+    var cycleError = await Smoke.ThrowsAsync<InvalidOperationException>(() => Task.Run(cycle.Build));
     Smoke.Require(cycleError.Message.Contains("cycle", StringComparison.OrdinalIgnoreCase), "Cycle was not rejected.");
     var other = new QylApplicationBuilder().AddExecutable("other", "unused", []);
     await Smoke.ThrowsAsync<ArgumentException>(() => Task.Run(() => first.WithReference(other)));

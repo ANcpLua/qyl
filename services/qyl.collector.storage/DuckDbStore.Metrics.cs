@@ -1,5 +1,5 @@
 using DuckDB.NET.Data;
-using Qyl.Collector.Primitives;
+using Qyl.Collector.Ingestion.Primitives;
 
 namespace Qyl.Collector.Storage;
 
@@ -11,6 +11,7 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 internal sealed record MetricRangeQuery
 {
+    public string? SeriesId { get; init; }
     public required string ProjectId { get; init; }
     public required string MetricName { get; init; }
     public required ulong StartUnixNano { get; init; }
@@ -30,6 +31,14 @@ internal sealed record MetricRangeQuery
     public int SeriesLimit { get; init; } = 50;
 }
 
+internal sealed class MetricQueryConflictException(string? message = null) : InvalidOperationException(message ??
+    "Selected metric series have incompatible kind, unit, temporality or monotonicity; select one series_id.");
+
+internal sealed class MetricProjectionUnavailableException(string message) : InvalidOperationException(message);
+
+internal sealed class MetricQueryRequiresHistogramException() : InvalidOperationException(
+    "Percentile aggregations require a histogram metric; use avg, min, max, sum, count or last.");
+
 internal sealed partial class DuckDbStore
 {
     private const int MaxMetricSeriesPerBatch = 120;
@@ -45,86 +54,218 @@ internal sealed partial class DuckDbStore
 
     public async Task InsertMetricsAsync(
         IReadOnlyList<MetricSeriesRow> series,
-        IReadOnlyList<MetricPointRow> points,
-        IReadOnlyList<MetricExemplarRow>? exemplars = null,
+        IReadOnlyList<MetricObservationRow> observations,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        if (points.Count is 0)
+        if (observations.Count is 0)
             return;
+
+        IReadOnlyList<MetricSeriesRow> indexedSeries = series.Any(static row => row.InstrumentId is null)
+            ? series.Select(static row => row.InstrumentId is null
+                ? row with { InstrumentId = MetricStorageMapper.InstrumentId(row) } : row).ToArray()
+            : series;
 
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
             // Series first: a point is only reachable through its series row, so writing the
             // point first would expose an unjoinable sample to a concurrent reader.
-            await InsertRowsBatchedAsync(con, tx, series, MetricSeriesRow.AddParameters,
+            await InsertRowsBatchedAsync(con, tx, indexedSeries, MetricSeriesRow.AddParameters,
                 MetricSeriesRow.BuildMultiRowInsertSql, MaxMetricSeriesPerBatch, token);
-            await InsertRowsBatchedAsync(con, tx, points, MetricPointRow.AddParameters,
-                MetricPointRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
-            if (exemplars is { Count: > 0 })
-                await InsertRowsBatchedAsync(con, tx, exemplars, MetricExemplarRow.AddParameters,
-                    MetricExemplarRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
+            await InsertRowsBatchedAsync(con, tx, observations, MetricObservationRow.AddParameters,
+                MetricObservationRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
+            foreach (var key in observations.Select(static row => new MetricObservationKey(row.ProjectId, row.SeriesId, row.TimeUnixNano)).Distinct())
+            {
+                token.ThrowIfCancellationRequested();
+                RefreshMetricProjection(con, tx, key);
+            }
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
+    }
+
+    // Upgrade bounded batches of complete series reference graphs atomically. Unknown historical
+    // scope fields remain unknown; only each stored descriptor determines its new identity.
+    private static bool BackfillMetricInstrumentIds(DuckDBConnection connection)
+    {
+        var changed = false;
+        while (true)
+        {
+            using var transaction = connection.BeginTransaction();
+            var rows = new List<MetricSeriesRow>();
+            using (var read = connection.CreateCommand())
+            {
+                read.Transaction = transaction;
+                read.CommandText = "SELECT " + MetricSeriesRow.SelectColumnList +
+                    " FROM metric_series WHERE instrument_id IS NULL LIMIT 1000";
+                using var reader = read.ExecuteReader();
+                while (reader.Read()) rows.Add(MetricSeriesRow.MapFromReader(reader));
+            }
+            foreach (var previous in rows)
+            {
+                changed = true;
+                var indexed = previous with { InstrumentId = MetricStorageMapper.InstrumentId(previous) };
+                var migrated = indexed with { SeriesId = MetricStorageMapper.SeriesId(indexed) };
+                if (migrated.SeriesId == previous.SeriesId)
+                {
+                    using var update = connection.CreateCommand();
+                    update.Transaction = transaction;
+                    update.CommandText = "UPDATE metric_series SET instrument_id = $1 WHERE project_id = $2 AND series_id = $3";
+                    AddParameters(update, migrated.InstrumentId, previous.ProjectId, previous.SeriesId);
+                    update.ExecuteNonQuery();
+                    continue;
+                }
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = "SELECT " + MetricSeriesRow.SelectColumnList +
+                    " FROM metric_series WHERE project_id = $1 AND series_id = $2";
+                AddParameters(command, migrated.ProjectId, migrated.SeriesId);
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        var existing = MetricSeriesRow.MapFromReader(reader);
+                        existing = existing with { InstrumentId = existing.InstrumentId ?? MetricStorageMapper.InstrumentId(existing) };
+                        // Only description, observation ranges and dropped counts are non-identifying.
+                        var comparable = migrated with
+                        {
+                            Description = existing.Description, FirstSeenUnixNano = existing.FirstSeenUnixNano,
+                            LastSeenUnixNano = existing.LastSeenUnixNano,
+                            ScopeDroppedAttributesCount = existing.ScopeDroppedAttributesCount,
+                            ResourceDroppedAttributesCount = existing.ResourceDroppedAttributesCount
+                        };
+                        if (comparable != existing)
+                            throw new InvalidDataException($"Metric identity collision while migrating '{previous.SeriesId}'.");
+                    }
+                }
+                command.Parameters.Clear();
+                command.CommandText = MetricSeriesRow.BuildMultiRowInsertSql(1);
+                MetricSeriesRow.AddParameters(command, migrated);
+                command.ExecuteNonQuery();
+
+                // Canonical observations survive ID changes, including contradictory historical
+                // measurements. The derived query tables are rebuilt after this migration.
+                MoveMetricRows("metric_observations", MetricObservationRow.SelectColumnList);
+                command.Parameters.Clear();
+                command.CommandText = "DELETE FROM metric_series WHERE project_id = $1 AND series_id = $2";
+                AddParameters(command, previous.ProjectId, previous.SeriesId);
+                command.ExecuteNonQuery();
+
+                void MoveMetricRows(string table, string columns)
+                {
+                    var projection = string.Join(", ", columns.Split(',').Select(static column => column.Trim().Trim('"'))
+                        .Select(static column => column == "series_id" ? "$1" : column));
+                    command.Parameters.Clear();
+                    command.CommandText = "INSERT INTO " + table + " (" + columns + ") SELECT " + projection + " FROM " + table + " " +
+                        "WHERE project_id = $2 AND series_id = $3 ON CONFLICT DO NOTHING";
+                    AddParameters(command, migrated.SeriesId, previous.ProjectId, previous.SeriesId);
+                    command.ExecuteNonQuery();
+                    command.Parameters.Clear();
+                    command.CommandText = "DELETE FROM " + table + " WHERE project_id = $1 AND series_id = $2";
+                    AddParameters(command, previous.ProjectId, previous.SeriesId);
+                    command.ExecuteNonQuery();
+                }
+            }
+            transaction.Commit();
+            if (rows.Count is 0) return changed;
+        }
     }
 
     public Task<IReadOnlyList<MetricCatalogEntry>> ListMetricsAsync(
         string projectId,
         string? namePrefix = null,
         int limit = 200,
-        string? afterMetricName = null,
+        MetricCatalogCursor? cursor = null,
+        IReadOnlyList<MetricAttributeMatcher>? matchers = null,
+        string? seriesId = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
         return ExecuteReadAsync<IReadOnlyList<MetricCatalogEntry>>(con =>
         {
             using var cmd = con.CreateCommand();
-            var filter = " AND ($3::VARCHAR IS NULL OR metric_name > $3)"
-                         + (string.IsNullOrEmpty(namePrefix) ? "" : " AND starts_with(metric_name, $4)");
+            var qb = new QueryBuilder();
+            qb.Add("project_id = $N", projectId);
+            if (cursor is { } after)
+                qb.Add("(metric_name > $A OR (metric_name = $A AND instrument_id > $B))", after.MetricName, after.InstrumentId);
+            if (!string.IsNullOrEmpty(namePrefix)) qb.Add("starts_with(metric_name, $N)", namePrefix);
+            if (seriesId is not null) qb.Add("series_id = $N", seriesId);
+            AppendMatchers(ref qb, matchers ?? []);
             // Composed, not interpolated, into CommandText: every fragment spliced here is a
             // constant chosen by this method, and every caller value is a bound parameter.
             // An aggregate projection, not a row read: the catalog collapses every series
-            // under a name into one entry, so there is no generated column list to reuse
+            // under a resource, scope and name into one entry, so there is no generated column list to reuse
             // and the reader ordinals below are this statement's own contract.
             var sql = """
-                      SELECT count(*),
-                             metric_name,
-                             max(metric_kind),
-                             max(temporality),
-                             max(is_monotonic),
-                             max(unit),
-                             max(description),
-                             max(last_seen_unix_nano)
+                      SELECT count(*), metric_name,
+                             first(description ORDER BY length(description) DESC NULLS LAST, description DESC), max(last_seen_unix_nano),
+                             to_json(list(DISTINCT struct_pack(
+                                 kind := metric_kind, temporality := temporality,
+                                 monotonic := is_monotonic, unit := unit, service := service_name))),
+                             instrument_id, first(service_name), first(resource_json), first(resource_entity_refs_json),
+                             first(resource_schema_url), max(resource_dropped_attributes_count), first(scope_name),
+                             first(scope_version), first(scope_schema_url), first(scope_attributes_json), max(scope_dropped_attributes_count)
                       FROM metric_series
-                      WHERE project_id = $1
                       """
-                      + filter
-                      + " GROUP BY metric_name ORDER BY metric_name LIMIT $2";
+                      + " " + qb.WhereClause
+                      + " GROUP BY metric_name, instrument_id ORDER BY metric_name, instrument_id LIMIT " + qb.NextParam;
             cmd.CommandText = sql;
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+            qb.ApplyTo(cmd);
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-            cmd.Parameters.Add(new DuckDBParameter { Value = afterMetricName ?? (object)DBNull.Value });
-            if (!string.IsNullOrEmpty(namePrefix))
-                cmd.Parameters.Add(new DuckDBParameter { Value = namePrefix });
 
             var entries = new List<MetricCatalogEntry>();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
+                var variants = ReadMetricVariants(DuckDbValueReader.ReadString(reader, 4, "[]"));
+                var first = variants[0];
                 entries.Add(new MetricCatalogEntry(
                     DuckDbValueReader.ReadString(reader, 1, ""),
-                    DuckDbValueReader.ReadByte(reader, 2, 0),
-                    DuckDbValueReader.ReadByte(reader, 3, 0),
-                    DuckDbValueReader.ReadByte(reader, 4, 0),
-                    DuckDbValueReader.ReadString(reader, 5),
-                    DuckDbValueReader.ReadString(reader, 6),
+                    first.Kind,
+                    first.Temporality,
+                    first.IsMonotonic,
+                    first.Unit,
+                    DuckDbValueReader.ReadString(reader, 2),
                     DuckDbValueReader.ReadInt64(reader, 0, 0),
-                    DuckDbValueReader.ReadUInt64(reader, 7, 0)));
+                    DuckDbValueReader.ReadUInt64(reader, 3, 0))
+                {
+                    Variants = variants,
+                    InstrumentId = DuckDbValueReader.ReadString(reader, 5) ?? throw new InvalidDataException("Metric catalog has no instrument identity."),
+                    ServiceName = DuckDbValueReader.ReadString(reader, 6),
+                    ResourceJson = DuckDbValueReader.ReadString(reader, 7),
+                    ResourceEntityRefsJson = DuckDbValueReader.ReadString(reader, 8),
+                    ResourceSchemaUrl = DuckDbValueReader.ReadString(reader, 9),
+                    ResourceDroppedAttributesCount = DuckDbValueReader.ReadUInt32(reader, 10),
+                    ScopeName = DuckDbValueReader.ReadString(reader, 11),
+                    ScopeVersion = DuckDbValueReader.ReadString(reader, 12),
+                    ScopeSchemaUrl = DuckDbValueReader.ReadString(reader, 13),
+                    ScopeAttributesJson = DuckDbValueReader.ReadString(reader, 14),
+                    ScopeDroppedAttributesCount = DuckDbValueReader.ReadUInt32(reader, 15)
+                });
             }
 
             return entries;
         }, ct);
+    }
+
+    private static IReadOnlyList<MetricDescriptorVariant> ReadMetricVariants(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateArray()
+            .GroupBy(static item => (
+                Kind: item.GetProperty("kind").GetByte(),
+                Temporality: item.GetProperty("temporality").GetByte(),
+                Monotonic: item.GetProperty("monotonic").GetByte(),
+                Unit: item.GetProperty("unit").GetString()))
+            .OrderBy(static group => group.Key.Kind)
+            .ThenBy(static group => group.Key.Temporality)
+            .ThenBy(static group => group.Key.Monotonic)
+            .ThenBy(static group => group.Key.Unit, StringComparer.Ordinal)
+            .Select(static group => new MetricDescriptorVariant(
+                group.Key.Kind, group.Key.Temporality, group.Key.Monotonic, group.Key.Unit,
+                group.Select(static item => item.GetProperty("service").GetString())
+                    .OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()))
+            .ToArray();
     }
 
     public Task<IReadOnlyList<MetricSeriesRow>> ListMetricSeriesAsync(
@@ -133,6 +274,7 @@ internal sealed partial class DuckDbStore
         IReadOnlyList<MetricAttributeMatcher> matchers,
         int limit = 200,
         MetricSeriesPageCursor? cursor = null,
+        string? seriesId = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -141,6 +283,7 @@ internal sealed partial class DuckDbStore
             var qb = new QueryBuilder();
             qb.Add("project_id = $N", projectId);
             qb.Add("metric_name = $N", metricName);
+            if (seriesId is not null) qb.Add("series_id = $N", seriesId);
             AppendMatchers(ref qb, matchers);
             if (cursor is { } after)
                 qb.Add("(last_seen_unix_nano < $A OR (last_seen_unix_nano = $A AND series_id > $B))",
@@ -173,11 +316,40 @@ internal sealed partial class DuckDbStore
         if (request.EndUnixNano < request.StartUnixNano)
             throw new ArgumentOutOfRangeException(nameof(request), "Metric query end must not precede its start.");
 
-        return ExecuteReadAsync<IReadOnlyList<MetricQuerySeries>>(
-            con => ResolveMetricKind(con, request) >= (byte)MetricKind.Histogram
-                ? QueryHistogram(con, request, ct)
-                : QueryAggregate(con, request),
-            ct);
+        return ExecuteReadAsync<IReadOnlyList<MetricQuerySeries>>(con =>
+        {
+            var kind = ResolveMetricKind(con, request);
+            if (kind == (byte)MetricKind.Summary)
+                throw new MetricProjectionUnavailableException("OTLP summaries are available as original points; this reducer does not support them.");
+            ValidateMetricProjection(con, request);
+            if (kind >= (byte)MetricKind.Histogram) return QueryHistogram(con, request, ct);
+            if (request.Aggregation is MetricAggregation.P50 or MetricAggregation.P90 or MetricAggregation.P95 or MetricAggregation.P99)
+                throw new MetricQueryRequiresHistogramException();
+            return QueryAggregate(con, request);
+        }, ct);
+    }
+
+    private static void ValidateMetricProjection(DuckDBConnection connection, MetricRangeQuery request)
+    {
+        var where = new QueryBuilder();
+        where.Add("p.project_id = $N", request.ProjectId);
+        where.Add("s.metric_name = $N", request.MetricName);
+        if (request.SeriesId is not null) where.Add("p.series_id = $N", request.SeriesId);
+        AppendMatchers(ref where, request.Matchers, "s.");
+        where.Add("p.time_unix_nano >= $N", (decimal)request.StartUnixNano);
+        where.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT max(p.has_conflict), first(p.projection_unavailable_reason) FILTER " +
+            "(WHERE p.projection_unavailable_reason IS NOT NULL) FROM metric_points p JOIN metric_series s " +
+            "ON s.project_id = p.project_id AND s.series_id = p.series_id " + where.WhereClause;
+        where.ApplyTo(command);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read()) return;
+        if (DuckDbValueReader.ReadByte(reader, 0, 0) != 0)
+            throw new MetricQueryConflictException("Different measurements exist at one series timestamp; inspect the original observations before aggregating this window.");
+        if (request.Aggregation is MetricAggregation.P50 or MetricAggregation.P90 or MetricAggregation.P95 or MetricAggregation.P99 &&
+            DuckDbValueReader.ReadString(reader, 1) is { } reason)
+            throw new MetricProjectionUnavailableException(reason);
     }
 
     private static IReadOnlyList<MetricQuerySeries> QueryAggregate(
@@ -187,6 +359,7 @@ internal sealed partial class DuckDbStore
         var qb = new QueryBuilder();
         qb.Add("s.project_id = $N", request.ProjectId);
         qb.Add("s.metric_name = $N", request.MetricName);
+        if (request.SeriesId is not null) qb.Add("s.series_id = $N", request.SeriesId);
         AppendMatchers(ref qb, request.Matchers, "s.");
         qb.Add("p.time_unix_nano >= $N", (decimal)request.StartUnixNano);
         qb.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
@@ -242,6 +415,7 @@ internal sealed partial class DuckDbStore
         var qb = new QueryBuilder();
         qb.Add("s.project_id = $N", request.ProjectId);
         qb.Add("s.metric_name = $N", request.MetricName);
+        if (request.SeriesId is not null) qb.Add("s.series_id = $N", request.SeriesId);
         AppendMatchers(ref qb, request.Matchers, "s.");
         qb.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
         // Include the last observation before the range to derive the first interval.
@@ -287,17 +461,19 @@ internal sealed partial class DuckDbStore
 
     private static byte ResolveMetricKind(DuckDBConnection con, MetricRangeQuery request)
     {
+        var qb = new QueryBuilder();
+        qb.Add("project_id = $N", request.ProjectId);
+        qb.Add("metric_name = $N", request.MetricName);
+        if (request.SeriesId is not null) qb.Add("series_id = $N", request.SeriesId);
+        AppendMatchers(ref qb, request.Matchers);
         using var cmd = con.CreateCommand();
-        cmd.CommandText = """
-                          SELECT max(metric_kind) FROM metric_series
-                          WHERE project_id = $1 AND metric_name = $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = request.ProjectId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = request.MetricName });
-        var value = cmd.ExecuteScalar();
-        return value is null or DBNull
-            ? (byte)MetricKind.Gauge
-            : Convert.ToByte(value, CultureInfo.InvariantCulture);
+        cmd.CommandText = "SELECT DISTINCT metric_kind, unit, temporality, is_monotonic FROM metric_series " + qb.WhereClause;
+        qb.ApplyTo(cmd);
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return (byte)MetricKind.Gauge;
+        var kind = DuckDbValueReader.ReadByte(reader, 0, 0);
+        if (reader.Read()) throw new MetricQueryConflictException();
+        return kind;
     }
 
     /// <summary>
@@ -372,10 +548,7 @@ internal sealed partial class DuckDbStore
         foreach (var matcher in matchers)
         {
             var extract = $"json_extract_string({alias}attributes_json, '{JsonPathLiteral(matcher.Key)}')";
-            if (matcher.IsPrefix)
-                qb.Add($"starts_with({extract}, $N)", matcher.Value);
-            else
-                qb.Add($"{extract} = $N", matcher.Value);
+            qb.Add(matcher.IsPrefix ? $"starts_with({extract}, $N)" : $"{extract} = $N", matcher.Value);
         }
     }
 
@@ -400,26 +573,33 @@ internal sealed partial class DuckDbStore
             await using var transaction = await con.BeginTransactionAsync(token).ConfigureAwait(false);
 
             var deletedPoints = 0;
+            var affected = new HashSet<MetricObservationKey>();
             await using (var command = con.CreateCommand())
             {
                 command.Transaction = transaction;
                 command.CommandText = """
-                                      DELETE FROM metric_points
-                                      WHERE (project_id, series_id, time_unix_nano) IN (
-                                          SELECT project_id, series_id, time_unix_nano
-                                          FROM metric_points
+                                      DELETE FROM metric_observations
+                                      WHERE (project_id, series_id, observation_id) IN (
+                                          SELECT project_id, series_id, observation_id
+                                          FROM metric_observations
                                           WHERE time_unix_nano < $1
-                                          ORDER BY time_unix_nano, project_id, series_id
+                                          ORDER BY time_unix_nano, project_id, series_id, observation_id
                                           LIMIT $2
                                       )
-                                      RETURNING series_id
+                                      RETURNING project_id, series_id, time_unix_nano
                                       """;
                 command.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffUnixNano });
                 command.Parameters.Add(new DuckDBParameter { Value = batchSize });
                 await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
                 while (await reader.ReadAsync(token).ConfigureAwait(false))
+                {
                     deletedPoints++;
+                    affected.Add(new MetricObservationKey(reader.GetString(0), reader.GetString(1),
+                        DuckDbValueReader.ReadUInt64(reader, 2, 0)));
+                }
             }
+
+            foreach (var key in affected) RefreshMetricProjection(con, transaction, key);
 
             await using (var command = con.CreateCommand())
             {
@@ -437,7 +617,7 @@ internal sealed partial class DuckDbStore
                 command.CommandText = """
                                       DELETE FROM metric_series
                                       WHERE NOT EXISTS (
-                                          SELECT 1 FROM metric_points AS p
+                                          SELECT 1 FROM metric_observations AS p
                                           WHERE p.project_id = metric_series.project_id
                                             AND p.series_id = metric_series.series_id
                                       )

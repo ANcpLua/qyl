@@ -1,0 +1,1 @@
+project_id,annotation_id,target_kind,trace_id,span_id,session_id,text,created_at_unix_nano,updated_at_unix_nano,etag

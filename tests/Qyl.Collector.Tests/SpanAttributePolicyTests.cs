@@ -12,22 +12,23 @@ using Qyl.Telemetry.SemanticConventions.Incubating.Metrics;
 
 namespace Qyl.Collector.Tests;
 
+[TestClass]
 public sealed class SpanAttributePolicyTests
 {
-    [Theory]
-    [InlineData("graphql.operation.name")]
-    [InlineData("graphql.operation.type")]
+    [TestMethod]
+    [DataRow("graphql.operation.name")]
+    [DataRow("graphql.operation.type")]
     public void GraphQlOperationAttributes_AreCaptured(string key)
     {
-        Assert.True(AttributeKeySets.IsSafeSpanAttribute(key));
-        Assert.True(AttributeKeySets.ShouldCaptureSpanAttribute(key));
+        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute(key));
+        Assert.IsTrue(AttributeKeySets.ShouldCaptureSpanAttribute(key));
     }
 
-    [Fact]
+    [TestMethod]
     public void GraphQlDocument_IsDeniedAsPayload()
     {
-        Assert.False(AttributeKeySets.IsSafeSpanAttribute("graphql.document"));
-        Assert.False(AttributeKeySets.ShouldCaptureSpanAttribute("graphql.document"));
+        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute("graphql.document"));
+        Assert.IsFalse(AttributeKeySets.ShouldCaptureSpanAttribute("graphql.document"));
     }
 
     /// <summary>
@@ -37,7 +38,7 @@ public sealed class SpanAttributePolicyTests
     /// The vendor keys are the regression: the substring rule ran ahead of the vendor check and
     /// dropped twelve of the pinned vendor keys because they contain "message" or "result".
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void Vendor_pass_through_survives_the_token_denial_while_privacy_denials_still_win()
     {
         var droppedNamespaces = new ConcurrentBag<string>();
@@ -64,14 +65,14 @@ public sealed class SpanAttributePolicyTests
 
         var span = new Span
         {
-            TraceId = ByteString.CopyFrom(new byte[16]),
-            SpanId = ByteString.CopyFrom(new byte[8]),
+            TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
+            SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
             Name = "ingest-policy",
             StartTimeUnixNano = 1,
             EndTimeUnixNano = 2
         };
-        span.Attributes.Add(new[]
-        {
+        span.Attributes.Add([
+
             StringAttribute("http.method", "GET"),
             StringAttribute("messaging.masstransit.message_id", "mt-1"),
             StringAttribute("nservicebus.message_id", "nsb-1"),
@@ -79,7 +80,7 @@ public sealed class SpanAttributePolicyTests
             BoolAttribute("exception.escaped", true),
             StringAttribute("exception.message", "boom"),
             StringAttribute("user.id", "u-1")
-        });
+        ]);
 
         var request = new ExportTraceServiceRequest
         {
@@ -93,16 +94,16 @@ public sealed class SpanAttributePolicyTests
             }
         };
 
-        var attributes = Assert.Single(OtlpConverter.ConvertTraceRequest(request).Spans).Attributes;
+        var attributes = Assert.ContainsSingle(OtlpConverter.ConvertTraceRequest(request).Spans).Attributes;
 
-        Assert.Equal("GET", attributes[CollectorSemanticAttributeCatalog.HttpRequestMethod].AsString());
+        Assert.AreEqual("GET", attributes[CollectorSemanticAttributeCatalog.HttpRequestMethod].AsString());
         Assert.DoesNotContain("http.method", attributes.Keys);
-        Assert.Equal("mt-1", attributes["messaging.masstransit.message_id"].AsString());
-        Assert.Equal("nsb-1", attributes["nservicebus.message_id"].AsString());
+        Assert.AreEqual("mt-1", attributes["messaging.masstransit.message_id"].AsString());
+        Assert.AreEqual("nsb-1", attributes["nservicebus.message_id"].AsString());
         Assert.Contains("exception.escaped", attributes.Keys);
 
         Assert.DoesNotContain("foo.bar", attributes.Keys);
-        Assert.Equal("other", AttributeMapping.NamespaceOf("foo.bar"));
+        Assert.AreEqual("other", AttributeMapping.NamespaceOf("foo.bar"));
         Assert.Contains("other", droppedNamespaces);
 
         Assert.DoesNotContain("exception.message", attributes.Keys);
@@ -113,10 +114,10 @@ public sealed class SpanAttributePolicyTests
         // vendor list would have claimed it.
         Assert.Contains("messaging.masstransit.message_id", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.VendorKeys);
         Assert.Contains("nservicebus.message_id", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.VendorKeys);
-        Assert.True(AttributeKeySets.IsSafeSpanAttribute("messaging.masstransit.message_id"));
-        Assert.True(AttributeKeySets.IsSafeSpanAttribute("nservicebus.message_id"));
-        Assert.False(AttributeKeySets.IsSafeSpanAttribute("exception.message"));
-        Assert.False(AttributeKeySets.IsSafeSpanAttribute("user.id"));
+        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute("messaging.masstransit.message_id"));
+        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute("nservicebus.message_id"));
+        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute("exception.message"));
+        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute("user.id"));
     }
 
     private static KeyValue StringAttribute(string key, string value) =>

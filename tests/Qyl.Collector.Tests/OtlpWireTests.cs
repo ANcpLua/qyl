@@ -21,7 +21,7 @@ using Qyl.Collector.Grpc;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Mapping;
-using Qyl.Collector.Primitives;
+using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
@@ -34,21 +34,22 @@ using GrpcStatus = Grpc.Core.Status;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class OtlpWireTests
+[TestClass]
+public sealed class OtlpWireTests(TestContext testContext)
 {
-    [Theory]
-    [InlineData("application/json", "Json")]
-    [InlineData("APPLICATION/JSON; charset=utf-8", "Json")]
-    [InlineData("application/x-protobuf", "Protobuf")]
-    [InlineData("Application/X-Protobuf; version=1", "Protobuf")]
+    [TestMethod]
+    [DataRow("application/json", "Json")]
+    [DataRow("APPLICATION/JSON; charset=utf-8", "Json")]
+    [DataRow("application/x-protobuf", "Protobuf")]
+    [DataRow("Application/X-Protobuf; version=1", "Protobuf")]
     public void Otlp_content_type_accepts_only_the_declared_media_types_with_optional_parameters(
         string contentType,
         string expected)
     {
-        Assert.Equal(expected, OtlpPayloadParser.GetEncoding(contentType).ToString());
+        Assert.AreEqual(expected, OtlpPayloadParser.GetEncoding(contentType).ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void Collector_service_graph_registers_the_grpc_api_key_interceptor()
     {
         var services = new ServiceCollection();
@@ -56,10 +57,10 @@ public sealed class OtlpWireTests
         using var provider = services.BuildServiceProvider();
 
         var options = provider.GetRequiredService<IOptions<GrpcServiceOptions>>().Value;
-        Assert.Contains(options.Interceptors, registration => registration.Type == typeof(OtlpApiKeyInterceptor));
+        Assert.Contains(registration => registration.Type == typeof(OtlpApiKeyInterceptor),options.Interceptors);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Grpc_interceptor_resolves_project_from_key_and_rejects_unknown_credentials()
     {
         var options = new OtlpApiKeyOptions
@@ -68,22 +69,22 @@ public sealed class OtlpWireTests
             Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
-        var context = new TestServerCallContext(TestContext.Current.CancellationToken);
+        var context = new TestServerCallContext(testContext.CancellationToken);
         context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
 
         var project = await interceptor.UnaryServerHandler(
             "request", context,
             (_, call) => Task.FromResult(AuthenticatedProject.ForGrpcIngest(call, options)!));
-        Assert.Equal("alpha", project);
+        Assert.AreEqual("alpha", project);
 
-        var rejected = new TestServerCallContext(TestContext.Current.CancellationToken);
+        var rejected = new TestServerCallContext(testContext.CancellationToken);
         rejected.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "unknown");
-        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+        var error = await Assert.ThrowsExactlyAsync<RpcException>(() => interceptor.UnaryServerHandler(
             "request", rejected, (_, _) => Task.FromResult("should not run")));
-        Assert.Equal(StatusCode.Unauthenticated, error.StatusCode);
+        Assert.AreEqual(StatusCode.Unauthenticated, error.StatusCode);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Grpc_interceptor_refuses_a_key_without_the_ingest_role()
     {
         var options = new OtlpApiKeyOptions
@@ -92,15 +93,15 @@ public sealed class OtlpWireTests
             Keys = [new ProjectApiKey("alpha", "reader", ApiKeyRoles.Read | ApiKeyRoles.Write)]
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
-        var context = new TestServerCallContext(TestContext.Current.CancellationToken);
+        var context = new TestServerCallContext(testContext.CancellationToken);
         context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "reader");
 
-        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+        var error = await Assert.ThrowsExactlyAsync<RpcException>(() => interceptor.UnaryServerHandler(
             "request", context, (_, _) => Task.FromResult("should not run")));
-        Assert.Equal(StatusCode.PermissionDenied, error.StatusCode);
+        Assert.AreEqual(StatusCode.PermissionDenied, error.StatusCode);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Grpc_interceptor_rejects_project_metadata_that_conflicts_with_the_key()
     {
         var options = new OtlpApiKeyOptions
@@ -110,29 +111,29 @@ public sealed class OtlpWireTests
         };
         var interceptor = new OtlpApiKeyInterceptor(options);
 
-        var conflicting = new TestServerCallContext(TestContext.Current.CancellationToken);
+        var conflicting = new TestServerCallContext(testContext.CancellationToken);
         conflicting.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
         conflicting.RequestHeaders.Add("X-Qyl-Project", "beta");
         var continued = false;
-        var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(
+        var error = await Assert.ThrowsExactlyAsync<RpcException>(() => interceptor.UnaryServerHandler(
             "request", conflicting, (_, _) =>
             {
                 continued = true;
                 return Task.FromResult("should not run");
             }));
-        Assert.Equal(StatusCode.InvalidArgument, error.StatusCode);
-        Assert.False(continued);
+        Assert.AreEqual(StatusCode.InvalidArgument, error.StatusCode);
+        Assert.IsFalse(continued);
 
-        var matching = new TestServerCallContext(TestContext.Current.CancellationToken);
+        var matching = new TestServerCallContext(testContext.CancellationToken);
         matching.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
         matching.RequestHeaders.Add(ProjectIdentity.HeaderName, " alpha ");
         var project = await interceptor.UnaryServerHandler(
             "request", matching,
             (_, call) => Task.FromResult(AuthenticatedProject.ForGrpcIngest(call, options)!));
-        Assert.Equal("alpha", project);
+        Assert.AreEqual("alpha", project);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Grpc_export_rejects_a_resource_project_outside_the_credentials_scope()
     {
         var options = new OtlpApiKeyOptions
@@ -165,8 +166,8 @@ public sealed class OtlpWireTests
                             {
                                 new Span
                                 {
-                                    TraceId = ByteString.CopyFrom(new byte[16]),
-                                    SpanId = ByteString.CopyFrom(new byte[8]),
+                                    TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
+                                    SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
                                     Name = "cross-project",
                                     StartTimeUnixNano = 1,
                                     EndTimeUnixNano = 2
@@ -177,22 +178,22 @@ public sealed class OtlpWireTests
                 }
             }
         };
-        var context = new TestServerCallContext(TestContext.Current.CancellationToken);
+        var context = new TestServerCallContext(testContext.CancellationToken);
         context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
         await using var store = new DuckDbStore(":memory:");
 
-        var error = await Assert.ThrowsAsync<RpcException>(() =>
+        var error = await Assert.ThrowsExactlyAsync<RpcException>(() =>
             new OtlpApiKeyInterceptor(options).UnaryServerHandler(
                 request, context, (message, call) => new TraceServiceImpl(store, options).Export(message, call)));
-        Assert.Equal(StatusCode.InvalidArgument, error.StatusCode);
-        Assert.Empty(await store.GetSpansAsync("alpha", ct: TestContext.Current.CancellationToken));
-        Assert.Empty(await store.GetSpansAsync("beta", ct: TestContext.Current.CancellationToken));
+        Assert.AreEqual(StatusCode.InvalidArgument, error.StatusCode);
+        Assert.IsEmpty(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+        Assert.IsEmpty(await store.GetSpansAsync("beta", ct: testContext.CancellationToken));
     }
 
-    [Theory]
-    [InlineData("application/jsonp")]
-    [InlineData("application/json-patch+json")]
-    [InlineData("application/x-protobufevil")]
+    [TestMethod]
+    [DataRow("application/jsonp")]
+    [DataRow("application/json-patch+json")]
+    [DataRow("application/x-protobufevil")]
     public async Task Otlp_trace_wire_rejects_media_type_prefixes_with_415(string contentType)
     {
         await using var store = new DuckDbStore(":memory:");
@@ -200,19 +201,19 @@ public sealed class OtlpWireTests
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
             context,
             store,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status415UnsupportedMediaType, context.Response.StatusCode);
-        Assert.Equal(OtlpPayloadParser.JsonContentType, context.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status415UnsupportedMediaType, context.Response.StatusCode);
+        Assert.AreEqual(OtlpPayloadParser.JsonContentType, context.Response.ContentType);
         var status = JsonParser.Default.Parse<RpcStatus>(
             Encoding.UTF8.GetString(ResponseBytes(context)));
-        Assert.Equal(
+        Assert.AreEqual(
             "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.",
             status.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Official_protobuf_trace_decodes_and_converts_without_a_qyl_wire_mirror()
     {
         var traceId = Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray();
@@ -265,25 +266,30 @@ public sealed class OtlpWireTests
         };
 
         var payload = requestMessage.ToByteArray();
-        var context = new DefaultHttpContext();
-        context.Request.ContentType = OtlpPayloadParser.ProtobufContentType;
-        context.Request.ContentLength = payload.Length;
-        context.Request.Body = new MemoryStream(payload);
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                ContentType = OtlpPayloadParser.ProtobufContentType,
+                ContentLength = payload.Length,
+                Body = new MemoryStream(payload)
+            }
+        };
 
         var encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
         var parsed = await OtlpPayloadParser.ParseTraceRequestAsync(
-            context.Request, encoding, TestContext.Current.CancellationToken);
+            context.Request, encoding, testContext.CancellationToken);
         var batch = OtlpConverter.ConvertTraceRequest(parsed);
 
-        var span = Assert.Single(batch.Spans);
-        Assert.Equal(Convert.ToHexString(traceId).ToLowerInvariant(), span.TraceId);
-        Assert.Equal(Convert.ToHexString(spanId).ToLowerInvariant(), span.SpanId);
-        Assert.Equal("wire-test", span.ServiceName);
-        Assert.Equal("programmatic-operation", span.Name);
-        Assert.Equal(5100L, span.Attributes["server.port"].AsInt64());
+        var span = Assert.ContainsSingle(batch.Spans);
+        Assert.AreEqual(Convert.ToHexString(traceId).ToLowerInvariant(), span.TraceId);
+        Assert.AreEqual(Convert.ToHexString(spanId).ToLowerInvariant(), span.SpanId);
+        Assert.AreEqual("wire-test", span.ServiceName);
+        Assert.AreEqual("programmatic-operation", span.Name);
+        Assert.AreEqual(5100L, span.Attributes["server.port"].AsInt64());
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Official_protobuf_trace_decodes_from_gzip_with_the_same_bounded_parser()
     {
         var requestMessage = new ExportTraceServiceRequest
@@ -293,25 +299,33 @@ public sealed class OtlpWireTests
         var protobuf = requestMessage.ToByteArray();
         await using var compressed = new MemoryStream();
         await using (var gzip = new GZipStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
-            await gzip.WriteAsync(protobuf, TestContext.Current.CancellationToken);
+            await gzip.WriteAsync(protobuf, testContext.CancellationToken);
         compressed.Position = 0;
 
-        var context = new DefaultHttpContext();
-        context.Request.ContentType = OtlpPayloadParser.ProtobufContentType;
-        context.Request.Headers.ContentEncoding = "gzip";
-        context.Request.ContentLength = compressed.Length;
-        context.Request.Body = compressed;
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                ContentType = OtlpPayloadParser.ProtobufContentType,
+                Headers =
+                {
+                    ContentEncoding = "gzip"
+                },
+                ContentLength = compressed.Length,
+                Body = compressed
+            }
+        };
 
         var parsed = await OtlpPayloadParser.ParseTraceRequestAsync(
             context.Request,
             OtlpPayloadParser.GetEncoding(context.Request.ContentType),
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
 
-        Assert.Single(parsed.ResourceSpans);
-        Assert.Equal(0, compressed.Position);
+        Assert.ContainsSingle(parsed.ResourceSpans);
+        Assert.AreEqual(0, compressed.Position);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_json_ignores_forward_compatible_unknown_fields()
     {
         var requestMessage = new ExportTraceServiceRequest
@@ -331,20 +345,25 @@ public sealed class OtlpWireTests
         };
         var payload = Encoding.UTF8.GetBytes(json.ToJsonString());
 
-        var context = new DefaultHttpContext();
-        context.Request.ContentType = OtlpPayloadParser.JsonContentType;
-        context.Request.ContentLength = payload.Length;
-        context.Request.Body = new MemoryStream(payload);
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                ContentType = OtlpPayloadParser.JsonContentType,
+                ContentLength = payload.Length,
+                Body = new MemoryStream(payload)
+            }
+        };
 
         var parsed = await OtlpPayloadParser.ParseTraceRequestAsync(
             context.Request,
             OtlpPayloadEncoding.Json,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
 
-        Assert.Single(parsed.ResourceSpans);
+        Assert.ContainsSingle(parsed.ResourceSpans);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_json_normalizes_and_validates_ids_at_known_trace_paths()
     {
         var traceId = SequentialBytes(0, 16);
@@ -396,24 +415,24 @@ public sealed class OtlpWireTests
         var parsed = await OtlpPayloadParser.ParseTraceRequestAsync(
             NewJsonRequest(json),
             OtlpPayloadEncoding.Json,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
 
-        var span = Assert.Single(Assert.Single(Assert.Single(parsed.ResourceSpans).ScopeSpans).Spans);
-        Assert.Equal(traceId, span.TraceId.ToByteArray());
-        Assert.Equal(spanId, span.SpanId.ToByteArray());
-        Assert.Equal(parentSpanId, span.ParentSpanId.ToByteArray());
-        var link = Assert.Single(span.Links);
-        Assert.Equal(linkedTraceId, link.TraceId.ToByteArray());
-        Assert.Equal(linkedSpanId, link.SpanId.ToByteArray());
+        var span = Assert.ContainsSingle(Assert.ContainsSingle(Assert.ContainsSingle(parsed.ResourceSpans).ScopeSpans).Spans);
+        Assert.AreSequenceEqual(traceId, span.TraceId.ToByteArray());
+        Assert.AreSequenceEqual(spanId, span.SpanId.ToByteArray());
+        Assert.AreSequenceEqual(parentSpanId, span.ParentSpanId.ToByteArray());
+        var link = Assert.ContainsSingle(span.Links);
+        Assert.AreSequenceEqual(linkedTraceId, link.TraceId.ToByteArray());
+        Assert.AreSequenceEqual(linkedSpanId, link.SpanId.ToByteArray());
 
         spanJson["traceId"] = "not-hex";
-        await Assert.ThrowsAsync<InvalidDataException>(() => OtlpPayloadParser.ParseTraceRequestAsync(
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => OtlpPayloadParser.ParseTraceRequestAsync(
             NewJsonRequest(json),
             OtlpPayloadEncoding.Json,
-            TestContext.Current.CancellationToken));
+            testContext.CancellationToken));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_json_normalizes_known_log_ids()
     {
         var logTraceId = SequentialBytes(64, 16);
@@ -449,18 +468,18 @@ public sealed class OtlpWireTests
         var logs = await OtlpPayloadParser.ParseLogsRequestAsync(
             NewJsonRequest(logJson),
             OtlpPayloadEncoding.Json,
-            TestContext.Current.CancellationToken);
-        var log = Assert.Single(Assert.Single(Assert.Single(logs.ResourceLogs).ScopeLogs).LogRecords);
-        Assert.Equal(logTraceId, log.TraceId.ToByteArray());
-        Assert.Equal(logSpanId, log.SpanId.ToByteArray());
+            testContext.CancellationToken);
+        var log = Assert.ContainsSingle(Assert.ContainsSingle(Assert.ContainsSingle(logs.ResourceLogs).ScopeLogs).LogRecords);
+        Assert.AreSequenceEqual(logTraceId, log.TraceId.ToByteArray());
+        Assert.AreSequenceEqual(logSpanId, log.SpanId.ToByteArray());
     }
 
-    [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task Metrics_are_stored_and_summaries_reported_as_partial_success_in_both_transports(
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public async Task Metrics_are_stored_and_untimed_points_reported_as_partial_success_in_both_transports(
         bool json,
         bool gzip)
     {
@@ -585,42 +604,42 @@ public sealed class OtlpWireTests
         var result = await CollectorEndpointExtensions.IngestOtlpMetricsAsync(
             context,
             store,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         await result.ExecuteAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-        Assert.Equal(
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.AreEqual(
             json ? OtlpPayloadParser.JsonContentType : OtlpPayloadParser.ProtobufContentType,
             context.Response.ContentType);
         var response = json
             ? JsonParser.Default.Parse<ExportMetricsServiceResponse>(
                 Encoding.UTF8.GetString(ResponseBytes(context)))
             : ExportMetricsServiceResponse.Parser.ParseFrom(ResponseBytes(context));
-        AssertSummaryRejected(response);
+        AssertUntimedPointsRejected(response);
 
-        // Every non-summary shape in the request reached storage through the HTTP path.
+        // Every timed shape in the request reached storage through the HTTP path.
         var catalog = await store.ListMetricsAsync(
             ProjectScope.DefaultProjectId,
-            ct: TestContext.Current.CancellationToken);
-        Assert.Equal(
+            ct: testContext.CancellationToken);
+        Assert.AreSequenceEqual(
             ["wire.exponential-histogram", "wire.gauge", "wire.histogram", "wire.sum"],
             catalog.Select(static entry => entry.MetricName));
-        Assert.DoesNotContain(catalog, static entry => entry.MetricName is "wire.summary");
+        Assert.DoesNotContain(static entry => entry.MetricName is "wire.summary",catalog);
 
         await using var grpcStore = new DuckDbStore(":memory:");
         var grpcResponse = await new MetricsServiceImpl(grpcStore).Export(
             request,
-            new TestServerCallContext(TestContext.Current.CancellationToken));
-        AssertSummaryRejected(grpcResponse);
-        Assert.Equal(
+            new TestServerCallContext(testContext.CancellationToken));
+        AssertUntimedPointsRejected(grpcResponse);
+        Assert.AreSequenceEqual(
             catalog.Select(static entry => entry.MetricName),
             (await grpcStore.ListMetricsAsync(
                 ProjectScope.DefaultProjectId,
-                ct: TestContext.Current.CancellationToken))
+                ct: testContext.CancellationToken))
             .Select(static entry => entry.MetricName));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Otlp_http_results_emit_official_success_and_error_envelopes()
     {
         var successContext = NewResponseContext();
@@ -629,11 +648,11 @@ public sealed class OtlpWireTests
                 new ExportTraceServiceResponse())
             .ExecuteAsync(successContext);
 
-        Assert.Equal(StatusCodes.Status200OK, successContext.Response.StatusCode);
-        Assert.Equal(OtlpPayloadParser.ProtobufContentType, successContext.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status200OK, successContext.Response.StatusCode);
+        Assert.AreEqual(OtlpPayloadParser.ProtobufContentType, successContext.Response.ContentType);
         var successPayload = ResponseBytes(successContext);
         var success = ExportTraceServiceResponse.Parser.ParseFrom(successPayload);
-        Assert.NotNull(success);
+        Assert.IsNotNull(success);
 
         var failureContext = NewResponseContext();
         await OtlpHttpResult.Failure(
@@ -642,13 +661,13 @@ public sealed class OtlpWireTests
                 "The OTLP traces payload could not be decoded.")
             .ExecuteAsync(failureContext);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, failureContext.Response.StatusCode);
-        Assert.Equal(OtlpPayloadParser.ProtobufContentType, failureContext.Response.ContentType);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, failureContext.Response.StatusCode);
+        Assert.AreEqual(OtlpPayloadParser.ProtobufContentType, failureContext.Response.ContentType);
         var failure = RpcStatus.Parser.ParseFrom(ResponseBytes(failureContext));
-        Assert.Equal("The OTLP traces payload could not be decoded.", failure.Message);
+        Assert.AreEqual("The OTLP traces payload could not be decoded.", failure.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void Public_attribute_projection_preserves_recursive_otlp_values_on_the_generated_json_boundary()
     {
         const string Persisted = """
@@ -661,22 +680,22 @@ public sealed class OtlpWireTests
                                    "mixed":[{"type":"int","value":"1"},"two",false,{"type":"kvlist","values":{"deep":[null,{"type":"double","value":3}]}}]
                                  }
                                  """;
-        var attributes = Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
+        var attributes = Assert.IsInstanceOfType<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
             ContractJson.ParseAttributes(Persisted));
 
         var node = JsonNode.Parse(JsonSerializer.Serialize(
             attributes.ToArray(),
             QylSerializerContext.Default.AttributeArray))!;
-        Assert.Equal("bytes", node[0]!["value"]!["type"]!.GetValue<string>());
-        Assert.Equal("/wA=", node[0]!["value"]!["base64"]!.GetValue<string>());
-        Assert.True(node[1]!.AsObject().ContainsKey("value"));
-        Assert.Null(node[1]!["value"]);
-        Assert.Equal("9223372036854775807", node[2]!["value"]!["value"]!.GetValue<string>());
-        Assert.Equal("Infinity", node[3]!["value"]!["value"]!.GetValue<string>());
-        Assert.Equal("42", node[4]!["value"]!["values"]!["answer"]!["value"]!.GetValue<string>());
-        Assert.True(node[4]!["value"]!["values"]!["nested"]![0]!.GetValue<bool>());
-        Assert.Equal("two", node[5]!["value"]![1]!.GetValue<string>());
-        Assert.Equal(3, node[5]!["value"]![3]!["values"]!["deep"]![1]!["value"]!.GetValue<int>());
+        Assert.AreEqual("bytes", node[0]!["value"]!["type"]!.GetValue<string>());
+        Assert.AreEqual("/wA=", node[0]!["value"]!["base64"]!.GetValue<string>());
+        Assert.IsTrue(node[1]!.AsObject().ContainsKey("value"));
+        Assert.IsNull(node[1]!["value"]);
+        Assert.AreEqual("9223372036854775807", node[2]!["value"]!["value"]!.GetValue<string>());
+        Assert.AreEqual("Infinity", node[3]!["value"]!["value"]!.GetValue<string>());
+        Assert.AreEqual("42", node[4]!["value"]!["values"]!["answer"]!["value"]!.GetValue<string>());
+        Assert.IsTrue(node[4]!["value"]!["values"]!["nested"]![0]!.GetValue<bool>());
+        Assert.AreEqual("two", node[5]!["value"]![1]!.GetValue<string>());
+        Assert.AreEqual(3, node[5]!["value"]![3]!["values"]!["deep"]![1]!["value"]!.GetValue<int>());
     }
 
     /// <summary>
@@ -708,18 +727,21 @@ public sealed class OtlpWireTests
 
     private static DefaultHttpContext NewResponseContext()
     {
-        var context = new DefaultHttpContext();
-        context.Response.Body = new MemoryStream();
-        return context;
+        return new DefaultHttpContext
+        {
+            Response =
+            {
+                Body = new MemoryStream()
+            }
+        };
     }
 
-    // Only the three summary points are rejected; the gauge, sum and both histogram shapes
-    // are stored, so partial success reports 3 rather than the whole request.
-    private static void AssertSummaryRejected(ExportMetricsServiceResponse response)
+    // The three untimed points cannot be placed on a metric timeline. Other points remain stored.
+    private static void AssertUntimedPointsRejected(ExportMetricsServiceResponse response)
     {
-        Assert.NotNull(response.PartialSuccess);
-        Assert.Equal(3, response.PartialSuccess.RejectedDataPoints);
-        Assert.Contains("summary", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        Assert.IsNotNull(response.PartialSuccess);
+        Assert.AreEqual(3, response.PartialSuccess.RejectedDataPoints);
+        Assert.Contains("time_unix_nano", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
         Assert.Contains("wire.summary", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
     }
 
@@ -744,10 +766,15 @@ public sealed class OtlpWireTests
     private static HttpRequest NewJsonRequest(JsonObject json)
     {
         var payload = Encoding.UTF8.GetBytes(json.ToJsonString());
-        var context = new DefaultHttpContext();
-        context.Request.ContentType = OtlpPayloadParser.JsonContentType;
-        context.Request.ContentLength = payload.Length;
-        context.Request.Body = new MemoryStream(payload);
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                ContentType = OtlpPayloadParser.JsonContentType,
+                ContentLength = payload.Length,
+                Body = new MemoryStream(payload)
+            }
+        };
         return context.Request;
     }
 
@@ -759,7 +786,7 @@ public sealed class OtlpWireTests
 
     private static byte[] ResponseBytes(DefaultHttpContext context)
     {
-        var stream = Assert.IsType<MemoryStream>(context.Response.Body);
+        var stream = Assert.IsExactInstanceOfType<MemoryStream>(context.Response.Body);
         return stream.ToArray();
     }
 }

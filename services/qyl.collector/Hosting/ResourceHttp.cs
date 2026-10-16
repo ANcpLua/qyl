@@ -10,8 +10,8 @@ namespace Qyl.Collector.Hosting;
 /// </summary>
 internal static class ResourceHttp
 {
-    internal const string IdempotencyKeyHeader = "Idempotency-Key";
-    internal const int MaxIdempotencyKeyLength = 255;
+    private const string IdempotencyKeyHeader = "Idempotency-Key";
+    private const int MaxIdempotencyKeyLength = 255;
 
     /// <summary>A key older than this reads as absent and may be reused.</summary>
     internal static readonly TimeSpan s_idempotencyKeyLifetime = TimeSpan.FromHours(24);

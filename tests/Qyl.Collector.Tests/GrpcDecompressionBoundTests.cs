@@ -13,6 +13,7 @@ namespace Qyl.Collector.Tests;
 // grpc-dotnet decompresses a request message into an unbounded buffer before any interceptor runs,
 // so the API-key interceptor cannot stop a small compressed payload that expands without limit.
 // These tests pin the collector's bound: every decompression provider stops at the receive limit.
+[TestClass]
 public sealed class GrpcDecompressionBoundTests
 {
     private static GrpcServiceOptions CollectorGrpcOptions()
@@ -23,18 +24,18 @@ public sealed class GrpcDecompressionBoundTests
         return provider.GetRequiredService<IOptions<GrpcServiceOptions>>().Value;
     }
 
-    [Theory]
-    [InlineData("gzip")]
-    [InlineData("deflate")]
+    [TestMethod]
+    [DataRow("gzip")]
+    [DataRow("deflate")]
     public void The_collector_registers_a_bounded_decompression_provider_for(string encoding)
     {
-        var registered = Assert.Single(CollectorGrpcOptions().CompressionProviders, p => p.EncodingName == encoding);
-        Assert.IsType<BoundedDecompressionProvider>(registered);
+        var registered = Assert.ContainsSingle(p => p.EncodingName == encoding,CollectorGrpcOptions().CompressionProviders);
+        Assert.IsExactInstanceOfType<BoundedDecompressionProvider>(registered);
     }
 
-    [Theory]
-    [InlineData("gzip")]
-    [InlineData("deflate")]
+    [TestMethod]
+    [DataRow("gzip")]
+    [DataRow("deflate")]
     public void A_compression_bomb_fails_with_resource_exhausted(string encoding)
     {
         var options = CollectorGrpcOptions();
@@ -43,16 +44,16 @@ public sealed class GrpcDecompressionBoundTests
 
         // Zeros compress about a thousandfold: 16 times the limit arrives as a small message.
         var bomb = Compress(provider, new byte[limit * 16]);
-        Assert.True(bomb.Length < limit / 16, $"the bomb should be small on the wire, was {bomb.Length} bytes");
+        Assert.IsTrue(bomb.Length < limit / 16, $"the bomb should be small on the wire, was {bomb.Length} bytes");
 
         using var stream = provider.CreateDecompressionStream(new MemoryStream(bomb));
-        var ex = Assert.Throws<RpcException>(() => stream.CopyTo(Stream.Null));
-        Assert.Equal(StatusCode.ResourceExhausted, ex.StatusCode);
+        var ex = Assert.ThrowsExactly<RpcException>(() => stream.CopyTo(Stream.Null));
+        Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
     }
 
-    [Theory]
-    [InlineData("gzip")]
-    [InlineData("deflate")]
+    [TestMethod]
+    [DataRow("gzip")]
+    [DataRow("deflate")]
     public void A_message_at_the_limit_decompresses_unchanged(string encoding)
     {
         var options = CollectorGrpcOptions();
@@ -65,7 +66,7 @@ public sealed class GrpcDecompressionBoundTests
         using var stream = provider.CreateDecompressionStream(new MemoryStream(Compress(provider, payload)));
         using var output = new MemoryStream();
         stream.CopyTo(output);
-        Assert.Equal(payload, output.ToArray());
+        Assert.AreSequenceEqual(payload, output.ToArray());
     }
 
     private static byte[] Compress(ICompressionProvider provider, byte[] payload)

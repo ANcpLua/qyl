@@ -159,7 +159,7 @@ internal sealed partial class AnalysisEngine
     {
         var rows = Select(input); var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).ToList();
         var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();
-        var lag = snapshot.Logs.Where(l => l.ObservedTimeUnixNano is not null).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
+        var lag = snapshot.Logs.Where(l => l.TimeUnixNano is > 0 && l.ObservedTimeUnixNano is > 0).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano!.Value, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
         return J.O(("silent_services", Silent(input)), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count is 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
             ("semconv_gaps", SemanticGaps(rows)), ("unknown_service_share", rows.Count is 0 ? 0 : rows.Count(s => s.Service.StartsWith("unknown", StringComparison.Ordinal)) / (double)rows.Count),
             ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("retention", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),

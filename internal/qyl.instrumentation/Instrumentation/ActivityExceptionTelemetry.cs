@@ -41,7 +41,7 @@ public static class ActivityExceptionTelemetry
             { ExceptionType, exception.GetType().FullName }
         };
 
-    public static string ResolveErrorType(Exception exception, string? errorType = null) =>
+    private static string ResolveErrorType(Exception exception, string? errorType = null) =>
         !string.IsNullOrWhiteSpace(errorType)
             ? errorType
             : exception.GetType().FullName ?? exception.GetType().Name;

@@ -16,7 +16,7 @@ internal static class QylCli
         QylConstants.Collector.DefaultOtlpHttpPort, QylConstants.Ports.RunnerApi
     ];
 
-    internal const string HelpText = """
+    private const string HelpText = """
         qyl - local OpenTelemetry investigation stack
 
         Usage:
@@ -156,7 +156,7 @@ internal static class QylCli
         return app;
     }
 
-    internal static string GetVersion() => BuildVersion.ProductVersion;
+    private static string GetVersion() => BuildVersion.ProductVersion;
 
     private static string QuoteIfNeeded(string value) =>
         value.Contains(' ', StringComparison.Ordinal) ? $"\"{value}\"" : value;

@@ -9,9 +9,10 @@ using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Tests;
 
-public sealed class LogStreamingTests
+[TestClass]
+public sealed class LogStreamingTests(TestContext testContext)
 {
-    [Fact]
+    [TestMethod]
     public async Task Empty_primary_key_drift_is_recreated_from_generated_schema()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"qyl-log-primary-key-{Guid.NewGuid():N}.duckdb");
@@ -19,7 +20,7 @@ public sealed class LogStreamingTests
         {
             await using (var connection = new DuckDBConnection($"Data Source={databasePath}"))
             {
-                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                await connection.OpenAsync(testContext.CancellationToken);
                 await using var command = connection.CreateCommand();
                 command.CommandText = """
                                       CREATE TABLE logs (
@@ -27,7 +28,7 @@ public sealed class LogStreamingTests
                                           log_id VARCHAR NOT NULL PRIMARY KEY
                                       );
                                       """;
-                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+                await command.ExecuteNonQueryAsync(testContext.CancellationToken);
             }
 
             await using (new DuckDbStore(databasePath, maxConcurrentReads: 1))
@@ -35,7 +36,7 @@ public sealed class LogStreamingTests
             }
 
             await using var verify = new DuckDBConnection($"Data Source={databasePath}");
-            await verify.OpenAsync(TestContext.Current.CancellationToken);
+            await verify.OpenAsync(testContext.CancellationToken);
             await using var primaryKey = verify.CreateCommand();
             primaryKey.CommandText = """
                                      SELECT unnest(constraint_column_names)
@@ -45,12 +46,12 @@ public sealed class LogStreamingTests
                                      ORDER BY 1
                                      """;
             await using var reader = await primaryKey.ExecuteReaderAsync(
-                TestContext.Current.CancellationToken);
+                testContext.CancellationToken);
             var actual = new List<string>();
-            while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+            while (await reader.ReadAsync(testContext.CancellationToken))
                 actual.Add(reader.GetString(0));
 
-            Assert.Equal(["log_id", "project_id"], actual);
+            Assert.AreSequenceEqual(["log_id", "project_id"], actual);
         }
         finally
         {
@@ -58,16 +59,16 @@ public sealed class LogStreamingTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Later_ingested_older_event_is_delivered_after_the_live_cursor()
     {
         await using var store = new DuckDbStore(":memory:");
         await store.InsertLogsAsync(
             [CreateLog("newer-event", eventTime: 2_000_000_000)],
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
                 store,
@@ -79,28 +80,28 @@ public sealed class LogStreamingTests
                 timeout.Token)
             .GetAsyncEnumerator(timeout.Token);
 
-        Assert.True(await stream.MoveNextAsync());
+        Assert.IsTrue(await stream.MoveNextAsync());
         var first = stream.Current;
-        Assert.Equal("log", first.EventType);
-        Assert.Equal<ulong>(2_000_000_000, Assert.IsType<Api.Contracts.Streaming.LogStreamEvent>(first.Log).Data.TimeUnixNano);
+        Assert.AreEqual("log", first.EventType);
+        Assert.AreEqual<ulong?>(2_000_000_000, Assert.IsExactInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(first.Log).Data.TimeUnixNano);
 
         await store.InsertLogsAsync(
             [CreateLog("late-older-event", eventTime: 1_000_000_000)],
             timeout.Token);
 
-        Assert.True(await stream.MoveNextAsync());
+        Assert.IsTrue(await stream.MoveNextAsync());
         var late = stream.Current;
-        Assert.Equal("log", late.EventType);
-        Assert.True(late.EventId > first.EventId);
-        Assert.Equal<ulong>(1_000_000_000, Assert.IsType<Api.Contracts.Streaming.LogStreamEvent>(late.Log).Data.TimeUnixNano);
+        Assert.AreEqual("log", late.EventType);
+        Assert.IsTrue(late.EventId > first.EventId);
+        Assert.AreEqual<ulong?>(1_000_000_000, Assert.IsExactInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(late.Log).Data.TimeUnixNano);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Saturated_live_stream_capacity_returns_the_generated_503_without_queueing()
     {
         var capacity = new CollectorStreamCapacity(maximum: 1);
         using var held = capacity.TryAcquire();
-        Assert.NotNull(held);
+        Assert.IsNotNull(held);
         var context = CreateContext();
 
         await CollectorEndpointExtensions.StreamLogsAsync(
@@ -109,19 +110,19 @@ public sealed class LogStreamingTests
             capacity,
             serviceName: null,
             query: null,
-            TestContext.Current.CancellationToken);
+            testContext.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, (HttpStatusCode)context.Response.StatusCode);
-        Assert.Equal(ProblemDetailsMediaType.Value, context.Response.ContentType);
+        Assert.AreEqual(HttpStatusCode.ServiceUnavailable, (HttpStatusCode)context.Response.StatusCode);
+        Assert.AreEqual(ProblemDetailsMediaType.Value, context.Response.ContentType);
         context.Response.Body.Position = 0;
         var error = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
             QylSerializerContext.Default.ServiceUnavailableError,
-            TestContext.Current.CancellationToken);
-        Assert.Equal(
+            testContext.CancellationToken);
+        Assert.AreEqual(
             "collector.log_stream_capacity",
-            Assert.IsType<ServiceUnavailableError>(error).Reason);
-        Assert.Equal(1, capacity.Active);
+            Assert.IsExactInstanceOfType<ServiceUnavailableError>(error).Reason);
+        Assert.AreEqual(1, capacity.Active);
     }
 
     private static LogStorageRow CreateLog(string id, ulong eventTime) =>
