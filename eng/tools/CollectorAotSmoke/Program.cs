@@ -41,8 +41,8 @@ internal static class CollectorSmoke
     private const string GrpcSpanId = "d7ad6b7169203331";
     private const string GrpcLogService = "aot-smoke-grpc-logs";
     private const string GrpcLogEvent = "aot.smoke.grpc.log";
-    // qyl stores every metric shape except OTLP's summary, which it declines by name.
-    private const string DeclinedSummaryMetricName = "aot.smoke.summary";
+    private const string SummaryMetricName = "aot.smoke.summary";
+    private const string InvalidMetricName = "aot.smoke.missing-time";
     private const string ProtobufContentType = "application/x-protobuf";
     private const string JsonContentType = "application/json";
     private const string StockSourceName = "Qyl.CollectorAotSmoke.StockSdk";
@@ -173,6 +173,7 @@ internal static class CollectorSmoke
                 deadline: DateTime.UtcNow.Add(s_requestTimeout))
             .ResponseAsync.ConfigureAwait(false);
         AssertMetricsStored(grpcMetricsResponse);
+        await VerifyOriginalMetricPointsAsync(http, apiBase).ConfigureAwait(false);
 
         var tracesAfterMetrics = await GetPageItemCountAsync(http, new Uri(apiBase, "api/v1/traces"))
             .ConfigureAwait(false);
@@ -180,7 +181,7 @@ internal static class CollectorSmoke
             .ConfigureAwait(false);
         AssertEqual(tracesBeforeMetrics, tracesAfterMetrics, "metrics export changed stored trace count");
         AssertEqual(logsBeforeMetrics, logsAfterMetrics, "metrics export changed stored log count");
-        Console.WriteLine("[driver] HTTP and gRPC metrics ingest and summary rejection verified");
+        Console.WriteLine("[driver] HTTP and gRPC metrics: all five original shapes and invalid-time rejection verified");
     }
 
     private static async Task ExportJsonTraceAsync(
@@ -509,11 +510,43 @@ internal static class CollectorSmoke
                                 },
                                 new OtlpMetric
                                 {
-                                    Name = DeclinedSummaryMetricName,
+                                    Name = "aot.smoke.sum",
+                                    Sum = new Sum
+                                    {
+                                        AggregationTemporality = AggregationTemporality.Cumulative,
+                                        IsMonotonic = true,
+                                        DataPoints = { NumberPoint(timeUnixNano, 9_007_199_254_740_993) }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = "aot.smoke.exponential",
+                                    ExponentialHistogram = new ExponentialHistogram
+                                    {
+                                        AggregationTemporality = AggregationTemporality.Delta,
+                                        DataPoints = { new ExponentialHistogramDataPoint
+                                        {
+                                            TimeUnixNano = timeUnixNano, Count = 3, Sum = 4, Scale = 2, ZeroCount = 1,
+                                            Positive = new ExponentialHistogramDataPoint.Types.Buckets { Offset = -2, BucketCounts = { 2UL } }
+                                        } }
+                                    }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = SummaryMetricName,
                                     Summary = new Summary
                                     {
-                                        DataPoints = { new SummaryDataPoint { TimeUnixNano = timeUnixNano } }
+                                        DataPoints = { new SummaryDataPoint
+                                        {
+                                            TimeUnixNano = timeUnixNano, Count = 7, Sum = 20,
+                                            QuantileValues = { new SummaryDataPoint.Types.ValueAtQuantile { Quantile = 0.95, Value = 6 } }
+                                        } }
                                     }
+                                },
+                                new OtlpMetric
+                                {
+                                    Name = InvalidMetricName,
+                                    Gauge = new Gauge { DataPoints = { NumberPoint(0, 1) } }
                                 }
                             }
                         }
@@ -550,21 +583,71 @@ internal static class CollectorSmoke
                 $"Log export rejected {partial.RejectedLogRecords} records: {partial.ErrorMessage}");
     }
 
-    // Acceptance is the storage evidence: the gauge and histogram travel the whole
-    // converter -> mapper -> DuckDB writer path in the NativeAOT binary, and a failure
-    // anywhere in it answers 503 (or gRPC Unavailable) rather than 200. Only the summary
-    // point is rejected, and the response has to name it so a sender can act on it.
+    // Valid summaries are retained as original observations. Only the zero-time point is malformed:
+    // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/metrics/v1/metrics.proto
     private static void AssertMetricsStored(ExportMetricsServiceResponse response)
     {
         if (response.PartialSuccess is null)
             throw new InvalidOperationException("Metrics response omitted partial_success.");
         AssertEqual(1, response.PartialSuccess.RejectedDataPoints, "rejected metric data-point count");
         if (!response.PartialSuccess.ErrorMessage.Contains(
-                DeclinedSummaryMetricName,
+                InvalidMetricName,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
                 $"Metrics partial_success did not name the declined instrument: {response.PartialSuccess.ErrorMessage}");
+        }
+    }
+
+    private static async Task VerifyOriginalMetricPointsAsync(HttpClient http, Uri apiBase)
+    {
+        (string Name, string Type, int Count)[] expected =
+        [
+            ("aot.smoke.gauge", "number", 3),
+            ("aot.smoke.sum", "number", 1),
+            ("aot.smoke.histogram", "histogram", 1),
+            ("aot.smoke.exponential", "exponential_histogram", 1),
+            (SummaryMetricName, "summary", 1)
+        ];
+        foreach (var (name, type, count) in expected)
+        {
+            var seriesUri = new Uri(apiBase, $"api/v1/metrics/{name}/series");
+            await VerifyJsonValuesAsync(http, seriesUri, name).ConfigureAwait(false);
+            using var series = JsonDocument.Parse(await http.GetStringAsync(seriesUri).ConfigureAwait(false));
+            var items = series.RootElement.GetProperty("items");
+            AssertEqual(1, items.GetArrayLength(), $"{name} series count");
+            var seriesId = items[0].GetProperty("series_id").GetString();
+            var pointsUri = new Uri(apiBase, $"api/v1/metrics/{name}/series/{seriesId}/points");
+            await VerifyJsonValuesAsync(http, pointsUri, type).ConfigureAwait(false);
+            using var points = JsonDocument.Parse(await http.GetStringAsync(pointsUri).ConfigureAwait(false));
+            var observations = points.RootElement.GetProperty("items");
+            AssertEqual(false, points.RootElement.GetProperty("has_more").GetBoolean(), $"{name} complete page");
+            AssertEqual(count, observations.GetArrayLength(), $"{name} original point count after identical HTTP/gRPC exports");
+            foreach (var point in observations.EnumerateArray())
+                AssertEqual(type, point.GetProperty("data").GetProperty("type").GetString(), $"{name} point shape");
+            var data = observations[0].GetProperty("data");
+            if (name is "aot.smoke.sum")
+                AssertEqual("9007199254740993", data.GetProperty("value").GetProperty("value").GetString(), "exact int64");
+            else if (name is "aot.smoke.histogram")
+            {
+                AssertEqual("3", data.GetProperty("count").GetString(), "histogram count");
+                AssertEqual(3, data.GetProperty("bucket_counts").GetArrayLength(), "explicit bucket count");
+                AssertEqual(6d, data.GetProperty("sum").GetDouble(), "histogram sum");
+            }
+            else if (name is "aot.smoke.exponential")
+            {
+                AssertEqual(2, data.GetProperty("scale").GetInt32(), "native exponential scale");
+                AssertEqual(-2, data.GetProperty("positive").GetProperty("offset").GetInt32(), "native exponential offset");
+                AssertEqual("2", data.GetProperty("positive").GetProperty("bucket_counts")[0].GetString(), "native bucket count");
+                AssertEqual("1", data.GetProperty("zero_count").GetString(), "native zero count");
+            }
+            else if (name == SummaryMetricName)
+            {
+                AssertEqual("7", data.GetProperty("count").GetString(), "summary count");
+                AssertEqual(20d, data.GetProperty("sum").GetDouble(), "summary sum");
+                AssertEqual(0.95d, data.GetProperty("quantile_values")[0].GetProperty("quantile").GetDouble(), "summary quantile");
+                AssertEqual(6d, data.GetProperty("quantile_values")[0].GetProperty("value").GetDouble(), "summary quantile value");
+            }
         }
     }
 
