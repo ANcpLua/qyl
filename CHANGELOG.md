@@ -1,5 +1,16 @@
 # Changelog
 
+## 13.2.1 — 2026-10-16
+
+- Query stored logs with cursor pagination in the dashboard. Severity, exact service
+  name and message filters apply before paging, including errors older than the
+  live stream's recent tail.
+- Keep loaded pages during live refresh, expose older pages without a buffer cap,
+  and show query and continuation failures with retry. Downloads identify their
+  scope as the loaded matching records.
+- Exercise older errors, equal timestamps, complete history, filter changes and
+  failed-page retries against the real collector in browser tests.
+
 ## 13.2.0 — 2026-10-15
 
 - Pin semantic conventions 10.1.0 and `Qyl.Telemetry.Hosting` / `Qyl.Telemetry.AutoInstrumentation*` 25.1.0

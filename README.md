@@ -6,7 +6,7 @@ A local OpenTelemetry investigation stack for .NET. Instrument an application wi
 line, run the collector on your own machine, and read the traces, logs, and metrics back
 through the embedded dashboard, the collector API, or MCP.
 
-This checkout targets qyl 13.2.0. The
+This checkout targets qyl 13.2.1. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
 are endpoints rather than pages: `https://api.qyl.at` serves the collector read API and
 OTLP ingest under their route prefixes, and `https://mcp.qyl.at/mcp` is the MCP endpoint,
@@ -41,6 +41,15 @@ await app.StartAsync();
 It reserves loopback endpoints, passes service references, waits for HTTP readiness, captures
 child output and owns cleanup on failure, cancellation and disposal. It starts no collector,
 control API or console UI. Package usage and lifecycle details: [Qyl.Orchestration](packages/Qyl.Orchestration/README.md).
+
+## Log history
+
+The dashboard queries stored logs and applies severity, service and message filters
+before pagination. Use **Load older** to read earlier records; the view reports when
+all matching logs are loaded. Service names can be entered directly, including names
+absent from the first page. Live updates refresh the stored query, and browsing older
+pages pauses live refresh. Query failures stay visible while loaded records remain
+available. Downloads contain the loaded matching records.
 
 ## Analysis for agents
 
@@ -100,13 +109,13 @@ The `qyl`, `Qyl.Api.Sdk`, `Qyl.Orchestration` and three dependency rows, and the
 
 | Package | `main` / release target | Repository |
 | --- | --- | --- |
-| `qyl` (dotnet tool) | 13.2.0 | this one |
+| `qyl` (dotnet tool) | 13.2.1 | this one |
 | `Qyl.Telemetry.Hosting`, `Qyl.Telemetry.AutoInstrumentation*` | 25.1.0 | [Qyl.Telemetry.AutoInstrumentation](https://github.com/ANcpLua/Qyl.Telemetry.AutoInstrumentation) |
 | `Qyl.Telemetry.SemanticConventions*` | 10.1.0 | [Qyl.Telemetry.SemanticConventions](https://github.com/ANcpLua/Qyl.Telemetry.SemanticConventions) |
 | `Qyl.Api.Contracts`, `@ancplua/qyl-api-schema` | 12.1.2 | [qyl-api-schema](https://github.com/ANcpLua/qyl-api-schema) |
 | `qyl-mcp-server` | [npm](https://www.npmjs.com/package/qyl-mcp-server) | [qyl.mcp](https://github.com/ANcpLua/qyl.mcp) |
-| `Qyl.Api.Sdk` (MSBuild SDK) | 13.2.0 | this one |
-| `Qyl.Orchestration` (process host) | 13.2.0 | this one |
+| `Qyl.Api.Sdk` (MSBuild SDK) | 13.2.1 | this one |
+| `Qyl.Orchestration` (process host) | 13.2.1 | this one |
 
 `Qyl.Sdk` and the `Qyl.OpenTelemetry.*` package IDs are retired. They stop at their last
 published versions and receive no further releases; the table above lists their
@@ -172,7 +181,7 @@ so a fresh clone builds without a pack step. A consumer outside this repository 
 import, no generator reference and no central package management:
 
 ```xml
-<Project Sdk="Qyl.Api.Sdk/13.2.0">
+<Project Sdk="Qyl.Api.Sdk/13.2.1">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

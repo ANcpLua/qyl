@@ -1,10 +1,9 @@
-import {memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {z} from 'zod';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import {
     AlertCircle,
     AlertTriangle,
-    ArrowDown,
     Bug,
     ChevronDown,
     ChevronRight,
@@ -15,7 +14,6 @@ import {
     X,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
-import {consumeSse, parseLogSsePayload} from '@/lib/api';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
@@ -25,7 +23,7 @@ import {DownloadButton} from '@/components/ui/download-button';
 import {isStructuredContent, TextVisualizer} from '@/components/ui/text-visualizer';
 import {OnboardingHint} from '@/components/OnboardingHint';
 import {formatTimestamp} from '@/hooks/use-telemetry';
-import {RingBuffer} from '@/lib/RingBuffer';
+import {useLogHistory} from '@/hooks/use-log-history';
 import {formatAttributeValue} from '@ancplua/qyl-api-schema/runtime';
 import type {AttributeValue, LogRecord} from '@ancplua/qyl-api-schema/types';
 
@@ -53,10 +51,6 @@ interface LogViewRecord {
     serviceName: string;
     serviceVersion?: string;
 }
-
-const MAX_LOGS = 10_000;
-const AUTO_SCROLL_THRESHOLD = 100;
-const SSE_RECONNECT_DELAY = 3000;
 
 const LOG_LEVEL_CONFIG: Record<
     LogLevel,
@@ -257,378 +251,124 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
     );
 });
 
-interface UseLiveLogsOptions {
-    enabled?: boolean;
-    onError?: (error: Error) => void;
-}
-
-function useLiveLogs(
-    bufferRef: React.RefObject<RingBuffer<LogViewRecord>>,
-    setVersion: React.Dispatch<React.SetStateAction<number>>,
-    options: UseLiveLogsOptions = {}
-) {
-    const {enabled = true, onError} = options;
-
-    const pendingLogsRef = useRef<LogViewRecord[]>([]);
-    const rafIdRef = useRef<number | null>(null);
-    const reconnectTimeoutRef = useRef<number | null>(null);
-    const lastEventIdRef = useRef<string | undefined>(undefined);
-    const seenEventIdsRef = useRef<Set<string>>(new Set());
-    const [isConnected, setIsConnected] = useState(false);
-
-    // Coalesce all logs received in one frame into one state update.
-    const flushPending = useCallback(() => {
-        const pending = pendingLogsRef.current;
-        pendingLogsRef.current = [];
-        rafIdRef.current = null;
-
-        if (pending.length > 0 && bufferRef.current) {
-            bufferRef.current.pushMany(pending);
-            setVersion((v) => v + 1);
-        }
-    }, [bufferRef, setVersion]);
-
-    const queueLogs = useCallback(
-        (logs: LogViewRecord[]) => {
-            pendingLogsRef.current.push(...logs);
-
-            if (rafIdRef.current === null) {
-                rafIdRef.current = requestAnimationFrame(flushPending);
-            }
-        },
-        [flushPending]
-    );
-
-    useEffect(() => {
-        if (!enabled) return;
-
-        let controller: AbortController | null = null;
-        let disposed = false;
-
-        const connect = async () => {
-            controller = new AbortController();
-            try {
-                await consumeSse(
-                    '/api/v1/stream/logs',
-                    controller.signal,
-                    () => setIsConnected(true),
-                    frame => {
-                        const event = parseLogSsePayload(frame);
-                        if (event.type !== 'log') return;
-                        if (frame.id && seenEventIdsRef.current.has(frame.id)) return;
-                        queueLogs([normalizeLogRecord(event.data)]);
-                        if (frame.id) {
-                            lastEventIdRef.current = frame.id;
-                            const seen = seenEventIdsRef.current;
-                            seen.add(frame.id);
-                            while (seen.size > MAX_LOGS) {
-                                const oldest = seen.values().next().value;
-                                if (oldest === undefined) break;
-                                seen.delete(oldest);
-                            }
-                        }
-                    },
-                    lastEventIdRef.current,
-                );
-                if (disposed) return;
-                throw new Error('SSE connection closed');
-            } catch (error) {
-                if (disposed || controller.signal.aborted) return;
-                setIsConnected(false);
-                onError?.(error instanceof Error ? error : new Error('SSE connection lost'));
-
-                reconnectTimeoutRef.current = window.setTimeout(() => {
-                    void connect();
-                }, SSE_RECONNECT_DELAY);
-            }
-        };
-
-        void connect();
-
-        return () => {
-            disposed = true;
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
-            if (rafIdRef.current) {
-                cancelAnimationFrame(rafIdRef.current);
-            }
-            controller?.abort();
-            setIsConnected(false);
-        };
-    }, [enabled, queueLogs, onError]);
-
-    return {isConnected};
-}
-
 export function LogsPage() {
-    const logsBufferRef = useRef(new RingBuffer<LogViewRecord>(MAX_LOGS));
-    const [logsVersion, setLogsVersion] = useState(0);
-    const lastGenerationRef = useRef(0);
-
-    // Composite keys remain stable when the ring buffer wraps.
     const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
     const [filterText, setFilterText] = useState('');
     const [minLevel, setMinLevel] = useState<LogLevel>('trace');
-    const [selectedService, setSelectedService] = useState<string>('all');
+    const [selectedService, setSelectedService] = useState('');
     const [isLive, setIsLive] = useState(true);
-
-    const [isAutoScroll, setIsAutoScroll] = useState(true);
-    const [newLogsCount, setNewLogsCount] = useState(0);
-    const isAutoScrollRef = useRef(isAutoScroll);
-    isAutoScrollRef.current = isAutoScroll;
-
+    const query = useDeferredValue(filterText);
+    const service = useDeferredValue(selectedService);
+    const filters = useMemo(() => ({
+        query,
+        service,
+        // An unfiltered view also includes unspecified (zero) severities.
+        severityMin: minLevel === 'trace' ? undefined : LOG_LEVELS.indexOf(minLevel) * 4 + 1,
+    }), [query, service, minLevel]);
+    const history = useLogHistory(filters, isLive);
+    const logs = useMemo(() => history.data?.pages.flatMap(page => page.items).map(normalizeLogRecord) ?? [], [history.data]);
+    const error = history.error?.message ?? history.cursorError ?? history.streamError;
     const parentRef = useRef<HTMLDivElement>(null);
-    const expandedLogsRef = useRef(expandedLogs);
-    expandedLogsRef.current = expandedLogs;
-
-    const {isConnected} = useLiveLogs(logsBufferRef, setLogsVersion, {
-        enabled: isLive,
-    });
-
-    useEffect(() => {
-        if (!isAutoScrollRef.current && logsVersion > 0) {
-            setNewLogsCount((c) => c + 1);
-        }
-    }, [logsVersion]);
-
-    const logs = useMemo(() => {
-        return logsBufferRef.current.toArray();
-    }, [logsVersion]);
-
-    const services = useMemo(() => {
-        const set = new Set(logs.map((l) => l.serviceName));
-        return Array.from(set).toSorted();
-    }, [logs]);
-
-    const filteredLogs = useMemo(() => {
-        const minLevelIndex = LOG_LEVELS.indexOf(minLevel);
-
-        return logs.filter((log) => {
-            const levelIndex = LOG_LEVELS.indexOf(log.severityText);
-            if (levelIndex < minLevelIndex) return false;
-
-            if (selectedService !== 'all' && log.serviceName !== selectedService) return false;
-
-            if (filterText) {
-                const searchLower = filterText.toLowerCase();
-                const matches =
-                    log.body.toLowerCase().includes(searchLower) ||
-                    log.serviceName.toLowerCase().includes(searchLower) ||
-                    Object.values(log.attributes).some((v) =>
-                        formatAttributeValue(v).toLowerCase().includes(searchLower)
-                    );
-                if (!matches) return false;
-            }
-
-            return true;
-        });
-    }, [logs, minLevel, selectedService, filterText]);
-
-    const stats = useMemo(() => {
-        return {
-            total: logs.length,
-            errors: logs.filter((l) => l.severityText === 'error' || l.severityText === 'fatal')
-                .length,
-            warnings: logs.filter((l) => l.severityText === 'warn').length,
-        };
-    }, [logs]);
-
-    const getLogKey = useCallback((log: LogViewRecord) => {
-        return `${log.traceId ?? ''}:${log.timestamp}`;
-    }, []);
-
+    const getLogKey = useCallback((log: LogViewRecord, index: number) =>
+        `${index}:${log.original.time_unix_nano}:${log.spanId ?? ''}`, []);
     const rowVirtualizer = useVirtualizer({
-        count: filteredLogs.length,
+        count: logs.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: (index) => {
-            const log = filteredLogs[index];
-            if (!log) return 44;
-            return expandedLogsRef.current.has(getLogKey(log)) ? 300 : 44;
-        },
+        getItemKey: index => getLogKey(logs[index], index),
+        estimateSize: index => expandedLogs.has(getLogKey(logs[index], index)) ? 300 : 44,
         overscan: 20,
     });
-
-    const prevExpandedRef = useRef(expandedLogs);
-    if (prevExpandedRef.current !== expandedLogs) {
-        prevExpandedRef.current = expandedLogs;
-        queueMicrotask(() => rowVirtualizer.measure());
-    }
-
-    useEffect(() => {
-        const currentGen = logsBufferRef.current.generation;
-        if (currentGen !== lastGenerationRef.current) {
-            lastGenerationRef.current = currentGen;
-            rowVirtualizer.measure();
-        }
-    }, [logsVersion, rowVirtualizer]);
-
-    const handleScroll = useCallback(() => {
-        const el = parentRef.current;
-        if (!el) return;
-
-        const {scrollTop, scrollHeight, clientHeight} = el;
-        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-        const shouldAutoScroll = distanceFromBottom < AUTO_SCROLL_THRESHOLD;
-
-        if (shouldAutoScroll !== isAutoScrollRef.current) {
-            setIsAutoScroll(shouldAutoScroll);
-            if (shouldAutoScroll) {
-                setNewLogsCount(0);
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        const el = parentRef.current;
-        if (!el) return;
-
-        el.addEventListener('scroll', handleScroll, {passive: true});
-        return () => el.removeEventListener('scroll', handleScroll);
-    }, [handleScroll]);
-
-    // Layout timing prevents a visible scroll-position flicker.
-    useLayoutEffect(() => {
-        if (isAutoScroll && filteredLogs.length > 0) {
-            rowVirtualizer.scrollToIndex(filteredLogs.length - 1, {
-                align: 'end',
-                behavior: 'auto', // 'smooth' causes queuing issues with fast streams
-            });
-        }
-    }, [filteredLogs.length, isAutoScroll, rowVirtualizer]);
-
-    const toggleLog = useCallback((logKey: string) => {
-        setExpandedLogs((prev) => {
-            const next = new Set(prev);
-            if (next.has(logKey)) {
-                next.delete(logKey);
-            } else {
-                next.add(logKey);
-            }
+    useEffect(() => { rowVirtualizer.measure(); }, [expandedLogs, rowVirtualizer]);
+    const stats = useMemo(() => ({
+        errors: logs.filter(log => log.severityNumber >= 17).length,
+        warnings: logs.filter(log => log.severityNumber >= 13 && log.severityNumber < 17).length,
+    }), [logs]);
+    const toggleLog = useCallback((key: string) => {
+        setExpandedLogs(previous => {
+            const next = new Set(previous);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
             return next;
         });
     }, []);
 
-    const jumpToBottom = useCallback(() => {
-        setIsAutoScroll(true);
-        setNewLogsCount(0);
-        if (filteredLogs.length > 0) {
-            rowVirtualizer.scrollToIndex(filteredLogs.length - 1, {
-                align: 'end',
-                behavior: 'smooth',
-            });
-        }
-    }, [filteredLogs.length, rowVirtualizer]);
-
-    const clearLogs = useCallback(() => {
-        logsBufferRef.current.clear();
-        setLogsVersion((v) => v + 1);
-        setExpandedLogs(new Set());
-    }, []);
-
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center gap-4 p-4 border-b border-border">
+            <div className="flex items-center gap-4 p-4 border-b border-border flex-wrap">
                 <div className="relative flex-1 max-w-sm">
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
-                        placeholder="Search logs..."
+                        placeholder="Search log messages..."
                         value={filterText}
-                        onChange={(e) => setFilterText(e.target.value)}
+                        onChange={event => setFilterText(event.target.value)}
                         className="pl-9"
                         aria-label="Search logs"
                     />
                 </div>
-
-                <Select value={minLevel} onValueChange={(v) => setMinLevel(minLevelSchema.parse(v))}>
-                    <SelectTrigger className="w-32">
+                <Select value={minLevel} onValueChange={value => setMinLevel(minLevelSchema.parse(value))}>
+                    <SelectTrigger className="w-32" aria-label="Minimum log level">
                         <SelectValue placeholder="Min Level"/>
                     </SelectTrigger>
                     <SelectContent>
-                        {LOG_LEVELS.map((level) => (
-                            <SelectItem key={level} value={level}>
-                                {level.toUpperCase()}
-                            </SelectItem>
+                        {LOG_LEVELS.map(level => (
+                            <SelectItem key={level} value={level}>{level.toUpperCase()}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-
-                <Select value={selectedService} onValueChange={setSelectedService}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Service"/>
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Services</SelectItem>
-                        {services.map((service) => (
-                            <SelectItem key={service} value={service}>
-                                {service}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <div className="flex items-center gap-4 text-sm">
-          <span className="text-brutal-slate">
-            {filteredLogs.length.toLocaleString()} / {stats.total.toLocaleString()} logs
-          </span>
-                    {stats.errors > 0 && (
-                        <Badge variant="destructive">{stats.errors} errors</Badge>
-                    )}
-                    {stats.warnings > 0 && (
-                        <Badge variant="outline" className="border-signal-yellow text-signal-yellow">
-                            {stats.warnings} warnings
-                        </Badge>
-                    )}
-                </div>
-
-                <Button variant="outline" size="sm" onClick={clearLogs}>
-                    Clear
-                </Button>
-
-                <DownloadButton
-                    getJsonData={() => filteredLogs.map(log => log.original)}
-                    getCsvData={() => filteredLogs.map(log => ({
-                        timestamp: log.timestamp,
-                        level: log.severityText,
-                        service: log.serviceName,
-                        message: log.body,
-                        traceId: log.traceId ?? '',
-                        spanId: log.spanId ?? '',
-                        eventName: log.eventName ?? '',
-                        attributes: log.attributes,
-                    }))}
-                    filenamePrefix="logs"
-                    columns={['timestamp', 'level', 'service', 'message', 'traceId', 'spanId', 'eventName', 'attributes']}
-                    disabled={filteredLogs.length === 0}
+                <Input
+                    value={selectedService}
+                    onChange={event => setSelectedService(event.target.value)}
+                    placeholder="Service name (exact)"
+                    aria-label="Filter service"
+                    className="w-48"
                 />
-
+                <span role="status" aria-label="Log results" className="text-sm text-brutal-slate">
+                    {logs.length} logs loaded{history.hasNextPage ? ' · more available' : ''}
+                </span>
+                {stats.errors > 0 && <Badge variant="destructive">{stats.errors} loaded errors</Badge>}
+                {stats.warnings > 0 && (
+                    <Badge variant="outline" className="border-signal-yellow text-signal-yellow">
+                        {stats.warnings} loaded warnings
+                    </Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={() => { void history.refetch(); }} disabled={history.isFetching}>
+                    Refresh
+                </Button>
+                <div title="Download loaded matching logs">
+                    <DownloadButton
+                        getJsonData={() => logs.map(log => log.original)}
+                        getCsvData={() => logs.map(log => ({
+                            timestamp: log.timestamp,
+                            level: log.severityText,
+                            service: log.serviceName,
+                            message: log.body,
+                            traceId: log.traceId ?? '',
+                            spanId: log.spanId ?? '',
+                            eventName: log.eventName ?? '',
+                            attributes: log.attributes,
+                        }))}
+                        filenamePrefix="logs"
+                        columns={['timestamp', 'level', 'service', 'message', 'traceId', 'spanId', 'eventName', 'attributes']}
+                        disabled={logs.length === 0}
+                    />
+                </div>
                 <Button
                     variant={isLive ? 'default' : 'outline'}
                     size="sm"
+                    aria-pressed={isLive}
                     onClick={() => setIsLive(!isLive)}
-                    className={cn(isLive && isConnected && 'bg-signal-green hover:bg-signal-green/80')}
+                    className={cn(isLive && history.isConnected && 'bg-signal-green hover:bg-signal-green/80')}
                 >
-          <span
-              className={cn(
-                  'w-2 h-2 mr-2',
-                  isLive && isConnected ? 'bg-signal-green animate-pulse-live' : 'bg-brutal-slate'
-              )}
-          />
-                    {isLive ? (isConnected ? 'Live' : 'Connecting...') : 'Paused'}
+                    {isLive ? (history.isConnected ? 'Live' : 'Connecting...') : 'Paused'}
                 </Button>
             </div>
-
-            {(filterText || minLevel !== 'trace' || selectedService !== 'all') && (
+            {(filterText || minLevel !== 'trace' || selectedService) && (
                 <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
                     <span className="text-xs text-brutal-slate">Active filters:</span>
                     {filterText && (
                         <Badge variant="secondary" className="gap-1 pr-1">
                             search: {filterText}
-                            <button
-                                onClick={() => setFilterText('')}
-                                className="ml-1 hover:bg-brutal-dark p-0.5"
-                                aria-label="Clear search filter"
-                            >
+                            <button onClick={() => setFilterText('')} aria-label="Clear search filter">
                                 <X className="h-3 w-3"/>
                             </button>
                         </Badge>
@@ -636,103 +376,64 @@ export function LogsPage() {
                     {minLevel !== 'trace' && (
                         <Badge variant="secondary" className="gap-1 pr-1">
                             min level: {minLevel}
-                            <button
-                                onClick={() => setMinLevel('trace')}
-                                className="ml-1 hover:bg-brutal-dark p-0.5"
-                                aria-label="Clear minimum level filter"
-                            >
+                            <button onClick={() => setMinLevel('trace')} aria-label="Clear minimum level filter">
                                 <X className="h-3 w-3"/>
                             </button>
                         </Badge>
                     )}
-                    {selectedService !== 'all' && (
+                    {selectedService && (
                         <Badge variant="secondary" className="gap-1 pr-1">
                             service: {selectedService}
-                            <button
-                                onClick={() => setSelectedService('all')}
-                                className="ml-1 hover:bg-brutal-dark p-0.5"
-                                aria-label="Clear service filter"
-                            >
+                            <button onClick={() => setSelectedService('')} aria-label="Clear service filter">
                                 <X className="h-3 w-3"/>
                             </button>
                         </Badge>
                     )}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs"
-                        onClick={() => {
-                            setFilterText('');
-                            setMinLevel('trace');
-                            setSelectedService('all');
-                        }}
-                    >
-                        Clear all
-                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => {
+                        setFilterText('');
+                        setMinLevel('trace');
+                        setSelectedService('');
+                    }}>Clear all</Button>
                 </div>
             )}
-
-            <div
-                ref={parentRef}
-                className="flex-1 overflow-auto relative"
-                style={{contain: 'strict'}}
-            >
-                {logs.length === 0 ? (
-                    <OnboardingHint
-                        icon={FileText}
-                        title="No logs found"
-                        description="Wait for new logs or connect a service"
-                    />
-                ) : filteredLogs.length === 0 ? (
-                    <div className="py-12 text-center text-brutal-slate">
-                        <FileText className="w-12 h-12 mx-auto mb-4 opacity-50"/>
-                        <p>No logs found</p>
-                        <p className="text-sm">Adjust filters or wait for new logs</p>
-                    </div>
+            {error && (
+                <div role="alert" className="px-4 py-2 text-signal-red border-b border-border">
+                    {error}
+                </div>
+            )}
+            <div ref={parentRef} className="flex-1 overflow-auto relative" style={{contain: 'strict'}}>
+                {history.isPending ? (
+                    <p className="p-4 text-brutal-slate">Loading logs...</p>
+                ) : logs.length === 0 && !error ? (
+                    <OnboardingHint icon={FileText} title="No logs found" description="Adjust filters or connect a service"/>
                 ) : (
-                    <div
-                        style={{
-                            height: `${rowVirtualizer.getTotalSize()}px`,
-                            width: '100%',
-                            position: 'relative',
-                        }}
-                    >
-                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                            const log = filteredLogs[virtualRow.index];
-                            const logKey = getLogKey(log);
+                    <div style={{height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative'}}>
+                        {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                            const log = logs[virtualRow.index];
+                            const key = getLogKey(log, virtualRow.index);
                             return (
                                 <div
                                     key={virtualRow.key}
                                     data-index={virtualRow.index}
                                     ref={rowVirtualizer.measureElement}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        transform: `translateY(${virtualRow.start}px)`,
-                                    }}
+                                    style={{position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)`}}
                                 >
-                                    <LogRow
-                                        log={log}
-                                        isExpanded={expandedLogs.has(logKey)}
-                                        onToggle={() => toggleLog(logKey)}
-                                    />
+                                    <LogRow log={log} isExpanded={expandedLogs.has(key)} onToggle={() => toggleLog(key)}/>
                                 </div>
                             );
                         })}
                     </div>
                 )}
-
-                {!isAutoScroll && filteredLogs.length > 0 && (
-                    <Button
-                        className="absolute bottom-4 right-4 shadow-brutal"
-                        onClick={jumpToBottom}
-                    >
-                        <ArrowDown className="w-4 h-4 mr-2"/>
-                        {newLogsCount > 0 ? `${newLogsCount} new logs` : 'Jump to bottom'}
-                    </Button>
-                )}
+            </div>
+            <div className="flex items-center gap-4 p-3 border-t border-border text-sm text-brutal-slate">
+                {history.hasNextPage ? (
+                    <Button variant="outline" size="sm" disabled={history.isFetching || Boolean(history.cursorError)} onClick={() => {
+                        // Hold the viewed pages steady while browsing older records.
+                        setIsLive(false);
+                        void history.fetchNextPage();
+                    }}>{history.isFetchingNextPage ? 'Loading older...' : 'Load older'}</Button>
+                ) : !history.isPending && !error ? <span>All matching logs loaded</span> : null}
+                <span>Downloads include the loaded records.</span>
             </div>
         </div>
     );

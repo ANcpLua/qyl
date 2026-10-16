@@ -1,4 +1,5 @@
 import type {
+    CursorPageLogRecord,
     CursorPageMetricDescriptor,
     CursorPageSessionEntity,
     CursorPageSpan,
@@ -19,6 +20,7 @@ const sessionTracePageSchema = contractSchema('Operations.SessionsApi_getTraces.
 const spanPageSchema = contractSchema('Operations.TracesApi_getSpans.Response.200');
 const metricPageSchema = contractSchema('Operations.MetricsApi_list.Response.200');
 const metricQuerySchema = contractSchema('Operations.MetricsApi_query.Response.200');
+const logPageSchema = contractSchema('Operations.LogsApi_list.Response.200');
 const logStreamEventSchema = contractSchema('Streaming.LogStreamEvent');
 const heartbeatEventSchema = contractSchema('Streaming.HeartbeatEvent');
 const problemDetailsSchema = contractSchema('Common.Errors.ProblemDetails');
@@ -49,6 +51,9 @@ export const parseMetricPage = (value: unknown): CursorPageMetricDescriptor =>
 
 export const parseMetricQuery = (value: unknown, name: string): MetricQueryResult =>
     parseContract(metricQuerySchema, value, `/api/v1/metrics/${name}/query`);
+
+export const parseLogPage = (value: unknown): CursorPageLogRecord =>
+    parseContract(logPageSchema, value, '/api/v1/logs');
 
 export const parseLogStreamEvent = (value: unknown): LogStreamEvent =>
     parseContract(logStreamEventSchema, value, '/api/v1/stream/logs log event');
