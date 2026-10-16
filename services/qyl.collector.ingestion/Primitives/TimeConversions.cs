@@ -29,12 +29,7 @@ internal static class TimeConversions
         return true;
     }
 
-    public static double NanosToMs(long nanos) => nanos / (double)NanosPerMillisecond;
-
     public static double NanosToMs(ulong nanos) => nanos / (double)NanosPerMillisecond;
-
-    public static DateTimeOffset NanosToDateTimeOffset(long nanos) =>
-        DateTimeOffset.FromUnixTimeMilliseconds(nanos / NanosPerMillisecond);
 
     public static DateTimeOffset NanosToDateTimeOffset(ulong nanos) =>
         DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / NanosPerMillisecond));

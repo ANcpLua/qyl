@@ -28,7 +28,7 @@ public sealed class GeneratorTests
     [Fact]
     public void DerivedModelHidesTheBaseImplementationAndCompiles()
     {
-        const string source = """
+        const string Source = """
             using System.Xml.Serialization;
             using Qyl.Xml;
 
@@ -47,7 +47,7 @@ public sealed class GeneratorTests
             }
             """;
 
-        var run = GeneratorHarness.Run(("Hierarchy.cs", source));
+        var run = GeneratorHarness.Run(("Hierarchy.cs", Source));
 
         Assert.Empty(run.DiagnosticIds);
         Assert.Empty(run.OutputErrors);

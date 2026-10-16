@@ -229,20 +229,6 @@ internal static class SpanMapper
         };
     }
 
-    /// <summary>The trace without its span collection: what a saved trace query lists, like list_traces.</summary>
-    public static TraceSummary ToSummary(TraceContract trace) =>
-        new()
-        {
-            TraceId = trace.TraceId,
-            RootSpan = trace.RootSpan,
-            SpanCount = trace.SpanCount,
-            DurationNs = trace.DurationNs,
-            StartTime = trace.StartTime,
-            EndTime = trace.EndTime,
-            Services = trace.Services,
-            HasError = trace.HasError
-        };
-
     private static SpanKind MapSpanKind(byte kind) =>
         kind switch
         {
@@ -538,20 +524,6 @@ internal static class MetricMapper
         _ => ContractMetricTemporality.Unspecified
     };
 
-    public static StorageMetricAggregation ToStorageAggregation(ContractMetricAggregation aggregation) => aggregation switch
-    {
-        ContractMetricAggregation.Min => StorageMetricAggregation.Min,
-        ContractMetricAggregation.Max => StorageMetricAggregation.Max,
-        ContractMetricAggregation.Sum => StorageMetricAggregation.Sum,
-        ContractMetricAggregation.Count => StorageMetricAggregation.Count,
-        ContractMetricAggregation.Last => StorageMetricAggregation.Last,
-        ContractMetricAggregation.P50 => StorageMetricAggregation.P50,
-        ContractMetricAggregation.P90 => StorageMetricAggregation.P90,
-        ContractMetricAggregation.P95 => StorageMetricAggregation.P95,
-        ContractMetricAggregation.P99 => StorageMetricAggregation.P99,
-        _ => StorageMetricAggregation.Avg
-    };
-
     private static ContractMetricAggregation ToAggregation(StorageMetricAggregation aggregation) => aggregation switch
     {
         StorageMetricAggregation.Min => ContractMetricAggregation.Min,
@@ -592,9 +564,6 @@ internal static class AnnotationMapper
             Labels = labels,
             Classification = classification
         };
-
-    public static IReadOnlyList<Annotation> ToContracts(IReadOnlyList<AnnotationRow> rows) =>
-        [.. rows.Select(static row => ToContract(row))];
 }
 
 internal static class SavedQueryMapper
@@ -627,13 +596,5 @@ internal static class SavedQueryMapper
         SavedLogQueryFilter => "logs",
         SavedMetricQueryFilter => "metrics",
         _ => throw new ArgumentOutOfRangeException(nameof(filter), "Unknown saved-query filter.")
-    };
-
-    public static string SignalName(SavedQuerySignal signal) => signal switch
-    {
-        SavedQuerySignal.Traces => "traces",
-        SavedQuerySignal.Logs => "logs",
-        SavedQuerySignal.Metrics => "metrics",
-        _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null)
     };
 }

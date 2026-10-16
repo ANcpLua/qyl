@@ -6,14 +6,14 @@ namespace Qyl.Xml;
 /// <summary>Convenience over <see cref="IXmlWritable"/>.</summary>
 public static class XmlWritableExtensions
 {
-    private static readonly XmlWriterSettings StringSettings = new()
+    private static readonly XmlWriterSettings s_stringSettings = new()
     {
         OmitXmlDeclaration = true,
         ConformanceLevel = ConformanceLevel.Document,
         Indent = false,
     };
 
-    private static readonly XmlWriterSettings StreamSettings = new()
+    private static readonly XmlWriterSettings s_streamSettings = new()
     {
         OmitXmlDeclaration = true,
         ConformanceLevel = ConformanceLevel.Document,
@@ -30,7 +30,7 @@ public static class XmlWritableExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         var buffer = new StringBuilder();
-        using (var writer = XmlWriter.Create(buffer, StringSettings))
+        using (var writer = XmlWriter.Create(buffer, s_stringSettings))
         {
             value.WriteXml(writer);
         }
@@ -46,7 +46,7 @@ public static class XmlWritableExtensions
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(stream);
 
-        using var writer = XmlWriter.Create(stream, StreamSettings);
+        using var writer = XmlWriter.Create(stream, s_streamSettings);
         value.WriteXml(writer);
     }
 }

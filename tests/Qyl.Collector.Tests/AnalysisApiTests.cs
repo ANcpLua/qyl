@@ -7,7 +7,7 @@ namespace Qyl.Collector.Tests;
 
 public sealed partial class AnalysisApiTests
 {
-    private static readonly double[] CounterValues = [100d, 50d, 190d];
+    private static readonly double[] s_counterValues = [100d, 50d, 190d];
     private static ulong Timestamp => (ulong)DateTimeOffset.UtcNow.AddMinutes(-2).ToUnixTimeMilliseconds() * 1_000_000;
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed partial class AnalysisApiTests
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var time = Timestamp;
         var series = new MetricSeriesRow { ProjectId = "alpha", SeriesId = "counter", MetricName = "test.requests", MetricKind = 2, Temporality = temporality, IsMonotonic = 1, Unit = "{request}", FirstSeenUnixNano = time, LastSeenUnixNano = time + 2_000_000_000 };
-        var points = CounterValues.Select((value, index) => new MetricPointRow { ProjectId = "alpha", SeriesId = "counter", TimeUnixNano = time + (ulong)index * 1_000_000_000, StartTimeUnixNano = index == 2 ? time + 1_500_000_000 : time - 1_000_000_000, Value = value }).ToArray();
+        var points = s_counterValues.Select((value, index) => new MetricPointRow { ProjectId = "alpha", SeriesId = "counter", TimeUnixNano = time + (ulong)index * 1_000_000_000, StartTimeUnixNano = index == 2 ? time + 1_500_000_000 : time - 1_000_000_000, Value = value }).ToArray();
         await host.Store.InsertMetricsAsync([series], points, ct: TestContext.Current.CancellationToken);
         var data = await Read(host, "query_metric", """{"metric_name":"test.requests","function":"increase","step_ms":3600000}""");
         var increase = data.GetProperty("series").EnumerateArray().SelectMany(stream => stream.GetProperty("buckets").EnumerateArray()).Where(bucket => bucket.GetProperty("value").ValueKind != JsonValueKind.Null).Sum(bucket => bucket.GetProperty("value").GetDouble());

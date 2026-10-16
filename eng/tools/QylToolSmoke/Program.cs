@@ -236,8 +236,8 @@ static async Task StopLiveAsync(Process process, string workingDirectory)
 
 static async Task VerifyIngestAndReadbackAsync(HttpClient client)
 {
-    const string traceId = "0af7651916cd43dd8448eb211c80319c";
-    const string spanId = "b7ad6b7169203331";
+    const string TraceId = "0af7651916cd43dd8448eb211c80319c";
+    const string SpanId = "b7ad6b7169203331";
     var start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000;
     var payload = JsonSerializer.Serialize(new
     {
@@ -264,8 +264,8 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
                                 // OTLP/JSON deliberately uses hex ids (unlike generic protojson,
                                 // which uses base64 for bytes). This exercises the collector's
                                 // standards-compatible JSON normalization path.
-                                traceId,
-                                spanId,
+                                traceId = TraceId,
+                                spanId = SpanId,
                                 name = "installed-tool-span",
                                 kind = 1,
                                 startTimeUnixNano = start.ToString(CultureInfo.InvariantCulture),
@@ -294,7 +294,7 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
         using var response = await client.SendAsync(request);
         if (!response.IsSuccessStatusCode) return false;
         var body = await response.Content.ReadAsStringAsync();
-        return body.Contains(traceId, StringComparison.Ordinal) && body.Contains("qyl-tool-smoke", StringComparison.Ordinal);
+        return body.Contains(TraceId, StringComparison.Ordinal) && body.Contains("qyl-tool-smoke", StringComparison.Ordinal);
     }, TimeSpan.FromSeconds(20), "OTLP trace was not readable from the product API");
 }
 
@@ -303,24 +303,24 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
 // not know the runner's service; the diagnostics collector's must.
 static async Task VerifyRunnerSelfTelemetryAsync(HttpClient client)
 {
-    const string runnerService = "qyl-runner";
+    const string RunnerService = "qyl-runner";
     await WaitUntilAsync(async () =>
     {
         using var request = new HttpRequestMessage(HttpMethod.Get,
-            $"http://127.0.0.1:5200/api/v1/traces?limit=100&service_name={runnerService}");
+            $"http://127.0.0.1:5200/api/v1/traces?limit=100&service_name={RunnerService}");
         request.Headers.Add("X-Qyl-Project", "default");
         using var response = await client.SendAsync(request);
         if (!response.IsSuccessStatusCode) return false;
         var body = await response.Content.ReadAsStringAsync();
-        return body.Contains(runnerService, StringComparison.Ordinal);
+        return body.Contains(RunnerService, StringComparison.Ordinal);
     }, TimeSpan.FromSeconds(45), "the runner's own spans were not readable from the diagnostics collector");
 
     using var productRequest = new HttpRequestMessage(HttpMethod.Get,
-        $"http://127.0.0.1:5100/api/v1/traces?limit=100&service_name={runnerService}");
+        $"http://127.0.0.1:5100/api/v1/traces?limit=100&service_name={RunnerService}");
     productRequest.Headers.Add("X-Qyl-Project", "default");
     using var productResponse = await client.SendAsync(productRequest);
     var productBody = await productResponse.Content.ReadAsStringAsync();
-    if (productBody.Contains(runnerService, StringComparison.Ordinal))
+    if (productBody.Contains(RunnerService, StringComparison.Ordinal))
         throw new InvalidOperationException("The product collector received the runner's own telemetry; it belongs to the diagnostics collector only.");
 }
 

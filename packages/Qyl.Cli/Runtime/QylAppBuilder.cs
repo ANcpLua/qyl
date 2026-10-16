@@ -69,7 +69,7 @@ internal sealed class QylAppBuilder
         // Collectors resolve to a concrete port at composition time: the child only learns its API
         // port through QYL_PORT, so deferring to launch-time DynamicAllocation would health-probe a
         // port the collector never binds (it would fall back to its built-in 5100 default).
-        var apiPort = port ?? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback);
+        var apiPort = port ?? PortAllocator.ClaimFreePort(OrchestrationDefaults.Network.Loopback);
 
         // OTLP receiver ports must be unique across the whole composition: two children pinned to
         // the same receiver port either lose a bind race or, worse, receive each other's telemetry.
@@ -86,7 +86,7 @@ internal sealed class QylAppBuilder
             [QylConstants.Env.QylGrpcPort] = grpcPort.ToString(CultureInfo.InvariantCulture),
             // Host-run collectors deliberately disable ingest auth for local development. Pin every
             // listener to loopback so that choice can never expose an unauthenticated LAN endpoint.
-            [QylConstants.Env.QylBindAddress] = QylConstants.Network.Loopback
+            [QylConstants.Env.QylBindAddress] = OrchestrationDefaults.Network.Loopback
         };
 
         // The runner launches children with ASPNETCORE_ENVIRONMENT=dev, which is not "Development",
@@ -166,7 +166,7 @@ internal sealed class QylAppBuilder
             .ToHashSet();
 
         return taken.Contains(preferred)
-            ? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback)
+            ? PortAllocator.ClaimFreePort(OrchestrationDefaults.Network.Loopback)
             : preferred;
     }
 

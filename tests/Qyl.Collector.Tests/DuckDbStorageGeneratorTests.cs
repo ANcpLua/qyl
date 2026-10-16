@@ -11,7 +11,7 @@ public sealed class DuckDbStorageGeneratorTests
     [Fact]
     public void Schema_appender_and_arrow_output_share_one_deterministic_table_model()
     {
-        const string source = """
+        const string Source = """
                               namespace Qyl.Collector.Storage;
 
                               [DuckDbTable(
@@ -30,8 +30,8 @@ public sealed class DuckDbStorageGeneratorTests
                               }
                               """;
 
-        var first = Generate(source);
-        var second = Generate(source);
+        var first = Generate(Source);
+        var second = Generate(Source);
 
         Assert.Equal(first, second);
         Assert.Contains("\"payload\" BLOB NOT NULL", first, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public sealed class DuckDbStorageGeneratorTests
     [Fact]
     public void Named_parameter_set_tracks_property_rename_from_canonical_metadata()
     {
-        const string source = """
+        const string Source = """
                               namespace Qyl.Collector.Storage;
 
                               [DuckDbTable(
@@ -63,7 +63,7 @@ public sealed class DuckDbStorageGeneratorTests
                               }
                               """;
 
-        var generated = Generate(source);
+        var generated = Generate(Source);
 
         Assert.Contains("public const string AdvanceColumnList", generated, StringComparison.Ordinal);
         Assert.Contains(
@@ -80,7 +80,7 @@ public sealed class DuckDbStorageGeneratorTests
     [Fact]
     public void Named_parameter_set_order_is_independent_of_physical_declaration_order()
     {
-        const string first = """
+        const string First = """
                              namespace Qyl.Collector.Storage;
                              [DuckDbTable("probe_rows", ParameterSets = "Advance:Id,Sequence")]
                              internal sealed partial record ProbeRow
@@ -89,7 +89,7 @@ public sealed class DuckDbStorageGeneratorTests
                                  public required string Id { get; init; }
                              }
                              """;
-        const string reordered = """
+        const string Reordered = """
                                  namespace Qyl.Collector.Storage;
                                  [DuckDbTable("probe_rows", ParameterSets = "Advance:Id,Sequence")]
                                  internal sealed partial record ProbeRow
@@ -99,7 +99,7 @@ public sealed class DuckDbStorageGeneratorTests
                                  }
                                  """;
 
-        foreach (var generated in new[] { Generate(first), Generate(reordered) })
+        foreach (var generated in new[] { Generate(First), Generate(Reordered) })
         {
             Assert.Contains("\"id\", \"sequence\"", generated, StringComparison.Ordinal);
             Assert.True(

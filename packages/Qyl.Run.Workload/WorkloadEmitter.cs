@@ -21,7 +21,7 @@ internal sealed partial class WorkloadEmitter(
 
     // Real provider model ids, so demo spans carry a plausible gen_ai.request.model.
     // Nothing resolves these against a catalog any more; they only need to look real.
-    private static readonly ModelSpec[] Models =
+    private static readonly ModelSpec[] s_models =
     [
         new(GenAiProviderName.Anthropic, "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),
         new(GenAiProviderName.Anthropic, "anthropic/claude-sonnet-5", 400, 4000, 150, 1500, 400, 1800),
@@ -35,9 +35,9 @@ internal sealed partial class WorkloadEmitter(
         new(GenAiProviderName.Deepseek, "deepseek/deepseek-v4-flash", 300, 3500, 250, 2000, 800, 3000),
     ];
 
-    private static readonly string[] Routes = ["/api/chat", "/api/agents/plan", "/api/summarize", "/api/search"];
+    private static readonly string[] s_routes = ["/api/chat", "/api/agents/plan", "/api/summarize", "/api/search"];
 
-    private static readonly string[] Tables = ["conversations", "messages", "embeddings"];
+    private static readonly string[] s_tables = ["conversations", "messages", "embeddings"];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -86,8 +86,8 @@ internal sealed partial class WorkloadEmitter(
     private async Task EmitConversationTurnAsync(string sessionId, CancellationToken stoppingToken,
         bool allowFailure = true)
     {
-        var model = Models[Random.Shared.Next(Models.Length)];
-        var route = Routes[Random.Shared.Next(Routes.Length)];
+        var model = s_models[Random.Shared.Next(s_models.Length)];
+        var route = s_routes[Random.Shared.Next(s_routes.Length)];
         var failed = allowFailure && Random.Shared.Next(100) < ErrorPercent;
 
         using var root = WorkloadTelemetry.Source.StartActivity($"POST {route}", ActivityKind.Server);
@@ -117,7 +117,7 @@ internal sealed partial class WorkloadEmitter(
 
     private static async Task EmitDbSpanAsync(string sessionId, CancellationToken stoppingToken)
     {
-        var table = Tables[Random.Shared.Next(Tables.Length)];
+        var table = s_tables[Random.Shared.Next(s_tables.Length)];
         var durationMs = Random.Shared.Next(2, 28);
 
         using var span = Spans.DbClient(DbSystemName.Postgresql, collectionName: table, @namespace: "qyl_demo",

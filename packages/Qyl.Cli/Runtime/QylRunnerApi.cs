@@ -32,7 +32,7 @@ internal sealed partial class QylRunnerApi(
     internal const int MaxConcurrentStreams = 8;
 
     // How long shutdown waits for the in-flight requests to answer before the listener is stopped.
-    internal static readonly TimeSpan ShutdownGracePeriod = TimeSpan.FromSeconds(2);
+    internal static readonly TimeSpan s_shutdownGracePeriod = TimeSpan.FromSeconds(2);
 
     private readonly HttpListener _listener = new();
     private readonly TaskCompletionSource _inFlightDrained = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,7 +42,7 @@ internal sealed partial class QylRunnerApi(
 
     public override Task StartAsync(CancellationToken cancellationToken)
     {
-        var prefix = $"{QylConstants.Network.HttpScheme}://{QylConstants.Network.Loopback}:{options.RunnerPort}{QylConstants.Routes.Runner}/";
+        var prefix = $"{Uri.UriSchemeHttp}://{OrchestrationDefaults.Network.Loopback}:{options.RunnerPort}{QylConstants.Routes.Runner}/";
         _listener.Prefixes.Add(prefix);
         try
         {
@@ -147,7 +147,7 @@ internal sealed partial class QylRunnerApi(
 
         try
         {
-            await _inFlightDrained.Task.WaitAsync(ShutdownGracePeriod).ConfigureAwait(false);
+            await _inFlightDrained.Task.WaitAsync(s_shutdownGracePeriod).ConfigureAwait(false);
         }
         catch (TimeoutException)
         {
@@ -199,8 +199,8 @@ internal sealed partial class QylRunnerApi(
     private static bool IsStreamingRequest(HttpListenerRequest request)
     {
         var path = (request.Url?.AbsolutePath ?? string.Empty).TrimEnd('/');
-        const string resourcesRoot = QylConstants.Routes.Runner + "/resources";
-        return string.Equals(path, resourcesRoot + "/stream", StringComparison.Ordinal) ||
+        const string ResourcesRoot = QylConstants.Routes.Runner + "/resources";
+        return string.Equals(path, ResourcesRoot + "/stream", StringComparison.Ordinal) ||
                path.EndsWith("/logs/stream", StringComparison.Ordinal);
     }
 
@@ -230,14 +230,14 @@ internal sealed partial class QylRunnerApi(
             }
 
             var path = (context.Request.Url?.AbsolutePath ?? string.Empty).TrimEnd('/');
-            const string resourcesRoot = QylConstants.Routes.Runner + "/resources";
-            if (!path.StartsWith(resourcesRoot, StringComparison.Ordinal))
+            const string ResourcesRoot = QylConstants.Routes.Runner + "/resources";
+            if (!path.StartsWith(ResourcesRoot, StringComparison.Ordinal))
             {
                 NotFound(context);
                 return;
             }
 
-            var rest = path[resourcesRoot.Length..].Trim('/');
+            var rest = path[ResourcesRoot.Length..].Trim('/');
             switch (rest)
             {
                 case "":

@@ -7,11 +7,11 @@ internal static class Snapshot
     /// Found from the test binary upwards, not through [CallerFilePath]: a server build (Fallout under
     /// GitHub Actions) sets ContinuousIntegrationBuild, which maps compiler paths to /_/.
     /// </summary>
-    private static readonly string SnapshotDirectory = Locate();
+    private static readonly string s_snapshotDirectory = Locate();
 
     public static void Matches(string actual, string name)
     {
-        var path = Path.Combine(SnapshotDirectory, name);
+        var path = Path.Combine(s_snapshotDirectory, name);
         var normalized = actual.Replace("\r\n", "\n", StringComparison.Ordinal);
 
         if (Environment.GetEnvironmentVariable("QYL_UPDATE_SNAPSHOTS") == "1")

@@ -85,8 +85,8 @@ internal static class QylResourceBuilderExtensions
                 $"Resource '{resource.Name}' does not expose a '{endpointName}' endpoint.");
         }
 
-        return new Uri(string.Format(CultureInfo.InvariantCulture, QylConstants.Network.LocalhostUrlTemplate,
-            QylConstants.Network.Loopback, port));
+        return new Uri(string.Format(CultureInfo.InvariantCulture, OrchestrationDefaults.Network.LocalhostUrlTemplate,
+            OrchestrationDefaults.Network.Loopback, port));
     }
 
 }

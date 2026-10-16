@@ -387,7 +387,7 @@ public sealed class MetricStorageTests
     {
         await using var store = new DuckDbStore(":memory:");
         var ct = TestContext.Current.CancellationToken;
-        const string traceId = "00000000000000000000000000000042";
+        const string TraceId = "00000000000000000000000000000042";
         var first = new HistogramDataPoint
         {
             StartTimeUnixNano = T0, TimeUnixNano = T0 + OneSecond, Count = 10, Sum = 100,
@@ -396,7 +396,7 @@ public sealed class MetricStorageTests
         var second = first.Clone();
         second.TimeUnixNano = T0 + 2 * OneSecond; second.Count = 15; second.Sum = 160;
         second.BucketCounts[0] = 15;
-        second.Exemplars.Add(new Exemplar { TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(traceId)), TimeUnixNano = second.TimeUnixNano, AsDouble = 12 });
+        second.Exemplars.Add(new Exemplar { TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(TraceId)), TimeUnixNano = second.TimeUnixNano, AsDouble = 12 });
         await IngestAsync(store, Request(new OtlpMetric
         {
             Name = "cumulative.latency", Histogram = new Histogram
@@ -412,7 +412,7 @@ public sealed class MetricStorageTests
         // The previous point is outside the selected window but remains the subtraction baseline.
         Assert.Equal(5d, Assert.Single(Assert.Single(await store.QueryMetricAsync(query with { StartUnixNano = T0 + OneSecond + 1 }, ct)).Points).Value);
         var snapshot = await store.ReadAnalysisSnapshotAsync(ProjectScope.DefaultProjectId, ct: ct);
-        Assert.Equal(traceId, Assert.Single(snapshot.Exemplars).TraceId);
+        Assert.Equal(TraceId, Assert.Single(snapshot.Exemplars).TraceId);
         Assert.Equal(5UL, MetricHistogram.HistogramDelta(snapshot.Points.OrderBy(p => p.TimeUnixNano).Last(), snapshot.Points.OrderBy(p => p.TimeUnixNano).First(), T0)!.HistogramCount);
     }
 

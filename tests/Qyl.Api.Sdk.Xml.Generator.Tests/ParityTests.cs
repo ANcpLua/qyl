@@ -8,16 +8,16 @@ namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 /// <summary>XmlSerializer is the oracle: the generated writer must produce the same document for the same attributes.</summary>
 public sealed class ParityTests
 {
-    private static readonly XmlWriterSettings Settings = new()
+    private static readonly XmlWriterSettings s_settings = new()
     {
         OmitXmlDeclaration = true,
         ConformanceLevel = ConformanceLevel.Document,
         Indent = false,
     };
 
-    private static readonly DateTime Placed = new(2026, 9, 7, 10, 30, 0, DateTimeKind.Utc);
+    private static readonly DateTime s_placed = new(2026, 9, 7, 10, 30, 0, DateTimeKind.Utc);
 
-    private static readonly string[] StatusNames = ["open", "paid", "Shipped"];
+    private static readonly string[] s_statusNames = ["open", "paid", "Shipped"];
 
     [Fact]
     public void TreeWithNamespacesEnumsCollectionsAndText()
@@ -28,7 +28,7 @@ public sealed class ParityTests
             Status = OrderStatus.Paid,
             Customer = new Customer { Kind = "vip", Name = "Ada", Address = new Address { City = "Wien", Zip = "1010" } },
             Note = "leave at door",
-            Placed = Placed,
+            Placed = s_placed,
             Days = Weekdays.Monday | Weekdays.Tuesday,
             Lines = [new OrderLine { Sku = "A-1", Quantity = 2, Price = 9.99m }, new OrderLine { Sku = "B-2", Quantity = 1, Price = 0.5m }],
             Tags = ["fragile", "gift"],
@@ -49,7 +49,7 @@ public sealed class ParityTests
         {
             Id = 1,
             Status = OrderStatus.Shipped,
-            Placed = Placed,
+            Placed = s_placed,
             Days = Weekdays.None,
             Lines = [],
             Tags = [],
@@ -66,7 +66,7 @@ public sealed class ParityTests
     [InlineData(Weekdays.Monday | Weekdays.Wednesday)]
     public void FlagsFollowXmlSerializerMemberSelection(Weekdays days)
     {
-        AssertParity(new Order { Id = 2, Placed = Placed, Days = days });
+        AssertParity(new Order { Id = 2, Placed = s_placed, Days = days });
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class ParityTests
         var order = new Order
         {
             Id = 3,
-            Placed = Placed,
+            Placed = s_placed,
             Scores = [1, null, 3],
             Labels = ["a", null],
             Aliases = ["x", null],
@@ -88,13 +88,13 @@ public sealed class ParityTests
     [Fact]
     public void NilWrapperForAbsentCollectionWithIsNullable()
     {
-        AssertParity(new Order { Id = 4, Placed = Placed, Scores = null, Labels = null });
+        AssertParity(new Order { Id = 4, Placed = s_placed, Scores = null, Labels = null });
     }
 
     [Fact]
     public void BaseClassMembersComeFirst()
     {
-        AssertParity(new Document { CreatedBy = "ada", Created = Placed, Title = "Notes" });
+        AssertParity(new Document { CreatedBy = "ada", Created = s_placed, Title = "Notes" });
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class ParityTests
         Assert.True(lines.ItemNillable);
 
         var status = Order.XmlShape.Nodes.OfType<XmlAttributeShape>().Single(node => node.PropertyName == "Status");
-        Assert.Equal(StatusNames, status.Value.EnumValues!.ToArray());
+        Assert.Equal(s_statusNames, status.Value.EnumValues!.ToArray());
 
         var days = Order.XmlShape.Nodes.OfType<XmlElementShape>().Single(node => node.PropertyName == "Days");
         Assert.Null(days.Value.EnumValues);
@@ -148,7 +148,7 @@ public sealed class ParityTests
         Assert.Equal("<Customer><name>Ada</name></Customer>", customer.ToXml());
 
         var buffer = new StringWriter();
-        using (var writer = XmlWriter.Create(buffer, Settings))
+        using (var writer = XmlWriter.Create(buffer, s_settings))
         {
             customer.WriteXml(writer, "buyer", "urn:b");
         }
@@ -171,7 +171,7 @@ public sealed class ParityTests
         namespaces.Add(string.Empty, string.Empty);
 
         var buffer = new StringWriter();
-        using (var writer = XmlWriter.Create(buffer, Settings))
+        using (var writer = XmlWriter.Create(buffer, s_settings))
         {
             new XmlSerializer(typeof(T)).Serialize(writer, value, namespaces);
         }

@@ -139,13 +139,13 @@ public sealed class ReadPagingTests
     {
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var now = Primitives.TimeConversions.ToUnixNanoUnsigned(DateTimeOffset.UtcNow);
-        const ulong second = 1_000_000_000UL;
+        const ulong Second = 1_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
-            Span(TraceId(1), SpanId(1), 1 * second, 2 * second, sessionId: "ended-early"),
-            Span(TraceId(2), SpanId(2), 5 * second, 6 * second, sessionId: "ended-late"),
-            Span(TraceId(3), SpanId(3), 6 * second, 7 * second, sessionId: "ended-later"),
-            Span(TraceId(4), SpanId(4), now - second, now, sessionId: "live")
+            Span(TraceId(1), SpanId(1), 1 * Second, 2 * Second, sessionId: "ended-early"),
+            Span(TraceId(2), SpanId(2), 5 * Second, 6 * Second, sessionId: "ended-late"),
+            Span(TraceId(3), SpanId(3), 6 * Second, 7 * Second, sessionId: "ended-later"),
+            Span(TraceId(4), SpanId(4), now - Second, now, sessionId: "live")
         ]), TestContext.Current.CancellationToken);
 
         Assert.Equal(["live"], await CollectAsync(host, "/api/v1/sessions?is_active=true&limit=1", "session_id"));
@@ -251,17 +251,17 @@ public sealed class ReadPagingTests
 
     private static async Task SeedTracesAsync(CollectorApiTestHost host)
     {
-        const ulong second = 1_000_000_000UL;
+        const ulong Second = 1_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
-            Span(TraceId(1), SpanId(10), 1 * second, 2 * second),
-            Span(TraceId(1), SpanId(11), 1 * second + 1, 2 * second, parentSpanId: SpanId(10)),
-            Span(TraceId(1), SpanId(12), 1 * second + 2, 2 * second, parentSpanId: SpanId(10)),
-            Span(TraceId(2), SpanId(20), 2 * second, 3 * second),
-            Span(TraceId(2), SpanId(21), 2 * second + 1, 3 * second, parentSpanId: SpanId(20), status: 2),
-            Span(TraceId(3), SpanId(30), 3 * second, 4 * second, service: "billing"),
-            Span(TraceId(4), SpanId(40), 4 * second, 5 * second, status: 2),
-            Span(TraceId(5), SpanId(50), 1 * second, 9 * second, project: "beta", status: 2)
+            Span(TraceId(1), SpanId(10), 1 * Second, 2 * Second),
+            Span(TraceId(1), SpanId(11), 1 * Second + 1, 2 * Second, parentSpanId: SpanId(10)),
+            Span(TraceId(1), SpanId(12), 1 * Second + 2, 2 * Second, parentSpanId: SpanId(10)),
+            Span(TraceId(2), SpanId(20), 2 * Second, 3 * Second),
+            Span(TraceId(2), SpanId(21), 2 * Second + 1, 3 * Second, parentSpanId: SpanId(20), status: 2),
+            Span(TraceId(3), SpanId(30), 3 * Second, 4 * Second, service: "billing"),
+            Span(TraceId(4), SpanId(40), 4 * Second, 5 * Second, status: 2),
+            Span(TraceId(5), SpanId(50), 1 * Second, 9 * Second, project: "beta", status: 2)
         ]), TestContext.Current.CancellationToken);
     }
 

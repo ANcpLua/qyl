@@ -25,8 +25,8 @@ public sealed class LogEventContractTests
         var routeKey = canonicalBrowserEvent ? "url.path" : "page.route";
         var valueKey = canonicalBrowserEvent ? "browser.web_vital.value" : "web.vital.value";
         var logBody = canonicalBrowserEvent ? "LCP measured" : "MCP JSON-RPC request completed";
-        const string traceId = "11111111111111111111111111111111";
-        const string spanId = "2222222222222222";
+        const string TraceId = "11111111111111111111111111111111";
+        const string SpanId = "2222222222222222";
         var request = new ExportLogsServiceRequest
         {
             ResourceLogs =
@@ -57,8 +57,8 @@ public sealed class LogEventContractTests
                                     SeverityNumber = SeverityNumber.Info,
                                     SeverityText = "INFO",
                                     EventName = eventName,
-                                    TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(traceId)),
-                                    SpanId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(spanId)),
+                                    TraceId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(TraceId)),
+                                    SpanId = Google.Protobuf.ByteString.CopyFrom(Convert.FromHexString(SpanId)),
                                     Body = new AnyValue { StringValue = logBody },
                                     Attributes =
                                     {
@@ -103,8 +103,8 @@ public sealed class LogEventContractTests
         var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request));
         var converted = Assert.Single(rows);
         Assert.Equal(eventName, converted.EventName);
-        Assert.Equal(traceId, converted.TraceId);
-        Assert.Equal(spanId, converted.SpanId);
+        Assert.Equal(TraceId, converted.TraceId);
+        Assert.Equal(SpanId, converted.SpanId);
         // The stored body is the value's canonical JSON, so a string body carries its quotes.
         Assert.Equal(
             JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(logBody), QylSerializerContext.Default.AttributeValue),
@@ -139,8 +139,8 @@ public sealed class LogEventContractTests
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
         var restJson = await ReadBodyAsync(context);
         Assert.Contains($"\"event_name\":\"{eventName}\"", restJson, StringComparison.Ordinal);
-        Assert.Contains($"\"trace_id\":\"{traceId}\"", restJson, StringComparison.Ordinal);
-        Assert.Contains($"\"span_id\":\"{spanId}\"", restJson, StringComparison.Ordinal);
+        Assert.Contains($"\"trace_id\":\"{TraceId}\"", restJson, StringComparison.Ordinal);
+        Assert.Contains($"\"span_id\":\"{SpanId}\"", restJson, StringComparison.Ordinal);
         Assert.Contains(logBody, restJson, StringComparison.Ordinal);
         Assert.Contains($"\"key\":\"{routeKey}\"", restJson, StringComparison.Ordinal);
         Assert.Contains("\"value\":\"/docs/mcp/\"", restJson, StringComparison.Ordinal);
@@ -167,8 +167,8 @@ public sealed class LogEventContractTests
         Assert.Equal(eventName, streamEvent.Data.EventName);
         var streamJson = JsonSerializer.Serialize(streamEvent, QylSerializerContext.Default.LogStreamEvent);
         Assert.Contains($"\"event_name\":\"{eventName}\"", streamJson, StringComparison.Ordinal);
-        Assert.Contains($"\"trace_id\":\"{traceId}\"", streamJson, StringComparison.Ordinal);
-        Assert.Contains($"\"span_id\":\"{spanId}\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains($"\"trace_id\":\"{TraceId}\"", streamJson, StringComparison.Ordinal);
+        Assert.Contains($"\"span_id\":\"{SpanId}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains(logBody, streamJson, StringComparison.Ordinal);
         Assert.Contains($"\"key\":\"{routeKey}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains("\"value\":\"/docs/mcp/\"", streamJson, StringComparison.Ordinal);

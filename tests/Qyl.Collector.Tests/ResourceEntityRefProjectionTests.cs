@@ -52,7 +52,7 @@ public sealed class ResourceEntityRefProjectionTests
         Assert.NotNull(spanRow.ResourceEntityRefsJson);
         AssertCanonicalRefs(Assert.Single(SpanMapper.ToContracts([spanRow])).Resource.EntityRefs);
 
-        const string eventName = "entity.ref.log";
+        const string EventName = "entity.ref.log";
         var logRequest = new ExportLogsServiceRequest
         {
             ResourceLogs =
@@ -68,7 +68,7 @@ public sealed class ResourceEntityRefProjectionTests
                             {
                                 new OtlpLogRecord
                                 {
-                                    EventName = eventName,
+                                    EventName = EventName,
                                     TimeUnixNano = 3
                                 }
                             }
@@ -79,9 +79,9 @@ public sealed class ResourceEntityRefProjectionTests
         };
         var logRow = Assert.Single(IngestionStorageMapper.ToLogStorageRows(
             OtlpConverter.ConvertLogs(logRequest)));
-        Assert.Equal(eventName, logRow.EventName);
+        Assert.Equal(EventName, logRow.EventName);
         var log = LogMapper.ToContract(logRow);
-        Assert.Equal(eventName, log.EventName);
+        Assert.Equal(EventName, log.EventName);
         AssertCanonicalRefs(log.Resource.EntityRefs);
 
         await using var store = new DuckDbStore(":memory:");
@@ -94,7 +94,7 @@ public sealed class ResourceEntityRefProjectionTests
         var storedLog = Assert.Single(await store.GetLogsAsync(
             "default",
             ct: TestContext.Current.CancellationToken));
-        Assert.Equal(eventName, storedLog.EventName);
+        Assert.Equal(EventName, storedLog.EventName);
         AssertCanonicalRefs(LogMapper.ToContract(storedLog).Resource.EntityRefs);
     }
 

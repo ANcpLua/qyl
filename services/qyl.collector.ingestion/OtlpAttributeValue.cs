@@ -17,12 +17,12 @@ internal enum OtlpAttributeValueKind
 
 internal sealed class OtlpAttributeValue
 {
-    private readonly object value;
+    private readonly object _value;
 
     private OtlpAttributeValue(OtlpAttributeValueKind kind, object value)
     {
         Kind = kind;
-        this.value = value;
+        _value = value;
     }
 
     public OtlpAttributeValueKind Kind { get; }
@@ -46,14 +46,14 @@ internal sealed class OtlpAttributeValue
         new(OtlpAttributeValueKind.KeyValueList, value);
 
     public string? AsString() =>
-        Kind is OtlpAttributeValueKind.String ? (string)value : null;
+        Kind is OtlpAttributeValueKind.String ? (string)_value : null;
 
     public long? AsInt64() =>
         Kind switch
         {
-            OtlpAttributeValueKind.Int => (long)value,
+            OtlpAttributeValueKind.Int => (long)_value,
             OtlpAttributeValueKind.String when long.TryParse(
-                (string)value,
+                (string)_value,
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
                 out var parsed) => parsed,
@@ -71,16 +71,16 @@ internal sealed class OtlpAttributeValue
         Kind switch
         {
             OtlpAttributeValueKind.Empty => null,
-            OtlpAttributeValueKind.String => new ContractValue.StringValue((string)value),
-            OtlpAttributeValueKind.Bool => new ContractValue.BoolValue((bool)value),
-            OtlpAttributeValueKind.Int => new ContractValue.ObjectValue(new AttributeIntValue { Value = (long)value }),
-            OtlpAttributeValueKind.Double => new ContractValue.ObjectValue(new AttributeDoubleValue { Value = (double)value }),
-            OtlpAttributeValueKind.Bytes => new ContractValue.ObjectValue(new AttributeBytesValue { Base64 = (byte[])value }),
+            OtlpAttributeValueKind.String => new ContractValue.StringValue((string)_value),
+            OtlpAttributeValueKind.Bool => new ContractValue.BoolValue((bool)_value),
+            OtlpAttributeValueKind.Int => new ContractValue.ObjectValue(new AttributeIntValue { Value = (long)_value }),
+            OtlpAttributeValueKind.Double => new ContractValue.ObjectValue(new AttributeDoubleValue { Value = (double)_value }),
+            OtlpAttributeValueKind.Bytes => new ContractValue.ObjectValue(new AttributeBytesValue { Base64 = (byte[])_value }),
             OtlpAttributeValueKind.Array => new ContractValue.ArrayValue(
-                ((IReadOnlyList<OtlpAttributeValue>)value).Select(static item => item.ToContract()).ToArray()),
+                ((IReadOnlyList<OtlpAttributeValue>)_value).Select(static item => item.ToContract()).ToArray()),
             OtlpAttributeValueKind.KeyValueList => new ContractValue.ObjectValue(new AttributeKeyValueListValue
             {
-                Values = ((IReadOnlyDictionary<string, OtlpAttributeValue>)value)
+                Values = ((IReadOnlyDictionary<string, OtlpAttributeValue>)_value)
                     .OrderBy(static item => item.Key, StringComparer.Ordinal)
                     .ToDictionary(static item => item.Key, static item => item.Value.ToContract(), StringComparer.Ordinal)
             }),

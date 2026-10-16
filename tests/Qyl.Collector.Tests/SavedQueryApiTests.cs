@@ -155,14 +155,14 @@ public sealed class SavedQueryApiTests
     {
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
         var now = TimeConversions.ToUnixNanoUnsigned(DateTimeOffset.UtcNow);
-        const ulong minute = 60_000_000_000UL;
+        const ulong Minute = 60_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
-            Span(TraceId(1), SpanId(1), now - 5 * minute, now - 4 * minute, status: 2),
-            Span(TraceId(2), SpanId(2), now - 3 * minute, now - 2 * minute, status: 2),
-            Span(TraceId(3), SpanId(3), now - 3 * minute, now - 2 * minute),
-            Span(TraceId(4), SpanId(4), now - 3 * minute, now - 2 * minute, service: "billing", status: 2),
-            Span(TraceId(5), SpanId(5), now - 180 * minute, now - 179 * minute, status: 2)
+            Span(TraceId(1), SpanId(1), now - 5 * Minute, now - 4 * Minute, status: 2),
+            Span(TraceId(2), SpanId(2), now - 3 * Minute, now - 2 * Minute, status: 2),
+            Span(TraceId(3), SpanId(3), now - 3 * Minute, now - 2 * Minute),
+            Span(TraceId(4), SpanId(4), now - 3 * Minute, now - 2 * Minute, service: "billing", status: 2),
+            Span(TraceId(5), SpanId(5), now - 180 * Minute, now - 179 * Minute, status: 2)
         ]), TestContext.Current.CancellationToken);
         using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer",
             $$"""{"name":"errors","filter":{{ErrorsFilter}}}""");
@@ -240,13 +240,13 @@ public sealed class SavedQueryApiTests
     public async Task A_metric_run_aggregates_with_structured_matchers()
     {
         await using var host = await StartAsync(TestContext.Current.CancellationToken);
-        const ulong t0 = 1_700_000_000_000_000_000UL;
+        const ulong T0 = 1_700_000_000_000_000_000UL;
         var gauge = new Gauge();
         foreach (var (route, value) in new[] { ("/api/a", 2d), ("/api/b", 4d), ("/health", 100d) })
         {
             gauge.DataPoints.Add(new NumberDataPoint
             {
-                TimeUnixNano = t0,
+                TimeUnixNano = T0,
                 AsDouble = value,
                 Attributes = { new KeyValue { Key = "http.route", Value = new AnyValue { StringValue = route } } }
             });

@@ -19,7 +19,6 @@ internal static class QylConstants
     public static class Ports
     {
         public const int RunnerApi = 18889;
-        public const int DynamicAllocation = OrchestrationDefaults.Ports.DynamicAllocation;
     }
 
     public static class Environments
@@ -27,16 +26,8 @@ internal static class QylConstants
         public const string Dev = "dev";
     }
 
-    public static class Network
-    {
-        public const string Loopback = OrchestrationDefaults.Network.Loopback;
-        public const string LocalhostUrlTemplate = OrchestrationDefaults.Network.LocalhostUrlTemplate;
-        public const string HttpScheme = "http";
-    }
-
     public static class Env
     {
-        public const string AspNetCoreUrls = OrchestrationDefaults.Env.AspNetCoreUrls;
         public const string AspNetCoreEnvironment = "ASPNETCORE_ENVIRONMENT";
         public const string DotnetEnvironment = "DOTNET_ENVIRONMENT";
         public const string OtelServiceName = "OTEL_SERVICE_NAME";
@@ -69,13 +60,7 @@ internal static class QylConstants
 
     public static class Routes
     {
-        public const string Health = OrchestrationDefaults.Routes.Health;
         public const string Runner = "/runner";
-    }
-
-    public static class HttpClients
-    {
-        public const string HealthProbe = OrchestrationDefaults.HttpClients.HealthProbe;
     }
 
     public static class Keys
@@ -89,23 +74,12 @@ internal static class QylConstants
     public static class Orchestrator
     {
         public const string DotnetExecutable = "dotnet";
-        public const int HealthPollIntervalMs = OrchestrationDefaults.Orchestrator.HealthPollIntervalMs;
-        public const int HealthProbeAttemptTimeoutSeconds = OrchestrationDefaults.Orchestrator.HealthProbeAttemptTimeoutSeconds;
-        public const int StartupTimeoutSeconds = OrchestrationDefaults.Orchestrator.StartupTimeoutSeconds;
-        public const int MaxRestarts = OrchestrationDefaults.Orchestrator.MaxRestarts;
     }
 
     public static class LogEvents
     {
-        public const int OrchestratorStarted = OrchestrationDefaults.LogEvents.OrchestratorStarted;
-        public const int ResourceReady = OrchestrationDefaults.LogEvents.ResourceReady;
-        public const int ResourceFailed = OrchestrationDefaults.LogEvents.ResourceFailed;
-        public const int ResourceRestarting = OrchestrationDefaults.LogEvents.ResourceRestarting;
-        public const int ChildStdout = OrchestrationDefaults.LogEvents.ChildStdout;
-        public const int ChildStderr = OrchestrationDefaults.LogEvents.ChildStderr;
         public const int RunnerApiListening = 1107;
         public const int RunnerApiBindFailed = 1108;
         public const int RunnerApiRequestFailed = 1109;
-        public const int ResourceUserRestart = OrchestrationDefaults.LogEvents.ResourceUserRestart;
     }
 }

@@ -10,6 +10,8 @@
   scope as the loaded matching records.
 - Exercise older errors, equal timestamps, complete history, filter changes and
   failed-page retries against the real collector in browser tests.
+- Remove unused constant aliases, mapping helpers and intermediate record fields;
+  correct field and constant names reported by inspections.
 
 ## 13.2.0 — 2026-10-15
 

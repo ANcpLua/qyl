@@ -15,7 +15,7 @@ internal static class ResourceHttp
     internal const int MaxIdempotencyKeyLength = 255;
 
     /// <summary>A key older than this reads as absent and may be reused.</summary>
-    internal static readonly TimeSpan IdempotencyKeyLifetime = TimeSpan.FromHours(24);
+    internal static readonly TimeSpan s_idempotencyKeyLifetime = TimeSpan.FromHours(24);
 
     internal static async Task<(T? Value, IResult? Error)> ReadJsonBodyAsync<T>(
         HttpRequest request,
@@ -38,23 +38,6 @@ internal static class ResourceHttp
                 "The request body is not valid JSON for this operation's contract model, " +
                 "or a required member or discriminator is missing or unknown."));
         }
-    }
-
-    /// <summary>A body whose members are all optional may be omitted entirely.</summary>
-    internal static async Task<(T? Value, IResult? Error)> ReadOptionalJsonBodyAsync<T>(
-        HttpRequest request,
-        JsonTypeInfo<T> typeInfo,
-        Func<T> empty,
-        CancellationToken ct)
-        where T : class
-    {
-        if (request.ContentLength is 0 ||
-            (request.ContentLength is null && !request.Headers.ContainsKey(HeaderNames.TransferEncoding)))
-        {
-            return (empty(), null);
-        }
-
-        return await ReadJsonBodyAsync(request, typeInfo, ct).ConfigureAwait(false);
     }
 
     internal static IResult InvalidBody(string message) =>
@@ -143,5 +126,5 @@ internal static class ResourceHttp
         QylTimeConversions.ToUnixNanoUnsigned(timeProvider.GetUtcNow());
 
     internal static ulong IdempotencyNotBefore(TimeProvider timeProvider) =>
-        QylTimeConversions.ToUnixNanoUnsigned(timeProvider.GetUtcNow() - IdempotencyKeyLifetime);
+        QylTimeConversions.ToUnixNanoUnsigned(timeProvider.GetUtcNow() - s_idempotencyKeyLifetime);
 }

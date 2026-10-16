@@ -4,7 +4,7 @@ namespace Qyl.Collector.Analysis;
 
 internal sealed partial class AnalysisEngine
 {
-    private static readonly string[] TargetFields = ["trace_id", "session_id", "failure_id", "ci_run_id"];
+    private static readonly string[] s_targetFields = ["trace_id", "session_id", "failure_id", "ci_run_id"];
     private List<AnalysisRecord> Execution(JsonNode? value)
     {
         var trace = J.String(value, "trace_id"); var session = J.String(value, "session_id");
@@ -70,7 +70,7 @@ internal sealed partial class AnalysisEngine
     }
     private JsonObject FailureContext(JsonObject input)
     {
-        var choices = TargetFields.Count(k => J.String(input, k) is not null);
+        var choices = s_targetFields.Count(k => J.String(input, k) is not null);
         if (choices != 1) throw new AnalysisInputException("target", "Provide exactly one of trace_id, session_id, failure_id or ci_run_id.");
         List<AnalysisRecord> spans;
         if (J.String(input, "failure_id") is { } failure)

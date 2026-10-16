@@ -137,10 +137,9 @@ internal sealed record MetricAggregatePoint(
     ulong PointCount);
 
 /// <summary>
-/// One result stream of a metric query: the grouping key that produced it plus its buckets.
+/// One result stream of a metric query: its grouping attributes and time buckets.
 /// </summary>
 internal sealed record MetricQuerySeries(
-    string SeriesId,
     string? AttributesJson,
     IReadOnlyList<MetricAggregatePoint> Points);
 

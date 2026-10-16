@@ -464,7 +464,7 @@ public sealed class OtlpWireTests
         bool json,
         bool gzip)
     {
-        const ulong pointTime = 1_700_000_000_000_000_000UL;
+        const ulong PointTime = 1_700_000_000_000_000_000UL;
         var request = new ExportMetricsServiceRequest
         {
             ResourceMetrics =
@@ -487,11 +487,11 @@ public sealed class OtlpWireTests
                                         {
                                             new NumberDataPoint
                                             {
-                                                TimeUnixNano = pointTime, AsDouble = 4
+                                                TimeUnixNano = PointTime, AsDouble = 4
                                             },
                                             new NumberDataPoint
                                             {
-                                                TimeUnixNano = pointTime + 1, AsDouble = 6
+                                                TimeUnixNano = PointTime + 1, AsDouble = 6
                                             }
                                         }
                                     }
@@ -505,7 +505,7 @@ public sealed class OtlpWireTests
                                         AggregationTemporality = AggregationTemporality.Cumulative,
                                         DataPoints =
                                         {
-                                            new NumberDataPoint { TimeUnixNano = pointTime, AsInt = 7 }
+                                            new NumberDataPoint { TimeUnixNano = PointTime, AsInt = 7 }
                                         }
                                     }
                                 },
@@ -519,7 +519,7 @@ public sealed class OtlpWireTests
                                         {
                                             new HistogramDataPoint
                                             {
-                                                TimeUnixNano = pointTime,
+                                                TimeUnixNano = PointTime,
                                                 Count = 3,
                                                 Sum = 12,
                                                 ExplicitBounds = { 1.0, 5.0 },
@@ -538,7 +538,7 @@ public sealed class OtlpWireTests
                                         {
                                             new ExponentialHistogramDataPoint
                                             {
-                                                TimeUnixNano = pointTime,
+                                                TimeUnixNano = PointTime,
                                                 Scale = 0,
                                                 Count = 2,
                                                 Sum = 6,
@@ -651,7 +651,7 @@ public sealed class OtlpWireTests
     [Fact]
     public void Public_attribute_projection_preserves_recursive_otlp_values_on_the_generated_json_boundary()
     {
-        const string persisted = """
+        const string Persisted = """
                                  {
                                    "binary":{"type":"bytes","base64":"/wA="},
                                    "empty":null,
@@ -662,7 +662,7 @@ public sealed class OtlpWireTests
                                  }
                                  """;
         var attributes = Assert.IsAssignableFrom<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
-            ContractJson.ParseAttributes(persisted));
+            ContractJson.ParseAttributes(Persisted));
 
         var node = JsonNode.Parse(JsonSerializer.Serialize(
             attributes.ToArray(),

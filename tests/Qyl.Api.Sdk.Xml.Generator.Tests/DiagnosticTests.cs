@@ -47,7 +47,7 @@ public sealed class DiagnosticTests
     [Fact]
     public void HandledOptionsProduceNoDiagnostics()
     {
-        const string source = """
+        const string Source = """
             [GenerateXml]
             [XmlRoot(ElementName = "m", Namespace = "urn:m")]
             public partial class Model
@@ -69,7 +69,7 @@ public sealed class DiagnosticTests
             public enum Level { [XmlEnum(Name = "lo")] Low, [XmlEnum("hi")] High, [XmlIgnore] Hidden }
             """;
 
-        var run = GeneratorHarness.Run(("Model.cs", Usings + source));
+        var run = GeneratorHarness.Run(("Model.cs", Usings + Source));
 
         Assert.True(run.DiagnosticIds.Length is 0, string.Join(Environment.NewLine, run.Diagnostics));
         Assert.Empty(run.OutputErrors);

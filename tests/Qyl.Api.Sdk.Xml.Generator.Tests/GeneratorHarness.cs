@@ -8,7 +8,7 @@ namespace Qyl.Api.Sdk.Xml.Generator.Tests;
 /// <summary>Runs the generator over in-memory sources against the real runtime and the linked <c>Qyl.Xml</c> contract.</summary>
 internal static class GeneratorHarness
 {
-    private static readonly ImmutableArray<MetadataReference> References = LoadReferences();
+    private static readonly ImmutableArray<MetadataReference> s_references = LoadReferences();
 
     public static CSharpCompilation CreateCompilation(params (string Path, string Source)[] files)
     {
@@ -17,7 +17,7 @@ internal static class GeneratorHarness
         return CSharpCompilation.Create(
             "Qyl.Generated.Tests",
             trees,
-            References,
+            s_references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
     }
 
@@ -33,7 +33,7 @@ internal static class GeneratorHarness
         var compilation = CreateCompilation(files);
         var driver = CreateDriver().RunGeneratorsAndUpdateCompilation(compilation, out var output, out var diagnostics);
 
-        return new GeneratorRun(driver, compilation, output, diagnostics);
+        return new GeneratorRun(driver, output, diagnostics);
     }
 
     private static ImmutableArray<MetadataReference> LoadReferences()
@@ -56,7 +56,7 @@ internal static class GeneratorHarness
     }
 }
 
-internal sealed record GeneratorRun(GeneratorDriver Driver, Compilation Input, Compilation Output, ImmutableArray<Diagnostic> Diagnostics)
+internal sealed record GeneratorRun(GeneratorDriver Driver, Compilation Output, ImmutableArray<Diagnostic> Diagnostics)
 {
     public GeneratorRunResult Result => Driver.GetRunResult().Results[0];
 

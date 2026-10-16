@@ -10,8 +10,8 @@ public sealed class CompositionTests
     {
         if (OperatingSystem.IsWindows()) return;
 
-        const string executable = "/bin/echo";
-        Assert.True(File.Exists(executable), $"Expected the platform executable {executable}.");
+        const string Executable = "/bin/echo";
+        Assert.True(File.Exists(Executable), $"Expected the platform executable {Executable}.");
 
         var resource = new QylResource
         {
@@ -20,7 +20,7 @@ public sealed class CompositionTests
             Port = 54321,
             Launch = new QylLaunchSpec
             {
-                Executable = executable,
+                Executable = Executable,
                 Args = new System.Collections.ObjectModel.ReadOnlyCollection<string>(["hello world"])
             }
         };

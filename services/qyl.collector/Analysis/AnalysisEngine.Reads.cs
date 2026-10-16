@@ -5,7 +5,7 @@ namespace Qyl.Collector.Analysis;
 
 internal sealed partial class AnalysisEngine
 {
-    private static readonly string[] MissingArguments = ["Arguments not captured; repeats cannot be confirmed without argument hashes."];
+    private static readonly string[] s_missingArguments = ["Arguments not captured; repeats cannot be confirmed without argument hashes."];
     private JsonObject AnnotationJson(AnnotationRow row) => _state.GetValueOrDefault("annotation:" + row.AnnotationId) is { } metadata ? JsonNode.Parse(metadata.ValueJson)!.AsObject() : JsonSerializer.SerializeToNode(AnnotationMapper.ToContract(row), QylSerializerContext.Default.Annotation)!.AsObject();
     private List<JsonObject> TraceAnnotations(string traceId, IReadOnlySet<string>? spanIds = null) =>
     [
@@ -45,7 +45,7 @@ internal sealed partial class AnalysisEngine
         var total = TotalTokens(rows); var start = rows.Count is 0 ? now : DateTimeOffset.FromUnixTimeMilliseconds((long)(rows.Min(r => r.Start) / 1_000_000));
         return J.O(("run", J.O(("agent_name", rows.Select(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiAgentName))).FirstOrDefault(v => v.Length > 0)), ("models", rows.Select(r => r.Span?.GenAiResponseModel ?? r.Span?.GenAiRequestModel).OfType<string>().Distinct()), ("started", start.ToString("O")), ("duration_ms", rows.Count is 0 ? 0 : (rows.Max(r => r.End) - rows.Min(r => r.Start)) / 1_000_000d), ("tokens", Tokens(rows)), ("errors", rows.Count(r => r.Error)), ("session_id", J.String(input, "session_id")), ("trace_id", J.String(input, "trace_id")))),
             ("steps", J.A(steps)), ("findings", J.O(("repeated_calls", J.A(repeated)), ("failed_tool_calls", J.A(steps.Where(s => J.String(s, "kind") == "tool_call" && J.String(s, "status") == "ERROR").Take(10))), ("slowest_steps", J.A(steps.OrderByDescending(s => J.Number(s, "duration_ms")).Take(3))), ("token_share", J.A(rows.GroupBy(r => r.Name).Select(g => J.O(("name", g.Key), ("tokens", TotalTokens(g)), ("share", total is 0 ? 0 : TotalTokens(g) / (double)total))))))),
-            ("unknowns", J.N(rows.Any(r => r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null && r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash) is null) ? MissingArguments : [])),
+            ("unknowns", J.N(rows.Any(r => r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null && r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash) is null) ? s_missingArguments : [])),
             ("coverage", Coverage(rows.Count, steps.Count, Math.Min(steps.Count, limit), steps.Count > limit)));
     }
     private JsonObject Sessions(JsonObject input)

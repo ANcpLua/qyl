@@ -113,7 +113,7 @@ internal sealed class QylConsoleUi(
     private static string PortText(QylResource resource, QylResourceState? state)
     {
         var port = state?.AllocatedPort ??
-                   (resource.Port == QylConstants.Ports.DynamicAllocation ? null : resource.Port);
+                   (resource.Port == OrchestrationDefaults.Ports.DynamicAllocation ? null : resource.Port);
         return port?.ToString(CultureInfo.InvariantCulture) ?? "[grey]auto[/]";
     }
 

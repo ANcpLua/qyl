@@ -18,28 +18,28 @@ namespace QylToolSmoke;
 /// </summary>
 internal static class CiTelemetry
 {
-    private static readonly string? Endpoint =
+    private static readonly string? s_endpoint =
         NonEmpty(Environment.GetEnvironmentVariable("QYL_CI_OTLP_ENDPOINT"));
 
     // The hosted collector guards /v1/traces with ApiKeyAuth (header x-otlp-api-key,
     // per the published OpenAPI); local collectors don't require it.
-    private static readonly string? ApiKey =
+    private static readonly string? s_apiKey =
         NonEmpty(Environment.GetEnvironmentVariable("QYL_CI_API_KEY"));
 
-    private static readonly string RunId =
+    private static readonly string s_runId =
         NonEmpty(Environment.GetEnvironmentVariable("QYL_CI_RUN_ID")) ?? $"local-{Environment.MachineName}";
 
-    private static readonly string Leg =
+    private static readonly string s_leg =
         NonEmpty(Environment.GetEnvironmentVariable("QYL_CI_LEG"))
         ?? System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
 
-    private static readonly string TraceId = RandomHex(16);
+    private static readonly string s_traceId = RandomHex(16);
 
-    private static readonly JsonSerializerOptions ExportOptions =
+    private static readonly JsonSerializerOptions s_exportOptions =
         new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
-    private static readonly List<(string Name, long StartNano, long EndNano, bool Ok, string? Message)> Phases = [];
-    private static string? _openPhase;
-    private static long _openPhaseStart;
+    private static readonly List<(string Name, long StartNano, long EndNano, bool Ok, string? Message)> s_phases = [];
+    private static string? s_openPhase;
+    private static long s_openPhaseStart;
 
     private static string? NonEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -52,28 +52,28 @@ internal static class CiTelemetry
     /// <summary>Closes the previous phase as ok and opens the next one.</summary>
     public static void Mark(string message)
     {
-        if (Endpoint is null) return;
+        if (s_endpoint is null) return;
         var now = NowNano();
-        if (_openPhase is not null) Phases.Add((_openPhase, _openPhaseStart, now, true, null));
-        _openPhase = message;
-        _openPhaseStart = now;
+        if (s_openPhase is not null) s_phases.Add((s_openPhase, s_openPhaseStart, now, true, null));
+        s_openPhase = message;
+        s_openPhaseStart = now;
     }
 
     /// <summary>Closes the open phase with the run's outcome and exports all spans.</summary>
     public static async Task FlushAsync(bool success, string? failure)
     {
-        if (Endpoint is null) return;
+        if (s_endpoint is null) return;
         var now = NowNano();
-        if (_openPhase is not null)
+        if (s_openPhase is not null)
         {
-            Phases.Add((_openPhase, _openPhaseStart, now, success, success ? null : failure));
-            _openPhase = null;
+            s_phases.Add((s_openPhase, s_openPhaseStart, now, success, success ? null : failure));
+            s_openPhase = null;
         }
-        if (Phases.Count == 0) return;
+        if (s_phases.Count == 0) return;
 
-        var spans = Phases.Select(phase => new
+        var spans = s_phases.Select(phase => new
         {
-            traceId = TraceId,
+            traceId = s_traceId,
             spanId = RandomHex(8),
             name = phase.Name,
             kind = 1,
@@ -81,8 +81,8 @@ internal static class CiTelemetry
             endTimeUnixNano = phase.EndNano.ToString(CultureInfo.InvariantCulture),
             attributes = new[]
             {
-                new { key = "cicd.pipeline.task.name", value = new { stringValue = Leg } },
-                new { key = "session.id", value = new { stringValue = RunId } }
+                new { key = "cicd.pipeline.task.name", value = new { stringValue = s_leg } },
+                new { key = "session.id", value = new { stringValue = s_runId } }
             },
             status = phase.Ok
                 ? new { code = 1, message = (string?)null }
@@ -104,25 +104,25 @@ internal static class CiTelemetry
                             // The leg lives in service.name too: the collector does not yet
                             // persist span attributes on readback, and per-leg grouping must
                             // survive that (cicd.pipeline.task.name stays for when it does).
-                            new { key = "service.name", value = new { stringValue = $"qyl-ci-smoke-{Leg}" } },
-                            new { key = "session.id", value = new { stringValue = RunId } }
+                            new { key = "service.name", value = new { stringValue = $"qyl-ci-smoke-{s_leg}" } },
+                            new { key = "session.id", value = new { stringValue = s_runId } }
                         }
                     },
                     scopeSpans = new[] { new { scope = new { name = "qyl-ci-smoke" }, spans } }
                 }
             }
-        }, ExportOptions);
+        }, s_exportOptions);
 
         try
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            if (ApiKey is not null) client.DefaultRequestHeaders.Add("x-otlp-api-key", ApiKey);
+            if (s_apiKey is not null) client.DefaultRequestHeaders.Add("x-otlp-api-key", s_apiKey);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
-            var target = $"{Endpoint.TrimEnd('/')}/v1/traces";
+            var target = $"{s_endpoint.TrimEnd('/')}/v1/traces";
             using var response = await client.PostAsync(target, content);
             Console.WriteLine(response.IsSuccessStatusCode
-                ? $"[ci-telemetry] exported {spans.Length} phase span(s) for {RunId}/{Leg}"
+                ? $"[ci-telemetry] exported {spans.Length} phase span(s) for {s_runId}/{s_leg}"
                 : $"[ci-telemetry] export rejected with {(int)response.StatusCode} (ignored)");
         }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)

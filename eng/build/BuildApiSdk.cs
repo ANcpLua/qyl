@@ -508,8 +508,6 @@ interface IApiSdk : IHasSourcePaths, IHasConfiguration
         Log.Information("Qyl.Api.Sdk: a consumer whose contract changed fails its own build with QYLSDK0001");
     }
 
-    AbsolutePath CollectorProject => RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj";
-
     private string SampleVersion()
     {
         var versionProps = XDocument.Load(RootDirectory / "Version.props");

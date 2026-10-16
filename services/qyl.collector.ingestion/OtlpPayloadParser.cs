@@ -11,7 +11,7 @@ namespace Qyl.Collector.Ingestion;
 internal static class OtlpPayloadParser
 {
     private const int MaxPayloadBytes = 16 * 1024 * 1024;
-    private static readonly JsonParser OtlpJsonParser =
+    private static readonly JsonParser s_otlpJsonParser =
         new(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
     internal const string ProtobufContentType = "application/x-protobuf";
     internal const string JsonContentType = "application/json";
@@ -111,7 +111,7 @@ internal static class OtlpPayloadParser
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
         var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(payload.GetBuffer().AsSpan(0, (int)payload.Length));
-        return OtlpJsonParser.Parse<T>(json);
+        return s_otlpJsonParser.Parse<T>(json);
     }
 
     private static async Task<MemoryStream> ReadBoundedPayloadAsync(HttpRequest request, CancellationToken ct)

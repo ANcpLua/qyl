@@ -130,7 +130,7 @@ internal sealed partial class RetentionService(
 
             deletedIdempotencyKeys = await store.DeleteExpiredIdempotencyKeysAsync(
                     QylTimeConversions.ToUnixNanoUnsigned(
-                        timeProvider.GetUtcNow() - Hosting.ResourceHttp.IdempotencyKeyLifetime),
+                        timeProvider.GetUtcNow() - Hosting.ResourceHttp.s_idempotencyKeyLifetime),
                     cancellationToken)
                 .ConfigureAwait(false);
             writeBatches++;

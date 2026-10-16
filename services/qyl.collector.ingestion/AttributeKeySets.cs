@@ -6,8 +6,6 @@ internal static class AttributeKeySets
 
     internal static FrozenSet<string> SessionCorrelation => CollectorSemanticAttributeCatalog.SessionCorrelation;
 
-    internal static FrozenSet<string> ProjectIdResourceKeys => CollectorSemanticAttributeCatalog.ProjectIdResourceKeys;
-
     // First-match lookups must read the precedence arrays, not the sets above: FrozenSet
     // enumeration order is an implementation detail, so a set-driven lookup silently picks a
     // winner by hash layout instead of by the order declared in collector-semantic-policy.json.

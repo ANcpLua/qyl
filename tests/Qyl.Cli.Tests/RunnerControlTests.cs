@@ -43,7 +43,7 @@ public sealed class RunnerControlTests
         {
             Name = "worker",
             Kind = QylResourceKind.Command,
-            Port = QylConstants.Ports.DynamicAllocation,
+            Port = OrchestrationDefaults.Ports.DynamicAllocation,
             Launch = new QylLaunchSpec
             {
                 Executable = python,

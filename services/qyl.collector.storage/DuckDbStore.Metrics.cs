@@ -233,7 +233,7 @@ internal sealed partial class DuckDbStore
             }
         }
 
-        return [.. order.Select(key => new MetricQuerySeries(key, ToGroupAttributesJson(request.GroupBy, key), streams[key]))];
+        return [.. order.Select(key => new MetricQuerySeries(ToGroupAttributesJson(request.GroupBy, key), streams[key]))];
     }
 
     private static IReadOnlyList<MetricQuerySeries> QueryHistogram(
@@ -279,7 +279,7 @@ internal sealed partial class DuckDbStore
         }
         var aggregation = request.Aggregation switch { MetricAggregation.Avg => "avg", MetricAggregation.Min => "min", MetricAggregation.Max => "max", MetricAggregation.Sum => "sum", MetricAggregation.Count => "count", MetricAggregation.P50 => "p50", MetricAggregation.P90 => "p90", MetricAggregation.P95 => "p95", MetricAggregation.P99 => "p99", _ => "last" };
         return groups.Take(request.SeriesLimit).Select(group => new MetricQuerySeries(
-            group.Key, ToGroupAttributesJson(request.GroupBy, group.Key),
+            ToGroupAttributesJson(request.GroupBy, group.Key),
             group.Value.Select(bucket => new MetricAggregatePoint(bucket.Key,
                 request.Aggregation == MetricAggregation.Last ? bucket.Value.LastOrDefault()?.HistogramSum : MetricHistogram.Histogram(bucket.Value, aggregation),
                 bucket.Value.Aggregate(0UL, static (sum, point) => sum + (point.HistogramCount ?? 0)))).ToArray())).ToArray();
