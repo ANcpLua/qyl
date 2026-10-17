@@ -115,9 +115,9 @@ public sealed class ContractQueryParserTests(TestContext testContext)
         IResult? result = endpoint switch
         {
             QueryEndpoint.Sessions => await CollectorEndpointExtensions.GetSessionsAsync(
-                context, null!, testContext.CancellationToken),
+                context, null!, null!, testContext.CancellationToken),
             QueryEndpoint.SessionStats => await CollectorEndpointExtensions.GetSessionStatsAsync(
-                context, null!, testContext.CancellationToken),
+                context, null!, null!, testContext.CancellationToken),
             QueryEndpoint.Traces => await CollectorEndpointExtensions.GetTracesAsync(
                 context, null!, testContext.CancellationToken),
             QueryEndpoint.Logs => await CollectorEndpointExtensions.GetLogsAsync(

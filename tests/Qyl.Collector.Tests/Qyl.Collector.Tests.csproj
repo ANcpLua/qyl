@@ -22,6 +22,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" PrivateAssets="all"/>
     <!-- Storage keeps DuckDB's compile assets private; the tests that seed and inspect a database
          file directly take their own reference. -->
     <PackageReference Include="DuckDB.NET.Data.Full"/>

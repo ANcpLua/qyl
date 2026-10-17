@@ -27,12 +27,15 @@ namespace Qyl.Collector.Tests;
 /// </summary>
 internal sealed class CollectorApiTestHost : IAsyncDisposable
 {
+    internal const string ReaderApiKey = "reader";
+    internal const string AlphaProjectId = "alpha";
+
     // One explicitly scoped credential per role combination the tests need.
-    internal const string ProjectKeys = """
+    internal const string ProjectKeys = $$"""
         {
-          "alpha": [
+          "{{AlphaProjectId}}": [
             { "key": "ingest-reader", "roles": ["ingest", "read"] },
-            { "key": "reader", "roles": ["read"] },
+            { "key": "{{ReaderApiKey}}", "roles": ["read"] },
             { "key": "writer", "roles": ["read", "write"] },
             { "key": "deleter", "roles": ["delete"] },
             { "key": "ingester", "roles": ["ingest"] }
@@ -62,34 +65,61 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
     /// <summary>The HTTP/2-only loopback address for <c>GrpcChannel.ForAddress</c>.</summary>
     public string GrpcAddress { get; }
 
-    public static async Task<CollectorApiTestHost> StartAsync(CancellationToken ct, string databasePath = ":memory:")
+    public static async Task<CollectorApiTestHost> StartAsync(
+        CancellationToken ct,
+        string databasePath = ":memory:",
+        TimeProvider? timeProvider = null)
     {
         var store = new DuckDbStore(databasePath);
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["QYL_OTLP_AUTH_MODE"] = "ApiKey",
-                ["QYL_OTLP_PROJECT_KEYS"] = ProjectKeys,
-                ["QYL_ANALYSIS_SIGNING_KEY"] = "analysis-test-key-independent-of-api-keys"
-            })
-            .Build();
-        var builder = WebApplication.CreateSlimBuilder();
-        builder.WebHost.ConfigureKestrel(static options =>
+        WebApplication? app = null;
+        try
         {
-            options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http1AndHttp2);
-            options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http2);
-        });
-        builder.Services.AddQylCollectorCore(config);
-        builder.Services.AddQylCollectorAuth(config, builder.Environment);
-        builder.Services.AddSingleton<IQylStore>(store);
-        var app = builder.Build();
-        app.UseMiddleware<CollectorApiKeyMiddleware>(app.Services.GetRequiredService<OtlpApiKeyOptions>());
-        app.MapQylCollectorEndpoints();
-        await app.StartAsync(ct);
-        // Kestrel binds the endpoints in the order they were listed.
-        var urls = app.Urls.ToArray();
-        Assert.AreEqual(2, urls.Length);
-        return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(urls[0]) }, urls[1], ct);
+            var config = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["QYL_OTLP_AUTH_MODE"] = "ApiKey",
+                    ["QYL_OTLP_PROJECT_KEYS"] = ProjectKeys,
+                    ["QYL_ANALYSIS_SIGNING_KEY"] = "analysis-test-key-independent-of-api-keys"
+                })
+                .Build();
+            var builder = WebApplication.CreateSlimBuilder();
+            builder.WebHost.ConfigureKestrel(static options =>
+            {
+                options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http1AndHttp2);
+                options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http2);
+            });
+            if (timeProvider is not null)
+                builder.Services.AddSingleton(timeProvider);
+            builder.Services.AddQylCollectorCore(config);
+            builder.Services.AddQylCollectorAuth(config, builder.Environment);
+            builder.Services.AddSingleton<IQylStore>(store);
+            app = builder.Build();
+            app.UseMiddleware<CollectorApiKeyMiddleware>(app.Services.GetRequiredService<OtlpApiKeyOptions>());
+            app.MapQylCollectorEndpoints();
+            await app.StartAsync(ct);
+            // Kestrel binds the endpoints in the order they were listed.
+            var urls = app.Urls.ToArray();
+            Assert.AreEqual(2, urls.Length);
+            return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(urls[0]) }, urls[1], ct);
+        }
+        catch (Exception startupFailure)
+        {
+            try
+            {
+                await using var failedStore = store;
+                if (app is not null)
+                {
+                    await using var failedApp = app;
+                    await app.StopAsync(CancellationToken.None);
+                }
+            }
+            catch (Exception cleanupFailure)
+            {
+                throw new AggregateException("Collector test-host startup and cleanup failed.", startupFailure, cleanupFailure);
+            }
+
+            throw;
+        }
     }
 
     public async Task<HttpResponseMessage> SendAsync(
@@ -144,7 +174,7 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
         string spanId,
         ulong start,
         ulong end,
-        string project = "alpha",
+        string project = AlphaProjectId,
         string? parentSpanId = null,
         string service = "checkout",
         byte status = 0,

@@ -120,6 +120,7 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,
+        ulong activeCutoffUnixNano,
         int limit = 100,
         SessionPageCursor? cursor = null,
         bool? isActive = null,
@@ -134,6 +135,7 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<SessionStatsRow> GetSessionStatsAsync(
         string projectId,
+        ulong activeCutoffUnixNano,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
         CancellationToken ct = default);

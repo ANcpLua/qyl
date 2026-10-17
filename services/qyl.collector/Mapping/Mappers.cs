@@ -385,11 +385,11 @@ internal static class LogMapper
 
 internal static class SessionMapper
 {
-    public static SessionEntity ToContract(SessionQueryRow summary)
+    public static SessionEntity ToContract(SessionQueryRow summary, ulong activeCutoffUnixNano)
     {
         var startTime = AsUtcOffset(summary.StartTime);
         var lastActivity = AsUtcOffset(summary.LastActivity);
-        var isActive = TimeProvider.System.GetUtcNow() - lastActivity < QylSessionActivity.ActiveWindow;
+        var isActive = summary.LastActivityUnixNano >= activeCutoffUnixNano;
 
         return new SessionEntity
         {
@@ -413,16 +413,14 @@ internal static class SessionMapper
         };
     }
 
-    private static List<SessionEntity> ToContracts(IReadOnlyList<SessionQueryRow> summaries) =>
-        [.. summaries.Select(ToContract)];
-
     public static CursorPageSessionEntity ToPage(
         IReadOnlyList<SessionQueryRow> summaries,
+        ulong activeCutoffUnixNano,
         bool hasMore,
         string? nextCursor) =>
         new()
         {
-            Items = ToContracts(summaries),
+            Items = [.. summaries.Select(summary => ToContract(summary, activeCutoffUnixNano))],
             HasMore = hasMore,
             NextCursor = nextCursor
         };

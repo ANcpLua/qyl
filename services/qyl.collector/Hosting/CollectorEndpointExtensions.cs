@@ -561,6 +561,7 @@ internal static partial class CollectorEndpointExtensions
     internal static async Task<IResult> GetSessionsAsync(
         HttpContext httpContext,
         IQylStore store,
+        TimeProvider timeProvider,
         CancellationToken ct)
     {
         if (ContractQueryParser.ParseSessions(httpContext.Request, out var query) is { } queryError)
@@ -584,8 +585,10 @@ internal static partial class CollectorEndpointExtensions
             cursor = new SessionPageCursor(lastActivity, fields[1]);
         }
 
+        var activeCutoffUnixNano = QylSessionActivity.GetActiveCutoffUnixNano(timeProvider.GetUtcNow());
         var sessions = await store.GetSessionsAsync(
             ResolveProjectScope(httpContext),
+            activeCutoffUnixNano,
             boundedLimit + 1,
             cursor,
             query.IsActive,
@@ -597,6 +600,7 @@ internal static partial class CollectorEndpointExtensions
         IReadOnlyList<SessionQueryRow> page = hasMore ? [.. sessions.Take(boundedLimit)] : sessions;
         return Results.Ok(SessionMapper.ToPage(
             page,
+            activeCutoffUnixNano,
             hasMore,
             hasMore
                 ? PageCursorCodec.Encode(
@@ -610,21 +614,27 @@ internal static partial class CollectorEndpointExtensions
         HttpContext httpContext,
         [FromRoute(Name = "session_id")] string sessionId,
         IQylStore store,
-        CancellationToken ct) =>
-        await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is not { } session
+        TimeProvider timeProvider,
+        CancellationToken ct)
+    {
+        var activeCutoffUnixNano = QylSessionActivity.GetActiveCutoffUnixNano(timeProvider.GetUtcNow());
+        return await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is not { } session
             ? ContractErrorResults.NotFound("session", sessionId)
-            : Results.Ok(SessionMapper.ToContract(session));
+            : Results.Ok(SessionMapper.ToContract(session, activeCutoffUnixNano));
+    }
 
     internal static async Task<IResult> GetSessionStatsAsync(
         HttpContext httpContext,
         IQylStore store,
+        TimeProvider timeProvider,
         CancellationToken ct)
     {
         if (ContractQueryParser.ParseSessionStats(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
+        var activeCutoffUnixNano = QylSessionActivity.GetActiveCutoffUnixNano(timeProvider.GetUtcNow());
         var stats = await store.GetSessionStatsAsync(
-                ResolveProjectScope(httpContext), query.StartTime, query.EndTime, ct: ct)
+                ResolveProjectScope(httpContext), activeCutoffUnixNano, query.StartTime, query.EndTime, ct: ct)
             .ConfigureAwait(false);
         return Results.Ok(new SessionStats
         {

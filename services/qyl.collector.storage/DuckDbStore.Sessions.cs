@@ -34,6 +34,7 @@ internal sealed partial class DuckDbStore
 
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,
+        ulong activeCutoffUnixNano,
         int limit = 100,
         SessionPageCursor? cursor = null,
         bool? isActive = null,
@@ -63,7 +64,7 @@ internal sealed partial class DuckDbStore
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
             cmd.Parameters.Add(new DuckDBParameter { Value = isActive ?? (object)DBNull.Value });
-            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow() - QylSessionActivity.ActiveWindow);
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)activeCutoffUnixNano });
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });
             cmd.Parameters.Add(new DuckDBParameter
             {
@@ -97,6 +98,7 @@ internal sealed partial class DuckDbStore
 
     public Task<SessionStatsRow> GetSessionStatsAsync(
         string projectId,
+        ulong activeCutoffUnixNano,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
         CancellationToken ct = default)
@@ -137,7 +139,7 @@ internal sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
-            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow() - QylSessionActivity.ActiveWindow);
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)activeCutoffUnixNano });
 
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())

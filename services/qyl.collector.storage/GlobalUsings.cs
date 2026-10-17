@@ -9,5 +9,4 @@ global using System.Data.Common;
 global using System.Threading.Channels;
 global using Microsoft.Extensions.Logging;
 global using Qyl.Collector.Ingestion;
-global using QylSessionActivity = Qyl.Collector.Ingestion.Primitives.SessionActivity;
 global using QylTimeConversions = Qyl.Collector.Ingestion.Primitives.TimeConversions;

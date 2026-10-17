@@ -74,6 +74,7 @@
     <PackageVersion Include="Fallout.Common" Version="$(FalloutVersion)"/>
     <PackageVersion Include="Fallout.Components" Version="$(FalloutVersion)"/>
     <PackageVersion Include="DotCov.Fallout" Version="$(DotCovVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
     <PackageVersion Include="Valleysoft.DockerfileModel" Version="$(DockerfileModelVersion)"/>
     <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
