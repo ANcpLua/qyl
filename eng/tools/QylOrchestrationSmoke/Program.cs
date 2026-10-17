@@ -13,7 +13,8 @@ if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_WORKER") is { } mode
     var worker = WebApplication.CreateBuilder(args);
     worker.Logging.ClearProviders();
     worker.Services.AddHttpClient();
-    worker.Services.AddHostedService<ShutdownMarker>();
+    worker.Services.AddHostedService(static services => new ShutdownMarker(
+        services.GetRequiredService<IConfiguration>(), services.GetRequiredService<IHttpClientFactory>()));
     await using var app = worker.Build();
     if (worker.Configuration["services:payments:http:0"] is { } dependency)
     {
