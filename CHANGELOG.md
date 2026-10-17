@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 15.0.4 — 2026-10-17
 
+- Align AutoInstrumentation and Hosting 28.1.1 with SemanticConventions 13.2.0 throughout the Collector and API SDK consumer pins.
+- Retain valid benign HTTP-header and textual RPC-metadata arrays using the canonical registry policy. Reject malformed and known credential names without changing attribute serialization or the database schema. Verify HTTP/gRPC ingestion, reopened storage and API arrays against published SemanticConventions 13.2.0.
 - Construct the orchestration smoke's hosted service explicitly so CI analysis recognizes its activation.
 
 ## 15.0.3 — 2026-10-17

@@ -1,51 +1,56 @@
+using System.Text.Json;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
+using Qyl.Telemetry.SemanticConventions;
 
 namespace Qyl.Collector.Tests;
 
 [TestClass]
 public sealed class HeaderPrivacyBoundaryTests
 {
-    /// <summary>
-    /// The registry denies every <c>http.request.header.&lt;name&gt;</c> and <c>http.response.header.&lt;name&gt;</c>, and
-    /// the collector names no exception: <c>mcp_name</c> carries the resource URIs and prompt names the registry denies
-    /// as attributes of their own, and a header value is whatever the caller chose to send.
-    /// </summary>
+    private static readonly string[] s_retainedValues = ["first", "second"];
+
     [TestMethod]
-    public void No_http_header_is_persisted_on_spans()
+    [DataRow("http.request.header", true)]
+    [DataRow("http.response.header", true)]
+    [DataRow("rpc.request.metadata", false)]
+    [DataRow("rpc.response.metadata", false)]
+    public void Captured_fields_use_the_registry_rule_at_ingestion_and_storage(string root, bool http)
     {
-        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal)
+        string[] allowed = ["x-request-id", "x_request_id", "x.request.id", "x-message-id", "content-type",
+            "x-ratelimit-remaining", "x-tenant-id", "x-demo-res-md", "mcp-param-innocent", "key", "x-auth"];
+        string[] denied = ["authorization", "proxy-authorization", "cookie", "set-cookie", "x-api-key",
+            "www-authenticate", "proxy-authenticate", "x-auth-token", "x-token-count", "x-secret", "x-password",
+            "x-passwd", "x-apikey", "x-api_key", "x-credential", "x-private_key", "x-private-key", "x-privatekey",
+            "x-client_secret", "x-jwt", "", "bad name", "bad:name", "bad/name", "naïve"];
+        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        foreach (var suffix in allowed)
         {
-            ["http.request.method"] = OtlpAttributeValue.FromString("POST"),
-            ["http.request.header.accept"] = OtlpAttributeValue.FromString("application/json"),
-            ["http.request.header.content_type"] = OtlpAttributeValue.FromString("application/json"),
-            ["http.request.header.mcp_method"] = OtlpAttributeValue.FromString("resources/read"),
-            ["http.request.header.mcp_name"] = OtlpAttributeValue.FromString("file:///home/alice/notes.md"),
-            ["http.request.header.mcp_protocol_version"] = OtlpAttributeValue.FromString("2025-06-18"),
-            ["http.response.header.content_type"] = OtlpAttributeValue.FromString("text/event-stream"),
-            ["http.request.header.x_tool_controlled"] =
-                OtlpAttributeValue.FromString("arbitrary-tool-secret"),
-            ["http.request.header.authorization"] =
-                OtlpAttributeValue.FromString("Bearer credential"),
-            ["http.response.header.set_cookie"] =
-                OtlpAttributeValue.FromString("session=credential")
-        };
-
-        var json = Assert.IsExactInstanceOfType<string>(PersistedAttributePolicy.SerializeAttributes(attributes));
-
-        Assert.AreEqual("""{"http.request.method":"POST"}""", json);
+            Check(root + "." + suffix, true);
+            Check((root + "." + suffix).ToUpperInvariant(), true);
+            attributes[root + "." + suffix] = OtlpAttributeValue.FromArray(
+                [OtlpAttributeValue.FromString("first"), OtlpAttributeValue.FromString("second")]);
+        }
+        foreach (var suffix in denied)
+        {
+            Check(root + "." + suffix, false);
+            Check((root + "." + suffix).ToUpperInvariant(), false);
+            attributes[root + "." + suffix] = OtlpAttributeValue.FromArray([OtlpAttributeValue.FromString("opaque-denied")]);
+        }
+        Check(root, false);
+        Check(root + ".x+feature", http);
+        using var stored = JsonDocument.Parse(PersistedAttributePolicy.SerializeAttributes(attributes)!);
+        Assert.HasCount(allowed.Length, stored.RootElement.EnumerateObject());
+        foreach (var suffix in allowed)
+            Assert.AreSequenceEqual(s_retainedValues, stored.RootElement.GetProperty(root + "." + suffix).EnumerateArray().Select(static value => value.GetString()!));
     }
 
-    [TestMethod]
-    [DataRow("http.request.header.x_any_name")]
-    [DataRow("http.request.header.mcp-param-innocent")]
-    [DataRow("http.request.header.mcp_param_innocent")]
-    [DataRow("http.request.header.mcp%2dparam%2dinnocent")]
-    [DataRow("http.response.header.x_any_name")]
-    [DataRow("http.request.header.mcp_name")]
-    [DataRow("HTTP.REQUEST.HEADER.MCP_NAME")]
-    public void Headers_are_rejected_from_every_boundary(string key)
+    private static void Check(string key, bool expected)
     {
-        Assert.IsFalse(AttributeKeySets.IsPersistable(key));
+        Assert.AreEqual(expected, RegistryPolicy.IsPersisted(key), key);
+        Assert.IsTrue(CollectorSemanticAttributeCatalog.TryGetCapturedFieldPersistence(key, out var generated), key);
+        Assert.AreEqual(expected, generated, key);
+        Assert.AreEqual(expected, AttributeKeySets.IsPersistable(key), key);
+        Assert.AreEqual(expected, AttributeKeySets.ShouldCaptureSpanAttribute(key), key);
     }
 }

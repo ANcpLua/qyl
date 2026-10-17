@@ -22,9 +22,10 @@ internal static class AttributeKeySets
     private static bool IsVendorTag(string key) => CollectorSemanticAttributeCatalog.VendorKeys.Contains(key);
 
     internal static bool ShouldCaptureSpanAttribute(string key) =>
-        IsPersistable(key) ||
-        SessionCorrelation.Contains(key) ||
-        CollectorSemanticAttributeCatalog.SpanHotAttributeKeys.Contains(key);
+        CollectorSemanticAttributeCatalog.TryGetCapturedFieldPersistence(key, out _)
+            ? IsPersistable(key)
+            : IsPersistable(key) || SessionCorrelation.Contains(key) ||
+              CollectorSemanticAttributeCatalog.SpanHotAttributeKeys.Contains(key);
 
     /// <summary>
     /// Whether the registry lets the collector persist <paramref name="key"/> at all, in
@@ -49,6 +50,9 @@ internal static class AttributeKeySets
                 key.Length > exact.Length && key[exact.Length] == '.' && key.StartsWith(exact, StringComparison.OrdinalIgnoreCase))
                 return false;
         }
+
+        if (CollectorSemanticAttributeCatalog.TryGetCapturedFieldPersistence(key, out var captured))
+            return captured;
 
         // The token rule is deliberately blunt, so registry keys that merely contain a denied token
         // (db.query.summary, gen_ai.usage.input_tokens) opt out of it by exact name, and so does every

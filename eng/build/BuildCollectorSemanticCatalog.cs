@@ -238,6 +238,8 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         WriteFrozenSet(builder, "TokenExemptKeys", RegistryPolicy.TokenExemptKeys, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ExceptionTextKeys", RegistryPolicy.ExceptionTextKeys, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "VendorKeys", RegistryPolicy.VendorKeys, "StringComparer.Ordinal", incubatingKeys);
+        builder.AppendLine("    internal static bool TryGetCapturedFieldPersistence(string key, out bool persisted) =>");
+        builder.AppendLine("        global::Qyl.Telemetry.SemanticConventions.RegistryPolicy.TryGetCapturedFieldPersistence(key, out persisted);");
         WriteFrozenSet(builder, "SpanHotAttributeKeys", spanHotAttributeKeys, "StringComparer.Ordinal", incubatingKeys);
 
         foreach (var projection in projectionConstants.OrderBy(static item => item.Key, StringComparer.Ordinal))
@@ -367,6 +369,9 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
 
         foreach (var property in catalogClass.Members.OfType<PropertyDeclarationSyntax>())
             members.Add(property.Identifier.ValueText);
+
+        foreach (var method in catalogClass.Members.OfType<MethodDeclarationSyntax>())
+            members.Add(method.Identifier.ValueText);
 
         return members;
     }

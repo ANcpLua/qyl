@@ -2,8 +2,8 @@
 
 The Collector applies the generated SemanticConventions persistence policy before storing incoming OTLP attributes.
 Exact-key and prefix denials take precedence over token exemptions. Credential keys, private resource fields,
-request headers and baggage remain denied. An arbitrary key containing `message` remains denied; the exception is the
-exact key `exception.message`. `exception.stacktrace` is also eligible. Neither key is permission to store its value raw.
+baggage remains denied. Selected HTTP header and textual RPC metadata attributes use the captured-field rule below.
+Outside those families, a key containing `message` remains denied except the exact key `exception.message`. `exception.stacktrace` is also eligible. Neither key is permission to store its value raw.
 Case variants and dotted descendants remain denied; only the two canonical spellings receive this eligibility.
 
 Both exception fields pass through the same .NET sanitizer in the shared OTLP decoder, before constructing storage rows,
@@ -49,3 +49,22 @@ guarantees; they express identity, not the underlying value.
 
 Existing series retain their identifiers. Values removed by an earlier Collector cannot be
 recovered, so new complete identities stay separate from historical incomplete identities.
+
+## Captured HTTP headers and RPC metadata
+
+Capture is opt-in at instrumentation; retention does not infer selection or require a second Collector allowlist.
+The four case-insensitive dotted families are `http.request.header`, `http.response.header`,
+`rpc.request.metadata` and `rpc.response.metadata`. A bare root, empty suffix or invalid field name is denied.
+HTTP suffixes follow RFC 9110 field-name tokens; textual RPC suffixes allow ASCII letters, digits, `_`, `-` and `.`.
+Names retain their original punctuation; instrumentation emits lowercase. Values retain their native string arrays.
+
+After existing explicit key/prefix denials, the full suffix is checked against the registry's finite credential rule:
+exact `authorization`, `proxy-authorization`, `cookie`, `set-cookie`, `x-api-key`, `www-authenticate`,
+`proxy-authenticate`; or a substring `authorization`, `cookie`, `token`, `secret`, `password`, `passwd`,
+`apikey`, `api-key`, `api_key`, `credential`, `private_key`, `private-key`, `privatekey`, `client_secret`, `jwt`.
+Comparisons are case-insensitive. `x-token-count` is deliberately denied; `x-message-id` is retained.
+Other families, generic token denials, baggage and exception sanitization are unchanged.
+
+This is a finite name-based policy, not arbitrary-value secret detection. Selecting a benign-looking field can
+still capture sensitive application content. MCP applies its existing value protections and independently
+redacts recognized credential arrays element by element while preserving their published shape.

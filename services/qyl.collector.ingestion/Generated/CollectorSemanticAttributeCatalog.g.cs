@@ -76,15 +76,11 @@ internal static class CollectorSemanticAttributeCatalog
         "host.ip", // incubating
         "host.mac", // incubating
         "host.name", // incubating
-        "http.request.header",
-        "http.response.header",
         "mcp.resource.uri", // incubating
         "mcp.session.id", // incubating
         "message.content", // incubating
         "nservicebus.originating_machine", // incubating
         "nservicebus.processing_machine", // incubating
-        "rpc.request.metadata", // incubating
-        "rpc.response.metadata", // incubating
         "service.instance.id",
         "session.id", // incubating
         "session.previous_id", // incubating
@@ -292,6 +288,8 @@ internal static class CollectorSemanticAttributeCatalog
         "workflow.name" // incubating
     );
 
+    internal static bool TryGetCapturedFieldPersistence(string key, out bool persisted) =>
+        global::Qyl.Telemetry.SemanticConventions.RegistryPolicy.TryGetCapturedFieldPersistence(key, out persisted);
     internal static readonly FrozenSet<string> SpanHotAttributeKeys = FrozenSet.Create(
         StringComparer.Ordinal,
         "gen_ai.operation.name", // incubating

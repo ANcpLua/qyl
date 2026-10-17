@@ -76,7 +76,7 @@ public sealed class ExceptionPersistenceTests(TestContext testContext)
     private static readonly string[] DeniedKeys =
     [
         "authorization", "api_key", "password", "diagnostic.message", "exception.message.detail",
-        "http.request.header.exception.message", "user.exception.stacktrace", "code.stacktrace", "baggage.secret",
+        "user.exception.stacktrace", "code.stacktrace", "baggage.secret",
         "exception.stacktrace.detail", "Exception.StackTrace", "EXCEPTION.MESSAGE"
     ];
     private CancellationToken Ct => testContext.CancellationToken;
