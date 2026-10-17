@@ -1,5 +1,10 @@
 # Changelog
 
+## 15.0.3 — 2026-10-17
+
+- Consume AutoInstrumentation and Hosting 28.0.0 with generated-code ABI V28, and SemanticConventions 13.1.2.
+- Supply telemetry 28.0.0 through the API SDK's consumer package pins. The Collector catalog and analysis metadata match SemanticConventions 13.1.2 without generated-code changes.
+
 ## 15.0.2 — 2026-10-17
 
 - Stop dependent processes before their `WaitFor` prerequisites during application shutdown. Final exports can reach a live destination instead of racing its termination.
