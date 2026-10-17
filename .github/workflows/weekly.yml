@@ -1,4 +1,4 @@
-# Weekly reports, Monday mornings and on demand, never on push: vulnerable NuGet and dashboard
+# Weekly reports, Monday mornings and on demand, never on push: vulnerable NuGet
 # packages (fails when it finds one), CodeQL for C# (job summary + SARIF artifact, no upload to
 # code scanning, which would need security-events: write) and the Markdown links (lychee.toml,
 # never fails). Read-only token, no secrets.
@@ -34,11 +34,9 @@ jobs:
         run: |
           set -euo pipefail
           report=$RUNNER_TEMP/nuget-vulnerable.json
-          # Exits 1 for the .esproj problem below; the report itself decides.
-          dotnet list qyl.slnx package --vulnerable --include-transitive --format json >"$report" || true
+          dotnet list qyl.slnx package --vulnerable --include-transitive --format json >"$report"
           jq -e '.projects | length > 0' "$report" >/dev/null || { cat "$report"; echo "::error::dotnet list wrote no project report"; exit 1; }
-          # The dashboard's .esproj has no PackageReference graph; any other problem leaves the audit incomplete.
-          problems=$(jq -r '.problems[]? | select((.project // "") | endswith(".esproj") | not) | "- \(.project // "solution"): \(.text)"' "$report")
+          problems=$(jq -r '.problems[]? | "- \(.project // "solution"): \(.text)"' "$report")
           rows=$(jq -r --arg root "$GITHUB_WORKSPACE/" '
             [.projects[] | (.path | ltrimstr($root)) as $project | .frameworks[]? |
               ((.topLevelPackages[]? | . + {reference: "direct"}), (.transitivePackages[]? | . + {reference: "transitive"})) |
@@ -60,13 +58,6 @@ jobs:
           } >>"$GITHUB_STEP_SUMMARY"
           [[ -z $problems ]] || { echo "::error::the NuGet audit is incomplete (see the job summary)"; exit 1; }
           [[ -z $rows ]] || { echo "::error::$(grep -c '' <<<"$rows") vulnerable NuGet packages (see the job summary)"; exit 1; }
-
-      - name: Vulnerable dashboard packages
-        if: ${{ !cancelled() }}
-        working-directory: services/qyl.dashboard
-        run: |
-          bun install --frozen-lockfile
-          bun audit --audit-level=moderate
 
   codeql:
     runs-on: ubuntu-latest

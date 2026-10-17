@@ -4,7 +4,7 @@
 
 A local OpenTelemetry investigation stack for .NET. Instrument an application with one
 line, run the collector on your own machine, and read the traces, logs, and metrics back
-through the embedded dashboard, the collector API, or MCP.
+through the collector API or MCP.
 
 This checkout targets qyl 15.0.4. The
 site and documentation are at [qyl.at](https://qyl.at/). The other two hosted surfaces
@@ -19,7 +19,7 @@ dotnet tool install --global qyl
 qyl up
 ```
 
-`qyl up` starts the collector and its embedded dashboard on `127.0.0.1:5100`, diagnostics
+`qyl up` starts the collector API on `127.0.0.1:5100`, diagnostics
 on `:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889`.
 Telemetry is stored under `~/.qyl/`, never in the working directory. All five ports are
 checked up front, so a conflict fails the command instead of leaving a half-bound stack.
@@ -44,12 +44,8 @@ control API or console UI. Package usage and lifecycle details: [Qyl.Orchestrati
 
 ## Log history
 
-The dashboard queries stored logs and applies severity, service and message filters
-before pagination. Use **Load older** to read earlier records; the view reports when
-all matching logs are loaded. Service names can be entered directly, including names
-absent from the first page. Live updates refresh the stored query, and browsing older
-pages pauses live refresh. Query failures stay visible while loaded records remain
-available. Downloads contain the loaded matching records.
+Query stored logs through `/api/v1/logs`, filtering by severity, service and message
+before pagination. Live logs are available through `/api/v1/stream/logs`.
 
 The Collector retains sanitized exception messages and stack traces while keeping credential-key denials.
 See [attribute persistence](docs/attribute-persistence.md) for covered locations, redaction behavior and size limits.
@@ -60,7 +56,7 @@ The collector owns the query logic behind qyl.mcp's 32 tools. Typed read request
 `POST /api/v1/analysis/<tool_name>`; POST reads require the `read` key role. The shared
 engine applies project scope, time windows and attribute matchers before pagination.
 Default windows are 60 minutes, except the release timeline's seven days and the
-explicit 24-hour dashboard option. Responses include their window and coverage;
+explicit 24-hour MCP dashboard analysis option. Responses include their window and coverage;
 continuation and verification handles are signed and scoped to the caller's project.
 
 Failure IDs are stable within a project. Failure status and annotation labels are
@@ -226,18 +222,20 @@ agent is its first consumer. `CheckFull` runs it.
 
 ## Build and verify
 
-`mise.toml` pins the toolchain (dotnet, bun, node); `mise run check` runs the `Check` target,
+`mise.toml` pins the .NET toolchain; `mise run check` runs the `Check` target,
 `mise run check-full` the `CheckFull` target.
+Backend route and pagination checks read the published OpenAPI artifact matching
+`QylApiContractsVersion` in `Version.props`; no frontend installation is needed.
 
 ```bash
 mise install && mise run check
 ```
 
 Single targets run through `./eng/build.sh <Target>`. `Check` is the gate before every push
-(compile, tests, verification, the public API report, SDK pins, dashboard lint, tests and build;
+(compile, tests, verification, the public API report, SDK pins;
 the report rewrites the `PublicAPI.txt` files and never fails); `CheckFull` adds
 NativeAOT, the pack smoke (the only gate that sees trim regressions), the SDK proof, the
-dashboard end-to-end run, the vocabulary smoke and the coverage gate (`Coverage`: the .NET tests
+vocabulary smoke and the coverage gate (`Coverage`: the .NET tests
 under Microsoft code coverage, dotcov's line and branch thresholds in `eng/build/BuildCoverage.cs`).
 Its two container stages (the collector NativeAOT smoke and the SDK container image) need a
 container daemon; without one they show as skipped in the target table, and

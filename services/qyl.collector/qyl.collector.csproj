@@ -23,26 +23,9 @@
     <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <!-- Release artifacts serve dashboard, API, and OTLP from one origin. -->
-    <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == '' AND '$(Configuration)' == 'Release'">true</QylEmbedDashboard>
-    <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == ''">false</QylEmbedDashboard>
-  </PropertyGroup>
-
   <ItemGroup>
     <EmbeddedResource Include="Analysis/Generated/semconv-metadata.json" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(QylEmbedDashboard)' == 'true' AND Exists('..\qyl.dashboard\dist\index.html')">
-    <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot"/>
-  </ItemGroup>
-
-  <!-- Plain builds may omit the dashboard; an embed-enabled publish may not. -->
-  <Target Name="QylRequireDashboardDistForPublish" BeforeTargets="PrepareForPublish"
-          Condition="'$(QylEmbedDashboard)' == 'true' AND !Exists('..\qyl.dashboard\dist\index.html')">
-    <Error Text="QylEmbedDashboard=true but services/qyl.dashboard/dist/index.html does not exist. Build the dashboard first (npm run build in services/qyl.dashboard) or publish with -p:QylEmbedDashboard=false."/>
-  </Target>
-
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore"/>

@@ -8,15 +8,9 @@ namespace Qyl.Collector.ApiKeys;
 /// a project-bound credential sent as the generated contract's <c>x-otlp-api-key</c> header, and
 /// requires the role each route declares: <c>ingest</c> for OTLP, <c>read</c>, <c>write</c> or
 /// <c>delete</c> for the product API (QYL-A2).
-/// <c>/health</c>, <c>/alive</c>, and
-/// the SPA stay open: liveness must be probeable without credentials, and the dashboard shell
-/// carries no data.
+/// <c>/health</c> and <c>/alive</c> stay open for unauthenticated liveness probes.
+/// The gRPC ingest boundary is <see cref="Qyl.Collector.Grpc.OtlpApiKeyInterceptor"/>.
 /// </summary>
-/// <remarks>
-/// The dashboard uses fetch-based SSE so credentials stay in the request header and never enter
-/// URLs, browser history, proxy logs, or referrers. The gRPC ingest boundary is the mirror-image
-/// <see cref="Qyl.Collector.Grpc.OtlpApiKeyInterceptor"/>.
-/// </remarks>
 internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
 {
     public async Task InvokeAsync(HttpContext context)

@@ -37,6 +37,7 @@
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>13.2.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
+    <!-- Backend route verification reads OpenAPI from the matching published npm artifact. -->
     <QylApiContractsVersion>14.0.1</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->

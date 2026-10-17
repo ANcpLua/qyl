@@ -10,7 +10,6 @@ cannot rot into decoration.
 
 | Variable | Scope | Default and behavior |
 | --- | --- | --- |
-| `QYL_BASE_URL` | Dashboard Playwright | Unset starts the embedded product at `http://127.0.0.1:5100`; a value targets an already-running product. |
 | `QYL_BIND_ADDRESS` | Collector | IP address literal for every listener; defaults to `127.0.0.1`. |
 | `QYL_CI_API_KEY` | NuGet consumer smoke | Optional `x-otlp-api-key` header on the smoke's phase-span export; read only when `QYL_CI_OTLP_ENDPOINT` is set. |
 | `QYL_CI_LEG` | NuGet consumer smoke | Leg name on the exported phase spans (`cicd.pipeline.task.name`, service `qyl-ci-smoke-<leg>`); defaults to the current runtime identifier. |
@@ -20,7 +19,6 @@ cannot rot into decoration.
 | `QYL_DB_MEMORY_LIMIT` | Collector | Optional DuckDB `memory_limit` value; unset leaves the engine default. |
 | `QYL_DB_TEMP_DIR` | Collector | Optional DuckDB `temp_directory`; unset leaves the engine default. |
 | `QYL_DB_THREADS` | Collector | Optional positive DuckDB worker count; unset leaves the engine default. |
-| `QYL_E2E_NO_BUILD` | Dashboard Playwright | `1` reuses the completed Release collector build. The Fallout frontend gate sets it after compiling; unset lets standalone Playwright build its collector. |
 | `QYL_GRPC_PORT` | Collector | OTLP/gRPC listener; defaults to `4317`, and `0` disables it. |
 | `QYL_OTLP_AUTH_MODE` | Collector | `Unsecured` or `ApiKey`; defaults to `Unsecured` only in Development and to `ApiKey` otherwise. |
 | `QYL_OTLP_CORS_ALLOWED_HEADERS` | Collector | Optional comma-separated additions to `content-type` and `x-otlp-api-key`. |
@@ -28,7 +26,7 @@ cannot rot into decoration.
 | `QYL_OTLP_PORT` | Collector | OTLP/HTTP listener; defaults to `4318`, and `0` disables it. |
 | `QYL_OTLP_PROJECT_KEYS` | Collector | JSON object mapping each project ID to an array of explicitly scoped `x-otlp-api-key` credentials, for example `{"acme":[{"key":"ingest-key","roles":["ingest"]},{"key":"operator-key","roles":["read","write","delete"]}]}`. Required in `ApiKey` mode. Every credential must be an object with exactly `key` and a nonempty `roles` array. The closed role set is `ingest` (OTLP export), `read` (every query route and running a saved query), `write` (creating and updating annotations and saved queries) and `delete` (deleting them; telemetry is never deleted through the API). Roles are independent. String-only keys, missing or empty roles, duplicate or unknown roles, and duplicate object fields fail collector startup. A key without a route's role gets `403`. Keys must be unique across projects; rotate by adding a second key to the same project. In this mode, reads and writes use the authenticated project, and conflicting project headers or resource attributes are rejected. |
 | `QYL_ANALYSIS_SIGNING_KEY` | Collector | Optional secret signing material for project-bound analysis pagination, refresh and verification tokens. At least 32 bytes; independent of API credentials. If unset locally, a random key is persisted beside the database with owner-only permissions (in-memory databases use a process-lifetime key). Keep this value stable across replicas and restarts when tokens must remain valid; changing it invalidates existing tokens. |
-| `QYL_PORT` | Collector | Product API/dashboard listener; falls back to `PORT`, then `5100`. |
+| `QYL_PORT` | Collector | Product API listener; falls back to `PORT`, then `5100`. |
 | `QYL_RETENTION_DAYS` | Collector | Trace/log age bound in days; defaults to `30`, and `0` disables retention. |
 | `QYL_RETENTION_INTERVAL_MINUTES` | Collector | Retention and disk-pressure check interval; defaults to `60`. |
 | `QYL_SMOKE_API_PORT` | NativeAOT smoke | Host product-API port; defaults to `5199`. |

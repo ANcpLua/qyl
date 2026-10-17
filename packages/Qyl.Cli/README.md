@@ -2,14 +2,14 @@
 
 A local OpenTelemetry investigation stack for .NET. Run the collector on your own machine,
 instrument an application with one line, and read the traces, logs and metrics back through the
-embedded dashboard, the collector API, or MCP.
+collector API or MCP.
 
 ```bash
 dotnet tool install --global qyl
 qyl up
 ```
 
-`qyl up` starts the collector and its embedded dashboard on `127.0.0.1:5100`, diagnostics on
+`qyl up` starts the collector API on `127.0.0.1:5100`, diagnostics on
 `:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889`. Telemetry is
 stored under `~/.qyl/`, never in the working directory. All five ports are checked up front, so a
 conflict fails the command instead of leaving a half-bound stack.
@@ -39,7 +39,6 @@ without the call there is no exporter to configure.
 
 ## Read it back
 
-- The dashboard at `http://127.0.0.1:5100`.
 - The collector API under `/api/v1/`: traces, logs, and metrics aggregated server-side into
   buckets by name, attribute matchers, time range and step.
 - MCP, for an agent: [`qyl-mcp-server`](https://www.npmjs.com/package/qyl-mcp-server) over

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Qyl.Collector.ApiKeys;
-using Qyl.Collector.Dashboard;
 using Qyl.Collector.Telemetry;
 
 namespace Qyl.Collector.Hosting;
@@ -23,31 +22,6 @@ internal static class CollectorMiddlewareExtensions
         });
 
         app.UseQylTelemetry();
-
-        // The embedded dashboard is deliberately a local, unsecured development surface. Never
-        // expose or accept the ingest-capable API key in browser storage; ApiKey deployments use
-        // generated API clients and do not serve the browser UI.
-        if (!otlpApiKeyOptions.IsApiKeyMode)
-        {
-            var webRoot = app.Environment.WebRootPath;
-            if (string.IsNullOrEmpty(webRoot))
-            {
-                var candidate = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-                if (Directory.Exists(candidate))
-                    webRoot = candidate;
-            }
-
-            if (webRoot is { Length: > 0 } && File.Exists(Path.Combine(webRoot, "index.html")))
-            {
-                app.Environment.WebRootPath = webRoot;
-                app.UseDefaultFiles();
-                app.UseStaticFiles();
-            }
-            else if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
-            {
-                app.UseEmbeddedDashboard();
-            }
-        }
 
         return app;
     }

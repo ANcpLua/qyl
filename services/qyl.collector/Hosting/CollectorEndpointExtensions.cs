@@ -3,7 +3,6 @@ using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.Streaming;
 using Qyl.Collector.ApiKeys;
-using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Storage;
 using ExportLogsServiceRequest = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
@@ -1065,38 +1064,8 @@ internal static partial class CollectorEndpointExtensions
         if (IsPathOrDescendant(path, "/api"))
             return ContractErrorResults.WriteNotFoundAsync(context.Response, "route", path, context.RequestAborted);
 
-        if (OtlpConstants.IsOtlpNamespacePath(path) ||
-            IsPathOrDescendant(path, "/assets"))
-        {
-            context.Response.StatusCode = 404;
-            return Task.CompletedTask;
-        }
-
-        if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
-        {
-            context.Response.StatusCode = 404;
-            return Task.CompletedTask;
-        }
-
-        var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
-        var webRootPath = env.WebRootPath;
-        if (string.IsNullOrWhiteSpace(webRootPath))
-        {
-            context.Response.StatusCode = 404;
-            return context.Response.WriteAsync(
-                "Dashboard not found. Build with: ./eng/build.sh FrontendBuild");
-        }
-
-        var indexPath = Path.Combine(webRootPath, "index.html");
-        if (File.Exists(indexPath))
-        {
-            context.Response.ContentType = "text/html";
-            return context.Response.SendFileAsync(indexPath);
-        }
-
-        context.Response.StatusCode = 404;
-        return context.Response.WriteAsync(
-            "Dashboard not found. Build with: ./eng/build.sh FrontendBuild");
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return Task.CompletedTask;
     }
 
     private static bool IsPathOrDescendant(string path, string root) =>

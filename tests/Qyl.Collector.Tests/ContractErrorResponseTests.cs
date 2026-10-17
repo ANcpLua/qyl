@@ -180,17 +180,6 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
     }
 
     [TestMethod]
-    public void Startup_banner_does_not_claim_a_dashboard_for_api_key_deployments()
-    {
-        Assert.AreEqual(
-            "product API",
-            StartupBanner.HttpSurfaceLabel(new OtlpApiKeyOptions { AuthMode = "ApiKey" }));
-        Assert.AreEqual(
-            "dashboard + API",
-            StartupBanner.HttpSurfaceLabel(new OtlpApiKeyOptions { AuthMode = "Unsecured" }));
-    }
-
-    [TestMethod]
     public async Task Exception_handler_preserves_the_generated_media_type_status_and_trace_header()
     {
         var context = CreateContext();

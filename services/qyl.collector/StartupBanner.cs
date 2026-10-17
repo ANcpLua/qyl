@@ -17,7 +17,7 @@ internal static class StartupBanner
 
         Console.WriteLine();
         Console.WriteLine("qyl collector ready");
-        Console.WriteLine($"  {HttpSurfaceLabel(apiKeyOptions),-19}{baseUrl}");
+        Console.WriteLine($"  product API        {baseUrl}");
         Console.WriteLine($"  OTLP/HTTP         {httpReceiver} (/v1/traces, /v1/logs, /v1/metrics)");
         Console.WriteLine(grpcPort > 0
             ? $"  OTLP/gRPC         localhost:{grpcPort}"
@@ -32,7 +32,4 @@ internal static class StartupBanner
             : "  authentication    unsecured");
         Console.WriteLine();
     }
-
-    internal static string HttpSurfaceLabel(OtlpApiKeyOptions? apiKeyOptions) =>
-        apiKeyOptions?.IsApiKeyMode == true ? "product API" : "dashboard + API";
 }

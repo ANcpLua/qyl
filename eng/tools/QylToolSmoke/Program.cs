@@ -181,9 +181,6 @@ static async Task RunLiveAsync(string tool, string workingDirectory)
         }, TimeSpan.FromSeconds(90), "qyl collectors and runner API did not become ready");
 
         Progress("live: collectors and runner API ready");
-        var dashboard = await client.GetStringAsync("http://127.0.0.1:5100/");
-        if (!dashboard.Contains("id=\"root\"", StringComparison.Ordinal))
-            throw new InvalidOperationException("The packaged collector did not serve the embedded dashboard.");
 
         await VerifyIngestAndReadbackAsync(client);
         Progress("live: ingest and readback verified");

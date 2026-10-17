@@ -45,8 +45,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
     }
 
     /// <summary>
-    /// What both release packs share. Neither builds the dashboard nor compiles the solution first:
-    /// the embedded dashboard is built beforehand (FrontendBuild, in Check), and each pack builds its project.
+    /// What both release packs share. Each pack builds its project.
     /// </summary>
     private Configure<DotNetPackSettings> ReleasePackSettings => s => s
         .SetConfiguration(Configuration)
@@ -92,7 +91,6 @@ interface IPack : IHasSourcePaths, IHasConfiguration
 
     Target Pack => d => d
         .Description("Pack the shippable packages into artifacts/nuget")
-        .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<ICompile>(static x => x.Compile)
         .Produces(NuGetArtifactsDirectory / "*.nupkg")
         .Executes(() =>

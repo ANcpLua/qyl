@@ -16,7 +16,6 @@ interface IHasSourcePaths : IHasSolution, IHasArtifacts
 
     /// <summary>The collector's three projects. A check about "the collector" scans all of them.</summary>
     AbsolutePath[] CollectorProjectDirectories => [CollectorDirectory, CollectorIngestionDirectory, CollectorStorageDirectory];
-    AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
     AbsolutePath QylToolSmokeProject => RootDirectory / "eng" / "tools" / "QylToolSmoke" / "QylToolSmoke.csproj";
 
     /// <summary>The qyl tool: the outer <c>qyl</c> package and, packed per runtime, its <c>qyl.&lt;rid&gt;</c> packages.</summary>

@@ -202,10 +202,6 @@ start_container Unsecured
 wait_for_ready
 assert_runtime_identity
 
-DASHBOARD="$(curl -fsS --max-time 5 "$API_BASE")" || fail "embedded dashboard request failed"
-grep -q '<title>QYL Dashboard</title>' <<<"$DASHBOARD" \
-  || fail "/ did not serve the embedded dashboard"
-echo "[smoke] Embedded dashboard verified"
 
 phase "Lanes 1-5: HTTP JSON/protobuf, gRPC traces/logs, and metrics ingest"
 run_driver wire "$API_BASE" "$OTLP_HTTP_BASE" "$GRPC_BASE"

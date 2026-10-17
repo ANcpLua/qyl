@@ -71,7 +71,7 @@ internal readonly record struct ParsedMetricQueryParameters(
 internal static class ContractQueryParser
 {
     // Query parameters carry their OpenAPI wire names verbatim: the contract is
-    // what an agent or the dashboard codes against, and a name that only the collector
+    // what an API client codes against, and a name that only the collector
     // knows is a name no generated client can send.
     internal static IResult? ParseMetrics(HttpRequest request, out ParsedMetricsParameters parsed)
     {

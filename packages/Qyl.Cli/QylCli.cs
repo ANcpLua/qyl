@@ -20,7 +20,7 @@ internal static class QylCli
         qyl - local OpenTelemetry investigation stack
 
         Usage:
-          qyl up        Start the collector, embedded dashboard, and diagnostics collector.
+          qyl up        Start the collector and diagnostics collector.
                         Telemetry is stored under ~/.qyl/, never in the working directory.
           qyl --version Show the installed qyl version
           qyl --help    Show this help

@@ -2,12 +2,9 @@
 exclude_path = [
   "node_modules",
   "artifacts",
-  "services/qyl.dashboard/coverage",
-  "services/qyl.dashboard/playwright-report",
 ]
 
-# Markdown only. Vite HTML (services/qyl.dashboard/index.html) references
-# runtime-served paths like /favicon.svg that do not exist statically.
+# Check documentation links.
 extensions = ["md"]
 
 # localhost / private-range URLs are runtime examples (collector ports,

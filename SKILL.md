@@ -8,12 +8,12 @@ Use the existing qyl stack clones on `main`, with one writer per repository. The
 - Version source: `Version.props` `QylVersion`. Bump it locally with the next CHANGELOG entry while developing a release wave; local package feeds may supply unpublished dependencies. Commit and push the complete checked change before publication. Render README release lines from `Version.props` with `./eng/build.sh RenderReadmeVersions`, also included in `Check`, and commit the resulting README.
 - Bump: Check rewrites `PublicAPI.txt` beside `packages/Qyl.Cli`, `packages/Qyl.Orchestration` and the two libraries Qyl.Api.Sdk ships (`packages/Qyl.Api.Sdk/Qyl.Xml`, `Qyl.Api`) to their public API and notes `api: +N -M changed` or `api: unchanged`; it informs, never blocks. Read `git diff v<last release> -- '*PublicAPI.txt'`: a removed or changed line is major, only added lines minor, none patch.
 - Key: Vitals entry "qyl-dev manual publish and release (NuGet)", `~/.config/vitals/nuget-qyl-manual-publish-key`, read by the script. Never print, paste, commit or log it. Entry missing or note expired: stop and tell the owner.
-- Upstream pins: `Version.props` `QylApiContractsVersion` (qyl-api-schema), `QylSemanticConventionsVersion` (SemanticConventions), `QylTelemetryVersion` (AutoInstrumentation); `services/qyl.dashboard/package.json` and its `bun.lock` (`@ancplua/qyl-api-schema`).
+- Upstream pins: `Version.props` `QylApiContractsVersion` (qyl-api-schema), `QylSemanticConventionsVersion` (SemanticConventions), `QylTelemetryVersion` (AutoInstrumentation).
 - A `release.sh` change keeps `python3 eng/scripts/test-release-publish-order.py` green; a quiet-runner change uses `python3 eng/scripts/test-quiet-runner.py`. Index-probe changes can run `./eng/build.sh VerifyReleaseIndex --published-version <published version>` without repeating the unchanged package smokes.
 
 ## Refresh changed inputs
 
-1. Pull before starting when the tree is clean and no other writer owns it. Install missing tool versions; restore the dashboard lockfile or .NET packages when their project/package/lockfile inputs change.
+1. Pull before starting when the tree is clean and no other writer owns it. Install missing tool versions; restore .NET packages when their project/package/lockfile inputs change.
 2. Compare upstream pins with the registries once per release wave. Re-pin when this clone's next change lands, grouping SemanticConventions and AutoInstrumentation updates. Reuse that comparison and passing checks until their inputs change.
 
 ## Release
@@ -38,7 +38,7 @@ After VERIFIED, update authorized consumers in their existing clones. Record the
 Re-pin when this clone's next change lands:
 
 1. Edit the pin files the message names.
-2. Lockfile: `bun install` (not frozen, it rewrites `bun.lock`); `dotnet restore` (`--force-evaluate` where a `packages.lock.json` exists).
+2. Lockfile: `dotnet restore` (`--force-evaluate` where a `packages.lock.json` exists).
 3. Run affected tests and relevant verification targets, reusing valid results. Commit the pin with the rendered README and push `main` (deploys the Collector). Do not repeat a full suite solely because a pin is ready to commit.
 4. If the pin changes what ships, bump `QylVersion` and release: one release per repo per wave.
 

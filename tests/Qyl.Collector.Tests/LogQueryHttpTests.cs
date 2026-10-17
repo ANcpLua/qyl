@@ -101,9 +101,5 @@ public sealed class LogQueryHttpTests(TestContext testContext)
         var body = await host.JsonAsync(response);
         Assert.AreEqual(404, body.GetProperty("status").GetInt32());
         Assert.AreEqual(path, body.GetProperty("resource_id").GetString());
-
-        // Outside /api the fallback keeps serving the dashboard path, never problem+json.
-        using var dashboard = await host.SendAsync(HttpMethod.Get, "/sessions", "writer");
-        Assert.AreNotEqual(ProblemDetailsMediaType.Value, dashboard.Content.Headers.ContentType?.MediaType);
     }
 }

@@ -77,5 +77,5 @@ never change once they ship, because a consumer's `NoWarn` names them.
 
 - The worked example: [`samples/qyl.sample`](https://github.com/ANcpLua/qyl/tree/main/samples/qyl.sample)
 - Documentation: [qyl.at/docs/api-sdk](https://qyl.at/docs/api-sdk/)
-- The collector and dashboard the telemetry lands in: [`qyl`](https://www.nuget.org/packages/qyl)
+- The collector the telemetry lands in: [`qyl`](https://www.nuget.org/packages/qyl)
 - Changes per version: [CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)

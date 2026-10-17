@@ -9,7 +9,6 @@ using System.Text.Json;
 using System.Xml.Linq;
 using Fallout.Common;
 using Fallout.Common.IO;
-using Fallout.Common.Tooling;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -18,95 +17,10 @@ using Serilog;
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IVerify))]
-partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
+partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApiContract
 {
     [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
-
-    Target VerifyFrontendTypes => d => d
-        .ProceedAfterFailure()
-        .Unlisted()
-        .Description("Verify frontend TypeScript types compile")
-        .DependsOn<IPipeline>(static x => x.FrontendInstall)
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            ProcessTasks.StartProcess("bun", "run typecheck", DashboardDirectory, logOutput: true).AssertZeroExitCode();
-            Log.Information("Product dashboard TypeScript types: VALID");
-        });
-
-    Target VerifyFrontendApiTypes => d => d
-        .ProceedAfterFailure()
-        .Unlisted()
-        .Description("Verify the product dashboard consumes the exact generated API-contract package")
-        .DependsOn<IPipeline>(static x => x.FrontendInstall)
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            const string PackageName = "@ancplua/qyl-api-schema";
-            var packageFile = DashboardDirectory / "package.json";
-            using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageFile));
-            if (!packageDocument.RootElement.TryGetProperty("dependencies", out var dependencies) ||
-                !dependencies.TryGetProperty(PackageName, out var dependency))
-            {
-                throw new InvalidOperationException($"{DashboardDirectory} must depend on {PackageName}.");
-            }
-
-            // One exact SemVer version, a release candidate included; never a range.
-            var version = dependency.GetString();
-            if (version is null || !NuGet.Versioning.NuGetVersion.TryParseStrict(version, out _))
-                throw new InvalidOperationException(
-                    $"{DashboardDirectory} must pin {PackageName} to one exact version; found '{version}'.");
-
-            // bun.lock is JSONC; each package entry is an array whose first element is "<name>@<version>".
-            var lockFile = DashboardDirectory / "bun.lock";
-            using var lockDocument = JsonDocument.Parse(
-                File.ReadAllText(lockFile),
-                new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
-            var lockedSpec = lockDocument.RootElement.GetProperty("packages")
-                .GetProperty(PackageName)[0]
-                .GetString() ?? string.Empty;
-            var lockedVersion = lockedSpec[(lockedSpec.LastIndexOf('@') + 1)..];
-            if (!string.Equals(version, lockedVersion, StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    $"{DashboardDirectory} lock file resolves {PackageName} {lockedVersion}, expected {version}.");
-
-            var installedPackageFile = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema" / "package.json";
-            using var installedDocument = JsonDocument.Parse(File.ReadAllText(installedPackageFile));
-            var installedVersion = installedDocument.RootElement.GetProperty("version").GetString();
-            if (!string.Equals(version, installedVersion, StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    $"{DashboardDirectory} installed {PackageName} {installedVersion}, expected {version}.");
-
-            var importsGeneratedContracts = DashboardDirectory.GlobFiles("src/**/*.ts", "src/**/*.tsx")
-                .Any(file => File.ReadAllText(file).Contains(PackageName, StringComparison.Ordinal));
-            if (!importsGeneratedContracts)
-                throw new InvalidOperationException(
-                    $"{DashboardDirectory} does not import generated {PackageName} contracts.");
-
-            AbsolutePath[] forbiddenCopies =
-            [
-                DashboardDirectory / "src" / "types" / "api.ts",
-                DashboardDirectory / "scripts" / "generate-api-types.mjs"
-            ];
-            var existingCopies = forbiddenCopies.Where(static path => path.FileExists()).ToArray();
-            if (existingCopies.Length > 0)
-                throw new InvalidOperationException(
-                    $"Remove copied API contract surfaces: {string.Join(", ", existingCopies)}");
-
-            var versionDocument = XDocument.Load(RootDirectory / "Version.props");
-            var dotnetVersion = versionDocument.Descendants("QylApiContractsVersion")
-                .Select(static element => element.Value.Trim())
-                .SingleOrDefault();
-            if (string.IsNullOrWhiteSpace(dotnetVersion))
-                throw new InvalidOperationException(
-                    "Version.props must define one QylApiContractsVersion for the generated .NET contracts.");
-            if (!string.Equals(version, dotnetVersion, StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    $"Generated contract versions disagree: dashboard uses {version}, .NET uses {dotnetVersion}.");
-
-            Log.Information("Product dashboard consumes {Package} {Version} directly", PackageName, version);
-        });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
         .ProceedAfterFailure()
@@ -475,25 +389,13 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
         .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify collector endpoint pagination limits match qyl-api-schema OpenAPI")
-        .DependsOn<IPipeline>(static x => x.FrontendInstall)
+        .DependsOn<IApiContract>(static x => x.RestoreApiContract)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
             var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
-            var packageDirectory = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema";
-            using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageDirectory / "package.json"));
-            var openApiExport = packageDocument.RootElement.GetProperty("exports")
-                .GetProperty("./openapi")
-                .GetProperty("default")
-                .GetString() ?? throw new InvalidOperationException(
-                "The installed qyl-api-schema package does not export ./openapi.");
-            var openApiFile = packageDirectory / openApiExport.TrimStart('.', '/');
-            if (!openApiFile.FileExists())
-                throw new FileNotFoundException(
-                    "The exact installed qyl-api-schema package is missing its OpenAPI contract", openApiFile.ToString());
-
             var constants = ReadContractLimitConstants(endpointFile);
-            using var document = JsonDocument.Parse(File.ReadAllText(openApiFile));
+            using var document = JsonDocument.Parse(File.ReadAllText(OpenApiContractFile));
 
             // Contract 12.0.0 has one PageLimit: every list route's `limit` and SavedQueryRunRequest.limit
             // reference the same schema (1 to 1000) with the same default (100). The collector keeps that
@@ -552,20 +454,12 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
         .ProceedAfterFailure()
         .Unlisted()
         .Description("Verify every qyl-api-schema product route is explicitly mapped by the collector")
-        .DependsOn<IPipeline>(static x => x.FrontendInstall)
+        .DependsOn<IApiContract>(static x => x.RestoreApiContract)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
             var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
-            var packageDirectory = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema";
-            using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageDirectory / "package.json"));
-            var openApiExport = packageDocument.RootElement.GetProperty("exports")
-                .GetProperty("./openapi")
-                .GetProperty("default")
-                .GetString() ?? throw new InvalidOperationException(
-                "The installed qyl-api-schema package does not export ./openapi.");
-            var openApiFile = packageDirectory / openApiExport.TrimStart('.', '/');
-            using var openApiDocument = JsonDocument.Parse(File.ReadAllText(openApiFile));
+            using var openApiDocument = JsonDocument.Parse(File.ReadAllText(OpenApiContractFile));
 
             var operationNames = new HashSet<string>(StringComparer.Ordinal)
             {
@@ -2660,8 +2554,8 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocationCache.cs",
                 CollectorIngestionDirectory / "SourceLocationCache.cs",
                 RootDirectory / "services" / "qyl.collector" / "railway.toml",
-                RootDirectory / "services" / "qyl.dashboard" / "railway.toml",
-                RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
+                RootDirectory / "services" / "qyl.dashboard",
+                CollectorDirectory / "Dashboard",
                 RootDirectory / "packages" / "Qyl.Host",
                 RootDirectory / "packages" / "Qyl.Host.Console",
                 RootDirectory / "packages" / "Qyl.Run.Host",
@@ -2820,12 +2714,10 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly);
 
     Target Verify => d => d
-        .Description("Run collector and frontend verification checks")
+        .Description("Run collector and repository verification checks")
         .DependsOn(VerifyBackend)
         .DependsOn<IDependencyEdges>(static x => x.VerifyDependencyEdges)
         .DependsOn<ICliContractLoop>(static x => x.VerifyCliSerializesContractsOnly)
-        .DependsOn(VerifyFrontendApiTypes)
-        .DependsOn(VerifyFrontendTypes)
         // The checks proceed after a failure so one run reports all of them; the banner below
         // claims every one passed, so it runs only when that is true.
         .OnlyWhenDynamic(() => IsSucceeding)
@@ -2835,7 +2727,6 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
             Log.Information("  Verification Complete");
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  Committed TypeSpec DuckDB schema artifact stays absent");
-            Log.Information("  Frontend TypeScript types compile");
             Log.Information("  Collector public API is explicitly mapped");
             Log.Information("  Collector exposes no public type surface outside Program");
             Log.Information("  Collector-local DTO models are internal");

@@ -31,7 +31,6 @@ interface IQylTests : IHasSolution, IHasConfiguration
 sealed class Build : FalloutBuild,
     ICompile,
     ICoverage,
-    IPipeline,
     INativeAot,
     IVerify,
     IDependencyEdges,
@@ -58,7 +57,6 @@ sealed class Build : FalloutBuild,
 
     public Target Clean => d => d
         .Before<IRestore>(static x => x.Restore)
-        .Before<IPipeline>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             var buildScriptDirectory = (RootDirectory / "eng" / "build")
@@ -108,20 +106,17 @@ sealed class Build : FalloutBuild,
             .EnableNoBuild()));
 
     public Target Check => d => d
-        .Description("The gate before every push: compile, tests, verification, the public API report, SDK and SemConv pins and the dashboard's lint, tests and build")
+        .Description("The gate before every push: compile, tests, verification, the public API report, SDK and SemConv pins")
         .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IQylTests>(static x => x.Test)
         .DependsOn(OrchestrationSmoke)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IApiBaseline>(static x => x.ApiBaseline)
         .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)
-        .DependsOn<IHousekeeping>(static x => x.VerifySemanticConventionsPin)
-        .DependsOn<IPipeline>(static x => x.FrontendBuild)
-        .DependsOn<IPipeline>(static x => x.FrontendTest)
-        .DependsOn<IPipeline>(static x => x.FrontendLint);
+        .DependsOn<IHousekeeping>(static x => x.VerifySemanticConventionsPin);
 
     public Target CheckFull => d => d
-        .Description("Everything: Check, NativeAOT, the pack smoke, the SDK proof, the dashboard end-to-end run, the vocabulary smoke and the coverage gate")
+        .Description("Everything: Check, NativeAOT, the pack smoke, the SDK proof, the vocabulary smoke and the coverage gate")
         .DependsOn(Check)
         .DependsOn<INativeAot>(static x => x.NativeAot)
         // The pack lane builds with the AOT analyzers Compile disables, so it is the only gate that
@@ -130,7 +125,6 @@ sealed class Build : FalloutBuild,
         .DependsOn<IPack>(static x => x.PackSmoke)
         // The SDK's own nine-stage proof: it ships from here, so its gates are this gate.
         .DependsOn<IApiSdk>(static x => x.ApiSdk)
-        .DependsOn<IPipeline>(static x => x.FrontendE2E)
         .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke)
         .DependsOn<ICoverage>(static x => x.Coverage);
 

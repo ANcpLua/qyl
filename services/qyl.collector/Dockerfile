@@ -1,26 +1,8 @@
-# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
-
-FROM oven/bun:1.4.3-slim@sha256:14a223fa35747ec728bce300ef85888bc5f7958164d15bbba6a54b22b52a3288 AS dashboard
-
-WORKDIR /dashboard
-
-COPY services/qyl.dashboard/package.json services/qyl.dashboard/bun.lock ./
-RUN bun install --frozen-lockfile
-
-COPY services/qyl.dashboard/ ./
-RUN bun run build && \
-    test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
-
-# DuckDB.NET ships glibc native assets; the AOT SDK supplies clang and zlib for ILC.
 FROM mcr.microsoft.com/dotnet/sdk:10.0.401-noble-aot@sha256:88446bc2708f037046d48ef2bd77c437e981ca01229d7005ac2016ec42e05347 AS build
 
 WORKDIR /src
 
 COPY . .
-
-# The dashboard build lands where the csproj embed gate expects it: a Release publish embeds
-# dist/** into the assembly (QylEmbedDashboard), and the publish fails loudly if dist is missing.
-COPY --from=dashboard /dashboard/dist services/qyl.dashboard/dist/
 
 RUN eng/scripts/publish-collector-aot.sh /app
 
