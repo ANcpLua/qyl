@@ -64,7 +64,27 @@ if tool == 'git':
     elif args[0] == 'tag': (root / 'tag').touch()
     elif args[0] == 'push' and mode == 'tag-push-failure': sys.exit(43)
 elif tool == 'gh':
-    if args[:2] == ['release', 'view']:
+    if args[:2] == ['run', 'list']:
+        if mode == 'ci-api-failure': sys.exit(49)
+        print(json.dumps([] if mode == 'ci-missing' else [{'databaseId': 123}]))
+    elif args[:2] == ['run', 'view']:
+        run = dict(headSha=commit, headBranch='main', event='push', status='completed',
+                   conclusion='success', url='https://github.com/ANcpLua/qyl/actions/runs/123',
+                   jobs=[dict(name='check-full', status='completed', conclusion='success', steps=[
+                       dict(name=name, status='completed', conclusion='success')
+                       for name in ('NativeAOT prerequisites', 'Gate')])])
+        if mode == 'ci-wrong-sha': run['headSha'] = 'different-commit'
+        if mode == 'ci-wrong-branch': run['headBranch'] = 'feature'
+        if mode == 'ci-pr': run['event'] = 'pull_request'
+        if mode == 'ci-manual-full': run['event'] = 'workflow_dispatch'
+        if mode == 'ci-failed': run['conclusion'] = 'failure'
+        if mode == 'ci-pending': run['status'] = 'in_progress'
+        if mode == 'ci-short': run['jobs'][0]['name'] = 'check'
+        if mode == 'ci-job-skipped': run['jobs'][0]['conclusion'] = 'skipped'
+        if mode == 'ci-prerequisites-skipped': run['jobs'][0]['steps'][0]['conclusion'] = 'skipped'
+        if mode == 'ci-gate-skipped': run['jobs'][0]['steps'][1]['conclusion'] = 'skipped'
+        print(json.dumps(run))
+    elif args[:2] == ['release', 'view']:
         if not (root / 'github').exists(): sys.exit(1)
         if '--json' in args and args[args.index('--json') + 1] == 'isDraft':
             print('false' if (root / 'github').read_text() == 'published' else 'true')
@@ -128,6 +148,8 @@ class ReleaseOutcomeTests(unittest.TestCase):
         (self.root / 'eng').mkdir()
         (self.root / 'eng/build.sh').symlink_to(commands / 'build')
         (self.root / 'eng/scripts').mkdir()
+        (self.root / 'eng/scripts/verify-release-ci.py').write_text(
+            (pathlib.Path(__file__).parent / 'verify-release-ci.py').read_text())
         (self.root / 'eng/scripts/smoke-orchestration-package.sh').symlink_to(commands / 'orchestration-smoke')
         (self.root / 'site/scripts').mkdir(parents=True)
         (self.root / 'site/scripts/refresh-published-versions.sh').symlink_to(commands / 'refresh')
@@ -160,13 +182,39 @@ class ReleaseOutcomeTests(unittest.TestCase):
         self.assertEqual('VERIFIED', self.status()['state'])
         events = self.events()
         positions = [next(i for i, call in enumerate(events) if call.startswith(prefix))
-                     for prefix in ('build PackRelease', 'dotnet run', 'dotnet nuget push artifacts/nuget/qyl.linux-x64',
+                     for prefix in ('gh run list', 'gh run view', 'build PackRelease', 'dotnet run', 'dotnet nuget push artifacts/nuget/qyl.linux-x64',
                                     'dotnet nuget push artifacts/nuget/qyl.13', 'git tag', 'gh release create',
                                     'build VerifyRelease', 'refresh ')]
         self.assertEqual(sorted(positions), positions)
         status = self.run_release('success', '--status', '13.0.1')
         self.assertEqual(0, status.returncode)
         self.assertEqual('VERIFIED', json.loads(status.stdout)['state'])
+
+    def test_publication_requires_a_successful_full_run_for_its_exact_commit(self):
+        for mode in ('ci-missing', 'ci-wrong-sha', 'ci-wrong-branch', 'ci-pr', 'ci-failed',
+                     'ci-pending', 'ci-short', 'ci-job-skipped', 'ci-prerequisites-skipped',
+                     'ci-gate-skipped', 'ci-api-failure'):
+            with self.subTest(mode=mode):
+                result = self.run_release(mode)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertEqual('FAILED', self.status()['state'])
+                self.assertEqual('full Linux CI for the release commit', self.status()['phase'])
+                self.assertFalse(any(call.startswith(('build PackRelease', 'dotnet nuget push', 'git tag'))
+                                     for call in self.events()))
+
+    def test_manual_full_rerun_can_satisfy_the_release_gate(self):
+        result = self.run_release('ci-manual-full')
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn('Full Linux check passed for 0123456789abcdef:', result.stdout)
+        self.assertEqual('VERIFIED', self.status()['state'])
+
+    def test_resuming_a_draft_cannot_bypass_the_full_ci_requirement(self):
+        first = self.run_release('verify-timeout')
+        self.assertEqual(3, first.returncode, first.stdout + first.stderr)
+        resumed = self.run_release('ci-short', '--verify', '13.0.1')
+        self.assertNotEqual(0, resumed.returncode, resumed.stdout + resumed.stderr)
+        self.assertEqual('FAILED', self.status()['state'])
+        self.assertFalse(any(call.startswith(('gh release edit', 'refresh ')) for call in self.events()))
 
     def test_phase_diagnostics_identify_the_failure_and_preserve_its_exit(self):
         result = self.run_release('pack-failure')

@@ -8,6 +8,6 @@ quiet = true
 run = "./eng/build.sh Check --Configuration Release"
 
 [tasks.check-full]
-description = "Everything, on demand: ./eng/build.sh CheckFull (NativeAOT, pack smoke, SDK proof, vocabulary smoke, coverage gate)"
+description = "Full main-push and release gate: ./eng/build.sh CheckFull (NativeAOT, pack smoke, SDK proof, vocabulary smoke, coverage gate)"
 quiet = true
 run = "./eng/build.sh CheckFull --Configuration Release"

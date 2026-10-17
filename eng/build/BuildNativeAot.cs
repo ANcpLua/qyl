@@ -23,8 +23,8 @@ interface INativeAot : IHasSourcePaths
 
 /// <summary>
 /// CheckFull's two container stages, the collector NativeAOT smoke and the Qyl.Api.Sdk container
-/// scenario, need a container daemon. CI has one (`check.yml`, manual run with full=true, on
-/// ubuntu-latest) and always runs them, so a missing daemon there fails the stage; a machine without
+/// scenario, need a container daemon. CI has one (`check.yml`, main pushes and full=true reruns, on
+/// ubuntu-latest) and always runs them, so a missing daemon there fails the stage; a local machine without
 /// one skips them, and the target table names the reason, instead of failing the gate.
 /// </summary>
 static class ContainerDaemon

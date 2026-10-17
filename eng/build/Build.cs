@@ -128,6 +128,12 @@ sealed class Build : FalloutBuild,
         .DependsOn<IVocabularySmoke>(static x => x.G1VocabularySmoke)
         .DependsOn<ICoverage>(static x => x.Coverage);
 
+    protected override void OnTargetSkipped(string target)
+    {
+        if (IsServerBuild && InvokedTargets.Any(static target => target.Name == nameof(CheckFull)))
+            throw new InvalidOperationException($"CheckFull requires every stage in CI; {target} was skipped.");
+    }
+
     AbsolutePath IHasArtifacts.ArtifactsDirectory => RootDirectory / "artifacts";
 
     Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s

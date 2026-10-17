@@ -1,10 +1,6 @@
-# The gate, reporting only: `mise run check` (./eng/build.sh Check) on every push to main and
-# every pull request. Nothing publishes, deploys or waits for this run. A manual run with
-# full=true (`gh workflow run check.yml -f full=true`) runs `mise run check-full` instead
-# (NativeAOT, pack smoke, SDK proof, vocabulary smoke, coverage gate). Its
-# two container stages, the collector NativeAOT smoke and the SDK container scenario, need the
-# runner's Docker daemon: this run is where they run, a machine without a daemon skips them.
-# A failed run keeps artifacts/logs as gate-log.
+# Pull requests run Check; main pushes run CheckFull, including NativeAOT and Docker.
+# Manual full=true dispatches can rerun the full check. Publication requires a successful
+# full run for the exact release commit. Failed runs retain artifacts/logs as gate-log.
 name: check
 
 on:
@@ -21,15 +17,16 @@ on:
 permissions:
   contents: read
 
-# A push cancels the previous push's gate, never a running full=true run.
+# Superseded runs cancel within the same ref and check scope.
 concurrency:
-  group: check-${{ github.ref }}-${{ inputs.full && 'full' || 'gate' }}
+  group: check-${{ github.ref }}-${{ (github.event_name == 'push' || inputs.full) && 'full' || 'gate' }}
   cancel-in-progress: true
 
 jobs:
   check:
+    name: ${{ (github.event_name == 'push' || inputs.full) && 'check-full' || 'check' }}
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.full && 60 || 15 }}
+    timeout-minutes: ${{ (github.event_name == 'push' || inputs.full) && 60 || 15 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,12 +35,16 @@ jobs:
       - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
 
       - name: NativeAOT prerequisites
-        if: inputs.full
+        if: github.event_name == 'push' || inputs.full
         run: |
           dpkg -s zlib1g-dev >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends zlib1g-dev; }
+          docker info >/dev/null
+
+      - name: Release publication gate tests
+        run: python3 eng/scripts/test-release-publish-order.py
 
       - name: Gate
-        run: mise run ${{ inputs.full && 'check-full' || 'check' }}
+        run: mise run ${{ (github.event_name == 'push' || inputs.full) && 'check-full' || 'check' }}
 
       - name: Keep the gate log
         if: failure()

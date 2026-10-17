@@ -237,9 +237,11 @@ the report rewrites the `PublicAPI.txt` files and never fails); `CheckFull` adds
 NativeAOT, the pack smoke (the only gate that sees trim regressions), the SDK proof, the
 vocabulary smoke and the coverage gate (`Coverage`: the .NET tests
 under Microsoft code coverage, dotcov's line and branch thresholds in `eng/build/BuildCoverage.cs`).
+Pull requests run `Check`; every push to `main` runs `CheckFull` on Linux.
 Its two container stages (the collector NativeAOT smoke and the SDK container image) need a
-container daemon; without one they show as skipped in the target table, and
-`gh workflow run check.yml -f full=true` runs them on GitHub's runner.
+container daemon. Local runs can skip them without one; CI fails if Docker is missing or any
+full-check stage is skipped. `gh workflow run check.yml -f full=true` remains available for reruns.
+Publication requires a successful full GitHub run for the exact release commit.
 `./eng/build.sh --help` lists every target.
 
 Run one gate at a time on the development Mac and cap each MSBuild invocation at four

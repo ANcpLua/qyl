@@ -186,6 +186,7 @@ verify_published() {
   phase "publish GitHub release"
   draft=$(gh release view "v$version" --json isDraft --jq '.isDraft')
   if [[ $draft == true ]]; then
+    python3 eng/scripts/verify-release-ci.py "$release_commit"
     gh release edit "v$version" --draft=false
     draft=$(gh release view "v$version" --json isDraft --jq '.isDraft')
   fi
@@ -294,6 +295,9 @@ rids=$(sed -n 's:.*<QylToolRuntimeIdentifiers>\([^<]*\)</QylToolRuntimeIdentifie
 package_ids=(qyl Qyl.Api.Sdk Qyl.Orchestration $(for r in $rids; do echo "qyl.$r"; done))
 expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | sort)
 echo "expected package set: ${#package_ids[@]} packages"
+
+phase "full Linux CI for the release commit"
+python3 eng/scripts/verify-release-ci.py "$release_commit"
 
 phase "pack (Fallout PackRelease)"
 ./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$release_commit" --PackDiagnosticDirectory "$diagnostics_dir"
