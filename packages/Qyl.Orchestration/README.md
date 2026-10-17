@@ -29,6 +29,9 @@ application and stops all children on failure or cancellation; early process exi
 child's recent output. `DisposeAsync` stops process trees and releases reservations, including
 when the application was never started. A builder and application each represent one run.
 Unexpected exits after readiness use a bounded restart policy (three retries by default).
+On Unix, disposal, stop and restart send SIGTERM and allow up to ten seconds for host
+shutdown and exporter flushing before killing the process tree. Windows requests window
+closure when supported; headless processes fall back to forced termination.
 
 Use `Qyl.Telemetry.Hosting` in the services to export telemetry to a collector or test receiver.
 This library manages processes; it does not build projects, provision databases or containers,

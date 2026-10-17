@@ -12,6 +12,7 @@ if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_WORKER") is { } mode
     }
     var worker = WebApplication.CreateBuilder(args);
     worker.Logging.ClearProviders();
+    worker.Services.AddHostedService<ShutdownMarker>();
     await using var app = worker.Build();
     if (worker.Configuration["services:payments:http:0"] is { } dependency)
     {
@@ -36,38 +37,50 @@ var scratch = Path.Combine(Path.GetTempPath(), $"qyl-orchestration-smoke-{Guid.N
 Directory.CreateDirectory(scratch);
 try
 {
-    var assembly = typeof(Smoke).Assembly.Location;
+    var executable = Environment.ProcessPath ?? throw new InvalidOperationException("The smoke process path is unavailable.");
     var builder = new QylApplicationBuilder { StartupTimeoutSeconds = 10, MaxRestarts = 0 };
-    var payments = Smoke.Worker(builder, "payments", assembly, "ready");
-    Smoke.Worker(builder, "orders", assembly, "ready")
+    var payments = Smoke.Worker(builder, "payments", executable, "ready");
+    var stopped = Path.Combine(scratch, "payments.stopped");
+    payments.WithEnvironment("ORCHESTRATION_SMOKE_STOPPED", stopped);
+    Smoke.Worker(builder, "orders", executable, "ready")
         .WithReference(payments).WaitFor(payments)
         .WithoutEnvironmentPrefix("ORCHESTRATION_SMOKE_")
         .WithEnvironment("ORCHESTRATION_SMOKE_VALUE", "argument with spaces");
-    await using (var app = builder.Build())
     {
-        await Smoke.ThrowsAsync<InvalidOperationException>(() => Task.Run(() => payments.WithEnvironment("LATE", "invalid")));
-        await app.StartAsync();
-        using var client = new HttpClient();
-        var paymentAddress = app.GetEndpoint("payments");
-        var orderAddress = app.GetEndpoint("orders");
-        Smoke.Require(paymentAddress.Port != orderAddress.Port, "Service ports collided.");
-        Smoke.Require(await client.GetStringAsync(new Uri(orderAddress, "/dependency")) == paymentAddress.ToString(),
-            "The reference endpoint did not reach the child.");
-        Smoke.Require(await client.GetStringAsync(new Uri(orderAddress, "/value")) == "argument with spaces",
-            "Explicit environment must survive inherited-prefix removal.");
-        using var paymentProcess = Process.GetProcessById(int.Parse(
-            await client.GetStringAsync(new Uri(paymentAddress, "/health")), CultureInfo.InvariantCulture));
-        using var orderProcess = Process.GetProcessById(int.Parse(
-            await client.GetStringAsync(new Uri(orderAddress, "/health")), CultureInfo.InvariantCulture));
-        await app.DisposeAsync();
-        Smoke.Require(paymentProcess.HasExited && orderProcess.HasExited, "Dispose left a child alive.");
+        var app = builder.Build();
+        try
+        {
+            await Smoke.ThrowsAsync<InvalidOperationException>(() => Task.Run(() => payments.WithEnvironment("LATE", "invalid")));
+            await app.StartAsync();
+            using var client = new HttpClient();
+            var paymentAddress = app.GetEndpoint("payments");
+            var orderAddress = app.GetEndpoint("orders");
+            Smoke.Require(paymentAddress.Port != orderAddress.Port, "Service ports collided.");
+            Smoke.Require(await client.GetStringAsync(new Uri(orderAddress, "/dependency")) == paymentAddress.ToString(),
+                "The reference endpoint did not reach the child.");
+            Smoke.Require(await client.GetStringAsync(new Uri(orderAddress, "/value")) == "argument with spaces",
+                "Explicit environment must survive inherited-prefix removal.");
+            using var paymentProcess = Process.GetProcessById(int.Parse(
+                await client.GetStringAsync(new Uri(paymentAddress, "/health")), CultureInfo.InvariantCulture));
+            using var orderProcess = Process.GetProcessById(int.Parse(
+                await client.GetStringAsync(new Uri(orderAddress, "/health")), CultureInfo.InvariantCulture));
+            await app.DisposeAsync();
+            Smoke.Require(paymentProcess.HasExited && orderProcess.HasExited, "Dispose left a child alive.");
+            if (!OperatingSystem.IsWindows())
+                Smoke.Require(File.Exists(stopped) && await File.ReadAllTextAsync(stopped) == "flushed",
+                    "Dispose bypassed the child's asynchronous hosted-service shutdown.");
+        }
+        finally
+        {
+            await app.DisposeAsync();
+        }
     }
     Console.WriteLine("PASS: real services, references, dependency readiness, environment, shutdown");
 
     var failedPeer = Path.Combine(scratch, "failed-peer.pid");
     var failing = new QylApplicationBuilder { StartupTimeoutSeconds = 10, MaxRestarts = 0 };
-    var peer = Smoke.Worker(failing, "peer", assembly, "ready").WithEnvironment("ORCHESTRATION_SMOKE_PID", failedPeer);
-    Smoke.Worker(failing, "broken", assembly, "fail").WaitFor(peer);
+    var peer = Smoke.Worker(failing, "peer", executable, "ready").WithEnvironment("ORCHESTRATION_SMOKE_PID", failedPeer);
+    Smoke.Worker(failing, "broken", executable, "fail").WaitFor(peer);
     await using (var app = failing.Build())
     {
         var error = await Smoke.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
@@ -82,9 +95,9 @@ try
 
     var cancelledPid = Path.Combine(scratch, "cancelled.pid");
     var cancelled = new QylApplicationBuilder { StartupTimeoutSeconds = 10, MaxRestarts = 0 };
-    var waiting = Smoke.Worker(cancelled, "waiting", assembly, "unhealthy").WithEnvironment("ORCHESTRATION_SMOKE_PID", cancelledPid);
+    var waiting = Smoke.Worker(cancelled, "waiting", executable, "unhealthy").WithEnvironment("ORCHESTRATION_SMOKE_PID", cancelledPid);
     var deferredPid = Path.Combine(scratch, "deferred.pid");
-    Smoke.Worker(cancelled, "deferred", assembly, "ready").WithEnvironment("ORCHESTRATION_SMOKE_PID", deferredPid).WaitFor(waiting);
+    Smoke.Worker(cancelled, "deferred", executable, "ready").WithEnvironment("ORCHESTRATION_SMOKE_PID", deferredPid).WaitFor(waiting);
     await using (var app = cancelled.Build())
     {
         using var cancellation = new CancellationTokenSource();
@@ -101,7 +114,7 @@ try
 
     var timedOutPid = Path.Combine(scratch, "timeout.pid");
     var timedOut = new QylApplicationBuilder { StartupTimeoutSeconds = 3, MaxRestarts = 0 };
-    Smoke.Worker(timedOut, "unhealthy", assembly, "unhealthy").WithEnvironment("ORCHESTRATION_SMOKE_PID", timedOutPid);
+    Smoke.Worker(timedOut, "unhealthy", executable, "unhealthy").WithEnvironment("ORCHESTRATION_SMOKE_PID", timedOutPid);
     await using (var app = timedOut.Build())
     {
         await Smoke.ThrowsAsync<TimeoutException>(() => app.StartAsync());
@@ -128,8 +141,10 @@ finally
 
 internal static class Smoke
 {
-    internal static QylProcessBuilder Worker(QylApplicationBuilder builder, string name, string assembly, string mode) =>
-        builder.AddDotnetService(name, assembly)
+    internal static QylProcessBuilder Worker(QylApplicationBuilder builder, string name, string executable, string mode) =>
+        builder.AddExecutable(name, executable,
+                Path.GetFileNameWithoutExtension(executable).Equals("dotnet", StringComparison.OrdinalIgnoreCase)
+                    ? [Environment.GetCommandLineArgs()[0]] : [])
             .WithEnvironment("ORCHESTRATION_SMOKE_WORKER", mode)
             .WithHealthCheck(requireProcessId: true);
 
@@ -165,5 +180,17 @@ internal static class Smoke
         {
             // The operating system has already removed the exited process.
         }
+    }
+}
+
+internal sealed class ShutdownMarker : IHostedService
+{
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_STOPPED") is not { } path) return;
+        await Task.Delay(100, cancellationToken);
+        await File.WriteAllTextAsync(path, "flushed", cancellationToken);
     }
 }

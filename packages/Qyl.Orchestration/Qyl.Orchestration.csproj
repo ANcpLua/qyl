@@ -6,6 +6,7 @@
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>Compose and supervise local .NET services and executables with qyl's process orchestrator.</Description>
     <PackageTags>qyl;orchestration;hosting;testing</PackageTags>

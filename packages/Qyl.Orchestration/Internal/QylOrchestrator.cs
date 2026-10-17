@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -22,6 +23,7 @@ internal sealed partial class QylOrchestrator(
     private static readonly TimeSpan s_processExitTimeout = TimeSpan.FromSeconds(5);
 
     private readonly ConcurrentDictionary<string, Process> _processes = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _stopRequests = new(StringComparer.Ordinal);
 
     // Names whose next exit is a user-requested restart, not a crash: supervision consumes the marker,
     // relaunches on the same port, and resets the crash budget instead of burning it.
@@ -175,18 +177,27 @@ internal sealed partial class QylOrchestrator(
                 return;
             }
 
-            registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
-            LogReady(logger, resource.Name, endpoint);
-
             while (!stoppingToken.IsCancellationRequested)
             {
+                using var request = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                _stopRequests[resource.Name] = request;
+                registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
+                LogReady(logger, resource.Name, endpoint);
                 try
                 {
-                    await current.WaitForExitAsync(stoppingToken).ConfigureAwait(false);
+                    await current.WaitForExitAsync(request.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
                     return;
+                }
+                catch (OperationCanceledException) when (request.IsCancellationRequested)
+                {
+                    await StopProcessAsync(resource.Name, current).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _stopRequests.TryRemove(resource.Name, out _);
                 }
 
                 if (stoppingToken.IsCancellationRequested) return;
@@ -242,7 +253,6 @@ internal sealed partial class QylOrchestrator(
                     return;
                 }
 
-                registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
             }
         }
         finally
@@ -275,18 +285,12 @@ internal sealed partial class QylOrchestrator(
         {
             try
             {
-                if (!process.HasExited) process.Kill(true);
+                await StopProcessAsync(name, process).ConfigureAwait(false);
+                exited = true;
             }
             catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
             {
                 LogTerminationFailed(logger, name, ex.Message, ex);
-            }
-
-            using var timeout = new CancellationTokenSource(s_processExitTimeout);
-            try
-            {
-                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-                exited = true;
             }
             catch (OperationCanceledException)
             {
@@ -295,10 +299,6 @@ internal sealed partial class QylOrchestrator(
                     name,
                     $"did not exit within {s_processExitTimeout.TotalSeconds} seconds",
                     null);
-            }
-            catch (InvalidOperationException ex)
-            {
-                LogTerminationFailed(logger, name, ex.Message, ex);
             }
             finally
             {
@@ -316,6 +316,37 @@ internal sealed partial class QylOrchestrator(
                 exited ? null : "Process termination timed out");
         }
     }
+
+    private async Task StopProcessAsync(string name, Process process)
+    {
+        if (!process.HasExited)
+        {
+            // ConsoleLifetime handles SIGTERM on Unix. Give the host time to drain requests
+            // and flush exporters; Process.Kill bypasses all hosted-service cleanup.
+            var requested = OperatingSystem.IsWindows()
+                ? process.CloseMainWindow()
+                : SendSignal(process.Id, 15) == 0;
+            if (requested)
+            {
+                using var graceful = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await process.WaitForExitAsync(graceful.Token).ConfigureAwait(false);
+                    return;
+                }
+                catch (OperationCanceledException)
+                {
+                    LogTerminationFailed(logger, name, "graceful shutdown exceeded 10 seconds; terminating the process tree", null);
+                }
+            }
+            if (!process.HasExited) process.Kill(true);
+        }
+        using var timeout = new CancellationTokenSource(s_processExitTimeout);
+        await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+    }
+
+    [LibraryImport("libc", EntryPoint = "kill")]
+    private static partial int SendSignal(int processId, int signal);
 
     private async Task ListenForResourceActionsAsync(CancellationToken stoppingToken)
     {
@@ -340,7 +371,8 @@ internal sealed partial class QylOrchestrator(
 
         if (!registry.Snapshot.TryGetValue(resource.Name, out var state) ||
             state.Lifecycle != ResourceLifecycle.Ready ||
-            !_processes.TryGetValue(resource.Name, out var process))
+            !_processes.TryGetValue(resource.Name, out var process) ||
+            !_stopRequests.TryGetValue(resource.Name, out var stopRequest))
         {
             return new QylResourceActionResult(
                 QylResourceActionStatus.Conflict,
@@ -368,7 +400,7 @@ internal sealed partial class QylOrchestrator(
                 state.AllocatedPort,
                 state.Endpoint,
                 request.Action == QylResourceAction.Restart ? "Restart requested" : null);
-            process.Kill(true);
+            stopRequest.Cancel();
             return new QylResourceActionResult(QylResourceActionStatus.Accepted);
         }
         catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
