@@ -429,8 +429,8 @@ static bool ArePortsFree(IEnumerable<int> ports)
 
 static async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan timeout, string failure)
 {
-    var deadline = DateTimeOffset.UtcNow + timeout;
-    while (DateTimeOffset.UtcNow < deadline)
+    var elapsed = Stopwatch.StartNew();
+    while (elapsed.Elapsed < timeout)
     {
         if (await condition()) return;
         await Task.Delay(TimeSpan.FromMilliseconds(250));

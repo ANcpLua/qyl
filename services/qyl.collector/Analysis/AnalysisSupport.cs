@@ -13,8 +13,8 @@ internal sealed class AnalysisInputException(string field, string message, strin
 
 internal readonly record struct AnalysisWindow(DateTimeOffset Start, DateTimeOffset End)
 {
-    public ulong StartNs => (ulong)Start.ToUnixTimeMilliseconds() * 1_000_000;
-    private ulong EndNs => (ulong)End.ToUnixTimeMilliseconds() * 1_000_000;
+    public ulong StartNs => QylTimeConversions.ToUnixNanoUnsigned(Start);
+    private ulong EndNs => QylTimeConversions.ToUnixNanoUnsigned(End);
     public JsonObject Json => J.O(("start_time", Start.ToString("O")), ("end_time", End.ToString("O")));
     public bool Contains(ulong time) => time >= StartNs && time < EndNs;
     public static AnalysisWindow Resolve(JsonObject input, DateTimeOffset now, double defaultMinutes = 60)
@@ -56,6 +56,8 @@ internal static partial class J
         if ((input as JsonObject)?[name] is null) return null;
         if (!Rfc3339().IsMatch(String(input, name) ?? "") || !DateTimeOffset.TryParse(String(input, name), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
             throw new AnalysisInputException(name, name + " must be an RFC 3339 timestamp.");
+        if (!QylTimeConversions.TryToUnixNanoUnsigned(value, out _))
+            throw new AnalysisInputException(name, name + " must be within the unsigned OTLP Unix-nanosecond range.");
         return value;
     }
     public static JsonObject Attributes(string? json)

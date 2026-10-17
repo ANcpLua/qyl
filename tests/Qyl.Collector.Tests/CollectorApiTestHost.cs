@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
@@ -29,6 +30,8 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
 {
     internal const string ReaderApiKey = "reader";
     internal const string AlphaProjectId = "alpha";
+    internal static readonly DateTimeOffset FixtureUtcNow = new(2026, 10, 17, 12, 0, 0, TimeSpan.Zero);
+    internal const ulong FixtureUnixNano = 1_792_238_400_000_000_000;
 
     // One explicitly scoped credential per role combination the tests need.
     internal const string ProjectKeys = $$"""
@@ -88,8 +91,8 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
                 options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http1AndHttp2);
                 options.Listen(IPAddress.Loopback, 0, static listen => listen.Protocols = HttpProtocols.Http2);
             });
-            if (timeProvider is not null)
-                builder.Services.AddSingleton(timeProvider);
+            // Every invocation owns its clock; telemetry fixtures and relative windows share an epoch.
+            builder.Services.AddSingleton<TimeProvider>(timeProvider ?? new FakeTimeProvider(FixtureUtcNow));
             builder.Services.AddQylCollectorCore(config);
             builder.Services.AddQylCollectorAuth(config, builder.Environment);
             builder.Services.AddSingleton<IQylStore>(store);

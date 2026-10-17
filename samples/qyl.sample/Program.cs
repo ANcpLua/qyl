@@ -3,6 +3,7 @@ using Qyl.Sample;
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddQylApi(AppJsonSerializerContext.Default);
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TodoStore>();
 
 var app = builder.Build();

@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
@@ -79,7 +80,7 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
             }
         };
         var logRow = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(
-            OtlpConverter.ConvertLogs(logRequest, TimeProvider.System)));
+            OtlpConverter.ConvertLogs(logRequest, new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow))));
         Assert.AreEqual(EventName, logRow.EventName);
         var log = LogMapper.ToContract(logRow);
         Assert.AreEqual(EventName, log.EventName);
@@ -119,13 +120,14 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
                 }
             }
         };
-        var original = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request, TimeProvider.System)));
+        var clock = new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow);
+        var original = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request, clock)));
 
         var changed = request.Clone();
         changed.ResourceLogs[0].Resource.EntityRefs
             .Single(static entityRef => entityRef.Type == "service")
             .DescriptionKeys.Clear();
-        var updated = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed, TimeProvider.System)));
+        var updated = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed, clock)));
 
         Assert.AreEqual(original.LogId, updated.LogId);
         Assert.AreNotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);
@@ -134,7 +136,7 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
         changed.ResourceLogs[0].Resource.EntityRefs
             .Single(static entityRef => entityRef.Type == "service")
             .SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
-        updated = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed, TimeProvider.System)));
+        updated = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(changed, clock)));
 
         Assert.AreEqual(original.LogId, updated.LogId);
         Assert.AreNotEqual(original.ResourceEntityRefsJson, updated.ResourceEntityRefsJson);

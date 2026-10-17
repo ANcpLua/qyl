@@ -26,10 +26,12 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <PackageReference Include="Qyl.Telemetry.Hosting"/>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj"/>
+    <ProjectReference Include="../../samples/qyl.sample/qyl.sample.csproj"/>
   </ItemGroup>
 
 </Project>

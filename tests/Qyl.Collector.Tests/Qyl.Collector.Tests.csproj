@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting"/>
+    <Using Include="Qyl.Tests.Infrastructure"/>
+    <Compile Include="../Shared/TimerObservingTimeProvider.cs" Link="Infrastructure/TimerObservingTimeProvider.cs"/>
   </ItemGroup>
 
   <ItemGroup>

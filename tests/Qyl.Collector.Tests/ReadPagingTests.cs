@@ -139,7 +139,7 @@ public sealed class ReadPagingTests(TestContext testContext)
     public async Task Sessions_keep_is_active_and_the_time_range_while_paging()
     {
         await using var host = await StartAsync(testContext.CancellationToken);
-        var now = Ingestion.Primitives.TimeConversions.ToUnixNanoUnsigned(DateTimeOffset.UtcNow);
+        const ulong now = FixtureUnixNano;
         const ulong Second = 1_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [

@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Qyl.Collector.Tests;
+namespace Qyl.Tests.Infrastructure;
 
 /// <summary>Signals only after the underlying clock has registered a timer.</summary>
 internal sealed class TimerObservingTimeProvider(TimeProvider inner) : TimeProvider

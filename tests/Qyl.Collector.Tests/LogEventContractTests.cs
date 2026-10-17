@@ -102,7 +102,8 @@ public sealed class LogEventContractTests(TestContext testContext)
         attributes.Add(StringAttribute("url.query", "token=secret"));
         attributes.Add(StringAttribute("http.request.header.authorization", "Bearer secret"));
 
-        var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request, TimeProvider.System));
+        var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request,
+            new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow)));
         var converted = Assert.ContainsSingle(rows);
         Assert.AreEqual(eventName, converted.EventName);
         Assert.AreEqual(TraceId, converted.TraceId);

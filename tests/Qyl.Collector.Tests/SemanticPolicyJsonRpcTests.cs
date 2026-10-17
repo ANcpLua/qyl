@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Resource.V1;
@@ -118,7 +119,7 @@ public sealed class SemanticPolicyJsonRpcTests
                 } }
             } }
         };
-        var logBatch = OtlpConverter.ConvertLogs(logs, TimeProvider.System);
+        var logBatch = OtlpConverter.ConvertLogs(logs, new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow));
         Assert.AreEqual(0L, logBatch.RejectedLogRecords);
         var log = Assert.ContainsSingle(logBatch.Logs);
         Assert.IsEmpty(log.ScopeAttributes);

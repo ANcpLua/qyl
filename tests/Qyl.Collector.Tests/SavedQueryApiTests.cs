@@ -4,7 +4,6 @@ using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using Qyl.Collector.Ingestion;
-using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
 using static Qyl.Collector.Tests.CollectorApiTestHost;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
@@ -155,7 +154,7 @@ public sealed class SavedQueryApiTests(TestContext testContext)
     public async Task A_trace_run_applies_the_filter_and_look_back_and_pages_with_its_own_cursor()
     {
         await using var host = await StartAsync(testContext.CancellationToken);
-        var now = TimeConversions.ToUnixNanoUnsigned(DateTimeOffset.UtcNow);
+        const ulong now = FixtureUnixNano;
         const ulong Minute = 60_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
@@ -198,7 +197,7 @@ public sealed class SavedQueryApiTests(TestContext testContext)
 
         // An explicit window replaces the look-back.
         using var widened = await host.SendAsync(HttpMethod.Post, $"/api/v1/saved-queries/{id}:run", "reader",
-            $$"""{"start_time":"{{DateTimeOffset.UtcNow.AddHours(-4):O}}"}""");
+            $$"""{"start_time":"{{FixtureUtcNow.AddHours(-4):O}}"}""");
         Assert.AreEqual(3, (await host.JsonAsync(widened)).GetProperty("items").GetArrayLength());
     }
 

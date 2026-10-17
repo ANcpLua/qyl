@@ -126,10 +126,11 @@ internal sealed partial class QylOrchestrator(
 
     // Holds this resource in Pending until every WaitsFor dependency reports Ready. A dependency
     // reaching a terminal non-Ready state (Failed/Stopped) fails this resource instead of hanging it —
-    // every dependency reaches a terminal state on its own (health-probe timeout or restart budget),
-    // so no extra timeout is layered here. Cancellation means shutdown, not failure.
+    // Subscribe before inspecting state so a transition cannot be missed. Cancellation means shutdown,
+    // not failure; no polling timer or losing delay task needs to outlive a readiness transition.
     private async Task<bool> WaitForDependenciesAsync(QylResource resource, CancellationToken stoppingToken)
     {
+        using var changes = registry.Subscribe();
         foreach (var dep in resource.WaitsFor)
         {
             var ready = registry.WhenReady(dep);
@@ -147,10 +148,7 @@ internal sealed partial class QylOrchestrator(
 
                 try
                 {
-                    await Task.WhenAny(ready,
-                            Task.Delay(TimeSpan.FromMilliseconds(OrchestrationDefaults.Orchestrator.HealthPollIntervalMs),
-                                time, stoppingToken))
-                        .ConfigureAwait(false);
+                    await changes.Events.ReadAsync(stoppingToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -159,7 +157,7 @@ internal sealed partial class QylOrchestrator(
             }
         }
 
-        return true;
+        return !stoppingToken.IsCancellationRequested;
     }
 
     private void FailResource(QylResource resource, Exception ex)

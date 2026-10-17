@@ -1,6 +1,7 @@
 using Google.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
@@ -117,7 +118,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
             EventName = "worker.ready"
         });
         await using var store = new DuckDbStore(":memory:");
-        var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request, TimeProvider.System), "metadata");
+        var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request,
+            new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow)), "metadata");
         await store.InsertLogsAsync(rows, testContext.CancellationToken);
         var row = Assert.ContainsSingle(await store.GetLogsAsync("metadata", ct: testContext.CancellationToken));
         var log = LogMapper.ToContract(row);
@@ -208,7 +210,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Missing_event_timestamps_use_observation_for_filtering_and_pagination()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        var start = (ulong)TimeProvider.System.GetUtcNow().AddMinutes(-1).ToUnixTimeMilliseconds() * 1_000_000;
+        const ulong start = CollectorApiTestHost.FixtureUnixNano - 60_000_000_000;
         await host.Store.InsertLogsAsync(
         [
             new LogStorageRow { ProjectId = "alpha", LogId = "newest", TimeUnixNano = 0,
@@ -244,7 +246,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     [TestMethod]
     public async Task Receiver_observation_time_does_not_duplicate_an_export_retry()
     {
-        var first = Assert.ContainsSingle(OtlpConverter.ConvertLogs(LogRequest(new LogRecord { TimeUnixNano = Time }), TimeProvider.System).Logs);
+        var first = Assert.ContainsSingle(OtlpConverter.ConvertLogs(LogRequest(new LogRecord { TimeUnixNano = Time }),
+            new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow)).Logs);
         var retry = first with { ObservedTimeUnixNano = first.ObservedTimeUnixNano + 1_000_000 };
         var firstRow = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(new([first]), "metadata"));
         var retryRow = Assert.ContainsSingle(IngestionStorageMapper.ToLogStorageRows(new([retry]), "metadata"));
@@ -320,7 +323,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Delta_rate_does_not_invent_an_interval_for_an_unknown_start()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        var start = TimeProvider.System.GetUtcNow().AddSeconds(-5);
+        var start = CollectorApiTestHost.FixtureUtcNow.AddSeconds(-5);
         var startNanos = (ulong)start.ToUnixTimeMilliseconds() * 1_000_000;
         var unknown = Point() with
         {
@@ -443,7 +446,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Cumulative_rate_uses_the_actual_submillisecond_interval()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        var start = TimeProvider.System.GetUtcNow().AddSeconds(-5);
+        var start = CollectorApiTestHost.FixtureUtcNow.AddSeconds(-5);
         var startNanos = (ulong)start.ToUnixTimeMilliseconds() * 1_000_000;
         var first = Point() with
         {
@@ -465,7 +468,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Same_metric_name_in_two_scopes_produces_two_paged_catalog_entries()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        var first = Point() with { TimeUnixNano = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow()) };
+        var first = Point() with { TimeUnixNano = CollectorApiTestHost.FixtureUnixNano - 1_000_000_000 };
         var second = first with { ScopeName = "library-b" };
         var writes = MetricStorageMapper.ToStorageRows(new([first, second], 0, null), "alpha");
         await host.Store.InsertMetricsAsync(writes.Series, writes.Observations, testContext.CancellationToken);
@@ -561,7 +564,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Metric_http_queries_reject_ambiguous_variants_and_select_an_exact_series()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        var timestamp = TimeProvider.System.GetUtcNow().AddSeconds(-10);
+        var timestamp = CollectorApiTestHost.FixtureUtcNow.AddSeconds(-10);
         var nanos = (ulong)timestamp.ToUnixTimeMilliseconds() * 1_000_000;
         var first = Point() with { TimeUnixNano = nanos };
         var second = first with

@@ -74,7 +74,7 @@ public sealed class RunnerControlTests(TestContext testContext)
         var actions = new QylResourceActions();
         var launcher = new QylProcessLauncher(logs, NullLogger<QylProcessLauncher>.Instance);
         await using var services = new ServiceCollection().AddHttpClient().BuildServiceProvider();
-        var orchestrator = new QylOrchestrator(
+        using var orchestrator = new QylOrchestrator(
             resources,
             registry,
             new OrchestratorOptions { StartupTimeoutSeconds = options.StartupTimeoutSeconds },
@@ -83,7 +83,7 @@ public sealed class RunnerControlTests(TestContext testContext)
             actions,
             TimeProvider.System,
             NullLogger<QylOrchestrator>.Instance);
-        var api = new QylRunnerApi(
+        using var api = new QylRunnerApi(
             registry,
             logs,
             actions,
@@ -97,10 +97,10 @@ public sealed class RunnerControlTests(TestContext testContext)
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(3);
 
-        await api.StartAsync(lifetime.Token);
-        await orchestrator.StartAsync(lifetime.Token);
         try
         {
+            await api.StartAsync(lifetime.Token);
+            await orchestrator.StartAsync(lifetime.Token);
             await WaitForStateAsync(registry, logs, "worker", ResourceLifecycle.Ready, lifetime.Token);
             await WaitForLogCountAsync(logs, "worker", 1, lifetime.Token);
 
@@ -134,11 +134,9 @@ public sealed class RunnerControlTests(TestContext testContext)
         finally
         {
             await lifetime.CancelAsync();
-            using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await orchestrator.StopAsync(stopTimeout.Token);
-            await api.StopAsync(stopTimeout.Token);
-            api.Dispose();
-            orchestrator.Dispose();
+            // Cleanup joins the owners even when the invocation token has been canceled.
+            try { await orchestrator.StopAsync(CancellationToken.None); }
+            finally { await api.StopAsync(CancellationToken.None); }
         }
     }
 
@@ -195,6 +193,7 @@ public sealed class RunnerControlTests(TestContext testContext)
         ResourceLifecycle expected,
         CancellationToken cancellationToken)
     {
+        using var changes = registry.Subscribe();
         while (true)
         {
             if (registry.Snapshot.TryGetValue(resource, out var state))
@@ -211,7 +210,7 @@ public sealed class RunnerControlTests(TestContext testContext)
                 }
             }
 
-            await Task.Delay(20, cancellationToken);
+            await changes.Events.ReadAsync(cancellationToken);
         }
     }
 
@@ -221,7 +220,8 @@ public sealed class RunnerControlTests(TestContext testContext)
         int expected,
         CancellationToken cancellationToken)
     {
+        using var output = logs.Subscribe(resource);
         while (logs.Snapshot(resource).Count(static line => line.Line == "started") < expected)
-            await Task.Delay(20, cancellationToken);
+            await output.Events.ReadAsync(cancellationToken);
     }
 }

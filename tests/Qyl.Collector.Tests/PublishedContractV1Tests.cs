@@ -138,7 +138,8 @@ public sealed class PublishedContractV1Tests(TestContext testContext)
             }
         };
         await store.InsertLogsAsync(
-            IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(logsRequest, TimeProvider.System)),
+            IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(logsRequest,
+                new FakeTimeProvider(CollectorApiTestHost.FixtureUtcNow))),
             cancellationToken);
 
         var traceJson = await ExecuteAsync(

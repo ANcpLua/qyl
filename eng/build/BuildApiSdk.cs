@@ -725,8 +725,8 @@ internal static class ApiSdkScenario
 
     private static void WaitUntilServing(HttpClient client, string label, Action assertAlive)
     {
-        var deadline = DateTime.UtcNow + s_startupTimeout;
-        while (DateTime.UtcNow < deadline)
+        var elapsed = Stopwatch.StartNew();
+        while (elapsed.Elapsed < s_startupTimeout)
         {
             assertAlive();
             try
@@ -1037,12 +1037,12 @@ internal static class ApiSdkSession
     private static List<JsonNode> AwaitSession(HttpClient collector, string sessionId, ApiSdkHost collectorHost)
     {
         const int SettledPollsRequired = 2;
-        var deadline = DateTime.UtcNow + s_sessionTimeout;
+        var elapsed = Stopwatch.StartNew();
         var lastBody = string.Empty;
         List<JsonNode>? candidate = null;
         var settled = 0;
 
-        while (DateTime.UtcNow < deadline)
+        while (elapsed.Elapsed < s_sessionTimeout)
         {
             var spans = ReadSessionSpans(collector, sessionId, out lastBody);
             if (spans is { Count: >= 3 })
@@ -1084,9 +1084,9 @@ internal static class ApiSdkSession
     /// </summary>
     private static void AwaitControl(HttpClient collector, ApiSdkHost collectorHost)
     {
-        var deadline = DateTime.UtcNow + s_sessionTimeout;
+        var elapsed = Stopwatch.StartNew();
         var lastBody = string.Empty;
-        while (DateTime.UtcNow < deadline)
+        while (elapsed.Elapsed < s_sessionTimeout)
         {
             using var response = collector.GetAsync("/api/v1/traces").GetAwaiter().GetResult();
             lastBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
@@ -1264,8 +1264,8 @@ internal static class ApiSdkSession
 
     private static void WaitUntil(HttpClient client, string path, string label, ApiSdkHost host)
     {
-        var deadline = DateTime.UtcNow + s_startupTimeout;
-        while (DateTime.UtcNow < deadline)
+        var elapsed = Stopwatch.StartNew();
+        while (elapsed.Elapsed < s_startupTimeout)
         {
             if (host.HasExited)
                 throw new InvalidOperationException($"The {label} exited before it served:{Environment.NewLine}{host.Snapshot()}");

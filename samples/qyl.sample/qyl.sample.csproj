@@ -10,5 +10,9 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Qyl.Api.Tests" />
+    </ItemGroup>
+
     <Import Project="../../packages/Qyl.Api.Sdk/Sdk/Sdk.targets" />
 </Project>

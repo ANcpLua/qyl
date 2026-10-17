@@ -39,7 +39,7 @@ internal static class AnalysisReadPlan
         if (start < DateTimeOffset.UnixEpoch) start = DateTimeOffset.UnixEpoch;
         return new AnalysisReadQuery
         {
-            Start = (ulong)start.ToUnixTimeMilliseconds() * 1_000_000, End = (ulong)end.ToUnixTimeMilliseconds() * 1_000_000,
+            Start = QylTimeConversions.ToUnixNanoUnsigned(start), End = QylTimeConversions.ToUnixNanoUnsigned(end),
             TraceIds = [.. traces], SessionIds = [.. sessions],
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
             IncludeTelemetry = operation != "list_saved_queries"

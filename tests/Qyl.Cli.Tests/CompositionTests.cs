@@ -1,4 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Qyl.Cli.Runtime;
 
 namespace Qyl.Cli.Tests;
@@ -8,6 +10,7 @@ public sealed class CompositionTests(TestContext testContext)
 {
 
     [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
     public async Task Command_arguments_reach_a_real_process_without_shell_parsing()
     {
         if (OperatingSystem.IsWindows()) return;
@@ -28,23 +31,63 @@ public sealed class CompositionTests(TestContext testContext)
         };
 
         var logs = new QylLogStore();
+        using var output = logs.Subscribe(resource.Name);
         var launcher = new QylProcessLauncher(logs, NullLogger<QylProcessLauncher>.Instance);
         using var process = launcher.Launch(resource, new Uri("http://127.0.0.1:54321"));
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
-
-        await process.WaitForExitAsync(timeout.Token);
-
-        var deadline = DateTime.UtcNow.AddSeconds(2);
-        while (logs.Snapshot(resource.Name).Count == 0 && DateTime.UtcNow < deadline)
+        try
         {
-            await Task.Delay(10, timeout.Token);
-        }
+            await process.WaitForExitAsync(testContext.CancellationToken);
+            var line = await output.Events.ReadAsync(testContext.CancellationToken);
 
-        var line = Assert.ContainsSingle(logs.Snapshot(resource.Name));
-        Assert.AreEqual("hello world", line.Line);
-        Assert.AreEqual(QylLogStream.Stdout, line.Stream);
-        Assert.AreEqual(0, process.ExitCode);
+            Assert.ContainsSingle(logs.Snapshot(resource.Name));
+            Assert.AreEqual("hello world", line.Line);
+            Assert.AreEqual(QylLogStream.Stdout, line.Stream);
+            Assert.AreEqual(0, process.ExitCode);
+        }
+        finally
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(CancellationToken.None);
+        }
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task A_failed_dependency_prevents_launch_without_waiting_for_a_clock_tick()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), $"qyl-missing-{Guid.NewGuid():N}");
+        var dependency = new QylResource { Name = "dependency", Kind = QylResourceKind.Command, Port = 0,
+            Launch = new QylLaunchSpec { Executable = missing } };
+        // Put the dependent first so it is already waiting when its prerequisite fails.
+        var dependent = new QylResource { Name = "dependent", Kind = QylResourceKind.Command, Port = 0,
+            WaitsFor = [dependency.Name], Launch = new QylLaunchSpec { Executable = missing } };
+        QylResource[] resources = [dependent, dependency];
+        var clock = new FakeTimeProvider();
+        var registry = new QylResourceRegistry(resources, clock);
+        using var changes = registry.Subscribe();
+        var logs = new QylLogStore();
+        await using var services = new ServiceCollection().AddHttpClient().BuildServiceProvider();
+        using var orchestrator = new QylOrchestrator(resources, registry, new OrchestratorOptions(),
+            services.GetRequiredService<IHttpClientFactory>(),
+            new QylProcessLauncher(logs, NullLogger<QylProcessLauncher>.Instance), new QylResourceActions(),
+            clock, NullLogger<QylOrchestrator>.Instance);
+        try
+        {
+            await orchestrator.StartAsync(testContext.CancellationToken);
+            while (registry.Snapshot.GetValueOrDefault(dependent.Name)?.Lifecycle != ResourceLifecycle.Failed)
+                await changes.Events.ReadAsync(testContext.CancellationToken);
+
+            Assert.AreEqual(ResourceLifecycle.Failed, registry.Snapshot[dependency.Name].Lifecycle);
+            Assert.AreEqual("Dependency 'dependency' reached state Failed before becoming ready",
+                registry.Snapshot[dependent.Name].LastError);
+            Assert.IsEmpty(logs.Snapshot(dependent.Name));
+        }
+        finally
+        {
+            using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await orchestrator.StopAsync(cleanup.Token);
+            if (orchestrator.ExecuteTask is { } execution) await execution.WaitAsync(cleanup.Token);
+        }
     }
 
     [TestMethod]

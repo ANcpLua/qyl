@@ -9,7 +9,7 @@ namespace Qyl.Collector.Tests;
 public sealed partial class AnalysisApiTests(TestContext testContext)
 {
     private static readonly double[] s_counterValues = [100d, 50d, 190d];
-    private static ulong Timestamp => (ulong)DateTimeOffset.UtcNow.AddMinutes(-2).ToUnixTimeMilliseconds() * 1_000_000;
+    private const ulong Timestamp = FixtureUnixNano - 120_000_000_000;
 
     [TestMethod]
     public async Task Filters_run_before_paging_without_an_arbitrary_scan_limit()

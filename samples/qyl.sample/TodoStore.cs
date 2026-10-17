@@ -13,9 +13,10 @@ internal sealed class TodoStore
     private int _lastId;
 
     /// <summary>Creates the store with the template's five sample todos.</summary>
-    public TodoStore()
+    /// <param name="timeProvider">Clock and local timezone used to seed due dates.</param>
+    public TodoStore(TimeProvider timeProvider)
     {
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
         Seed(new Todo(1, "Walk the dog"));
         Seed(new Todo(2, "Do the dishes", today));

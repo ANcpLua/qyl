@@ -179,7 +179,7 @@ public sealed partial class AnalysisApiTests
         await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), time, time + 10), Span(TraceId(2), SpanId(2), time - 10_000, time - 9_000)]), testContext.CancellationToken);
         var snapshot = await host.Store.ReadAnalysisSnapshotAsync("alpha", new AnalysisReadQuery { Start = time, End = time + 1000 }, testContext.CancellationToken);
         Assert.ContainsSingle(snapshot.Spans);
-        var engine = new AnalysisEngine(snapshot with { ScanComplete = false }, "alpha", new AnalysisHandles(new byte[32]), DateTimeOffset.UtcNow);
+        var engine = new AnalysisEngine(snapshot with { ScanComplete = false }, "alpha", new AnalysisHandles(new byte[32]), FixtureUtcNow);
         var result = engine.Run("list_traces", new JsonObject());
         Assert.IsFalse(result["coverage"]!["scan_complete"]!.GetValue<bool>());
         Assert.IsNull(result["coverage"]!["matched"]);

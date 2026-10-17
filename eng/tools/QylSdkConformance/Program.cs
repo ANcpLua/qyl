@@ -180,9 +180,9 @@ internal static class SdkConformance
         ConcurrentQueue<string> output)
     {
         var endpoint = new Uri(appBase, "conformance");
-        var deadline = DateTimeOffset.UtcNow + s_startupTimeout;
+        var elapsed = Stopwatch.StartNew();
 
-        while (DateTimeOffset.UtcNow < deadline)
+        while (elapsed.Elapsed < s_startupTimeout)
         {
             if (process.HasExited)
                 throw new InvalidOperationException(
@@ -246,10 +246,10 @@ internal static class SdkConformance
         QylApiContractClient client,
         string traceId)
     {
-        var deadline = DateTimeOffset.UtcNow + s_readbackTimeout;
+        var elapsed = Stopwatch.StartNew();
         ContractTrace? trace = null;
 
-        while (DateTimeOffset.UtcNow < deadline)
+        while (elapsed.Elapsed < s_readbackTimeout)
         {
             trace ??= await client.TryGetTraceAsync(traceId).ConfigureAwait(false);
             var logs = await client.GetLogsAsync(traceId).ConfigureAwait(false);

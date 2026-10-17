@@ -11,7 +11,7 @@ namespace Qyl.Collector.Tests;
 /// <summary>One-span OTLP trace exports, shaped the way an SDK exporter sends them.</summary>
 internal static class OtlpTestSpans
 {
-    private static ulong Now => (ulong)DateTimeOffset.UtcNow.AddMinutes(-2).ToUnixTimeMilliseconds() * 1_000_000;
+    private const ulong Now = CollectorApiTestHost.FixtureUnixNano - 120_000_000_000;
 
     /// <summary>
     /// One internal span of service <c>app-service</c> on the scope <paramref name="scopeName"/>, carrying

@@ -28,7 +28,7 @@ public sealed class InstrumentationScopeTests(TestContext testContext)
     private static readonly byte[] s_traceId = [.. Enumerable.Range(1, 16).Select(static i => (byte)i)];
     private static readonly byte[] s_spanId = [.. Enumerable.Range(1, 8).Select(static i => (byte)i)];
 
-    private static ulong Now => (ulong)DateTimeOffset.UtcNow.AddMinutes(-2).ToUnixTimeMilliseconds() * 1_000_000;
+    private const ulong Now = CollectorApiTestHost.FixtureUnixNano - 120_000_000_000;
 
     [TestMethod]
     public async Task Scope_name_version_and_schema_url_stay_distinct_from_ingest_to_the_api()
