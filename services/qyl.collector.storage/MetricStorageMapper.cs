@@ -33,12 +33,12 @@ internal static class MetricStorageMapper
                 record.ScopeVersion,
                 record.ScopeSchemaUrl,
                 scopeAttributesJson,
-                record.ResourceSchemaUrl);
+                record.ResourceSchemaUrl, record.ResourceIdentity, record.ScopeIdentity);
             var seriesId = ComputeSeriesId(instrumentId, attributesJson,
                 record.Kind,
                 record.Temporality,
                 record.IsMonotonic,
-                record.Unit);
+                record.Unit, record.AttributesIdentity);
 
             var key = (projectId, seriesId);
             var row = new MetricSeriesRow
@@ -99,7 +99,7 @@ internal static class MetricStorageMapper
         string? scopeVersion,
         string? scopeSchemaUrl,
         string? scopeAttributesJson,
-        string? resourceSchemaUrl)
+        string? resourceSchemaUrl, string? resourceIdentity = null, string? scopeIdentity = null)
     {
         var builder = new StringBuilder("metric_instrument\n");
         AppendIdentityPart(builder, metricName);
@@ -110,6 +110,8 @@ internal static class MetricStorageMapper
         AppendIdentityPart(builder, scopeSchemaUrl);
         AppendIdentityPart(builder, scopeAttributesJson);
         AppendIdentityPart(builder, resourceSchemaUrl);
+        if (resourceIdentity is not null) AppendIdentityPart(builder, resourceIdentity);
+        if (scopeIdentity is not null) AppendIdentityPart(builder, scopeIdentity);
         return "mi_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
     }
 
@@ -148,7 +150,7 @@ internal static class MetricStorageMapper
         MetricKind kind,
         MetricTemporality temporality,
         bool isMonotonic,
-        string? unit)
+        string? unit, string? attributesIdentity = null)
     {
         var builder = new StringBuilder(512);
         builder.Append("metric_series\n");
@@ -158,6 +160,7 @@ internal static class MetricStorageMapper
         AppendIdentityPart(builder, ((byte)temporality).ToString(CultureInfo.InvariantCulture));
         AppendIdentityPart(builder, isMonotonic ? "1" : "0");
         AppendIdentityPart(builder, unit);
+        if (attributesIdentity is not null) AppendIdentityPart(builder, attributesIdentity);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return "ms_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));

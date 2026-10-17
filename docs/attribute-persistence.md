@@ -37,3 +37,15 @@ This is a key-specific credential sanitizer, not general PII detection. It canno
 unknown format, credentials hidden in encoded or encrypted data, or sensitive text in unrelated attribute names, plain
 log bodies or span status descriptions. Renamed keys do not inherit the exception exemption. Historical records are not
 rewritten; the policy applies when the Collector decodes new exports.
+
+## Metric identity
+
+Resource, scope and point attributes participate in metric identity before persistence
+filtering. The Collector hashes canonical typed attributes, sorting map keys and preserving
+array order. Only the resulting instrument and series identifiers are stored for withheld
+values. A denied `service.instance.id`, for example, remains absent from returned attributes
+while two service instances remain separate streams. These identifiers are not anonymization
+guarantees; they express identity, not the underlying value.
+
+Existing series retain their identifiers. Values removed by an earlier Collector cannot be
+recovered, so new complete identities stay separate from historical incomplete identities.

@@ -23,7 +23,12 @@ internal static partial class OtlpConverter
         foreach (var resourceMetrics in request.ResourceMetrics)
         {
             ResourceProjection resource;
-            try { resource = ExtractResourceProjection(resourceMetrics.Resource); }
+            string resourceIdentity;
+            try
+            {
+                resource = ExtractResourceProjection(resourceMetrics.Resource);
+                resourceIdentity = MetricAttributeIdentity(resourceMetrics.Resource?.Attributes ?? []);
+            }
             catch (InvalidDataException error)
             {
                 Reject(resourceMetrics.ScopeMetrics.Sum(static scope => scope.Metrics.Sum(CountMetricPoints)), error);
@@ -34,7 +39,12 @@ internal static partial class OtlpConverter
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
             {
                 Dictionary<string, OtlpAttributeValue> scopeAttributes;
-                try { scopeAttributes = ConvertMetadataAttributes(scopeMetrics.Scope?.Attributes ?? []); }
+                string scopeIdentity;
+                try
+                {
+                    scopeAttributes = ConvertMetadataAttributes(scopeMetrics.Scope?.Attributes ?? []);
+                    scopeIdentity = MetricAttributeIdentity(scopeMetrics.Scope?.Attributes ?? []);
+                }
                 catch (InvalidDataException error) { Reject(scopeMetrics.Metrics.Sum(CountMetricPoints), error); continue; }
                 foreach (var metric in scopeMetrics.Metrics)
                 {
@@ -50,7 +60,7 @@ internal static partial class OtlpConverter
                             resourceMetrics.Resource?.DroppedAttributesCount ?? 0, NullIfEmpty(scopeMetrics.Scope?.Name),
                             NullIfEmpty(scopeMetrics.Scope?.Version), NullIfEmpty(scopeMetrics.SchemaUrl), scopeAttributes,
                             scopeMetrics.Scope?.DroppedAttributesCount ?? 0,
-                            ToContractAttributes(ConvertMetadataAttributes(metric.Metadata)));
+                            ToContractAttributes(ConvertMetadataAttributes(metric.Metadata)), resourceIdentity, scopeIdentity);
                     }
                     catch (InvalidDataException error) { Reject(CountMetricPoints(metric), error); continue; }
 
@@ -218,6 +228,8 @@ internal static partial class OtlpConverter
         ScopeVersion = stream.ScopeVersion, ScopeSchemaUrl = stream.ScopeSchemaUrl, ScopeAttributes = stream.ScopeAttributes,
         ScopeDroppedAttributesCount = stream.ScopeDroppedAttributesCount, Attributes = ExtractMetricAttributes(attributes),
         ResourceAttributes = stream.ResourceAttributes, ResourceEntityRefs = stream.ResourceEntityRefs,
+        ResourceIdentity = stream.ResourceIdentity, ScopeIdentity = stream.ScopeIdentity,
+        AttributesIdentity = MetricAttributeIdentity(attributes),
         InstrumentMetadata = stream.InstrumentMetadata, TimeUnixNano = 0, Data = data
     };
 
@@ -261,5 +273,6 @@ internal static partial class OtlpConverter
         Dictionary<string, OtlpAttributeValue> ResourceAttributes, IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs,
         string? ResourceSchemaUrl, uint ResourceDroppedAttributesCount, string? ScopeName, string? ScopeVersion,
         string? ScopeSchemaUrl, IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes,
-        uint ScopeDroppedAttributesCount, IReadOnlyList<CommonContract.Attribute> InstrumentMetadata);
+        uint ScopeDroppedAttributesCount, IReadOnlyList<CommonContract.Attribute> InstrumentMetadata,
+        string ResourceIdentity, string ScopeIdentity);
 }

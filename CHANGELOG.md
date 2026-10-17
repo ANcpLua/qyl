@@ -2,6 +2,7 @@
 
 ## 15.0.1 — 2026-10-17
 
+- Preserve metric resource, scope and point-attribute identity before persistence filtering. Opaque digests keep separate service instances and denied dimensions distinct without storing their original values; historical series stay separate because erased identity cannot be reconstructed.
 - Let supervised Unix services finish hosted-service shutdown before terminating them. This preserves final telemetry exports during disposal, stop and restart. Fall back to terminating the process tree after a bounded grace period. Windows requests window closure where available; headless Windows processes still require forced termination.
 - Verify asynchronous child cleanup through the real packaged orchestration consumer. Keep one supervisor responsible for process shutdown, including control requests.
 - Wait for NuGet registration metadata as well as package-content indexes before installing the published tool, preventing a stale-registration failure after a successful upload.

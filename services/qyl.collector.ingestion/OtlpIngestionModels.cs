@@ -113,6 +113,9 @@ internal sealed record LogIngestionRecord
 /// </summary>
 internal sealed record MetricPointIngestionRecord
 {
+    public string? ResourceIdentity { get; init; }
+    public string? ScopeIdentity { get; init; }
+    public string? AttributesIdentity { get; init; }
     public string? ScopeName { get; init; }
     public string? ScopeVersion { get; init; }
     public string? ScopeSchemaUrl { get; init; }
