@@ -22,6 +22,7 @@
     <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
     <!-- Match the NuGet libraries used by the pinned .NET SDK. -->
     <PackageReference Include="NuGet.Packaging"/>
+    <PackageReference Include="NuGet.Protocol"/>
   </ItemGroup>
 
 </Project>

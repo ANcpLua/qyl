@@ -80,5 +80,6 @@
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="$(NetFrameworkReferenceAssembliesVersion)"/>
     <PackageVersion Include="Microsoft.Build" Version="[$(MicrosoftBuildVersion)]"/>
     <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
+    <PackageVersion Include="NuGet.Protocol" Version="$(NuGetPackagingVersion)"/>
   </ItemGroup>
 </Project>

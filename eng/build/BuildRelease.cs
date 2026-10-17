@@ -7,11 +7,14 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading;
-using System.Threading.Tasks;
 using Fallout.Common;
 using Fallout.Common.IO;
 using Fallout.Common.Tooling;
 using Fallout.Common.Tools.DotNet;
+using NuGet.Common;
+using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 using Serilog;
 
 namespace Qyl.Build;
@@ -36,7 +39,8 @@ interface IVerifyRelease : IPack
             ReleaseIndex.Wait(
                 RootDirectory / "artifacts" / $"release-{version}-index.status",
                 TimeSpan.FromMinutes(45),
-                [.. ShippablePackageIds.Select(id => ReleaseIndex.NuGet(id, version))]);
+                [.. ShippablePackageIds.Select(id => ReleaseIndex.NuGet(id, version)),
+                    ReleaseIndex.NuGetRegistration("qyl", version)]);
         });
 
     Target VerifyRelease => d => d
@@ -76,8 +80,8 @@ interface IVerifyRelease : IPack
 }
 
 /// <summary>
-/// VerifyRelease's index wait. Polls NuGet's flat-container index, the endpoint a restore reads,
-/// with a backoff from 5 s to 60 s under one deadline, and records the outcome in
+/// VerifyRelease's readiness wait. Checks package content indexes and the registration metadata
+/// used by tool installation, with a backoff from 5 s to 60 s under one deadline. Records the outcome in
 /// artifacts/release-&lt;version&gt;-index.status ("waiting", "indexed" or "timed-out", with the elapsed
 /// seconds); release.sh reads it to tell a slow index (retry) from a broken package (patch release)
 /// and refreshes the snapshot only after "indexed".
@@ -86,13 +90,36 @@ static class ReleaseIndex
 {
     static readonly HttpClient s_http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
-    internal sealed record Probe(string Name, Uri Url, Func<JsonElement, bool> IsAvailable);
+    internal sealed record Probe(string Name, Func<bool> IsAvailable);
 
     internal static Probe NuGet(string id, string version) => new(
         $"{id} {version} (nuget.org)",
-        new Uri($"https://api.nuget.org/v3-flatcontainer/{id.ToLowerInvariant()}/index.json"),
-        index => index.GetProperty("versions").EnumerateArray()
-            .Any(listed => string.Equals(listed.GetString(), version, StringComparison.OrdinalIgnoreCase)));
+        () =>
+        {
+            using var document = ReadIndex(new Uri($"https://api.nuget.org/v3-flatcontainer/{id.ToLowerInvariant()}/index.json"));
+            return document.RootElement.GetProperty("versions").EnumerateArray()
+                .Any(listed => string.Equals(listed.GetString(), version, StringComparison.OrdinalIgnoreCase));
+        });
+
+    internal static Probe NuGetRegistration(string id, string version)
+    {
+        var repository = Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json");
+        var expected = NuGetVersion.Parse(version);
+        return new Probe($"{id} {version} registration metadata (nuget.org)", () =>
+        {
+            // A flat-container listing can precede the registration metadata used by
+            // dotnet tool install. Use the actual NuGet client for discovery, compressed
+            // and paged registrations instead of maintaining another protocol decoder.
+            // https://learn.microsoft.com/nuget/api/registration-base-url-resource
+            using var cache = new SourceCacheContext { NoCache = true, DirectDownload = true };
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var resource = repository.GetResourceAsync<PackageMetadataResource>(timeout.Token).GetAwaiter().GetResult()
+                ?? throw new InvalidOperationException("NuGet did not provide a package metadata resource.");
+            var packages = resource.GetMetadataAsync(id, includePrerelease: true, includeUnlisted: false,
+                cache, NullLogger.Instance, timeout.Token).GetAwaiter().GetResult();
+            return packages.Any(package => package.Identity.Version == expected);
+        });
+    }
 
     internal static void Wait(AbsolutePath statusFile, TimeSpan deadline, IReadOnlyList<Probe> probes)
     {
@@ -129,24 +156,27 @@ static class ReleaseIndex
         }
     }
 
+    static JsonDocument ReadIndex(Uri source)
+    {
+        var url = new UriBuilder(source) { Query = $"qyl-release={Guid.NewGuid():N}" }.Uri;
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        using var response = s_http.Send(request);
+        response.EnsureSuccessStatusCode();
+        return JsonDocument.Parse(response.Content.ReadAsStream());
+    }
+
     static bool Serves(Probe probe)
     {
         try
         {
-            var url = new UriBuilder(probe.Url) { Query = $"qyl-release={Guid.NewGuid():N}" }.Uri;
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
-            using var response = s_http.Send(request);
-            if (!response.IsSuccessStatusCode)
-                return false;
-            using var document = JsonDocument.Parse(response.Content.ReadAsStream());
-            return probe.IsAvailable(document.RootElement);
+            return probe.IsAvailable();
         }
         catch (HttpRequestException)
         {
             return false;
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             return false;
         }
@@ -163,6 +193,10 @@ static class ReleaseIndex
             return false;
         }
         catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (FatalProtocolException)
         {
             return false;
         }
