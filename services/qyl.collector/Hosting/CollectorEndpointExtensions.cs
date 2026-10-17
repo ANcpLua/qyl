@@ -1056,7 +1056,7 @@ internal static partial class CollectorEndpointExtensions
     private static string ResolveProjectScope(HttpContext httpContext) =>
         AuthenticatedProject.ForHttpRead(httpContext);
 
-    internal static Task FallbackHandler(HttpContext context)
+    private static Task FallbackHandler(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "/";
 
