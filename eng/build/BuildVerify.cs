@@ -1984,8 +1984,7 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs
             [
                 "StorageAttributeProjection.ExtractSpanHotAttributes",
                 "PersistedAttributePolicy.SerializeSpanAttributes",
-                "PersistedAttributePolicy.SerializeLogAttributes",
-                "PersistedAttributePolicy.SerializeResourceAttributes",
+                "PersistedAttributePolicy.SerializeAttributes",
                 "SHA256.HashData"
             ];
 

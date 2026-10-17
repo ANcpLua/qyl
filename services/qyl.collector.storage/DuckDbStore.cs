@@ -1056,7 +1056,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
         if (actualIndexes.Count > table.Indexes.Length ||
             !allowMissingNonUniqueIndexes && actualIndexes.Count != table.Indexes.Length ||
-            actualIndexes.Keys.Any(name => !table.Indexes.Any(expected => expected.Name == name))) return false;
+            actualIndexes.Keys.Any(name => table.Indexes.All(expected => expected.Name != name))) return false;
 
         foreach (var expected in table.Indexes)
         {

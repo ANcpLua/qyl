@@ -95,23 +95,40 @@ mkdir -p artifacts
 attempt_dir=$(mktemp -d "$PWD/artifacts/release-$version-XXXXXXXX")
 run_log="$attempt_dir/release.log"
 status_file="$attempt_dir/status.json"
+phases_log="$attempt_dir/phases.jsonl"
+diagnostics_dir="$attempt_dir/diagnostics"
+mkdir -p "$diagnostics_dir"
 started=$(utc)
 step=start
+phase_started=
 release_commit=unknown
 result=FAILED
 write_status() {
-  python3 -I - "$status_file" "$latest_status" "$version" "$mode" "$step" "$1" "$2" "$release_commit" "$$" "$started" "$run_log" <<'PY'
+  python3 -I - "$status_file" "$latest_status" "$version" "$mode" "$step" "$1" "$2" "$release_commit" "$$" "$started" "$run_log" "$SECONDS" "${phase_started:-0}" "$phases_log" "$diagnostics_dir" <<'PY'
 import datetime, json, os, sys
-attempt, latest, version, mode, phase, state, code, commit, pid, started, log = sys.argv[1:]
+attempt, latest, version, mode, phase, state, code, commit, pid, started, log, elapsed, phase_start, phases_log, diagnostics = sys.argv[1:]
 status = dict(version=version, mode=mode, phase=phase, state=state,
               exit_code=None if code == "-1" else int(code), commit=commit, pid=int(pid),
-              started=started, updated=datetime.datetime.now(datetime.timezone.utc).isoformat(), log=log)
+              started=started, updated=datetime.datetime.now(datetime.timezone.utc).isoformat(), log=log,
+              elapsed_seconds=int(elapsed), phase_elapsed_seconds=max(0, int(elapsed)-int(phase_start)),
+              phases_log=phases_log, diagnostics=diagnostics)
 for path in (attempt, latest):
     temporary = path + ".tmp"
     with open(temporary, "w") as stream:
         json.dump(status, stream, indent=2)
         stream.write("\n")
     os.replace(temporary, path)
+PY
+}
+record_phase() {
+  [[ -n $phase_started ]] || return 0
+  python3 -I - "$phases_log" "$step" "$phase_started" "$SECONDS" "$1" "$2" <<'PY'
+import datetime, json, sys
+path, phase, start, end, state, code = sys.argv[1:]
+with open(path, "a") as stream:
+    stream.write(json.dumps(dict(phase=phase, state=state, exit_code=int(code),
+        elapsed_seconds=max(0, int(end)-int(start)),
+        finished=datetime.datetime.now(datetime.timezone.utc).isoformat())) + "\n")
 PY
 }
 finish() {
@@ -123,19 +140,31 @@ finish() {
     code=1
     result=FAILED
   fi
+  if ! record_phase "$result" "$code"; then
+    result=FAILED
+    code=1
+    echo "release: could not record phase diagnostics" >&2
+  fi
   if ! write_status "$result" "$code"; then
     result=FAILED
     code=1
     echo "release: could not record the final result" >&2
   fi
-  printf '%s %s %s %s: phase=%s exit=%s log=%s\n' "$result" "$RELEASE_NAME" "$version" "$(utc)" "$step" "$code" "$run_log"
+  printf '%s %s %s %s: phase=%s exit=%s elapsed=%ss log=%s\n' "$result" "$RELEASE_NAME" "$version" "$(utc)" "$step" "$code" "$SECONDS" "$run_log"
+  printf 'Phase timings: %s\nCompiler diagnostics: %s\n' "$phases_log" "$diagnostics_dir"
   exit "$code"
 }
 trap finish EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 exec > >(tee "$run_log") 2>&1
-phase() { step=$1; write_status RUNNING -1 || return $?; say "$step"; }
+phase() {
+  record_phase PASSED 0 || return $?
+  step=$1
+  phase_started=$SECONDS
+  write_status RUNNING -1 || return $?
+  say "$step"
+}
 phase start
 
 verify_published() {
@@ -267,7 +296,7 @@ expected=$(for id in "${package_ids[@]}"; do echo "$id.$version.nupkg"; done | s
 echo "expected package set: ${#package_ids[@]} packages"
 
 phase "pack (Fallout PackRelease)"
-./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$release_commit"
+./eng/build.sh PackRelease --Configuration Release --PackageVersion "$version" --RepositoryCommit "$release_commit" --PackDiagnosticDirectory "$diagnostics_dir"
 actual=$(find "$OUT" -maxdepth 1 -name '*.nupkg' -exec basename {} \; | sort)
 [[ $actual == "$expected" ]] || { echo "expected:"; echo "$expected"; echo "packed:"; echo "$actual"; die "package set mismatch"; }
 

@@ -168,6 +168,29 @@ class ReleaseOutcomeTests(unittest.TestCase):
         self.assertEqual(0, status.returncode)
         self.assertEqual('VERIFIED', json.loads(status.stdout)['state'])
 
+    def test_phase_diagnostics_identify_the_failure_and_preserve_its_exit(self):
+        result = self.run_release('pack-failure')
+        self.assertEqual(41, result.returncode, result.stdout + result.stderr)
+        status = self.status()
+        phases = [json.loads(line) for line in pathlib.Path(status['phases_log']).read_text().splitlines()]
+        self.assertEqual('pack (Fallout PackRelease)', phases[-1]['phase'])
+        self.assertEqual('FAILED', phases[-1]['state'])
+        self.assertEqual(41, phases[-1]['exit_code'])
+        self.assertTrue(all(phase['elapsed_seconds'] >= 0 for phase in phases))
+        self.assertGreaterEqual(status['elapsed_seconds'], status['phase_elapsed_seconds'])
+        self.assertTrue(pathlib.Path(status['diagnostics']).is_dir())
+        pack = next(call for call in self.events() if call.startswith('build PackRelease'))
+        self.assertIn('--PackDiagnosticDirectory ' + status['diagnostics'], pack)
+        self.assertFalse(any(call.startswith('dotnet nuget push') for call in self.events()))
+
+    def test_completed_phase_timings_are_retained_after_success(self):
+        result = self.run_release()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        phases = [json.loads(line) for line in pathlib.Path(self.status()['phases_log']).read_text().splitlines()]
+        self.assertEqual('VERIFIED', phases[-1]['state'])
+        self.assertEqual(1, sum(phase['phase'] == 'pack (Fallout PackRelease)' for phase in phases))
+        self.assertTrue(all(phase['exit_code'] == 0 for phase in phases))
+
     def test_failures_stop_subsequent_stages_and_preserve_exit_codes(self):
         cases = [('pack-failure', 41, 'dotnet run'), ('smoke-failure', 134, 'dotnet nuget push'),
                  ('orchestration-smoke-failure', 47, 'dotnet nuget push'),

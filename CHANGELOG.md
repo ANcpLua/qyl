@@ -1,5 +1,17 @@
 # Changelog
 
+## 15.0.0 — 2026-10-17
+
+- Accept native typed application attributes on spans, events, links, logs, metrics and resources. Remove registry allowlists and the forced `qyl.app` prefix's scalar, key-count and length restrictions. Keep original keys and values; existing explicit persistence-policy denials remain visible through the dropped-attribute metric.
+- Preserve custom metric dimensions in series identity instead of collapsing them into one series. Verify the values after reopening the database.
+- Coalesce identical typed duplicate attributes from logging state and scopes, retaining native trace correlation. Report this normalization through `qyl.collector.attributes.coalesced`; reject conflicting duplicates explicitly and preserve valid sibling records.
+- Bound gzip HTTP bodies on both encoded and decompressed bytes. Chunked requests without Content-Length return an OTLP 413 when gzip headers consume the wire budget, even when their decoded payload is small.
+- Retain sanitized `exception.message` and `exception.stacktrace` across OTLP attributes and metadata. Preserve harmless formatting, redact embedded credentials, apply size bounds after sanitization and report failures without the original value. Keep all unrelated key denials and their precedence.
+- Count decoded UTF-8 content against the structured log-body retention budget, so JSON Unicode escaping cannot turn a bounded map into a truncated string.
+- Resolve source-package paths through NuGet's generated path property, including fallback folders used by isolated verification caches.
+- Consume SemanticConventions 13.1.1 and AutoInstrumentation/Hosting 27.0.0. The API contract remains 14.0.0 because its native attribute representation is unchanged.
+- Keep release phase timings and per-package compiler logs with each attempt so a slow or failed step can be diagnosed without rerunning unrelated checks.
+
 ## 14.0.0 — 2026-10-16
 
 - Pin semantic-convention bindings and analyzers to 12.0.0 and the instrumentation

@@ -58,9 +58,7 @@ internal static class IngestionStorageMapper
             GenAiCacheWriteInputTokens = projection.GenAiCacheWriteInputTokens,
             GenAiReasoningTokens = projection.GenAiReasoningTokens,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes, projection),
-            ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
-                span.ResourceAttributes,
-                span.ResourceEntityRefs),
+            ResourceJson = PersistedAttributePolicy.SerializeAttributes(span.ResourceAttributes),
             ResourceEntityRefsJson = resourceEntityRefsJson,
             SchemaUrl = span.SchemaUrl,
             StatusMessage = span.StatusMessage,
@@ -91,10 +89,8 @@ internal static class IngestionStorageMapper
         // Omitted suffixes contribute only to the digest and are never stored.
         var originalBody = log.Body.Kind == OtlpAttributeValueKind.Empty ? null : EncodeBody(log.Body);
         var body = ToPersistedLogBody(log.Body, originalBody);
-        var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
-        var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
-            log.ResourceAttributes,
-            log.ResourceEntityRefs);
+        var attributesJson = PersistedAttributePolicy.SerializeAttributes(log.Attributes);
+        var resourceJson = PersistedAttributePolicy.SerializeAttributes(log.ResourceAttributes);
         var resourceEntityRefsJson = SerializeResourceEntityRefs(log.ResourceEntityRefs);
         var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(log.ScopeAttributes);
         var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
@@ -210,13 +206,67 @@ internal static class IngestionStorageMapper
                 ? original : EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(text)));
 
         var encoded = original ?? throw new InvalidDataException("Nonempty log bodies require canonical content.");
-        return Encoding.UTF8.GetByteCount(encoded) <= MaxPersistedLogBodyUtf8Bytes
+        return FitsBodyBudget(encoded)
             ? encoded
             : EncodeBody(OtlpAttributeValue.FromString(TruncateBodyText(body.ToStableString())));
     }
 
     private static string EncodeBody(OtlpAttributeValue body) =>
         JsonSerializer.Serialize(body.ToContract(), OtlpAttributeJsonContext.Default.AttributeValue);
+
+    private static bool FitsBodyBudget(string encoded)
+    {
+        if (Encoding.UTF8.GetByteCount(encoded) <= MaxPersistedLogBodyUtf8Bytes) return true;
+        // Match the string-body budget: count decoded UTF-8 text, not JSON escape
+        // expansion. A surrogate-pair escape must not erase an otherwise bounded map.
+        // Structural bytes still count, so a large collection cannot bypass the cap.
+        using var document = JsonDocument.Parse(encoded);
+        var remaining = MaxPersistedLogBodyUtf8Bytes;
+        return FitsBodyBudget(document.RootElement, ref remaining);
+    }
+
+    private static bool FitsBodyBudget(JsonElement value, ref int remaining)
+    {
+        if (value.ValueKind is JsonValueKind.String)
+        {
+            var size = Encoding.UTF8.GetByteCount(value.GetString()!) + 2;
+            if (size > remaining) return false;
+            remaining -= size;
+            return true;
+        }
+        if (value.ValueKind is not (JsonValueKind.Array or JsonValueKind.Object))
+        {
+            var size = value.GetRawText().Length;
+            if (size > remaining) return false;
+            remaining -= size;
+            return true;
+        }
+        if (remaining < 2) return false;
+        remaining -= 2;
+        var separator = 0;
+        if (value.ValueKind is JsonValueKind.Array)
+        {
+            foreach (var item in value.EnumerateArray())
+            {
+                if (separator > remaining) return false;
+                remaining -= separator;
+                if (!FitsBodyBudget(item, ref remaining)) return false;
+                separator = 1;
+            }
+        }
+        else
+        {
+            foreach (var property in value.EnumerateObject())
+            {
+                var size = Encoding.UTF8.GetByteCount(property.Name) + 3 + separator;
+                if (size > remaining) return false;
+                remaining -= size;
+                if (!FitsBodyBudget(property.Value, ref remaining)) return false;
+                separator = 1;
+            }
+        }
+        return true;
+    }
 
     private static string TruncateBodyText(string raw)
     {

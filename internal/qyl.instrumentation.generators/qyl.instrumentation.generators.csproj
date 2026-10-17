@@ -22,15 +22,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all" GeneratePathProperty="true"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"
                       VersionOverride="5.9.0"
                       PrivateAssets="all"/>
   </ItemGroup>
 
-  <!-- NuGetPackageRoot has no trailing separator when NUGET_PACKAGES is set explicitly. -->
+  <!-- Resolve the actual package, which may live in a fallback folder rather than
+       NuGetPackageRoot when release verification uses an isolated cache. -->
   <PropertyGroup>
-    <_ANcpLuaRoslynUtilitiesSourcesRoot>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))ancplua.roslyn.utilities.sources/$(ANcpLuaRoslynUtilitiesVersion)/contentFiles/cs/any/ANcpLua.Roslyn.Utilities/</_ANcpLuaRoslynUtilitiesSourcesRoot>
+    <_ANcpLuaRoslynUtilitiesSourcesRoot>$([MSBuild]::EnsureTrailingSlash('$(PkgANcpLua_Roslyn_Utilities_Sources)'))contentFiles/cs/any/ANcpLua.Roslyn.Utilities/</_ANcpLuaRoslynUtilitiesSourcesRoot>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="$(_ANcpLuaRoslynUtilitiesSourcesRoot)Polyfills/TimeProvider/**/*.cs"/>

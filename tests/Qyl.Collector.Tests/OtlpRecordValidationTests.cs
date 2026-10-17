@@ -6,9 +6,11 @@ using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Net.Client;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
+using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.Hosting;
@@ -98,6 +100,103 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
         Assert.AreEqual(4L, response.PartialSuccess.RejectedLogRecords);
         Assert.IsFalse(string.IsNullOrWhiteSpace(response.PartialSuccess.ErrorMessage));
         Assert.AreEqual("\"valid\"", Assert.ContainsSingle(await host.Store.GetLogsAsync("alpha", ct: Ct)).Body);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Mixed_metric_export_preserves_valid_points_and_counts_each_rejected_point(bool grpc)
+    {
+        // OTLP partial success counts data points, not metrics, scopes or resource groups.
+        // https://opentelemetry.io/docs/specs/otlp/#partial-success
+        var scope = new ScopeMetrics { Scope = new InstrumentationScope { Name = "checkout", Version = "1" } };
+        scope.Metrics.Add(new Metric { Name = "checkout.queue.depth", Unit = "{request}", Gauge = new Gauge { DataPoints =
+        {
+            new NumberDataPoint { TimeUnixNano = Time, AsInt = 7, Attributes = { Text("checkout.region", "north") } },
+            new NumberDataPoint { TimeUnixNano = Time, AsInt = 8, Attributes =
+                { Text("checkout.region", "north"), Text("checkout.region", "south") } },
+            new NumberDataPoint { TimeUnixNano = Time, AsInt = 9, Attributes = { Text("checkout.region", "south") } }
+        } } });
+        scope.Metrics.Add(new Metric { Name = "checkout.duration", Unit = "s", Histogram = new Histogram
+        {
+            AggregationTemporality = AggregationTemporality.Cumulative, DataPoints =
+            {
+                new HistogramDataPoint { TimeUnixNano = Time, Count = 3, Sum = 2, ExplicitBounds = { 1 }, BucketCounts = { 1, 2 } },
+                new HistogramDataPoint { TimeUnixNano = Time, Count = 1, ExplicitBounds = { 1 }, BucketCounts = { 1 } }
+            }
+        } });
+        scope.Metrics.Add(new Metric { Gauge = new Gauge { DataPoints = { new NumberDataPoint { TimeUnixNano = Time, AsInt = 1 } } } });
+        var resource = new ResourceMetrics { Resource = new Resource { Attributes = { Text("service.name", "application") } }, ScopeMetrics = { scope } };
+        resource.ScopeMetrics.Add(new ScopeMetrics
+        {
+            Scope = new InstrumentationScope { Attributes = { Text("scope.key", "a"), Text("scope.key", "b") } },
+            Metrics = { new Metric { Name = "invalid.scope", Gauge = new Gauge { DataPoints =
+                { new NumberDataPoint { TimeUnixNano = Time, AsInt = 1 }, new NumberDataPoint { TimeUnixNano = Time, AsInt = 2 } } } } }
+        });
+        var request = new ExportMetricsServiceRequest { ResourceMetrics = { resource, new ResourceMetrics
+        {
+            Resource = new Resource { Attributes = { Text("service.name", "a"), Text("service.name", "b") } },
+            ScopeMetrics = { new ScopeMetrics { Metrics = { new Metric { Name = "invalid.resource", Gauge = new Gauge
+                { DataPoints = { new NumberDataPoint { TimeUnixNano = Time, AsInt = 1 } } } } } } }
+        } } };
+        await using var host = await CollectorApiTestHost.StartAsync(Ct);
+        ExportMetricsServiceResponse response;
+        if (grpc)
+        {
+            using var channel = GrpcChannel.ForAddress(host.GrpcAddress);
+            response = await channel.CreateCallInvoker().AsyncUnaryCall(
+                Method(MetricsServiceReflection.Descriptor.Services[0], ExportMetricsServiceRequest.Parser, ExportMetricsServiceResponse.Parser),
+                null, new CallOptions(Headers(), cancellationToken: Ct), request);
+        }
+        else
+        {
+            using var http = await host.SendProtobufAsync("/v1/metrics", request, "ingester");
+            Assert.AreEqual(HttpStatusCode.OK, http.StatusCode);
+            response = ExportMetricsServiceResponse.Parser.ParseFrom(await http.Content.ReadAsByteArrayAsync(Ct));
+        }
+        Assert.AreEqual(6L, response.PartialSuccess.RejectedDataPoints);
+        Assert.Contains("unique", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("one more count", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("name must not be empty", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        var catalog = await host.Store.ListMetricsAsync("alpha", ct: Ct);
+        Assert.HasCount(2, catalog);
+        var gauge = await host.Store.ListMetricSeriesAsync("alpha", "checkout.queue.depth", [], ct: Ct);
+        Assert.HasCount(2, gauge);
+        var histogram = Assert.ContainsSingle(await host.Store.ListMetricSeriesAsync("alpha", "checkout.duration", [], ct: Ct));
+        var observations = new List<MetricObservationPageItem>();
+        foreach (var series in gauge.Append(histogram))
+            observations.AddRange(await host.Store.ListMetricPointsAsync(new MetricPointQuery
+                { ProjectId = "alpha", MetricName = series.MetricName, SeriesId = series.SeriesId, Limit = 10 }, Ct));
+        Assert.HasCount(3, observations);
+        Assert.IsTrue(observations.All(static point => point.Observation.TimeUnixNano == Time && !point.HasConflict));
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Unknown_metric_data_reports_a_warning_without_inventing_rejected_points(bool grpc)
+    {
+        var request = new ExportMetricsServiceRequest { ResourceMetrics = { new ResourceMetrics
+            { ScopeMetrics = { new ScopeMetrics { Metrics = { new Metric { Name = "unsupported.empty" } } } } } } };
+        await using var host = await CollectorApiTestHost.StartAsync(Ct);
+        ExportMetricsServiceResponse response;
+        if (grpc)
+        {
+            using var channel = GrpcChannel.ForAddress(host.GrpcAddress);
+            response = await channel.CreateCallInvoker().AsyncUnaryCall(
+                Method(MetricsServiceReflection.Descriptor.Services[0], ExportMetricsServiceRequest.Parser, ExportMetricsServiceResponse.Parser),
+                null, new CallOptions(Headers(), cancellationToken: Ct), request);
+        }
+        else
+        {
+            using var http = await host.SendProtobufAsync("/v1/metrics", request, "ingester");
+            Assert.AreEqual(HttpStatusCode.OK, http.StatusCode);
+            response = ExportMetricsServiceResponse.Parser.ParseFrom(await http.Content.ReadAsByteArrayAsync(Ct));
+        }
+        Assert.IsNotNull(response.PartialSuccess);
+        Assert.AreEqual(0L, response.PartialSuccess.RejectedDataPoints);
+        Assert.Contains("unknown data point set", response.PartialSuccess.ErrorMessage, StringComparison.Ordinal);
+        Assert.IsEmpty(await host.Store.ListMetricsAsync("alpha", ct: Ct));
     }
 
     [TestMethod]

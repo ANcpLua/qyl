@@ -146,7 +146,7 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
         var resource = BuildResource();
         resource.Attributes.Add(StringAttribute("custom.entity.id", "custom-1"));
         resource.Attributes.Add(StringAttribute("custom.entity.description", "Custom entity"));
-        resource.Attributes.Add(StringAttribute("custom.unreferenced", "discard me"));
+        resource.Attributes.Add(StringAttribute("custom.unreferenced", "retained"));
         resource.EntityRefs.Add(new EntityRef
         {
             Type = "custom.entity",
@@ -161,7 +161,8 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
             attribute is { Key: "custom.entity.id", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "custom-1" } },attributes);
         Assert.Contains(static attribute =>
             attribute is { Key: "custom.entity.description", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "Custom entity" } },attributes);
-        Assert.DoesNotContain(static attribute => attribute.Key == "custom.unreferenced",attributes);
+        Assert.Contains(static attribute =>
+            attribute is { Key: "custom.unreferenced", Value: Api.Contracts.Common.AttributeValue.StringValue { Value: "retained" } },attributes);
 
         var denied = BuildResource();
         denied.Attributes.Add(StringAttribute("custom.api_key", "do-not-store"));
@@ -175,12 +176,8 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
         Assert.IsEmpty(rejected.Spans);
     }
 
-    /// <summary>
-    /// <c>qyl.app.*</c> is bounded per span, event and link; a resource has no such bound, so an entity reference
-    /// cannot carry one onto it.
-    /// </summary>
     [TestMethod]
-    public void An_entity_reference_does_not_carry_an_app_attribute_onto_the_resource()
+    public void An_entity_reference_keeps_its_application_attribute_without_a_prefix_exception()
     {
         var resource = BuildResource();
         resource.Attributes.Add(StringAttribute("qyl.app.tenant", "acme"));
@@ -190,10 +187,13 @@ public sealed class ResourceEntityRefProjectionTests(TestContext testContext)
             IdKeys = { "qyl.app.tenant" }
         });
 
-        Assert.IsFalse(AttributeKeySets.IsSafeEntityReferencedResourceAttribute("qyl.app.tenant"));
-        var rejected = ProjectResource(resource);
-        Assert.AreEqual(1L, rejected.RejectedSpans);
-        Assert.IsEmpty(rejected.Spans);
+        Assert.IsTrue(AttributeKeySets.IsPersistable("qyl.app.tenant"));
+        var projected = ProjectResource(resource);
+        Assert.AreEqual(0L, projected.RejectedSpans);
+        var span = Assert.ContainsSingle(projected.Spans);
+        Assert.AreEqual("acme", span.ResourceAttributes["qyl.app.tenant"].AsString());
+        Assert.HasCount(3, span.ResourceEntityRefs);
+        Assert.AreSequenceEqual(["qyl.app.tenant"], Assert.ContainsSingle(static reference => reference.Type is "custom.entity", span.ResourceEntityRefs).IdKeys);
     }
 
     private static SpanStorageRow ProjectSingleSpan(Resource resource) =>

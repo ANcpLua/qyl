@@ -107,46 +107,26 @@ internal static partial class OtlpConverter
         var attrs = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         if (resource is null) return new ResourceProjection(attrs, []);
 
-        var sourceKeys = new HashSet<string>(StringComparer.Ordinal);
+        ValidateAttributeKeys(resource.Attributes);
         var projectedKeys = new Dictionary<string, ResourceAttributeProjectionKey>(StringComparer.Ordinal);
-        var entityReferencedKeys = GetResourceEntityReferencedKeys(resource);
 
         foreach (var attr in resource.Attributes)
         {
             if (IsUnresolvedProfilingKey(attr)) continue;
-            if (string.IsNullOrWhiteSpace(attr.Key))
-                throw new InvalidDataException("OTLP resource attribute key must not be empty.");
-            if (!sourceKeys.Add(attr.Key))
-                throw new InvalidDataException($"OTLP resource contains duplicate attribute key '{attr.Key}'.");
-
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.IsSafeResourceAttribute(key) &&
-                (!entityReferencedKeys.Contains(attr.Key) ||
-                 !AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
+            if (!AttributeKeySets.IsPersistable(key))
             {
                 QylCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value, key);
             SetNormalizedAttribute(attrs, key, value, renamed);
 
-            projectedKeys.Add(attr.Key, new ResourceAttributeProjectionKey(key));
+            projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(key);
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
-    }
-
-    private static HashSet<string> GetResourceEntityReferencedKeys(ProtoResource resource)
-    {
-        var referencedKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entityRef in resource.EntityRefs)
-        {
-            referencedKeys.UnionWith(entityRef.IdKeys);
-            referencedKeys.UnionWith(entityRef.DescriptionKeys);
-        }
-
-        return referencedKeys;
     }
 
     private static IReadOnlyList<ResourceEntityRefIngestionRecord> ExtractResourceEntityRefs(
@@ -253,7 +233,6 @@ internal static partial class OtlpConverter
         RepeatedField<ProtoKeyValue> protoAttributes)
     {
         ValidateAttributeKeys(protoAttributes);
-        var appAttributes = 0;
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
@@ -264,41 +243,9 @@ internal static partial class OtlpConverter
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attr.Value);
-            if (AttributeKeySets.IsAppAttribute(key) && !AdmitAppAttribute(attributes, key, value, ref appAttributes))
-            {
-                QylCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
+            var value = ConvertProtoAnyValue(attr.Value, key);
             SetNormalizedAttribute(attributes, key, value, renamed);
         }
-    }
-
-    // qyl.app.* keys are named by the application, so their number and size are bounded per span (or
-    // event, or link): the first AppAttributeMaxKeys distinct keys in wire order, each a string of at most
-    // AppAttributeMaxValueLength characters, a 64-bit integer, a double or a bool. Anything else under
-    // the prefix is dropped rather than cut, so a stored value is always the value the application wrote.
-    private static bool AdmitAppAttribute(
-        Dictionary<string, OtlpAttributeValue> attributes,
-        string key,
-        OtlpAttributeValue value,
-        ref int admitted)
-    {
-        var bounded = value.Kind switch
-        {
-            OtlpAttributeValueKind.String =>
-                value.AsString()!.Length <= CollectorSemanticAttributeCatalog.AppAttributeMaxValueLength,
-            OtlpAttributeValueKind.Int or OtlpAttributeValueKind.Double or OtlpAttributeValueKind.Bool => true,
-            _ => false
-        };
-
-        if (!bounded) return false;
-        if (attributes.ContainsKey(key)) return true;
-        if (admitted == CollectorSemanticAttributeCatalog.AppAttributeMaxKeys) return false;
-
-        admitted++;
-        return true;
     }
 
     private static IReadOnlyDictionary<string, OtlpAttributeValue> ConvertSpanChildAttributes(
@@ -311,12 +258,20 @@ internal static partial class OtlpConverter
 
     private static void ValidateAttributeKeys(RepeatedField<ProtoKeyValue> attributes)
     {
-        var keys = new HashSet<string>(StringComparer.Ordinal);
+        var values = new Dictionary<string, ProtoAnyValue?>(StringComparer.Ordinal);
         foreach (var attribute in attributes)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
-            if (string.IsNullOrWhiteSpace(attribute.Key) || !keys.Add(attribute.Key))
+            if (string.IsNullOrWhiteSpace(attribute.Key))
                 throw new InvalidDataException("OTLP attributes require nonempty, unique keys.");
+            if (values.TryAdd(attribute.Key, attribute.Value)) continue;
+
+            // The SDK exporter flattens ILogger state and scopes, which can repeat the same
+            // typed value (for example TraceId). Coalesce identical entries, never distinct values.
+            // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/common/README.md#mapstring-anyvalue
+            if (!Equals(values[attribute.Key], attribute.Value))
+                throw new InvalidDataException("OTLP attributes require unique keys; duplicate values conflict.");
+            QylCollectorMetrics.AttributeCoalesced(attribute.Key);
         }
     }
 
@@ -329,13 +284,17 @@ internal static partial class OtlpConverter
     private static Dictionary<string, OtlpAttributeValue> ConvertMetadataAttributes(
         RepeatedField<ProtoKeyValue> attributes)
     {
+        ValidateAttributeKeys(attributes);
         var result = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var attribute in attributes)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
-            if (string.IsNullOrWhiteSpace(attribute.Key) ||
-                !result.TryAdd(attribute.Key, ConvertProtoAnyValue(attribute.Value)))
-                throw new InvalidDataException("OTLP metadata attributes require nonempty, unique keys.");
+            if (!AttributeKeySets.IsPersistable(attribute.Key))
+            {
+                QylCollectorMetrics.AttributeDropped(attribute.Key);
+                continue;
+            }
+            result[attribute.Key] = ConvertProtoAnyValue(attribute.Value, attribute.Key);
         }
         return result;
     }
@@ -367,8 +326,13 @@ internal static partial class OtlpConverter
         return links;
     }
 
-    private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value)
+    private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value, string? attributeKey = null)
     {
+        // All keyed carriers, including nested maps and metric metadata, converge here.
+        // A key exemption never bypasses this value policy before original data is journaled.
+        if (attributeKey is not null
+            && CollectorSemanticAttributeCatalog.ExceptionTextKeys.TryGetValue(attributeKey, out var canonicalKey))
+            return OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(canonicalKey, value));
         if (value is null) return OtlpAttributeValue.Empty;
 
         return value.ValueCase switch
@@ -402,15 +366,17 @@ internal static partial class OtlpConverter
 
     private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value)
     {
+        ValidateAttributeKeys(value.Values);
         var items = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var item in value.Values)
         {
             if (IsUnresolvedProfilingKey(item)) continue;
-            if (string.IsNullOrWhiteSpace(item.Key))
-                throw new InvalidDataException("OTLP key-value-list contains an empty key.");
-
-            if (!items.TryAdd(item.Key, ConvertProtoAnyValue(item.Value)))
-                throw new InvalidDataException($"OTLP key-value-list contains duplicate key '{item.Key}'.");
+            if (!AttributeKeySets.IsPersistable(item.Key))
+            {
+                QylCollectorMetrics.AttributeDropped(item.Key);
+                continue;
+            }
+            items[item.Key] = ConvertProtoAnyValue(item.Value, item.Key);
         }
 
         return OtlpAttributeValue.FromKeyValueList(items);
@@ -574,14 +540,14 @@ internal static partial class OtlpConverter
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            if (!AttributeKeySets.IsSafeLogAttribute(key) &&
+            if (!AttributeKeySets.IsPersistable(key) &&
                 !key.IsAny(AttributeKeySets.SessionCorrelation))
             {
                 QylCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value, key);
             SetNormalizedAttribute(dict, key, value, renamed);
         }
 

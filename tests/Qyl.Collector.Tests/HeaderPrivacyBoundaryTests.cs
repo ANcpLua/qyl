@@ -31,7 +31,7 @@ public sealed class HeaderPrivacyBoundaryTests
                 OtlpAttributeValue.FromString("session=credential")
         };
 
-        var json = Assert.IsExactInstanceOfType<string>(PersistedAttributePolicy.SerializeSpanAttributes(attributes));
+        var json = Assert.IsExactInstanceOfType<string>(PersistedAttributePolicy.SerializeAttributes(attributes));
 
         Assert.AreEqual("""{"http.request.method":"POST"}""", json);
     }
@@ -46,10 +46,6 @@ public sealed class HeaderPrivacyBoundaryTests
     [DataRow("HTTP.REQUEST.HEADER.MCP_NAME")]
     public void Headers_are_rejected_from_every_boundary(string key)
     {
-        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute(key));
-        Assert.IsFalse(AttributeKeySets.IsSafeLogAttribute(key));
-        Assert.IsFalse(AttributeKeySets.IsSafeMetricAttribute(key));
-        Assert.IsFalse(AttributeKeySets.IsSafeResourceAttribute(key));
-        Assert.IsFalse(AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key));
+        Assert.IsFalse(AttributeKeySets.IsPersistable(key));
     }
 }

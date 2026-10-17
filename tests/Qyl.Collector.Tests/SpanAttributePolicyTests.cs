@@ -20,14 +20,14 @@ public sealed class SpanAttributePolicyTests
     [DataRow("graphql.operation.type")]
     public void GraphQlOperationAttributes_AreCaptured(string key)
     {
-        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute(key));
+        Assert.IsTrue(AttributeKeySets.IsPersistable(key));
         Assert.IsTrue(AttributeKeySets.ShouldCaptureSpanAttribute(key));
     }
 
     [TestMethod]
     public void GraphQlDocument_IsDeniedAsPayload()
     {
-        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute("graphql.document"));
+        Assert.IsFalse(AttributeKeySets.IsPersistable("graphql.document"));
         Assert.IsFalse(AttributeKeySets.ShouldCaptureSpanAttribute("graphql.document"));
     }
 
@@ -79,6 +79,8 @@ public sealed class SpanAttributePolicyTests
             StringAttribute("foo.bar", "unregistered"),
             BoolAttribute("exception.escaped", true),
             StringAttribute("exception.message", "boom"),
+            StringAttribute("code.stacktrace", "denied stack"),
+            StringAttribute("custom.api_key", "denied credential"),
             StringAttribute("user.id", "u-1")
         ]);
 
@@ -102,22 +104,25 @@ public sealed class SpanAttributePolicyTests
         Assert.AreEqual("nsb-1", attributes["nservicebus.message_id"].AsString());
         Assert.Contains("exception.escaped", attributes.Keys);
 
-        Assert.DoesNotContain("foo.bar", attributes.Keys);
+        Assert.AreEqual("unregistered", attributes["foo.bar"].AsString());
         Assert.AreEqual("other", AttributeMapping.NamespaceOf("foo.bar"));
         Assert.Contains("other", droppedNamespaces);
 
-        Assert.DoesNotContain("exception.message", attributes.Keys);
+        Assert.AreEqual("boom", attributes["exception.message"].AsString());
+        Assert.DoesNotContain("code.stacktrace", attributes.Keys);
+        Assert.DoesNotContain("custom.api_key", attributes.Keys);
         Assert.DoesNotContain("user.id", attributes.Keys);
 
         // The waiver is scoped: a vendor key clears the substring rule, an exact denial
-        // (exception.message) and a prefix denial (user.) refuse the key whether or not the
+        // (code.stacktrace) and a prefix denial (user.) refuse the key whether or not the
         // vendor list would have claimed it.
         Assert.Contains("messaging.masstransit.message_id", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.VendorKeys);
         Assert.Contains("nservicebus.message_id", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.VendorKeys);
-        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute("messaging.masstransit.message_id"));
-        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute("nservicebus.message_id"));
-        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute("exception.message"));
-        Assert.IsFalse(AttributeKeySets.IsSafeSpanAttribute("user.id"));
+        Assert.IsTrue(AttributeKeySets.IsPersistable("messaging.masstransit.message_id"));
+        Assert.IsTrue(AttributeKeySets.IsPersistable("nservicebus.message_id"));
+        Assert.IsTrue(AttributeKeySets.IsPersistable("exception.message"));
+        Assert.IsFalse(AttributeKeySets.IsPersistable("code.stacktrace"));
+        Assert.IsFalse(AttributeKeySets.IsPersistable("user.id"));
     }
 
     private static KeyValue StringAttribute(string key, string value) =>

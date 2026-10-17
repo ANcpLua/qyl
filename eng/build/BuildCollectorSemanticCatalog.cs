@@ -166,41 +166,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         var incubatingKeys = new HashSet<string>(
             incubatingAttributeValues.Except(stableAttributeValues, StringComparer.Ordinal),
             StringComparer.Ordinal);
-        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Span);
-        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Log);
-        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Metric);
-        incubatingKeys.UnionWith(policy.DevelopmentAttributeAllowList.Resource);
-
-        var spanAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, policy.SpanAttributeAllowList.StablePrefixes, "spanAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.SpanAttributeAllowList.IncubatingPrefixes, "spanAttributeAllowList.incubatingPrefixes"),
-            policy.DevelopmentAttributeAllowList.Span);
-
-        var logAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, policy.LogAttributeAllowList.StablePrefixes, "logAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.LogAttributeAllowList.IncubatingPrefixes, "logAttributeAllowList.incubatingPrefixes"),
-            policy.DevelopmentAttributeAllowList.Log);
-
-        var metricAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, policy.MetricAttributeAllowList.StablePrefixes, "metricAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.MetricAttributeAllowList.IncubatingPrefixes, "metricAttributeAllowList.incubatingPrefixes"),
-            policy.DevelopmentAttributeAllowList.Metric);
-
-        var resourceAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
-            ValuesWithPrefixes(incubatingAttributeValues, policy.ResourceAttributeAllowList.IncubatingPrefixes, "resourceAttributeAllowList.incubatingPrefixes"),
-            policy.DevelopmentAttributeAllowList.Resource);
-
         var sessionCorrelation = resolver.RequiredAttributeValues(policy.SessionCorrelation);
-
-        // The qyl-owned resource keys are held to the same rule as every other list here: a key the
-        // collector persists must exist in the pinned registry packages, or the vocabulary and the
-        // storage policy have drifted apart. Without this, a hand-added key in the policy JSON would
-        // reach storage with nothing upstream defining it.
-        var qylResourceAttributeAllowList = resolver
-            .RequiredAttributeValues(policy.QylResourceAttributeAllowList)
-            .OrderBy(static key => key, StringComparer.Ordinal)
-            .ToArray();
 
         // The project-id keys decide which project a row is filed under, so a key that has drifted out of the
         // registry does not fail loudly, it misfiles data. Order is the policy's, because the lookup is
@@ -208,7 +174,7 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         var projectIdResourceKeys = resolver.RequiredAttributeValues(policy.ProjectIdResourceKeys);
 
         // The deny list is the registry's: RegistryPolicy is generated from the qyl.persisted and
-        // qyl.token_exempt annotations and the denied-token list, and the typed views and QYL0113 read the
+        // qyl.token_exempt annotations and the denied-token list, and the typed views read the
         // same table. A key this file names for persistence that the registry does not persist would be
         // captured by the catalog and dropped by the denial, so it fails the generation instead.
         var deniedByRegistry = PersistedPolicyKeys(policy)
@@ -221,8 +187,6 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
                 "eng/config/collector-semantic-policy.json names keys for persistence that the registry does not persist " +
                 $"(Qyl.Telemetry.SemanticConventions.RegistryPolicy): {string.Join(", ", deniedByRegistry)}.");
         }
-
-        var appAttributePrefix = resolver.RequiredAttributeValue(policy.AppAttributes.TemplateKey) + ".";
 
         var spanHotAttributeKeys = resolver.RequiredAttributeValues(policy.SpanHotAttributeKeys)
             .OrderBy(static key => key, StringComparer.Ordinal)
@@ -264,11 +228,6 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         // partition key) must read these, because FrozenSet enumeration order is unspecified.
         WriteOrderedStringArray(builder, "SessionCorrelationPrecedence", sessionCorrelation, incubatingKeys);
         WriteOrderedStringArray(builder, "ProjectIdResourceKeyPrecedence", projectIdResourceKeys, incubatingKeys);
-        WriteFrozenSet(builder, "QylResourceAttributeAllowList", qylResourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "MetricAttributeAllowList", metricAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
-        WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal", incubatingKeys);
         // RegistryPolicy, verbatim. A denied key compares case-insensitively here, stricter than the registry's
         // ordinal comparison: a differently cased spelling of a denied key stays denied. The exempt and vendor keys
         // compare ordinally, as in the registry: they waive the token rule, so ignoring case would waive it for
@@ -277,17 +236,9 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         WriteStringArray(builder, "NotPersistedPrefixes", RegistryPolicy.NotPersistedPrefixes);
         WriteStringArray(builder, "DeniedKeyTokens", RegistryPolicy.DeniedKeyTokens);
         WriteFrozenSet(builder, "TokenExemptKeys", RegistryPolicy.TokenExemptKeys, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "ExceptionTextKeys", RegistryPolicy.ExceptionTextKeys, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "VendorKeys", RegistryPolicy.VendorKeys, "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "SpanHotAttributeKeys", spanHotAttributeKeys, "StringComparer.Ordinal", incubatingKeys);
-
-        // qyl.app.<key>, written by SetAppTag: captured by prefix within the bounds the registry note states.
-        builder.Append("    internal const string AppAttributePrefix = ").Append(StringLiteral(appAttributePrefix)).Append(';');
-        if (incubatingKeys.Contains(policy.AppAttributes.TemplateKey))
-            builder.Append(" // incubating");
-        builder.AppendLine();
-        builder.Append("    internal const int AppAttributeMaxKeys = ").Append(policy.AppAttributes.MaxKeysPerSpan.ToString(System.Globalization.CultureInfo.InvariantCulture)).AppendLine(";");
-        builder.Append("    internal const int AppAttributeMaxValueLength = ").Append(policy.AppAttributes.MaxValueLength.ToString(System.Globalization.CultureInfo.InvariantCulture)).AppendLine(";");
-        builder.AppendLine();
 
         foreach (var projection in projectionConstants.OrderBy(static item => item.Key, StringComparer.Ordinal))
         {
@@ -391,52 +342,8 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
     /// correlation keys, which ingest lifts into a column, and the projection constants, which name what a reader reads.
     /// </summary>
     private static IEnumerable<(string Key, string Section)> PersistedPolicyKeys(CollectorSemanticPolicyConfig policy) =>
-        policy.DevelopmentAttributeAllowList.Span.Select(static key => (key, "developmentAttributeAllowList.span"))
-            .Concat(policy.DevelopmentAttributeAllowList.Log.Select(static key => (key, "developmentAttributeAllowList.log")))
-            .Concat(policy.DevelopmentAttributeAllowList.Metric.Select(static key => (key, "developmentAttributeAllowList.metric")))
-            .Concat(policy.DevelopmentAttributeAllowList.Resource.Select(static key => (key, "developmentAttributeAllowList.resource")))
-            .Concat(policy.QylResourceAttributeAllowList.Select(static key => (key, "qylResourceAttributeAllowList")))
-            .Concat(policy.ProjectIdResourceKeys.Select(static key => (key, "projectIdResourceKeys")))
+        policy.ProjectIdResourceKeys.Select(static key => (key, "projectIdResourceKeys"))
             .Concat(policy.SpanHotAttributeKeys.Select(static key => (key, "spanHotAttributeKeys")));
-
-    private static string[] ValuesWithPrefixes(
-        IEnumerable<string> values,
-        IReadOnlyCollection<string> prefixes,
-        string section)
-    {
-        if (prefixes.Count is 0)
-            throw new InvalidOperationException($"Collector semantic policy section '{section}' must not be empty.");
-
-        var source = values.ToArray();
-        var resolved = new List<string>();
-
-        foreach (var prefix in prefixes)
-        {
-            if (string.IsNullOrWhiteSpace(prefix))
-                throw new InvalidOperationException($"Collector semantic policy section '{section}' contains an empty prefix.");
-
-            var matches = source
-                .Where(value => value.StartsWith(prefix, StringComparison.Ordinal))
-                .ToArray();
-
-            if (matches.Length is 0)
-            {
-                throw new InvalidOperationException(
-                    $"Collector semantic policy section '{section}' prefix '{prefix}' matched no attributes in the configured semantic convention packages.");
-            }
-
-            resolved.AddRange(matches);
-        }
-
-        return resolved.ToArray();
-    }
-
-    private static string[] NormalizedValues(params IEnumerable<string>[] values) =>
-        values
-            .SelectMany(static value => value)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static value => value, StringComparer.Ordinal)
-            .ToArray();
 
     private IReadOnlySet<string> ReadCollectorSemanticCatalogMemberNames()
     {
@@ -645,33 +552,17 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
 
 internal sealed class CollectorSemanticPolicyConfig
 {
-    public CollectorSemanticPrefixPolicy SpanAttributeAllowList { get; init; } = new();
-    public CollectorSemanticPrefixPolicy LogAttributeAllowList { get; init; } = new();
-    public CollectorSemanticPrefixPolicy MetricAttributeAllowList { get; init; } = new();
-    public CollectorSemanticPrefixPolicy ResourceAttributeAllowList { get; init; } = new();
-    public CollectorDevelopmentAttributePolicy DevelopmentAttributeAllowList { get; init; } = new();
-    public string[] QylResourceAttributeAllowList { get; init; } = [];
     public string[] ProjectIdResourceKeys { get; init; } = [];
     public string[] SessionCorrelation { get; init; } = [];
-    public CollectorAppAttributePolicy AppAttributes { get; init; } = new();
     public string[] SpanHotAttributeKeys { get; init; } = [];
     public Dictionary<string, string> ProjectionConstants { get; init; } = [];
     public Dictionary<string, string> WellKnownValueClasses { get; init; } = [];
 
     public void Validate(string relativePath)
     {
-        SpanAttributeAllowList.Validate(relativePath, "spanAttributeAllowList");
-        LogAttributeAllowList.Validate(relativePath, "logAttributeAllowList");
-        MetricAttributeAllowList.Validate(relativePath, "metricAttributeAllowList");
-        ResourceAttributeAllowList.Validate(relativePath, "resourceAttributeAllowList");
-        RequireNonEmpty(DevelopmentAttributeAllowList.Span, relativePath, "developmentAttributeAllowList.span");
-        RequireNonEmpty(DevelopmentAttributeAllowList.Log, relativePath, "developmentAttributeAllowList.log");
-        RequireNonEmpty(DevelopmentAttributeAllowList.Metric, relativePath, "developmentAttributeAllowList.metric");
 
-        RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");
         RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
         RequireNonEmpty(SessionCorrelation, relativePath, "sessionCorrelation");
-        AppAttributes.Validate(relativePath);
         RequireNonEmpty(SpanHotAttributeKeys, relativePath, "spanHotAttributeKeys");
 
         if (ProjectionConstants.Count is 0)
@@ -684,17 +575,14 @@ internal sealed class CollectorSemanticPolicyConfig
         RequireNoEmptyValues(WellKnownValueClasses.Values, relativePath, "wellKnownValueClasses values");
     }
 
-    private static void RequireNonEmpty(IReadOnlyCollection<string> values, string relativePath, string section)
+    private static void RequireNonEmpty(string[] values, string relativePath, string section)
     {
-        if (values.Count is 0)
+        if (values.Length is 0)
             throw new InvalidOperationException($"{relativePath}: {section} must not be empty.");
 
         RequireNoEmptyValues(values, relativePath, section);
         RequireNoDuplicates(values, relativePath, section);
     }
-
-    public static void ValidatePrefixSet(IReadOnlyCollection<string> values, string relativePath, string section) =>
-        RequireNonEmpty(values, relativePath, section);
 
     private static void RequireNoEmptyValues(IEnumerable<string> values, string relativePath, string section)
     {
@@ -713,41 +601,6 @@ internal sealed class CollectorSemanticPolicyConfig
         if (duplicates.Length is not 0)
             throw new InvalidOperationException($"{relativePath}: {section} contains duplicate values: {string.Join(", ", duplicates)}.");
     }
-}
-
-internal sealed class CollectorSemanticPrefixPolicy
-{
-    public string[] StablePrefixes { get; init; } = [];
-    public string[] IncubatingPrefixes { get; init; } = [];
-
-    public void Validate(string relativePath, string section)
-    {
-        CollectorSemanticPolicyConfig.ValidatePrefixSet(StablePrefixes, relativePath, $"{section}.stablePrefixes");
-        CollectorSemanticPolicyConfig.ValidatePrefixSet(IncubatingPrefixes, relativePath, $"{section}.incubatingPrefixes");
-    }
-}
-
-internal sealed class CollectorAppAttributePolicy
-{
-    public string TemplateKey { get; init; } = "";
-    public int MaxKeysPerSpan { get; init; }
-    public int MaxValueLength { get; init; }
-
-    public void Validate(string relativePath)
-    {
-        if (string.IsNullOrWhiteSpace(TemplateKey))
-            throw new InvalidOperationException($"{relativePath}: appAttributes.templateKey must not be empty.");
-        if (MaxKeysPerSpan < 1 || MaxValueLength < 1)
-            throw new InvalidOperationException($"{relativePath}: appAttributes.maxKeysPerSpan and maxValueLength must be positive.");
-    }
-}
-
-internal sealed class CollectorDevelopmentAttributePolicy
-{
-    public string[] Span { get; init; } = [];
-    public string[] Log { get; init; } = [];
-    public string[] Metric { get; init; } = [];
-    public string[] Resource { get; init; } = [];
 }
 
 [JsonSourceGenerationOptions(

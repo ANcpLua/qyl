@@ -2,48 +2,26 @@ namespace Qyl.Collector.Storage;
 
 internal static class PersistedAttributePolicy
 {
-    // Scope attributes identify the instrumentation library, not application payload fields.
+    // Instrumentation metadata is still producer-controlled: it follows the same privacy
+    // denials as signal and resource attributes, including the exact exception exemptions.
     internal static string? SerializeScopeAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, static _ => true);
+        Serialize(attributes, AttributeKeySets.IsPersistable);
 
-    // Span events and links. Unlike the span row below there is no projected column to move
-    // gen_ai.operation.name / gen_ai.output.type into, so excluding them here would capture the
-    // values at ingest and then drop them with nowhere left to read them from.
-    internal static string? SerializeSpanAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, AttributeKeySets.IsSafeSpanAttribute);
+    // Application attributes retain their native names and types on every signal.
+    internal static string? SerializeAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
+        Serialize(attributes, AttributeKeySets.IsPersistable);
 
     internal static string? SerializeSpanAttributes(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
         SpanHotAttributeProjection projection) =>
         SerializeSpanAttributesCore(attributes, projection);
 
-    internal static string? SerializeLogAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, AttributeKeySets.IsSafeLogAttribute);
-
-    internal static string? SerializeMetricAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, AttributeKeySets.IsSafeMetricAttribute);
-
-    internal static string? SerializeResourceAttributes(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs)
-    {
-        if (entityRefs.Count is 0)
-            return Serialize(attributes, AttributeKeySets.IsSafeResourceAttribute);
-
-        var referencedKeys = entityRefs
-            .SelectMany(static entityRef => entityRef.IdKeys.Concat(entityRef.DescriptionKeys))
-            .ToHashSet(StringComparer.Ordinal);
-        return Serialize(attributes, key =>
-            AttributeKeySets.IsSafeResourceAttribute(key) ||
-            referencedKeys.Contains(key) && AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key));
-    }
-
     private static string? SerializeSpanAttributesCore(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
         SpanHotAttributeProjection projection)
     {
         var persisted = attributes
-            .Where(static item => AttributeKeySets.IsSafeSpanAttribute(item.Key))
+            .Where(static item => AttributeKeySets.IsPersistable(item.Key))
             .Where(item =>
                 item.Key != CollectorSemanticAttributeCatalog.GenAiOperationName ||
                 projection.GenAiOperationName is not null)

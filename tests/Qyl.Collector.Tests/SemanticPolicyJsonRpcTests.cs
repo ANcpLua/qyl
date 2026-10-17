@@ -8,8 +8,7 @@ using Qyl.Collector.Ingestion;
 namespace Qyl.Collector.Tests;
 
 /// <summary>
-/// QYL-U1: MCP emits <c>jsonrpc.request.id</c> and <c>jsonrpc.protocol.version</c>; the collector
-/// allows the <c>jsonrpc.</c> prefix for spans, logs and metrics instead of dropping both keys.
+/// MCP's JSON-RPC attributes follow the shared persistence policy, including legacy-key normalization.
 /// </summary>
 [TestClass]
 public sealed class SemanticPolicyJsonRpcTests
@@ -17,12 +16,10 @@ public sealed class SemanticPolicyJsonRpcTests
     [TestMethod]
     [DataRow("jsonrpc.request.id")]
     [DataRow("jsonrpc.protocol.version")]
-    public void Jsonrpc_keys_are_allowed_on_every_signal(string key)
+    public void Jsonrpc_keys_follow_the_shared_persistence_policy(string key)
     {
-        Assert.IsTrue(AttributeKeySets.IsSafeSpanAttribute(key));
+        Assert.IsTrue(AttributeKeySets.IsPersistable(key));
         Assert.IsTrue(AttributeKeySets.ShouldCaptureSpanAttribute(key));
-        Assert.IsTrue(AttributeKeySets.IsSafeLogAttribute(key));
-        Assert.IsTrue(AttributeKeySets.IsSafeMetricAttribute(key));
     }
 
     [TestMethod]

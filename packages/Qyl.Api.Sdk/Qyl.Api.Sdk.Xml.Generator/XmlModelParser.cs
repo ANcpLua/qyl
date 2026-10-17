@@ -758,19 +758,19 @@ internal static class XmlModelParser
     {
         private readonly ImmutableArray<DiagnosticSpec>.Builder _diagnostics = ImmutableArray.CreateBuilder<DiagnosticSpec>();
         private readonly Dictionary<string, XmlEnumSpec> _enumsByType = new(StringComparer.Ordinal);
-        private readonly List<XmlEnumSpec> _enums = new();
+        private readonly List<XmlEnumSpec> _enums = [];
         private readonly HashSet<string> _formatterNames = new(StringComparer.Ordinal);
 
         public string ModelName { get; } = model.ToDisplayString();
 
         public bool HasErrors { get; private set; }
 
-        public EquatableArray<XmlEnumSpec> Enums => new(_enums.ToImmutableArray());
+        public EquatableArray<XmlEnumSpec> Enums => new([.. _enums]);
 
         public void Report(DiagnosticDescriptor descriptor, ISymbol target, params string[] arguments)
         {
             HasErrors = true;
-            _diagnostics.Add(new DiagnosticSpec(descriptor, LocationSpec.From(target), new EquatableArray<string>(ImmutableArray.Create(arguments))));
+            _diagnostics.Add(new DiagnosticSpec(descriptor, LocationSpec.From(target), new EquatableArray<string>([.. arguments])));
         }
 
         public void ReportUnsupportedAttribute(ISymbol target, AttributeData attribute) =>

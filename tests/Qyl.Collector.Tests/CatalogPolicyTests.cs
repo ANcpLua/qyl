@@ -12,8 +12,6 @@ namespace Qyl.Collector.Tests;
 [TestClass]
 public sealed class CatalogPolicyTests
 {
-    private const string AppPrefix = "qyl.app.";
-
     [TestMethod]
     [DataRow("deniedExactPrefixes")]
     [DataRow("deniedExactKeys")]
@@ -35,10 +33,11 @@ public sealed class CatalogPolicyTests
         Assert.AreSequenceEqual(Sorted(RegistryPolicy.DeniedKeyTokens), Sorted(CollectorSemanticAttributeCatalog.DeniedKeyTokens));
         Assert.AreSequenceEqual(Sorted(RegistryPolicy.TokenExemptKeys), Sorted(CollectorSemanticAttributeCatalog.TokenExemptKeys));
         Assert.AreSequenceEqual(Sorted(RegistryPolicy.VendorKeys), Sorted(CollectorSemanticAttributeCatalog.VendorKeys));
+        Assert.AreSequenceEqual(Sorted(RegistryPolicy.ExceptionTextKeys), Sorted(CollectorSemanticAttributeCatalog.ExceptionTextKeys));
 
-        // POL's five exemptions plus the five hot token counts the collector lifts into columns.
-        // SemanticConventions 10.0.1: plus the ten plain token counts (gen_ai.request.max_tokens, gen_ai.usage.{text,audio,image}.*_tokens).
-        Assert.AreEqual(20, CollectorSemanticAttributeCatalog.TokenExemptKeys.Count);
+        // The exact exception-message exemption does not remove the general token denial.
+        Assert.Contains("exception.message", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
+        Assert.Contains("message", CollectorSemanticAttributeCatalog.DeniedKeyTokens);
         Assert.Contains("gen_ai.request.max_tokens", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
         Assert.Contains("gen_ai.usage.reasoning.output_tokens", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.TokenExemptKeys);
         Assert.DoesNotContain("gen_ai.agent.name", (IReadOnlySet<string>)CollectorSemanticAttributeCatalog.NotPersistedKeys);
@@ -46,8 +45,7 @@ public sealed class CatalogPolicyTests
 
     /// <summary>
     /// <see cref="AttributeKeySets.IsPersistable"/> is <see cref="RegistryPolicy.IsPersisted"/> in every spelling, stricter
-    /// in three ways only: a denied key or prefix matches in any case, <c>baggage.*</c> is never persisted, and
-    /// <c>qyl.app.&lt;key&gt;</c> is denied when <c>&lt;key&gt;</c> is. No boundary keeps a key around it.
+    /// in two ways only: a denied key or prefix matches in any case, and <c>baggage.*</c> is never persisted.
     /// </summary>
     [TestMethod]
     public void The_collector_persists_exactly_what_RegistryPolicy_persists()
@@ -58,17 +56,7 @@ public sealed class CatalogPolicyTests
             .Where(static key => Expected(key) != AttributeKeySets.IsPersistable(key))
             .Select(static key => $"{key}: expected {Expected(key)}, collector {AttributeKeySets.IsPersistable(key)}")
             .ToArray();
-        var bypasses = corpus
-            .Where(static key => !Expected(key) &&
-                (AttributeKeySets.IsSafeSpanAttribute(key) ||
-                 AttributeKeySets.IsSafeLogAttribute(key) ||
-                 AttributeKeySets.IsSafeMetricAttribute(key) ||
-                 AttributeKeySets.IsSafeResourceAttribute(key) ||
-                 AttributeKeySets.IsSafeEntityReferencedResourceAttribute(key)))
-            .ToArray();
-
         Assert.IsEmpty(disagreements);
-        Assert.IsEmpty(bypasses);
     }
 
     [TestMethod]
@@ -76,10 +64,7 @@ public sealed class CatalogPolicyTests
     {
         using var policy = PolicyFile();
         var root = policy.RootElement;
-        var named = root.GetProperty("developmentAttributeAllowList").EnumerateObject()
-            .SelectMany(static signal => signal.Value.EnumerateArray())
-            .Concat(root.GetProperty("qylResourceAttributeAllowList").EnumerateArray())
-            .Concat(root.GetProperty("projectIdResourceKeys").EnumerateArray())
+        var named = root.GetProperty("projectIdResourceKeys").EnumerateArray()
             .Concat(root.GetProperty("spanHotAttributeKeys").EnumerateArray())
             .Select(static key => key.GetString()!)
             .ToArray();
@@ -91,8 +76,7 @@ public sealed class CatalogPolicyTests
     private static bool Expected(string key) =>
         RegistryPolicy.IsPersisted(key) &&
         !DeniedKeyOrPrefixInAnyCase(key) &&
-        !key.StartsWith("baggage.", StringComparison.OrdinalIgnoreCase) &&
-        !(key.StartsWith(AppPrefix, StringComparison.OrdinalIgnoreCase) && DeniedKeyOrPrefixInAnyCase(key[AppPrefix.Length..]));
+        !key.StartsWith("baggage.", StringComparison.OrdinalIgnoreCase);
 
     private static bool DeniedKeyOrPrefixInAnyCase(string key) =>
         RegistryPolicy.NotPersistedKeys.Any(denied =>
@@ -102,7 +86,7 @@ public sealed class CatalogPolicyTests
 
     /// <summary>
     /// Every key either side names, the template children of the denied ones, keys that carry a denied token, the
-    /// header keys the collector once exempted, and <c>qyl.app.</c> over every denial; each also upper-cased and
+    /// header keys the collector once exempted, and an application namespace over every denial; each also upper-cased and
     /// under <c>baggage.</c>.
     /// </summary>
     private static IEnumerable<string> Corpus()
@@ -112,15 +96,10 @@ public sealed class CatalogPolicyTests
             .Concat(RegistryPolicy.NotPersistedPrefixes.Select(static prefix => prefix + "email"))
             .ToArray();
         var named = denied
-            .Concat(denied.Select(static key => AppPrefix + key))
+            .Concat(denied.Select(static key => "legacy." + key))
             .Concat(RegistryPolicy.TokenExemptKeys)
             .Concat(RegistryPolicy.VendorKeys)
             .Concat(RegistryPolicy.DeniedKeyTokens.Select(static token => "custom." + token))
-            .Concat(CollectorSemanticAttributeCatalog.SpanAttributeAllowList)
-            .Concat(CollectorSemanticAttributeCatalog.LogAttributeAllowList)
-            .Concat(CollectorSemanticAttributeCatalog.MetricAttributeAllowList)
-            .Concat(CollectorSemanticAttributeCatalog.ResourceAttributeAllowList)
-            .Concat(CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList)
             .Concat([
                 "http.request.header.accept", "http.request.header.content_type", "http.request.header.mcp_method",
                 "http.request.header.mcp_name", "http.request.header.mcp_protocol_version", "http.response.header.content_type",

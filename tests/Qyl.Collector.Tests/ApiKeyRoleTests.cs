@@ -77,6 +77,12 @@ public sealed class ApiKeyRoleTests(TestContext testContext)
     // Running a saved query is a read even though it is a POST.
     [DataRow("POST", "/api/v1/saved-queries/missing:run", "reader", HttpStatusCode.NotFound)]
     [DataRow("POST", "/api/v1/saved-queries/missing:run", "ingester", HttpStatusCode.Forbidden)]
+    // Analysis reads use the shared handler; failure mutations retain their explicit write route.
+    [DataRow("POST", "/api/v1/analysis/triage", "reader", HttpStatusCode.OK)]
+    [DataRow("POST", "/api/v1/analysis/triage", "ingester", HttpStatusCode.Forbidden)]
+    [DataRow("PATCH", "/api/v1/failures/missing", "reader", HttpStatusCode.Forbidden)]
+    [DataRow("PATCH", "/api/v1/failures/missing", "writer", HttpStatusCode.PreconditionRequired)]
+    [DataRow("POST", "/api/v1/analysis/update_failure_status", "writer", HttpStatusCode.NotFound)]
     [DataRow("DELETE", "/api/v1/saved-queries/missing", "deleter", HttpStatusCode.PreconditionRequired)]
     [DataRow("GET", "/api/v1/traces", "unknown", HttpStatusCode.Unauthorized)]
     public async Task Each_route_requires_its_declared_role(
@@ -100,7 +106,8 @@ public sealed class ApiKeyRoleTests(TestContext testContext)
                 {
                     "GET" => "read",
                     "DELETE" => "delete",
-                    "POST" when path.EndsWith(":run", StringComparison.Ordinal) => "read",
+                    "POST" when path.EndsWith(":run", StringComparison.Ordinal)
+                                || path.StartsWith("/api/v1/analysis/", StringComparison.Ordinal) => "read",
                     _ => "write"
                 },
                 problem.GetProperty("required_permission").GetString());

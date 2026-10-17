@@ -32,7 +32,7 @@ internal static class SpanChildStorage
             {
                 Name = e.Name,
                 TimeUnixNano = e.TimeUnixNano,
-                AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(e.Attributes),
+                AttributesJson = PersistedAttributePolicy.SerializeAttributes(e.Attributes),
                 DroppedAttributesCount = e.DroppedAttributesCount
             });
         }
@@ -52,7 +52,7 @@ internal static class SpanChildStorage
             {
                 TraceId = l.TraceId,
                 SpanId = l.SpanId,
-                AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(l.Attributes),
+                AttributesJson = PersistedAttributePolicy.SerializeAttributes(l.Attributes),
                 DroppedAttributesCount = l.DroppedAttributesCount,
                 Flags = l.Flags,
                 TraceState = l.TraceState

@@ -170,7 +170,7 @@ public sealed class MetricStorageTests(TestContext testContext)
     }
 
     [TestMethod]
-    public void An_unregistered_metric_attribute_is_dropped_by_the_same_policy_spans_use()
+    public void Unregistered_metric_attributes_are_retained_while_denied_keys_are_dropped()
     {
         var batch = OtlpConverter.ConvertMetrics(Request(new OtlpMetric
         {
@@ -195,7 +195,7 @@ public sealed class MetricStorageTests(TestContext testContext)
         }));
 
         var attributes = Assert.ContainsSingle(batch.Points).Attributes;
-        Assert.AreSequenceEqual(["http.request.method"], attributes.Keys);
+        Assert.AreSequenceEqual(["http.request.method", "totally.unregistered"], attributes.Keys);
     }
 
     [TestMethod]

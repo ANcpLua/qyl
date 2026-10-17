@@ -63,39 +63,41 @@ internal static partial class CollectorEndpointExtensions
         api.MapDelete("/saved-queries/{saved_query_id}", DeleteSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Delete);
         api.MapPost("/saved-queries/{saved_query_id}:run", RunSavedQueryAsync).RequireKeyRole(ApiKeyRoles.Read);
 
-        api.MapPost("/analysis/triage", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("triage", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/list_failures", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_failures", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/get_failure_context", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_failure_context", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/compare_groups", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("compare_groups", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/compare_traces", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("compare_traces", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/verify_fix", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("verify_fix", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/aggregate_telemetry", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("aggregate_telemetry", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/discover_attributes", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("discover_attributes", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/get_agent_run", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_agent_run", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/list_releases", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_releases", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/get_service_map", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_service_map", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/check_telemetry_health", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("check_telemetry_health", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/get_mcp_stats", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_mcp_stats", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/list_sessions", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_sessions", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/list_traces", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_traces", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/get_trace", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_trace", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/search_logs", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("search_logs", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/list_metrics", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_metrics", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/get_metric_series", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("get_metric_series", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/query_metric", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("query_metric", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/ci_log", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("ci_log", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/display_traces", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("display_traces", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/display_mcp_dashboard", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("display_mcp_dashboard", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/list_saved_queries", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("list_saved_queries", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/run_saved_query", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("run_saved_query", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
-        api.MapPost("/analysis/fetch_telemetry", static (HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct) => AnalyzeAsync("fetch_telemetry", context, store, time, ct)).RequireKeyRole(ApiKeyRoles.Read);
+        // Read operations share typed contract dispatch; failure-status changes
+        // retain their explicit write route below.
+        api.MapPost("/analysis/triage", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("triage");
+        api.MapPost("/analysis/list_failures", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_failures");
+        api.MapPost("/analysis/get_failure_context", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_failure_context");
+        api.MapPost("/analysis/compare_groups", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("compare_groups");
+        api.MapPost("/analysis/compare_traces", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("compare_traces");
+        api.MapPost("/analysis/verify_fix", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("verify_fix");
+        api.MapPost("/analysis/aggregate_telemetry", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("aggregate_telemetry");
+        api.MapPost("/analysis/discover_attributes", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("discover_attributes");
+        api.MapPost("/analysis/get_agent_run", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_agent_run");
+        api.MapPost("/analysis/list_releases", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_releases");
+        api.MapPost("/analysis/get_service_map", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_service_map");
+        api.MapPost("/analysis/check_telemetry_health", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("check_telemetry_health");
+        api.MapPost("/analysis/get_mcp_stats", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_mcp_stats");
+        api.MapPost("/analysis/list_sessions", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_sessions");
+        api.MapPost("/analysis/list_traces", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_traces");
+        api.MapPost("/analysis/get_trace", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_trace");
+        api.MapPost("/analysis/search_logs", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("search_logs");
+        api.MapPost("/analysis/list_metrics", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_metrics");
+        api.MapPost("/analysis/get_metric_series", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_metric_series");
+        api.MapPost("/analysis/query_metric", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("query_metric");
+        api.MapPost("/analysis/ci_log", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("ci_log");
+        api.MapPost("/analysis/list_saved_queries", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_saved_queries");
+        api.MapPost("/analysis/run_saved_query", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("run_saved_query");
+        api.MapPost("/analysis/display_traces", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("display_traces");
+        api.MapPost("/analysis/display_mcp_dashboard", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("display_mcp_dashboard");
+        api.MapPost("/analysis/fetch_telemetry", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("fetch_telemetry");
+
         api.MapPatch("/failures/{failure_id}", UpdateFailureStatusAsync).RequireKeyRole(ApiKeyRoles.Write);
 
         app.MapFallback(FallbackHandler);
 
         return app;
     }
-
 
     internal static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
@@ -274,7 +276,6 @@ internal static partial class CollectorEndpointExtensions
         }
     }
 
-
     internal static async Task<IResult> IngestOtlpMetricsAsync(
         HttpContext context,
         IQylStore store,
@@ -362,7 +363,6 @@ internal static partial class CollectorEndpointExtensions
                 "The collector could not persist the OTLP metrics payload.");
         }
     }
-
 
     internal static async Task<IResult> GetMetricsAsync(
         HttpContext httpContext,
@@ -1045,7 +1045,6 @@ internal static partial class CollectorEndpointExtensions
         await response.WriteAsync("\n\n", ct).ConfigureAwait(false);
         await response.Body.FlushAsync(ct).ConfigureAwait(false);
     }
-
 
     private static IResult InvalidLimit(int? limit, int maximum) =>
         ContractErrorResults.Validation(

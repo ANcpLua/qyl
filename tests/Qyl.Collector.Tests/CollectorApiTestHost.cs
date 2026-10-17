@@ -57,14 +57,14 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
 
     public DuckDbStore Store { get; }
 
-    private HttpClient Client { get; }
+    public HttpClient Client { get; }
 
     /// <summary>The HTTP/2-only loopback address for <c>GrpcChannel.ForAddress</c>.</summary>
     public string GrpcAddress { get; }
 
-    public static async Task<CollectorApiTestHost> StartAsync(CancellationToken ct)
+    public static async Task<CollectorApiTestHost> StartAsync(CancellationToken ct, string databasePath = ":memory:")
     {
-        var store = new DuckDbStore(":memory:");
+        var store = new DuckDbStore(databasePath);
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {

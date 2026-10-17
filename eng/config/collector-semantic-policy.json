@@ -1,146 +1,4 @@
 {
-  "spanAttributeAllowList": {
-    "stablePrefixes": [
-      "db.",
-      "error.",
-      "exception.",
-      "http.",
-      "network.",
-      "otel.",
-      "server.",
-      "url."
-    ],
-    "incubatingPrefixes": [
-      "gen_ai.",
-      "graphql.",
-      "jsonrpc.",
-      "mcp.",
-      "messaging.",
-      "rpc.",
-      "service."
-    ]
-  },
-  "logAttributeAllowList": {
-    "stablePrefixes": [
-      "error.",
-      "exception.",
-      "http.",
-      "otel.",
-      "server.",
-      "url.path"
-    ],
-    "incubatingPrefixes": [
-      "browser.web_vital.",
-      "gen_ai.",
-      "jsonrpc.",
-      "mcp.",
-      "messaging.",
-      "rpc."
-    ]
-  },
-  "metricAttributeAllowList": {
-    "stablePrefixes": [
-      "db.",
-      "error.",
-      "http.",
-      "network.",
-      "otel.",
-      "server.",
-      "url."
-    ],
-    "incubatingPrefixes": [
-      "gen_ai.",
-      "jsonrpc.",
-      "mcp.",
-      "messaging.",
-      "rpc.",
-      "service.",
-      "system."
-    ]
-  },
-  "resourceAttributeAllowList": {
-    "stablePrefixes": [
-      "deployment.",
-      "service."
-    ],
-    "incubatingPrefixes": [
-      "host.",
-      "os."
-    ]
-  },
-  "developmentAttributeAllowList": {
-    "span": [
-      "qyl.exception.source",
-      "qyl.instrumentation.domain",
-      "qyl.mcp.evaluation_run.id",
-      "qyl.mcp.execution.id",
-      "qyl.mcp.flow.id",
-      "qyl.mcp.protocol.era",
-      "qyl.mcp.sdk.tier",
-      "qyl.mcp.server.id",
-      "qyl.mcp.test_case.id",
-      "qyl.mcp.tool.name",
-      "cloud.region",
-      "cicd.pipeline.run.id",
-      "cicd.pipeline.run.url.full",
-      "vcs.ref.head.name",
-      "vcs.ref.head.revision",
-      "mcp.server.name",
-      "mcp.server.version",
-      "mcp.transport",
-      "mcp.response.is_error",
-      "mcp.is_error",
-      "cicd.pipeline.task.name",
-      "cicd.pipeline.task.type",
-      "cicd.pipeline.task.run.id",
-      "qyl.gen_ai.tool.call.arguments_hash"
-    ],
-    "log": [
-      "browser.device_memory",
-      "browser.language",
-      "browser.viewport.height",
-      "browser.viewport.width",
-      "qyl.mcp.evaluation_run.id",
-      "qyl.mcp.execution.id",
-      "qyl.mcp.flow.id",
-      "qyl.mcp.protocol.era",
-      "qyl.mcp.sdk.tier",
-      "qyl.mcp.server.id",
-      "qyl.mcp.test_case.id",
-      "qyl.mcp.tool.name",
-      "navigation.type",
-      "page.route",
-      "web.vital.name",
-      "web.vital.rating",
-      "web.vital.unit",
-      "web.vital.value",
-      "cloud.region",
-      "cicd.pipeline.run.id",
-      "cicd.pipeline.run.url.full",
-      "vcs.ref.head.name",
-      "vcs.ref.head.revision",
-      "mcp.server.name",
-      "mcp.server.version",
-      "mcp.transport",
-      "mcp.response.is_error",
-      "mcp.is_error"
-    ],
-    "metric": [
-      "qyl.instrumentation.domain",
-      "qyl.mcp.server.id",
-      "qyl.mcp.tool.name"
-    ],
-    "resource": [
-      "cloud.region",
-      "vcs.ref.head.revision",
-      "vcs.ref.head.name"
-    ]
-  },
-  "qylResourceAttributeAllowList": [
-    "qyl.api.contract.revision",
-    "qyl.capability.id",
-    "qyl.capability.kind"
-  ],
   "projectIdResourceKeys": [
     "qyl.project.id",
     "qyl.workspace.id"
@@ -150,11 +8,6 @@
     "mcp.session.id",
     "gen_ai.conversation.id"
   ],
-  "appAttributes": {
-    "templateKey": "qyl.app",
-    "maxKeysPerSpan": 16,
-    "maxValueLength": 256
-  },
   "spanHotAttributeKeys": [
     "gen_ai.provider.name",
     "gen_ai.operation.name",
@@ -187,6 +40,7 @@
     "HttpRoute": "http.route",
     "ServiceName": "service.name",
     "QylAttributeNamespace": "qyl.attribute.namespace",
+    "QylAttributeKey": "qyl.attribute.key",
     "McpMethodName": "mcp.method.name",
     "GenAiToolName": "gen_ai.tool.name",
     "GenAiAgentName": "gen_ai.agent.name",

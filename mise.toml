@@ -7,7 +7,7 @@
 "node" = "24.21.0"
 
 [tasks.check]
-description = "The gate before every push: ./eng/build.sh Check"
+description = "Full source gate when requested or needed: ./eng/build.sh Check"
 quiet = true
 run = "./eng/build.sh Check --Configuration Release"
 

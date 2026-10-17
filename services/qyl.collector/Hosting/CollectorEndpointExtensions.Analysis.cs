@@ -1,4 +1,6 @@
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
@@ -7,6 +9,44 @@ namespace Qyl.Collector.Hosting;
 
 internal static partial class CollectorEndpointExtensions
 {
+    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output)> s_readAnalysisContracts =
+        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output)>(StringComparer.Ordinal)
+        {
+            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput),
+            ["list_failures"] = (AnalysisContractJsonContext.Default.ListFailuresInput, AnalysisContractJsonContext.Default.ListFailuresOutput),
+            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput),
+            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput),
+            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput),
+            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput),
+            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput),
+            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput),
+            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput),
+            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput),
+            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput),
+            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput),
+            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput),
+            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput),
+            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput),
+            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput),
+            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput),
+            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput),
+            ["get_metric_series"] = (AnalysisContractJsonContext.Default.GetMetricSeriesInput, AnalysisContractJsonContext.Default.GetMetricSeriesOutput),
+            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput),
+            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput),
+            ["list_saved_queries"] = (AnalysisContractJsonContext.Default.ListSavedQueriesInput, AnalysisContractJsonContext.Default.ListSavedQueriesOutput),
+            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput),
+            ["display_traces"] = (AnalysisContractJsonContext.Default.DisplayTracesInput, AnalysisContractJsonContext.Default.DisplayTracesOutput),
+            ["display_mcp_dashboard"] = (AnalysisContractJsonContext.Default.DisplayMcpDashboardInput, AnalysisContractJsonContext.Default.DisplayMcpDashboardOutput),
+            ["fetch_telemetry"] = (AnalysisContractJsonContext.Default.FetchTelemetryInput, AnalysisContractJsonContext.Default.FetchTelemetryOutput),
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+
+    private static Task<IResult> AnalyzeReadEndpointAsync(HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
+    {
+        var endpoint = context.GetEndpoint() ?? throw new InvalidOperationException("An analysis route requires an endpoint.");
+        var operation = endpoint.Metadata.GetRequiredMetadata<IEndpointNameMetadata>().EndpointName;
+        return AnalyzeAsync(operation, context, store, time, ct);
+    }
+
     private static AnalysisHandles CreateAnalysisHandles(HttpContext context, string project) =>
         context.RequestServices.GetRequiredService<AnalysisSigningKey>().ForProject(project);
     private static async Task<IResult> AnalyzeAsync(string operation, HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
@@ -44,37 +84,14 @@ internal static partial class CollectorEndpointExtensions
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return ContractErrorResults.AnalysisDeadlineExceeded(); }
         catch (JsonException invalid) { return ContractErrorResults.Validation(invalid.Path ?? "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid"); }
     }
-    private static (System.Text.Json.Serialization.Metadata.JsonTypeInfo Input, System.Text.Json.Serialization.Metadata.JsonTypeInfo Output) AnalysisContract(string operation) => operation switch
+    private static (JsonTypeInfo Input, JsonTypeInfo Output) AnalysisContract(string operation)
     {
-        "triage" => (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput),
-        "list_failures" => (AnalysisContractJsonContext.Default.ListFailuresInput, AnalysisContractJsonContext.Default.ListFailuresOutput),
-        "get_failure_context" => (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput),
-        "compare_groups" => (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput),
-        "compare_traces" => (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput),
-        "verify_fix" => (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput),
-        "aggregate_telemetry" => (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput),
-        "discover_attributes" => (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput),
-        "get_agent_run" => (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput),
-        "list_releases" => (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput),
-        "get_service_map" => (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput),
-        "check_telemetry_health" => (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput),
-        "get_mcp_stats" => (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput),
-        "list_sessions" => (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput),
-        "list_traces" => (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput),
-        "get_trace" => (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput),
-        "search_logs" => (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput),
-        "list_metrics" => (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput),
-        "get_metric_series" => (AnalysisContractJsonContext.Default.GetMetricSeriesInput, AnalysisContractJsonContext.Default.GetMetricSeriesOutput),
-        "query_metric" => (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput),
-        "ci_log" => (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput),
-        "list_saved_queries" => (AnalysisContractJsonContext.Default.ListSavedQueriesInput, AnalysisContractJsonContext.Default.ListSavedQueriesOutput),
-        "run_saved_query" => (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput),
-        "display_traces" => (AnalysisContractJsonContext.Default.DisplayTracesInput, AnalysisContractJsonContext.Default.DisplayTracesOutput),
-        "display_mcp_dashboard" => (AnalysisContractJsonContext.Default.DisplayMcpDashboardInput, AnalysisContractJsonContext.Default.DisplayMcpDashboardOutput),
-        "fetch_telemetry" => (AnalysisContractJsonContext.Default.FetchTelemetryInput, AnalysisContractJsonContext.Default.FetchTelemetryOutput),
-        "update_failure_status" => (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput),
-        _ => throw new InvalidOperationException("Unknown analysis contract.")
-    };
+        if (operation == "update_failure_status")
+            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput);
+        return s_readAnalysisContracts.TryGetValue(operation, out var contract)
+            ? contract
+            : throw new InvalidOperationException("Unknown analysis contract.");
+    }
 
     private static void ValidateAnalysisInput(string operation, JsonObject input) =>
         _ = JsonSerializer.Deserialize(input.ToJsonString(), AnalysisContract(operation).Input);

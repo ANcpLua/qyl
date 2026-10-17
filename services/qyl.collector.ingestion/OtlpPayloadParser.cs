@@ -20,7 +20,7 @@ internal static class OtlpPayloadParser
     /// The OTLP status message for a body over <see cref="MaxPayloadBytes"/>; OTLP 1.11 (request
     /// size limits) makes that a 413 Content Too Large, which the endpoint handlers answer.
     /// </summary>
-    internal const string PayloadTooLargeMessage = "OTLP payload exceeds the 16 MiB limit after decompression.";
+    internal const string PayloadTooLargeMessage = "OTLP payload exceeds the 16 MiB wire or decompressed limit.";
 
     public static OtlpPayloadEncoding GetEncoding(string? contentType)
     {
@@ -123,7 +123,7 @@ internal static class OtlpPayloadParser
         if (!isIdentity && !string.Equals(contentEncoding, "gzip", StringComparison.OrdinalIgnoreCase))
             throw new OtlpUnsupportedContentEncodingException(contentEncoding);
 
-        if (isIdentity && request.ContentLength is > MaxPayloadBytes)
+        if (request.ContentLength is > MaxPayloadBytes)
             throw new OtlpPayloadTooLargeException();
 
         try
@@ -136,7 +136,8 @@ internal static class OtlpPayloadParser
                 return await ReadBoundedStreamAsync(request.Body, capacity, ct).ConfigureAwait(false);
             }
 
-            await using var gzip = new GZipStream(request.Body, CompressionMode.Decompress, leaveOpen: true);
+            await using var wire = new OtlpWireLimitStream(request.Body, MaxPayloadBytes);
+            await using var gzip = new GZipStream(wire, CompressionMode.Decompress, leaveOpen: true);
             return await ReadBoundedStreamAsync(gzip, 0, ct).ConfigureAwait(false);
         }
         finally

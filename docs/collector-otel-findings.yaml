@@ -3,8 +3,8 @@
 # Trust: see `verification`. Versions in .md files may be outdated; read them from code or registries.
 
 sources:
-  spec: OpenTelemetry Specification v1.61.0 (latest)
-  proto: OTLP proto v1.11.1 (latest)
+  spec: OpenTelemetry Specification v1.61.0
+  proto: OTLP proto v1.11.1
   note: the semantic-conventions v1.44.0 is a different repo and is not a source here
   urls:
     metrics_data_model: https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md
@@ -16,9 +16,42 @@ sources:
 
 verification:
   current_checkpoint:
+    date: 2026-10-17
+    published:
+      api_contract: "14.0.0; source f02eac2; contract revision unchanged by native application attributes"
+      semantic_conventions: "13.1.1; source 566bfb3; native public verification complete at 2026-10-16T23:51:31Z; canonical exception keys only, with descendants and case variants denied"
+      instrumentation: "27.0.0; source 8c93d92; all six public packages and managed/AOT consumers VERIFIED at 2026-10-17T00:27:05Z; native ledger refresh 1e10ce9"
+      testing: "3.0.2; release source 9365b50; native release VERIFIED, SC 13.1.1, 209 tests, zero inspection findings, public HTTP/gRPC consumers passed; tooling follow-up 61c0729 isolates the public verifier cache and passed native re-verification"
+      mcp: "10.0.0; source 40b3441; native release VERIFIED, indexed npm tarball byte-identical to the captured artifact"
+    remaining:
+      - "Collector 15.0.0: 69 affected persistence/attribute/metric/payload cases and three cleanup cases passed with public SC 13.1.1/Auto 27.0.0. The 37 route-role cases and non-test verification targets passed; a stale centralized-projection guard was corrected and passed separately. Final inspection, native packaging, published verification and deployment remain. Earlier 434-test evidence used Auto 26.0.0 and is historical."
+      - "MCP: hosted owner-project isolation and successful operations with all 32 tools; reviewer reads and permission rejections do not prove this"
+      - "Prototype: final package pins, source release, fresh coverage and visible traces/metrics/logs including expected failures"
+      - "Website/package ledger, global PC tool update and final consumer verification"
+    evidence:
+      testing_release: ../Qyl.Telemetry.Testing/artifacts/docs-semconv-13.1.1-release-3.0.2.log
+      testing_public_smoke: ../Qyl.Telemetry.Testing/artifacts/public-verifier-own-cache-3.0.2.log
+      testing_cache_cleanup: ../Qyl.Telemetry.Testing/artifacts/release-cache-cleanup/post-release-probe-build.log
+      instrumentation_gate: ../Qyl.Telemetry.AutoInstrumentation/artifacts/native-attributes-check-full-27-final.log
+      instrumentation_public_smoke: ../Qyl.Telemetry.AutoInstrumentation/artifacts/release-27.0.0-verify.log
+      collector_native_attributes: artifacts/telemetry-metadata-tests/native-attributes-sc13-focused.log
+      collector_encoded_body_limit: artifacts/telemetry-metadata-tests/gzip-wire-green-2.log
+      collector_chunked_http_limit: artifacts/telemetry-metadata-tests/gzip-wire-network.log
+      mcp_release: ../qyl.mcp/artifacts/release-10.0.0-verify.log
+      exception_persistence: artifacts/exception-retention-local/persistence-final.log
+      exception_canonical_policy: artifacts/exception-retention-local/persistence-13.1.1.log
+      exception_header_red: artifacts/exception-retention-local/persistence-header-red.log
+      exception_header_fixed: artifacts/exception-retention-local/persistence-header-fixed.log
+      collector_suite: artifacts/exception-retention-local/collector-suite-13.1.1.log
+      collector_public_dependencies: artifacts/targeted-collector-15.log
+      collector_cleanup: artifacts/targeted-collector-15-cleanup.log
+      collector_route_roles: artifacts/diagnostics/analysis-routes-focused-15-refined.log
+      collector_projection_guard: artifacts/collector-15-projection-guard.log
+    invariant: "No exclusions, hidden failures, invented timestamps or retained compatibility layers for the obsolete application-attribute template. Candidate source, publication, registry availability and installed verification remain distinct."
+  previous_native_checkpoint:
     passed: "Native pre-push Check passed with public API 14: 509/509 tests, zero failures/skips, 21 dashboard tests, real orchestration smoke and all verification targets"
     evidence: artifacts/telemetry-metadata-tests/public-check-extensions/build.log
-    pending: "Primary-agent inspection cleanup on final SemConv/AutoInstrumentation wave pins; mandatory release CheckFull gates"
+    scope: "Historical release-14 input set; not evidence for the final release-15 dependencies or its native release gates"
   # Each group states its evidence boundary. Leads and historical snapshots are not release proof.
   verified_by_fetch_2026-10-16:
     - latest releases listed through the GitHub API (gh api releases): semantic-conventions v1.44.0 (2026-08-04), specification v1.61.0 (2026-09-14), opentelemetry-proto v1.11.1 (2026-09-29)
@@ -27,13 +60,12 @@ verification:
     - trace.proto at v1.11.1: trace_id (16 bytes) and span_id (8 bytes) are invalid if all zeroes or of another length; start and end time are "semantically required" with end >= start expected; no unknown-time form exists for spans
   verified_from_source_and_native_runs:
     - initial review snapshots under sibling_repos remain historical leads; current source and checkpoint evidence take precedence
+    - AutoInstrumentation's independent trace-wire DTOs pin official OTLP v1.11.1 commit b3f75588eb23c5fca62264edd05d382de49beb1a in eng/build/OtlpEvidence/Protos/upstream.lock.json; the annotated upstream tag was resolved to that same commit
     - canonical metric journal, native histogram and summary storage, complete exemplars and raw paging passed the frozen 42/42 checkpoint and reran within 51/51
     - malformed span/log rejection, nullable log time migration, interrupted-index recovery and original-body identity passed within 51/51
     - earlier native WAL abort and failing body-prefix reproduction are preserved under artifacts/telemetry-metadata-tests/span-log-second and log-prefix-repro
   from_memory_not_verified:
     - the `comparison` section (OpenTelemetry Collector, ClickHouse exporter, DuckDB limits)
-    - the vendored proto version in Qyl.Telemetry.AutoInstrumentation (no version marker found)
-    - whether the collector attribute allowlist is generated from the registry
     - the existing rego policies in Qyl.Telemetry.SemanticConventions
   extensions_10_11_0:
     dependency: all 11 packages sharing MicrosoftExtensionsVersion resolve to 10.11.0 in the collector
@@ -80,7 +112,7 @@ files:
   span_log_tables: qyl.collector.storage/DuckDbReaderExtensions.cs
   retention: qyl.collector.storage/DuckDbStore.Retention.cs
 
-already_in_working_tree:
+implementation:
   metrics:
     - instrument id hashes resource, scope and name (MetricStorageMapper.ComputeInstrumentId)
     - series id adds point attributes, kind, temporality, monotonicity, unit, so a conflict becomes a separate series
@@ -108,11 +140,15 @@ gaps:
     - request ordinal preserves multiplicity of completely untimed records and exact retries deduplicate; verified
     - original-body identity prevents false merges from equal retained prefixes; failing reproduction and passing fix retained
     - effective time remains NULL when both times are unknown; raw API, paging, streaming and time retention preserve this; verified against authentic released-v13 schema
-    - body truncated at 64 KB; attributes allowlisted (IsSafeLogAttribute)
+    - the 64 KiB log-body budget counts decoded UTF-8 text and structural bytes, so JSON escaping alone cannot replace a bounded map with text; body identity is still computed before truncation
+    - exact exception.message and exception.stacktrace values are sanitized in the shared incoming OTLP decoder before any persistence or metric journal; unrelated key denials retain precedence
+    - 42 native HTTP/gRPC persistence cases cover 21 carriers, reopen and API readback, required credential forms, failure in either field, safe diagnostics, useful formatting and sanitize-before-truncate behavior
+    - the descendant/case-variant gap failed all 42 persistence cases before the canonical-policy fix; an opaque API-key header suffix failed the same matrix before header values were redacted through line end; all failing evidence is retained
+    - native application attributes retain their original types and names; explicit persistence-policy denials remain separate from vocabulary membership
   spans:
     - malformed reversed bounds and completely missing 0/0 bounds are rejected per item; a legitimate epoch start with later end remains valid; verified
     - all-zero and wrong-length identifiers are rejected per item; verified over HTTP and gRPC
-    - attributes allowlisted (ShouldCaptureSpanAttribute); qyl.app.* capped per span
+    - native application attributes retain their original types and names without qyl.app prefix, scalar, key-count or length restrictions; explicit persistence-policy denials remain
     - events and links are JSON columns, not queryable or indexable by field
     - upsert replaces end, status, attributes, events, links (last write wins) but keeps start_time
     - span index performance remains an unverified lead; index count alone is not a defect and no span indexes were removed
@@ -126,7 +162,7 @@ comparison:
     - does not enforce metric identity, passes data through; qyl is stricter at storage
     - has memory_limiter, batch processor, persistent sending queue, delta/cumulative processors; qyl has none of these
   clickhouse_exporter_signoz_style:
-    - stores all attributes; qyl is an allowlist with a drop counter, which suits a bounded agent-facing store
+    - stores attributes; qyl accepts native application attributes and reports explicit persistence-policy denials with a drop counter
     - separate tables per metric type including native exponential histograms
     - native nested columns for span events and links; append-only tables
     - qyl's series index plus narrow points table is close to Prometheus and Mimir label-set hashing
@@ -134,10 +170,11 @@ comparison:
     - good fit for a local-first analytic store; single writer; ART indexes plus ON CONFLICT upserts slow bulk inserts and use memory
     - benchmark actual queries and ingest before changing any span indexes; no performance claim is verified
   protobuf_grpc: Google.Protobuf with Grpc.Tools is standard; no better choice
-  switch_to_clickhouse_only_if: multi-node scale or native exponential histograms are needed
+  storage_change: native exponential histograms are already retained in DuckDB; any engine change needs an actual workload and measurements rather than an index count
 
-sibling_repos:
-  # Read 2026-10-16 from the working trees under /Users/alexandernachtmann/RiderProjects. Nothing was built or run.
+historical_repo_snapshot_2026_10_16:
+  # Original read-only investigation, preserved as provenance rather than current instructions.
+  # The current checkpoint, verified implementation and owner decisions supersede these states and proposals.
   qyl-api-schema:
     path: /Users/alexandernachtmann/RiderProjects/qyl-api-schema
     package: 'npm @ancplua/qyl-api-schema, NuGet Qyl.Api.Contracts; version is 0.0.0-development, released by release.sh'
@@ -148,7 +185,7 @@ sibling_repos:
       - api/routes.tsp new listPoints (series/{series_id}/points), series_id query on the metric query, ConflictError on that query
       - common/types.tsp OtlpFlags (full uint32), InstrumentationScope name optional, schemaUrl added; the 1.44.0 schema comment replaced by "SemanticConventions owns vocabulary"
       - models/metric-points.tsp new file with exponential bucket models and summary
-    must_change:
+    original_proposals:
       - retain summary shape and kind: owner explicitly superseded the removal proposal; verify original quantiles through ingestion, storage and API
       - retain native exponential buckets: owner explicitly superseded the removal proposal; verify native storage separately from bounded derived projections
       - otel/span.tsp:56-57 endTimeUnixNano stays required (OTLP: semantically required); SpanSummary end_time (span.tsp:174-175) stays too; the collector rejects malformed spans instead
@@ -161,7 +198,7 @@ sibling_repos:
     path: /Users/alexandernachtmann/RiderProjects/Qyl.Telemetry.AutoInstrumentation
     state: clean, main at 1753b70 (telemetry 25.1.0, SemanticConventions 10.1.0)
     pins: Qyl.Api.Contracts 12.1.2 (Directory.Packages.props:61); collector for the demo lanes is the qyl tool 12.2.0 (.config/dotnet-tools.json); SemanticConventions 10.1.0 matches qyl's Version.props
-    must_change:
+    original_proposals:
       - eng/build/Demos/QylCollectorClient.cs:43 MetricSeries(metricName) looks a metric up by name only; with scope in the identity one name can return several instruments, so every verifier must filter by instrumentationScope.name (its own Meter names) and assert hasConflict is false for its own instruments
       - verifiers that read ObservedTimeUnixNano must accept null for old rows and non-null for rows sent now
       - re-pin Qyl.Api.Contracts and the qyl tool together after the contract and collector releases; the lanes run the released collector, so nothing changes until the re-pin
@@ -172,7 +209,7 @@ sibling_repos:
     path: /Users/alexandernachtmann/RiderProjects/Qyl.Telemetry.SemanticConventions
     state: 390 files modified, uncommitted (10.1.0 preparation, regenerated pins); schema pin is semantic conventions 1.44.0 (generated/pins.props), qyl schema 11.0.0
     note: 1.44.0 here is the semantic-conventions release; the OpenTelemetry Specification pinned in this work is v1.61.0; keep the two apart in every report
-    must_change:
+    original_proposals:
       - no package code change is needed for the identity or time fixes; identity and timestamps are storage and wire concerns
       - recommended: a policy in registry/policies (rego) that a metric name has one instrument type and one unit across registry/qyl/metrics.yaml and registry/vendor; this stops conflicts at the source; I did not read the existing rego, so check for an existing rule first
       - qyl-api-schema now defers vocabulary and semantic validation to this package; check that the collector attribute allowlist (services/qyl.collector.ingestion/AttributeKeySets.cs, DeprecatedAttributeNormalizer.cs) is derived from the registry rather than hand-maintained; not verified
@@ -210,24 +247,16 @@ decisions:
   legacy_unscoped_metrics: "leave old unscoped series separate with NULL scope meaning unknown; no legacy bucket (the migration already does this); accept that one instrument may appear as two series across the migration"
 
 fix_order:
-  - "finish and verify the bounded canonical metric checkpoint against the local contract candidate"
-  - "qyl-api-schema: settle the contract, regenerate openapi, fixtures, release"
-  - "qyl collector: inject TimeProvider for the log observed time (metric and log converters)"
-  - "qyl collector: explicit catalog conflict flag matching the contract hasConflict"
-  - "qyl collector: span validation, reject malformed spans per item"
-  - "qyl collector: log identical-record decision"
-  - "qyl collector: retention treatment of unknown times"
-  - "qyl collector: per-item reject with partial_success for traces and logs"
-  - "qyl collector: review the span index count"
-  - "qyl collector: verify native exponential histogram and summary storage already implemented in the canonical checkpoint"
-  - "release collector, then qyl.mcp"
-  - "Qyl.Telemetry.AutoInstrumentation: re-pin contracts and qyl tool, scope-filter the verifiers, vendor metrics and logs protos"
-  - "Qyl.Telemetry.SemanticConventions: unique instrument and unit policy, only if wanted"
+  - "verify Collector 15.0.0 against the indexed dependencies, commit/push main, run the complete native release and verify its deployed commit"
+  - "verify hosted MCP owner-project routing and successful tools against the deployed Collector; retain expected errors separately"
+  - "verify and release the prototype with final public pins, fresh global DotCov coverage and visible original telemetry"
+  - "update the global qyl tool and website, verify actual installed/deployed behavior and reconcile the durable fix list"
 
-tests_to_write:
+completed_persistence_invariants:
   - same metric name in two scopes gives two stored metrics and two catalog entries
   - same scope and name with different unit or kind gives separate series and a conflict, never a blended descriptor
   - description-only difference gives one entry with the longer text
   - legacy log row reads back with observed time NULL; new zero-time record gets the injected receive time
   - restart and reload keep all of the above
-  - build and test through Fallout targets, run only the tests written in the session
+
+verification_policy: "Use the smallest relevant native check and retain failing attempts. Required release gates still run; no exclusions, fabricated success or blanket repetition of unchanged checks."

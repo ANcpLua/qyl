@@ -20,9 +20,18 @@ internal static class QylCollectorMetrics
         QylIncubatingMetricDefinitions.QylCollectorAttributesDropped.Unit,
         QylIncubatingMetricDefinitions.QylCollectorAttributesDropped.Brief);
 
+    private static readonly Counter<long> s_attributesCoalesced = s_meter.CreateCounter<long>(
+        QylIncubatingMetricDefinitions.QylCollectorAttributesCoalesced.Name,
+        QylIncubatingMetricDefinitions.QylCollectorAttributesCoalesced.Unit,
+        QylIncubatingMetricDefinitions.QylCollectorAttributesCoalesced.Brief);
+
+    private static readonly Counter<long> s_sanitizationFailed = s_meter.CreateCounter<long>(
+        QylIncubatingMetricDefinitions.QylCollectorAttributesSanitizationFailed.Name,
+        QylIncubatingMetricDefinitions.QylCollectorAttributesSanitizationFailed.Unit,
+        QylIncubatingMetricDefinitions.QylCollectorAttributesSanitizationFailed.Brief);
+
     /// <summary>
-    /// Records one attribute the ingest allowlist refused, by the namespace its key belongs to.
-    /// Without it an undeclared key is indistinguishable from a key nobody ever sent.
+    /// Records an explicit persistence-policy denial by a bounded attribute namespace.
     /// </summary>
     internal static void AttributeDropped(string key) =>
         s_attributesDropped.Add(
@@ -30,4 +39,13 @@ internal static class QylCollectorMetrics
             new KeyValuePair<string, object?>(
                 CollectorSemanticAttributeCatalog.QylAttributeNamespace,
                 AttributeMapping.NamespaceOf(key)));
+
+    internal static void AttributeCoalesced(string key) =>
+        s_attributesCoalesced.Add(1, new KeyValuePair<string, object?>(
+            CollectorSemanticAttributeCatalog.QylAttributeNamespace, AttributeMapping.NamespaceOf(key)));
+
+    internal static void AttributeSanitizationFailed(string canonicalKey, string category) =>
+        s_sanitizationFailed.Add(1,
+            new KeyValuePair<string, object?>(CollectorSemanticAttributeCatalog.QylAttributeKey, canonicalKey),
+            new KeyValuePair<string, object?>(CollectorSemanticAttributeCatalog.ErrorType, category));
 }

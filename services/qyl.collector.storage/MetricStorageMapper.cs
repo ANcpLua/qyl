@@ -21,10 +21,8 @@ internal static class MetricStorageMapper
         foreach (var record in batch.Points)
         {
             var projectId = ProjectScope.ForIngest(record.ProjectIdHint, authenticatedProjectId);
-            var attributesJson = PersistedAttributePolicy.SerializeMetricAttributes(record.Attributes);
-            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(
-                record.ResourceAttributes,
-                record.ResourceEntityRefs);
+            var attributesJson = PersistedAttributePolicy.SerializeAttributes(record.Attributes);
+            var resourceJson = PersistedAttributePolicy.SerializeAttributes(record.ResourceAttributes);
             var resourceEntityRefsJson = SerializeResourceEntityRefs(record.ResourceEntityRefs);
             var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(record.ScopeAttributes);
             var instrumentId = ComputeInstrumentId(

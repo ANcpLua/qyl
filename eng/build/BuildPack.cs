@@ -31,6 +31,19 @@ interface IPack : IHasSourcePaths, IHasConfiguration
     [Parameter("Runtime identifier PackPlatform packs the qyl tool for; it must be the one the host dotnet reports")]
     string? ToolRuntimeIdentifier => TryGetValue(() => ToolRuntimeIdentifier);
 
+    [Parameter("Directory for per-package MSBuild binary logs during release diagnosis")]
+    string? PackDiagnosticDirectory => TryGetValue(() => PackDiagnosticDirectory);
+
+    private DotNetPackSettings WithPackDiagnostics(DotNetPackSettings settings, string project)
+    {
+        if (PackDiagnosticDirectory is not { } directory) return settings;
+        Directory.CreateDirectory(directory);
+        var log = Path.Combine(directory, $"pack-{Path.GetFileNameWithoutExtension(project)}.binlog");
+        // Keep imported source out of the log. These diagnostics stay local to the
+        // release attempt rather than becoming public GitHub release assets.
+        return settings.SetBinaryLog($"{log};ProjectImports=None");
+    }
+
     /// <summary>
     /// What both release packs share. Neither builds the dashboard nor compiles the solution first:
     /// the embedded dashboard is built beforehand (FrontendBuild, in Check), and each pack builds its project.
@@ -73,8 +86,8 @@ interface IPack : IHasSourcePaths, IHasConfiguration
             DotNetTasks.DotNetPack(s => s
                 .Apply(ReleasePackSettings)
                 .SetOutputDirectory(NuGetArtifactsDirectory)
-                .CombineWith(ShippablePackProjects, static (settings, project) => settings
-                    .SetProject(project)));
+                .CombineWith(ShippablePackProjects, (settings, project) =>
+                    WithPackDiagnostics(settings.SetProject(project), project)));
         });
 
     Target Pack => d => d
