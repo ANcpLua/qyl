@@ -12,6 +12,7 @@ if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_WORKER") is { } mode
     }
     var worker = WebApplication.CreateBuilder(args);
     worker.Logging.ClearProviders();
+    worker.Services.AddHttpClient();
     worker.Services.AddHostedService<ShutdownMarker>();
     await using var app = worker.Build();
     if (worker.Configuration["services:payments:http:0"] is { } dependency)
@@ -25,6 +26,12 @@ if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_WORKER") is { } mode
         : Results.Text(Environment.ProcessId.ToString(CultureInfo.InvariantCulture)));
     app.MapGet("/dependency", () => worker.Configuration["services:payments:http:0"] ?? "none");
     app.MapGet("/value", () => Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_VALUE") ?? "missing");
+    app.MapPost("/flush", async () =>
+    {
+        if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_RECEIVED") is { } received)
+            await File.WriteAllTextAsync(received, "received");
+        return Results.Ok();
+    });
     await app.RunAsync();
     return 0;
 }
@@ -41,11 +48,14 @@ try
     var builder = new QylApplicationBuilder { StartupTimeoutSeconds = 10, MaxRestarts = 0 };
     var payments = Smoke.Worker(builder, "payments", executable, "ready");
     var stopped = Path.Combine(scratch, "payments.stopped");
-    payments.WithEnvironment("ORCHESTRATION_SMOKE_STOPPED", stopped);
+    var received = Path.Combine(scratch, "payments.received");
+    payments.WithEnvironment("ORCHESTRATION_SMOKE_STOPPED", stopped)
+        .WithEnvironment("ORCHESTRATION_SMOKE_RECEIVED", received);
     Smoke.Worker(builder, "orders", executable, "ready")
         .WithReference(payments).WaitFor(payments)
         .WithoutEnvironmentPrefix("ORCHESTRATION_SMOKE_")
-        .WithEnvironment("ORCHESTRATION_SMOKE_VALUE", "argument with spaces");
+        .WithEnvironment("ORCHESTRATION_SMOKE_VALUE", "argument with spaces")
+        .WithEnvironment("ORCHESTRATION_SMOKE_FLUSH_TO", "payments");
     {
         var app = builder.Build();
         try
@@ -67,8 +77,12 @@ try
             await app.DisposeAsync();
             Smoke.Require(paymentProcess.HasExited && orderProcess.HasExited, "Dispose left a child alive.");
             if (!OperatingSystem.IsWindows())
+            {
                 Smoke.Require(File.Exists(stopped) && await File.ReadAllTextAsync(stopped) == "flushed",
                     "Dispose bypassed the child's asynchronous hosted-service shutdown.");
+                Smoke.Require(File.Exists(received) && await File.ReadAllTextAsync(received) == "received",
+                    "Dispose stopped the dependency before its dependent finished exporting.");
+            }
         }
         finally
         {
@@ -183,14 +197,24 @@ internal static class Smoke
     }
 }
 
-internal sealed class ShutdownMarker : IHostedService
+internal sealed class ShutdownMarker(IConfiguration configuration, IHttpClientFactory clients) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_STOPPED") is not { } path) return;
+        var path = Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_STOPPED");
+        var destination = Environment.GetEnvironmentVariable("ORCHESTRATION_SMOKE_FLUSH_TO");
+        if (path is null && destination is null) return;
         await Task.Delay(100, cancellationToken);
-        await File.WriteAllTextAsync(path, "flushed", cancellationToken);
+        if (destination is not null)
+        {
+            using var client = clients.CreateClient();
+            var endpoint = configuration[$"services:{destination}:http:0"]
+                ?? throw new InvalidOperationException("Missing shutdown export destination.");
+            using var response = await client.PostAsync(new Uri(new Uri(endpoint), "flush"), null, cancellationToken);
+            response.EnsureSuccessStatusCode();
+        }
+        if (path is not null) await File.WriteAllTextAsync(path, "flushed", cancellationToken);
     }
 }

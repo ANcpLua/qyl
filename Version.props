@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The manual release script reads this exact product version. Candidate versions
          may be developed locally; publish only the complete checked release commit. -->
-    <QylVersion>15.0.1</QylVersion>
+    <QylVersion>15.0.2</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -37,7 +37,7 @@
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>13.1.1</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
-    <QylApiContractsVersion>14.0.0</QylApiContractsVersion>
+    <QylApiContractsVersion>14.0.1</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
     <ANcpLuaRoslynUtilitiesVersion>3.0.0</ANcpLuaRoslynUtilitiesVersion>

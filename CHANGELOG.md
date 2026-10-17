@@ -1,5 +1,11 @@
 # Changelog
 
+## 15.0.2 — 2026-10-17
+
+- Stop dependent processes before their `WaitFor` prerequisites during application shutdown. Final exports can reach a live destination instead of racing its termination.
+- Verify final delivery between real processes in the orchestration consumer, including its Native AOT build.
+- Consume API contracts 14.0.1 in the Collector and dashboard. The contract revision is unchanged.
+
 ## 15.0.1 — 2026-10-17
 
 - Preserve metric resource, scope and point-attribute identity before persistence filtering. Opaque digests keep separate service instances and denied dimensions distinct without storing their original values; historical series stay separate because erased identity cannot be reconstructed.

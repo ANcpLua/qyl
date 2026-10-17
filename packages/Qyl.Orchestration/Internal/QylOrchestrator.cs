@@ -22,6 +22,10 @@ internal sealed partial class QylOrchestrator(
 
     private static readonly TimeSpan s_processExitTimeout = TimeSpan.FromSeconds(5);
 
+    private readonly Dictionary<string, TaskCompletionSource> _completions = resources.ToDictionary(
+        resource => resource.Name,
+        _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously), StringComparer.Ordinal);
+
     private readonly ConcurrentDictionary<string, Process> _processes = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _stopRequests = new(StringComparer.Ordinal);
 
@@ -113,6 +117,10 @@ internal sealed partial class QylOrchestrator(
         catch (InvalidOperationException ex)
         {
             FailResource(resource, ex);
+        }
+        finally
+        {
+            _ = _completions[resource.Name].TrySetResult();
         }
     }
 
@@ -257,6 +265,12 @@ internal sealed partial class QylOrchestrator(
         }
         finally
         {
+            if (stoppingToken.IsCancellationRequested)
+            {
+                // Dependents flush while their declared prerequisites still accept requests.
+                await Task.WhenAll(resources.Where(dependent => dependent.WaitsFor.Contains(resource.Name))
+                    .Select(dependent => _completions[dependent.Name].Task)).ConfigureAwait(false);
+            }
             await TerminateProcessAsync(
                     resource.Name,
                     current,

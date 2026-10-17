@@ -29,6 +29,8 @@ application and stops all children on failure or cancellation; early process exi
 child's recent output. `DisposeAsync` stops process trees and releases reservations, including
 when the application was never started. A builder and application each represent one run.
 Unexpected exits after readiness use a bounded restart policy (three retries by default).
+On application shutdown, each process finishes before its `WaitFor` dependencies stop,
+so final exports can still reach their destination.
 On Unix, disposal, stop and restart send SIGTERM and allow up to ten seconds for host
 shutdown and exporter flushing before killing the process tree. Windows requests window
 closure when supported; headless processes fall back to forced termination.

@@ -59,7 +59,7 @@ public sealed class QylProcessBuilder
         return this;
     }
 
-    /// <summary>Starts this process only after the named services report ready. Cycles fail at Build.</summary>
+    /// <summary>Starts after the named services are ready and stops before them. Cycles fail at Build.</summary>
     public QylProcessBuilder WaitFor(params QylProcessBuilder[] services)
     {
         _owner.EnsureMutable();
