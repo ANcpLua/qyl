@@ -900,6 +900,7 @@ internal static partial class CollectorEndpointExtensions
         HttpContext context,
         IQylStore store,
         CollectorStreamCapacity streamCapacity,
+        TimeProvider timeProvider,
         [FromQuery(Name = "service_name")] string? serviceName,
         string? query,
         CancellationToken ct)
@@ -940,6 +941,7 @@ internal static partial class CollectorEndpointExtensions
         var afterIngestSequence = ParseLastEventId(context.Request.Headers["Last-Event-ID"].ToString());
         await foreach (var streamEvent in StreamLogEventsAsync(
                            store,
+                           timeProvider,
                            ResolveProjectScope(context),
                            serviceName,
                            minSeverity,
@@ -978,6 +980,7 @@ internal static partial class CollectorEndpointExtensions
             HeartbeatEvent? Heartbeat)>
         StreamLogEventsAsync(
         IQylStore store,
+        TimeProvider timeProvider,
         string projectId,
         string? serviceName,
         int? minSeverity,
@@ -1015,11 +1018,11 @@ internal static partial class CollectorEndpointExtensions
                 yield return ("heartbeat", null, null, new HeartbeatEvent
                 {
                     Type = "heartbeat",
-                    Timestamp = TimeProvider.System.GetUtcNow()
+                    Timestamp = timeProvider.GetUtcNow()
                 });
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1), ct).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(1), timeProvider, ct).ConfigureAwait(false);
         }
     }
 

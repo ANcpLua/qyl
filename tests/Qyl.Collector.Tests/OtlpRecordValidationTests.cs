@@ -5,6 +5,7 @@ using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
@@ -242,7 +243,7 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
         } while (cursor is not null);
         Assert.HasCount(4, ids);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct); timeout.CancelAfter(TimeSpan.FromSeconds(5));
-        await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(host.Store, "alpha", null, 17, null, null, timeout.Token).GetAsyncEnumerator(timeout.Token);
+        await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(host.Store, new FakeTimeProvider(), "alpha", null, 17, null, null, timeout.Token).GetAsyncEnumerator(timeout.Token);
         Assert.IsTrue(await stream.MoveNextAsync());
         Assert.IsNull(Assert.IsInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(stream.Current.Log).Timestamp);
     }

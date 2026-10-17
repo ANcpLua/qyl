@@ -132,6 +132,7 @@ public sealed class ContractQueryParserTests(TestContext testContext)
                 context,
                 null!,
                 new CollectorStreamCapacity(),
+                null!,
                 null,
                 null,
                 testContext.CancellationToken);

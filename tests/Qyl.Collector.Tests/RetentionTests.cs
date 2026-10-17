@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Qyl.Collector.Health;
 using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Retention;
@@ -353,7 +354,7 @@ public sealed class RetentionTests(TestContext testContext)
         new(
             store,
             new RetentionOptions { Days = days },
-            new FixedTimeProvider(s_now),
+            new FakeTimeProvider(s_now),
             NullLogger<RetentionService>.Instance);
 
     private static SpanStorageRow CreateSpan(
@@ -402,9 +403,4 @@ public sealed class RetentionTests(TestContext testContext)
     }
 
     private static long FileLength(string path) => File.Exists(path) ? new FileInfo(path).Length : 0;
-
-    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => utcNow;
-    }
 }

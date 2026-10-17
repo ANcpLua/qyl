@@ -3,6 +3,7 @@ using System.Text.Json;
 using DuckDB.NET.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Qyl.Api.Contracts.Common.Errors;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
@@ -60,6 +61,7 @@ public sealed class LogStreamingTests(TestContext testContext)
     }
 
     [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
     public async Task Later_ingested_older_event_is_delivered_after_the_live_cursor()
     {
         await using var store = new DuckDbStore(":memory:");
@@ -67,33 +69,50 @@ public sealed class LogStreamingTests(TestContext testContext)
             [CreateLog("newer-event", eventTime: 2_000_000_000)],
             testContext.CancellationToken);
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(
             testContext.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(8));
+        var fake = new FakeTimeProvider();
+        var clock = new TimerObservingTimeProvider(fake);
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
                 store,
+                clock,
                 "default",
                 serviceName: null,
                 minSeverity: null,
                 query: null,
                 afterIngestSequence: null,
-                timeout.Token)
-            .GetAsyncEnumerator(timeout.Token);
+                lifetime.Token)
+            .GetAsyncEnumerator(lifetime.Token);
 
-        Assert.IsTrue(await stream.MoveNextAsync());
-        var first = stream.Current;
-        Assert.AreEqual("log", first.EventType);
-        Assert.AreEqual<ulong?>(2_000_000_000, Assert.IsExactInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(first.Log).Data.TimeUnixNano);
+        Task<bool>? pending = null;
+        try
+        {
+            Assert.IsTrue(await stream.MoveNextAsync());
+            var first = stream.Current;
+            Assert.AreEqual("log", first.EventType);
+            Assert.AreEqual<ulong?>(2_000_000_000, Assert.IsExactInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(first.Log).Data.TimeUnixNano);
 
-        await store.InsertLogsAsync(
-            [CreateLog("late-older-event", eventTime: 1_000_000_000)],
-            timeout.Token);
+            await store.InsertLogsAsync(
+                [CreateLog("late-older-event", eventTime: 1_000_000_000)], lifetime.Token);
 
-        Assert.IsTrue(await stream.MoveNextAsync());
-        var late = stream.Current;
-        Assert.AreEqual("log", late.EventType);
-        Assert.IsTrue(late.EventId > first.EventId);
-        Assert.AreEqual<ulong?>(1_000_000_000, Assert.IsExactInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(late.Log).Data.TimeUnixNano);
+            pending = stream.MoveNextAsync().AsTask();
+            Assert.AreEqual(TimeSpan.FromSeconds(1), await clock.WaitForTimerAsync(lifetime.Token));
+            fake.Advance(TimeSpan.FromSeconds(1));
+            Assert.IsTrue(await pending.WaitAsync(lifetime.Token));
+            var late = stream.Current;
+            Assert.AreEqual("log", late.EventType);
+            Assert.IsTrue(late.EventId > first.EventId);
+            Assert.AreEqual<ulong?>(1_000_000_000, Assert.IsExactInstanceOfType<Api.Contracts.Streaming.LogStreamEvent>(late.Log).Data.TimeUnixNano);
+        }
+        finally
+        {
+            await lifetime.CancelAsync();
+            if (pending is not null)
+            {
+                try { await pending; }
+                catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+            }
+        }
     }
 
     [TestMethod]
@@ -108,6 +127,7 @@ public sealed class LogStreamingTests(TestContext testContext)
             context,
             store: null!,
             capacity,
+            timeProvider: null!,
             serviceName: null,
             query: null,
             testContext.CancellationToken);

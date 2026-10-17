@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
@@ -180,6 +181,7 @@ public sealed class PublishedContractV1Tests(TestContext testContext)
         timeout.CancelAfter(TimeSpan.FromSeconds(5));
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
                 store,
+                new FakeTimeProvider(),
                 "default",
                 serviceName: null,
                 minSeverity: null,

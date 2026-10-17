@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
@@ -158,6 +159,7 @@ public sealed class LogEventContractTests(TestContext testContext)
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
                 store,
+                new FakeTimeProvider(),
                 "default",
                 serviceName: null,
                 minSeverity: null,
@@ -232,7 +234,7 @@ public sealed class LogEventContractTests(TestContext testContext)
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
         await using var stream = CollectorEndpointExtensions.StreamLogEventsAsync(
-            store, "default", serviceName: "qyl.at", minSeverity: null, query: null,
+            store, new FakeTimeProvider(), "default", serviceName: "qyl.at", minSeverity: null, query: null,
             afterIngestSequence: null, timeout.Token).GetAsyncEnumerator(timeout.Token);
         Assert.IsTrue(await stream.MoveNextAsync());
         var streamed = Assert.IsExactInstanceOfType<LogStreamEvent>(stream.Current.Log).Data;
