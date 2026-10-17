@@ -1,5 +1,12 @@
 # Changelog
 
+## 16.0.0 — 2026-10-17
+
+- Remove the Collector dashboard, static serving and embedded assets. Keep the product API, OTLP endpoints and JSON error contracts. Build and packaging no longer require Node, Bun or browser assets.
+- Verify backend routes against the version-matched published OpenAPI artifact independently of the former frontend. Move useful HTTP boundary cases to native MSTest.
+- Verify captured credential-like names and binary metadata arrays through the installed tool’s real ingestion and API readback.
+- Retain valid explicitly captured HTTP-header and RPC-metadata values, including credential-like names and binary metadata arrays. Consume SemanticConventions 14.0.0 and AutoInstrumentation/Hosting 28.2.0. Unrelated persistence and exception sanitization rules remain unchanged.
+
 ## 15.0.4 — 2026-10-17
 
 - Align AutoInstrumentation and Hosting 28.1.1 with SemanticConventions 13.2.0 throughout the Collector and API SDK consumer pins.

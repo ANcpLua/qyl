@@ -2,7 +2,7 @@
 
 The Collector applies the generated SemanticConventions persistence policy before storing incoming OTLP attributes.
 Exact-key and prefix denials take precedence over token exemptions. Credential keys, private resource fields,
-baggage remains denied. Selected HTTP header and textual RPC metadata attributes use the captured-field rule below.
+and baggage remain denied outside the explicit captured-field families described below.
 Outside those families, a key containing `message` remains denied except the exact key `exception.message`. `exception.stacktrace` is also eligible. Neither key is permission to store its value raw.
 Case variants and dotted descendants remain denied; only the two canonical spellings receive this eligibility.
 
@@ -58,13 +58,11 @@ The four case-insensitive dotted families are `http.request.header`, `http.respo
 HTTP suffixes follow RFC 9110 field-name tokens; textual RPC suffixes allow ASCII letters, digits, `_`, `-` and `.`.
 Names retain their original punctuation; instrumentation emits lowercase. Values retain their native string arrays.
 
-After existing explicit key/prefix denials, the full suffix is checked against the registry's finite credential rule:
-exact `authorization`, `proxy-authorization`, `cookie`, `set-cookie`, `x-api-key`, `www-authenticate`,
-`proxy-authenticate`; or a substring `authorization`, `cookie`, `token`, `secret`, `password`, `passwd`,
-`apikey`, `api-key`, `api_key`, `credential`, `private_key`, `private-key`, `privatekey`, `client_secret`, `jwt`.
-Comparisons are case-insensitive. `x-token-count` is deliberately denied; `x-message-id` is retained.
+After existing explicit key/prefix denials, every valid captured suffix is retained, including
+`authorization`, `cookie`, `x-api-key`, `x-token-count`, `mcp-param-*` and `-bin` metadata names.
+Instrumentation preserves binary gRPC values in the HTTP transport's base64 representation.
 Other families, generic token denials, baggage and exception sanitization are unchanged.
 
-This is a finite name-based policy, not arbitrary-value secret detection. Selecting a benign-looking field can
-still capture sensitive application content. MCP applies its existing value protections and independently
-redacts recognized credential arrays element by element while preserving their published shape.
+The producer's explicit selection controls captured content. MCP preserves valid captured string arrays
+without name-based or value-based redaction; unrelated fields and malformed capture shapes still use
+its normal redactor. Values rejected by older Collector versions cannot be recovered by this change.

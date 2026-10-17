@@ -16,7 +16,7 @@ public sealed class CapturedFieldPersistenceTests(TestContext testContext)
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
-    public async Task Selected_arrays_survive_ingestion_reopen_and_api_while_credentials_are_dropped(bool grpc)
+    public async Task Selected_arrays_including_credentials_survive_ingestion_reopen_and_api(bool grpc)
     {
         var path = Path.Combine(Path.GetTempPath(), $"qyl-captured-fields-{Guid.NewGuid():N}.duckdb");
         var traceId = ByteString.CopyFrom([.. new byte[15], 1]);
@@ -25,22 +25,24 @@ public sealed class CapturedFieldPersistenceTests(TestContext testContext)
             TraceId = traceId, SpanId = ByteString.CopyFrom([.. new byte[7], 1]), Name = "captured-fields",
             StartTimeUnixNano = 1_800_000_000_000_000_000, EndTimeUnixNano = 1_800_000_000_000_000_001
         };
-        string[] benign = ["http.request.header.x-request-id", "http.request.header.x-message-id",
+        string[] retained = ["http.request.header.x-request-id", "http.request.header.x-message-id",
             "http.response.header.content-type", "http.response.header.x-ratelimit-remaining",
-            "rpc.request.metadata.x-tenant-id", "rpc.response.metadata.x-demo-res-md"];
-        string[] denied = ["http.request.header.authorization", "http.response.header.set-cookie",
+            "rpc.request.metadata.x-tenant-id", "rpc.response.metadata.x-demo-res-md",
+            "http.request.header.authorization", "http.response.header.set-cookie",
             "rpc.request.metadata.x-api-key", "rpc.response.metadata.x-auth-token", "HTTP.REQUEST.HEADER.X-JWT",
-            "rpc.response.metadata.x-privatekey", "http.request.header", "rpc.request.metadata.",
+            "rpc.response.metadata.x-privatekey", "http.request.header.x-token-count",
+            "http.request.header.mcp-param-secret", "rpc.request.metadata.trace-bin"];
+        string[] denied = ["http.request.header", "rpc.request.metadata.",
             "http.request.header.bad name", "custom.message", "baggage.id"];
-        for (var i = 0; i < benign.Length; i++)
-            span.Attributes.Add(Array(benign[i], i % 2 == 0 ? ["one", "two", "two", ""] : ["single"]));
+        for (var i = 0; i < retained.Length; i++)
+            span.Attributes.Add(Array(retained[i], i % 2 == 0 ? ["one", "two", "two", ""] : ["single"]));
         foreach (var key in denied) span.Attributes.Add(Array(key, ["opaque-never-retained"]));
         var request = new ExportTraceServiceRequest
         {
             ResourceSpans = { new ResourceSpans { ScopeSpans = { new ScopeSpans { Spans = { span } } } } }
         };
         var decoded = Assert.ContainsSingle(OtlpConverter.ConvertTraceRequest(request).Spans).Attributes;
-        foreach (var key in benign) Assert.Contains(key, decoded.Keys);
+        foreach (var key in retained) Assert.Contains(key, decoded.Keys);
         foreach (var key in denied) Assert.DoesNotContain(key, decoded.Keys);
         try
         {
@@ -75,11 +77,11 @@ public sealed class CapturedFieldPersistenceTests(TestContext testContext)
             var page = await reopened.JsonAsync(apiResponse);
             var attributes = Assert.ContainsSingle(page.GetProperty("items").EnumerateArray()).GetProperty("attributes")
                 .EnumerateArray().ToDictionary(static item => item.GetProperty("key").GetString()!, static item => item.GetProperty("value"));
-            for (var i = 0; i < benign.Length; i++)
+            for (var i = 0; i < retained.Length; i++)
             {
                 string[] expected = i % 2 == 0 ? ["one", "two", "two", ""] : ["single"];
-                Assert.AreSequenceEqual(expected, stored.RootElement.GetProperty(benign[i]).EnumerateArray().Select(static item => item.GetString()!));
-                Assert.AreSequenceEqual(expected, attributes[benign[i]].EnumerateArray().Select(static item => item.GetString()!));
+                CapturedFieldAssertions.HasStringArray(stored.RootElement.GetProperty(retained[i]), expected);
+                CapturedFieldAssertions.HasStringArray(attributes[retained[i]], expected);
             }
             foreach (var key in denied)
             {

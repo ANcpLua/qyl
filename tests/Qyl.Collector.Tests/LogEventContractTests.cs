@@ -116,7 +116,9 @@ public sealed class LogEventContractTests(TestContext testContext)
             converted.AttributesJson,
             StringComparison.Ordinal);
 
-        Assert.DoesNotContain("secret", converted.AttributesJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"url.full\"", converted.AttributesJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"url.query\"", converted.AttributesJson, StringComparison.Ordinal);
+        Assert.Contains("Bearer secret", converted.AttributesJson, StringComparison.Ordinal);
         if (canonicalBrowserEvent)
         {
             foreach (var key in new[] { "browser.web_vital.id", "browser.web_vital.delta", "browser.web_vital.name", "browser.web_vital.rating", "browser.web_vital.navigation_type" })
@@ -176,8 +178,12 @@ public sealed class LogEventContractTests(TestContext testContext)
         Assert.Contains("\"value\":\"/docs/mcp/\"", streamJson, StringComparison.Ordinal);
         Assert.Contains($"\"key\":\"{valueKey}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains("778", streamJson, StringComparison.Ordinal);
-        Assert.DoesNotContain("secret", restJson, StringComparison.Ordinal);
-        Assert.DoesNotContain("secret", streamJson, StringComparison.Ordinal);
+        foreach (var json in new[] { restJson, streamJson })
+        {
+            Assert.DoesNotContain("\"key\":\"url.full\"", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"key\":\"url.query\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"key\":\"http.request.header.authorization\",\"value\":\"Bearer secret\"", json, StringComparison.Ordinal);
+        }
         if (canonicalBrowserEvent)
         {
             foreach (var key in new[] { "browser.web_vital.id", "browser.web_vital.delta", "browser.web_vital.name", "browser.web_vital.rating", "browser.web_vital.navigation_type" })

@@ -235,6 +235,8 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
 {
     const string TraceId = "0af7651916cd43dd8448eb211c80319c";
     const string SpanId = "b7ad6b7169203331";
+    string[] capturedKeys = ["http.request.header.authorization", "http.request.header.x-token-count", "rpc.response.metadata.trace-bin"];
+    string[] capturedValues = ["first", "first", "", "AQID"];
     var start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000;
     var payload = JsonSerializer.Serialize(new
     {
@@ -267,7 +269,18 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
                                 kind = 1,
                                 startTimeUnixNano = start.ToString(CultureInfo.InvariantCulture),
                                 endTimeUnixNano = (start + 1_000_000).ToString(CultureInfo.InvariantCulture),
-                                status = new { code = 1 }
+                                status = new { code = 1 },
+                                attributes = capturedKeys.Select(key => new
+                                {
+                                    key,
+                                    value = new
+                                    {
+                                        arrayValue = new
+                                        {
+                                            values = capturedValues.Select(value => new { stringValue = value }).ToArray()
+                                        }
+                                    }
+                                }).ToArray()
                             }
                         }
                     }
@@ -293,6 +306,23 @@ static async Task VerifyIngestAndReadbackAsync(HttpClient client)
         var body = await response.Content.ReadAsStringAsync();
         return body.Contains(TraceId, StringComparison.Ordinal) && body.Contains("qyl-tool-smoke", StringComparison.Ordinal);
     }, TimeSpan.FromSeconds(20), "OTLP trace was not readable from the product API");
+
+    using var spanRequest = new HttpRequestMessage(HttpMethod.Get,
+        $"http://127.0.0.1:5100/api/v1/traces/{TraceId}/spans");
+    spanRequest.Headers.Add("X-Qyl-Project", "default");
+    using var spanResponse = await client.SendAsync(spanRequest);
+    spanResponse.EnsureSuccessStatusCode();
+    using var spans = JsonDocument.Parse(await spanResponse.Content.ReadAsStringAsync());
+    var span = spans.RootElement.GetProperty("items").EnumerateArray()
+        .Single(item => item.GetProperty("span_id").GetString() == SpanId);
+    var attributes = span.GetProperty("attributes").EnumerateArray()
+        .ToDictionary(static item => item.GetProperty("key").GetString()!, static item => item.GetProperty("value"));
+    foreach (var key in capturedKeys)
+    {
+        if (!attributes.TryGetValue(key, out var values) || values.ValueKind != JsonValueKind.Array ||
+            !capturedValues.SequenceEqual(values.EnumerateArray().Select(static item => item.GetString())))
+            throw new InvalidOperationException($"Installed collector did not preserve captured array '{key}'.");
+    }
 }
 
 // The runner process exports its own telemetry (AddQyl: the health-probe HttpClient spans, logs,
