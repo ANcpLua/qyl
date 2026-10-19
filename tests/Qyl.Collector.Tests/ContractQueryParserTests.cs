@@ -23,6 +23,7 @@ public sealed class ContractQueryParserTests(TestContext testContext)
             [ QueryEndpoint.Logs, "severity_min", "info", "query.invalid_integer" ],
             [ QueryEndpoint.Logs, "start_time", "13/07/2026", "query.invalid_date_time" ],
             [ QueryEndpoint.Logs, "end_time", "2026-07-13T10:00:00", "query.invalid_date_time" ],
+            [ QueryEndpoint.Traces, "start_time", "2026-07-13T10:00:00.000000049Z", "time.precision_unsupported" ],
             [ QueryEndpoint.Logs, "limit", "0x10", "query.invalid_integer" ],
             [ QueryEndpoint.LogStream, "min_severity", "warning", "query.invalid_integer" ]
         ];

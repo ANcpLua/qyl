@@ -408,6 +408,9 @@ internal static class ContractQueryParser
         {
             value = null;
             if (!TryReadSingle(name, out var raw, out var rejectedValue)) return null;
+            // An instant holds 100 ns; a finer boundary is rejected rather than silently moved.
+            if (raw is not null && FinerThanTicks(raw))
+                return Invalid(name, "Value is finer than 100 nanoseconds; use at most seven fractional digits.", "time.precision_unsupported", rejectedValue);
             if (raw is not null && TryParseRfc3339(raw, out var parsed))
             {
                 value = parsed;
@@ -434,6 +437,15 @@ internal static class ContractQueryParser
 
         private static string JoinValues(StringValues values) =>
             string.Join(',', values.ToArray());
+    }
+
+    // RFC 3339 places a fraction right after the seconds; digits beyond the seventh below a tick must be zero.
+    private static bool FinerThanTicks(string value)
+    {
+        if (value.Length < 21 || value[19] != '.') return false;
+        var end = 20;
+        while (end < value.Length && char.IsAsciiDigit(value[end])) end++;
+        return end - 20 > 7 && value.AsSpan(27, end - 27).ContainsAnyExcept('0');
     }
 
     private static bool TryParseRfc3339(string value, out DateTimeOffset parsed)
