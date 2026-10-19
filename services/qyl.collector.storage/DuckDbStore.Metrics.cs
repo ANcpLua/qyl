@@ -444,7 +444,7 @@ internal sealed partial class DuckDbStore
             var temporality = Convert.ToByte(reader.GetValue(reader.FieldCount - 2), CultureInfo.InvariantCulture);
             var group = reader.GetString(reader.FieldCount - 1);
             var delta = temporality == 2 ? MetricHistogram.HistogramDelta(point, previous.GetValueOrDefault(point.SeriesId), request.StartUnixNano) : point;
-            previous[point.SeriesId] = point;
+            if (point.HistogramCount is not null) previous[point.SeriesId] = point;
             if (point.TimeUnixNano < request.StartUnixNano) continue;
             if (!groups.TryGetValue(group, out var buckets)) groups[group] = buckets = [];
             var bucket = request.StartUnixNano + (point.TimeUnixNano - request.StartUnixNano) / request.StepUnixNano * request.StepUnixNano;
@@ -455,7 +455,7 @@ internal sealed partial class DuckDbStore
         return groups.Take(request.SeriesLimit).Select(group => new MetricQuerySeries(
             ToGroupAttributesJson(request.GroupBy, group.Key),
             group.Value.Select(bucket => new MetricAggregatePoint(bucket.Key,
-                request.Aggregation == MetricAggregation.Last ? bucket.Value.LastOrDefault()?.HistogramSum : MetricHistogram.Histogram(bucket.Value, aggregation),
+                MetricHistogram.Histogram(bucket.Value, aggregation),
                 bucket.Value.Aggregate(0UL, static (sum, point) => sum + (point.HistogramCount ?? 0)))).ToArray())).ToArray();
     }
 

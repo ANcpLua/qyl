@@ -1,0 +1,210 @@
+using System.Text.Json;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
+using OpenTelemetry.Proto.Metrics.V1;
+using OpenTelemetry.Proto.Resource.V1;
+using Qyl.Collector.Ingestion;
+using Qyl.Collector.Storage;
+using static Qyl.Collector.Tests.CollectorApiTestHost;
+using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
+
+namespace Qyl.Collector.Tests;
+
+/// <summary>
+/// query_metric answers only what the recorded points establish: the latest point by its timestamp,
+/// the interval a cumulative counter recorded, a percentile inside the recorded bounds and extrema,
+/// and an unknown where a measurement is missing.
+/// </summary>
+public sealed partial class AnalysisApiTests
+{
+    [TestMethod]
+    public async Task Last_is_the_latest_point_across_series_and_unknown_when_simultaneous_points_disagree()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var late = FixtureUnixNano - 5 * Minute; var early = FixtureUnixNano - 55 * Minute;
+        await InsertAsync(host, Gauge("queue.depth", "s_late", late), (late, 100d));
+        await InsertAsync(host, Gauge("queue.depth", "s_early", early), (early, 200d));
+        await InsertAsync(host, Gauge("pool.size", "p_a", late), (late, 3d));
+        await InsertAsync(host, Gauge("pool.size", "p_b", late), (late, 4d));
+
+        Assert.AreEqual(100d, Bucket(await Read(host, "query_metric", """{"metric_name":"queue.depth","aggregation":"last","step_ms":3600000}""")).GetDouble());
+        Assert.AreEqual(JsonValueKind.Null, Bucket(await Read(host, "query_metric", """{"metric_name":"pool.size","aggregation":"last","step_ms":3600000}""")).ValueKind);
+    }
+
+    [TestMethod]
+    public async Task A_ratio_of_an_exact_numerator_series_finds_its_denominator_metric()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        await InsertAsync(host, Gauge("numerator", "ms_numerator", time), (time, 10d));
+        await InsertAsync(host, Gauge("denominator", "ms_denominator", time), (time, 20d));
+
+        var ratio = await Read(host, "query_metric", """{"metric_name":"numerator","series_id":"ms_numerator","aggregation":"sum","step_ms":3600000,"ratio_of":{"metric_name":"denominator"}}""");
+
+        Assert.AreEqual(.5, Bucket(ratio).GetDouble());
+        Assert.AreEqual("1", ratio.GetProperty("unit").GetString());
+    }
+
+    /// <summary>
+    /// A cumulative counter restarted at its recorded start time; its value accrued over the interval
+    /// since then, which is also the only interval a first point can claim. A decrease without a
+    /// recorded start has no known interval, so it has no rate.
+    /// </summary>
+    [TestMethod]
+    public async Task Counter_rates_use_the_recorded_cumulative_interval_and_never_infer_one()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var restarted = FixtureUnixNano - 9 * Minute;
+        await InsertAsync(host, Counter("restart.counter", "c_restart"),
+            (FixtureUnixNano - 60 * Minute, FixtureUnixNano - 120 * Minute, 100d), (restarted, restarted - Minute, 60d));
+        await InsertAsync(host, Counter("first.counter", "c_first"), (restarted, restarted - Minute, 60d));
+        await InsertAsync(host, Counter("unrecorded.counter", "c_unrecorded"),
+            (FixtureUnixNano - 20 * Minute, FixtureUnixNano - 60 * Minute, 100d), (FixtureUnixNano - 10 * Minute, FixtureUnixNano - 60 * Minute, 30d));
+
+        Assert.AreEqual(1d, Bucket(await Read(host, "query_metric", """{"metric_name":"restart.counter","lookback_minutes":30,"function":"rate","aggregation":"sum","step_ms":3600000}""")).GetDouble(), 1e-9);
+        Assert.AreEqual(1d, Bucket(await Read(host, "query_metric", """{"metric_name":"first.counter","function":"rate","aggregation":"sum","step_ms":3600000}""")).GetDouble(), 1e-9);
+        Assert.AreEqual(60d, Bucket(await Read(host, "query_metric", """{"metric_name":"first.counter","function":"increase","aggregation":"sum","step_ms":3600000}""")).GetDouble());
+        Assert.AreEqual(JsonValueKind.Null, Bucket(await Read(host, "query_metric", """{"metric_name":"unrecorded.counter","lookback_minutes":30,"function":"rate","aggregation":"sum","step_ms":3600000}""")).ValueKind);
+        Assert.AreEqual(30d, Bucket(await Read(host, "query_metric", """{"metric_name":"unrecorded.counter","lookback_minutes":30,"function":"increase","aggregation":"sum","step_ms":3600000}""")).GetDouble());
+    }
+
+    /// <summary>
+    /// Every observation of a negative histogram lies in [-20, -12]: the first bucket has no lower
+    /// bound but the recorded minimum, and the recorded maximum caps it.
+    /// </summary>
+    [TestMethod]
+    [DataRow("p50", "[-10,-5,0]", "[100,0,0,0]", 100UL, -20d, -12d, -16d)]
+    [DataRow("p95", "[-10,0]", "[10,0,0]", 10UL, -20d, -10d, -10.5d)]
+    public async Task Histogram_percentiles_stay_inside_the_recorded_bounds_and_extrema(string percentile, string bounds, string counts, ulong count, double min, double max, double expected)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 10 * Minute;
+        await InsertHistogramAsync(host, "temperature", 1, new MetricPointRow
+        {
+            ProjectId = "alpha", SeriesId = "temperature", TimeUnixNano = time, StartTimeUnixNano = time - Minute,
+            HistogramCount = count, HistogramSum = -16d * count, HistogramMin = min, HistogramMax = max, BucketBoundsJson = bounds, BucketCountsJson = counts
+        });
+
+        var value = Bucket(await Read(host, "query_metric", $$"""{"metric_name":"temperature","aggregation":"{{percentile}}","step_ms":3600000}""")).GetDouble();
+
+        Assert.AreEqual(expected, value, 1e-9);
+        Assert.IsInRange(min, max, value);
+    }
+
+    /// <summary>
+    /// Without a recorded minimum the first bucket has no lower bound, so a percentile inside it is unknown.
+    /// </summary>
+    [TestMethod]
+    public async Task A_percentile_in_an_unbounded_bucket_without_a_recorded_extremum_is_unknown()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 10 * Minute;
+        await InsertHistogramAsync(host, "latency", 1, new MetricPointRow
+        {
+            ProjectId = "alpha", SeriesId = "latency", TimeUnixNano = time, StartTimeUnixNano = time - Minute,
+            HistogramCount = 10, HistogramSum = 30, BucketBoundsJson = "[5,10]", BucketCountsJson = "[10,0,0]"
+        });
+
+        Assert.AreEqual(JsonValueKind.Null, Bucket(await Read(host, "query_metric", """{"metric_name":"latency","aggregation":"p50","step_ms":3600000}""")).ValueKind);
+    }
+
+    /// <summary>
+    /// A histogram reports only measurements its points recorded: an absent sum is not zero, a point
+    /// whose minimum is unknown leaves the minimum unknown, and a NO_RECORDED_VALUE point is missing
+    /// data rather than a count of zero.
+    /// </summary>
+    [TestMethod]
+    public async Task Histogram_reducers_keep_missing_measurements_unknown()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        var noSum = new MetricPointRow
+        {
+            ProjectId = "alpha", SeriesId = "no_sum", TimeUnixNano = time, StartTimeUnixNano = time - Minute,
+            HistogramCount = 2, HistogramMin = 5, HistogramMax = 10, BucketBoundsJson = "[10]", BucketCountsJson = "[2,0]"
+        };
+        await InsertHistogramAsync(host, "no.sum", 1, noSum);
+        await InsertHistogramAsync(host, "known.sum", 1, noSum with { SeriesId = "known_sum", HistogramSum = 15 });
+        await InsertHistogramAsync(host, "partial.min", 1,
+            noSum with { SeriesId = "partial_min", HistogramMin = 10, HistogramMax = 20, HistogramSum = 30, BucketBoundsJson = "[20]" },
+            noSum with { SeriesId = "partial_min", TimeUnixNano = time + 1_000_000, StartTimeUnixNano = time, HistogramMin = null, HistogramMax = 5, BucketBoundsJson = "[5]" });
+        await IngestHistogramAsync(host, "unrecorded", AggregationTemporality.Delta,
+            new HistogramDataPoint { StartTimeUnixNano = time - Minute, TimeUnixNano = time, Flags = 1 });
+
+        double? Value(JsonElement result) => Bucket(result) is { ValueKind: JsonValueKind.Number } number ? number.GetDouble() : null;
+        Task<JsonElement> Query(string metric, string aggregation) =>
+            Read(host, "query_metric", $$"""{"metric_name":"{{metric}}","aggregation":"{{aggregation}}","step_ms":3600000}""");
+
+        Assert.IsNull(Value(await Query("no.sum", "sum")));
+        Assert.IsNull(Value(await Query("no.sum", "avg")));
+        Assert.AreEqual(2d, Value(await Query("no.sum", "count")));
+        Assert.AreEqual(7.5d, Value(await Query("known.sum", "avg")));
+        Assert.IsNull(Value(await Query("partial.min", "min")));
+        Assert.AreEqual(20d, Value(await Query("partial.min", "max")));
+        Assert.IsNull(Value(await Query("unrecorded", "count")));
+    }
+
+    /// <summary>
+    /// A NO_RECORDED_VALUE point inside a cumulative histogram carries no distribution; the next recorded
+    /// point is measured against the last recorded one, so no interval is lost.
+    /// </summary>
+    [TestMethod]
+    public async Task A_cumulative_histogram_measures_across_a_point_without_a_recorded_value()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var start = FixtureUnixNano - 60 * Minute;
+        HistogramDataPoint Point(ulong minutes, ulong count) => new()
+        {
+            StartTimeUnixNano = start, TimeUnixNano = start + minutes * Minute, Count = count, Sum = count,
+            ExplicitBounds = { 10 }, BucketCounts = { count, 0 }
+        };
+        await IngestHistogramAsync(host, "cumulative.latency", AggregationTemporality.Cumulative,
+            Point(10, 10), new HistogramDataPoint { StartTimeUnixNano = start, TimeUnixNano = start + 20 * Minute, Flags = 1 }, Point(30, 15));
+
+        Assert.AreEqual(15d, Bucket(await Read(host, "query_metric", """{"metric_name":"cumulative.latency","aggregation":"count","step_ms":3600000}""")).GetDouble());
+    }
+
+    private static JsonElement Bucket(JsonElement result) =>
+        Assert.ContainsSingle(Assert.ContainsSingle(result.GetProperty("series").EnumerateArray()).GetProperty("buckets").EnumerateArray()).GetProperty("value");
+
+    private static MetricSeriesRow Gauge(string name, string seriesId, ulong lastSeen) => new()
+    {
+        ProjectId = "alpha", SeriesId = seriesId, MetricName = name, MetricKind = 1, Temporality = 0, IsMonotonic = 0,
+        FirstSeenUnixNano = lastSeen, LastSeenUnixNano = lastSeen, AttributesJson = "{\"instance\":\"" + seriesId + "\"}"
+    };
+
+    private static MetricSeriesRow Counter(string name, string seriesId) => new()
+    {
+        ProjectId = "alpha", SeriesId = seriesId, MetricName = name, MetricKind = 2, Temporality = 2, IsMonotonic = 1, Unit = "{event}",
+        FirstSeenUnixNano = FixtureUnixNano - 120 * Minute, LastSeenUnixNano = FixtureUnixNano - Minute
+    };
+
+    private async Task InsertAsync(CollectorApiTestHost host, MetricSeriesRow series, params (ulong Time, double Value)[] points) =>
+        await host.Store.InsertMetricsAsync([series], [.. points.Select(point => MetricFixtures.Observation(series,
+            new MetricPointRow { ProjectId = "alpha", SeriesId = series.SeriesId, TimeUnixNano = point.Time, Value = point.Value }))], testContext.CancellationToken);
+
+    private async Task InsertAsync(CollectorApiTestHost host, MetricSeriesRow series, params (ulong Time, ulong? Start, double Value)[] points) =>
+        await host.Store.InsertMetricsAsync([series], [.. points.Select(point => MetricFixtures.Observation(series,
+            new MetricPointRow { ProjectId = "alpha", SeriesId = series.SeriesId, TimeUnixNano = point.Time, StartTimeUnixNano = point.Start, Value = point.Value }))], testContext.CancellationToken);
+
+    private async Task InsertHistogramAsync(CollectorApiTestHost host, string name, byte temporality, params MetricPointRow[] points)
+    {
+        var series = new MetricSeriesRow
+        {
+            ProjectId = "alpha", SeriesId = points[0].SeriesId, MetricName = name, MetricKind = 3, Temporality = temporality, IsMonotonic = 0,
+            FirstSeenUnixNano = points.Min(static point => point.TimeUnixNano), LastSeenUnixNano = points.Max(static point => point.TimeUnixNano)
+        };
+        await host.Store.InsertMetricsAsync([series], [.. points.Select(point => MetricFixtures.Observation(series, point))], testContext.CancellationToken);
+    }
+
+    private async Task IngestHistogramAsync(CollectorApiTestHost host, string name, AggregationTemporality temporality, params HistogramDataPoint[] points)
+    {
+        var histogram = new Histogram { AggregationTemporality = temporality };
+        histogram.DataPoints.Add(points);
+        var request = new ExportMetricsServiceRequest
+        {
+            ResourceMetrics = { new ResourceMetrics { Resource = new Resource(), ScopeMetrics = { new ScopeMetrics { Metrics = { new OtlpMetric { Name = name, Histogram = histogram } } } } } }
+        };
+        var rows = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request), "alpha");
+        await host.Store.InsertMetricsAsync(rows.Series, rows.Observations, testContext.CancellationToken);
+    }
+}

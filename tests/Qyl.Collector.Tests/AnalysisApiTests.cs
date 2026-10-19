@@ -77,7 +77,8 @@ public sealed partial class AnalysisApiTests(TestContext testContext)
         await using var host = await StartAsync(testContext.CancellationToken);
         var time = Timestamp;
         var series = new MetricSeriesRow { ProjectId = "alpha", SeriesId = "counter", MetricName = "test.requests", MetricKind = 2, Temporality = temporality, IsMonotonic = 1, Unit = "{request}", FirstSeenUnixNano = time, LastSeenUnixNano = time + 2_000_000_000 };
-        var points = s_counterValues.Select((value, index) => new MetricPointRow { ProjectId = "alpha", SeriesId = "counter", TimeUnixNano = time + (ulong)index * 1_000_000_000, StartTimeUnixNano = index == 2 ? time + 1_500_000_000 : time - 1_000_000_000, Value = value }).ToArray();
+        // The first cumulative point started before the window, so only the later points' changes are attributable to it.
+        var points = s_counterValues.Select((value, index) => new MetricPointRow { ProjectId = "alpha", SeriesId = "counter", TimeUnixNano = time + (ulong)index * 1_000_000_000, StartTimeUnixNano = index == 2 ? time + 1_500_000_000 : time - 7_200_000_000_000, Value = value }).ToArray();
         await host.Store.InsertMetricsAsync([series], points.Select(point => MetricFixtures.Observation(series, point)).ToArray(), ct: testContext.CancellationToken);
         var data = await Read(host, "query_metric", """{"metric_name":"test.requests","function":"increase","step_ms":3600000}""");
         var increase = data.GetProperty("series").EnumerateArray().SelectMany(stream => stream.GetProperty("buckets").EnumerateArray()).Where(bucket => bucket.GetProperty("value").ValueKind != JsonValueKind.Null).Sum(bucket => bucket.GetProperty("value").GetDouble());

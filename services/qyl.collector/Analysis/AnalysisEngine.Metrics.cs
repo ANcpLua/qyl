@@ -80,31 +80,16 @@ internal sealed partial class AnalysisEngine
             foreach (var series in stream)
             {
                 var points = PointsBySeries[series.SeriesId].OrderBy(p => p.TimeUnixNano).ToList();
+                // The last point that recorded a measurement; a NO_RECORDED_VALUE point carries none.
                 MetricPointRow? previous = null;
                 foreach (var point in points)
                 {
                     ct.ThrowIfCancellationRequested();
-                    double? value = point.Value;
-                    if (function != "none" && series.Temporality == 1 && point.Value.HasValue)
-                    {
-                        value = point.Value;
-                        // Optional start time cannot be replaced by an invented sampling interval.
-                        // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/metrics/v1/metrics.proto
-                        if (function == "rate") value = point.StartTimeUnixNano is { } start && start < point.TimeUnixNano
-                            ? value / ((point.TimeUnixNano - start) / 1_000_000_000d) : null;
-                    }
-                    else if (function != "none" && previous is not null && point.Value.HasValue && previous.Value.HasValue)
-                    {
-                        var reset = point.StartTimeUnixNano.HasValue && previous.StartTimeUnixNano.HasValue && point.StartTimeUnixNano != previous.StartTimeUnixNano;
-                        value = function == "delta" ? point.Value - previous.Value : !reset && point.Value >= previous.Value ? point.Value - previous.Value : point.Value;
-                        if (function == "rate") value = point.TimeUnixNano > previous.TimeUnixNano
-                            ? value / ((point.TimeUnixNano - previous.TimeUnixNano) / 1_000_000_000d) : null;
-                    }
-                    else if (function != "none") value = null;
+                    var value = function == "none" ? point.Value : Change(series, point, previous, function);
                     var histogram = series is { MetricKind: >= 3, Temporality: 2 }
                         ? MetricHistogram.HistogramDelta(point, previous, _window.StartNs) : point;
                     if (_window.Contains(point.TimeUnixNano) && histogram is not null) values.Add((point.TimeUnixNano, value, histogram));
-                    previous = point;
+                    if (point.Value.HasValue || point.HistogramCount.HasValue) previous = point;
                 }
             }
             var byBucket = values.GroupBy(p => (long)((p.Time - _window.StartNs) / ((ulong)step * 1_000_000))).ToDictionary(g => g.Key, g => g.ToList());
@@ -117,13 +102,15 @@ internal sealed partial class AnalysisEngine
                 var start = _window.StartNs + (ulong)i * (ulong)step * 1_000_000;
                 var bucket = byBucket.GetValueOrDefault(i) ?? [];
                 double? value;
-                if (stream.First().MetricKind >= 3)
-                    value = aggregation == "last" ? bucket.OrderBy(static item => item.Time).LastOrDefault().Point?.HistogramSum
-                        : MetricHistogram.Histogram([.. bucket.Select(p => p.Point)], aggregation);
+                if (stream.First().MetricKind >= 3) value = MetricHistogram.Histogram([.. bucket.Select(p => p.Point)], aggregation);
                 else
                 {
-                    var numbers = bucket.Where(p => p.Value.HasValue).Select(p => p.Value!.Value).ToList();
-                    value = numbers.Count is 0 ? null : function == "increase" ? numbers.Sum() : aggregation switch { "min" => numbers.Min(), "max" => numbers.Max(), "sum" => numbers.Sum(), "count" => numbers.Count, "last" => numbers[^1], _ => numbers.Average() };
+                    var recorded = bucket.Where(p => p.Value.HasValue).ToList(); var numbers = recorded.Select(p => p.Value!.Value).ToList();
+                    value = numbers.Count is 0 ? null : function == "increase" ? numbers.Sum() : aggregation switch
+                    {
+                        "min" => numbers.Min(), "max" => numbers.Max(), "sum" => numbers.Sum(), "count" => numbers.Count,
+                        "last" => MetricHistogram.Latest(recorded.Select(p => (p.Time, p.Value))), _ => numbers.Average()
+                    };
                 }
                 buckets.Add((JsonNode)J.O(("bucket_start", J.Time(start)), ("value", value), ("point_count", bucket.Count)));
             }
@@ -140,7 +127,8 @@ internal sealed partial class AnalysisEngine
         }
         if (input["ratio_of"] is JsonObject ratio)
         {
-            var copy = input.DeepClone().AsObject(); copy.Remove("ratio_of"); copy["metric_name"] = ratio["metric_name"]?.DeepClone(); copy["aggregation"] = ratio["aggregation"]?.DeepClone() ?? JsonValue.Create(aggregation); copy["matchers"] = ratio["matchers"]?.DeepClone();
+            // The denominator is another metric: the numerator's exact series selects nothing in it.
+            var copy = input.DeepClone().AsObject(); copy.Remove("ratio_of"); copy.Remove("series_id"); copy["metric_name"] = ratio["metric_name"]?.DeepClone(); copy["aggregation"] = ratio["aggregation"]?.DeepClone() ?? JsonValue.Create(aggregation); copy["matchers"] = ratio["matchers"]?.DeepClone();
             copy["series_limit"] = 500;
             var denominator = QueryMetric(copy);
             DivideMetricSeries(result["series"], denominator["series"]);
@@ -153,6 +141,38 @@ internal sealed partial class AnalysisEngine
             result["unit"] = "1";
         }
         return result;
+    }
+    /// <summary>
+    /// The change one point records for <paramref name="function"/>: a delta point's own value, or the
+    /// difference to the last recorded point. A cumulative sum restarted at its recorded start time, so
+    /// its value is the change since then; a first point claims that interval only when it began inside
+    /// the window. A rate divides by the interval the points recorded and is unknown where none was.
+    /// https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/metrics/v1/metrics.proto
+    /// </summary>
+    private double? Change(MetricSeriesRow series, MetricPointRow point, MetricPointRow? previous, string function)
+    {
+        if (point.Value is not { } value) return null;
+        var cumulativeSum = series is { MetricKind: 2, Temporality: 2 };
+        double change; ulong? interval;
+        if (series.Temporality == 1)
+        {
+            change = value;
+            interval = point.StartTimeUnixNano is { } start && start < point.TimeUnixNano ? point.TimeUnixNano - start : null;
+        }
+        else if (previous?.Value is not { } prior)
+        {
+            if (function == "delta" || !cumulativeSum || point.StartTimeUnixNano is not { } start || start >= point.TimeUnixNano || start < _window.StartNs) return null;
+            change = value; interval = point.TimeUnixNano - start;
+        }
+        else if (function == "delta") { change = value - prior; interval = point.TimeUnixNano - previous.TimeUnixNano; }
+        else if (cumulativeSum && point.StartTimeUnixNano is { } start && previous.StartTimeUnixNano is { } priorStart && start != priorStart)
+        {
+            change = value; interval = start < point.TimeUnixNano ? point.TimeUnixNano - start : null;
+        }
+        // A monotonic counter that decreased without a recorded new start was reset at an unknown time.
+        else if (series.IsMonotonic != 0 && value < prior) { change = value; interval = null; }
+        else { change = value - prior; interval = point.TimeUnixNano - previous.TimeUnixNano; }
+        return function != "rate" ? change : interval is { } elapsed and > 0 ? change / (elapsed / 1_000_000_000d) : null;
     }
     private static void DivideMetricSeries(JsonNode? numerators, JsonNode? denominators)
     {

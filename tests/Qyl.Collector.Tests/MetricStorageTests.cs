@@ -380,8 +380,9 @@ public sealed class MetricStorageTests(TestContext testContext)
 
         var p99 = Assert.ContainsSingle(Assert.ContainsSingle(await store.QueryMetricAsync(
             request with { Aggregation = MetricAggregation.P99 }, ct)).Points);
-        // The top bucket has no finite upper edge, so the last finite bound is reported.
-        Assert.AreEqual(5d, p99.Value!.Value, 0.0000000005d);
+        // The top bucket has no finite upper edge and no recorded maximum bounds it, so p99 is unknown
+        // rather than the last finite bound, which would understate it.
+        Assert.IsNull(p99.Value);
     }
 
     [TestMethod]

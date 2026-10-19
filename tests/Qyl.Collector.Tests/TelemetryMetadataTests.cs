@@ -448,10 +448,11 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         var start = CollectorApiTestHost.FixtureUtcNow.AddSeconds(-5);
         var startNanos = (ulong)start.ToUnixTimeMilliseconds() * 1_000_000;
+        // The counter started before the window, so only the interval between its two points is attributable.
         var first = Point() with
         {
             Kind = MetricKind.Sum, Temporality = MetricTemporality.Cumulative, IsMonotonic = true,
-            TimeUnixNano = startNanos + 100_000_000, StartTimeUnixNano = startNanos, Data = Number(1)
+            TimeUnixNano = startNanos + 100_000_000, StartTimeUnixNano = startNanos - 1_000_000_000, Data = Number(1)
         };
         var second = first with { TimeUnixNano = first.TimeUnixNano + 100_000, Data = Number(2) };
         var rows = MetricStorageMapper.ToStorageRows(new([first, second], 0, null), "alpha");
