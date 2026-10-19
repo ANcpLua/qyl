@@ -265,7 +265,11 @@ function mapType(program: Program, type: Type): string {
       return "unknown";
     }
     case "Model":
-      if (isArrayModelType(type)) return `${mapType(program, type.indexer!.value)}[]`;
+      if (isArrayModelType(type)) {
+        // An anonymous union element needs parentheses: `string | number[]` is a union with an array.
+        const element = mapType(program, type.indexer!.value);
+        return element.includes(" | ") ? `(${element})[]` : `${element}[]`;
+      }
       if (isRecordModelType(type)) {
         if (type.name && type.name !== "Record") return emittedModelName(type);
         return `Record<string, ${mapType(program, type.indexer!.value)}>`;
