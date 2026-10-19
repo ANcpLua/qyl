@@ -37,6 +37,10 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <ItemGroup Condition="$(MSBuildProjectName.StartsWith('qyl.collector'))">
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Analyzers" PrivateAssets="all" IncludeAssets="analyzers;build;buildTransitive"/>
+  </ItemGroup>
+
   <!-- Audit direct and transitive dependencies; Directory.Packages.props owns security overrides. -->
   <PropertyGroup>
     <NuGetAudit>true</NuGetAudit>

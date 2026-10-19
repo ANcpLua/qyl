@@ -137,11 +137,6 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
 
     private readonly record struct SemanticPolicyOffender(string File, int Line, string Kind, string Text);
 
-    IReadOnlySet<string> ResolveCollectorSemanticAttributeValues() =>
-        new HashSet<string>(
-            new SemConvAttributeResolver(ReadResolvedPackageAssemblies()).AllAttributeValues(),
-            StringComparer.Ordinal);
-
     /// <summary>
     /// The values of one registry value class, e.g. <c>Messaging.MessagingAttributes+SystemValues</c>,
     /// read from the pinned packages rather than restated in a gate.

@@ -11,9 +11,10 @@ namespace Qyl.Build;
 /// <summary>
 /// G7/G11: the actual qyl package graph equals the AllowedQylPackageEdges table exactly,
 /// for every project in the repository, <c>internal/</c> included. Anything not listed is
-/// forbidden — a new edge is a deliberate table change reviewed against the architecture,
+/// forbidden — a new runtime or vocabulary edge is a deliberate table change reviewed against the architecture,
 /// never a quiet csproj addition. The table speaks the published Qyl.Telemetry.* identities,
-/// rewritten in the same commits as the pin bumps that consumed them.
+/// rewritten in the same commits as the pin bumps that consumed them. Explicit analyzer/build-only
+/// assets are tooling, not runtime edges; forbidden-package checks still inspect them.
 /// </summary>
 interface IDependencyEdges : IHasSourcePaths
 {
@@ -133,6 +134,18 @@ interface IDependencyEdges : IHasSourcePaths
         reference.Equals(forbidden, StringComparison.OrdinalIgnoreCase)
         || reference.StartsWith(forbidden + ".", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsBuildOnlyReference(XElement reference)
+    {
+        var assets = (string?)reference.Attribute("IncludeAssets") ?? (string?)reference.Element("IncludeAssets");
+        if (string.IsNullOrWhiteSpace(assets)) return false;
+        var kinds = assets.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return kinds.Length > 0 && kinds.All(static kind =>
+            kind.Equals("analyzers", StringComparison.OrdinalIgnoreCase)
+            || kind.Equals("build", StringComparison.OrdinalIgnoreCase)
+            || kind.Equals("buildTransitive", StringComparison.OrdinalIgnoreCase)
+            || kind.Equals("buildMultitargeting", StringComparison.OrdinalIgnoreCase));
+    }
+
 
     /// <summary>
     /// Whether a project is built by the Qyl.Api.Sdk, by either route it offers: <c>Sdk="Qyl.Api.Sdk/x"</c> on
@@ -171,9 +184,7 @@ interface IDependencyEdges : IHasSourcePaths
                     Directory: file.Parent.ToString().Replace('\\', '/'),
                     References: XDocument.Load(file).Descendants()
                         .Where(static e => e.Name.LocalName is "PackageReference" or "GlobalPackageReference")
-                        .Select(static r => (string?)r.Attribute("Include"))
-                        .Where(static include => include is not null)
-                        .Select(static include => include!)
+                        .Where(static r => r.Attribute("Include") is not null)
                         .ToList()))
                 .Where(static entry => entry.References.Count > 0)
                 .ToList();
@@ -186,10 +197,7 @@ interface IDependencyEdges : IHasSourcePaths
                 .Where(static file => file.FileExists())
                 .SelectMany(static file => XDocument.Load(file).Descendants()
                     .Where(static e => e.Name.LocalName is "PackageReference")
-                    .Select(static r => (string?)r.Attribute("Include"))
-                    .Where(static include => include is not null)
-                    .Select(static include => include!))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Where(static r => r.Attribute("Include") is not null))
                 .ToList();
 
             foreach (var project in projects)
@@ -199,16 +207,15 @@ interface IDependencyEdges : IHasSourcePaths
                 var document = XDocument.Load(project);
                 var usesQylApiSdk = UsesQylApiSdk(document);
                 var projectPath = project.ToString().Replace('\\', '/');
-                var references = document.Descendants("PackageReference")
-                    .Select(static r => (string?)r.Attribute("Include"))
-                    .Where(static include => include is not null)
-                    .Select(static include => include!)
+                var referenceItems = document.Descendants("PackageReference")
+                    .Where(static r => r.Attribute("Include") is not null)
                     .Concat(sharedReferences
                         .Where(entry => projectPath.StartsWith(entry.Directory + "/", StringComparison.Ordinal))
                         .SelectMany(static entry => entry.References))
                     .Concat(usesQylApiSdk ? sdkInjectedReferences : [])
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
+                var references = referenceItems.Select(static r => r.Attribute("Include")!.Value)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
 
                 foreach (var include in document.Descendants("ProjectReference")
@@ -250,8 +257,10 @@ interface IDependencyEdges : IHasSourcePaths
                         offenders.Add($"{relative}: forbidden package {reference}");
                 }
 
-                var qylReferences = references
+                var qylReferences = referenceItems.Where(static r => !IsBuildOnlyReference(r))
+                    .Select(static r => r.Attribute("Include")!.Value)
                     .Where(static r => r.StartsWith("Qyl", StringComparison.OrdinalIgnoreCase))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(static r => r, StringComparer.Ordinal)
                     .ToArray();
                 var row = usesQylApiSdk ? QylApiSdkConsumer : relative;

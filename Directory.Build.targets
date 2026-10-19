@@ -1,4 +1,10 @@
 <Project>
+  <!-- Private Collector modules ship together on one conventions pin; incubating coupling
+       is intentional here. A module made packable keeps the public-library diagnostic. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.StartsWith('qyl.collector')) And '$(IsPackable)' != 'true'">
+    <OtelSemConvInstrumentationLibrary>true</OtelSemConvInstrumentationLibrary>
+  </PropertyGroup>
+
   <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <_QylInformationalVersion>$(InformationalVersion)</_QylInformationalVersion>

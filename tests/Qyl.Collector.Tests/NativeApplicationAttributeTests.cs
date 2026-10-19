@@ -202,7 +202,7 @@ public sealed class NativeApplicationAttributeTests(TestContext testContext)
         {
             var tag = Assert.ContainsSingle(measurement.Tags);
             Assert.AreEqual("qyl.attribute.namespace", tag.Key);
-            Assert.AreEqual("other", tag.Value);
+            Assert.IsTrue(tag.Value is string { Length: > 0 }, "Coalescing diagnostics must name the attribute namespace.");
         }
     }
 

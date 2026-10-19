@@ -89,6 +89,10 @@ dotnet_naming_rule.members_should_be_pascal_case.symbols = all_members
 dotnet_naming_rule.members_should_be_pascal_case.style = non_private_static_field_style
 dotnet_naming_symbols.all_members.applicable_kinds = *
 
+# The published analyzer recognizes telemetry-key arguments without confusing protocol or SQL literals.
+[services/qyl.collector*/**.cs]
+dotnet_diagnostic.QYL0004.severity = error
+
 [*.g.cs]
 dotnet_analyzer_diagnostic.severity = none
 dotnet_diagnostic.RS0030.severity = none

@@ -2,7 +2,11 @@
 
 ## 16.0.1 — 2026-10-19
 
-- Consume AutoInstrumentation and Hosting 28.2.1 in the Collector and CLI, and supply 28.2.1 through the API SDK's consumer package pins. SemanticConventions stays at 14.0.0.
+- Consume AutoInstrumentation and Hosting 28.2.3 with SemanticConventions 15.0.2 in the Collector and CLI, and supply 28.2.3 through the API SDK's consumer package pins.
+- Use the upstream `mistral` provider value in the workload emitter after its SemanticConventions rename.
+- Regenerate the Collector catalog and analysis metadata from the updated conventions, including their vendor-field retention policy.
+- Validate telemetry-key literals with the published semantic analyzer instead of matching unrelated protocol and SQL strings; permit registered native Codex keys.
+- Keep explicit analyzer/build-only assets out of runtime dependency edges while preserving forbidden-package checks.
 - Keep `DateTimeOffset` tick precision when analysis and saved-query windows become storage nanoseconds. Reject timestamps outside the unsigned OTLP Unix-nanosecond range as field validation errors.
 - Wait for orchestration dependencies on registry readiness events instead of a polling delay; shutdown during the wait no longer reports the dependency as ready.
 - Filter, map and count sessions from one injected clock snapshot, and schedule stream heartbeats from the host clock.

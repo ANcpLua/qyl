@@ -561,14 +561,13 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
     Target VerifyCollectorUsesSemanticConstants => d => d
         .ProceedAfterFailure()
         .Unlisted()
-        .Description("Verify collector semantic attribute keys flow through generated constants")
+        .Description("Verify collector semantic attribute types flow through the generated catalog")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var attributeLiteralValues = ResolveCollectorAttributeLiteralValues();
             var offenders = CollectorSourceFiles()
                 .Where(static file => !file.ToString().EndsWith(".g.cs", StringComparison.Ordinal))
-                .SelectMany(file => SemanticUsageOffenders(file, attributeLiteralValues))
+                .SelectMany(file => SemanticUsageOffenders(file))
                 .ToList();
 
             if (offenders.Count is 0)
@@ -582,7 +581,7 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
                     offender.Kind, offender.File, offender.Line, offender.Text);
 
             throw new InvalidOperationException(
-                "Do not hardcode semantic attribute keys or consume SemConv attribute types directly in the collector. " +
+                "Do not consume SemConv attribute types directly in the collector. " +
                 "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.Telemetry.SemanticConventions and consume it there.");
         });
 
@@ -2345,7 +2344,6 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
                 "ErrorBreadcrumbRow",
                 "CodexTelemetryMapper",
                 "WithCodexTransformations",
-                "codex.",
                 // The Codex observer and its workflow journal shipped out of the product in 3.0.0.
                 "namespace Qyl.Collector.Workflow",
                 "WorkflowEndpointExtensions",
@@ -2826,9 +2824,6 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
         int Line,
         string Route);
 
-    private readonly record struct CollectorAttributeLiteralValues(
-        IReadOnlySet<string> SemanticConventionValues);
-
     private readonly record struct PinnedProtoFile(
         string RepositorySlug,
         string Revision,
@@ -3215,9 +3210,7 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
             : null;
     }
 
-    private IEnumerable<SemanticUsageOffender> SemanticUsageOffenders(
-        AbsolutePath file,
-        CollectorAttributeLiteralValues attributeLiteralValues)
+    private IEnumerable<SemanticUsageOffender> SemanticUsageOffenders(AbsolutePath file)
     {
         var root = ParseCompilationUnit(file);
         var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
@@ -3234,23 +3227,6 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
             var text = name.ToString();
             if (IsForbiddenSemConvAttributeNamespace(text))
                 yield return CreateOffender(name, "Direct semantic attribute reference");
-        }
-
-        foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
-        {
-            if (literal.IsKind(SyntaxKind.StringLiteralExpression) &&
-                literal.Token.ValueText is { } value &&
-                IsKnownAttributeLiteral(value, attributeLiteralValues))
-            {
-                yield return CreateOffender(literal, "Raw semantic attribute literal");
-            }
-        }
-
-        foreach (var interpolatedText in root.DescendantNodes().OfType<InterpolatedStringTextSyntax>())
-        {
-            var value = interpolatedText.TextToken.ValueText;
-            if (IsKnownAttributeLiteral(value, attributeLiteralValues))
-                yield return CreateOffender(interpolatedText, "Raw semantic attribute literal");
         }
 
         SemanticUsageOffender CreateOffender(SyntaxNode node, string kind) =>
@@ -3813,11 +3789,6 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
             .Replace("  ", " ", StringComparison.Ordinal);
     }
 
-    private CollectorAttributeLiteralValues ResolveCollectorAttributeLiteralValues()
-    {
-        return new CollectorAttributeLiteralValues(ResolveCollectorSemanticAttributeValues());
-    }
-
     private IEnumerable<RemovedRouteLiteral> RemovedRouteLiterals(
         AbsolutePath file,
         IReadOnlyCollection<string> removedRoutePrefixes)
@@ -3887,19 +3858,6 @@ partial interface IVerify : ICollectorSemanticCatalog, IConfigurationKnobs, IApi
             name = name["global::".Length..];
 
         return name;
-    }
-
-    private static bool IsKnownAttributeLiteral(string value, CollectorAttributeLiteralValues attributeLiteralValues)
-    {
-        if (attributeLiteralValues.SemanticConventionValues.Contains(value))
-        {
-            return true;
-        }
-
-        if (value.Length is 0 || value[^1] is not '.')
-            return false;
-
-        return attributeLiteralValues.SemanticConventionValues.Any(known => known.StartsWith(value, StringComparison.Ordinal));
     }
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^This checkout targets qyl [0-9]+(\.[0-9]+)*")]

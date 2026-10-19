@@ -31,7 +31,7 @@ internal sealed partial class WorkloadEmitter(
         new(GenAiProviderName.Openai, "openai/gpt-5.5", 300, 3000, 200, 1800, 700, 2800),
         new(GenAiProviderName.GcpGemini, "google/gemini-3.1-pro-preview", 500, 5000, 200, 1600, 500, 2200),
         new(GenAiProviderName.GcpGemini, "google/gemini-3.5-flash", 200, 2200, 60, 800, 150, 800),
-        new(GenAiProviderName.MistralAi, "mistralai/mistral-large-2512", 300, 2800, 100, 1000, 300, 1300),
+        new(GenAiProviderName.Mistral, "mistralai/mistral-large-2512", 300, 2800, 100, 1000, 300, 1300),
         new(GenAiProviderName.Deepseek, "deepseek/deepseek-v4-flash", 300, 3500, 250, 2000, 800, 3000),
     ];
 

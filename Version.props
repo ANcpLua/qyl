@@ -33,9 +33,9 @@
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Api.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>28.2.1</QylTelemetryVersion>
+    <QylTelemetryVersion>28.2.3</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
-    <QylSemanticConventionsVersion>14.0.0</QylSemanticConventionsVersion>
+    <QylSemanticConventionsVersion>15.0.2</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
     <!-- Backend route verification reads OpenAPI from the matching published npm artifact. -->
     <QylApiContractsVersion>14.0.1</QylApiContractsVersion>
