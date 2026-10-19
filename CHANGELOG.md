@@ -1,5 +1,45 @@
 # Changelog
 
+## 17.0.4
+
+- Results read the way an agent reads them: a one-line headline naming the top rows, their ids
+  and the next tool, then the compact JSON, also as `structuredContent`. No tool advertises an
+  `outputSchema` (tools/list 425 KB → 132 KB), so a client that cached the catalog no longer
+  rejects a result. A rejected argument names its `field`, the `allowed` values and a `hint`; a
+  404 names the missing record (`resource_type`, `resource_id`) and the tool that lists it.
+- Compact shapes, no aliases: `list_traces` rows carry trace id, root service and name, start,
+  `duration_ms`, span and error counts, services, failure ids and session (10 per page,
+  `group_by` removed); `get_trace` spans are compact rows with `duration_ms` and each service's
+  resource once (`errors_only` and `span_roles` removed); log records are `{time, severity,
+  service, body, trace_id, span_id, attributes}`; `search_logs` with `group_by: pattern` returns
+  patterns only; `list_metrics` rows are compact (50 per page); `get_failure_context` lists each
+  span once and refers to it by id; `compare_traces` differences are `{kind, key, a, b}`;
+  `get_mcp_stats` returns buckets only with `buckets: true`.
+- `triage` takes a failure's release from its failing spans, reports a service as silent by its
+  usual interval, and gives each failure its `status`, `etag` and `root_cause_failure_id`.
+  `verify_fix` compares the change with the failure's earlier history. `query_metric` picks at
+  most 60 buckets when `step_ms` is omitted and returns only occupied buckets plus one value per
+  series. `check_telemetry_health` measures ingestion lag from receipt time, reports `data_span`
+  instead of `retention`, and answers an unknown service with `service.not_found`.
+- Corrected: `list_traces` sorts by duration and errors; release cohorts stay within their
+  environment; a capped read no longer claims an exact total or cardinality; `get_trace` finds
+  linked spans of other traces; a histogram rate divides each series' deltas by its recorded
+  intervals (`function.unsupported` for other combinations); a previous-window comparison keeps
+  the cumulative point before the window; a span whose parent is remote is not an orphan;
+  `compare_groups` leaves out a failure cohort's own keys and rejects an empty group;
+  `aggregate_telemetry` rejects an unrecorded `group_by` key.
+- Every tool and every parameter is described: when to use the tool instead of its neighbour,
+  which arguments go together, and the defaults.
+- The hosted MCP records a span for every call in the caller's project, also when the caller's
+  trace is unsampled, so `get_mcp_stats` counts hosted callers; spans carry
+  `mcp.protocol.version`, `jsonrpc.request.id` and the client identity.
+- Auth: a request without credentials gets the bare Bearer challenge (RFC 6750 §3.1); a rejected
+  token gets 401 `invalid_token`, never 500; tokens are checked against the resource.
+  `skills/list` carries `ttlMs` and `cacheScope` for 2026-07-28 clients, and the server
+  instructions are eight routing lines.
+- Ingestion keeps registry enum attributes whose names hold a redacted token, such as
+  `cicd.pipeline.result` (Qyl.Telemetry.SemanticConventions 15.0.3).
+
 ## 17.0.3
 
 - Paging follows the contract: every tool declares its page size (20 groups for
