@@ -59,7 +59,9 @@ The ZIP's five positive cases cover checkout trace discovery and detail, `qyl-mc
 
 The demo also creates an annotation on the inspected checkout trace, reads it back, and removes only that new annotation using its current `etag`. The underlying trace remains unchanged.
 
-The reviewer rehearsal used the real hosted server and ChatGPT Work. The initial development connection needed **Refresh tools** after OAuth sign-in; a new conversation then returned the seeded results. ChatGPT Work exposes user-visible results but not raw tool arguments in its activity panel, so the evidence does not claim an argument-by-argument trace.
+Demo recording: https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-reviewer-demo-17.0.1.mp4
+
+The reviewer rehearsal used the real hosted server and ChatGPT Work. Native connector readbacks also verified the sample data and annotation cleanup. The initial development connection needed **Refresh tools** after OAuth sign-in; a new conversation then returned the seeded results. ChatGPT Work exposes user-visible results but not raw tool arguments in its activity panel, so the evidence does not claim an argument-by-argument trace.
 
 In 17.0.1, `get_mcp_stats` does not yet receive hosted tool-call telemetry; a zero count does not establish that no calls occurred. It is excluded from the demo and review cases. The engine owner is separately correcting histogram-rate and cumulative-predecessor comparison cases. Original data remains inspectable through `get_metric_series`; do not treat the affected aggregate calculations as verified.
 

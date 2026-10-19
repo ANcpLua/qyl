@@ -79,7 +79,8 @@
               "prompt": "Using only the qyl plugin, search the public internet for today's most popular observability products and compare their prices."
             }
           ]
-        }
+        },
+        "demo_recording_url": "https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-reviewer-demo-17.0.1.mp4"
       },
       "publication": {
         "release_notes": "qyl 17.0.1 combines the live telemetry tools and canonical investigation skill with ANcpLua .NET 0.7.1 and MSTest Extensions 3.4.3. Includes their references, scripts and focused agent routing, plus reproducible reviewer cases using the seeded project and preserved evidence windows."
