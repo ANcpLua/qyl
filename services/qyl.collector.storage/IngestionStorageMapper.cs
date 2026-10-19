@@ -150,7 +150,8 @@ internal static class IngestionStorageMapper
             ResourceSchemaUrl = log.ResourceSchemaUrl,
             ResourceDroppedAttributesCount = log.ResourceDroppedAttributesCount,
             Flags = log.Flags,
-            DroppedAttributesCount = log.DroppedAttributesCount
+            DroppedAttributesCount = log.DroppedAttributesCount,
+            ReceivedTimeUnixNano = log.ReceivedTimeUnixNano
         };
     }
 

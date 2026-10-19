@@ -148,7 +148,8 @@ internal sealed record SessionStatsRow
         resource_schema_url = EXCLUDED.resource_schema_url,
         resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,
         flags = EXCLUDED.flags,
-        dropped_attributes_count = EXCLUDED.dropped_attributes_count
+        dropped_attributes_count = EXCLUDED.dropped_attributes_count,
+        received_time_unix_nano = coalesce(least(received_time_unix_nano, EXCLUDED.received_time_unix_nano), received_time_unix_nano, EXCLUDED.received_time_unix_nano)
     """)]
 internal sealed partial record LogStorageRow
 {
@@ -196,4 +197,7 @@ internal sealed partial record LogStorageRow
     public uint? ResourceDroppedAttributesCount { get; init; }
     public uint? Flags { get; init; }
     public uint? DroppedAttributesCount { get; init; }
+    // Appended after the columns earlier releases stored. When the Collector first received the
+    // record; null for records stored before a release recorded it.
+    public ulong? ReceivedTimeUnixNano { get; init; }
 }

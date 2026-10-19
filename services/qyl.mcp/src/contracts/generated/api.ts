@@ -2139,7 +2139,7 @@ export interface SemconvGap {
   "missing_share": number;
 }
 
-export interface TelemetryRetention {
+export interface TelemetryDataSpan {
   "oldest": string | null;
   "days": number | null;
 }
@@ -2171,7 +2171,7 @@ export interface CheckTelemetryHealthOutput {
   "semconv_gaps": SemconvGap[];
   "unknown_service_share": number;
   "schema_urls": string[];
-  "retention": TelemetryRetention;
+  "data_span": TelemetryDataSpan;
   "ingestion_lag_ms"?: number;
   "error"?: ToolError;
 }
@@ -2386,4 +2386,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:d4e8d5e788e0de86";
+export const CONTRACT_REVISION: string = "sha256:d112a4ddbe2a6877";

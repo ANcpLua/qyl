@@ -54,8 +54,7 @@ for route,ms in [('/checkout',1840),('/cart',210)]:
  for i in range(20):span(f'latency-{route}-{i}','http','GET '+route,T+i*1_000_000,duration=ms,a=http('GET',route,200))
 for i in range(40):
  trm,sm=span(f'mcp-{i}','qyl-mcp','tools/call search_logs',T+i*1_000_000,error=i<8,a={'mcp.method.name':'tools/call','gen_ai.tool.name':'search_logs','mcp.server.name':scoped('qyl'),'mcp.transport':'http',**({'error.type':'timeout'} if i<8 else {})})
- # An SDK observes a log record when it is emitted.
- if i<8:logs.append({'resource':resource('qyl-mcp'),'schemaUrl':schema,'scopeLogs':[{'scope':scope,'schemaUrl':schema,'logRecords':[{'timeUnixNano':str(T+i*1_000_000),'observedTimeUnixNano':str(T+i*1_000_000),'severityNumber':17,'severityText':'ERROR','body':{'stringValue':f'tool timeout after {i+1} seconds'},'traceId':trm,'spanId':sm,'attributes':attrs({'error.type':'timeout'})}]}]})
+ if i<8:logs.append({'resource':resource('qyl-mcp'),'schemaUrl':schema,'scopeLogs':[{'scope':scope,'schemaUrl':schema,'logRecords':[{'timeUnixNano':str(T+i*1_000_000),'severityNumber':17,'severityText':'ERROR','body':{'stringValue':f'tool timeout after {i+1} seconds'},'traceId':trm,'spanId':sm,'attributes':attrs({'error.type':'timeout'})}]}]})
 for i in range(3):span(f'agent-{i}','agent','execute_tool search_logs',T+i*1_000_000,session='agent_run',kind=1,a={'gen_ai.operation.name':'execute_tool','gen_ai.tool.name':'search_logs','qyl.gen_ai.tool.call.arguments_hash':'same-arguments-hash','gen_ai.agent.name':'researcher','gen_ai.usage.input_tokens':100,'gen_ai.usage.output_tokens':20})
 # Each CI run is a pipeline run span with its build and test task spans; the current run's test task fails.
 for label,at,build,error in [('baseline',now-40*minute,100,False),('current',now-10*minute,300,True)]:
@@ -74,6 +73,9 @@ for route,value in [('/checkout',1.84),('/cart',.21)]:
 metrics.append({'resource':resource('counter'),'schemaUrl':schema,'scopeMetrics':[{'scope':scope,'schemaUrl':schema,'metrics':[{'name':'requests.total','unit':'{request}','sum':{'aggregationTemporality':2,'isMonotonic':True,'dataPoints':[{'attributes':attrs(metric_run_labels),'startTimeUnixNano':str(T-minute),'timeUnixNano':str(T+i*minute),'asInt':str(v)} for i,v in enumerate([100,150,190])]}}]}]})
 def post(path,data):
  for batch in next(iter(data.values())):
+  # The seed replays records that happened earlier and observes them as it sends them.
+  for scoped_logs in batch.get('scopeLogs',[]):
+   for record in scoped_logs['logRecords']:record['observedTimeUnixNano']=str(time.time_ns())
   batch['resource']['attributes'].append(attr('qyl.project.id',project))
   if run_id:batch['resource']['attributes'].append(attr('test.run.id',run_id))
  headers={'Content-Type':'application/json','X-Qyl-Project':project}

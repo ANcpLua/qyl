@@ -136,6 +136,35 @@ public sealed class SchemaEvolutionTests(TestContext testContext)
         finally { DeleteDatabase(path); }
     }
 
+    /// <summary>A logs table stored before receipt times were recorded gains the column; its records stay readable with no receipt time.</summary>
+    [TestMethod]
+    public async Task A_logs_table_without_the_receipt_time_gains_it_and_keeps_its_rows()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"qyl-receipt-schema-{Guid.NewGuid():N}.duckdb");
+        try
+        {
+            await using (var previous = new DuckDbStore(path))
+                await previous.InsertLogsAsync([new LogStorageRow { ProjectId = "alpha", LogId = "log-1", TimeUnixNano = 1, SeverityNumber = 9, Body = "kept" }],
+                    testContext.CancellationToken);
+
+            await using (var con = Open(path))
+            {
+                DropIndexes(con, "logs");
+                Execute(con, "ALTER TABLE logs DROP COLUMN received_time_unix_nano");
+                Execute(con, LogStorageRow.IndexesDdl);
+                Stamp(con, PreviousHash);
+            }
+
+            await using (var store = new DuckDbStore(path))
+            {
+                var kept = Assert.ContainsSingle((await store.ReadAnalysisSnapshotAsync("alpha", ct: testContext.CancellationToken)).Logs);
+                Assert.AreEqual("kept", kept.Body);
+                Assert.IsNull(kept.ReceivedTimeUnixNano);
+            }
+        }
+        finally { DeleteDatabase(path); }
+    }
+
     [TestMethod]
     public async Task A_non_additive_difference_still_fails_closed_while_telemetry_exists()
     {

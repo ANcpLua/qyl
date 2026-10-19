@@ -847,8 +847,8 @@ model SemconvGap {
   missingShare: float64;
 }
 
-@doc("TelemetryRetention contract.")
-model TelemetryRetention {
+@doc("How far back the read's data reaches: its oldest span or log record and the days from it to now. This is not the configured retention.")
+model TelemetryDataSpan {
   oldest: utcDateTime | null;
   days: float64 | null;
 }
@@ -891,7 +891,9 @@ model CheckTelemetryHealthOutput {
   unknownServiceShare: float64;
   @encodedName("application/json", "schema_urls")
   schemaUrls: string[];
-  retention: TelemetryRetention;
+  @encodedName("application/json", "data_span")
+  dataSpan: TelemetryDataSpan;
+  @doc("Mean milliseconds from a log record's observed time to the Collector's receipt, over the window's records whose producer set an observed time; omitted when none did.")
   @encodedName("application/json", "ingestion_lag_ms")
   ingestionLagMs?: float64;
   error?: ToolError;

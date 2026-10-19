@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:d4e8d5e788e0de86",
+  "contract_revision": "sha256:d112a4ddbe2a6877",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -634,7 +634,7 @@
           "semconv_gaps",
           "unknown_service_share",
           "schema_urls",
-          "retention"
+          "data_span"
         ],
         "properties": {
           "window": {
@@ -900,7 +900,7 @@
               "type": "string"
             }
           },
-          "retention": {
+          "data_span": {
             "type": "object",
             "required": [
               "oldest",
@@ -929,11 +929,12 @@
                 ]
               }
             },
-            "description": "TelemetryRetention contract.",
+            "description": "How far back the read's data reaches: its oldest span or log record and the days from it to now. This is not the configured retention.",
             "additionalProperties": false
           },
           "ingestion_lag_ms": {
-            "type": "number"
+            "type": "number",
+            "description": "Mean milliseconds from a log record's observed time to the Collector's receipt, over the window's records whose producer set an observed time; omitted when none did."
           },
           "error": {
             "type": "object",

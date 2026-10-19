@@ -147,10 +147,17 @@ internal sealed partial class AnalysisEngine
     }
     private JsonObject Health(JsonObject input)
     {
+        // A service that sent nothing in the window or its baseline is unknown here, not healthy.
+        if (J.String(input, "service_name") is { } service && _spans.All(s => s.Service != service) && _logs.All(l => l.Service != service) && snapshot.Series.All(s => s.ServiceName != service))
+            throw new AnalysisInputException("service_name", $"Service '{service}' sent no telemetry in this window or its baseline; get_service_map lists the services that did.", "service.not_found");
         var rows = Select(input);
         var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p)) && !HasRemoteParent(s)).ToList();
         var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();
-        var lag = snapshot.Logs.Where(l => l.TimeUnixNano is > 0 && l.ObservedTimeUnixNano is > 0).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano!.Value, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
+        // Ingestion lag runs from a producer's observation to the Collector's receipt. A record whose producer set
+        // no observed time carries its receipt there, so it says nothing about lag.
+        var lag = Select(input, "logs").Select(static l => l.Log!)
+            .Where(static l => l.ReceivedTimeUnixNano is { } received && l.ObservedTimeUnixNano is { } observed && observed is > 0 && observed < received)
+            .Select(static l => (l.ReceivedTimeUnixNano!.Value - l.ObservedTimeUnixNano!.Value) / 1_000_000d).ToList();
         // A conflicting point keeps its first measurement; query_metric still refuses to aggregate it.
         var series = snapshot.Series.ToDictionary(static s => s.SeriesId, StringComparer.Ordinal);
         var conflicts = snapshot.Points.Where(p => p.HasConflict != 0 && _window.Contains(p.TimeUnixNano)).GroupBy(static p => p.SeriesId)
@@ -162,7 +169,7 @@ internal sealed partial class AnalysisEngine
             ("points", c.Times.Count), ("first_time", J.Time(c.Times.Min())), ("last_time", J.Time(c.Times.Max())))))));
         return J.O(("silent_services", Silent(input)), ("metric_conflicts", metricConflicts), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count is 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
             ("semconv_gaps", SemanticGaps(rows)), ("unknown_service_share", rows.Count is 0 ? 0 : rows.Count(s => s.Service.StartsWith("unknown", StringComparison.Ordinal)) / (double)rows.Count),
-            ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("retention", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
+            ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("data_span", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
             ("ingestion_lag_ms", lag.Count is 0 ? null : lag.Average()));
     }
     // OTLP span flags bits 8 and 9: the producer knew whether the parent was remote, and it was. A remote parent

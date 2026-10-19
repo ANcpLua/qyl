@@ -2833,7 +2833,7 @@ public sealed class SemconvGap
     public required double MissingShare { get; init; }
 }
 
-public sealed class TelemetryRetention
+public sealed class TelemetryDataSpan
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("oldest")]
@@ -2895,8 +2895,8 @@ public sealed class CheckTelemetryHealthOutput
     public required double UnknownServiceShare { get; init; }
     [JsonPropertyName("schema_urls")]
     public required IReadOnlyList<string> SchemaUrls { get; init; }
-    [JsonPropertyName("retention")]
-    public required Qyl.Api.Contracts.Mcp.Tools.TelemetryRetention Retention { get; init; }
+    [JsonPropertyName("data_span")]
+    public required Qyl.Api.Contracts.Mcp.Tools.TelemetryDataSpan DataSpan { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ingestion_lag_ms")]
     public double? IngestionLagMs { get; init; }

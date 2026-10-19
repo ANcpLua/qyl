@@ -8413,7 +8413,7 @@
           "semconv_gaps",
           "unknown_service_share",
           "schema_urls",
-          "retention"
+          "data_span"
         ],
         "properties": {
           "window": {
@@ -8466,12 +8466,13 @@
               "type": "string"
             }
           },
-          "retention": {
-            "$ref": "#/components/schemas/Mcp.Tools.TelemetryRetention"
+          "data_span": {
+            "$ref": "#/components/schemas/Mcp.Tools.TelemetryDataSpan"
           },
           "ingestion_lag_ms": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "description": "Mean milliseconds from a log record's observed time to the Collector's receipt, over the window's records whose producer set an observed time; omitted when none did."
           },
           "error": {
             "$ref": "#/components/schemas/Mcp.Tools.ToolError"
@@ -13228,7 +13229,7 @@
         },
         "description": "SimilarFailure contract."
       },
-      "Mcp.Tools.TelemetryRetention": {
+      "Mcp.Tools.TelemetryDataSpan": {
         "type": "object",
         "required": [
           "oldest",
@@ -13261,7 +13262,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "TelemetryRetention contract."
+        "description": "How far back the read's data reaches: its oldest span or log record and the days from it to now. This is not the configured retention."
       },
       "Mcp.Tools.ToolError": {
         "type": "object",

@@ -522,6 +522,7 @@ internal static partial class OtlpConverter
             TimeUnixNano = log.TimeUnixNano == 0 ? null : log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : observedTime,
             ObservedTimeProvided = log.ObservedTimeUnixNano > 0,
+            ReceivedTimeUnixNano = observedTime,
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
             Body = ConvertProtoAnyValue(log.Body),

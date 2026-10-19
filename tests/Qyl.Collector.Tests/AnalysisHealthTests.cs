@@ -1,5 +1,8 @@
 using Google.Protobuf;
+using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using OpenTelemetry.Proto.Common.V1;
+using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using static Qyl.Collector.Tests.CollectorApiTestHost;
 using OtlpResourceSpans = OpenTelemetry.Proto.Trace.V1.ResourceSpans;
@@ -94,5 +97,55 @@ public sealed partial class AnalysisApiTests
             .Select(static gap => gap.GetProperty("operation").GetString() + ":" + gap.GetProperty("attribute").GetString());
 
         Assert.AreSequenceEqual(["GET /:url.scheme"], gaps);
+    }
+
+    /// <summary>
+    /// Ingestion lag is the time from a producer's observation to the Collector's receipt. A record that
+    /// happened 20 minutes ago and carries no observed time says nothing about it; two observed 2 and 4
+    /// seconds before receipt average 3 seconds.
+    /// </summary>
+    [TestMethod]
+    public async Task Ingestion_lag_runs_from_the_producers_observation_to_receipt()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        LogRecord Record(ulong time, ulong observed) => new()
+        {
+            TimeUnixNano = time, ObservedTimeUnixNano = observed, SeverityNumber = SeverityNumber.Info, Body = new AnyValue { StringValue = "entry" }
+        };
+        using var response = await host.SendProtobufAsync("/v1/logs", new ExportLogsServiceRequest
+        {
+            ResourceLogs =
+            {
+                new ResourceLogs
+                {
+                    Resource = new Resource { Attributes = { OtlpTestSpans.String("service.name", "worker") } },
+                    ScopeLogs = { new ScopeLogs { LogRecords = { Record(FixtureUnixNano - 2 * Second, FixtureUnixNano - 2 * Second), Record(FixtureUnixNano - 4 * Second, FixtureUnixNano - 4 * Second), Record(FixtureUnixNano - 20 * Minute, 0) } } }
+                }
+            }
+        }, "ingester");
+        Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var health = await Read(host, "check_telemetry_health", "{}");
+
+        Assert.AreEqual(3000d, health.GetProperty("ingestion_lag_ms").GetDouble(), 1e-6);
+        Assert.IsFalse(health.TryGetProperty("retention", out _));
+        Assert.AreEqual(FixtureUtcNow.AddMinutes(-20), health.GetProperty("data_span").GetProperty("oldest").GetDateTimeOffset());
+        Assert.AreEqual(20d / 1440, health.GetProperty("data_span").GetProperty("days").GetDouble(), 1e-9);
+    }
+
+    /// <summary>A service that sent nothing in the window or its baseline is not found, never reported healthy.</summary>
+    [TestMethod]
+    public async Task Health_of_an_unknown_service_is_not_found()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        await host.Store.EnqueueAsync(new Storage.SpanBatch([Span(TraceId(1), SpanId(1), FixtureUnixNano - 10 * Minute, FixtureUnixNano - 10 * Minute + 1000)]), testContext.CancellationToken);
+
+        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/check_telemetry_health", ReaderApiKey, """{"service_name":"nope"}""");
+        var json = await host.JsonAsync(response);
+
+        Assert.AreEqual(System.Net.HttpStatusCode.NotFound, response.StatusCode, json.GetRawText());
+        StringAssert.Contains(json.GetRawText(), "nope");
+        using var known = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/check_telemetry_health", ReaderApiKey, """{"service_name":"checkout"}""");
+        Assert.AreEqual(System.Net.HttpStatusCode.OK, known.StatusCode);
     }
 }

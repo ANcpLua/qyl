@@ -97,6 +97,8 @@ internal sealed record LogIngestionRecord
     public ulong? ObservedTimeUnixNano { get; init; }
     public int? UntimedRequestOrdinal { get; init; }
     public bool ObservedTimeProvided { get; init; } = true;
+    /// <summary>When the Collector received the record.</summary>
+    public ulong? ReceivedTimeUnixNano { get; init; }
     public required int SeverityNumber { get; init; }
     public string? SeverityText { get; init; }
     public required OtlpAttributeValue Body { get; init; }
