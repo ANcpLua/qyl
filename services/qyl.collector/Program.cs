@@ -1,0 +1,43 @@
+using Qyl.Collector;
+using Qyl.Collector.ApiKeys;
+using Qyl.Collector.Hosting;
+using Qyl.Collector.Telemetry;
+using Qyl.Instrumentation.Instrumentation;
+
+Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
+
+var builder = WebApplication.CreateSlimBuilder(args);
+
+builder.UseQyl(options =>
+{
+    // OpenAPI is off: the product API contract is the TypeSpec in contracts/ and flows in via
+    // Qyl.Api.Contracts. The collector is not a contract/client-generation source.
+    options.EnableOpenApi = false;
+    options.EnableAutoDiscovery = false;
+    options.AdditionalMeters.Add(QylTelemetry.ServiceName);
+});
+
+var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
+CollectorSelfExportGuard.ThrowIfSelfExporting(builder.Configuration, ports);
+builder.Services.AddQylCollectorStorage(builder.Configuration);
+builder.Services.AddQylCollectorAuth(builder.Configuration, builder.Environment);
+builder.Services.AddQylCollectorTelemetry(builder.Environment);
+builder.WebHost.ConfigureQylCollectorKestrel(ports);
+
+var app = builder.Build();
+
+app.UseQylCollectorMiddleware();
+
+app.MapQylCollectorEndpoints();
+CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app);
+
+StartupBanner.Print(
+    $"http://localhost:{ports.Http}", ports.Grpc, ports.OtlpHttp,
+    app.Services.GetRequiredService<OtlpCorsOptions>(),
+    app.Services.GetRequiredService<OtlpApiKeyOptions>());
+
+app.Lifetime.ApplicationStarted.Register(() =>
+    Console.WriteLine($"[qyl] Application started and listening on port {ports.Http}"));
+
+await app.RunAsync().ConfigureAwait(false);
+

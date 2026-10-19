@@ -1,0 +1,30 @@
+{
+  "name": "qyl",
+  "displayName": "qyl",
+  "version": "17.0.0",
+  "description": "Agent-focused telemetry investigation, .NET development and native MSTest verification.",
+  "author": {
+    "name": "Alexander Nachtmann",
+    "url": "https://qyl.at/"
+  },
+  "homepage": "https://qyl.at/",
+  "repository": "https://github.com/ANcpLua/qyl",
+  "documentationUrl": "https://qyl.at/docs/mcp/",
+  "supportUrl": "https://qyl.at/support/",
+  "privacyPolicyUrl": "https://qyl.at/privacy/",
+  "termsOfServiceUrl": "https://qyl.at/terms/",
+  "icon": "./assets/qyl-icon.png",
+  "license": "MIT AND Apache-2.0",
+  "keywords": [
+    "observability",
+    "opentelemetry",
+    "telemetry",
+    "traces",
+    "logs",
+    "metrics",
+    "sessions",
+    "ci",
+    "diagnostics",
+    "mcp"
+  ]
+}

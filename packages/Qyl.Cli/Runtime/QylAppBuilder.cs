@@ -1,0 +1,240 @@
+using System.Collections.ObjectModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace Qyl.Cli.Runtime;
+
+internal sealed class QylAppBuilder
+{
+    private readonly HostApplicationBuilder _host;
+    private readonly QylAppOptions _options;
+    private readonly List<QylResource> _resources = [];
+    private QylResourceBuilder? _selfTelemetrySink;
+
+    private QylAppBuilder(HostApplicationBuilder host, QylAppOptions options)
+    {
+        _host = host;
+        _options = options;
+    }
+
+    internal IReadOnlyList<QylResource> Resources => _resources;
+
+    /// <summary>
+    /// The OTLP/HTTP endpoint the runner process exports its own telemetry to: the first dedicated
+    /// diagnostics collector of the composition, or null when there is none (then nothing is exported).
+    /// </summary>
+    internal Uri? SelfTelemetryEndpoint => _selfTelemetrySink?.GetOtlpHttpEndpoint();
+
+    // The first dedicated diagnostics collector becomes the runner's own sink as well. It is a
+    // guaranteed dead end (its exporter is force-blanked), so the runner can never form a loop
+    // through it, and the product collector never receives runner noise.
+    internal void RegisterSelfTelemetrySink(QylResourceBuilder sink)
+    {
+        ArgumentNullException.ThrowIfNull(sink);
+        _selfTelemetrySink ??= sink;
+    }
+
+    internal static QylAppBuilder Create(QylAppOptions? options = null)
+    {
+        return new QylAppBuilder(
+            Host.CreateApplicationBuilder([]),
+            options ?? new QylAppOptions());
+    }
+
+    internal QylResourceBuilder AddCollector(string name, string executable, IReadOnlyList<string> arguments,
+        int? port = null, string? workingDirectory = null,
+        Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
+        ArgumentNullException.ThrowIfNull(arguments);
+        if (arguments.Any(static argument => argument is null))
+            throw new ArgumentException("Arguments cannot contain null values.", nameof(arguments));
+
+        return AddCollectorCore(name, new QylProcessCommand
+        {
+            Executable = executable,
+            Args = new ReadOnlyCollection<string>(arguments.ToArray()),
+            WorkingDirectory = workingDirectory
+        }, port, selfTelemetry);
+    }
+
+    internal QylResourceBuilder AddCollectorCore(string name, QylProcessCommand command, int? port,
+        Action<QylSelfTelemetryBuilder>? selfTelemetry)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (port is < 1 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port), port, "Collector port must be in the range 1..65535.");
+
+        // Collectors resolve to a concrete port at composition time: the child only learns its API
+        // port through QYL_PORT, so deferring to launch-time DynamicAllocation would health-probe a
+        // port the collector never binds (it would fall back to its built-in 5100 default).
+        var apiPort = port ?? PortAllocator.ClaimFreePort(OrchestrationDefaults.Network.Loopback);
+
+        // OTLP receiver ports must be unique across the whole composition: two children pinned to
+        // the same receiver port either lose a bind race or, worse, receive each other's telemetry.
+        // The first collector gets the well-known defaults; every later one gets freshly claimed ports.
+        var otlpHttpPort = NextFreePort(QylConstants.Collector.DefaultOtlpHttpPort, apiPort);
+        var grpcPort = NextFreePort(QylConstants.Collector.DefaultGrpcPort, apiPort, otlpHttpPort);
+
+        var env = new Dictionary<string, string>
+        {
+            [QylConstants.Env.QylPort] = apiPort.ToString(CultureInfo.InvariantCulture),
+            // Pin the ports the resource record advertises, so ambient QYL_OTLP_PORT/QYL_GRPC_PORT
+            // in the runner's environment cannot desync child reality from composition.
+            [QylConstants.Env.QylOtlpPort] = otlpHttpPort.ToString(CultureInfo.InvariantCulture),
+            [QylConstants.Env.QylGrpcPort] = grpcPort.ToString(CultureInfo.InvariantCulture),
+            // Host-run collectors deliberately disable ingest auth for local development. Pin every
+            // listener to loopback so that choice can never expose an unauthenticated LAN endpoint.
+            [QylConstants.Env.QylBindAddress] = OrchestrationDefaults.Network.Loopback
+        };
+
+        // The runner launches children with ASPNETCORE_ENVIRONMENT=dev, which is not "Development",
+        // so the collector's auth fallback is ApiKey and it refuses to start without a key. Default
+        // the loopback dev-runner children to Unsecured unless the operator's environment already
+        // decided the auth mode (the child inherits that decision). Whitespace counts as undecided:
+        // `export QYL_OTLP_AUTH_MODE=` yields "" (not null), and "" is not a decision.
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(QylConstants.Env.QylOtlpAuthMode)))
+            env[QylConstants.Env.QylOtlpAuthMode] = QylConstants.Collector.UnsecuredAuthMode;
+
+        var builder = Register(new QylResource
+        {
+            Name = name,
+            Kind = QylResourceKind.Collector,
+            Port = apiPort,
+            OtlpHttpPort = otlpHttpPort,
+            GrpcPort = grpcPort,
+            Launch = BuildLaunchSpec(command, name, env)
+        }).WithIsolatedStorage();
+
+        if (selfTelemetry is not null)
+        {
+            var telemetry = new QylSelfTelemetryBuilder(this, builder, command);
+            selfTelemetry(telemetry);
+            telemetry.Apply();
+        }
+
+        return builder;
+    }
+
+    internal QylApp Build()
+    {
+        QylResourceGraph.Validate(_resources);
+
+        // The runner observes itself the way every qyl process does: AddQyl() from Qyl.Telemetry.Hosting,
+        // which brings the AutoInstrumentation runtime (the health-probe HttpClient calls become client
+        // spans, ILogger output and the qyl meters are exported). It exports only to the dedicated
+        // diagnostics collector: discovery is off and RequireConfiguredEndpoint stops the exporter's
+        // localhost default, because that default is the product collector and a user's product data
+        // must stay free of runner telemetry. Without a dedicated sink, nothing leaves the process.
+        var selfTelemetryEndpoint = SelfTelemetryEndpoint;
+        _host.AddQyl(options =>
+        {
+            options.ServiceName = QylConstants.Product.RunnerServiceName;
+            options.ServiceVersion = QylConstants.Product.Version;
+            options.EnableCollectorDiscovery = false;
+            options.RequireConfiguredEndpoint = true;
+            options.CollectorEndpoint = selfTelemetryEndpoint;
+        });
+        // The exporters' HttpClients log every batch through the host logger, which is the runner's
+        // interactive console; export failures surface through OpenTelemetry's own diagnostics, and
+        // the last batches at shutdown always miss the already-stopped sink. Keep them off the console.
+        foreach (var exporter in new[] { "OtlpTraceExporter", "OtlpLogExporter", "OtlpMetricExporter" })
+            _host.Logging.AddFilter($"System.Net.Http.HttpClient.{exporter}", LogLevel.None);
+
+        _host.Services.AddSingleton(_options);
+        OrchestrationServices.Register(_host.Services, _resources,
+            new OrchestratorOptions { StartupTimeoutSeconds = _options.StartupTimeoutSeconds });
+        _host.Services.AddHostedService<QylRunnerApi>();
+        // Bind the control endpoint before dynamic resource ports are claimed.
+        // This removes the free-port TOCTOU where a child could take the runner's
+        // configured port and leave the product running without its control API.
+        _host.Services.AddHostedService<QylOrchestrator>();
+        _host.Services.AddHostedService<QylConsoleUi>();
+        return new QylApp(_host.Build());
+    }
+
+    // First caller of a well-known port keeps it; later collectors get freshly claimed ports so the
+    // composition can never pin two children to the same receiver. alsoAvoid covers ports assigned
+    // earlier in the same AddCollector call that are not yet visible in _resources.
+    private int NextFreePort(int preferred, params int[] alsoAvoid)
+    {
+        var taken = _resources
+            .SelectMany(static r => new[] { r.Port, r.OtlpHttpPort, r.GrpcPort })
+            .Concat(alsoAvoid)
+            .Where(static p => p > 0)
+            .ToHashSet();
+
+        return taken.Contains(preferred)
+            ? PortAllocator.ClaimFreePort(OrchestrationDefaults.Network.Loopback)
+            : preferred;
+    }
+
+    private QylResourceBuilder Register(QylResource resource)
+    {
+        if (_resources.Any(r => string.Equals(r.Name, resource.Name, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' was already added; names must be unique.");
+        }
+
+        // Port 0 is not a claim: it means DynamicAllocation (launch-time claim) or a connection-only
+        // resource with no listening port at all — two zeros never collide.
+        var declaredPorts = DeclaredPorts(resource).ToHashSet();
+        if (declaredPorts.Count != DeclaredPorts(resource).Count())
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' assigns the same port to more than one endpoint.");
+        }
+
+        var portClash = _resources.FirstOrDefault(existing =>
+            DeclaredPorts(existing).Any(declaredPorts.Contains));
+        if (portClash is not null)
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' overlaps a port already used by '{portClash.Name}'; every api/otlp/grpc port must be unique.");
+        }
+
+        _resources.Add(resource);
+        return new QylResourceBuilder(resource, (oldResource, newResource) =>
+        {
+            var index = _resources.IndexOf(oldResource);
+            if (index >= 0)
+                _resources[index] = newResource;
+        });
+    }
+
+    private static IEnumerable<int> DeclaredPorts(QylResource resource)
+    {
+        if (resource.Port > 0)
+            yield return resource.Port;
+        if (resource.OtlpHttpPort > 0)
+            yield return resource.OtlpHttpPort;
+        if (resource.GrpcPort > 0)
+            yield return resource.GrpcPort;
+    }
+
+    private static QylLaunchSpec BuildLaunchSpec(QylProcessCommand command, string serviceName,
+        IReadOnlyDictionary<string, string>? extraEnv = null)
+    {
+        var env = new Dictionary<string, string>
+        {
+            [QylConstants.Env.AspNetCoreEnvironment] = QylConstants.Environments.Dev,
+            [QylConstants.Env.DotnetEnvironment] = QylConstants.Environments.Dev,
+            [QylConstants.Env.OtelServiceName] = serviceName
+        };
+
+        if (extraEnv is not null)
+        {
+            foreach (var kv in extraEnv)
+                env[kv.Key] = kv.Value;
+        }
+
+        return new QylLaunchSpec
+        {
+            Executable = command.Executable,
+            Args = command.Args,
+            WorkingDirectory = command.WorkingDirectory,
+            Env = env
+        };
+    }
+}

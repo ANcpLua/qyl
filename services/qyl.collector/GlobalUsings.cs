@@ -1,0 +1,14 @@
+global using System.Collections.Frozen;
+global using System.Globalization;
+global using System.IO.Compression;
+global using System.Runtime.CompilerServices;
+global using System.Runtime.InteropServices;
+global using System.Security.Cryptography;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
+global using Grpc.Core;
+global using Qyl.Collector.Ingestion;
+global using QylSessionActivity = Qyl.Collector.Ingestion.Primitives.SessionActivity;
+global using QylTimeConversions = Qyl.Collector.Ingestion.Primitives.TimeConversions;
+global using Qyl.Collector.Mapping;
+global using Qyl.Instrumentation;

@@ -1,0 +1,73 @@
+<Solution>
+
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="CHANGELOG.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+    <File Path="Version.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path="eng/MSBuild/Shared.props" />
+  </Folder>
+
+  <Folder Name="/packages/">
+    <Project Path="packages/Qyl.Cli/Qyl.Cli.csproj" />
+    <Project Path="packages/Qyl.Orchestration/Qyl.Orchestration.csproj" />
+    <Project Path="packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj" />
+  </Folder>
+
+  <Folder Name="/packages/Qyl.Api.Sdk/">
+    <File Path="packages/Qyl.Api.Sdk/DECISIONS.md" />
+    <File Path="packages/Qyl.Api.Sdk/Sdk/Sdk.props" />
+    <File Path="packages/Qyl.Api.Sdk/Sdk/Sdk.targets" />
+    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.props" />
+    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.targets" />
+    <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.Packages.props" />
+    <File Path="packages/Qyl.Api.Sdk/Sources/Microsoft.Extensions.Hosting/QylApiHostApplicationBuilderExtensions.cs" />
+    <Project Path="packages/Qyl.Api.Sdk/Qyl.Api.Sdk.csproj" />
+    <Project Path="packages/Qyl.Api.Sdk/Qyl.Xml/Qyl.Xml.csproj" />
+    <Project Path="packages/Qyl.Api.Sdk/Qyl.Api/Qyl.Api.csproj" />
+    <Project Path="packages/Qyl.Api.Sdk/Qyl.Api.Sdk.Xml.Generator/Qyl.Api.Sdk.Xml.Generator.csproj" />
+  </Folder>
+
+  <Folder Name="/samples/">
+    <Project Path="samples/qyl.sample/qyl.sample.csproj" />
+  </Folder>
+
+  <Folder Name="/tests/">
+    <Project Path="tests/Qyl.Api.Tests/Qyl.Api.Tests.csproj" />
+    <Project Path="tests/Qyl.Collector.Tests/Qyl.Collector.Tests.csproj" />
+    <Project Path="tests/Qyl.Cli.Tests/Qyl.Cli.Tests.csproj" />
+    <Project Path="tests/Qyl.Sdk.Conformance/Qyl.Sdk.Conformance.csproj" />
+    <Project Path="tests/Qyl.Api.Sdk.Xml.Generator.Tests/Qyl.Api.Sdk.Xml.Generator.Tests.csproj" />
+  </Folder>
+
+  <Folder Name="/services/">
+    <Project Path="services/qyl.collector/qyl.collector.csproj" />
+    <Project Path="services/qyl.collector.ingestion/qyl.collector.ingestion.csproj" />
+    <Project Path="services/qyl.collector.storage/qyl.collector.storage.csproj" />
+  </Folder>
+
+  <Folder Name="/internal/">
+    <Project Path="internal/qyl.contracts/Qyl.Api.Contracts.csproj" />
+    <Project Path="internal/qyl.instrumentation/qyl.instrumentation.csproj" />
+    <Project Path="internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
+    <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
+  </Folder>
+
+  <Folder Name="/eng/">
+    <Project Path="eng/build/build.csproj" />
+  </Folder>
+
+  <Folder Name="/eng/tools/">
+    <Project Path="eng/tools/CollectorAotSmoke/CollectorAotSmoke.csproj" />
+    <Project Path="eng/tools/QylToolSmoke/QylToolSmoke.csproj" />
+    <Project Path="eng/tools/QylOrchestrationSmoke/QylOrchestrationSmoke.csproj" />
+    <Project Path="eng/tools/QylSdkConformance/QylSdkConformance.csproj" />
+  </Folder>
+
+</Solution>

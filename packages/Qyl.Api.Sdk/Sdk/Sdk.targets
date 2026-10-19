@@ -1,0 +1,5 @@
+<Project>
+  <Import Project="$(QylApiSdkRoot)Build/Qyl.Api.Sdk.targets" />
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk.Web" Condition="'$(_QylMustImportMicrosoftNETSdk)' == 'true'" />
+</Project>

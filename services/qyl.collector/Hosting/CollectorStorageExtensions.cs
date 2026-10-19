@@ -1,0 +1,39 @@
+using Qyl.Collector.Health;
+using Qyl.Collector.Retention;
+using Qyl.Collector.Storage;
+
+namespace Qyl.Collector.Hosting;
+
+internal static class CollectorStorageExtensions
+{
+
+    public static IServiceCollection AddQylCollectorStorage(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
+        services.AddSingleton(CreateStore);
+        services.ActivateSingleton<IQylStore>();
+        services.AddHostedService<RetentionService>();
+        services.AddHealthChecks()
+            .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", QylEndpoints.ReadyTag]);
+
+        return services;
+    }
+
+    private static IQylStore CreateStore(IServiceProvider services)
+    {
+        var config = services.GetRequiredService<IConfiguration>();
+        var dataPath = config["QYL_DATA_PATH"] ?? StorageDefaults.DatabaseFileName;
+        var dataDir = Path.GetDirectoryName(dataPath);
+        if (!string.IsNullOrEmpty(dataDir))
+            Directory.CreateDirectory(dataDir);
+
+        return new DuckDbStore(
+            dataPath,
+            memoryLimit: config["QYL_DB_MEMORY_LIMIT"],
+            threads: config["QYL_DB_THREADS"] is { } threads ? int.Parse(threads, CultureInfo.InvariantCulture) : null,
+            tempDirectory: config["QYL_DB_TEMP_DIR"],
+            loggerFactory: services.GetRequiredService<ILoggerFactory>());
+    }
+}

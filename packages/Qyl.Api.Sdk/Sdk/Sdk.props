@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <UsingQylApiSdk>true</UsingQylApiSdk>
+    <QylApiSdkRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))</QylApiSdkRoot>
+    <_QylMustImportMicrosoftNETSdk Condition="'$(UsingMicrosoftNETSdk)' != 'true'">true</_QylMustImportMicrosoftNETSdk>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk.Web" Condition="'$(_QylMustImportMicrosoftNETSdk)' == 'true'" />
+
+  <!-- A repository that manages versions centrally imports this file from its Directory.Packages.props instead. -->
+  <Import Project="$(QylApiSdkRoot)Build/Qyl.Api.Sdk.Packages.props" Condition="'$(_QylApiSdkPackagesImported)' != 'true'" />
+  <Import Project="$(QylApiSdkRoot)Build/Qyl.Api.Sdk.props" />
+</Project>

@@ -1,0 +1,174 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { CollectorError, parseCollectorBody } from "./collector.js";
+import { checkContract, contractSchema, type ContractSchemaName } from "./contracts/tool-schemas.js";
+import documents from "./contracts/generated/tool-schemas.json" with { type: "json" };
+import { readContext, toolTrace, toolSummary } from "./analysis-context.test-helper.js";
+import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
+import { toolError } from "./request-scope.js";
+
+const valid = (name: ContractSchemaName, value: unknown): boolean => checkContract(name, value).valid;
+
+function property(name: ContractSchemaName, key: string): Record<string, unknown> {
+  return (documents[name] as unknown as { properties: Record<string, Record<string, unknown>> }).properties[key]!;
+}
+
+test("generated tool inputs own their bounds, required members and advertised defaults", () => {
+  // The schema validates and advertises; the Collector applies the defaults it advertises.
+  assert.equal(property("Mcp.Tools.ListTracesInput", "limit").default, 20);
+  assert.equal(property("Mcp.Tools.SearchLogsInput", "limit").default, 50);
+  assert.equal(property("Mcp.Tools.CiLogInput", "service_prefix").default, "qyl-ci");
+  assert(valid("Mcp.Tools.ListTracesInput", {}));
+  assert(!valid("Mcp.Tools.ListTracesInput", { limit: 1.5 }));
+  assert(valid("Mcp.Tools.ListTracesInput", {
+    start_time: "2026-10-11T00:00:00Z",
+    end_time: "2026-10-11T01:00:00Z",
+    service_name: "checkout-api",
+    errors_only: true,
+    cursor: "opaque",
+  }));
+  assert(!valid("Mcp.Tools.ListTracesInput", { start_time: "2026-10-11" }), "RFC 3339 only");
+  assert(!valid("Mcp.Tools.ListTracesInput", { errors_only: "true" }));
+  assert(!valid("Mcp.Tools.ListTracesInput", { invented: true }), "inputs are sealed");
+
+  const traceId = "0".repeat(32);
+  assert(valid("Mcp.Tools.GetTraceInput", { trace_id: traceId }));
+  assert(!valid("Mcp.Tools.GetTraceInput", {}));
+  assert(!valid("Mcp.Tools.GetTraceInput", { trace_id: "short" }));
+  for (const max_spans of [0, 1001, 1.5]) assert(!valid("Mcp.Tools.GetTraceInput", { trace_id: traceId, max_spans }));
+  for (const max_spans of [1, 1000]) assert(valid("Mcp.Tools.GetTraceInput", { trace_id: traceId, max_spans }));
+  assert(!valid("Mcp.Tools.GetTraceInput", { trace_id: traceId, errors_only: "true" }));
+  assert(!valid("Mcp.Tools.GetTraceInput", { trace_id: traceId, include_attributes: "false" }));
+  assert(!valid("Mcp.Tools.CiLogInput", { service_prefix: "" }));
+  assert(!valid("Mcp.Tools.CiLogInput", { service_prefix: "x".repeat(257) }));
+  assert(valid("Mcp.Tools.CiLogInput", { service_prefix: "x".repeat(256) }));
+
+  assert(!valid("Mcp.Tools.ListSessionsInput", { limit: 101 }));
+  assert(valid("Mcp.Tools.ListSessionsInput", { start_time: "2026-10-11T00:00:00Z", cursor: "opaque" }));
+  assert(!valid("Mcp.Tools.SearchLogsInput", { severity_min: 0 }));
+  assert(!valid("Mcp.Tools.SearchLogsInput", { severity_min: 25 }));
+  assert(!valid("Mcp.Tools.SearchLogsInput", { limit: 201 }));
+  assert(valid("Mcp.Tools.SearchLogsInput", {
+    session_id: "sess-demo-genai-01",
+    start_time: "2026-10-11T00:00:00Z",
+    end_time: "2026-10-11T01:00:00Z",
+    cursor: "opaque",
+  }));
+  // A validated call is forwarded as given: the validator inserts nothing.
+  const args = {};
+  assert.deepEqual(checkContract("Mcp.Tools.ListTracesInput", args), { valid: true, value: {} });
+});
+
+test("the server's error codes are the contract's ToolErrorCode enum", () => {
+  for (const error of [
+    new CollectorError("bad input"),
+    new CollectorError("gone", false, 404),
+    new CollectorError("down", true),
+    new Error("Authorization: Bearer should-never-escape"),
+  ]) {
+    const structured = toolError(error).structuredContent as { error: unknown };
+    assert(valid("Mcp.Tools.ToolError", structured.error), String(error));
+  }
+});
+
+test("generated output documents accept the test telemetry fixture", () => {
+  const fixture = getTelemetryFixture();
+  const [trace] = fixture.traces;
+  const summaries = fixture.traces.map(toolSummary);
+  const context = readContext(fixture.traces.length);
+
+  assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, mode: "live", has_more: false }));
+  assert(
+    !valid("Mcp.Tools.ListTracesOutput", { ...readContext(fixture.traces.length, false), traces: summaries, mode: "live" }),
+    "has_more is required: a page must say whether it is the whole result",
+  );
+  assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, mode: "live", has_more: true, next_cursor: "c" }));
+  assert(valid("Mcp.Tools.GetTraceOutput", { ...context, trace: toolTrace(trace!), mode: "live" }));
+  assert(valid("Mcp.Tools.ListSessionsOutput", { ...context, sessions: fixture.sessions, mode: "live", has_more: false }));
+  assert(valid("Mcp.Tools.SearchLogsOutput", { ...context, logs: fixture.logs, mode: "live", has_more: false }));
+});
+
+test("64-bit nanosecond timestamps survive the wire exactly, above the safe-integer ceiling", () => {
+  const trace = toolTrace(structuredClone(getTelemetryFixture().traces[0]!));
+  const output = (start_time_unix_nano: unknown) => ({
+    ...readContext(1), mode: "live",
+    trace: { ...trace, spans: [{ ...trace.spans[0]!, start_time_unix_nano }] },
+  });
+  // Past Number.MAX_SAFE_INTEGER: as a JS number literal this value silently becomes
+  // ...456_800, which is the precision loss the decimal-string encoding exists to remove.
+  const unixNanos = "1742000000123456789";
+  const parsed = checkContract("Mcp.Tools.GetTraceOutput", output(unixNanos));
+  assert(parsed.valid);
+  assert.equal(parsed.value.trace.spans[0]!.start_time_unix_nano, unixNanos);
+  assert.equal(BigInt(parsed.value.trace.spans[0]!.start_time_unix_nano), 1742000000123456789n);
+
+  assert(!valid("Mcp.Tools.GetTraceOutput", output("1.5")));
+  assert(!valid("Mcp.Tools.GetTraceOutput", output(1.5)));
+  assert(!valid("Mcp.Tools.GetTraceOutput", output("18446744073709551616")), "beyond uint64");
+});
+
+test("TypeSpec record dictionaries retain their value contract at runtime", () => {
+  const trace = toolTrace(structuredClone(getTelemetryFixture().traces[0]!));
+  const span = trace.spans[0]!;
+  span.attributes = [
+    {
+      key: "nested",
+      value: {
+        type: "kvlist",
+        values: {
+          message: "Grüße",
+          retryable: true,
+          attempts: { type: "int", value: "2" },
+        },
+      },
+    },
+  ];
+  const output = () => ({ ...readContext(1), mode: "live", trace: { ...trace, spans: [span] } });
+  assert(valid("Mcp.Tools.GetTraceOutput", output()));
+  span.attributes[0]!.value = { unsupported: null } as never;
+  assert(!valid("Mcp.Tools.GetTraceOutput", output()));
+});
+
+test("analysis boundary preserves RFC 3339 precision and rejects alternate wire encodings", () => {
+  const trace = toolSummary(structuredClone(getTelemetryFixture().traces[0]!));
+  trace.start_time = "2026-07-28T12:00:00.123456789+02:00";
+  const body = { ...readContext(1), traces: [trace], mode: "live" };
+  const parse = (value: unknown) => parseCollectorBody(value, "/api/v1/analysis/list_traces", "Mcp.Tools.ListTracesOutput");
+  assert.equal(parse(body).traces[0]?.start_time, trace.start_time);
+  assert.throws(() => parse([trace]), /collector contract mismatch/u);
+  assert.throws(() => parse({ ...body, has_more: undefined }), /has_more/u);
+  assert.throws(() => parse({ ...body, invented: true }), /must NOT have additional properties/u);
+  trace.root_span!.kind = "Client" as never;
+  assert.throws(() => parse(body), /collector contract mismatch/u);
+});
+
+test("contract date-time fields accept RFC 3339 and reject missing seconds or offsets", () => {
+  const trace = toolSummary(structuredClone(getTelemetryFixture().traces[0]!));
+  const cases = [
+    ["2026-07-28T12:00:00Z", true],
+    ["2026-07-28T12:00:00+02:00", true],
+    ["2026-07-28T12:00:00.123456789Z", true],
+    ["2026-07-28T12:00Z", false],
+    ["2026-07-28T12:00:00", false],
+    ["2026-02-30T12:00:00Z", false],
+  ] as const;
+
+  for (const [value, accepted] of cases) {
+    assert.equal(
+      valid("Mcp.Tools.ListTracesOutput", { ...readContext(1), mode: "live", traces: [{ ...trace, start_time: value }] }),
+      accepted,
+      `start_time ${value} should be ${accepted ? "accepted" : "rejected"}`,
+    );
+  }
+});
+
+test("only generated names resolve to documents", () => {
+  // `in` answers true for every Object.prototype key; none of them is a document.
+  for (const inherited of ["toString", "constructor", "__proto__", "hasOwnProperty"]) {
+    assert.throws(
+      () => contractSchema(inherited as ContractSchemaName),
+      new RegExp(`has no '${inherited}' document`, "u"),
+      `${inherited} must not resolve to a contract document`,
+    );
+  }
+});

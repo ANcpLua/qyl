@@ -1,0 +1,79 @@
+{
+  "name": "qyl-mcp-server",
+  "version": "17.0.0",
+  "type": "module",
+  "description": "qyl telemetry MCP server: analysis tools for a live collector; Bun 1.4 runtime",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ANcpLua/qyl",
+    "directory": "services/qyl.mcp"
+  },
+  "license": "MIT",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "default": "./dist/auth.js"
+    }
+  },
+  "bin": {
+    "qyl-mcp-server": "dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "bun -e \"const fs=require('node:fs'); fs.rmSync('dist', { recursive: true, force: true }); fs.rmSync('dist-test', { recursive: true, force: true })\"",
+    "build": "bun run clean && tsc -p tsconfig.server.json && bun -e \"const fs=require('node:fs'); fs.chmodSync('dist/main.js', 0o755); fs.cpSync('skills', 'dist/skills', { recursive: true })\"",
+    "lint": "oxlint .",
+    "verify:sdk": "node --test scripts/verify-mcp-sdk.test.mjs && bun scripts/verify-mcp-sdk.mjs",
+    "verify:frame": "node verify-tool-frame.mjs",
+    "snapshot:tools": "bun run build && tsc -p tsconfig.test.json && bun run stage:test && node update-tool-manifest-snapshot.mjs",
+    "stage:test": "bun -e \"require('node:fs').cpSync('dist/skills', 'dist-test/skills', { recursive: true })\"",
+    "test": "bun run build && bun run test:built",
+    "test:built": "bun run verify:frame && tsc -p tsconfig.test.json && bun run stage:test && node --test --test-concurrency=4 dist-test/*.test.js",
+    "smoke": "node smoke-test.mjs",
+    "smoke:quiet": "node quiet-stream-smoke.mjs",
+    "smoke:projects": "node project-access-smoke.mjs",
+    "smoke:live": "node live-tools-smoke.mjs",
+    "test:answer-key": "node run-answer-key.mjs",
+    "prepack": "bun run build"
+  },
+  "dependencies": {
+    "@ancplua/qyl-semantic-conventions": "15.0.2",
+    "@modelcontextprotocol/core": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.223.0",
+    "@opentelemetry/core": "2.12.0",
+    "@opentelemetry/exporter-logs-otlp-proto": "0.223.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "0.223.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.223.0",
+    "@opentelemetry/resources": "2.12.0",
+    "@opentelemetry/sdk-logs": "0.223.0",
+    "@opentelemetry/sdk-metrics": "2.12.0",
+    "@opentelemetry/sdk-trace-base": "2.12.0",
+    "@opentelemetry/sdk-trace-node": "2.12.0",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@types/bun": "1.4.3",
+    "@types/node": "26.6.5",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "protobufjs": "8.8.1",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": "24.x",
+    "bun": ">=1.4"
+  },
+  "packageManager": "bun@1.4.3"
+}

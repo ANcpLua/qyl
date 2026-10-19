@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Qyl.Sdk.Conformance</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Qyl.Telemetry.Hosting" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Target Name="VerifyReleasedQylSdkPackage" BeforeTargets="CoreCompile">
+    <Error Condition="'$(PkgQyl_Telemetry_Hosting)' == ''"
+           Text="Qyl.Sdk.Conformance must compile against the centrally pinned released Qyl.Telemetry.Hosting NuGet package." />
+  </Target>
+
+</Project>

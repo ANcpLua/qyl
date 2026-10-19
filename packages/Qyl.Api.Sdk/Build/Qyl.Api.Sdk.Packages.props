@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Package versions pinned by Qyl.Api.Sdk. Consumers do not declare these; the SDK does.
+    Every value resolves through a property owned by the repository's Version.props, so a bump
+    is a one-line edit in one place. Qyl.Api.Sdk.csproj writes the resolved copy of this file
+    into the package, because a consumer outside this repository has no Version.props to read.
+  -->
+  <PropertyGroup>
+    <_QylApiSdkPackagesImported>true</_QylApiSdkPackagesImported>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The central version for the document model; Qyl.Api.Sdk.targets references it directly as
+         well, so a consumer without central package management is pinned to the same one. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="$(QylOpenApiModelVersion)" />
+  </ItemGroup>
+</Project>

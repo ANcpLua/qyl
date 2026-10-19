@@ -1,0 +1,240 @@
+using DuckDB.NET.Data;
+using Qyl.Collector.Storage;
+
+namespace Qyl.Collector.Tests;
+
+/// <summary>
+/// A database written by an earlier build holds telemetry, so the fail-closed schema check must let
+/// exactly the additive releases through and nothing else: tables the build adds (Contract 11.6.0
+/// added annotations, saved queries and idempotency keys) are created empty, nullable columns the
+/// build appends to a table (the span instrumentation scope) are added with NULL in every stored
+/// row, and any other difference refuses to open the database.
+/// </summary>
+[TestClass]
+public sealed class SchemaEvolutionTests(TestContext testContext)
+{
+    private const string PreviousHash = "a20800b2a7d212fc3d284bf43b0ade1bf4dde1203f312623bad6a53d09911c19";
+
+    private static readonly string[] s_telemetryTables = ["logs", "metric_observations", "metric_series", "spans"];
+    private static readonly string[] s_addedTables = ["analysis_state", "annotations", "idempotency_keys", "saved_queries"];
+    private static readonly string[] s_derivedMetricTables = ["metric_exemplars", "metric_points"];
+    private static readonly string[] s_appendedSpanColumns =
+    [
+        "scope_name", "scope_version", "scope_schema_url", "scope_attributes_json",
+        "scope_dropped_attributes_count", "resource_schema_url", "resource_dropped_attributes_count",
+        "trace_state", "flags", "dropped_attributes_count", "dropped_events_count", "dropped_links_count"
+    ];
+
+    [TestMethod]
+    public void The_authoritative_tables_are_the_telemetry_tables_plus_the_added_ones()
+    {
+        Assert.AreSequenceEqual(
+            s_telemetryTables.Concat(s_addedTables).Order(StringComparer.Ordinal),
+            DuckDbGeneratedSchema.AuthoritativeTableNames.Order(StringComparer.Ordinal));
+        Assert.AreSequenceEqual(s_derivedMetricTables,
+            DuckDbGeneratedSchema.DerivedTableNames.Order(StringComparer.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task A_previous_database_with_telemetry_opens_and_gains_the_resource_tables()
+    {
+        var path = await PreviousBuildDatabaseAsync(PreviousHash);
+        try
+        {
+            await using (var store = new DuckDbStore(path))
+            {
+                Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+                Assert.IsEmpty(await store.ListSavedQueriesAsync("alpha", null, null, 10,
+                    testContext.CancellationToken));
+            }
+
+            await using var con = Open(path);
+            s_addedTables.ToList().ForEach(table => Assert.IsTrue(TableExists(con, table)));
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
+            Assert.AreEqual(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
+        }
+        finally
+        {
+            DeleteDatabase(path);
+        }
+    }
+
+    [TestMethod]
+    [DataRow("analysis_state")]
+    [DataRow("metric_exemplars")]
+    public async Task A_previous_resource_schema_gains_only_the_new_table(string newTable)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"qyl-analysis-schema-{Guid.NewGuid():N}.duckdb");
+        try
+        {
+            await using (var previous = new DuckDbStore(path))
+                await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]), testContext.CancellationToken);
+            await using (var con = Open(path))
+            {
+                Execute(con, "DROP TABLE " + newTable);
+                Stamp(con, PreviousHash);
+            }
+            await using var store = new DuckDbStore(path);
+            Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+            var snapshot = await store.ReadAnalysisSnapshotAsync("alpha", ct: testContext.CancellationToken);
+            Assert.IsEmpty(snapshot.State);
+            Assert.IsEmpty(snapshot.Exemplars);
+        }
+        finally { DeleteDatabase(path); }
+    }
+
+    [TestMethod]
+    public async Task A_spans_table_without_the_scope_columns_gains_them_and_keeps_its_rows()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"qyl-scope-schema-{Guid.NewGuid():N}.duckdb");
+        try
+        {
+            await using (var previous = new DuckDbStore(path))
+            {
+                await previous.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]),
+                    testContext.CancellationToken);
+            }
+
+            await using (var con = Open(path))
+            {
+                DropIndexes(con, "spans");
+                foreach (var column in s_appendedSpanColumns.Reverse())
+                    Execute(con, $"ALTER TABLE spans DROP COLUMN {column}");
+                // The previous build's indexes are in place when the store opens, as on a live
+                // database: ADD COLUMN must work beside them (dropping and recreating them in the
+                // same transaction crashed DuckDB 1.5.6 with "pure virtual method called").
+                Execute(con, SpanStorageRow.IndexesDdl);
+                Stamp(con, PreviousHash);
+            }
+
+            await using (var store = new DuckDbStore(path))
+            {
+                var kept = Assert.ContainsSingle(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+                Assert.IsNull(kept.ScopeName);
+                Assert.IsNull(kept.ScopeVersion);
+
+                await store.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(CollectorApiTestHost.TraceId(2), CollectorApiTestHost.SpanId(2), 3, 4)
+                    with { ScopeName = "Qyl.Telemetry.AutoInstrumentation", ScopeVersion = "3.1.0" }]), testContext.CancellationToken);
+                var scoped = Assert.ContainsSingle(static span => span.ScopeName is not null,await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
+                Assert.AreEqual("3.1.0", scoped.ScopeVersion);
+            }
+
+            await using (var con = Open(path))
+            {
+                await using var cmd = con.CreateCommand();
+                cmd.CommandText = "SELECT authoritative_schema_hash FROM qyl_schema_meta";
+                Assert.AreEqual(DuckDbGeneratedSchema.AuthoritativeHash, cmd.ExecuteScalar());
+                var expected = DuckDbGeneratedSchema.AuthoritativeTables.Single(static table => table.Name == "spans");
+                Assert.AreEqual(expected.Indexes.Length, IndexCount(con, "spans"));
+            }
+
+            // Re-opening the migrated database is a plain match: nothing left to add.
+            await using (var reopened = new DuckDbStore(path))
+                Assert.AreEqual(2, (await reopened.GetSpansAsync("alpha", ct: testContext.CancellationToken)).Count);
+        }
+        finally { DeleteDatabase(path); }
+    }
+
+    [TestMethod]
+    public async Task A_non_additive_difference_still_fails_closed_while_telemetry_exists()
+    {
+        var path = await PreviousBuildDatabaseAsync(PreviousHash);
+        try
+        {
+            await using (var con = Open(path))
+            {
+                // A column removed from the middle of spans: the stored columns are no prefix of this build's.
+                DropIndexes(con, "spans");
+                Execute(con, "ALTER TABLE spans DROP COLUMN status_message");
+                Execute(con, SpanStorageRow.IndexesDdl);
+            }
+
+            Assert.ThrowsExactly<QylSchemaMismatchException>(() => new DuckDbStore(path));
+        }
+        finally
+        {
+            DeleteDatabase(path);
+        }
+    }
+
+    // Writes a database with today's build, then turns it into what the previous build left on
+    // disk: no resource tables and the given stored identity, with one span of telemetry.
+    private async Task<string> PreviousBuildDatabaseAsync(string storedHash)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"qyl-schema-{Guid.NewGuid():N}.duckdb");
+        await using (var store = new DuckDbStore(path))
+        {
+            await store.EnqueueAsync(new SpanBatch([CollectorApiTestHost.Span(
+                CollectorApiTestHost.TraceId(1), CollectorApiTestHost.SpanId(1), 1, 2)]),
+                testContext.CancellationToken);
+        }
+
+        await using var con = Open(path);
+        foreach (var table in s_addedTables)
+            Execute(con, $"DROP TABLE \"{table}\"");
+        Stamp(con, storedHash);
+        return path;
+    }
+
+    private static DuckDBConnection Open(string path)
+    {
+        var con = new DuckDBConnection($"DataSource={path}");
+        con.Open();
+        return con;
+    }
+
+    private static void Execute(DuckDBConnection con, string sql)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
+
+    private static void Stamp(DuckDBConnection con, string storedHash)
+    {
+        using var stamp = con.CreateCommand();
+        stamp.CommandText = "UPDATE qyl_schema_meta SET authoritative_schema_hash = $1";
+        stamp.Parameters.Add(new DuckDBParameter { Value = storedHash });
+        stamp.ExecuteNonQuery();
+    }
+
+    // DuckDB refuses to drop a column of a table an index depends on.
+    private static void DropIndexes(DuckDBConnection con, string table)
+    {
+        var names = new List<string>();
+        using (var cmd = con.CreateCommand())
+        {
+            cmd.CommandText = "SELECT index_name FROM duckdb_indexes() WHERE table_name = $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = table });
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                names.Add(reader.GetString(0));
+        }
+
+        foreach (var name in names)
+            Execute(con, $"DROP INDEX \"{name}\"");
+    }
+
+    private static int IndexCount(DuckDBConnection con, string table)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = "SELECT count(*) FROM duckdb_indexes() WHERE table_name = $1";
+        cmd.Parameters.Add(new DuckDBParameter { Value = table });
+        return Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static bool TableExists(DuckDBConnection con, string table)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = "SELECT count(*) FROM duckdb_tables() WHERE table_name = $1";
+        cmd.Parameters.Add(new DuckDBParameter { Value = table });
+        return Convert.ToInt64(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) is 1;
+    }
+
+    private static void DeleteDatabase(string path)
+    {
+        File.Delete(path);
+        File.Delete(path + ".wal");
+    }
+}

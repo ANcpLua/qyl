@@ -1,0 +1,182 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Qyl.Telemetry.SemanticConventions.Activities;
+using Qyl.Telemetry.SemanticConventions.Incubating.Activities;
+
+namespace Qyl.Run.Workload;
+
+// CA1812 cannot see instantiation through AddHostedService<T>'s type argument. This was silent
+// while the project granted InternalsVisibleTo to Qyl.Collector.Tests — an accidental suppression
+// that outlived the reference it came from.
+[SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes",
+    Justification = "Instantiated by the DI container via AddHostedService<WorkloadEmitter>().")]
+internal sealed partial class WorkloadEmitter(
+    ILogger<WorkloadEmitter> logger,
+    IHostApplicationLifetime applicationLifetime) : BackgroundService
+{
+    private const int SessionLoops = 3;
+
+    private const int ErrorPercent = 7;
+
+    // Real provider model ids, so demo spans carry a plausible gen_ai.request.model.
+    // Nothing resolves these against a catalog any more; they only need to look real.
+    private static readonly ModelSpec[] s_models =
+    [
+        new(GenAiProviderName.Anthropic, "anthropic/claude-opus-4.8", 800, 6000, 300, 2200, 900, 3200),
+        new(GenAiProviderName.Anthropic, "anthropic/claude-sonnet-5", 400, 4000, 150, 1500, 400, 1800),
+        new(GenAiProviderName.Anthropic, "anthropic/claude-haiku-4.5", 200, 2000, 60, 700, 150, 700),
+        new(GenAiProviderName.Openai, "openai/gpt-5.6-sol", 400, 4000, 150, 1400, 350, 1600),
+        new(GenAiProviderName.Openai, "openai/gpt-5.4-mini", 200, 2500, 80, 900, 200, 900),
+        new(GenAiProviderName.Openai, "openai/gpt-5.5", 300, 3000, 200, 1800, 700, 2800),
+        new(GenAiProviderName.GcpGemini, "google/gemini-3.1-pro-preview", 500, 5000, 200, 1600, 500, 2200),
+        new(GenAiProviderName.GcpGemini, "google/gemini-3.5-flash", 200, 2200, 60, 800, 150, 800),
+        new(GenAiProviderName.Mistral, "mistralai/mistral-large-2512", 300, 2800, 100, 1000, 300, 1300),
+        new(GenAiProviderName.Deepseek, "deepseek/deepseek-v4-flash", 300, 3500, 250, 2000, 800, 3000),
+    ];
+
+    private static readonly string[] s_routes = ["/api/chat", "/api/agents/plan", "/api/summarize", "/api/search"];
+
+    private static readonly string[] s_tables = ["conversations", "messages", "embeddings"];
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        if (string.Equals(Environment.GetEnvironmentVariable("QYL_WORKLOAD_ONESHOT"), "1",
+                StringComparison.Ordinal))
+        {
+            await EmitConversationTurnAsync($"acceptance-{Guid.NewGuid():N}"[..28], stoppingToken,
+                    allowFailure: false)
+                .ConfigureAwait(false);
+            applicationLifetime.StopApplication();
+            return;
+        }
+
+        LogWorkloadStarted(logger, SessionLoops);
+        try
+        {
+            await Task.WhenAll(Enumerable.Range(0, SessionLoops)
+                .Select(slot => RunSessionLoopAsync(slot, stoppingToken))).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutdown — nothing to flush here; the OTel SDK providers drain on host dispose.
+        }
+    }
+
+    private async Task RunSessionLoopAsync(int slot, CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var sessionId = $"demo-{slot}-{Guid.NewGuid():N}"[..21];
+            var turns = Random.Shared.Next(6, 18);
+            LogSessionStarted(logger, sessionId, turns);
+
+            for (var turn = 0; turn < turns && !stoppingToken.IsCancellationRequested; turn++)
+            {
+                await EmitConversationTurnAsync(sessionId, stoppingToken).ConfigureAwait(false);
+                await Task.Delay(Random.Shared.Next(400, 2600), stoppingToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Avoids the <c>invoke_agent</c> prefix because session aggregation treats those spans
+    /// as roll-ups and would double-count them.
+    /// </summary>
+    private async Task EmitConversationTurnAsync(string sessionId, CancellationToken stoppingToken,
+        bool allowFailure = true)
+    {
+        var model = s_models[Random.Shared.Next(s_models.Length)];
+        var route = s_routes[Random.Shared.Next(s_routes.Length)];
+        var failed = allowFailure && Random.Shared.Next(100) < ErrorPercent;
+
+        using var root = WorkloadTelemetry.Source.StartActivity($"POST {route}", ActivityKind.Server);
+        if (root is null)
+        {
+            return;
+        }
+
+        root.SetHttpRequestMethod(HttpRequestMethod.Post)
+            .SetHttpRoute(route)
+            .SetServerAddress("127.0.0.1")
+            .SetSessionId(sessionId);
+
+        await EmitDbSpanAsync(sessionId, stoppingToken).ConfigureAwait(false);
+        var latencyMs = await EmitGenAiSpanAsync(sessionId, route, model, failed, stoppingToken)
+            .ConfigureAwait(false);
+
+        var statusCode = failed ? StatusCodes.Status429TooManyRequests : StatusCodes.Status200OK;
+        root.SetHttpResponseStatusCode(statusCode);
+        if (failed)
+        {
+            root.RecordFailure(ErrorType.Custom(statusCode.ToString(CultureInfo.InvariantCulture)),
+                "upstream model rate limited");
+            LogTurnFailed(logger, model.Provider.Value, model.Model, latencyMs);
+        }
+    }
+
+    private static async Task EmitDbSpanAsync(string sessionId, CancellationToken stoppingToken)
+    {
+        var table = s_tables[Random.Shared.Next(s_tables.Length)];
+        var durationMs = Random.Shared.Next(2, 28);
+
+        using var span = Spans.DbClient(DbSystemName.Postgresql, collectionName: table, @namespace: "qyl_demo",
+            operationName: "SELECT", serverPort: null);
+        span?.SetSessionId(sessionId);
+
+        await Task.Delay(durationMs, stoppingToken).ConfigureAwait(false);
+    }
+
+    private async Task<int> EmitGenAiSpanAsync(string sessionId, string route, ModelSpec model, bool failed,
+        CancellationToken stoppingToken)
+    {
+        var latencyMs = Random.Shared.Next(model.LatencyMinMs, model.LatencyMaxMs);
+        var inputTokens = Random.Shared.Next(model.InputMin, model.InputMax);
+        var outputTokens = Random.Shared.Next(model.OutputMin, model.OutputMax);
+
+        using var span = WorkloadTelemetry.Source.StartActivity($"chat {model.Model}", ActivityKind.Client);
+        span?.SetGenAiOperationName(GenAiOperationName.Chat)
+            .SetGenAiOutputType(route is "/api/search" ? GenAiOutputType.Json : GenAiOutputType.Text)
+            .SetGenAiProviderName(model.Provider)
+            .SetGenAiRequestModel(model.Model)
+            .SetGenAiRequestTemperature(Math.Round(Random.Shared.NextDouble(), 2, MidpointRounding.AwayFromZero))
+            .SetSessionId(sessionId);
+
+        await Task.Delay(latencyMs, stoppingToken).ConfigureAwait(false);
+
+        if (failed)
+        {
+            span?.RecordFailure(ErrorType.Custom("rate_limit_exceeded"), "429 from provider");
+        }
+        else
+        {
+            span?.SetGenAiResponseModel(model.Model)
+                .SetGenAiResponseFinishReasons(["stop"])
+                .SetGenAiUsageInputTokens(inputTokens)
+                .SetGenAiUsageOutputTokens(outputTokens);
+
+            LogTurnCompleted(logger, model.Provider.Value, model.Model, inputTokens, outputTokens, latencyMs);
+        }
+
+        return latencyMs;
+    }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "workload started: {SessionLoops} concurrent session loops")]
+    private static partial void LogWorkloadStarted(ILogger logger, int sessionLoops);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "session {SessionId} started ({Turns} turns)")]
+    private static partial void LogSessionStarted(ILogger logger, string sessionId, int turns);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "chat completed: {Provider}/{Model} {InputTokens}->{OutputTokens} tokens in {LatencyMs} ms")]
+    private static partial void LogTurnCompleted(ILogger logger, string provider, string model, int inputTokens,
+        int outputTokens, int latencyMs);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "chat failed: {Provider}/{Model} rate limited after {LatencyMs} ms")]
+    private static partial void LogTurnFailed(ILogger logger, string provider, string model, int latencyMs);
+
+    private sealed record ModelSpec(GenAiProviderName Provider, string Model, int InputMin, int InputMax, int OutputMin,
+        int OutputMax, int LatencyMinMs, int LatencyMaxMs);
+}

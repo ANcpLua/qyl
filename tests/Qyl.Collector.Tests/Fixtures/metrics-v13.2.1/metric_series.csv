@@ -1,0 +1,2 @@
+project_id,series_id,metric_name,metric_kind,temporality,is_monotonic,unit,description,service_name,schema_url,attributes_json,resource_json,resource_entity_refs_json,first_seen_unix_nano,last_seen_unix_nano
+default,ms_114169e19d265e3aed5f220bb3152ead,historical.counter,2,2,1,{item},Written by the released v13.2.1 collector,v13-fixture,,"{""http.route"":""/historical""}","{""service.name"":""v13-fixture""}",,1700000000000000000,1700000000000000000

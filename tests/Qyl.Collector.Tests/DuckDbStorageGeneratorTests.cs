@@ -1,0 +1,169 @@
+using DuckDB.NET.Data;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Qyl.Collector.Storage;
+using Qyl.Collector.Storage.Generators;
+
+namespace Qyl.Collector.Tests;
+
+[TestClass]
+public sealed class DuckDbStorageGeneratorTests(TestContext testContext)
+{
+    [TestMethod]
+    public void Schema_appender_and_arrow_output_share_one_deterministic_table_model()
+    {
+        const string Source = """
+                              namespace Qyl.Collector.Storage;
+
+                              [DuckDbTable(
+                                  "probe_rows",
+                                  AppenderEligible = true,
+                                  ArrowEligible = true,
+                                  Derived = true)]
+                              internal sealed partial record ProbeRow
+                              {
+                                  [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+                                  public required string Id { get; init; }
+
+                                  public required byte[] Payload { get; init; }
+
+                                  public string? OptionalText { get; init; }
+                              }
+                              """;
+
+        var first = Generate(Source);
+        var second = Generate(Source);
+
+        Assert.AreEqual(first, second);
+        Assert.Contains("\"payload\" BLOB NOT NULL", first, StringComparison.Ordinal);
+        Assert.Contains("public const string DerivedHash = \"", first, StringComparison.Ordinal);
+        Assert.Contains("appender.AppendRow(state, static (row, value) =>", first, StringComparison.Ordinal);
+        Assert.Contains("row.AppendValue(value.Payload);", first, StringComparison.Ordinal);
+        Assert.Contains("ReadArrowRowsAsync<TState>", first, StringComparison.Ordinal);
+        Assert.Contains("command.UseStreamingMode = true;", first, StringComparison.Ordinal);
+        Assert.Contains("ExecuteArrowBatchesAsync(cancellationToken)", first, StringComparison.Ordinal);
+        Assert.Contains("((BinaryArray)batch.Column(1)).GetBytes(rowIndex).ToArray()", first,
+            StringComparison.Ordinal);
+        Assert.Contains("((StringArray)batch.Column(2)).GetString(rowIndex)", first,
+            StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void Named_parameter_set_tracks_property_rename_from_canonical_metadata()
+    {
+        const string Source = """
+                              namespace Qyl.Collector.Storage;
+
+                              [DuckDbTable(
+                                  "probe_rows",
+                                  ParameterSets = "Advance:RenamedSequence,Id")]
+                              internal sealed partial record ProbeRow
+                              {
+                                  public ulong RenamedSequence { get; init; }
+                                  public required string Id { get; init; }
+                              }
+                              """;
+
+        var generated = Generate(Source);
+
+        Assert.Contains("public const string AdvanceColumnList", generated, StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string RenamedSequenceColumnName = \"\\\"renamed_sequence\\\"\";",
+            generated,
+            StringComparison.Ordinal);
+        Assert.Contains("\"renamed_sequence\", \"id\"", generated, StringComparison.Ordinal);
+        Assert.Contains("public static void AddAdvanceParameters(", generated, StringComparison.Ordinal);
+        Assert.Contains("ulong renamedSequence,", generated, StringComparison.Ordinal);
+        Assert.Contains("string id)", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"sequence\", \"id\"", generated, StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void Named_parameter_set_order_is_independent_of_physical_declaration_order()
+    {
+        const string First = """
+                             namespace Qyl.Collector.Storage;
+                             [DuckDbTable("probe_rows", ParameterSets = "Advance:Id,Sequence")]
+                             internal sealed partial record ProbeRow
+                             {
+                                 public ulong Sequence { get; init; }
+                                 public required string Id { get; init; }
+                             }
+                             """;
+        const string Reordered = """
+                                 namespace Qyl.Collector.Storage;
+                                 [DuckDbTable("probe_rows", ParameterSets = "Advance:Id,Sequence")]
+                                 internal sealed partial record ProbeRow
+                                 {
+                                     public required string Id { get; init; }
+                                     public ulong Sequence { get; init; }
+                                 }
+                                 """;
+
+        foreach (var generated in new[] { Generate(First), Generate(Reordered) })
+        {
+            Assert.Contains("\"id\", \"sequence\"", generated, StringComparison.Ordinal);
+            Assert.IsTrue(
+                generated.IndexOf("string id,", StringComparison.Ordinal) <
+                generated.IndexOf("ulong sequence)", StringComparison.Ordinal));
+        }
+    }
+
+    private static string Generate(string source)
+    {
+        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+            .Split(Path.PathSeparator)
+            .Select(static path => MetadataReference.CreateFromFile(path));
+        var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
+        var compilation = CSharpCompilation.Create(
+            "GeneratorProbe",
+            [CSharpSyntaxTree.ParseText(source, parseOptions)],
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            [new DuckDbInsertGenerator().AsSourceGenerator()],
+            parseOptions: parseOptions);
+        driver = driver.RunGenerators(compilation);
+        var result = driver.GetRunResult();
+        Assert.IsEmpty(result.Diagnostics.Where(static diagnostic =>
+            diagnostic.Severity is DiagnosticSeverity.Error));
+        return string.Join(
+            "\n",
+            result.Results
+                .SelectMany(static generator => generator.GeneratedSources)
+                .OrderBy(static generated => generated.HintName, StringComparer.Ordinal)
+                .Select(static generated => generated.SourceText.ToString()));
+    }
+
+    [TestMethod]
+    public async Task A_uuid_default_matches_the_form_DuckDB_reports_for_it()
+    {
+        var ct = testContext.CancellationToken;
+        await using var connection = new DuckDBConnection("Data Source=:memory:");
+        await connection.OpenAsync(ct);
+        await using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE defaults_probe (id VARCHAR DEFAULT uuid()::varchar)";
+            await create.ExecuteNonQueryAsync(ct);
+        }
+
+        await using var read = connection.CreateCommand();
+        read.CommandText = "SELECT column_default FROM duckdb_columns() WHERE table_name = 'defaults_probe'";
+        var reported = (string?)await read.ExecuteScalarAsync(ct);
+
+        Assert.IsTrue(DuckDbStore.DefaultsMatch(reported, "uuid()::varchar"), reported);
+    }
+
+    [TestMethod]
+    [DataRow("nextval('logs_ingest_sequence')", "nextval('logs_ingest_sequence')")]
+    [DataRow("(0)", "0")]
+    public void Live_defaults_match_their_declared_form(string reported, string declared) =>
+        Assert.IsTrue(DuckDbStore.DefaultsMatch(reported, declared));
+
+    [TestMethod]
+    [DataRow("nextval('other_sequence')", "nextval('logs_ingest_sequence')")]
+    [DataRow("1", "0")]
+    [DataRow(null, "0")]
+    public void Different_defaults_do_not_match(string? reported, string declared) =>
+        Assert.IsFalse(DuckDbStore.DefaultsMatch(reported, declared));
+}

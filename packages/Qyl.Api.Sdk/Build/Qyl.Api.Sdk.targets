@@ -1,0 +1,192 @@
+<Project>
+  <PropertyGroup>
+    <!-- Packed form: the generator ships under analyzers/dotnet/cs; in-repo form: it is a project next to this file. -->
+    <_QylApiSdkPackagedGenerator>$(QylApiSdkRoot)analyzers/dotnet/cs/Qyl.Api.Sdk.Xml.Generator.dll</_QylApiSdkPackagedGenerator>
+    <_QylApiSdkPackagedXml>$(QylApiSdkRoot)lib/net10.0/Qyl.Xml.dll</_QylApiSdkPackagedXml>
+    <_QylApiSdkPackagedApi>$(QylApiSdkRoot)lib/net10.0/Qyl.Api.dll</_QylApiSdkPackagedApi>
+    <QylApiSdkPackaged Condition="'$(QylApiSdkPackaged)' == '' and Exists('$(_QylApiSdkPackagedGenerator)')">true</QylApiSdkPackaged>
+  </PropertyGroup>
+
+  <!--
+    The SDK owns these versions, so under central package management it states them as a
+    VersionOverride: that satisfies NU1010 without the consuming repository declaring a
+    PackageVersion, and unlike IsImplicitlyDefined it does not collide (NU1009) with a
+    repository that declares one for its own projects.
+  -->
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"
+                      VersionOverride="$(QylAspNetCoreOpenApiVersion)" />
+    <!-- Direct, not transitive: Microsoft.AspNetCore.OpenApi accepts [2.7.5, 3.0.0) and a
+         consumer left on the low end loads a different Microsoft.OpenApi than Qyl.Api was
+         compiled against (MSB3277 at build, a binding failure at runtime). -->
+    <PackageReference Include="Microsoft.OpenApi"
+                      VersionOverride="$(QylOpenApiModelVersion)" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
+                      VersionOverride="$(QylApiDescriptionServerVersion)"
+                      PrivateAssets="all"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <!-- Telemetry is as mandatory as validation: AddQylApi ends in AddQyl(). The family keeps its own
+         release line, so it stays a pinned package reference rather than being folded into Qyl.Api.dll.
+         Qyl.Telemetry.Hosting ships lib only; the interceptor generator ships under analyzers/dotnet/cs in
+         Qyl.Telemetry.AutoInstrumentation and reaches the consumer through that package's buildTransitive
+         assets, two hops down (Hosting -> AutoInstrumentation.Hosting -> AutoInstrumentation, include="All").
+         Named directly as well because those hops are minimum-version dependencies, not exact ones: a
+         consumer resolving the graph on its own could land the compile-time half above QylTelemetryVersion
+         while the runtime half stays pinned. One property, both halves, no range to drift through. -->
+    <PackageReference Include="Qyl.Telemetry.Hosting"
+                      VersionOverride="$(QylTelemetryVersion)" />
+    <PackageReference Include="Qyl.Telemetry.AutoInstrumentation"
+                      VersionOverride="$(QylTelemetryVersion)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"
+                      Version="$(QylAspNetCoreOpenApiVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.OpenApi"
+                      Version="$(QylOpenApiModelVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server"
+                      Version="$(QylApiDescriptionServerVersion)"
+                      PrivateAssets="all"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Qyl.Telemetry.Hosting"
+                      Version="$(QylTelemetryVersion)"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Include="Qyl.Telemetry.AutoInstrumentation"
+                      Version="$(QylTelemetryVersion)"
+                      IsImplicitlyDefined="true" />
+  </ItemGroup>
+
+  <!-- The compiled SDK: the Qyl.Xml contract and the Qyl.Api runtime as references, the [GenerateXml] generator as an analyzer only. -->
+  <ItemGroup Condition="'$(QylApiSdkPackaged)' == 'true'">
+    <Reference Include="Qyl.Xml">
+      <HintPath>$(_QylApiSdkPackagedXml)</HintPath>
+    </Reference>
+    <Reference Include="Qyl.Api">
+      <HintPath>$(_QylApiSdkPackagedApi)</HintPath>
+    </Reference>
+    <Analyzer Include="$(_QylApiSdkPackagedGenerator)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(QylApiSdkPackaged)' != 'true'">
+    <ProjectReference Include="$(QylApiSdkXmlProject)" />
+    <ProjectReference Include="$(QylApiSdkApiProject)" />
+    <!--
+      No SetTargetFramework: the generator has one target framework, and forcing it as a global property would build a second
+      instance of the project, whose rebuild races the first instance's output away from other referrers (the tests).
+    -->
+    <ProjectReference Include="$(QylApiSdkXmlGeneratorProject)"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!--
+    Build-time values the SDK sources read at runtime, written before compilation so MSBuild, not code, owns them.
+    Properties are evaluated inside the target because IntermediateOutputPath is defined by Microsoft.Common.targets,
+    which imports after this file. Semicolons are escaped as %3B: WriteLinesToFile would otherwise split the source.
+    An angle bracket inside a generated documentation comment therefore needs both escapes at once —
+    `&amp;lt%3B` is XML-decoded to `&lt%3B` and unescaped to `&lt;` — because an unescaped one is invalid XML in the
+    consumer's own compilation (CS1570 in every build of every Qyl API) and a bare `;` would cut the file in half.
+  -->
+  <Target Name="QylGenerateApiSdkBuildInfo" BeforeTargets="CoreCompile">
+    <!-- The value becomes a Microsoft.OpenApi.OpenApiSpecVersion member and a tool argument; an unknown one would
+         otherwise surface as CS0117 in generated code or a tool failure after compilation. -->
+    <Error Condition="'$(QylOpenApiVersion)' != 'OpenApi2_0' and '$(QylOpenApiVersion)' != 'OpenApi3_0' and '$(QylOpenApiVersion)' != 'OpenApi3_1'"
+           Code="QYLSDK0003"
+           Text="QylOpenApiVersion is '$(QylOpenApiVersion)'. It must name a Microsoft.OpenApi.OpenApiSpecVersion member: OpenApi2_0, OpenApi3_0 or OpenApi3_1." />
+    <PropertyGroup>
+      <!-- The tool names the file from the project, not the assembly: Microsoft.Extensions.ApiDescription.Server
+           passes the project name as its own argument and never a file name. A project whose AssemblyName
+           differs from its project name would otherwise hash a path that never exists. -->
+      <QylOpenApiDocumentFile Condition="'$(QylOpenApiDocumentFile)' == ''">$(QylOpenApiDocumentsDirectory)/$(MSBuildProjectName).json</QylOpenApiDocumentFile>
+    </PropertyGroup>
+
+    <!--
+      The contract revision is the SHA-256 of the committed OpenAPI document, taken before the compilation that
+      the build-time document tool then re-emits. It is MSBuild's to compute, not the process's: a binary must
+      report the contract it was compiled against, not one it reads off disk at start-up and could be lied to about.
+      The value is empty on a project's very first build, which is the one build where no contract is committed yet;
+      that is a fact about the binary, not a case to branch on, so the attribute is still exported.
+    -->
+    <GetFileHash Files="$(QylOpenApiDocumentFile)"
+                 Algorithm="SHA256"
+                 HashEncoding="hex"
+                 Condition="Exists('$(QylOpenApiDocumentFile)')">
+      <Output TaskParameter="Hash" PropertyName="_QylContractRevision" />
+    </GetFileHash>
+
+    <!--
+      The value format is the registry's, not this file's: qyl.api.contract.revision is defined as
+      `sha256:<hex>`, the same spelling the collector already reports from /health, so the algorithm
+      travels with the digest and a future one is a value change rather than a silent reinterpretation.
+    -->
+    <PropertyGroup Condition="'$(_QylContractRevision)' != ''">
+      <_QylContractRevision>sha256:$(_QylContractRevision.ToLowerInvariant())</_QylContractRevision>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <_QylApiSdkBuildInfoFile>$(IntermediateOutputPath)QylApiSdkBuild.g.cs</_QylApiSdkBuildInfoFile>
+      <_QylApiSdkBuildInfoSource>// &lt;auto-generated/&gt;
+// Written by Qyl.Api.Sdk.targets from MSBuild properties. Change the property, not this file.
+#nullable enable
+namespace Qyl
+{
+    /// &lt;summary&gt;Values fixed at build time by the Qyl.Api.Sdk MSBuild properties.&lt;/summary&gt;
+    internal static class QylApiSdkBuild
+    {
+        /// &lt;summary&gt;The OpenAPI specification version (`QylOpenApiVersion`), shared with the build-time document tool.&lt;/summary&gt;
+        public const global::Microsoft.OpenApi.OpenApiSpecVersion OpenApiVersion = global::Microsoft.OpenApi.OpenApiSpecVersion.$(QylOpenApiVersion)%3B
+
+        /// &lt;summary&gt;The digest of the committed OpenAPI document (`QylOpenApiDocumentFile`) as the registry spells it: `sha256:&amp;lt%3Blowercase hex&amp;gt%3B`.&lt;/summary&gt;
+        public const string ContractRevision = "$(_QylContractRevision)"%3B
+    }
+}</_QylApiSdkBuildInfoSource>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_QylApiSdkBuildInfoFile)" Lines="$(_QylApiSdkBuildInfoSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+    <ItemGroup>
+      <Compile Include="$(_QylApiSdkBuildInfoFile)" Link="Qyl.Api.Sdk/QylApiSdkBuild.g.cs" />
+      <FileWrites Include="$(_QylApiSdkBuildInfoFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    The revision is the committed document's digest by definition, and the document is regenerated after the
+    compilation that carries it (the tool runs on the built assembly). So a contract change compiles a digest of
+    the *previous* document and would ship a binary naming a contract it does not serve. Rather than let that
+    through, the build fails and asks for the regenerated document to be committed: the second build is green.
+    This is the check `ApiSdkContractIsCommitted` runs for the sample, moved into the SDK so it holds for every
+    consumer — including the first build of a new project, where the document appears for the first time.
+  -->
+  <Target Name="QylVerifyContractRevision"
+          AfterTargets="GenerateOpenApiDocuments">
+    <Error Condition="!Exists('$(QylOpenApiDocumentFile)')"
+           Code="QYLSDK0002"
+           Text="The Qyl API's OpenAPI document was not produced at $(QylOpenApiDocumentFile). It is a committed build artifact and the contract revision every span carries is its digest; a Qyl API cannot be built without it." />
+
+    <GetFileHash Files="$(QylOpenApiDocumentFile)" Algorithm="SHA256" HashEncoding="hex">
+      <Output TaskParameter="Hash" PropertyName="_QylBuiltContractRevision" />
+    </GetFileHash>
+
+    <PropertyGroup>
+      <_QylBuiltContractRevision>sha256:$(_QylBuiltContractRevision.ToLowerInvariant())</_QylBuiltContractRevision>
+    </PropertyGroup>
+
+    <Error Condition="'$(_QylBuiltContractRevision)' != '$(_QylContractRevision)'"
+           Code="QYLSDK0001"
+           Text="The OpenAPI contract changed: this build compiled the revision '$(_QylContractRevision)' and produced '$(_QylBuiltContractRevision)'. $(QylOpenApiDocumentFile) has been rewritten; commit it and build again, so the binary reports the contract it serves." />
+  </Target>
+
+  <!--
+    Keep every generator's output inspectable. The path is scoped by configuration and target
+    framework because BaseIntermediateOutputPath is per project, not per build: a repository that
+    redirects it (this one points it at artifacts/obj/<project>/) would otherwise have a Debug and
+    a Release build overwrite each other's generated sources in one directory. IntermediateOutputPath
+    itself is not usable here — Microsoft.Common.targets defines it after this file is imported.
+  -->
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+</Project>

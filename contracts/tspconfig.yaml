@@ -1,0 +1,30 @@
+# qyl API contract compilation: the committed OpenAPI (openapi/), the C# contracts
+# (internal/qyl.contracts) and the MCP's TypeScript types (services/qyl.mcp/src/contracts/generated).
+# The emitters and the linter are in-repo and loaded by path.
+
+emit:
+  - "./emitters/csharp"
+  - "./emitters/ts-types"
+  - "@typespec/openapi3"
+
+options:
+  "@ancplua/typespec-emit-csharp":
+    emitter-output-dir: "{project-root}/../internal/qyl.contracts"
+
+  "@ancplua/typespec-emit-ts-types":
+    emitter-output-dir: "{project-root}/../services/qyl.mcp/src/contracts/generated"
+
+  "@typespec/openapi3":
+    emitter-output-dir: "{project-root}/openapi"
+    output-file: "qyl.openapi.json"
+    file-type: json
+    openapi-versions:
+      - "3.2.0"
+    seal-object-schemas: true
+    omit-unreachable-types: false
+    operation-id-strategy: parent-container
+
+linter:
+  extends:
+    - "@typespec/http/all"
+    - "./emitters/qyl-lint/all"

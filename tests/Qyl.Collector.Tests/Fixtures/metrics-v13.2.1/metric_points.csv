@@ -1,0 +1,2 @@
+project_id,series_id,time_unix_nano,start_time_unix_nano,value,histogram_count,histogram_sum,histogram_min,histogram_max,bucket_bounds_json,bucket_counts_json
+default,ms_114169e19d265e3aed5f220bb3152ead,1700000000000000000,1699999999000000000,9007199254740992.0,,,,,,

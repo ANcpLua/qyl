@@ -1,0 +1,75 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Qyl.Cli</RootNamespace>
+    <PackageId>qyl</PackageId>
+    <Description>qyl local observability stack: `qyl up` launches the packaged collector and isolated diagnostics collector.</Description>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>qyl</ToolCommandName>
+    <QylToolRuntimeIdentifiers>linux-x64;linux-arm64;osx-x64;osx-arm64;win-x64;win-arm64</QylToolRuntimeIdentifiers>
+    <ToolPackageRuntimeIdentifiers Condition="'$(ToolPackageRuntimeIdentifiers)' == ''">$(QylToolRuntimeIdentifiers)</ToolPackageRuntimeIdentifiers>
+    <RuntimeIdentifiers>$(QylToolRuntimeIdentifiers)</RuntimeIdentifiers>
+    <IncludeSymbols>false</IncludeSymbols>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsAotCompatible>true</IsAotCompatible>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Qyl.Orchestration/Qyl.Orchestration.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <ProjectReference Include="../../internal/qyl.contracts/Qyl.Api.Contracts.csproj"/>
+    <!-- The runner's own telemetry (health probes, orchestration logs, failures) goes through the
+         published producer stack to the diagnostics collector it starts; see QylAppBuilder.Build. -->
+    <PackageReference Include="Qyl.Telemetry.Hosting"/>
+    <PackageReference Include="Spectre.Console"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Qyl.Cli.Tests"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <_QylCollectorProject>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '..', '..', 'services', 'qyl.collector', 'qyl.collector.csproj'))</_QylCollectorProject>
+    <_QylBundledCollectorDir>$([MSBuild]::NormalizeDirectory('$(BaseIntermediateOutputPath)', 'bundled-collector', '$(Configuration)', '$(RuntimeIdentifier)'))</_QylBundledCollectorDir>
+    <_QylBundledCollectorArtifactsRoot>$([MSBuild]::NormalizeDirectory('$(BaseIntermediateOutputPath)', 'bundled-collector-artifacts', '$(Configuration)'))</_QylBundledCollectorArtifactsRoot>
+    <_QylBundledCollectorArtifactsDir>$([MSBuild]::NormalizeDirectory('$(_QylBundledCollectorArtifactsRoot)', '$(RuntimeIdentifier)'))</_QylBundledCollectorArtifactsDir>
+  </PropertyGroup>
+
+  <!-- The SDK packs RID tool implementations in parallel. Restore the collector graphs serially
+       into per-RID artifact roots first: concurrent static-graph restores of the same project are
+       neither safe nor deterministic, even when the final publish directories differ. -->
+  <Target Name="QylRestoreCollectorsForToolPackage" BeforeTargets="_CreateRIDSpecificToolPackages"
+          Condition="'$(RuntimeIdentifier)' == ''">
+    <ItemGroup>
+      <_QylCollectorRestoreRid Include="$(ToolPackageRuntimeIdentifiers)"/>
+      <_QylCollectorRestoreProject Include="@(_QylCollectorRestoreRid->'$(_QylCollectorProject)')">
+        <AdditionalProperties>Configuration=$(Configuration);RuntimeIdentifier=%(_QylCollectorRestoreRid.Identity);SelfContained=false;UseAppHost=false;QylAot=false;Version=$(Version);ArtifactsPath=$(_QylBundledCollectorArtifactsRoot)%(_QylCollectorRestoreRid.Identity)/</AdditionalProperties>
+      </_QylCollectorRestoreProject>
+    </ItemGroup>
+    <MSBuild Projects="@(_QylCollectorRestoreProject)" Targets="Restore" BuildInParallel="false"/>
+  </Target>
+
+  <Target Name="QylBundleCollector" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)' != ''">
+    <RemoveDir Directories="$(_QylBundledCollectorDir)"/>
+    <MSBuild Projects="$(_QylCollectorProject)"
+             Targets="Publish"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=false;UseAppHost=false;QylAot=false;Version=$(Version);ArtifactsPath=$(_QylBundledCollectorArtifactsDir);PublishDir=$(_QylBundledCollectorDir)"/>
+    <Error Condition="!Exists('$(_QylBundledCollectorDir)qyl.collector.dll')"
+           Text="The bundled collector publish did not produce qyl.collector.dll for $(RuntimeIdentifier)."/>
+    <ItemGroup>
+      <_QylBundledCollectorFiles Include="$(_QylBundledCollectorDir)**/*"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(_QylBundledCollectorFiles)"
+          DestinationFiles="@(_QylBundledCollectorFiles->'$(PublishDir)collector/%(RecursiveDir)%(Filename)%(Extension)')"/>
+  </Target>
+
+  <ItemGroup>
+    <Using Include="Qyl.Orchestration.Internal" />
+  </ItemGroup>
+
+</Project>

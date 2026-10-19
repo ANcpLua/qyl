@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The runtime of a Qyl API as a compiled assembly: the builder AddQylApi returns, the typed results, the problem-details JSON
+    context, and the OpenAPI transformer that describes application/xml responses from the generated XmlShape. Everything that
+    does not have to sit in the consumer's compilation lives here; only AddQylApi itself stays linked source, because the
+    validation and OpenAPI generators intercept the calls it makes (DECISIONS.md, 2026-09-07).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Qyl</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Keep the problem-details JSON context inspectable, as the SDK does for every consumer. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- The version the SDK pins for every consumer; the assembly must bind to the same one. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" VersionOverride="$(QylAspNetCoreOpenApiVersion)" />
+    <!-- The shared vocabulary, for the one name this assembly publishes (qyl.api.contract.revision).
+         Compile-time only: it is consumed as a const, so nothing of it reaches the consumer's output
+         through this reference, and the collector's ingest policy reads the same registry. -->
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating" PrivateAssets="all" />
+    <ProjectReference Include="../Qyl.Xml/Qyl.Xml.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Qyl.Api.Tests" />
+    <InternalsVisibleTo Include="Qyl.Api.Sdk.Xml.Generator.Tests" />
+  </ItemGroup>
+</Project>

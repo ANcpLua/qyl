@@ -1,0 +1,112 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Packs packages/Qyl.Api.Sdk as the Qyl.Api.Sdk MSBuild SDK. Nothing is compiled here: the
+    package is Sdk/ and Build/ as entry points, Sources/ as the one file that ships as source,
+    the Qyl.Xml and Qyl.Api assemblies under lib/net10.0, and the [GenerateXml] generator under
+    analyzers/dotnet/cs. The payload is resolved from the referenced projects' own build output
+    rather than typed as bin/<configuration>/<tfm> paths, because this repository redirects every
+    project's output into artifacts/ and those paths do not exist here.
+    net10.0 only, so the references to the net10.0 assemblies restore.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Qyl.Api.Sdk</PackageId>
+    <PackageType>MSBuildSdk</PackageType>
+    <IsPackable>true</IsPackable>
+    <Description>MSBuild SDK for Qyl APIs: the ASP.NET Core Native AOT template plus compile-time validation, [GenerateXml] XML output with its shape in the OpenAPI contract, a committed OpenAPI contract, and qyl telemetry with the contract revision on the resource and session.id read from the request baggage header, behind builder.AddQylApi(). Use with &lt;Project Sdk="Qyl.Api.Sdk/$(Version)"&gt;.</Description>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- CS2008: no source files, by design. NU5128: lib/ without a dependency group, by design (an MSBuild SDK, not a package reference). -->
+    <NoWarn>$(NoWarn);CS2008;NU5128</NoWarn>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);QylPackSdkPayload</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Built for their output only; PrivateAssets keeps them out of the package's dependency list. -->
+    <ProjectReference Include="Qyl.Xml/Qyl.Xml.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="Qyl.Api/Qyl.Api.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="Qyl.Api.Sdk.Xml.Generator/Qyl.Api.Sdk.Xml.Generator.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Sdk/Sdk.props" Pack="true" PackagePath="Sdk/" />
+    <None Include="Sdk/Sdk.targets" Pack="true" PackagePath="Sdk/" />
+    <None Include="Build/Qyl.Api.Sdk.props" Pack="true" PackagePath="Build/" />
+    <None Include="Build/Qyl.Api.Sdk.targets" Pack="true" PackagePath="Build/" />
+    <None Include="Sources/**/*.cs" Pack="true" PackagePath="Sources/%(RecursiveDir)" />
+    <None Include="DECISIONS.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <!--
+    Build/Qyl.Api.Sdk.Packages.props reads its versions from this repository's Version.props, which a
+    consumer of the package does not have. The packed copy is written here with the values already
+    resolved, so the committed file stays free of literals and the package still restores.
+  -->
+  <Target Name="QylWriteResolvedPackageVersions" BeforeTargets="QylPackSdkPayload">
+    <PropertyGroup>
+      <_QylResolvedPackagesFile>$(IntermediateOutputPath)Qyl.Api.Sdk.Packages.props</_QylResolvedPackagesFile>
+      <_QylResolvedPackagesSource>&lt;Project&gt;
+  &lt;!--
+    Package versions pinned by Qyl.Api.Sdk. Consumers do not declare these; the SDK does.
+    Written by Qyl.Api.Sdk.csproj from the repository's Version.props; change the property, not this file.
+  --&gt;
+  &lt;PropertyGroup&gt;
+    &lt;_QylApiSdkPackagesImported&gt;true&lt;/_QylApiSdkPackagesImported&gt;
+    &lt;QylAspNetCoreOpenApiVersion&gt;$(QylAspNetCoreOpenApiVersion)&lt;/QylAspNetCoreOpenApiVersion&gt;
+    &lt;QylApiDescriptionServerVersion&gt;$(QylApiDescriptionServerVersion)&lt;/QylApiDescriptionServerVersion&gt;
+    &lt;QylOpenApiModelVersion&gt;$(QylOpenApiModelVersion)&lt;/QylOpenApiModelVersion&gt;
+    &lt;QylTelemetryVersion&gt;$(QylTelemetryVersion)&lt;/QylTelemetryVersion&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;!-- The central version for the document model; Qyl.Api.Sdk.targets references it directly as
+         well, so a consumer without central package management is pinned to the same one. --&gt;
+    &lt;PackageVersion Include="Microsoft.OpenApi" Version="$(QylOpenApiModelVersion)" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;</_QylResolvedPackagesSource>
+    </PropertyGroup>
+
+    <Error Condition="'$(QylAspNetCoreOpenApiVersion)' == '' OR '$(QylApiDescriptionServerVersion)' == '' OR '$(QylOpenApiModelVersion)' == '' OR '$(QylTelemetryVersion)' == ''"
+           Text="Version.props must define QylAspNetCoreOpenApiVersion, QylApiDescriptionServerVersion, QylOpenApiModelVersion and QylTelemetryVersion; the packed Build/Qyl.Api.Sdk.Packages.props would otherwise ship empty versions." />
+
+    <WriteLinesToFile File="$(_QylResolvedPackagesFile)" Lines="$(_QylResolvedPackagesSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="$(_QylResolvedPackagesFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="QylPackSdkPayload">
+    <MSBuild Projects="Qyl.Xml/Qyl.Xml.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_QylApiSdkLibrary" />
+    </MSBuild>
+    <MSBuild Projects="Qyl.Api/Qyl.Api.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_QylApiSdkLibrary" />
+    </MSBuild>
+    <MSBuild Projects="Qyl.Api.Sdk.Xml.Generator/Qyl.Api.Sdk.Xml.Generator.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_QylApiSdkAnalyzer" />
+    </MSBuild>
+
+    <ItemGroup>
+      <_QylApiSdkLibraryDocumentation Include="@(_QylApiSdkLibrary->'%(RootDir)%(Directory)%(Filename).xml')" />
+    </ItemGroup>
+
+    <Error Condition="'@(_QylApiSdkLibrary->Count())' != '2' OR '@(_QylApiSdkAnalyzer->Count())' != '1'"
+           Text="The SDK payload must be exactly Qyl.Xml, Qyl.Api and the generator; resolved @(_QylApiSdkLibrary->Count()) libraries and @(_QylApiSdkAnalyzer->Count()) analyzers." />
+    <Error Condition="!Exists('%(_QylApiSdkLibraryDocumentation.FullPath)')"
+           Text="Missing XML documentation beside %(_QylApiSdkLibraryDocumentation.Filename).dll; the SDK ships its libraries with their documentation." />
+
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_QylApiSdkLibrary)" PackagePath="lib/net10.0/%(Filename)%(Extension)" />
+      <TfmSpecificPackageFile Include="@(_QylApiSdkLibraryDocumentation)" PackagePath="lib/net10.0/%(Filename)%(Extension)" />
+      <TfmSpecificPackageFile Include="@(_QylApiSdkAnalyzer)" PackagePath="analyzers/dotnet/cs/%(Filename)%(Extension)" />
+      <TfmSpecificPackageFile Include="$(_QylResolvedPackagesFile)" PackagePath="Build/Qyl.Api.Sdk.Packages.props" />
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,100 @@
+# qyl target architecture: one engine, one contract definition, thin surfaces, one source revision.
+kind: target-architecture
+
+product: >-
+  qyl is an analytical engine for AI agents. It ingests OpenTelemetry traces, logs and metrics,
+  stores them per project, and answers typed analysis questions about the recorded telemetry:
+  triage, failures and their context, group and trace comparisons, fix verification, aggregates,
+  attribute discovery, agent runs, releases, service maps, telemetry health and MCP statistics.
+  Agents reach it through the MCP server; nothing in qyl is a human interface.
+
+layout: |
+  qyl/
+  ├── contracts/                   TypeSpec models and routes, in-repo emitters and generation
+  │                                scripts; openapi/qyl.openapi.json is the committed contract
+  ├── internal/
+  │   ├── qyl.contracts/           generated C# contract types (committed, ProjectReference only)
+  │   ├── qyl.instrumentation*/    the Collector's self-telemetry defaults and their generator
+  │   └── qyl.collector.storage.generators/   DuckDB DDL and row code generation
+  ├── services/
+  │   ├── qyl.collector/           NativeAOT engine host: HTTP API, typed analysis operations
+  │   ├── qyl.collector.ingestion/ OTLP decoding over HTTP and gRPC
+  │   ├── qyl.collector.storage/   DuckDB storage with project-scoped reads
+  │   └── qyl.mcp/                 MCP server on the TypeScript SDK v2 and Bun: tools, skills/,
+  │                                eval/, src/contracts/generated/ (TS types, MCP-ready JSON Schema)
+  ├── packages/                    qyl tool (Qyl.Cli), Qyl.Orchestration, Qyl.Api.Sdk, Qyl.Run.Workload
+  ├── plugins/qyl/                 Claude, Codex and OpenAI plugin manifests, skills, listings/
+  ├── samples/qyl.sample/          an API built by Qyl.Api.Sdk
+  ├── tests/                       .NET tests (MSTest on Microsoft.Testing.Platform)
+  ├── eng/                         Fallout build (eng/build), scripts, smoke tools, auth0/
+  ├── docs/                        this file, configuration, attribute persistence, mcp/
+  ├── .railway/railway.ts          Railway services qyl-collector and qyl-mcp
+  └── Version.props                QylVersion, the one release version
+
+ownership:
+  engine: >-
+    services/qyl.collector* own ingestion, storage and every analysis result. They are the only
+    component that reads telemetry.
+  mcp: >-
+    services/qyl.mcp owns the agent surface: tool registration and schemas, the OAuth resource
+    server, project mapping, MCP Events and the served skill. It calls the Collector's analysis API
+    and holds no telemetry.
+  contracts: >-
+    contracts/ owns every wire shape between the Collector, the MCP server and the qyl tool.
+    Generated code is regenerated from TypeSpec, never edited.
+  plugins: plugins/qyl packages the hosted MCP connection and the skills for Claude, Codex and OpenAI.
+  version: >-
+    Version.props QylVersion versions the qyl tool and its runtime packages, Qyl.Api.Sdk,
+    Qyl.Orchestration, Qyl.Api.Contracts and qyl-mcp-server; release.sh releases them together.
+
+contracts:
+  source: contracts/main.tsp with models/, api/, common/ and otel/
+  openapi: contracts/openapi/qyl.openapi.json
+  csharp: internal/qyl.contracts
+  typescript: services/qyl.mcp/src/contracts/generated
+  committed: generated C# and TypeScript are committed because the Collector's Docker build has no Node
+  revision: >-
+    contract_revision is the SHA-256 of the semantic OpenAPI projection; documentation and the
+    version number do not change it. The Collector serves it in /health.
+  mcp_schemas: >-
+    each tool registers its generated MCP-ready JSON Schema through
+    fromJsonSchema(document, AjvJsonSchemaValidator); documents are inlined and sealed, and only
+    recursive types stay referenced in a document's own $defs.
+
+analysis_boundaries:
+  - The Collector computes every analysis result behind POST /api/v1/analysis/<tool_name>.
+  - The MCP server validates input, scopes the call, pages and compacts the response to its byte
+    budget, redacts secrets and renders a text summary; it adds no analysis of its own.
+  - Every read and write is scoped to one project, resolved from the Collector key or the verified
+    OAuth subject; tool arguments, metadata and headers never select a project.
+  - Every result states its absolute window and its coverage (examined, matched, returned,
+    truncation, scan completeness). Insufficient evidence is reported as pending, never as fixed.
+  - Writes change only records agents create (annotations, saved queries, failure status). No API
+    changes or deletes recorded telemetry; retention alone removes it.
+  - Telemetry is data, not instructions.
+
+deployment:
+  railway_project: qyl
+  services:
+    qyl-collector:
+      source: ANcpLua/qyl
+      build: services/qyl.collector/Dockerfile (NativeAOT)
+      domain: api.qyl.at
+      healthcheck: /health
+      volume: /data (DuckDB)
+    qyl-mcp:
+      source: ANcpLua/qyl, root directory services/qyl.mcp
+      build: bun run build
+      start: bun dist/main.js
+      domain: mcp.qyl.at
+      healthcheck: /healthz
+      volume: /data (Events store)
+  revision_skew: >-
+    The two services deploy independently. While the Collector's contract_revision differs from the
+    MCP server's, tools answer collector_contract_mismatch and /healthz reports degraded.
+  local: >-
+    `qyl up` runs the Collector API on 127.0.0.1:5100 with OTLP on 4318 (HTTP) and 4317 (gRPC);
+    `bunx qyl-mcp-server --stdio` serves MCP over stdio against QYL_COLLECTOR_URL.
+  packages:
+    nuget: [qyl, qyl.<rid>, Qyl.Api.Sdk, Qyl.Orchestration, Qyl.Api.Contracts]
+    npm: [qyl-mcp-server]

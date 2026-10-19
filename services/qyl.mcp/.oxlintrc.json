@@ -1,0 +1,69 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "error"
+    },
+    "options": {
+        "typeAware": true
+    },
+    "ignorePatterns": [
+        "dist",
+        "node_modules",
+        "**/*.d.ts",
+        "src/contracts/generated"
+    ],
+    "rules": {
+        "no-restricted-imports": [
+            "error",
+            {
+                "patterns": [
+                    {
+                        "group": ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/**"],
+                        "message": "Use the split SDK v2 packages; v2 supplies 2025-era compatibility."
+                    }
+                ]
+            }
+        ],
+        "eqeqeq": [
+            "error",
+            "smart"
+        ],
+        "typescript/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "typescript/no-explicit-any": "warn",
+        "typescript/consistent-type-imports": [
+            "error",
+            {
+                "prefer": "type-imports",
+                "fixStyle": "separate-type-imports"
+            }
+        ],
+        "typescript/no-inferrable-types": [
+            "error",
+            {
+                "ignoreProperties": true
+            }
+        ],
+        "typescript/no-floating-promises": "error",
+        "typescript/no-misused-promises": "error",
+        "typescript/await-thenable": "error"
+    },
+    "overrides": [
+        {
+            "files": [
+                "**/*.test.ts",
+                "**/*.test.mjs"
+            ],
+            "rules": {
+                "no-console": "off",
+                "typescript/no-explicit-any": "off",
+                "typescript/no-unused-vars": "off",
+                "typescript/no-floating-promises": "off"
+            }
+        }
+    ]
+}

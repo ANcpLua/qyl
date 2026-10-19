@@ -1,0 +1,69 @@
+<Project Sdk="ANcpLua.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Qyl.Collector</RootNamespace>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <LangVersion>14</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <QylAot Condition="'$(QylAot)' == ''">true</QylAot>
+    <PublishAot Condition="'$(QylAot)' == 'true'">true</PublishAot>
+    <PublishTrimmed Condition="'$(QylAot)' == 'true'">true</PublishTrimmed>
+    <!-- Analyzers are meaningful only with the Request Delegate Generator active (QylAot=true,
+         the shipping config); without it the reflective MapGet/MapPost overloads flag IL2026/IL3050
+         that the published artifact never contains. -->
+    <EnableTrimAnalyzer Condition="'$(QylAot)' == 'true'">true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer Condition="'$(QylAot)' == 'true'">true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer Condition="'$(QylAot)' == 'true'">true</EnableSingleFileAnalyzer>
+    <WarningsNotAsErrors Condition="'$(QylAot)' == 'true'">$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
+    <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+    <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Analysis/Generated/semconv-metadata.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
+    <PackageReference Include="Microsoft.Extensions.Telemetry"/>
+    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AsyncState"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../internal/qyl.contracts/Qyl.Api.Contracts.csproj"/>
+    <!-- Ingest normalization: the generated attribute mapping table and the metric definition
+         for the dropped-attribute counter. Vocabulary, not the producer stack. -->
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Qyl.Telemetry.SemanticConventions.Incubating"/>
+    <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
+    <ProjectReference Include="..\qyl.collector.ingestion\qyl.collector.ingestion.csproj"/>
+    <ProjectReference Include="..\qyl.collector.storage\qyl.collector.storage.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\internal\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+
+</Project>

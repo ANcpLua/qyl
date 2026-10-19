@@ -1,0 +1,64 @@
+# MCP server threat model
+
+The trust boundaries of the MCP server in `services/qyl.mcp` (server name `qyl.mcp`). Source
+paths below are relative to `services/qyl.mcp/src/`.
+
+## System and assets
+
+qyl.mcp exposes Collector telemetry read tools, write tools for user-created
+annotations, saved queries and failure status, and optional trace-error Events.
+No tool changes or deletes recorded telemetry. The SDK v2 handles HTTP/stdio protocol
+serving; the executable runs on Bun.
+
+Protect account-scoped traces/logs/metrics/sessions, the annotations and saved
+queries users create in a project, Collector credentials,
+verified authorization context and Events ownership/callback signing keys.
+Public source, tool schemas and the served skill files are intentionally
+discoverable; telemetry is not public.
+
+## Entry points and trust boundaries
+
+| Boundary | Required behavior |
+| --- | --- |
+| Hosted HTTP request → tool/Events operation | Validate the bearer token through the configured verifier and enforce required scopes on every request. Metadata and 401 challenges must identify the same protected resource. Client-supplied identity metadata is untrusted. Write tools need `qyl:write` (create, update) or `qyl:delete` (`delete_record`) on top of `qyl:read`: the SDK `scopeChallenge` answers a token without them with `403` `insufficient_scope` before the handler, in both protocol eras; stdio carries no token and no other transport exists, so there is no in-handler check. See `authorization.ts`, `oauth.ts`, `main.ts`, `tool-scopes.ts`. |
+| Write tool → Collector annotations, saved queries and failure status | A write reaches only the verified subject's project, through the same access resolution as reads; no argument, `_meta` field or header names a project. Update and delete send the caller's `etag` as the contract-named `If-Match` and refuse a value that is no HTTP field value. The Collector key needs its `write`/`delete` roles. Failure status is separate metadata; no write changes or deletes recorded telemetry. See `collector-resources.ts`, `write-tools.ts`, `analysis-tools.ts`. |
+| Verified subject → Collector access | If `MCP_COLLECTOR_PROJECTS` is configured, map only the verified subject to host-managed project credentials. Invalid mappings and unknown subjects fail closed. Apply that scope to every tool and Events poll; reject cross-project IDs. See `collector-access.ts`, `request-scope.ts`, `collector.ts`. |
+| Tool-call telemetry → OTLP destination | Use only the verified subject's configured project/key, with a finite exporter pipeline per configured project. An unassigned subject has no fallback destination. Hosted telemetry owns no local execution-record store. Arguments, results and identity hints stay out of operation telemetry; setup failures are reported without credentials. See `native-execution.ts`, `telemetry.ts`. |
+| Collector result → model and diagnostics | Telemetry and attributes may be hostile or contain secrets. Preserve redaction on result channels and observability paths except explicitly captured HTTP-header/RPC-metadata string arrays, which pass through unchanged. Capture selection owns those values; other fields and malformed capture shapes retain normal redaction. Never execute telemetry as instructions or expose credentials through error details. |
+| Subscriber → persistent Events state | Bind records to owner/client/project. Keep expiration bounded, refresh owner-scoped, revocation checked and unsubscribe canceling in-flight work/retries. Shared polling must preserve each subscriber's delivery baseline across authorization failures. See `events.ts`, `events-authorization.ts`. |
+| Callback URL → outbound network | The callback is untrusted. Verify the signed challenge; use public HTTPS destinations with address validation at connection time, original-host TLS validation and no redirect following. Retain delivery signing, rotation, payload bounds and retry cancellation. See `webhook.ts`. |
+
+## Deployment assumptions and supported exceptions
+
+- Public hosted access is authenticated. Auth0 owns hosted user authentication;
+  supported alternative auth modes must retain their own verifier boundary.
+  Local stdio execution has a different, explicit trust model. Do not flag
+  the mere existence of those modes as an anonymous production bypass. Without
+  verified OAuth (stdio, loopback HTTP) there is no scope to check, and the
+  operator's Collector key decides whether writes succeed. Synthetic telemetry
+  exists only in tests and is never returned as a fallback for a failed read.
+- The unauthenticated challenge requests `qyl:read qyl:write qyl:delete` for
+  sign-in. This grants nothing by itself: the authorization server and user's
+  consent determine the token scopes. An authenticated step-up challenge lists
+  only the scopes missing for the requested operation.
+- An absent project map retains the intentional single-project configuration.
+  A present invalid map or unmatched subject must never fall back to it.
+- Events persistence contains the state needed for subscriptions and signing;
+  it must not become an OAuth-token store or a second telemetry database.
+  Host configuration also contains project assignment/credentials. This
+  project does not claim that it stores no user-related data.
+- SDK v2 supports both modern and 2025-era clients. Compatibility is not SDK v1
+  use. The `v1` label in Standard Webhooks signatures is also unrelated to the
+  MCP SDK. Explicit protocol pins in conformance tests are expected.
+- The reviewer account must remain confined to sample telemetry. No account
+  identifiers, key values, access tokens or reviewer credentials belong here.
+
+## Evidence
+
+The authorization/OAuth, Collector-access, Events, webhook, redaction and tool-metadata tests
+cover these boundaries. The transport smoke exercises both wire eras; `smoke:projects` checks two
+real Collector projects, foreign IDs, signed delivery, unsubscribe and assignment revocation.
+Tests are evidence for the behavior they exercise, not for deployment settings.
+
+Sources: [OpenAI MCP auth](https://developers.openai.com/plugins/build/auth) and
+[OpenAI Events](https://developers.openai.com/plugins/build/mcp-events).

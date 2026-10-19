@@ -1,0 +1,20 @@
+{
+  "components": [
+    {
+      "name": "ancplua-dotnet",
+      "repository": "https://github.com/ANcpLua/ancplua-dotnet",
+      "commit": "9054d329968e2e2d543fa1a5c35b682667bc0270",
+      "version": "0.7.1",
+      "skills": ["analyzers", "audit", "csharp-refactoring", "msbuild", "nuget-versions", "performance", "release"],
+      "notices": ["LICENSE", "NOTICE"]
+    },
+    {
+      "name": "mstest-extensions-plugin",
+      "repository": "https://github.com/ANcpLua/mstest-extensions-plugin",
+      "commit": "29ab11bbda1a3919558c0a3c15018cf01100b090",
+      "version": "3.4.3",
+      "skills": ["mstest-assertion-review", "mstest-extensions", "mstest-native-aot", "mstest-run-tests", "mstest-test-gaps", "mstest-test-review", "mstest-test-smells", "mstest-test-value", "mstest-writing-tests"],
+      "notices": ["LICENSE"]
+    }
+  ]
+}
