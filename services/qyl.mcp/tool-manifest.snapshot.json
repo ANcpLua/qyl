@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:c94f1355df782d83",
+  "contract_revision": "sha256:812424f23e32df39",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -25801,7 +25801,7 @@
                 ]
               }
             },
-            "description": "VerificationPeriod contract.",
+            "description": "One side of a verification. `before` runs from the failure's first retained occurrence, or the request's lookback when matchers select the requests, up to the change; `after` runs from the change to now.",
             "additionalProperties": false
           },
           "after": {
@@ -25856,7 +25856,7 @@
                 ]
               }
             },
-            "description": "VerificationPeriod contract.",
+            "description": "One side of a verification. `before` runs from the failure's first retained occurrence, or the request's lookback when matchers select the requests, up to the change; `after` runs from the change to now.",
             "additionalProperties": false
           },
           "needs": {
@@ -25867,13 +25867,15 @@
             ],
             "properties": {
               "requests": {
-                "type": "integer"
+                "type": "integer",
+                "description": "Requests still to observe after the change."
               },
               "minutes": {
-                "type": "number"
+                "type": "integer",
+                "description": "Whole minutes still to wait, rounded up."
               }
             },
-            "description": "VerificationNeeds contract.",
+            "description": "What a pending verification still needs before it can pass.",
             "additionalProperties": false
           },
           "recurrences": {

@@ -24,7 +24,8 @@ internal static class AnalysisReadPlan
         // group_b "before" is the window of equal length that precedes group_a's.
         if (J.Text(input["group_b"]) == "before" && input["group_a"]?["window"] is JsonObject cohort
             && J.Date(cohort, "start_time") is { } from && J.Date(cohort, "end_time") is { } to && from - (to - from) < start) start = from - (to - from);
-        if (J.Date(input, "since") is { } since && since - (now - since) < start) start = since - (now - since);
+        // A verification's before window is the lookback ahead of its change.
+        if (J.Date(input, "since") is { } since && since - (window.End - window.Start) < start) start = since - (window.End - window.Start);
         // A verification's after window runs until now, and a release's first span may be anywhere in retention.
         if (operation == "verify_fix" && now > end) end = now;
         if (operation == "verify_fix" && J.Date(input, "since") is null && J.String(input, "release") is not null) start = DateTimeOffset.UnixEpoch;

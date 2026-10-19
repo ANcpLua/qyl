@@ -201,7 +201,10 @@ internal sealed partial class AnalysisEngine
         }
         else throw new AnalysisInputException("since", "Provide a change timestamp or an observed release.");
         var nowNs = QylTimeConversions.ToUnixNanoUnsigned(now);
-        var elapsed = nowNs > sinceNs ? nowNs - sinceNs : 0; var beforeNs = sinceNs > elapsed ? sinceNs - elapsed : 0;
+        var elapsed = nowNs > sinceNs ? nowNs - sinceNs : 0;
+        // Before the change is the failure's known history from its first occurrence, or the request's lookback.
+        var lookback = QylTimeConversions.ToUnixNanoUnsigned(_window.End) - _window.StartNs;
+        var beforeNs = fid is not null && failures.Min(static s => s.Start) is var firstSeen && firstSeen < sinceNs ? firstSeen : sinceNs > lookback ? sinceNs - lookback : 0;
         bool After(AnalysisRecord s) => s.Start >= sinceNs && s.Start < nowNs;
         bool Before(AnalysisRecord s) => s.Start >= beforeNs && s.Start < sinceNs;
         var minRequests = J.Number(input, "min_requests", 100); var minMinutes = J.Number(input, "min_minutes", 30);
@@ -216,7 +219,7 @@ internal sealed partial class AnalysisEngine
         var guardrails = SpansComplete(beforeNs, sinceNs) ? _spans.Where(s => s.Error && After(s)).GroupBy(Signature).Where(g => !knownFailures.Contains(g.Key))
             .Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; item["services"] = J.N(g.Select(s => s.Service).Distinct()); return item; }) : [];
         return J.O(("verdict", verdict), ("before", Segment(beforeNs, sinceNs, failures.Count(Before), requests.Count(Before))), ("after", Segment(sinceNs, nowNs, afterFailures.Count, after.Count)),
-            ("needs", verdict == "pending" ? J.O(("requests", Math.Max(0, minRequests - after.Count)), ("minutes", Math.Max(0, minMinutes - elapsed / 60_000_000_000d))) : null),
+            ("needs", verdict == "pending" ? J.O(("requests", Math.Max(0, minRequests - after.Count)), ("minutes", (long)Math.Max(0, Math.Ceiling(minMinutes - elapsed / 60_000_000_000d)))) : null),
             ("recurrences", afterFailures.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)), ("guardrails", J.A(guardrails)), ("verify_id", handles.Issue(project, "verify_id", input)));
     }
 }

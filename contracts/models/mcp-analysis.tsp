@@ -503,7 +503,7 @@ model VerifyFixInput {
   verifyId?: VerifyId;
 }
 
-@doc("VerificationPeriod contract.")
+@doc("One side of a verification. `before` runs from the failure's first retained occurrence, or the request's lookback when matchers select the requests, up to the change; `after` runs from the change to now.")
 model VerificationPeriod {
   window: ToolWindow;
   occurrences: int64;
@@ -512,10 +512,12 @@ model VerificationPeriod {
   unit: "requests";
 }
 
-@doc("VerificationNeeds contract.")
+@doc("What a pending verification still needs before it can pass.")
 model VerificationNeeds {
+  @doc("Requests still to observe after the change.")
   requests: int64;
-  minutes: float64;
+  @doc("Whole minutes still to wait, rounded up.")
+  minutes: int64;
 }
 
 @doc("VerifyFixOutput contract.")

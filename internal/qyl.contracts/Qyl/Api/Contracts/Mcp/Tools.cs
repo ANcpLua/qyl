@@ -2282,7 +2282,7 @@ public sealed class VerificationNeeds
     [JsonPropertyName("requests")]
     public required long Requests { get; init; }
     [JsonPropertyName("minutes")]
-    public required double Minutes { get; init; }
+    public required long Minutes { get; init; }
 }
 
 public sealed class VerifyFixOutput

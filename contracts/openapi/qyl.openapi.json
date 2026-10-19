@@ -14194,17 +14194,19 @@
         "properties": {
           "requests": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Requests still to observe after the change."
           },
           "minutes": {
-            "type": "number",
-            "format": "double"
+            "type": "integer",
+            "format": "int64",
+            "description": "Whole minutes still to wait, rounded up."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "VerificationNeeds contract."
+        "description": "What a pending verification still needs before it can pass."
       },
       "Mcp.Tools.VerificationPeriod": {
         "type": "object",
@@ -14248,7 +14250,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "VerificationPeriod contract."
+        "description": "One side of a verification. `before` runs from the failure's first retained occurrence, or the request's lookback when matchers select the requests, up to the change; `after` runs from the change to now."
       },
       "Mcp.Tools.VerifyFixInput": {
         "type": "object",
