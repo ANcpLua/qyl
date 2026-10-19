@@ -13,7 +13,7 @@ using Qyl.Telemetry.SemanticConventions.Incubating.Metrics;
 namespace Qyl.Collector.Tests;
 
 [TestClass]
-public sealed class SpanAttributePolicyTests
+public sealed class SpanAttributePolicyTests(TestContext testContext)
 {
     [TestMethod]
     [DataRow("graphql.operation.name")]
@@ -123,6 +123,38 @@ public sealed class SpanAttributePolicyTests
         Assert.IsTrue(AttributeKeySets.IsPersistable("exception.message"));
         Assert.IsFalse(AttributeKeySets.IsPersistable("code.stacktrace"));
         Assert.IsFalse(AttributeKeySets.IsPersistable("user.id"));
+    }
+
+    /// <summary>
+    /// The token rule keeps free text out of storage. An enum attribute carries one of its registry members
+    /// instead, so cicd.pipeline.result, cicd.pipeline.task.run.result and test.case.result.status, whose keys
+    /// hold the denied token "result", arrive over OTLP/HTTP and read back through get_trace; the free-text
+    /// feature_flag.result.value stays dropped.
+    /// </summary>
+    [TestMethod]
+    public async Task Enum_attributes_whose_key_holds_a_denied_token_survive_ingest_and_read_back()
+    {
+        await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
+        var request = OtlpTestSpans.Request("ci",
+        [
+            StringAttribute("cicd.pipeline.result", "success"),
+            StringAttribute("cicd.pipeline.task.run.result", "failure"),
+            StringAttribute("test.case.result.status", "pass"),
+            StringAttribute("feature_flag.result.value", "free text")
+        ]);
+        await host.IngestTracesAsync(request);
+
+        var traceId = Convert.ToHexStringLower(request.ResourceSpans[0].ScopeSpans[0].Spans[0].TraceId.Span);
+        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/get_trace", CollectorApiTestHost.ReaderApiKey, $$"""{"trace_id":"{{traceId}}"}""");
+        var trace = await host.JsonAsync(response);
+        Assert.IsTrue(response.IsSuccessStatusCode, trace.GetRawText());
+        var attributes = Assert.ContainsSingle(trace.GetProperty("trace").GetProperty("spans").EnumerateArray()).GetProperty("attributes").EnumerateArray()
+            .ToDictionary(static attribute => attribute.GetProperty("key").GetString()!, static attribute => attribute.GetProperty("value").GetString());
+
+        Assert.AreEqual("success", attributes["cicd.pipeline.result"]);
+        Assert.AreEqual("failure", attributes["cicd.pipeline.task.run.result"]);
+        Assert.AreEqual("pass", attributes["test.case.result.status"]);
+        Assert.DoesNotContain("feature_flag.result.value", attributes.Keys);
     }
 
     private static KeyValue StringAttribute(string key, string value) =>

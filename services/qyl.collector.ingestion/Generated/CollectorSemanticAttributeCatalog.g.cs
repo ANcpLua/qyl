@@ -126,9 +126,23 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> TokenExemptKeys = FrozenSet.Create(
         StringComparer.Ordinal,
+        "aspnetcore.authentication.result", // incubating
+        "aspnetcore.authorization.result", // incubating
+        "aspnetcore.diagnostics.exception.result",
+        "aspnetcore.identity.password_check_result", // incubating
+        "aspnetcore.identity.result", // incubating
+        "aspnetcore.identity.sign_in.result", // incubating
+        "aspnetcore.identity.token_purpose", // incubating
+        "aspnetcore.identity.token_verified", // incubating
+        "aspnetcore.rate_limiting.result",
+        "cicd.pipeline.result", // incubating
+        "cicd.pipeline.task.run.result", // incubating
         "db.query.summary",
         "exception.message",
+        "faas.document.operation", // incubating
+        "feature_flag.result.reason", // incubating
         "gen_ai.request.max_tokens", // incubating
+        "gen_ai.token.modality", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.usage.audio.cache_read.input_tokens", // incubating
         "gen_ai.usage.audio.input_tokens", // incubating
@@ -144,9 +158,14 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.text.cache_read.input_tokens", // incubating
         "gen_ai.usage.text.input_tokens", // incubating
         "gen_ai.usage.text.output_tokens", // incubating
+        "message.type",
         "messaging.kafka.message.offset",
         "messaging.message.body.size", // incubating
-        "messaging.message.id" // incubating
+        "messaging.message.id", // incubating
+        "messaging.rocketmq.message.type", // incubating
+        "otel.span.sampling_result", // incubating
+        "rpc.message.type",
+        "test.case.result.status" // incubating
     );
 
     internal static readonly FrozenSet<string> ExceptionTextKeys = FrozenSet.Create(

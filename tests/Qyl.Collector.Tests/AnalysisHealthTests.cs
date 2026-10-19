@@ -51,25 +51,27 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
-    /// A semantic-convention gap is a required attribute the producer did not send. The collector does
-    /// not persist cicd.pipeline.result (its key holds a denied token), so whether a producer sent it is
-    /// unknown and never a gap; a missing url.scheme is.
+    /// A semantic-convention gap is a required attribute the producer did not send. The collector does not
+    /// persist url.full, so whether an HTTP client sent it is unknown and never a gap. It keeps
+    /// cicd.pipeline.result, an enum attribute the denied-token rule exempts, so of two pipeline runs the
+    /// one without it is a gap.
     /// </summary>
     [TestMethod]
-    public async Task A_required_attribute_the_collector_does_not_persist_is_not_a_gap()
+    public async Task A_required_attribute_is_a_gap_only_when_the_collector_keeps_it()
     {
         await using var host = await StartAsync(testContext.CancellationToken);
         var start = FixtureUnixNano - 30 * Minute;
-        OtlpSpan Server(byte id, string name, params OpenTelemetry.Proto.Common.V1.KeyValue[] attributes)
+        OtlpSpan Exported(byte id, OtlpSpan.Types.SpanKind kind, string name, params KeyValue[] attributes)
         {
             var span = new OtlpSpan
             {
                 TraceId = ByteString.CopyFrom([.. Enumerable.Repeat(id, 16)]), SpanId = ByteString.CopyFrom([.. Enumerable.Repeat(id, 8)]),
-                Name = name, Kind = OtlpSpan.Types.SpanKind.Server, StartTimeUnixNano = start, EndTimeUnixNano = start + 1_000_000
+                Name = name, Kind = kind, StartTimeUnixNano = start, EndTimeUnixNano = start + 1_000_000
             };
             span.Attributes.Add(attributes);
             return span;
         }
+        KeyValue[] Run(string id) => [OtlpTestSpans.String("cicd.pipeline.name", "qyl-ci"), OtlpTestSpans.String("cicd.pipeline.run.id", id)];
         await host.IngestTracesAsync(new ExportTraceServiceRequest
         {
             ResourceSpans =
@@ -83,9 +85,11 @@ public sealed partial class AnalysisApiTests
                         {
                             Spans =
                             {
-                                Server(1, "RUN qyl-ci", OtlpTestSpans.String("cicd.pipeline.name", "qyl-ci"), OtlpTestSpans.String("cicd.pipeline.run.id", "42"),
-                                    OtlpTestSpans.String("cicd.pipeline.result", "success")),
-                                Server(2, "GET /", OtlpTestSpans.String("http.request.method", "GET"), OtlpTestSpans.String("url.path", "/"))
+                                Exported(1, OtlpSpan.Types.SpanKind.Server, "RUN qyl-ci", [.. Run("41"), OtlpTestSpans.String("cicd.pipeline.result", "success")]),
+                                Exported(2, OtlpSpan.Types.SpanKind.Server, "RUN qyl-ci", Run("42")),
+                                Exported(3, OtlpSpan.Types.SpanKind.Client, "GET", OtlpTestSpans.String("http.request.method", "GET"),
+                                    OtlpTestSpans.String("server.address", "api.example.com"), OtlpTestSpans.Int("server.port", 443),
+                                    OtlpTestSpans.String("url.full", "https://api.example.com/orders"))
                             }
                         }
                     }
@@ -93,10 +97,10 @@ public sealed partial class AnalysisApiTests
             }
         });
 
-        var gaps = (await Read(host, "check_telemetry_health", "{}")).GetProperty("semconv_gaps").EnumerateArray()
-            .Select(static gap => gap.GetProperty("operation").GetString() + ":" + gap.GetProperty("attribute").GetString());
+        var gap = Assert.ContainsSingle((await Read(host, "check_telemetry_health", "{}")).GetProperty("semconv_gaps").EnumerateArray());
 
-        Assert.AreSequenceEqual(["GET /:url.scheme"], gaps);
+        Assert.AreEqual("RUN qyl-ci:cicd.pipeline.result", gap.GetProperty("operation").GetString() + ":" + gap.GetProperty("attribute").GetString());
+        Assert.AreEqual(0.5, gap.GetProperty("missing_share").GetDouble());
     }
 
     /// <summary>
