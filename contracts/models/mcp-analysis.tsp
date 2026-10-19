@@ -586,7 +586,8 @@ model DiscoverAttributesInput {
 
 @doc("AttributeValueCount contract.")
 model AttributeValueCount {
-  value: MatcherValue;
+  @doc("The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit.")
+  value: AttributeValue;
   count: int64;
   share: float64;
 }

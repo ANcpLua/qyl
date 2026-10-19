@@ -8317,7 +8317,8 @@
         ],
         "properties": {
           "value": {
-            "$ref": "#/components/schemas/Common.MatcherValue"
+            "$ref": "#/components/schemas/Common.AttributeValue",
+            "description": "The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit."
           },
           "count": {
             "type": "integer",

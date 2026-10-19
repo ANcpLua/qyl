@@ -1021,8 +1021,9 @@ public sealed class MetricKeySummary
 
 public sealed class AttributeValueCount
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("value")]
-    public required object Value { get; init; }
+    public required Qyl.Api.Contracts.Common.AttributeValue? Value { get; init; }
     [JsonPropertyName("count")]
     public required long Count { get; init; }
     [JsonPropertyName("share")]

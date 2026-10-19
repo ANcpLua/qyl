@@ -1237,7 +1237,7 @@ export interface MetricKeySummary {
 }
 
 export interface AttributeValueCount {
-  "value": MatcherValue;
+  "value": AttributeValue;
   "count": number;
   "share": number;
 }
@@ -2366,4 +2366,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:b4e7904721ec5f03";
+export const CONTRACT_REVISION: string = "sha256:dce3a55167f4163a";

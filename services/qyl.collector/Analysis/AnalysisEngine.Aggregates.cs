@@ -58,7 +58,7 @@ internal sealed partial class AnalysisEngine
             .SelectMany(map => map.Map.Select(p => (p.Key, map.Scope, p.Value)))).Where(p => (J.String(input, "key_prefix") is not { } prefix || p.Key.StartsWith(prefix, StringComparison.Ordinal)) && (J.String(input, "key") is not { } key || key == p.Key))
             .GroupBy(p => (p.Key, p.Scope)).Select(g =>
             {
-                var values = g.GroupBy(p => J.Text(p.Value)).OrderByDescending(v => v.Count()).ThenBy(v => v.Key, StringComparer.Ordinal).ToList();
+                var values = g.GroupBy(p => p.Value?.ToJsonString() ?? "null").OrderByDescending(v => v.Count()).ThenBy(v => v.Key, StringComparer.Ordinal).ToList();
                 return J.O(("key", g.Key.Key), ("scope", g.Key.Scope), ("type", AttributeType(g.First().Value)),
                     ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count), ("cardinality_exact", true),
                     ("top_values", J.A(values.Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("semconv", SemanticMetadata.Find(g.Key.Key)));

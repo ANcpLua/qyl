@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:b4e7904721ec5f03",
+  "contract_revision": "sha256:dce3a55167f4163a",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -6407,18 +6407,8 @@
                     ],
                     "properties": {
                       "value": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
-                        ],
-                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
+                        "$ref": "#/$defs/Common.AttributeValue",
+                        "description": "The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit."
                       },
                       "count": {
                         "type": "integer"
@@ -6572,7 +6562,141 @@
           }
         },
         "description": "DiscoverAttributesOutput contract.",
-        "additionalProperties": false
+        "additionalProperties": false,
+        "$defs": {
+          "Common.AttributeKeyValueListValue": {
+            "type": "object",
+            "required": [
+              "type",
+              "values"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "kvlist"
+                ]
+              },
+              "values": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/Common.AttributeValue"
+                }
+              }
+            },
+            "description": "Tagged recursive OTLP key-value-list, distinct from other object-shaped attribute variants.",
+            "additionalProperties": false
+          },
+          "Common.AttributeObjectValue": {
+            "type": "object",
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "int"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
+                    "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
+                    "maxLength": 20
+                  }
+                },
+                "description": "Tagged OTLP signed 64-bit integer attribute.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "double"
+                    ]
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "NaN",
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ],
+                    "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                  }
+                },
+                "description": "Tagged OTLP double attribute.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "base64"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "bytes"
+                    ]
+                  },
+                  "base64": {
+                    "type": "string",
+                    "contentEncoding": "base64"
+                  }
+                },
+                "description": "Base64 bytes projected by qyl without colliding with an ordinary string attribute.",
+                "additionalProperties": false
+              },
+              {
+                "$ref": "#/$defs/Common.AttributeKeyValueListValue"
+              }
+            ],
+            "description": "Object-shaped AttributeValue variants. The variant name is the wire `type` tag."
+          },
+          "Common.AttributeValue": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Common.AttributeValue"
+                }
+              },
+              {
+                "$ref": "#/$defs/Common.AttributeObjectValue"
+              }
+            ],
+            "description": "Lossless JSON projection of an OpenTelemetry AnyValue attribute. Primitive variants are bare JSON values; object variants carry a `type` tag."
+          }
+        }
       }
     },
     {
@@ -11603,18 +11727,8 @@
                     ],
                     "properties": {
                       "value": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
-                        ],
-                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
+                        "$ref": "#/$defs/Common.AttributeValue",
+                        "description": "The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit."
                       },
                       "count": {
                         "type": "integer"

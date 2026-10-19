@@ -64,6 +64,15 @@ test("generated tool inputs own their bounds, required members and advertised de
   assert.deepEqual(checkContract("Mcp.Tools.ListTracesInput", args), { valid: true, value: {} });
 });
 
+test("discovered attribute values keep int64 precision in the lossless attribute form", () => {
+  const discovered = (value: unknown) => ({ ...readContext(1), has_more: false, attributes: [{ key: "probe.number", scope: "span", type: "int",
+    coverage_share: 1, cardinality: 1, cardinality_exact: true, top_values: [{ value, count: 1, share: 1 }], semconv: null }] });
+  assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "int", value: "9007199254740993" })));
+  assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "double", value: 0.5 })));
+  assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered("text")));
+  assert(!valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "int", value: 9007199254740993 })), "an int64 travels as a string");
+});
+
 test("the server's error codes are the contract's ToolErrorCode enum", () => {
   for (const error of [
     new CollectorError("bad input"),
