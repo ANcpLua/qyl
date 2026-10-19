@@ -293,17 +293,25 @@ model RecordedException {
   stacktrace?: string;
 }
 
-@doc("FailurePropagation contract.")
-model FailurePropagation {
-  from: EvidenceSpan;
-  to: EvidenceSpan;
+@doc("A span named by its trace and span id; a span id is unique only within its trace.")
+model SpanRef {
+  @encodedName("application/json", "trace_id")
+  traceId: TraceId;
+  @encodedName("application/json", "span_id")
+  spanId: SpanId;
 }
 
-@doc("RetryEvidence contract.")
+@doc("An error passed from a parent span to its failing child.")
+model FailurePropagation {
+  from: SpanRef;
+  to: SpanRef;
+}
+
+@doc("Sibling spans of one name under one parent: the attempts of one call.")
 model RetryEvidence {
   name: string;
   attempts: int32;
-  spans: EvidenceSpan[];
+  spans: SpanRef[];
 }
 
 @doc("FanoutEvidence contract.")
@@ -316,26 +324,42 @@ model FanoutEvidence {
   traceId: TraceId;
 }
 
-@doc("FailureObserved contract.")
+@doc("What the execution shows. Every span appears once in `spans`; the other lists name spans by trace and span id.")
 model FailureObserved {
+  @doc("The error spans and their ancestors, each once; an ancestor has `role` context.")
+  spans: EvidenceSpan[];
+  @doc("The earliest error span without a failing child: where the failure began.")
   @encodedName("application/json", "root_cause_span")
-  rootCauseSpan: EvidenceSpan | null;
+  rootCauseSpan: SpanRef | null;
+  @doc("The spans with error status.")
   @encodedName("application/json", "error_spans")
-  errorSpans: EvidenceSpan[];
+  errorSpans: SpanRef[];
   propagation: FailurePropagation[];
   logs: LogRecord[];
   retries: RetryEvidence[];
   fanout: FanoutEvidence[];
 }
 
-@doc("TraceDivergence contract.")
+@doc("Where two executions part: aligned spans that differ, or a span only `a` has (`missing`) or only `b` has (`extra`). `key` is `status`, the attribute, `duration_ms` or the unmatched span's name; `a` and `b` are each side's value.")
 model TraceDivergence {
-  @encodedName("application/json", "a_span")
-  aSpan: EvidenceSpan | null;
-  @encodedName("application/json", "b_span")
-  bSpan: EvidenceSpan | null;
   kind: "missing" | "extra" | "status" | "attribute" | "duration";
-  attribute?: string;
+  key: string;
+  a?: AttributeValue;
+  b?: AttributeValue;
+  @doc("Absent for an `extra` span.")
+  @encodedName("application/json", "a_span_id")
+  aSpanId?: SpanId;
+  @doc("Absent for a `missing` span.")
+  @encodedName("application/json", "b_span_id")
+  bSpanId?: SpanId;
+}
+
+@doc("One way two aligned spans differ: their `status`, an `attribute` (key is its name) or `duration_ms`, with each side's value.")
+model SpanDifference {
+  kind: "status" | "attribute" | "duration";
+  key: string;
+  a: AttributeValue;
+  b: AttributeValue;
 }
 
 @doc("FailureComparison contract.")
@@ -464,13 +488,14 @@ model CompareTracesInput {
   b: ExecutionReference;
 }
 
-@doc("AlignedSpans contract.")
+@doc("A span both executions hold, aligned by service, name and depth, with what differs between the two.")
 model AlignedSpans {
-  @encodedName("application/json", "a_span")
-  aSpan: EvidenceSpan;
-  @encodedName("application/json", "b_span")
-  bSpan: EvidenceSpan;
-  differences: TraceDivergence[];
+  @encodedName("application/json", "a_span_id")
+  aSpanId: SpanId;
+  @encodedName("application/json", "b_span_id")
+  bSpanId: SpanId;
+  name: string;
+  differences: SpanDifference[];
 }
 
 @doc("CompareTracesOutput contract.")
@@ -480,9 +505,11 @@ model CompareTracesOutput {
   @encodedName("application/json", "first_divergence")
   firstDivergence: TraceDivergence | null;
   aligned: AlignedSpans[];
+  @doc("Differences of the aligned spans that start after the first divergence.")
   @encodedName("application/json", "after_divergence")
   afterDivergence: TraceDivergence[];
-  unmatched: EvidenceSpan[];
+  @doc("Spans only one execution holds.")
+  unmatched: TraceDivergence[];
   comparable: boolean;
   reason?: string;
   error?: ToolError;

@@ -119,6 +119,8 @@ export const IDENTITIES: readonly IdentityBinding[] = [
     edges: {
       parentSpanId: "the span this span is a child of",
       missingParentSpanIds: "parents referenced but absent from storage",
+      aSpanId: "execution a's span in a trace comparison",
+      bSpanId: "execution b's span in a trace comparison",
     },
   },
   {

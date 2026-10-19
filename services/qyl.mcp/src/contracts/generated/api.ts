@@ -1672,15 +1672,20 @@ export interface RecordedException {
   "stacktrace"?: string;
 }
 
+export interface SpanRef {
+  "trace_id": TraceId;
+  "span_id": SpanId;
+}
+
 export interface FailurePropagation {
-  "from": EvidenceSpan;
-  "to": EvidenceSpan;
+  "from": SpanRef;
+  "to": SpanRef;
 }
 
 export interface RetryEvidence {
   "name": string;
   "attempts": number;
-  "spans": EvidenceSpan[];
+  "spans": SpanRef[];
 }
 
 export interface FanoutEvidence {
@@ -1691,8 +1696,9 @@ export interface FanoutEvidence {
 }
 
 export interface FailureObserved {
-  "root_cause_span": EvidenceSpan | null;
-  "error_spans": EvidenceSpan[];
+  "spans": EvidenceSpan[];
+  "root_cause_span": SpanRef | null;
+  "error_spans": SpanRef[];
   "propagation": FailurePropagation[];
   "logs": LogRecord[];
   "retries": RetryEvidence[];
@@ -1700,10 +1706,19 @@ export interface FailureObserved {
 }
 
 export interface TraceDivergence {
-  "a_span": EvidenceSpan | null;
-  "b_span": EvidenceSpan | null;
   "kind": "missing" | "extra" | "status" | "attribute" | "duration";
-  "attribute"?: string;
+  "key": string;
+  "a"?: AttributeValue;
+  "b"?: AttributeValue;
+  "a_span_id"?: SpanId;
+  "b_span_id"?: SpanId;
+}
+
+export interface SpanDifference {
+  "kind": "status" | "attribute" | "duration";
+  "key": string;
+  "a": AttributeValue;
+  "b": AttributeValue;
 }
 
 export interface FailureComparison {
@@ -1814,9 +1829,10 @@ export interface CompareTracesInput {
 }
 
 export interface AlignedSpans {
-  "a_span": EvidenceSpan;
-  "b_span": EvidenceSpan;
-  "differences": TraceDivergence[];
+  "a_span_id": SpanId;
+  "b_span_id": SpanId;
+  "name": string;
+  "differences": SpanDifference[];
 }
 
 export interface CompareTracesOutput {
@@ -1828,7 +1844,7 @@ export interface CompareTracesOutput {
   "first_divergence": TraceDivergence | null;
   "aligned": AlignedSpans[];
   "after_divergence": TraceDivergence[];
-  "unmatched": EvidenceSpan[];
+  "unmatched": TraceDivergence[];
   "comparable": boolean;
   "reason"?: string;
   "error"?: ToolError;
@@ -2386,4 +2402,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:d112a4ddbe2a6877";
+export const CONTRACT_REVISION: string = "sha256:34738a7213e27d35";

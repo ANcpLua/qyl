@@ -87,7 +87,7 @@ verify('04 error-group discriminators are eu and service version 2.3',async call
 });
 verify('05 db executions first diverge at db status',async call=>{
  const data=await call('compare_traces',{...w,a:{trace_id:key['db-root'].trace_id},b:{trace_id:key['db-success-root'].trace_id}});
- assert.equal(data.first_divergence.kind,'status');assert.equal(data.first_divergence.a_span.span_id,key['db-timeout'].span_id);
+ assert.equal(data.first_divergence.kind,'status');assert.equal(data.first_divergence.a_span_id,key['db-timeout'].span_id);
 });
 verify('06 four requests after fix need another96',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);

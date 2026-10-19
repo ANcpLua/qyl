@@ -37,8 +37,8 @@ export async function queryAnalysis<Input extends object>(
     const points = page.points as { items: unknown[] } | undefined;
     const sizeKey = originalPoints ? "points_limit" : operation === "get_trace" ? "max_spans" : operation === "query_metric" ? "series_limit" : operation === "get_agent_run" ? "max_steps" : "limit";
     const trace = page.trace as { spans?: unknown[] } | undefined;
-    const observed = page.observed as { error_spans?: unknown[]; logs?: unknown[] } | undefined;
-    const sizes = [trace?.spans?.length, observed?.error_spans?.length, observed?.logs?.length,
+    const observed = page.observed as { spans?: unknown[]; logs?: unknown[] } | undefined;
+    const sizes = [trace?.spans?.length, observed?.spans?.length, observed?.logs?.length,
       ...Object.values(page).filter(Array.isArray).map((items) => items.length)].filter((size): size is number => size !== undefined);
     const pageSize = originalPoints ? points?.items.length ?? 0 : Math.max(0, ...sizes);
     if (pageSize > 1 && pageSize < previousPageSize) {

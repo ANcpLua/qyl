@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:d112a4ddbe2a6877",
+  "contract_revision": "sha256:34738a7213e27d35",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -2944,277 +2944,10 @@
               {
                 "type": "object",
                 "required": [
-                  "a_span",
-                  "b_span",
-                  "kind"
+                  "kind",
+                  "key"
                 ],
                 "properties": {
-                  "a_span": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "required": [
-                          "trace_id",
-                          "span_id",
-                          "service",
-                          "name",
-                          "status",
-                          "key_attributes",
-                          "duration_ms",
-                          "role"
-                        ],
-                        "properties": {
-                          "start_time": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "end_time": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "trace_id": {
-                            "type": "string",
-                            "minLength": 32,
-                            "maxLength": 32,
-                            "pattern": "^[a-f0-9]{32}$",
-                            "description": "Unique trace identifier (32 lowercase hex characters)",
-                            "examples": [
-                              "0af7651916cd43dd8448eb211c80319c"
-                            ]
-                          },
-                          "span_id": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 16,
-                            "pattern": "^[a-f0-9]{16}$",
-                            "description": "Unique span identifier (16 lowercase hex characters)",
-                            "examples": [
-                              "b7ad6b7169203331"
-                            ]
-                          },
-                          "parent_span_id": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 16,
-                            "pattern": "^[a-f0-9]{16}$",
-                            "description": "Unique span identifier (16 lowercase hex characters)",
-                            "examples": [
-                              "b7ad6b7169203331"
-                            ]
-                          },
-                          "session_id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128,
-                            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                            "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                          },
-                          "service": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "status_message": {
-                            "type": "string"
-                          },
-                          "exception": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              },
-                              "stacktrace": {
-                                "type": "string"
-                              }
-                            },
-                            "description": "RecordedException contract.",
-                            "additionalProperties": false
-                          },
-                          "key_attributes": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "key",
-                                "value"
-                              ],
-                              "properties": {
-                                "key": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 256,
-                                  "description": "Attribute key (dot-separated namespace)"
-                                },
-                                "value": {
-                                  "$ref": "#/$defs/Common.AttributeValue",
-                                  "description": "Attribute value"
-                                }
-                              },
-                              "description": "Key-value attribute pair following OTel conventions",
-                              "additionalProperties": false
-                            }
-                          },
-                          "duration_ms": {
-                            "type": "number",
-                            "minimum": 0,
-                            "description": "Duration in milliseconds"
-                          },
-                          "role": {
-                            "type": "string",
-                            "enum": [
-                              "matched",
-                              "context"
-                            ]
-                          }
-                        },
-                        "description": "EvidenceSpan contract.",
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "b_span": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "required": [
-                          "trace_id",
-                          "span_id",
-                          "service",
-                          "name",
-                          "status",
-                          "key_attributes",
-                          "duration_ms",
-                          "role"
-                        ],
-                        "properties": {
-                          "start_time": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "end_time": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "trace_id": {
-                            "type": "string",
-                            "minLength": 32,
-                            "maxLength": 32,
-                            "pattern": "^[a-f0-9]{32}$",
-                            "description": "Unique trace identifier (32 lowercase hex characters)",
-                            "examples": [
-                              "0af7651916cd43dd8448eb211c80319c"
-                            ]
-                          },
-                          "span_id": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 16,
-                            "pattern": "^[a-f0-9]{16}$",
-                            "description": "Unique span identifier (16 lowercase hex characters)",
-                            "examples": [
-                              "b7ad6b7169203331"
-                            ]
-                          },
-                          "parent_span_id": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 16,
-                            "pattern": "^[a-f0-9]{16}$",
-                            "description": "Unique span identifier (16 lowercase hex characters)",
-                            "examples": [
-                              "b7ad6b7169203331"
-                            ]
-                          },
-                          "session_id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128,
-                            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                            "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                          },
-                          "service": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "status_message": {
-                            "type": "string"
-                          },
-                          "exception": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              },
-                              "stacktrace": {
-                                "type": "string"
-                              }
-                            },
-                            "description": "RecordedException contract.",
-                            "additionalProperties": false
-                          },
-                          "key_attributes": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "key",
-                                "value"
-                              ],
-                              "properties": {
-                                "key": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 256,
-                                  "description": "Attribute key (dot-separated namespace)"
-                                },
-                                "value": {
-                                  "$ref": "#/$defs/Common.AttributeValue",
-                                  "description": "Attribute value"
-                                }
-                              },
-                              "description": "Key-value attribute pair following OTel conventions",
-                              "additionalProperties": false
-                            }
-                          },
-                          "duration_ms": {
-                            "type": "number",
-                            "minimum": 0,
-                            "description": "Duration in milliseconds"
-                          },
-                          "role": {
-                            "type": "string",
-                            "enum": [
-                              "matched",
-                              "context"
-                            ]
-                          }
-                        },
-                        "description": "EvidenceSpan contract.",
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
                   "kind": {
                     "type": "string",
                     "enum": [
@@ -3225,11 +2958,37 @@
                       "duration"
                     ]
                   },
-                  "attribute": {
+                  "key": {
                     "type": "string"
+                  },
+                  "a": {
+                    "$ref": "#/$defs/Common.AttributeValue"
+                  },
+                  "b": {
+                    "$ref": "#/$defs/Common.AttributeValue"
+                  },
+                  "a_span_id": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 16,
+                    "pattern": "^[a-f0-9]{16}$",
+                    "description": "Absent for an `extra` span.",
+                    "examples": [
+                      "b7ad6b7169203331"
+                    ]
+                  },
+                  "b_span_id": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 16,
+                    "pattern": "^[a-f0-9]{16}$",
+                    "description": "Absent for a `missing` span.",
+                    "examples": [
+                      "b7ad6b7169203331"
+                    ]
                   }
                 },
-                "description": "TraceDivergence contract.",
+                "description": "Where two executions part: aligned spans that differ, or a span only `a` has (`missing`) or only `b` has (`extra`). `key` is `status`, the attribute, `duration_ms` or the unmatched span's name; `a` and `b` are each side's value.",
                 "additionalProperties": false
               },
               {
@@ -3242,559 +3001,70 @@
             "items": {
               "type": "object",
               "required": [
-                "a_span",
-                "b_span",
+                "a_span_id",
+                "b_span_id",
+                "name",
                 "differences"
               ],
               "properties": {
-                "a_span": {
-                  "type": "object",
-                  "required": [
-                    "trace_id",
-                    "span_id",
-                    "service",
-                    "name",
-                    "status",
-                    "key_attributes",
-                    "duration_ms",
-                    "role"
-                  ],
-                  "properties": {
-                    "start_time": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "end_time": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "trace_id": {
-                      "type": "string",
-                      "minLength": 32,
-                      "maxLength": 32,
-                      "pattern": "^[a-f0-9]{32}$",
-                      "description": "Unique trace identifier (32 lowercase hex characters)",
-                      "examples": [
-                        "0af7651916cd43dd8448eb211c80319c"
-                      ]
-                    },
-                    "span_id": {
-                      "type": "string",
-                      "minLength": 16,
-                      "maxLength": 16,
-                      "pattern": "^[a-f0-9]{16}$",
-                      "description": "Unique span identifier (16 lowercase hex characters)",
-                      "examples": [
-                        "b7ad6b7169203331"
-                      ]
-                    },
-                    "parent_span_id": {
-                      "type": "string",
-                      "minLength": 16,
-                      "maxLength": 16,
-                      "pattern": "^[a-f0-9]{16}$",
-                      "description": "Unique span identifier (16 lowercase hex characters)",
-                      "examples": [
-                        "b7ad6b7169203331"
-                      ]
-                    },
-                    "session_id": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128,
-                      "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                      "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                    },
-                    "service": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    },
-                    "status_message": {
-                      "type": "string"
-                    },
-                    "exception": {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "stacktrace": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "RecordedException contract.",
-                      "additionalProperties": false
-                    },
-                    "key_attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      }
-                    },
-                    "duration_ms": {
-                      "type": "number",
-                      "minimum": 0,
-                      "description": "Duration in milliseconds"
-                    },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "matched",
-                        "context"
-                      ]
-                    }
-                  },
-                  "description": "EvidenceSpan contract.",
-                  "additionalProperties": false
+                "a_span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Unique span identifier (16 lowercase hex characters)",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
                 },
-                "b_span": {
-                  "type": "object",
-                  "required": [
-                    "trace_id",
-                    "span_id",
-                    "service",
-                    "name",
-                    "status",
-                    "key_attributes",
-                    "duration_ms",
-                    "role"
-                  ],
-                  "properties": {
-                    "start_time": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "end_time": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "trace_id": {
-                      "type": "string",
-                      "minLength": 32,
-                      "maxLength": 32,
-                      "pattern": "^[a-f0-9]{32}$",
-                      "description": "Unique trace identifier (32 lowercase hex characters)",
-                      "examples": [
-                        "0af7651916cd43dd8448eb211c80319c"
-                      ]
-                    },
-                    "span_id": {
-                      "type": "string",
-                      "minLength": 16,
-                      "maxLength": 16,
-                      "pattern": "^[a-f0-9]{16}$",
-                      "description": "Unique span identifier (16 lowercase hex characters)",
-                      "examples": [
-                        "b7ad6b7169203331"
-                      ]
-                    },
-                    "parent_span_id": {
-                      "type": "string",
-                      "minLength": 16,
-                      "maxLength": 16,
-                      "pattern": "^[a-f0-9]{16}$",
-                      "description": "Unique span identifier (16 lowercase hex characters)",
-                      "examples": [
-                        "b7ad6b7169203331"
-                      ]
-                    },
-                    "session_id": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128,
-                      "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                      "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                    },
-                    "service": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    },
-                    "status_message": {
-                      "type": "string"
-                    },
-                    "exception": {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "stacktrace": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "RecordedException contract.",
-                      "additionalProperties": false
-                    },
-                    "key_attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      }
-                    },
-                    "duration_ms": {
-                      "type": "number",
-                      "minimum": 0,
-                      "description": "Duration in milliseconds"
-                    },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "matched",
-                        "context"
-                      ]
-                    }
-                  },
-                  "description": "EvidenceSpan contract.",
-                  "additionalProperties": false
+                "b_span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Unique span identifier (16 lowercase hex characters)",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
+                },
+                "name": {
+                  "type": "string"
                 },
                 "differences": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "required": [
-                      "a_span",
-                      "b_span",
-                      "kind"
+                      "kind",
+                      "key",
+                      "a",
+                      "b"
                     ],
                     "properties": {
-                      "a_span": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "required": [
-                              "trace_id",
-                              "span_id",
-                              "service",
-                              "name",
-                              "status",
-                              "key_attributes",
-                              "duration_ms",
-                              "role"
-                            ],
-                            "properties": {
-                              "start_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "end_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "trace_id": {
-                                "type": "string",
-                                "minLength": 32,
-                                "maxLength": 32,
-                                "pattern": "^[a-f0-9]{32}$",
-                                "description": "Unique trace identifier (32 lowercase hex characters)",
-                                "examples": [
-                                  "0af7651916cd43dd8448eb211c80319c"
-                                ]
-                              },
-                              "span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "parent_span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "session_id": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                                "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                              },
-                              "service": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "status": {
-                                "type": "string"
-                              },
-                              "status_message": {
-                                "type": "string"
-                              },
-                              "exception": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  },
-                                  "stacktrace": {
-                                    "type": "string"
-                                  }
-                                },
-                                "description": "RecordedException contract.",
-                                "additionalProperties": false
-                              },
-                              "key_attributes": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "key",
-                                    "value"
-                                  ],
-                                  "properties": {
-                                    "key": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 256,
-                                      "description": "Attribute key (dot-separated namespace)"
-                                    },
-                                    "value": {
-                                      "$ref": "#/$defs/Common.AttributeValue",
-                                      "description": "Attribute value"
-                                    }
-                                  },
-                                  "description": "Key-value attribute pair following OTel conventions",
-                                  "additionalProperties": false
-                                }
-                              },
-                              "duration_ms": {
-                                "type": "number",
-                                "minimum": 0,
-                                "description": "Duration in milliseconds"
-                              },
-                              "role": {
-                                "type": "string",
-                                "enum": [
-                                  "matched",
-                                  "context"
-                                ]
-                              }
-                            },
-                            "description": "EvidenceSpan contract.",
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "b_span": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "required": [
-                              "trace_id",
-                              "span_id",
-                              "service",
-                              "name",
-                              "status",
-                              "key_attributes",
-                              "duration_ms",
-                              "role"
-                            ],
-                            "properties": {
-                              "start_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "end_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "trace_id": {
-                                "type": "string",
-                                "minLength": 32,
-                                "maxLength": 32,
-                                "pattern": "^[a-f0-9]{32}$",
-                                "description": "Unique trace identifier (32 lowercase hex characters)",
-                                "examples": [
-                                  "0af7651916cd43dd8448eb211c80319c"
-                                ]
-                              },
-                              "span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "parent_span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "session_id": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                                "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                              },
-                              "service": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "status": {
-                                "type": "string"
-                              },
-                              "status_message": {
-                                "type": "string"
-                              },
-                              "exception": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  },
-                                  "stacktrace": {
-                                    "type": "string"
-                                  }
-                                },
-                                "description": "RecordedException contract.",
-                                "additionalProperties": false
-                              },
-                              "key_attributes": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "key",
-                                    "value"
-                                  ],
-                                  "properties": {
-                                    "key": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 256,
-                                      "description": "Attribute key (dot-separated namespace)"
-                                    },
-                                    "value": {
-                                      "$ref": "#/$defs/Common.AttributeValue",
-                                      "description": "Attribute value"
-                                    }
-                                  },
-                                  "description": "Key-value attribute pair following OTel conventions",
-                                  "additionalProperties": false
-                                }
-                              },
-                              "duration_ms": {
-                                "type": "number",
-                                "minimum": 0,
-                                "description": "Duration in milliseconds"
-                              },
-                              "role": {
-                                "type": "string",
-                                "enum": [
-                                  "matched",
-                                  "context"
-                                ]
-                              }
-                            },
-                            "description": "EvidenceSpan contract.",
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
                       "kind": {
                         "type": "string",
                         "enum": [
-                          "missing",
-                          "extra",
                           "status",
                           "attribute",
                           "duration"
                         ]
                       },
-                      "attribute": {
+                      "key": {
                         "type": "string"
+                      },
+                      "a": {
+                        "$ref": "#/$defs/Common.AttributeValue"
+                      },
+                      "b": {
+                        "$ref": "#/$defs/Common.AttributeValue"
                       }
                     },
-                    "description": "TraceDivergence contract.",
+                    "description": "One way two aligned spans differ: their `status`, an `attribute` (key is its name) or `duration_ms`, with each side's value.",
                     "additionalProperties": false
                   }
                 }
               },
-              "description": "AlignedSpans contract.",
+              "description": "A span both executions hold, aligned by service, name and depth, with what differs between the two.",
               "additionalProperties": false
             }
           },
@@ -3803,277 +3073,10 @@
             "items": {
               "type": "object",
               "required": [
-                "a_span",
-                "b_span",
-                "kind"
+                "kind",
+                "key"
               ],
               "properties": {
-                "a_span": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "trace_id",
-                        "span_id",
-                        "service",
-                        "name",
-                        "status",
-                        "key_attributes",
-                        "duration_ms",
-                        "role"
-                      ],
-                      "properties": {
-                        "start_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "end_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "trace_id": {
-                          "type": "string",
-                          "minLength": 32,
-                          "maxLength": 32,
-                          "pattern": "^[a-f0-9]{32}$",
-                          "description": "Unique trace identifier (32 lowercase hex characters)",
-                          "examples": [
-                            "0af7651916cd43dd8448eb211c80319c"
-                          ]
-                        },
-                        "span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Unique span identifier (16 lowercase hex characters)",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "parent_span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Unique span identifier (16 lowercase hex characters)",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "session_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128,
-                          "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                          "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                        },
-                        "service": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "status_message": {
-                          "type": "string"
-                        },
-                        "exception": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "stacktrace": {
-                              "type": "string"
-                            }
-                          },
-                          "description": "RecordedException contract.",
-                          "additionalProperties": false
-                        },
-                        "key_attributes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "key",
-                              "value"
-                            ],
-                            "properties": {
-                              "key": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256,
-                                "description": "Attribute key (dot-separated namespace)"
-                              },
-                              "value": {
-                                "$ref": "#/$defs/Common.AttributeValue",
-                                "description": "Attribute value"
-                              }
-                            },
-                            "description": "Key-value attribute pair following OTel conventions",
-                            "additionalProperties": false
-                          }
-                        },
-                        "duration_ms": {
-                          "type": "number",
-                          "minimum": 0,
-                          "description": "Duration in milliseconds"
-                        },
-                        "role": {
-                          "type": "string",
-                          "enum": [
-                            "matched",
-                            "context"
-                          ]
-                        }
-                      },
-                      "description": "EvidenceSpan contract.",
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "b_span": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "trace_id",
-                        "span_id",
-                        "service",
-                        "name",
-                        "status",
-                        "key_attributes",
-                        "duration_ms",
-                        "role"
-                      ],
-                      "properties": {
-                        "start_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "end_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "trace_id": {
-                          "type": "string",
-                          "minLength": 32,
-                          "maxLength": 32,
-                          "pattern": "^[a-f0-9]{32}$",
-                          "description": "Unique trace identifier (32 lowercase hex characters)",
-                          "examples": [
-                            "0af7651916cd43dd8448eb211c80319c"
-                          ]
-                        },
-                        "span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Unique span identifier (16 lowercase hex characters)",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "parent_span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Unique span identifier (16 lowercase hex characters)",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "session_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128,
-                          "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                          "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                        },
-                        "service": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "status_message": {
-                          "type": "string"
-                        },
-                        "exception": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "stacktrace": {
-                              "type": "string"
-                            }
-                          },
-                          "description": "RecordedException contract.",
-                          "additionalProperties": false
-                        },
-                        "key_attributes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "key",
-                              "value"
-                            ],
-                            "properties": {
-                              "key": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256,
-                                "description": "Attribute key (dot-separated namespace)"
-                              },
-                              "value": {
-                                "$ref": "#/$defs/Common.AttributeValue",
-                                "description": "Attribute value"
-                              }
-                            },
-                            "description": "Key-value attribute pair following OTel conventions",
-                            "additionalProperties": false
-                          }
-                        },
-                        "duration_ms": {
-                          "type": "number",
-                          "minimum": 0,
-                          "description": "Duration in milliseconds"
-                        },
-                        "role": {
-                          "type": "string",
-                          "enum": [
-                            "matched",
-                            "context"
-                          ]
-                        }
-                      },
-                      "description": "EvidenceSpan contract.",
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
                 "kind": {
                   "type": "string",
                   "enum": [
@@ -4084,142 +3087,94 @@
                     "duration"
                   ]
                 },
-                "attribute": {
+                "key": {
                   "type": "string"
+                },
+                "a": {
+                  "$ref": "#/$defs/Common.AttributeValue"
+                },
+                "b": {
+                  "$ref": "#/$defs/Common.AttributeValue"
+                },
+                "a_span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Absent for an `extra` span.",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
+                },
+                "b_span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Absent for a `missing` span.",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
                 }
               },
-              "description": "TraceDivergence contract.",
+              "description": "Where two executions part: aligned spans that differ, or a span only `a` has (`missing`) or only `b` has (`extra`). `key` is `status`, the attribute, `duration_ms` or the unmatched span's name; `a` and `b` are each side's value.",
               "additionalProperties": false
-            }
+            },
+            "description": "Differences of the aligned spans that start after the first divergence."
           },
           "unmatched": {
             "type": "array",
             "items": {
               "type": "object",
               "required": [
-                "trace_id",
-                "span_id",
-                "service",
-                "name",
-                "status",
-                "key_attributes",
-                "duration_ms",
-                "role"
+                "kind",
+                "key"
               ],
               "properties": {
-                "start_time": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "end_time": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "trace_id": {
-                  "type": "string",
-                  "minLength": 32,
-                  "maxLength": 32,
-                  "pattern": "^[a-f0-9]{32}$",
-                  "description": "Unique trace identifier (32 lowercase hex characters)",
-                  "examples": [
-                    "0af7651916cd43dd8448eb211c80319c"
-                  ]
-                },
-                "span_id": {
-                  "type": "string",
-                  "minLength": 16,
-                  "maxLength": 16,
-                  "pattern": "^[a-f0-9]{16}$",
-                  "description": "Unique span identifier (16 lowercase hex characters)",
-                  "examples": [
-                    "b7ad6b7169203331"
-                  ]
-                },
-                "parent_span_id": {
-                  "type": "string",
-                  "minLength": 16,
-                  "maxLength": 16,
-                  "pattern": "^[a-f0-9]{16}$",
-                  "description": "Unique span identifier (16 lowercase hex characters)",
-                  "examples": [
-                    "b7ad6b7169203331"
-                  ]
-                },
-                "session_id": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 128,
-                  "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                  "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                },
-                "service": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string"
-                },
-                "status_message": {
-                  "type": "string"
-                },
-                "exception": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "stacktrace": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "RecordedException contract.",
-                  "additionalProperties": false
-                },
-                "key_attributes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "key",
-                      "value"
-                    ],
-                    "properties": {
-                      "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256,
-                        "description": "Attribute key (dot-separated namespace)"
-                      },
-                      "value": {
-                        "$ref": "#/$defs/Common.AttributeValue",
-                        "description": "Attribute value"
-                      }
-                    },
-                    "description": "Key-value attribute pair following OTel conventions",
-                    "additionalProperties": false
-                  }
-                },
-                "duration_ms": {
-                  "type": "number",
-                  "minimum": 0,
-                  "description": "Duration in milliseconds"
-                },
-                "role": {
+                "kind": {
                   "type": "string",
                   "enum": [
-                    "matched",
-                    "context"
+                    "missing",
+                    "extra",
+                    "status",
+                    "attribute",
+                    "duration"
+                  ]
+                },
+                "key": {
+                  "type": "string"
+                },
+                "a": {
+                  "$ref": "#/$defs/Common.AttributeValue"
+                },
+                "b": {
+                  "$ref": "#/$defs/Common.AttributeValue"
+                },
+                "a_span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Absent for an `extra` span.",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
+                },
+                "b_span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Absent for a `missing` span.",
+                  "examples": [
+                    "b7ad6b7169203331"
                   ]
                 }
               },
-              "description": "EvidenceSpan contract.",
+              "description": "Where two executions part: aligned spans that differ, or a span only `a` has (`missing`) or only `b` has (`extra`). `key` is `status`, the attribute, `duration_ms` or the unmatched span's name; `a` and `b` are each side's value.",
               "additionalProperties": false
-            }
+            },
+            "description": "Spans only one execution holds."
           },
           "comparable": {
             "type": "boolean"
@@ -8021,6 +6976,7 @@
           "observed": {
             "type": "object",
             "required": [
+              "spans",
               "root_cause_span",
               "error_spans",
               "propagation",
@@ -8029,140 +6985,7 @@
               "fanout"
             ],
             "properties": {
-              "root_cause_span": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "required": [
-                      "trace_id",
-                      "span_id",
-                      "service",
-                      "name",
-                      "status",
-                      "key_attributes",
-                      "duration_ms",
-                      "role"
-                    ],
-                    "properties": {
-                      "start_time": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "end_time": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "trace_id": {
-                        "type": "string",
-                        "minLength": 32,
-                        "maxLength": 32,
-                        "pattern": "^[a-f0-9]{32}$",
-                        "description": "Unique trace identifier (32 lowercase hex characters)",
-                        "examples": [
-                          "0af7651916cd43dd8448eb211c80319c"
-                        ]
-                      },
-                      "span_id": {
-                        "type": "string",
-                        "minLength": 16,
-                        "maxLength": 16,
-                        "pattern": "^[a-f0-9]{16}$",
-                        "description": "Unique span identifier (16 lowercase hex characters)",
-                        "examples": [
-                          "b7ad6b7169203331"
-                        ]
-                      },
-                      "parent_span_id": {
-                        "type": "string",
-                        "minLength": 16,
-                        "maxLength": 16,
-                        "pattern": "^[a-f0-9]{16}$",
-                        "description": "Unique span identifier (16 lowercase hex characters)",
-                        "examples": [
-                          "b7ad6b7169203331"
-                        ]
-                      },
-                      "session_id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128,
-                        "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                        "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                      },
-                      "service": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string"
-                      },
-                      "status_message": {
-                        "type": "string"
-                      },
-                      "exception": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "stacktrace": {
-                            "type": "string"
-                          }
-                        },
-                        "description": "RecordedException contract.",
-                        "additionalProperties": false
-                      },
-                      "key_attributes": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": [
-                            "key",
-                            "value"
-                          ],
-                          "properties": {
-                            "key": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 256,
-                              "description": "Attribute key (dot-separated namespace)"
-                            },
-                            "value": {
-                              "$ref": "#/$defs/Common.AttributeValue",
-                              "description": "Attribute value"
-                            }
-                          },
-                          "description": "Key-value attribute pair following OTel conventions",
-                          "additionalProperties": false
-                        }
-                      },
-                      "duration_ms": {
-                        "type": "number",
-                        "minimum": 0,
-                        "description": "Duration in milliseconds"
-                      },
-                      "role": {
-                        "type": "string",
-                        "enum": [
-                          "matched",
-                          "context"
-                        ]
-                      }
-                    },
-                    "description": "EvidenceSpan contract.",
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "error_spans": {
+              "spans": {
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -8289,7 +7112,82 @@
                   },
                   "description": "EvidenceSpan contract.",
                   "additionalProperties": false
-                }
+                },
+                "description": "The error spans and their ancestors, each once; an ancestor has `role` context."
+              },
+              "root_cause_span": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "trace_id",
+                      "span_id"
+                    ],
+                    "properties": {
+                      "trace_id": {
+                        "type": "string",
+                        "minLength": 32,
+                        "maxLength": 32,
+                        "pattern": "^[a-f0-9]{32}$",
+                        "description": "Unique trace identifier (32 lowercase hex characters)",
+                        "examples": [
+                          "0af7651916cd43dd8448eb211c80319c"
+                        ]
+                      },
+                      "span_id": {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 16,
+                        "pattern": "^[a-f0-9]{16}$",
+                        "description": "Unique span identifier (16 lowercase hex characters)",
+                        "examples": [
+                          "b7ad6b7169203331"
+                        ]
+                      }
+                    },
+                    "description": "A span named by its trace and span id; a span id is unique only within its trace.",
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The earliest error span without a failing child: where the failure began."
+              },
+              "error_spans": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "trace_id",
+                    "span_id"
+                  ],
+                  "properties": {
+                    "trace_id": {
+                      "type": "string",
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[a-f0-9]{32}$",
+                      "description": "Unique trace identifier (32 lowercase hex characters)",
+                      "examples": [
+                        "0af7651916cd43dd8448eb211c80319c"
+                      ]
+                    },
+                    "span_id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 16,
+                      "pattern": "^[a-f0-9]{16}$",
+                      "description": "Unique span identifier (16 lowercase hex characters)",
+                      "examples": [
+                        "b7ad6b7169203331"
+                      ]
+                    }
+                  },
+                  "description": "A span named by its trace and span id; a span id is unique only within its trace.",
+                  "additionalProperties": false
+                },
+                "description": "The spans with error status."
               },
               "propagation": {
                 "type": "array",
@@ -8304,23 +7202,9 @@
                       "type": "object",
                       "required": [
                         "trace_id",
-                        "span_id",
-                        "service",
-                        "name",
-                        "status",
-                        "key_attributes",
-                        "duration_ms",
-                        "role"
+                        "span_id"
                       ],
                       "properties": {
-                        "start_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "end_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
                         "trace_id": {
                           "type": "string",
                           "minLength": 32,
@@ -8340,113 +7224,18 @@
                           "examples": [
                             "b7ad6b7169203331"
                           ]
-                        },
-                        "parent_span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Unique span identifier (16 lowercase hex characters)",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "session_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128,
-                          "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                          "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                        },
-                        "service": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "status_message": {
-                          "type": "string"
-                        },
-                        "exception": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "stacktrace": {
-                              "type": "string"
-                            }
-                          },
-                          "description": "RecordedException contract.",
-                          "additionalProperties": false
-                        },
-                        "key_attributes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "key",
-                              "value"
-                            ],
-                            "properties": {
-                              "key": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256,
-                                "description": "Attribute key (dot-separated namespace)"
-                              },
-                              "value": {
-                                "$ref": "#/$defs/Common.AttributeValue",
-                                "description": "Attribute value"
-                              }
-                            },
-                            "description": "Key-value attribute pair following OTel conventions",
-                            "additionalProperties": false
-                          }
-                        },
-                        "duration_ms": {
-                          "type": "number",
-                          "minimum": 0,
-                          "description": "Duration in milliseconds"
-                        },
-                        "role": {
-                          "type": "string",
-                          "enum": [
-                            "matched",
-                            "context"
-                          ]
                         }
                       },
-                      "description": "EvidenceSpan contract.",
+                      "description": "A span named by its trace and span id; a span id is unique only within its trace.",
                       "additionalProperties": false
                     },
                     "to": {
                       "type": "object",
                       "required": [
                         "trace_id",
-                        "span_id",
-                        "service",
-                        "name",
-                        "status",
-                        "key_attributes",
-                        "duration_ms",
-                        "role"
+                        "span_id"
                       ],
                       "properties": {
-                        "start_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "end_time": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
                         "trace_id": {
                           "type": "string",
                           "minLength": 32,
@@ -8466,94 +7255,13 @@
                           "examples": [
                             "b7ad6b7169203331"
                           ]
-                        },
-                        "parent_span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Unique span identifier (16 lowercase hex characters)",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "session_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128,
-                          "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                          "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                        },
-                        "service": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "status_message": {
-                          "type": "string"
-                        },
-                        "exception": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "stacktrace": {
-                              "type": "string"
-                            }
-                          },
-                          "description": "RecordedException contract.",
-                          "additionalProperties": false
-                        },
-                        "key_attributes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "key",
-                              "value"
-                            ],
-                            "properties": {
-                              "key": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256,
-                                "description": "Attribute key (dot-separated namespace)"
-                              },
-                              "value": {
-                                "$ref": "#/$defs/Common.AttributeValue",
-                                "description": "Attribute value"
-                              }
-                            },
-                            "description": "Key-value attribute pair following OTel conventions",
-                            "additionalProperties": false
-                          }
-                        },
-                        "duration_ms": {
-                          "type": "number",
-                          "minimum": 0,
-                          "description": "Duration in milliseconds"
-                        },
-                        "role": {
-                          "type": "string",
-                          "enum": [
-                            "matched",
-                            "context"
-                          ]
                         }
                       },
-                      "description": "EvidenceSpan contract.",
+                      "description": "A span named by its trace and span id; a span id is unique only within its trace.",
                       "additionalProperties": false
                     }
                   },
-                  "description": "FailurePropagation contract.",
+                  "description": "An error passed from a parent span to its failing child.",
                   "additionalProperties": false
                 }
               },
@@ -8847,23 +7555,9 @@
                         "type": "object",
                         "required": [
                           "trace_id",
-                          "span_id",
-                          "service",
-                          "name",
-                          "status",
-                          "key_attributes",
-                          "duration_ms",
-                          "role"
+                          "span_id"
                         ],
                         "properties": {
-                          "start_time": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "end_time": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
                           "trace_id": {
                             "type": "string",
                             "minLength": 32,
@@ -8883,95 +7577,14 @@
                             "examples": [
                               "b7ad6b7169203331"
                             ]
-                          },
-                          "parent_span_id": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 16,
-                            "pattern": "^[a-f0-9]{16}$",
-                            "description": "Unique span identifier (16 lowercase hex characters)",
-                            "examples": [
-                              "b7ad6b7169203331"
-                            ]
-                          },
-                          "session_id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128,
-                            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                            "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                          },
-                          "service": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "status_message": {
-                            "type": "string"
-                          },
-                          "exception": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              },
-                              "stacktrace": {
-                                "type": "string"
-                              }
-                            },
-                            "description": "RecordedException contract.",
-                            "additionalProperties": false
-                          },
-                          "key_attributes": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "key",
-                                "value"
-                              ],
-                              "properties": {
-                                "key": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 256,
-                                  "description": "Attribute key (dot-separated namespace)"
-                                },
-                                "value": {
-                                  "$ref": "#/$defs/Common.AttributeValue",
-                                  "description": "Attribute value"
-                                }
-                              },
-                              "description": "Key-value attribute pair following OTel conventions",
-                              "additionalProperties": false
-                            }
-                          },
-                          "duration_ms": {
-                            "type": "number",
-                            "minimum": 0,
-                            "description": "Duration in milliseconds"
-                          },
-                          "role": {
-                            "type": "string",
-                            "enum": [
-                              "matched",
-                              "context"
-                            ]
                           }
                         },
-                        "description": "EvidenceSpan contract.",
+                        "description": "A span named by its trace and span id; a span id is unique only within its trace.",
                         "additionalProperties": false
                       }
                     }
                   },
-                  "description": "RetryEvidence contract.",
+                  "description": "Sibling spans of one name under one parent: the attempts of one call.",
                   "additionalProperties": false
                 }
               },
@@ -9019,7 +7632,7 @@
                 }
               }
             },
-            "description": "FailureObserved contract.",
+            "description": "What the execution shows. Every span appears once in `spans`; the other lists name spans by trace and span id.",
             "additionalProperties": false
           },
           "comparison": {
@@ -9043,277 +7656,10 @@
                   {
                     "type": "object",
                     "required": [
-                      "a_span",
-                      "b_span",
-                      "kind"
+                      "kind",
+                      "key"
                     ],
                     "properties": {
-                      "a_span": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "required": [
-                              "trace_id",
-                              "span_id",
-                              "service",
-                              "name",
-                              "status",
-                              "key_attributes",
-                              "duration_ms",
-                              "role"
-                            ],
-                            "properties": {
-                              "start_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "end_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "trace_id": {
-                                "type": "string",
-                                "minLength": 32,
-                                "maxLength": 32,
-                                "pattern": "^[a-f0-9]{32}$",
-                                "description": "Unique trace identifier (32 lowercase hex characters)",
-                                "examples": [
-                                  "0af7651916cd43dd8448eb211c80319c"
-                                ]
-                              },
-                              "span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "parent_span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "session_id": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                                "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                              },
-                              "service": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "status": {
-                                "type": "string"
-                              },
-                              "status_message": {
-                                "type": "string"
-                              },
-                              "exception": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  },
-                                  "stacktrace": {
-                                    "type": "string"
-                                  }
-                                },
-                                "description": "RecordedException contract.",
-                                "additionalProperties": false
-                              },
-                              "key_attributes": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "key",
-                                    "value"
-                                  ],
-                                  "properties": {
-                                    "key": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 256,
-                                      "description": "Attribute key (dot-separated namespace)"
-                                    },
-                                    "value": {
-                                      "$ref": "#/$defs/Common.AttributeValue",
-                                      "description": "Attribute value"
-                                    }
-                                  },
-                                  "description": "Key-value attribute pair following OTel conventions",
-                                  "additionalProperties": false
-                                }
-                              },
-                              "duration_ms": {
-                                "type": "number",
-                                "minimum": 0,
-                                "description": "Duration in milliseconds"
-                              },
-                              "role": {
-                                "type": "string",
-                                "enum": [
-                                  "matched",
-                                  "context"
-                                ]
-                              }
-                            },
-                            "description": "EvidenceSpan contract.",
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "b_span": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "required": [
-                              "trace_id",
-                              "span_id",
-                              "service",
-                              "name",
-                              "status",
-                              "key_attributes",
-                              "duration_ms",
-                              "role"
-                            ],
-                            "properties": {
-                              "start_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "end_time": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "trace_id": {
-                                "type": "string",
-                                "minLength": 32,
-                                "maxLength": 32,
-                                "pattern": "^[a-f0-9]{32}$",
-                                "description": "Unique trace identifier (32 lowercase hex characters)",
-                                "examples": [
-                                  "0af7651916cd43dd8448eb211c80319c"
-                                ]
-                              },
-                              "span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "parent_span_id": {
-                                "type": "string",
-                                "minLength": 16,
-                                "maxLength": 16,
-                                "pattern": "^[a-f0-9]{16}$",
-                                "description": "Unique span identifier (16 lowercase hex characters)",
-                                "examples": [
-                                  "b7ad6b7169203331"
-                                ]
-                              },
-                              "session_id": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                                "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                              },
-                              "service": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "status": {
-                                "type": "string"
-                              },
-                              "status_message": {
-                                "type": "string"
-                              },
-                              "exception": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  },
-                                  "stacktrace": {
-                                    "type": "string"
-                                  }
-                                },
-                                "description": "RecordedException contract.",
-                                "additionalProperties": false
-                              },
-                              "key_attributes": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "key",
-                                    "value"
-                                  ],
-                                  "properties": {
-                                    "key": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 256,
-                                      "description": "Attribute key (dot-separated namespace)"
-                                    },
-                                    "value": {
-                                      "$ref": "#/$defs/Common.AttributeValue",
-                                      "description": "Attribute value"
-                                    }
-                                  },
-                                  "description": "Key-value attribute pair following OTel conventions",
-                                  "additionalProperties": false
-                                }
-                              },
-                              "duration_ms": {
-                                "type": "number",
-                                "minimum": 0,
-                                "description": "Duration in milliseconds"
-                              },
-                              "role": {
-                                "type": "string",
-                                "enum": [
-                                  "matched",
-                                  "context"
-                                ]
-                              }
-                            },
-                            "description": "EvidenceSpan contract.",
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
                       "kind": {
                         "type": "string",
                         "enum": [
@@ -9324,11 +7670,37 @@
                           "duration"
                         ]
                       },
-                      "attribute": {
+                      "key": {
                         "type": "string"
+                      },
+                      "a": {
+                        "$ref": "#/$defs/Common.AttributeValue"
+                      },
+                      "b": {
+                        "$ref": "#/$defs/Common.AttributeValue"
+                      },
+                      "a_span_id": {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 16,
+                        "pattern": "^[a-f0-9]{16}$",
+                        "description": "Absent for an `extra` span.",
+                        "examples": [
+                          "b7ad6b7169203331"
+                        ]
+                      },
+                      "b_span_id": {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 16,
+                        "pattern": "^[a-f0-9]{16}$",
+                        "description": "Absent for a `missing` span.",
+                        "examples": [
+                          "b7ad6b7169203331"
+                        ]
                       }
                     },
-                    "description": "TraceDivergence contract.",
+                    "description": "Where two executions part: aligned spans that differ, or a span only `a` has (`missing`) or only `b` has (`extra`). `key` is `status`, the attribute, `duration_ms` or the unmatched span's name; `a` and `b` are each side's value.",
                     "additionalProperties": false
                   },
                   {

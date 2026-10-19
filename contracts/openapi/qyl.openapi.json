@@ -8133,28 +8133,32 @@
       "Mcp.Tools.AlignedSpans": {
         "type": "object",
         "required": [
-          "a_span",
-          "b_span",
+          "a_span_id",
+          "b_span_id",
+          "name",
           "differences"
         ],
         "properties": {
-          "a_span": {
-            "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+          "a_span_id": {
+            "$ref": "#/components/schemas/Common.SpanId"
           },
-          "b_span": {
-            "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+          "b_span_id": {
+            "$ref": "#/components/schemas/Common.SpanId"
+          },
+          "name": {
+            "type": "string"
           },
           "differences": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.TraceDivergence"
+              "$ref": "#/components/schemas/Mcp.Tools.SpanDifference"
             }
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "AlignedSpans contract."
+        "description": "A span both executions hold, aligned by service, name and depth, with what differs between the two."
       },
       "Mcp.Tools.AnalysisBaseline": {
         "anyOf": [
@@ -9164,13 +9168,15 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.TraceDivergence"
-            }
+            },
+            "description": "Differences of the aligned spans that start after the first divergence."
           },
           "unmatched": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
-            }
+              "$ref": "#/components/schemas/Mcp.Tools.TraceDivergence"
+            },
+            "description": "Spans only one execution holds."
           },
           "comparable": {
             "type": "boolean"
@@ -9798,6 +9804,7 @@
       "Mcp.Tools.FailureObserved": {
         "type": "object",
         "required": [
+          "spans",
           "root_cause_span",
           "error_spans",
           "propagation",
@@ -9806,21 +9813,30 @@
           "fanout"
         ],
         "properties": {
+          "spans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+            },
+            "description": "The error spans and their ancestors, each once; an ancestor has `role` context."
+          },
           "root_cause_span": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+                "$ref": "#/components/schemas/Mcp.Tools.SpanRef"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "The earliest error span without a failing child: where the failure began."
           },
           "error_spans": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
-            }
+              "$ref": "#/components/schemas/Mcp.Tools.SpanRef"
+            },
+            "description": "The spans with error status."
           },
           "propagation": {
             "type": "array",
@@ -9850,7 +9866,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "FailureObserved contract."
+        "description": "What the execution shows. Every span appears once in `spans`; the other lists name spans by trace and span id."
       },
       "Mcp.Tools.FailureOccurrence": {
         "type": "object",
@@ -9893,16 +9909,16 @@
         ],
         "properties": {
           "from": {
-            "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+            "$ref": "#/components/schemas/Mcp.Tools.SpanRef"
           },
           "to": {
-            "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+            "$ref": "#/components/schemas/Mcp.Tools.SpanRef"
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "FailurePropagation contract."
+        "description": "An error passed from a parent span to its failing child."
       },
       "Mcp.Tools.FailureRelease": {
         "type": "object",
@@ -12725,14 +12741,14 @@
           "spans": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
+              "$ref": "#/components/schemas/Mcp.Tools.SpanRef"
             }
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "RetryEvidence contract."
+        "description": "Sibling spans of one name under one parent: the attempts of one call."
       },
       "Mcp.Tools.RunSavedQueryInput": {
         "type": "object",
@@ -13229,6 +13245,57 @@
         },
         "description": "SimilarFailure contract."
       },
+      "Mcp.Tools.SpanDifference": {
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "a",
+          "b"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "status",
+              "attribute",
+              "duration"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "a": {
+            "$ref": "#/components/schemas/Common.AttributeValue"
+          },
+          "b": {
+            "$ref": "#/components/schemas/Common.AttributeValue"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One way two aligned spans differ: their `status`, an `attribute` (key is its name) or `duration_ms`, with each side's value."
+      },
+      "Mcp.Tools.SpanRef": {
+        "type": "object",
+        "required": [
+          "trace_id",
+          "span_id"
+        ],
+        "properties": {
+          "trace_id": {
+            "$ref": "#/components/schemas/Common.TraceId"
+          },
+          "span_id": {
+            "$ref": "#/components/schemas/Common.SpanId"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A span named by its trace and span id; a span id is unique only within its trace."
+      },
       "Mcp.Tools.TelemetryDataSpan": {
         "type": "object",
         "required": [
@@ -13644,31 +13711,10 @@
       "Mcp.Tools.TraceDivergence": {
         "type": "object",
         "required": [
-          "a_span",
-          "b_span",
-          "kind"
+          "kind",
+          "key"
         ],
         "properties": {
-          "a_span": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "b_span": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "kind": {
             "type": "string",
             "enum": [
@@ -13679,14 +13725,28 @@
               "duration"
             ]
           },
-          "attribute": {
+          "key": {
             "type": "string"
+          },
+          "a": {
+            "$ref": "#/components/schemas/Common.AttributeValue"
+          },
+          "b": {
+            "$ref": "#/components/schemas/Common.AttributeValue"
+          },
+          "a_span_id": {
+            "$ref": "#/components/schemas/Common.SpanId",
+            "description": "Absent for an `extra` span."
+          },
+          "b_span_id": {
+            "$ref": "#/components/schemas/Common.SpanId",
+            "description": "Absent for a `missing` span."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "TraceDivergence contract."
+        "description": "Where two executions part: aligned spans that differ, or a span only `a` has (`missing`) or only `b` has (`extra`). `key` is `status`, the attribute, `duration_ms` or the unmatched span's name; `a` and `b` are each side's value."
       },
       "Mcp.Tools.TraceLinkAvailability": {
         "type": "object",

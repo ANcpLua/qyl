@@ -1814,12 +1814,20 @@ public sealed class RecordedException
     public string? Stacktrace { get; init; }
 }
 
+public sealed class SpanRef
+{
+    [JsonPropertyName("trace_id")]
+    public required string TraceId { get; init; }
+    [JsonPropertyName("span_id")]
+    public required string SpanId { get; init; }
+}
+
 public sealed class FailurePropagation
 {
     [JsonPropertyName("from")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan From { get; init; }
+    public required Qyl.Api.Contracts.Mcp.Tools.SpanRef From { get; init; }
     [JsonPropertyName("to")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan To { get; init; }
+    public required Qyl.Api.Contracts.Mcp.Tools.SpanRef To { get; init; }
 }
 
 public sealed class RetryEvidence
@@ -1829,7 +1837,7 @@ public sealed class RetryEvidence
     [JsonPropertyName("attempts")]
     public required int Attempts { get; init; }
     [JsonPropertyName("spans")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan> Spans { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SpanRef> Spans { get; init; }
 }
 
 public sealed class FanoutEvidence
@@ -1847,11 +1855,13 @@ public sealed class FanoutEvidence
 
 public sealed class FailureObserved
 {
+    [JsonPropertyName("spans")]
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan> Spans { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("root_cause_span")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan? RootCauseSpan { get; init; }
+    public required Qyl.Api.Contracts.Mcp.Tools.SpanRef? RootCauseSpan { get; init; }
     [JsonPropertyName("error_spans")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan> ErrorSpans { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SpanRef> ErrorSpans { get; init; }
     [JsonPropertyName("propagation")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.FailurePropagation> Propagation { get; init; }
     [JsonPropertyName("logs")]
@@ -1864,17 +1874,36 @@ public sealed class FailureObserved
 
 public sealed class TraceDivergence
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    [JsonPropertyName("a_span")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan? ASpan { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    [JsonPropertyName("b_span")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan? BSpan { get; init; }
     [JsonPropertyName("kind")]
     public required string Kind { get; init; }
+    [JsonPropertyName("key")]
+    public required string Key { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("attribute")]
-    public string? Attribute { get; init; }
+    [JsonPropertyName("a")]
+    public Qyl.Api.Contracts.Common.AttributeValue? A { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("b")]
+    public Qyl.Api.Contracts.Common.AttributeValue? B { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("a_span_id")]
+    public string? ASpanId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("b_span_id")]
+    public string? BSpanId { get; init; }
+}
+
+public sealed class SpanDifference
+{
+    [JsonPropertyName("kind")]
+    public required string Kind { get; init; }
+    [JsonPropertyName("key")]
+    public required string Key { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("a")]
+    public required Qyl.Api.Contracts.Common.AttributeValue? A { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("b")]
+    public required Qyl.Api.Contracts.Common.AttributeValue? B { get; init; }
 }
 
 public sealed class FailureComparison
@@ -2106,12 +2135,14 @@ public sealed class CompareTracesInput
 
 public sealed class AlignedSpans
 {
-    [JsonPropertyName("a_span")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan ASpan { get; init; }
-    [JsonPropertyName("b_span")]
-    public required Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan BSpan { get; init; }
+    [JsonPropertyName("a_span_id")]
+    public required string ASpanId { get; init; }
+    [JsonPropertyName("b_span_id")]
+    public required string BSpanId { get; init; }
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
     [JsonPropertyName("differences")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.TraceDivergence> Differences { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SpanDifference> Differences { get; init; }
 }
 
 public sealed class CompareTracesOutput
@@ -2136,7 +2167,7 @@ public sealed class CompareTracesOutput
     [JsonPropertyName("after_divergence")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.TraceDivergence> AfterDivergence { get; init; }
     [JsonPropertyName("unmatched")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.EvidenceSpan> Unmatched { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.TraceDivergence> Unmatched { get; init; }
     [JsonPropertyName("comparable")]
     public required bool Comparable { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

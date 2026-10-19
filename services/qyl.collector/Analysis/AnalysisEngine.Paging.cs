@@ -51,7 +51,7 @@ internal sealed partial class AnalysisEngine
     private int PageSize(JsonObject input, string path) => path switch
     {
         "trace.spans" => Bounded(input, "max_spans", GetTraceInput.MaxSpansDefault, GetTraceInput.MaxSpansMinimum, GetTraceInput.MaxSpansMaximum),
-        "observed.error_spans" => Math.Min(Limit(input), Bounded(input, "max_spans", GetFailureContextInput.MaxSpansDefault, GetFailureContextInput.MaxSpansMinimum, GetFailureContextInput.MaxSpansMaximum)),
+        "observed.spans" => Math.Min(Limit(input), Bounded(input, "max_spans", GetFailureContextInput.MaxSpansDefault, GetFailureContextInput.MaxSpansMinimum, GetFailureContextInput.MaxSpansMaximum)),
         "observed.logs" => Math.Min(Limit(input), Bounded(input, "max_logs", GetFailureContextInput.MaxLogsDefault, GetFailureContextInput.MaxLogsMinimum, GetFailureContextInput.MaxLogsMaximum)),
         "steps" => Math.Min(Limit(input), Bounded(input, "max_steps", GetAgentRunInput.MaxStepsDefault, GetAgentRunInput.MaxStepsMinimum, GetAgentRunInput.MaxStepsMaximum)),
         _ => Limit(input)
@@ -81,7 +81,7 @@ internal sealed partial class AnalysisEngine
         string[] paths = _operation switch
         {
             "triage" => ["failures", "regressions", "releases", "silent_services"],
-            "get_failure_context" => ["observed.error_spans", "observed.logs", "observed.propagation", "observed.retries", "observed.fanout", "context.similar_failures", "context.changes", "context.annotations"],
+            "get_failure_context" => ["observed.spans", "observed.logs", "context.similar_failures", "context.changes", "context.annotations"],
             "compare_groups" => ["discriminators", "structural", "excluded_keys"],
             "compare_traces" => ["aligned", "unmatched", "after_divergence"],
             "verify_fix" => ["guardrails"],
@@ -105,7 +105,9 @@ internal sealed partial class AnalysisEngine
             var all = array.ToList(); var size = PageSize(input, path);
             var start = Resume(positions, path, all);
             var page = all.Skip(start).Take(size).ToList(); var end = start + page.Count;
-            totals[path] = all.Count; next[path] = Position(all, end); more |= end < all.Count; returned += page.Count;
+            totals[path] = all.Count; next[path] = Position(all, end); more |= end < all.Count;
+            // A failure's evidence is its spans and logs; its context lists are not records it returned.
+            if (_operation != "get_failure_context" || path is "observed.spans" or "observed.logs") returned += page.Count;
             owner[parts[^1]] = J.A(page);
             // other is the groups after this page and the records they hold, whichever measures were requested.
             if (path == "groups" && _groupSizes is { } sizes) result["other"] = J.O(("groups", all.Count - end), ("count", sizes.Skip(end).Sum()));

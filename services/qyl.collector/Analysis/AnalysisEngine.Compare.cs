@@ -36,37 +36,50 @@ internal sealed partial class AnalysisEngine
         result["has_more"] = false;
         return result;
     }
+    private static JsonObject SpanRef(AnalysisRecord s) => J.O(("trace_id", s.TraceId), ("span_id", s.Id));
+    private static string Status(AnalysisRecord s) => s.Error ? "error" : s.Span?.StatusCode == 1 ? "ok" : "unset";
+    // A difference between two spans, or a span only one side has, named by both span ids.
+    private static JsonObject Divergence(string kind, string key, JsonNode? a, JsonNode? b, string? aSpan, string? bSpan) =>
+        J.O(("kind", kind), ("key", key), ("a", a), ("b", b), ("a_span_id", aSpan), ("b_span_id", bSpan));
     private JsonObject CompareTracesCore(JsonObject input)
     {
         var a = Execution(input["a"]); var b = Execution(input["b"]);
-        if (a.Count is 0 || b.Count is 0) return J.O(("comparable", false), ("reason", "One execution was not found."), ("aligned", new JsonArray()), ("unmatched", new JsonArray()), ("after_divergence", new JsonArray()), ("first_divergence", null));
+        foreach (var (side, rows) in new[] { ("a", a), ("b", b) })
+            if (rows.Count is 0)
+            {
+                var target = input[side]; var id = J.String(target, "trace_id") ?? J.String(target, "session_id") ?? J.Text(target);
+                throw new AnalysisInputException(side, $"Execution {id} was not found in this project; list_traces lists the traces it holds.", "trace.not_found");
+            }
         var rootA = a.OrderBy(s => Depth(s, a)).ThenBy(s => s.Start).First(); var rootB = b.OrderBy(s => Depth(s, b)).ThenBy(s => s.Start).First();
         if (rootA.Name != rootB.Name) return J.O(("comparable", false), ("reason", "Root operations differ."), ("aligned", new JsonArray()), ("unmatched", new JsonArray()), ("after_divergence", new JsonArray()), ("first_divergence", null));
         var groupsB = b.GroupBy(s => (s.Service, s.Name, Depth: Depth(s, b))).ToDictionary(g => g.Key, g => new Queue<AnalysisRecord>(g.OrderBy(s => s.Start)));
-        var aligned = new List<JsonObject>(); var unmatched = new List<JsonObject>(); JsonObject? first = null;
+        var aligned = new List<JsonObject>(); var unmatched = new List<JsonObject>(); var changes = new List<(ulong Start, JsonObject Divergence)>();
+        JsonObject? first = null; var firstDepth = -1; ulong? firstStart = null;
         foreach (var left in a.OrderBy(s => s.Start))
         {
             ct.ThrowIfCancellationRequested();
             var key = (left.Service, left.Name, Depth: Depth(left, a));
             if (!groupsB.TryGetValue(key, out var queue) || !queue.TryDequeue(out var right))
-            { var missing = J.O(("a_span", SpanJson(left)), ("b_span", null), ("kind", "missing")); unmatched.Add(SpanJson(left)); first ??= missing; continue; }
-            var differences = new JsonArray();
-            if (left.Error != right.Error) differences.Add((JsonNode)J.O(("a_span", SpanJson(left)), ("b_span", SpanJson(right)), ("kind", "status")));
-            if (!JsonNode.DeepEquals(left.Attributes, right.Attributes)) differences.Add((JsonNode)J.O(("a_span", SpanJson(left)), ("b_span", SpanJson(right)), ("kind", "attribute")));
-            if (Math.Abs(left.Duration - right.Duration) > Math.Max(1, Math.Min(left.Duration, right.Duration) * .1)) differences.Add((JsonNode)J.O(("a_span", SpanJson(left)), ("b_span", SpanJson(right)), ("kind", "duration")));
-            var pair = J.O(("a_span", SpanJson(left)), ("b_span", SpanJson(right)), ("differences", differences)); aligned.Add(pair);
-            if (differences.Count > 0)
-            {
-                // Prefer the deepest error boundary over an ancestor carrying propagated ERROR.
-                if (first is null || J.String(differences[0], "kind") == "status" && (J.String(first, "kind") != "status" || Depth(left, a) > J.Number(first, "depth")))
-                    first = J.O(("a_span", SpanJson(left)), ("b_span", SpanJson(right)), ("kind", J.String(differences[0], "kind")), ("depth", Depth(left, a)));
-            }
+            { var missing = Divergence("missing", left.Name, null, null, left.Id, null); unmatched.Add(missing); if (first is null) { first = missing; firstStart = left.Start; } continue; }
+            var differences = new List<JsonObject>();
+            if (left.Error != right.Error) differences.Add(Divergence("status", "status", JsonValue.Create(Status(left)), JsonValue.Create(Status(right)), left.Id, right.Id));
+            // Per-request identities differ between any two executions and say nothing.
+            foreach (var attribute in left.Attributes.Select(static p => p.Key).Union(right.Attributes.Select(static p => p.Key)).Where(k => !IsUniqueKey(k)).Order(StringComparer.Ordinal))
+                if (!JsonNode.DeepEquals(left.Attributes[attribute], right.Attributes[attribute]))
+                    differences.Add(Divergence("attribute", attribute, ContractValue(left.Attributes[attribute]), ContractValue(right.Attributes[attribute]), left.Id, right.Id));
+            if (Math.Abs(left.Duration - right.Duration) > Math.Max(1, Math.Min(left.Duration, right.Duration) * .1))
+                differences.Add(Divergence("duration", "duration_ms", ContractValue(JsonValue.Create(left.Duration)), ContractValue(JsonValue.Create(right.Duration)), left.Id, right.Id));
+            aligned.Add(J.O(("a_span_id", left.Id), ("b_span_id", right.Id), ("name", left.Name),
+                ("differences", J.A(differences.Select(static d => J.O(("kind", d["kind"]?.DeepClone()), ("key", d["key"]?.DeepClone()), ("a", d["a"]?.DeepClone()), ("b", d["b"]?.DeepClone())))))));
+            changes.AddRange(differences.Select(d => (left.Start, d)));
+            // Prefer the deepest error boundary over an ancestor carrying propagated ERROR.
+            if (differences.Count > 0 && (first is null || J.String(differences[0], "kind") == "status" && (J.String(first, "kind") != "status" || Depth(left, a) > firstDepth)))
+            { first = differences[0]; firstDepth = Depth(left, a); firstStart = left.Start; }
         }
-        foreach (var right in groupsB.Values.SelectMany(q => q)) { var extra = J.O(("a_span", null), ("b_span", SpanJson(right)), ("kind", "extra")); unmatched.Add(SpanJson(right)); first ??= extra; }
-        var divergenceTime = first?["a_span"] is { } span ? J.Date(span, "start_time") : null;
-        var after = divergenceTime is null ? [] : aligned.Where(pair => J.Date(pair["a_span"], "start_time") > divergenceTime).SelectMany(p => p["differences"]!.AsArray()).ToList();
-        first?.Remove("depth");
-        return J.O(("comparable", true), ("first_divergence", first), ("aligned", J.A(aligned)), ("unmatched", J.A(unmatched)), ("after_divergence", J.A(after)), ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, aligned.Count + unmatched.Count, false)));
+        foreach (var right in groupsB.Values.SelectMany(q => q))
+        { var extra = Divergence("extra", right.Name, null, null, null, right.Id); unmatched.Add(extra); if (first is null) { first = extra; firstStart = right.Start; } }
+        var after = firstStart is { } divergence ? changes.Where(c => c.Start > divergence).Select(static c => c.Divergence) : [];
+        return J.O(("comparable", true), ("first_divergence", first?.DeepClone()), ("aligned", J.A(aligned)), ("unmatched", J.A(unmatched)), ("after_divergence", J.A(after)), ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, aligned.Count + unmatched.Count, false)));
     }
     private JsonObject FailureContext(JsonObject input)
     {
@@ -96,8 +109,8 @@ internal sealed partial class AnalysisEngine
         var selected = errors.Select(static s => (s.TraceId, s.Id)).ToHashSet();
         foreach (var error in errors)
         { var current = error; while (current.Span?.ParentSpanId is { } parent && byId.TryGetValue((current.TraceId, parent), out var ancestor) && selected.Add((ancestor.TraceId, ancestor.Id))) current = ancestor; }
-        var maxSpans = PageSize(input, "observed.error_spans"); var maxLogs = PageSize(input, "observed.logs");
-        var evidence = spans.Where(s => selected.Contains((s.TraceId, s.Id))).Select(s => { var row = SpanJson(s); row["role"] = s.Error ? "matched" : "context"; return row; }).ToList();
+        var maxSpans = PageSize(input, "observed.spans"); var maxLogs = PageSize(input, "observed.logs");
+        var evidence = spans.Where(s => selected.Contains((s.TraceId, s.Id))).ToList();
         var logs = _logs.Where(l => traceIds.Contains(l.TraceId) && (l.SpanId is null || byId.ContainsKey((l.TraceId, l.SpanId)))).ToList();
         var missing = spans.Where(s => s.Span?.ParentSpanId is { Length: > 0 } parent && !byId.ContainsKey((s.TraceId, parent))).Select(s => s.Span!.ParentSpanId!).Distinct().ToList();
         var unknowns = missing.Select(id => (JsonNode?)JsonValue.Create("Missing parent span " + id)).ToList();
@@ -108,12 +121,14 @@ internal sealed partial class AnalysisEngine
         JsonObject? divergence = null;
         if (success is not null && spans.FirstOrDefault()?.TraceId is { } failingTrace)
             divergence = CompareTraces(J.O(("a", J.O(("trace_id", failingTrace))), ("b", J.O(("trace_id", success.TraceId)))))["first_divergence"]?.DeepClone().AsObject();
-        return J.O(("observed", J.O(("root_cause_span", rootCause is null ? null : SpanJson(rootCause)), ("error_spans", J.A(evidence)),
-            ("propagation", J.A(spans.Where(s => s.Span?.ParentSpanId is { } parent && selected.Contains((s.TraceId, parent)) && selected.Contains((s.TraceId, s.Id))).Select(s => J.O(("from", SpanJson(byId[(s.TraceId, s.Span!.ParentSpanId!)])), ("to", SpanJson(s)))))), ("logs", J.A(logs.Select(LogJson))),
-            ("retries", J.A(spans.GroupBy(s => (s.TraceId, s.Span?.ParentSpanId, s.Name)).Where(g => g.Count() > 1).Select(g => J.O(("name", g.Key.Name), ("attempts", g.Count()), ("spans", J.A(g.Select(SpanJson))))))),
+        // Each span once; the error spans, propagation and retries refer to them by trace and span id.
+        var explained = J.String(input, "failure_id") ?? (rootCause is null ? null : FailureId(Signature(rootCause)));
+        return J.O(("observed", J.O(("spans", J.A(evidence.Select(SpanJson))), ("root_cause_span", rootCause is null ? null : SpanRef(rootCause)), ("error_spans", J.A(errors.Select(SpanRef))),
+            ("propagation", J.A(spans.Where(s => s.Span?.ParentSpanId is { } parent && selected.Contains((s.TraceId, parent)) && selected.Contains((s.TraceId, s.Id))).Select(s => J.O(("from", SpanRef(byId[(s.TraceId, s.Span!.ParentSpanId!)])), ("to", SpanRef(s)))))), ("logs", J.A(logs.Select(LogJson))),
+            ("retries", J.A(spans.GroupBy(s => (s.TraceId, s.Span?.ParentSpanId, s.Name)).Where(g => g.Count() > 1).Select(g => J.O(("name", g.Key.Name), ("attempts", g.Count()), ("spans", J.A(g.Select(SpanRef))))))),
             ("fanout", J.A(spans.GroupBy(s => (s.TraceId, Parent: s.Span?.ParentSpanId)).Where(g => g.Key.Parent is not null && g.Count() > 1).Select(g => J.O(("parent_span_id", g.Key.Parent), ("name", "children"), ("count", g.Count()), ("trace_id", g.Key.TraceId))))))),
             ("comparison", J.O(("nearest_success_trace_id", success?.TraceId), ("first_divergence", divergence))),
-            ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId)).Select(AnnotationJson))))),
+            ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Where(g => FailureId(g.Key) != explained).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId)).Select(AnnotationJson))))),
             ("settled", spans.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
             ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, evidence.Count + logs.Count, false)));
     }

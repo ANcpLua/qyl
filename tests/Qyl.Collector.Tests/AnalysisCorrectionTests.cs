@@ -36,11 +36,10 @@ public sealed partial class AnalysisApiTests
         Assert.IsTrue(comparison.GetProperty("comparable").GetBoolean());
         Assert.IsFalse(comparison.GetProperty("has_more").GetBoolean());
         var pair = Assert.ContainsSingle(comparison.GetProperty("aligned").EnumerateArray());
-        Assert.AreEqual(TraceId(1), pair.GetProperty("a_span").GetProperty("trace_id").GetString());
-        Assert.AreEqual(TraceId(2), pair.GetProperty("b_span").GetProperty("trace_id").GetString());
-        var missing = await Read(host, "compare_traces", $$$"""{"a":{"trace_id":"{{{TraceId(1)}}}"},"b":{"trace_id":"{{{TraceId(3)}}}"}}""");
-        Assert.IsFalse(missing.GetProperty("comparable").GetBoolean());
-        Assert.IsFalse(missing.GetProperty("has_more").GetBoolean());
+        Assert.AreEqual((SpanId(1), SpanId(2)), (pair.GetProperty("a_span_id").GetString(), pair.GetProperty("b_span_id").GetString()));
+        Assert.AreEqual("status", Assert.ContainsSingle(pair.GetProperty("differences").EnumerateArray()).GetProperty("kind").GetString());
+        using var missing = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/compare_traces", "reader", $$$"""{"a":{"trace_id":"{{{TraceId(1)}}}"},"b":{"trace_id":"{{{TraceId(3)}}}"}}""");
+        Assert.AreEqual(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
     /// <summary>
