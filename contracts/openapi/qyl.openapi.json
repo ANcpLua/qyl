@@ -1241,96 +1241,6 @@
         ]
       }
     },
-    "/api/v1/analysis/list_saved_queries": {
-      "post": {
-        "operationId": "analysis_list_saved_queries",
-        "description": "Read list_saved_queries evidence in the authenticated project without changing telemetry or user resources.",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ProjectScopeHeader"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request has succeeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Mcp.Tools.ListSavedQueriesOutput"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation (400).",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.ValidationError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The request carries no valid credential (401).",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.UnauthorizedError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The addressed resource does not exist (404).",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.NotFoundError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The collector failed while handling the request (500). `X-Trace-Id` names the collector's own trace of the failed request.",
-            "headers": {
-              "X-Trace-Id": {
-                "required": false,
-                "description": "Trace id of the collector's own trace of the failed request, for finding it in the collector's telemetry.",
-                "schema": {
-                  "$ref": "#/components/schemas/Common.TraceId"
-                }
-              }
-            },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.InternalServerError"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Analysis"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Mcp.Tools.ListSavedQueriesInput"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ]
-      }
-    },
     "/api/v1/analysis/list_sessions": {
       "post": {
         "operationId": "analysis_list_sessions",
@@ -8043,6 +7953,51 @@
         },
         "description": "Arguments every analysis tool shares: the time range, attribute matchers, page size and cursor."
       },
+      "Mcp.Tools.AnnotateInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Common.ResourceId",
+            "description": "The annotation to change, from get_trace, list_sessions or get_failure_context; omit to create one."
+          },
+          "etag": {
+            "$ref": "#/components/schemas/Common.ETag",
+            "description": "With `id`: the annotation's current `etag`, sent as If-Match."
+          },
+          "target": {
+            "$ref": "#/components/schemas/Annotations.AnnotationTarget",
+            "description": "What the note is attached to, required to create: a `trace`, `span`, `session` or `failure` recorded in the project. Fixed at creation."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "The note, plain text, 1 to 2000 characters; required to create."
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Annotations.AnnotationLabel"
+            },
+            "maxItems": 10,
+            "description": "Up to 10 labels of 1 to 64 characters each; on a change they replace the old ones. `annotation_label` filters by them."
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Annotations.AnnotationClassification",
+            "description": "What the note records: `note` (the default on a create), `hypothesis`, `finding` or `rejected`."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "Attaches a note to a trace, span, session or failure, or with `id` and its current `etag` changes a note's text, labels or classification; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; a stale etag is refused, so re-read the note and retry."
+      },
       "Mcp.Tools.AnnotationOutput": {
         "type": "object",
         "properties": {
@@ -8057,7 +8012,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Structured output for create_annotation and update_annotation."
+        "description": "Structured output for annotate."
       },
       "Mcp.Tools.AttributeAssociation": {
         "type": "object",
@@ -9038,81 +8993,6 @@
         },
         "description": "CompareTracesOutput contract."
       },
-      "Mcp.Tools.CreateAnnotationInput": {
-        "type": "object",
-        "required": [
-          "target",
-          "text"
-        ],
-        "properties": {
-          "idempotency_key": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "description": "Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused."
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Annotations.AnnotationLabel"
-            },
-            "maxItems": 10,
-            "description": "Up to 10 labels of 1 to 64 characters each; `annotation_label` filters by them."
-          },
-          "classification": {
-            "$ref": "#/components/schemas/Annotations.AnnotationClassification",
-            "description": "What the note records: `note` (default), `hypothesis`, `finding` or `rejected`."
-          },
-          "target": {
-            "$ref": "#/components/schemas/Annotations.AnnotationTarget",
-            "description": "What the note is attached to: a `trace`, `span`, `session` or `failure` recorded in the project. Fixed at creation."
-          },
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000,
-            "description": "The note, plain text, at most 2000 characters."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag."
-      },
-      "Mcp.Tools.CreateSavedQueryInput": {
-        "type": "object",
-        "required": [
-          "name",
-          "filter"
-        ],
-        "properties": {
-          "idempotency_key": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "description": "Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused."
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Unique within the project; a duplicate is refused with 409."
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000,
-            "description": "What the query answers, at most 2000 characters."
-          },
-          "filter": {
-            "$ref": "#/components/schemas/SavedQueries.SavedQueryFilter",
-            "description": "The stored filter; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results. run_saved_query evaluates it against current telemetry with a window ending at the time of the run, and list_saved_queries lists the saved queries. Names are unique per project; needs the qyl:write scope."
-      },
       "Mcp.Tools.DeletableKind": {
         "type": "string",
         "enum": [
@@ -9145,7 +9025,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. Needs the qyl:delete scope; a stale etag is refused, so re-read the record for its current etag and retry."
+        "description": "Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. annotate and save_query create and change these records; deleting needs the qyl:delete scope, and a stale etag is refused, so re-read the record for its current etag and retry."
       },
       "Mcp.Tools.DeleteOutput": {
         "type": "object",
@@ -10819,103 +10699,6 @@
         },
         "description": "ListReleasesOutput contract."
       },
-      "Mcp.Tools.ListSavedQueriesInput": {
-        "type": "object",
-        "properties": {
-          "matchers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Common.TelemetryMatcher"
-            },
-            "maxItems": 32,
-            "description": "Not applied: the list is not filtered by attributes."
-          },
-          "lookback_minutes": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "signal": {
-            "$ref": "#/components/schemas/SavedQueries.SavedQuerySignal",
-            "description": "Keep only saved queries of this signal."
-          },
-          "limit": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 1,
-            "maximum": 100,
-            "description": "Saved queries per page, 1 to 100; default 20.",
-            "default": 20
-          },
-          "cursor": {
-            "$ref": "#/components/schemas/Common.Cursor",
-            "description": "`next_cursor` of a previous list_saved_queries call with the same filters."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Lists the project's saved queries ordered by name, each with its id, current etag and filter. Use it to choose the id for run_saved_query or the etag for update_saved_query and delete_record; the time range and `matchers` do not filter this list. Default: 20 saved queries per page."
-      },
-      "Mcp.Tools.ListSavedQueriesOutput": {
-        "type": "object",
-        "required": [
-          "window",
-          "coverage",
-          "saved_queries",
-          "has_more"
-        ],
-        "properties": {
-          "window": {
-            "$ref": "#/components/schemas/Common.ToolWindow"
-          },
-          "coverage": {
-            "$ref": "#/components/schemas/Common.ToolCoverage"
-          },
-          "page_totals": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
-          },
-          "saved_queries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SavedQueries.SavedQuery"
-            }
-          },
-          "has_more": {
-            "type": "boolean",
-            "description": "Whether more items exist beyond this page. False only when the result is complete; `next_cursor` is present exactly when this is true."
-          },
-          "next_cursor": {
-            "$ref": "#/components/schemas/Common.Cursor",
-            "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-          },
-          "error": {
-            "$ref": "#/components/schemas/Mcp.Tools.ToolError",
-            "description": "Set when the call failed."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Structured output for list_saved_queries."
-      },
       "Mcp.Tools.ListSessionsInput": {
         "type": "object",
         "properties": {
@@ -12385,9 +12168,6 @@
       },
       "Mcp.Tools.RunSavedQueryInput": {
         "type": "object",
-        "required": [
-          "id"
-        ],
         "properties": {
           "lookback_minutes": {
             "type": "integer",
@@ -12396,7 +12176,11 @@
           },
           "id": {
             "$ref": "#/components/schemas/Common.ResourceId",
-            "description": "The saved query to run, from list_saved_queries or create_saved_query."
+            "description": "The saved query to run, from a list without `id`; omit to list the saved queries."
+          },
+          "signal": {
+            "$ref": "#/components/schemas/SavedQueries.SavedQuerySignal",
+            "description": "Without `id`, list only the saved queries of this signal."
           },
           "start_time": {
             "type": "string",
@@ -12408,20 +12192,20 @@
             "format": "date-time",
             "description": "End of this run's window (exclusive), RFC 3339; default the time of the run."
           },
-          "limit": {
-            "$ref": "#/components/schemas/Common.Pagination.PageLimit",
-            "description": "Page size for trace and log runs; 100 when omitted.",
-            "default": 100
-          },
           "cursor": {
             "$ref": "#/components/schemas/Common.Cursor",
             "description": "`next_cursor` of a previous run of the same saved query."
+          },
+          "limit": {
+            "$ref": "#/components/schemas/Common.Pagination.PageLimit",
+            "description": "Saved queries per page without `id`, or trace rows or log records per page of a run; 1 to 1000, default 100.",
+            "default": 100
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Runs a saved query against current telemetry: a traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric. The window is the saved lookback ending now, 60 minutes when none was saved, unless `lookback_minutes`, `start_time` or `end_time` override it. An unknown id is answered with not_found; list_saved_queries lists the ids."
+        "description": "Runs a saved query against current telemetry, or without `id` lists the project's saved queries ordered by name with their ids, current etags and filters. A traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric, over the saved lookback ending now (60 minutes when none was saved) unless `lookback_minutes`, `start_time` or `end_time` override it. save_query stores and changes the saved queries; an unknown id is answered with not_found."
       },
       "Mcp.Tools.RunSavedQueryOutput": {
         "type": "object",
@@ -12444,11 +12228,42 @@
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
-          "result": {
-            "$ref": "#/components/schemas/SavedQueries.SavedQueryRunResult"
+          "saved_queries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedQueries.SavedQuery"
+            },
+            "description": "Without `id`: the project's saved queries ordered by name, each with its id, current etag and filter."
           },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
+          "saved_query": {
+            "$ref": "#/components/schemas/SavedQueries.SavedQuery",
+            "description": "With `id`: the saved query that ran."
+          },
+          "traces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mcp.Tools.ToolTraceRow"
+            },
+            "description": "A traces query's rows, as list_traces returns them."
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
+            },
+            "description": "A logs query's records, as search_logs returns them."
+          },
+          "metric": {
+            "$ref": "#/components/schemas/Mcp.Tools.SavedMetricAnswer",
+            "description": "A metrics query's answer, as query_metric returns it."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more saved queries, trace rows or log records follow; `next_cursor` continues them. Absent for a metrics query."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Pass as `cursor` with the same arguments for the next page. Absent on the last page."
           },
           "error": {
             "$ref": "#/components/schemas/Mcp.Tools.ToolError",
@@ -12458,7 +12273,105 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Structured output for run_saved_query."
+        "description": "Structured output for run_saved_query: the saved queries, or one saved query's answer."
+      },
+      "Mcp.Tools.SaveQueryInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Common.ResourceId",
+            "description": "The saved query to change, from run_saved_query; omit to create one."
+          },
+          "etag": {
+            "$ref": "#/components/schemas/Common.ETag",
+            "description": "With `id`: the saved query's current `etag`, sent as If-Match."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Unique within the project, 1 to 200 characters; required to create. A duplicate is refused with conflict."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "What the query answers, at most 2000 characters."
+          },
+          "filter": {
+            "$ref": "#/components/schemas/SavedQueries.SavedQueryFilter",
+            "description": "The stored filter, required to create; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results, and run_saved_query answers it or lists the saved queries. Without `id` it creates a saved query from `name` and `filter`; with `id` and its current `etag` it changes the fields sent, a new `filter` replacing the old one whole, and refuses a stale etag. Names are unique per project; needs the qyl:write scope."
+      },
+      "Mcp.Tools.SavedMetricAnswer": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "aggregation",
+          "step_ms",
+          "series",
+          "numeric_representation",
+          "approximate"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The instrument queried."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricKind"
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit of the values: the instrument's, `1` for a count, with `/s` appended for a rate."
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricAggregation"
+          },
+          "step_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Metrics.MetricSeriesResult"
+            }
+          },
+          "numeric_representation": {
+            "type": "string",
+            "enum": [
+              "float64"
+            ]
+          },
+          "approximate": {
+            "type": "boolean"
+          },
+          "method": {
+            "type": "string"
+          },
+          "exemplar_trace_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common.TraceId"
+            }
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A saved metrics query's answer over the run's window: the aggregated series of one instrument, as query_metric returns them."
       },
       "Mcp.Tools.SavedQueryOutput": {
         "type": "object",
@@ -12474,7 +12387,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Structured output for create_saved_query and update_saved_query."
+        "description": "Structured output for save_query."
       },
       "Mcp.Tools.SearchLogsInput": {
         "type": "object",
@@ -13858,45 +13771,6 @@
         },
         "description": "TriageRegression contract."
       },
-      "Mcp.Tools.UpdateAnnotationInput": {
-        "type": "object",
-        "required": [
-          "id",
-          "etag"
-        ],
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/Common.ResourceId",
-            "description": "The annotation's id, from create_annotation or a returned annotation."
-          },
-          "etag": {
-            "$ref": "#/components/schemas/Common.ETag",
-            "description": "The annotation's current `etag`, sent as If-Match."
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Annotations.AnnotationLabel"
-            },
-            "maxItems": 10,
-            "description": "New labels, replacing the old ones: up to 10 of 1 to 64 characters each. Omitted, the labels stay."
-          },
-          "classification": {
-            "$ref": "#/components/schemas/Annotations.AnnotationClassification",
-            "description": "New classification: `note`, `hypothesis`, `finding` or `rejected`. Omitted, it stays."
-          },
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000,
-            "description": "The new note, plain text, at most 2000 characters. Omitted, the text stays."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Changes an annotation's text, labels or classification; its target stays fixed and omitted fields keep their value. Pass its current `etag`, from create_annotation or the annotation as get_trace or list_sessions returned it; a stale etag is refused, so re-read and retry. Needs the qyl:write scope."
-      },
       "Mcp.Tools.UpdateFailureStatusInput": {
         "type": "object",
         "required": [
@@ -13950,42 +13824,6 @@
           "not": {}
         },
         "description": "UpdateFailureStatusOutput contract."
-      },
-      "Mcp.Tools.UpdateSavedQueryInput": {
-        "type": "object",
-        "required": [
-          "id",
-          "etag"
-        ],
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/Common.ResourceId",
-            "description": "The saved query's id, from list_saved_queries or create_saved_query."
-          },
-          "etag": {
-            "$ref": "#/components/schemas/Common.ETag",
-            "description": "The saved query's current `etag`, sent as If-Match."
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "New name, unique within the project; a duplicate is refused with 409."
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000,
-            "description": "New description, at most 2000 characters."
-          },
-          "filter": {
-            "$ref": "#/components/schemas/SavedQueries.SavedQueryFilter",
-            "description": "New filter, replacing the stored one whole."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Changes a saved query's name, description or filter; omitted fields keep their value and a new `filter` replaces the old one whole. Pass its current `etag` from list_saved_queries or create_saved_query; a stale etag is refused, so re-read and retry. Needs the qyl:write scope; names stay unique per project."
       },
       "Mcp.Tools.VerificationNeeds": {
         "type": "object",

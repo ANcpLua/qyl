@@ -27,7 +27,7 @@ async function withClient(run, project = fixture.project) {
    const result=await client.callTool({name,arguments:args});
    assert(!result.isError, `${name}: ${JSON.stringify(result)}`);
    assert(Buffer.byteLength(JSON.stringify(result), 'utf8') <= 24_000, name+' exceeds response budget');
-   if (!['create_annotation','update_failure_status'].includes(name)) {
+   if (!['annotate','update_failure_status'].includes(name)) {
      assert(result.structuredContent.window, name+' omits absolute window');
      assert(result.structuredContent.coverage, name+' omits coverage');
    }
@@ -206,7 +206,7 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   assert.deepEqual((await call('check_telemetry_health',day)).semconv_gaps,[]);
  },project);
 });
-verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('create_annotation',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);const context=await call('get_failure_context',{...w,failure_id:F.failure_id});assert(context.context.annotations.some(a=>a.text==='Answer-key finding'));});
+verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('annotate',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);const context=await call('get_failure_context',{...w,failure_id:F.failure_id});assert(context.context.annotations.some(a=>a.text==='Answer-key finding'));});
 verifyIsolated('32a ignored F suppressed fromtriage',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const saved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'ignored'});assert.equal(saved.failure.status,'ignored');try { assert(!(await call('triage',w)).failures.some(f=>f.failure_id===F.failure_id)); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:saved.failure.etag,status:'open'}); }});
 verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const resolved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'resolved'});

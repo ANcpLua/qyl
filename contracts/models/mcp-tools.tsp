@@ -707,28 +707,36 @@ model QueryMetricOutput {
 // Write tools (scope qyl:write; delete needs qyl:delete)
 // -----------------------------------------------------------------------------
 
-@doc("Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.")
-model CreateAnnotationInput {
-  @doc("Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused.")
+@doc("Attaches a note to a trace, span, session or failure, or with `id` and its current `etag` changes a note's text, labels or classification; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; a stale etag is refused, so re-read the note and retry.")
+model AnnotateInput {
+  @doc("The annotation to change, from get_trace, list_sessions or get_failure_context; omit to create one.")
+  id?: ResourceId;
+
+  @doc("With `id`: the annotation's current `etag`, sent as If-Match.")
+  etag?: ETag;
+
+  @doc("What the note is attached to, required to create: a `trace`, `span`, `session` or `failure` recorded in the project. Fixed at creation.")
+  target?: AnnotationTarget;
+
+  @doc("The note, plain text, 1 to 2000 characters; required to create.")
+  @minLength(1)
+  @maxLength(2000)
+  text?: string;
+
+  @doc("Up to 10 labels of 1 to 64 characters each; on a change they replace the old ones. `annotation_label` filters by them.")
+  @maxItems(10)
+  labels?: AnnotationLabel[];
+
+  @doc("What the note records: `note` (the default on a create), `hypothesis`, `finding` or `rejected`.")
+  classification?: AnnotationClassification;
+
+  @doc("Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused.")
   @minLength(1) @maxLength(255)
   @encodedName("application/json", "idempotency_key")
   idempotencyKey?: string;
-
-  ...AnnotationCreateRequest;
 }
 
-@doc("Changes an annotation's text, labels or classification; its target stays fixed and omitted fields keep their value. Pass its current `etag`, from create_annotation or the annotation as get_trace or list_sessions returned it; a stale etag is refused, so re-read and retry. Needs the qyl:write scope.")
-model UpdateAnnotationInput {
-  @doc("The annotation's id, from create_annotation or a returned annotation.")
-  id: ResourceId;
-
-  @doc("The annotation's current `etag`, sent as If-Match.")
-  etag: ETag;
-
-  ...AnnotationUpdateRequest;
-}
-
-@doc("Structured output for create_annotation and update_annotation.")
+@doc("Structured output for annotate.")
 model AnnotationOutput {
   annotation?: Annotation;
 
@@ -736,28 +744,33 @@ model AnnotationOutput {
   error?: ToolError;
 }
 
-@doc("Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results. run_saved_query evaluates it against current telemetry with a window ending at the time of the run, and list_saved_queries lists the saved queries. Names are unique per project; needs the qyl:write scope.")
-model CreateSavedQueryInput {
-  @doc("Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused.")
+@doc("Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results, and run_saved_query answers it or lists the saved queries. Without `id` it creates a saved query from `name` and `filter`; with `id` and its current `etag` it changes the fields sent, a new `filter` replacing the old one whole, and refuses a stale etag. Names are unique per project; needs the qyl:write scope.")
+model SaveQueryInput {
+  @doc("The saved query to change, from run_saved_query; omit to create one.")
+  id?: ResourceId;
+
+  @doc("With `id`: the saved query's current `etag`, sent as If-Match.")
+  etag?: ETag;
+
+  @doc("Unique within the project, 1 to 200 characters; required to create. A duplicate is refused with conflict.")
+  @minLength(1)
+  @maxLength(200)
+  name?: string;
+
+  @doc("What the query answers, at most 2000 characters.")
+  @maxLength(2000)
+  description?: string;
+
+  @doc("The stored filter, required to create; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply.")
+  filter?: SavedQueryFilter;
+
+  @doc("Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused.")
   @minLength(1) @maxLength(255)
   @encodedName("application/json", "idempotency_key")
   idempotencyKey?: string;
-
-  ...SavedQueryCreateRequest;
 }
 
-@doc("Changes a saved query's name, description or filter; omitted fields keep their value and a new `filter` replaces the old one whole. Pass its current `etag` from list_saved_queries or create_saved_query; a stale etag is refused, so re-read and retry. Needs the qyl:write scope; names stay unique per project.")
-model UpdateSavedQueryInput {
-  @doc("The saved query's id, from list_saved_queries or create_saved_query.")
-  id: ResourceId;
-
-  @doc("The saved query's current `etag`, sent as If-Match.")
-  etag: ETag;
-
-  ...SavedQueryUpdateRequest;
-}
-
-@doc("Structured output for create_saved_query and update_saved_query.")
+@doc("Structured output for save_query.")
 model SavedQueryOutput {
   @encodedName("application/json", "saved_query")
   savedQuery?: SavedQuery;
@@ -766,56 +779,71 @@ model SavedQueryOutput {
   error?: ToolError;
 }
 
-@doc("Lists the project's saved queries ordered by name, each with its id, current etag and filter. Use it to choose the id for run_saved_query or the etag for update_saved_query and delete_record; the time range and `matchers` do not filter this list. Default: 20 saved queries per page.")
-model ListSavedQueriesInput {
-  @doc("Not applied: the list is not filtered by attributes.")
-  @maxItems(32)
-  matchers?: TelemetryMatcher[];
-
-  ...ToolTimeRange;
-
-  @doc("Keep only saved queries of this signal.")
-  signal?: SavedQuerySignal;
-
-  @doc("Saved queries per page, 1 to 100; default 20.")
-  @minValue(1)
-  @maxValue(100)
-  limit?: int32 = 20;
-
-  @doc("`next_cursor` of a previous list_saved_queries call with the same filters.")
-  cursor?: Cursor;
-}
-
-@doc("Structured output for list_saved_queries.")
-model ListSavedQueriesOutput {
-  ...ToolReadContext;
-
-  @encodedName("application/json", "saved_queries")
-  savedQueries: SavedQuery[];
-
-  ...ToolPage;
-
-  @doc("Set when the call failed.")
-  error?: ToolError;
-}
-
-@doc("Runs a saved query against current telemetry: a traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric. The window is the saved lookback ending now, 60 minutes when none was saved, unless `lookback_minutes`, `start_time` or `end_time` override it. An unknown id is answered with not_found; list_saved_queries lists the ids.")
+@doc("Runs a saved query against current telemetry, or without `id` lists the project's saved queries ordered by name with their ids, current etags and filters. A traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric, over the saved lookback ending now (60 minutes when none was saved) unless `lookback_minutes`, `start_time` or `end_time` override it. save_query stores and changes the saved queries; an unknown id is answered with not_found.")
 model RunSavedQueryInput {
   @doc("Minutes before `end_time` (or now) for this run, overriding the saved look-back window.")
   @encodedName("application/json", "lookback_minutes")
   lookbackMinutes?: int32;
 
-  @doc("The saved query to run, from list_saved_queries or create_saved_query.")
-  id: ResourceId;
-  ...SavedQueryRunRequest;
+  @doc("The saved query to run, from a list without `id`; omit to list the saved queries.")
+  id?: ResourceId;
+
+  @doc("Without `id`, list only the saved queries of this signal.")
+  signal?: SavedQuerySignal;
+
+  ...OmitProperties<SavedQueryRunRequest, "limit">;
+
+  @doc("Saved queries per page without `id`, or trace rows or log records per page of a run; 1 to 1000, default 100.")
+  limit?: PageLimit = 100;
 }
 
-@doc("Structured output for run_saved_query.")
+@doc("A saved metrics query's answer over the run's window: the aggregated series of one instrument, as query_metric returns them.")
+model SavedMetricAnswer {
+  @doc("The instrument queried.")
+  name: string;
+  kind: MetricKind;
+  @doc("Unit of the values: the instrument's, `1` for a count, with `/s` appended for a rate.")
+  unit?: string;
+  aggregation: MetricAggregation;
+  @encodedName("application/json", "step_ms")
+  stepMs: int64;
+  series: MetricSeriesResult[];
+  @encodedName("application/json", "numeric_representation")
+  numericRepresentation: "float64";
+  approximate: boolean;
+  method?: string;
+  @encodedName("application/json", "exemplar_trace_ids")
+  exemplarTraceIds?: TraceId[];
+}
+
+@doc("Structured output for run_saved_query: the saved queries, or one saved query's answer.")
 model RunSavedQueryOutput {
   ...ToolReadContext;
 
-  result?: SavedQueryRunResult;
-  mode?: McpDataMode;
+  @doc("Without `id`: the project's saved queries ordered by name, each with its id, current etag and filter.")
+  @encodedName("application/json", "saved_queries")
+  savedQueries?: SavedQuery[];
+
+  @doc("With `id`: the saved query that ran.")
+  @encodedName("application/json", "saved_query")
+  savedQuery?: SavedQuery;
+
+  @doc("A traces query's rows, as list_traces returns them.")
+  traces?: ToolTraceRow[];
+
+  @doc("A logs query's records, as search_logs returns them.")
+  logs?: ToolLogRow[];
+
+  @doc("A metrics query's answer, as query_metric returns it.")
+  metric?: SavedMetricAnswer;
+
+  @doc("Whether more saved queries, trace rows or log records follow; `next_cursor` continues them. Absent for a metrics query.")
+  @encodedName("application/json", "has_more")
+  hasMore?: boolean;
+
+  @doc("Pass as `cursor` with the same arguments for the next page. Absent on the last page.")
+  @encodedName("application/json", "next_cursor")
+  nextCursor?: Cursor;
 
   @doc("Set when the call failed.")
   error?: ToolError;
@@ -827,7 +855,7 @@ enum DeletableKind {
   savedQuery: "saved_query",
 }
 
-@doc("Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. Needs the qyl:delete scope; a stale etag is refused, so re-read the record for its current etag and retry.")
+@doc("Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. annotate and save_query create and change these records; deleting needs the qyl:delete scope, and a stale etag is refused, so re-read the record for its current etag and retry.")
 model DeleteInput {
   @doc("What `id` names: `annotation` or `saved_query`.")
   kind: DeletableKind;

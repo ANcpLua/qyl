@@ -50,7 +50,8 @@ internal static class AnalysisReadPlan
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
             IncludeLinkTargets = operation == "get_trace",
             IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query",
-            IncludeTelemetry = operation != "list_saved_queries"
+            // A list of the saved queries reads no telemetry.
+            IncludeTelemetry = operation != "run_saved_query" || J.String(input, "id") is not null
         };
     }
 }

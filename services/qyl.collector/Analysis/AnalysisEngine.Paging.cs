@@ -34,7 +34,6 @@ internal sealed partial class AnalysisEngine
         "list_metrics" => (ListMetricsInput.LimitDefault, ListMetricsInput.LimitMaximum),
         "ci_log" => (CiLogInput.LimitDefault, CiLogInput.LimitMaximum),
         "ci_log.phases" => (CiPhasePageSize, CiPhasePageSize),
-        "list_saved_queries" => (ListSavedQueriesInput.LimitDefault, ListSavedQueriesInput.LimitMaximum),
         "run_saved_query" => (RunSavedQueryInput.LimitDefault, RunSavedQueryInput.LimitMaximum),
         _ => throw new InvalidOperationException($"'{_operation}' has no page size.")
     };

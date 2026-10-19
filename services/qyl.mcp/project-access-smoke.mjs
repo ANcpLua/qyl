@@ -162,8 +162,7 @@ try {
     ["query_metric", { metric_name: `${f.marker}.requests`, start_time: window.start_time, end_time: window.end_time, raw: true }],
     ["query_metric", { metric_name: `${f.marker}.requests`, ...window, aggregation: "avg" }],
   ];
-  const writeTools = ["update_failure_status", "create_annotation", "update_annotation", "create_saved_query", "update_saved_query",
-    "delete_record", "list_saved_queries", "run_saved_query"];
+  const writeTools = ["update_failure_status", "annotate", "save_query", "delete_record", "run_saved_query"];
   /** @returns {Array<[string, Record<string, unknown>]>} */
   function extraReads(f, failure) { return [
     ["triage", {}], ["triage", { status: "all" }], ["get_failure_context", { trace_id: f.traceId }],
@@ -231,25 +230,25 @@ try {
       // Writes land in the verified subject's project whatever _meta claims,
       // and a note attaches only to that project's own telemetry.
       const claim = { _meta: { subject: foreign.subject, project: foreign.project } };
-      const created = await client.callTool({ name: "create_annotation", arguments: {
+      const created = await client.callTool({ name: "annotate", arguments: {
         target: { kind: "trace", trace_id: f.traceId }, text: `${f.marker} ${revision} note` }, ...claim });
-      assert(!created.isError, `${revision} ${f.project} create_annotation: ${JSON.stringify(created)}`);
+      assert(!created.isError, `${revision} ${f.project} annotate: ${JSON.stringify(created)}`);
       const note = created.structuredContent.annotation;
-      const crossTarget = await client.callTool({ name: "create_annotation", arguments: {
+      const crossTarget = await client.callTool({ name: "annotate", arguments: {
         target: { kind: "trace", trace_id: foreign.traceId }, text: "cross-project note" } });
       assert.equal(crossTarget.structuredContent?.error?.code, "not_found", "a note on a foreign trace was accepted");
       const readBack = await client.callTool({ name: "get_trace", arguments: { trace_id: f.traceId } });
       assert(JSON.stringify(readBack.structuredContent?.annotations ?? []).includes(note.id), "get_trace lost the note");
-      const query = await client.callTool({ name: "create_saved_query", arguments: {
+      const query = await client.callTool({ name: "save_query", arguments: {
         name: `${f.marker}_${revision}`, filter: { signal: "traces", lookback_minutes: 60 } }, ...claim });
-      assert(!query.isError, `${revision} ${f.project} create_saved_query: ${JSON.stringify(query)}`);
-      const renamed = await client.callTool({ name: "update_saved_query", arguments: {
+      assert(!query.isError, `${revision} ${f.project} save_query: ${JSON.stringify(query)}`);
+      const renamed = await client.callTool({ name: "save_query", arguments: {
         id: query.structuredContent.saved_query.id, etag: query.structuredContent.saved_query.etag,
         name: `${f.marker}_${revision}_renamed` } });
-      assert(!renamed.isError, `${revision} ${f.project} update_saved_query: ${JSON.stringify(renamed)}`);
+      assert(!renamed.isError, `${revision} ${f.project} save_query with id: ${JSON.stringify(renamed)}`);
       const saved = renamed.structuredContent.saved_query;
-      const listed = JSON.stringify(await client.callTool({ name: "list_saved_queries", arguments: {} }));
-      assert(listed.includes(saved.id) && !listed.includes(foreign.marker), "list_saved_queries crossed projects");
+      const listed = JSON.stringify(await client.callTool({ name: "run_saved_query", arguments: {} }));
+      assert(listed.includes(saved.id) && !listed.includes(foreign.marker), "the saved-query list crossed projects");
       const ran = JSON.stringify(await client.callTool({ name: "run_saved_query", arguments: { id: saved.id } }));
       assert(ran.includes(f.traceId) && !ran.includes(foreign.traceId), "run_saved_query crossed projects");
       return { f, client, note, saved };
@@ -260,9 +259,9 @@ try {
       const other = written.find((entry) => entry.f !== f);
       /** @type {ReadonlyArray<readonly [string, Record<string, unknown>]>} */
       const takeovers = [
-        ["update_annotation", { id: other.note.id, etag: other.note.etag, text: "takeover" }],
+        ["annotate", { id: other.note.id, etag: other.note.etag, text: "takeover" }],
         ["delete_record", { kind: "annotation", id: other.note.id, etag: other.note.etag }],
-        ["update_saved_query", { id: other.saved.id, etag: other.saved.etag, name: "takeover" }],
+        ["save_query", { id: other.saved.id, etag: other.saved.etag, name: "takeover" }],
         ["run_saved_query", { id: other.saved.id }],
         ["delete_record", { kind: "saved_query", id: other.saved.id, etag: other.saved.etag }],
       ];
@@ -283,8 +282,8 @@ try {
     const unassigned = await connect("unassigned-local-test");
     /** @type {ReadonlyArray<readonly [string, Record<string, unknown>]>} */
     const unassignedCases = [...cases(fixtures[0]),
-      ["create_annotation", { target: { kind: "trace", trace_id: fixtures[0].traceId }, text: "unassigned" }],
-      ["list_saved_queries", {}]];
+      ["annotate", { target: { kind: "trace", trace_id: fixtures[0].traceId }, text: "unassigned" }],
+      ["run_saved_query", {}]];
     for (const [name, args] of unassignedCases) {
       const result = await unassigned.callTool({ name, arguments: args });
       assert.equal(result.isError, true, `${name} accepted an unassigned account`);

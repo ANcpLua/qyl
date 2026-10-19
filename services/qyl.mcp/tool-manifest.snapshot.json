@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:05a42ecb208fca2a",
+  "contract_revision": "sha256:e5fc403bab841342",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -169,6 +169,201 @@
           }
         },
         "description": "Computes numbers per group of spans or logs: counts, error counts and rates, exact duration statistics in ms or sums of a numeric attribute, optionally per time bucket. Use it for how many and how slow; list_traces finds single executions, compare_groups explains what differs between two populations, and query_metric reads pre-aggregated metrics in their own unit. Default: the last 60 minutes, 20 groups per page ordered by the first measure, descending.",
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "annotate",
+      "title": "Annotate",
+      "description": "Create a labeled note on a trace, span, session or failure when recording a finding, or change a note with its id and current etag; get_trace, list_sessions or get_failure_context returns it.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": [
+              "qyl:read",
+              "qyl:write"
+            ]
+          }
+        ]
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The annotation to change, from get_trace, list_sessions or get_failure_context; omit to create one."
+          },
+          "etag": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "With `id`: the annotation's current `etag`, sent as If-Match."
+          },
+          "target": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "trace_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "trace"
+                    ],
+                    "description": "Always `trace`."
+                  },
+                  "trace_id": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[a-f0-9]{32}$",
+                    "description": "The annotated trace.",
+                    "examples": [
+                      "0af7651916cd43dd8448eb211c80319c"
+                    ]
+                  }
+                },
+                "description": "An annotation on one whole trace.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "trace_id",
+                  "span_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "span"
+                    ],
+                    "description": "Always `span`."
+                  },
+                  "trace_id": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[a-f0-9]{32}$",
+                    "description": "The trace that holds the span.",
+                    "examples": [
+                      "0af7651916cd43dd8448eb211c80319c"
+                    ]
+                  },
+                  "span_id": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 16,
+                    "pattern": "^[a-f0-9]{16}$",
+                    "description": "The annotated span.",
+                    "examples": [
+                      "b7ad6b7169203331"
+                    ]
+                  }
+                },
+                "description": "An annotation on one span of a trace.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "session_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "session"
+                    ],
+                    "description": "Always `session`."
+                  },
+                  "session_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                    "description": "The annotated session."
+                  }
+                },
+                "description": "An annotation on one session.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "failure_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "failure"
+                    ],
+                    "description": "Always `failure`."
+                  },
+                  "failure_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "The annotated failure, e.g. from triage."
+                  }
+                },
+                "description": "An annotation on one failure, named by its `failure_id`.",
+                "additionalProperties": false
+              }
+            ],
+            "description": "What the note is attached to, required to create: a `trace`, `span`, `session` or `failure` recorded in the project. Fixed at creation."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "The note, plain text, 1 to 2000 characters; required to create."
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "description": "A short user-defined annotation label."
+            },
+            "maxItems": 10,
+            "description": "Up to 10 labels of 1 to 64 characters each; on a change they replace the old ones. `annotation_label` filters by them."
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "note",
+              "hypothesis",
+              "finding",
+              "rejected"
+            ],
+            "description": "What the note records: `note` (the default on a create), `hypothesis`, `finding` or `rejected`."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused."
+          }
+        },
+        "description": "Attaches a note to a trace, span, session or failure, or with `id` and its current `etag` changes a note's text, labels or classification; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; a stale etag is refused, so re-read the note and retry.",
         "additionalProperties": false
       }
     },
@@ -1088,673 +1283,6 @@
       }
     },
     {
-      "name": "create_annotation",
-      "title": "Create Annotation",
-      "description": "Create a labeled note on a trace, span, session or failure when recording a finding; get_trace, list_sessions or get_failure_context returns it.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read",
-              "qyl:write"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "required": [
-          "target",
-          "text"
-        ],
-        "properties": {
-          "idempotency_key": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "description": "Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused."
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 64,
-              "description": "A short user-defined annotation label."
-            },
-            "maxItems": 10,
-            "description": "Up to 10 labels of 1 to 64 characters each; `annotation_label` filters by them."
-          },
-          "classification": {
-            "type": "string",
-            "enum": [
-              "note",
-              "hypothesis",
-              "finding",
-              "rejected"
-            ],
-            "description": "What the note records: `note` (default), `hypothesis`, `finding` or `rejected`."
-          },
-          "target": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "trace_id"
-                ],
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "trace"
-                    ],
-                    "description": "Always `trace`."
-                  },
-                  "trace_id": {
-                    "type": "string",
-                    "minLength": 32,
-                    "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
-                    "description": "The annotated trace.",
-                    "examples": [
-                      "0af7651916cd43dd8448eb211c80319c"
-                    ]
-                  }
-                },
-                "description": "An annotation on one whole trace.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "trace_id",
-                  "span_id"
-                ],
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "span"
-                    ],
-                    "description": "Always `span`."
-                  },
-                  "trace_id": {
-                    "type": "string",
-                    "minLength": 32,
-                    "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
-                    "description": "The trace that holds the span.",
-                    "examples": [
-                      "0af7651916cd43dd8448eb211c80319c"
-                    ]
-                  },
-                  "span_id": {
-                    "type": "string",
-                    "minLength": 16,
-                    "maxLength": 16,
-                    "pattern": "^[a-f0-9]{16}$",
-                    "description": "The annotated span.",
-                    "examples": [
-                      "b7ad6b7169203331"
-                    ]
-                  }
-                },
-                "description": "An annotation on one span of a trace.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "session_id"
-                ],
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "session"
-                    ],
-                    "description": "Always `session`."
-                  },
-                  "session_id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                    "description": "The annotated session."
-                  }
-                },
-                "description": "An annotation on one session.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "failure_id"
-                ],
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "failure"
-                    ],
-                    "description": "Always `failure`."
-                  },
-                  "failure_id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 512,
-                    "description": "The annotated failure, e.g. from triage."
-                  }
-                },
-                "description": "An annotation on one failure, named by its `failure_id`.",
-                "additionalProperties": false
-              }
-            ],
-            "description": "What the note is attached to: a `trace`, `span`, `session` or `failure` recorded in the project. Fixed at creation."
-          },
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000,
-            "description": "The note, plain text, at most 2000 characters."
-          }
-        },
-        "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.",
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "create_saved_query",
-      "title": "Create Saved Query",
-      "description": "Store a named telemetry filter when saving a reusable question; list_saved_queries returns it.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read",
-              "qyl:write"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "required": [
-          "name",
-          "filter"
-        ],
-        "properties": {
-          "idempotency_key": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "description": "Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused."
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Unique within the project; a duplicate is refused with 409."
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000,
-            "description": "What the query answers, at most 2000 characters."
-          },
-          "filter": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "signal"
-                ],
-                "properties": {
-                  "matchers": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "key",
-                        "op"
-                      ],
-                      "properties": {
-                        "key": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 256,
-                          "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                        },
-                        "op": {
-                          "type": "string",
-                          "enum": [
-                            "eq",
-                            "neq",
-                            "in",
-                            "prefix",
-                            "contains",
-                            "exists",
-                            "gt",
-                            "gte",
-                            "lt",
-                            "lte"
-                          ],
-                          "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                        },
-                        "value": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ],
-                          "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                        },
-                        "values": {
-                          "type": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
-                            ],
-                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                          },
-                          "minItems": 1,
-                          "maxItems": 256,
-                          "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                        },
-                        "scope": {
-                          "type": "string",
-                          "enum": [
-                            "span",
-                            "resource",
-                            "log"
-                          ],
-                          "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                        }
-                      },
-                      "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-                      "additionalProperties": false
-                    },
-                    "maxItems": 32,
-                    "description": "Attribute predicates one span of the trace must all satisfy."
-                  },
-                  "signal": {
-                    "type": "string",
-                    "enum": [
-                      "traces"
-                    ],
-                    "description": "Always `traces`: the query lists traces."
-                  },
-                  "lookback_minutes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 43200,
-                    "description": "Window ending at the time of the run, in minutes. Omitted, the run's own `start_time`/`end_time` or the last 60 minutes apply."
-                  },
-                  "service_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256,
-                    "description": "Keep traces with at least one span from this service."
-                  },
-                  "errors_only": {
-                    "type": "boolean",
-                    "description": "Keep only traces with at least one error span."
-                  }
-                },
-                "description": "A saved filter over traces.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "signal"
-                ],
-                "properties": {
-                  "matchers": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "key",
-                        "op"
-                      ],
-                      "properties": {
-                        "key": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 256,
-                          "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                        },
-                        "op": {
-                          "type": "string",
-                          "enum": [
-                            "eq",
-                            "neq",
-                            "in",
-                            "prefix",
-                            "contains",
-                            "exists",
-                            "gt",
-                            "gte",
-                            "lt",
-                            "lte"
-                          ],
-                          "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                        },
-                        "value": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ],
-                          "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                        },
-                        "values": {
-                          "type": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
-                            ],
-                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                          },
-                          "minItems": 1,
-                          "maxItems": 256,
-                          "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                        },
-                        "scope": {
-                          "type": "string",
-                          "enum": [
-                            "span",
-                            "resource",
-                            "log"
-                          ],
-                          "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                        }
-                      },
-                      "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-                      "additionalProperties": false
-                    },
-                    "maxItems": 32,
-                    "description": "Attribute predicates every log record must satisfy."
-                  },
-                  "signal": {
-                    "type": "string",
-                    "enum": [
-                      "logs"
-                    ],
-                    "description": "Always `logs`: the query searches log records."
-                  },
-                  "lookback_minutes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 43200,
-                    "description": "Window ending at the time of the run, in minutes. Omitted, the run's own `start_time`/`end_time` or the last 60 minutes apply."
-                  },
-                  "service_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256,
-                    "description": "Keep log records of this service."
-                  },
-                  "severity_min": {
-                    "type": "number",
-                    "enum": [
-                      0,
-                      1,
-                      2,
-                      3,
-                      4,
-                      5,
-                      6,
-                      7,
-                      8,
-                      9,
-                      10,
-                      11,
-                      12,
-                      13,
-                      14,
-                      15,
-                      16,
-                      17,
-                      18,
-                      19,
-                      20,
-                      21,
-                      22,
-                      23,
-                      24
-                    ],
-                    "description": "Keep log records of at least this OpenTelemetry severity number: 9 info, 13 warn, 17 error."
-                  },
-                  "session_id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                    "description": "Keep log records of this session."
-                  },
-                  "trace_id": {
-                    "type": "string",
-                    "minLength": 32,
-                    "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
-                    "description": "Keep log records correlated with this trace.",
-                    "examples": [
-                      "0af7651916cd43dd8448eb211c80319c"
-                    ]
-                  },
-                  "query": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 1024,
-                    "description": "Case-insensitive substring of the log body."
-                  }
-                },
-                "description": "A saved filter over log records.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "signal",
-                  "metric_name"
-                ],
-                "properties": {
-                  "series_id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Select one exact metric series, when the query must disambiguate instruments."
-                  },
-                  "signal": {
-                    "type": "string",
-                    "enum": [
-                      "metrics"
-                    ],
-                    "description": "Always `metrics`: the query is a metric range query."
-                  },
-                  "lookback_minutes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 43200,
-                    "description": "Window ending at the time of the run, in minutes. Omitted, the run's own `start_time`/`end_time` or the last 60 minutes apply."
-                  },
-                  "metric_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256,
-                    "description": "The instrument to query."
-                  },
-                  "aggregation": {
-                    "type": "string",
-                    "enum": [
-                      "avg",
-                      "min",
-                      "max",
-                      "sum",
-                      "count",
-                      "last",
-                      "p50",
-                      "p90",
-                      "p95",
-                      "p99"
-                    ],
-                    "description": "Reducer of the points in each bucket; default `avg`.",
-                    "default": "avg"
-                  },
-                  "step_ms": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 86400000,
-                    "description": "Bucket width in integer milliseconds. Omit for whole seconds that split the run's window into at most 60 buckets."
-                  },
-                  "group_by": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "maxItems": 16,
-                    "description": "Attribute keys to split the result by."
-                  },
-                  "matchers": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "key",
-                        "op"
-                      ],
-                      "properties": {
-                        "key": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 256,
-                          "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                        },
-                        "op": {
-                          "type": "string",
-                          "enum": [
-                            "eq",
-                            "neq",
-                            "in",
-                            "prefix",
-                            "contains",
-                            "exists",
-                            "gt",
-                            "gte",
-                            "lt",
-                            "lte"
-                          ],
-                          "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                        },
-                        "value": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ],
-                          "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                        },
-                        "values": {
-                          "type": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
-                            ],
-                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                          },
-                          "minItems": 1,
-                          "maxItems": 256,
-                          "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                        },
-                        "scope": {
-                          "type": "string",
-                          "enum": [
-                            "span",
-                            "resource",
-                            "log"
-                          ],
-                          "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                        }
-                      },
-                      "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them.",
-                      "additionalProperties": false
-                    },
-                    "maxItems": 32,
-                    "description": "Attribute matchers a series must all satisfy."
-                  }
-                },
-                "description": "A saved metric range query.",
-                "additionalProperties": false
-              }
-            ],
-            "description": "The stored filter; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply."
-          }
-        },
-        "description": "Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results. run_saved_query evaluates it against current telemetry with a window ending at the time of the run, and list_saved_queries lists the saved queries. Names are unique per project; needs the qyl:write scope.",
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "delete_record",
       "title": "Delete Annotation or Saved Query",
       "description": "Delete an annotation or saved query with its current etag when removing a stored note or question, never traces, logs or metrics.",
@@ -1804,7 +1332,7 @@
             "description": "The resource's current `etag`, sent as If-Match."
           }
         },
-        "description": "Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. Needs the qyl:delete scope; a stale etag is refused, so re-read the record for its current etag and retry.",
+        "description": "Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. annotate and save_query create and change these records; deleting needs the qyl:delete scope, and a stale etag is refused, so re-read the record for its current etag and retry.",
         "additionalProperties": false
       }
     },
@@ -3067,151 +2595,6 @@
       }
     },
     {
-      "name": "list_saved_queries",
-      "title": "List Saved Queries",
-      "description": "List saved filters with their current etags when choosing a question to run or edit.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "matchers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "key",
-                "op"
-              ],
-              "properties": {
-                "key": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 256,
-                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                },
-                "op": {
-                  "type": "string",
-                  "enum": [
-                    "eq",
-                    "neq",
-                    "in",
-                    "prefix",
-                    "contains",
-                    "exists",
-                    "gt",
-                    "gte",
-                    "lt",
-                    "lte"
-                  ],
-                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ],
-                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ],
-                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                  },
-                  "minItems": 1,
-                  "maxItems": 256,
-                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                },
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "span",
-                    "resource",
-                    "log"
-                  ],
-                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                }
-              },
-              "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-              "additionalProperties": false
-            },
-            "maxItems": 32,
-            "description": "Not applied: the list is not filtered by attributes."
-          },
-          "lookback_minutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "signal": {
-            "type": "string",
-            "enum": [
-              "traces",
-              "logs",
-              "metrics"
-            ],
-            "description": "Keep only saved queries of this signal."
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-            "description": "Saved queries per page, 1 to 100; default 20.",
-            "default": 20
-          },
-          "cursor": {
-            "type": "string",
-            "description": "`next_cursor` of a previous list_saved_queries call with the same filters."
-          }
-        },
-        "description": "Lists the project's saved queries ordered by name, each with its id, current etag and filter. Use it to choose the id for run_saved_query or the etag for update_saved_query and delete_record; the time range and `matchers` do not filter this list. Default: 20 saved queries per page.",
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "list_sessions",
       "title": "List Sessions",
       "description": "List filtered sessions with failures and token usage when locating active or problematic agent sessions.",
@@ -3947,7 +3330,7 @@
     {
       "name": "run_saved_query",
       "title": "Run Saved Query",
-      "description": "Evaluate a saved filter against current telemetry when answering a previously saved question.",
+      "description": "Evaluate a saved filter against current telemetry when answering a previously saved question, or without an id list the saved queries with their ids and etags.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3966,9 +3349,6 @@
       },
       "inputSchema": {
         "type": "object",
-        "required": [
-          "id"
-        ],
         "properties": {
           "lookback_minutes": {
             "type": "integer",
@@ -3980,7 +3360,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "description": "The saved query to run, from list_saved_queries or create_saved_query."
+            "description": "The saved query to run, from a list without `id`; omit to list the saved queries."
+          },
+          "signal": {
+            "type": "string",
+            "enum": [
+              "traces",
+              "logs",
+              "metrics"
+            ],
+            "description": "Without `id`, list only the saved queries of this signal."
           },
           "start_time": {
             "type": "string",
@@ -3992,428 +3381,26 @@
             "format": "date-time",
             "description": "End of this run's window (exclusive), RFC 3339; default the time of the run."
           },
+          "cursor": {
+            "type": "string",
+            "description": "`next_cursor` of a previous run of the same saved query."
+          },
           "limit": {
             "type": "integer",
             "minimum": 1,
             "maximum": 1000,
-            "description": "Page size for trace and log runs; 100 when omitted.",
+            "description": "Saved queries per page without `id`, or trace rows or log records per page of a run; 1 to 1000, default 100.",
             "default": 100
-          },
-          "cursor": {
-            "type": "string",
-            "description": "`next_cursor` of a previous run of the same saved query."
           }
         },
-        "description": "Runs a saved query against current telemetry: a traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric. The window is the saved lookback ending now, 60 minutes when none was saved, unless `lookback_minutes`, `start_time` or `end_time` override it. An unknown id is answered with not_found; list_saved_queries lists the ids.",
+        "description": "Runs a saved query against current telemetry, or without `id` lists the project's saved queries ordered by name with their ids, current etags and filters. A traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric, over the saved lookback ending now (60 minutes when none was saved) unless `lookback_minutes`, `start_time` or `end_time` override it. save_query stores and changes the saved queries; an unknown id is answered with not_found.",
         "additionalProperties": false
       }
     },
     {
-      "name": "search_logs",
-      "title": "Search Logs",
-      "description": "Search log records and surrounding context when locating evidence linked to an execution.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "span_id": {
-            "type": "string",
-            "minLength": 16,
-            "maxLength": 16,
-            "pattern": "^[a-f0-9]{16}$",
-            "description": "Return only log records correlated with this span.",
-            "examples": [
-              "b7ad6b7169203331"
-            ]
-          },
-          "group_by": {
-            "type": "string",
-            "enum": [
-              "pattern"
-            ],
-            "description": "`pattern` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records."
-          },
-          "context": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 10,
-            "description": "Also return up to this many records before and after each returned record from the same service and resource, in `context_logs`; 0 to 10, default 0. Not applied with `group_by`."
-          },
-          "matchers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "key",
-                "op"
-              ],
-              "properties": {
-                "key": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 256,
-                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                },
-                "op": {
-                  "type": "string",
-                  "enum": [
-                    "eq",
-                    "neq",
-                    "in",
-                    "prefix",
-                    "contains",
-                    "exists",
-                    "gt",
-                    "gte",
-                    "lt",
-                    "lte"
-                  ],
-                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ],
-                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ],
-                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                  },
-                  "minItems": 1,
-                  "maxItems": 256,
-                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                },
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "span",
-                    "resource",
-                    "log"
-                  ],
-                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                }
-              },
-              "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-              "additionalProperties": false
-            },
-            "maxItems": 32,
-            "description": "Attribute predicates every returned record must satisfy; a matcher tests log attributes unless its `scope` is `resource`."
-          },
-          "trace_id": {
-            "type": "string",
-            "minLength": 32,
-            "maxLength": 32,
-            "pattern": "^[a-f0-9]{32}$",
-            "description": "Return only log records correlated with this trace.",
-            "examples": [
-              "0af7651916cd43dd8448eb211c80319c"
-            ]
-          },
-          "service_name": {
-            "type": "string",
-            "description": "Return only log records from this service."
-          },
-          "severity_min": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 24,
-            "description": "Minimum OpenTelemetry severity number: 9 info, 13 warn, 17 error."
-          },
-          "query": {
-            "type": "string",
-            "description": "Case-insensitive substring of the log body."
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 200,
-            "description": "Records per page, or patterns with `group_by`, 1 to 200; default 50.",
-            "default": 50
-          },
-          "session_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-            "description": "Return only log records of this session."
-          },
-          "lookback_minutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "cursor": {
-            "type": "string",
-            "description": "`next_cursor` of a previous search_logs call with the same filters."
-          }
-        },
-        "description": "Searches the window's log records, newest first, by trace, span, session, service, minimum severity, body text or matchers. Use it for the logs around one execution (pass a `trace_id` from list_traces or get_trace), or with `group_by: pattern` for the repeating message templates alone; aggregate_telemetry counts logs per attribute. Default: the last 60 minutes, 50 records per page.",
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "triage",
-      "title": "Triage",
-      "description": "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "lookback_minutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "matchers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "key",
-                "op"
-              ],
-              "properties": {
-                "key": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 256,
-                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                },
-                "op": {
-                  "type": "string",
-                  "enum": [
-                    "eq",
-                    "neq",
-                    "in",
-                    "prefix",
-                    "contains",
-                    "exists",
-                    "gt",
-                    "gte",
-                    "lt",
-                    "lte"
-                  ],
-                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ],
-                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ],
-                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                  },
-                  "minItems": 1,
-                  "maxItems": 256,
-                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                },
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "span",
-                    "resource",
-                    "log"
-                  ],
-                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                }
-              },
-              "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-              "additionalProperties": false
-            },
-            "maxItems": 32,
-            "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
-          },
-          "cursor": {
-            "type": "string",
-            "description": "`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window."
-          },
-          "service_name": {
-            "type": "string",
-            "description": "Restrict the analysis to this service (`service.name`, exact match)."
-          },
-          "environment": {
-            "type": "string",
-            "description": "Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`."
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 50,
-            "description": "Items per page of each list (failures, regressions, releases, silent services), 1 to 50; default 10. New failures rank first, so they lead the first page.",
-            "default": 10
-          },
-          "baseline": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "previous_window"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "start_time",
-                  "end_time"
-                ],
-                "properties": {
-                  "start_time": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "Start of the window (inclusive), RFC 3339."
-                  },
-                  "end_time": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "End of the window (exclusive), RFC 3339."
-                  }
-                },
-                "description": "Absolute half-open window applied by the collector.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "offset_minutes"
-                ],
-                "properties": {
-                  "offset_minutes": {
-                    "type": "integer",
-                    "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
-                    "minimum": -2147483648,
-                    "maximum": 2147483647
-                  }
-                },
-                "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
-                "additionalProperties": false
-              }
-            ],
-            "description": "The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back."
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "open",
-                  "resolved",
-                  "ignored"
-                ],
-                "description": "Persisted failure triage status."
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "all"
-                ]
-              }
-            ],
-            "description": "Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window."
-          }
-        },
-        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status.",
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "update_annotation",
-      "title": "Update Annotation",
-      "description": "Update annotation text, labels or class with its current etag when revising a finding; get_trace, list_sessions or get_failure_context returns it.",
+      "name": "save_query",
+      "title": "Save Query",
+      "description": "Store a named telemetry filter when saving a reusable question, or change a saved query with its id and current etag; run_saved_query answers it.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
@@ -4433,170 +3420,29 @@
       },
       "inputSchema": {
         "type": "object",
-        "required": [
-          "id",
-          "etag"
-        ],
         "properties": {
           "id": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "description": "The annotation's id, from create_annotation or a returned annotation."
+            "description": "The saved query to change, from run_saved_query; omit to create one."
           },
           "etag": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "description": "The annotation's current `etag`, sent as If-Match."
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 64,
-              "description": "A short user-defined annotation label."
-            },
-            "maxItems": 10,
-            "description": "New labels, replacing the old ones: up to 10 of 1 to 64 characters each. Omitted, the labels stay."
-          },
-          "classification": {
-            "type": "string",
-            "enum": [
-              "note",
-              "hypothesis",
-              "finding",
-              "rejected"
-            ],
-            "description": "New classification: `note`, `hypothesis`, `finding` or `rejected`. Omitted, it stays."
-          },
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000,
-            "description": "The new note, plain text, at most 2000 characters. Omitted, the text stays."
-          }
-        },
-        "description": "Changes an annotation's text, labels or classification; its target stays fixed and omitted fields keep their value. Pass its current `etag`, from create_annotation or the annotation as get_trace or list_sessions returned it; a stale etag is refused, so re-read and retry. Needs the qyl:write scope.",
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "update_failure_status",
-      "title": "Update Failure Status",
-      "description": "Set a failure's status or assignee when recording triage decisions, returning the stored failure that triage then lists by status.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read",
-              "qyl:write"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "required": [
-          "failure_id",
-          "etag",
-          "status"
-        ],
-        "properties": {
-          "failure_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512,
-            "description": "The failure to update, from triage."
-          },
-          "etag": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "description": "The failure's current `etag` from triage (`status: all` lists every failure), sent as If-Match; a stale etag is refused."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "open",
-              "resolved",
-              "ignored"
-            ],
-            "description": "The new status: `open`, `resolved` or `ignored`."
-          },
-          "ignore_until": {
-            "type": "string",
-            "format": "date-time",
-            "description": "With `status: ignored`, when triage shows the failure again, RFC 3339; omitted, it stays ignored. Refused with any other status."
-          },
-          "assignee": {
-            "type": "string",
-            "maxLength": 256,
-            "description": "Who owns the failure, at most 256 characters; omitted, the failure has no assignee afterwards."
-          }
-        },
-        "description": "Records a triage decision on one failure: status `open`, `resolved` or `ignored`, an optional assignee and, for `ignored`, an optional `ignore_until`. Each call replaces all three and needs the failure's current `etag`; the stored failure returns with its new etag. Triage then reports a resolved failure that recurs as `regressed` and leaves an ignored one out until its `ignore_until`, if any, passes. Needs the qyl:write scope; telemetry is not changed.",
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "update_saved_query",
-      "title": "Update Saved Query",
-      "description": "Update a saved filter with its current etag when revising a question; list_saved_queries returns it.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read",
-              "qyl:write"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "required": [
-          "id",
-          "etag"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "description": "The saved query's id, from list_saved_queries or create_saved_query."
-          },
-          "etag": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "description": "The saved query's current `etag`, sent as If-Match."
+            "description": "With `id`: the saved query's current `etag`, sent as If-Match."
           },
           "name": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "New name, unique within the project; a duplicate is refused with 409."
+            "description": "Unique within the project, 1 to 200 characters; required to create. A duplicate is refused with conflict."
           },
           "description": {
             "type": "string",
             "maxLength": 2000,
-            "description": "New description, at most 2000 characters."
+            "description": "What the query answers, at most 2000 characters."
           },
           "filter": {
             "oneOf": [
@@ -5026,10 +3872,483 @@
                 "additionalProperties": false
               }
             ],
-            "description": "New filter, replacing the stored one whole."
+            "description": "The stored filter, required to create; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused."
           }
         },
-        "description": "Changes a saved query's name, description or filter; omitted fields keep their value and a new `filter` replaces the old one whole. Pass its current `etag` from list_saved_queries or create_saved_query; a stale etag is refused, so re-read and retry. Needs the qyl:write scope; names stay unique per project.",
+        "description": "Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results, and run_saved_query answers it or lists the saved queries. Without `id` it creates a saved query from `name` and `filter`; with `id` and its current `etag` it changes the fields sent, a new `filter` replacing the old one whole, and refuses a stale etag. Names are unique per project; needs the qyl:write scope.",
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "search_logs",
+      "title": "Search Logs",
+      "description": "Search log records and surrounding context when locating evidence linked to an execution.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": [
+              "qyl:read"
+            ]
+          }
+        ]
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "span_id": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 16,
+            "pattern": "^[a-f0-9]{16}$",
+            "description": "Return only log records correlated with this span.",
+            "examples": [
+              "b7ad6b7169203331"
+            ]
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "pattern"
+            ],
+            "description": "`pattern` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records."
+          },
+          "context": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "description": "Also return up to this many records before and after each returned record from the same service and resource, in `context_logs`; 0 to 10, default 0. Not applied with `group_by`."
+          },
+          "matchers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "op"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "eq",
+                    "neq",
+                    "in",
+                    "prefix",
+                    "contains",
+                    "exists",
+                    "gt",
+                    "gte",
+                    "lt",
+                    "lte"
+                  ],
+                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ],
+                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ],
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
+                  },
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "span",
+                    "resource",
+                    "log"
+                  ],
+                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
+                }
+              },
+              "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
+              "additionalProperties": false
+            },
+            "maxItems": 32,
+            "description": "Attribute predicates every returned record must satisfy; a matcher tests log attributes unless its `scope` is `resource`."
+          },
+          "trace_id": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "^[a-f0-9]{32}$",
+            "description": "Return only log records correlated with this trace.",
+            "examples": [
+              "0af7651916cd43dd8448eb211c80319c"
+            ]
+          },
+          "service_name": {
+            "type": "string",
+            "description": "Return only log records from this service."
+          },
+          "severity_min": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24,
+            "description": "Minimum OpenTelemetry severity number: 9 info, 13 warn, 17 error."
+          },
+          "query": {
+            "type": "string",
+            "description": "Case-insensitive substring of the log body."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Records per page, or patterns with `group_by`, 1 to 200; default 50.",
+            "default": 50
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "description": "Return only log records of this session."
+          },
+          "lookback_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 43200,
+            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End of the window (exclusive), RFC 3339; default now."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "`next_cursor` of a previous search_logs call with the same filters."
+          }
+        },
+        "description": "Searches the window's log records, newest first, by trace, span, session, service, minimum severity, body text or matchers. Use it for the logs around one execution (pass a `trace_id` from list_traces or get_trace), or with `group_by: pattern` for the repeating message templates alone; aggregate_telemetry counts logs per attribute. Default: the last 60 minutes, 50 records per page.",
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "triage",
+      "title": "Triage",
+      "description": "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": [
+              "qyl:read"
+            ]
+          }
+        ]
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lookback_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 43200,
+            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End of the window (exclusive), RFC 3339; default now."
+          },
+          "matchers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "op"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "eq",
+                    "neq",
+                    "in",
+                    "prefix",
+                    "contains",
+                    "exists",
+                    "gt",
+                    "gte",
+                    "lt",
+                    "lte"
+                  ],
+                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ],
+                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ],
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
+                  },
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "span",
+                    "resource",
+                    "log"
+                  ],
+                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
+                }
+              },
+              "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
+              "additionalProperties": false
+            },
+            "maxItems": 32,
+            "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window."
+          },
+          "service_name": {
+            "type": "string",
+            "description": "Restrict the analysis to this service (`service.name`, exact match)."
+          },
+          "environment": {
+            "type": "string",
+            "description": "Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Items per page of each list (failures, regressions, releases, silent services), 1 to 50; default 10. New failures rank first, so they lead the first page.",
+            "default": 10
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "previous_window"
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "start_time",
+                  "end_time"
+                ],
+                "properties": {
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Start of the window (inclusive), RFC 3339."
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "End of the window (exclusive), RFC 3339."
+                  }
+                },
+                "description": "Absolute half-open window applied by the collector.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "offset_minutes"
+                ],
+                "properties": {
+                  "offset_minutes": {
+                    "type": "integer",
+                    "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                  }
+                },
+                "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
+                "additionalProperties": false
+              }
+            ],
+            "description": "The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back."
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "resolved",
+                  "ignored"
+                ],
+                "description": "Persisted failure triage status."
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "all"
+                ]
+              }
+            ],
+            "description": "Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window."
+          }
+        },
+        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status.",
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "update_failure_status",
+      "title": "Update Failure Status",
+      "description": "Set a failure's status or assignee when recording triage decisions, returning the stored failure that triage then lists by status.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": [
+              "qyl:read",
+              "qyl:write"
+            ]
+          }
+        ]
+      },
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "failure_id",
+          "etag",
+          "status"
+        ],
+        "properties": {
+          "failure_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "The failure to update, from triage."
+          },
+          "etag": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The failure's current `etag` from triage (`status: all` lists every failure), sent as If-Match; a stale etag is refused."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved",
+              "ignored"
+            ],
+            "description": "The new status: `open`, `resolved` or `ignored`."
+          },
+          "ignore_until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "With `status: ignored`, when triage shows the failure again, RFC 3339; omitted, it stays ignored. Refused with any other status."
+          },
+          "assignee": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Who owns the failure, at most 256 characters; omitted, the failure has no assignee afterwards."
+          }
+        },
+        "description": "Records a triage decision on one failure: status `open`, `resolved` or `ignored`, an optional assignee and, for `ignored`, an optional `ignore_until`. Each call replaces all three and needs the failure's current `etag`; the stored failure returns with its new etag. Triage then reports a resolved failure that recurs as `regressed` and leaves an ignored one out until its `ignore_until`, if any, passes. Needs the qyl:write scope; telemetry is not changed.",
         "additionalProperties": false
       }
     },

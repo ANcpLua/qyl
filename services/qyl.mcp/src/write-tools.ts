@@ -1,30 +1,31 @@
 /**
  * The tools that change something: annotations, saved queries and the one
- * delete tool, `delete_record`, plus the two saved-query reads that belong with them.
+ * delete tool, `delete_record`, plus `run_saved_query`, the saved-query read
+ * that belongs with them.
  *
  * What they change is limited to objects users create in qyl, inside the
- * verified caller's Collector project: a note on a trace, span or session, and
- * a named filter. No tool here edits or deletes a trace, log or metric;
- * retention alone removes telemetry. Reading and writing stay separate tools,
- * so a host can approve them separately, and each write is its own tool:
- * create, update and delete are never one generic executor.
+ * verified caller's Collector project: a note on a trace, span, session or
+ * failure, and a named filter. No tool here edits or deletes a trace, log or
+ * metric; retention alone removes telemetry. Reading and writing stay separate
+ * tools, so a host can approve them separately: `annotate` and `save_query`
+ * each create a record without an `id` and change the one an `id` names with
+ * its current etag, and deleting is `delete_record` alone.
  *
  * Identical creates are deduplicated for 24 hours; a new explicit retry key
- * requests another object. Update and delete are destructive and idempotent (they
- * replace or remove a version named by its etag, and repeating them changes
- * nothing more). The create and update tools need `qyl:write`, `delete_record` needs
- * `qyl:delete`, and the saved-query reads keep `qyl:read` (tool-scopes.ts).
+ * requests another object. A change or a delete replaces or removes the
+ * version an etag names, so the write tools are destructive and idempotent:
+ * repeating one changes nothing more. `annotate` and `save_query` need
+ * `qyl:write`, `delete_record` needs `qyl:delete`, and `run_saved_query` keeps
+ * `qyl:read` (tool-scopes.ts).
  */
 
 import type {
+  AnnotateInput,
   AnnotationOutput,
-  CreateAnnotationInput,
-  CreateSavedQueryInput,
   DeleteInput,
   DeleteOutput,
+  SaveQueryInput,
   SavedQueryOutput,
-  UpdateAnnotationInput,
-  UpdateSavedQueryInput,
 } from "./contracts/generated/api.js";
 import type {
   CallToolResult,
@@ -34,13 +35,11 @@ import type {
 } from "@modelcontextprotocol/server";
 import { contractSchema } from "./contracts/tool-schemas.js";
 import {
+  annotate,
   annotationReadBack,
-  createAnnotation,
-  createSavedQuery,
   deleteResource,
   describeTarget,
-  updateAnnotation,
-  updateSavedQuery,
+  saveQuery,
 } from "./collector-resources.js";
 import { QYL_MCP_DELETE_SCOPE, QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE } from "./oauth.js";
 import { runTool } from "./request-scope.js";
@@ -49,15 +48,7 @@ import { telemetryToolResult } from "./telemetry-redaction.js";
 import { toolScopeChallenge } from "./tool-scopes.js";
 import { READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS, TELEMETRY_TOOL_AUTH_META } from "./tools.js";
 
-/** Adds an object; identical retries replay for 24 hours. */
-export const CREATE_TOOL_ANNOTATIONS = {
-  readOnlyHint: false,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const satisfies ToolAnnotations;
-
-/** Replaces the version an etag names; repeating it changes nothing more. */
+/** Creates an object, identical retries replaying for 24 hours, or replaces the version an etag names; repeating it changes nothing more. */
 export const UPDATE_TOOL_ANNOTATIONS = {
   readOnlyHint: false,
   destructiveHint: true,
@@ -84,111 +75,54 @@ export function securityMeta(scopes: readonly string[]): { securitySchemes: { ty
 /** Registers the annotation and saved-query tools; every handler runs inside runTool. */
 export function registerWriteTools(server: McpServer): void {
   server.registerTool(
-    "create_annotation",
+    "annotate",
     {
-      title: "Create Annotation",
-      description: "Create a labeled note on a trace, span, session or failure when recording a finding; get_trace, list_sessions or get_failure_context returns it.",
-      inputSchema: contractSchema("Mcp.Tools.CreateAnnotationInput"),
-      annotations: CREATE_TOOL_ANNOTATIONS,
-      scopeChallenge: toolScopeChallenge("create_annotation", WRITE_SCOPES),
+      title: "Annotate",
+      description: "Create a labeled note on a trace, span, session or failure when recording a finding, or change a note with its id and current etag; get_trace, list_sessions or get_failure_context returns it.",
+      inputSchema: contractSchema("Mcp.Tools.AnnotateInput"),
+      annotations: UPDATE_TOOL_ANNOTATIONS,
+      scopeChallenge: toolScopeChallenge("annotate", WRITE_SCOPES),
       _meta: securityMeta(WRITE_SCOPES),
     },
-    (args: CreateAnnotationInput, ctx: ServerContext): Promise<CallToolResult> =>
-      runTool(ctx, "create_annotation", 1, async (scope) => {
-        const annotation = await createAnnotation(args, scope.collector);
-        await scope.step(`Created annotation ${annotation.id}`);
+    (args: AnnotateInput, ctx: ServerContext): Promise<CallToolResult> =>
+      runTool(ctx, "annotate", 1, async (scope) => {
+        const { annotation, created } = await annotate(args, scope.collector);
+        await scope.step(`${created ? "Created" : "Updated"} annotation ${annotation.id}`);
         const output: AnnotationOutput = { annotation };
         return telemetryToolResult(
-          `create_annotation: created annotation ${annotation.id} on ${describeTarget(annotation.target)}, etag ${annotation.etag}. → ${annotationReadBack(annotation.target)} shows it`,
+          `annotate: ${created ? "created" : "updated"} annotation ${annotation.id} on ${describeTarget(annotation.target)}, etag ${annotation.etag}. → ${annotationReadBack(annotation.target)} shows it`,
           output,
         );
       }),
   );
 
   server.registerTool(
-    "update_annotation",
+    "save_query",
     {
-      title: "Update Annotation",
-      description: "Update annotation text, labels or class with its current etag when revising a finding; get_trace, list_sessions or get_failure_context returns it.",
-      inputSchema: contractSchema("Mcp.Tools.UpdateAnnotationInput"),
+      title: "Save Query",
+      description: "Store a named telemetry filter when saving a reusable question, or change a saved query with its id and current etag; run_saved_query answers it.",
+      inputSchema: contractSchema("Mcp.Tools.SaveQueryInput"),
       annotations: UPDATE_TOOL_ANNOTATIONS,
-      scopeChallenge: toolScopeChallenge("update_annotation", WRITE_SCOPES),
+      scopeChallenge: toolScopeChallenge("save_query", WRITE_SCOPES),
       _meta: securityMeta(WRITE_SCOPES),
     },
-    (args: UpdateAnnotationInput, ctx: ServerContext): Promise<CallToolResult> =>
-      runTool(ctx, "update_annotation", 1, async (scope) => {
-        const annotation = await updateAnnotation(args, scope.collector);
-        await scope.step(`Updated annotation ${annotation.id}`);
-        const output: AnnotationOutput = { annotation };
-        return telemetryToolResult(
-          `update_annotation: annotation ${annotation.id} on ${describeTarget(annotation.target)} updated, etag now ${annotation.etag}. → ${annotationReadBack(annotation.target)} shows it`,
-          output,
-        );
-      }),
-  );
-
-  server.registerTool(
-    "create_saved_query",
-    {
-      title: "Create Saved Query",
-      description: "Store a named telemetry filter when saving a reusable question; list_saved_queries returns it.",
-      inputSchema: contractSchema("Mcp.Tools.CreateSavedQueryInput"),
-      annotations: CREATE_TOOL_ANNOTATIONS,
-      scopeChallenge: toolScopeChallenge("create_saved_query", WRITE_SCOPES),
-      _meta: securityMeta(WRITE_SCOPES),
-    },
-    (args: CreateSavedQueryInput, ctx: ServerContext): Promise<CallToolResult> =>
-      runTool(ctx, "create_saved_query", 1, async (scope) => {
-        const savedQuery = await createSavedQuery(args, scope.collector);
-        await scope.step(`Created saved query ${savedQuery.id}`);
+    (args: SaveQueryInput, ctx: ServerContext): Promise<CallToolResult> =>
+      runTool(ctx, "save_query", 1, async (scope) => {
+        const { savedQuery, created } = await saveQuery(args, scope.collector);
+        await scope.step(`${created ? "Created" : "Updated"} saved query ${savedQuery.id}`);
         const output: SavedQueryOutput = { saved_query: savedQuery };
         return telemetryToolResult(
-          `create_saved_query: created ${savedQuery.name} (${savedQuery.filter.signal}), id ${savedQuery.id}, etag ${savedQuery.etag}. → run_saved_query id=${savedQuery.id}`,
+          `save_query: ${created ? "created" : "updated"} ${savedQuery.name} (${savedQuery.filter.signal}), id ${savedQuery.id}, etag ${savedQuery.etag}. → run_saved_query id=${savedQuery.id}`,
           output,
         );
       }),
-  );
-
-  server.registerTool(
-    "update_saved_query",
-    {
-      title: "Update Saved Query",
-      description: "Update a saved filter with its current etag when revising a question; list_saved_queries returns it.",
-      inputSchema: contractSchema("Mcp.Tools.UpdateSavedQueryInput"),
-      annotations: UPDATE_TOOL_ANNOTATIONS,
-      scopeChallenge: toolScopeChallenge("update_saved_query", WRITE_SCOPES),
-      _meta: securityMeta(WRITE_SCOPES),
-    },
-    (args: UpdateSavedQueryInput, ctx: ServerContext): Promise<CallToolResult> =>
-      runTool(ctx, "update_saved_query", 1, async (scope) => {
-        const savedQuery = await updateSavedQuery(args, scope.collector);
-        await scope.step(`Updated saved query ${savedQuery.id}`);
-        const output: SavedQueryOutput = { saved_query: savedQuery };
-        return telemetryToolResult(
-          `update_saved_query: ${savedQuery.name} (${savedQuery.filter.signal}, id ${savedQuery.id}) updated, etag now ${savedQuery.etag}. → run_saved_query id=${savedQuery.id}`,
-          output,
-        );
-      }),
-  );
-
-  server.registerTool(
-    "list_saved_queries",
-    {
-      title: "List Saved Queries",
-      description: "List saved filters with their current etags when choosing a question to run or edit.",
-      inputSchema: contractSchema("Mcp.Tools.ListSavedQueriesInput"),
-      annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
-      _meta: TELEMETRY_TOOL_AUTH_META,
-    },
-    (args, ctx) => runTool(ctx, "list_saved_queries", 1, async (scope) =>
-      queryAnalysis("list_saved_queries", args, "Mcp.Tools.ListSavedQueriesOutput", scope)),
   );
 
   server.registerTool(
     "run_saved_query",
     {
       title: "Run Saved Query",
-      description: "Evaluate a saved filter against current telemetry when answering a previously saved question.",
+      description: "Evaluate a saved filter against current telemetry when answering a previously saved question, or without an id list the saved queries with their ids and etags.",
       inputSchema: contractSchema("Mcp.Tools.RunSavedQueryInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
@@ -213,7 +147,7 @@ export function registerWriteTools(server: McpServer): void {
         await scope.step(`Deleted ${args.kind} ${args.id}`);
         const output: DeleteOutput = { deleted: true };
         return telemetryToolResult(
-          `delete_record: deleted ${args.kind === "annotation" ? "annotation" : "saved query"} ${args.id}.${args.kind === "annotation" ? "" : " → list_saved_queries"}`,
+          `delete_record: deleted ${args.kind === "annotation" ? "annotation" : "saved query"} ${args.id}.${args.kind === "annotation" ? "" : " → run_saved_query lists the rest"}`,
           output,
         );
       }),

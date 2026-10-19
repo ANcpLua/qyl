@@ -11,13 +11,13 @@ import { READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS } from "./tools.js";
 import { QYL_MCP_SCOPE } from "./oauth.js";
 
 /** The tools that change annotations or saved queries; write-tools.test.ts pins their hints. */
-const WRITE_TOOLS = new Set(["create_annotation", "update_annotation", "create_saved_query", "update_saved_query", "update_failure_status", "delete_record"]);
+const WRITE_TOOLS = new Set(["annotate", "save_query", "update_failure_status", "delete_record"]);
 
 /** Read tools every client must find. */
 const READ_TOOLS = [
   "aggregate_telemetry", "check_telemetry_health", "ci_log", "compare_groups", "compare_traces",
   "discover_attributes", "get_agent_run", "get_failure_context", "get_mcp_stats",
-  "get_service_map", "get_trace", "list_metrics", "list_releases", "list_saved_queries",
+  "get_service_map", "get_trace", "list_metrics", "list_releases",
   "list_sessions", "list_traces", "query_metric", "run_saved_query", "search_logs", "triage", "verify_fix",
 ];
 

@@ -48,7 +48,7 @@ try {
 
   const listing = await client.listTools();
   const tools = listing.tools.map((t) => t.name);
-  const writes = ["create_annotation", "update_annotation", "create_saved_query", "update_saved_query", "delete_record", "update_failure_status"];
+  const writes = ["annotate", "save_query", "delete_record", "update_failure_status"];
   const retired = ["display_traces", "display_mcp_dashboard", "fetch_telemetry", "delete"];
   check(retired.every((name) => !tools.includes(name)), "tools/list publishes no viewer, app-only or pre-rename tool", tools.join(", "));
   check(
@@ -60,8 +60,8 @@ try {
   // changes: 403 insufficient_scope naming the scopes to request.
   const granted = (JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8") || "{}").scope ?? "").split(" ");
   if (!granted.includes("qyl:write")) {
-    const { err } = await call("create_annotation", { target: { kind: "trace", trace_id: "0".repeat(32) }, text: "hosted eval" });
-    check(/qyl:write/u.test(err ?? ""), "create_annotation without qyl:write is refused with an insufficient_scope challenge", err);
+    const { err } = await call("annotate", { target: { kind: "trace", trace_id: "0".repeat(32) }, text: "hosted eval" });
+    check(/qyl:write/u.test(err ?? ""), "annotate without qyl:write is refused with an insufficient_scope challenge", err);
   } else {
     console.log("info	the token grants qyl:write; the scope challenge was not exercised");
   }
@@ -76,7 +76,7 @@ try {
     ["get_service_map", {}],
     ["check_telemetry_health", {}],
     ["get_mcp_stats", {}],
-    ["list_saved_queries", {}],
+    ["run_saved_query", {}],
     ["list_traces", {}],
     ["list_sessions", {}],
     ["list_metrics", {}],
@@ -108,7 +108,7 @@ try {
   }
 
   check(!client.getServerCapabilities()?.events, "shared deployment does not advertise MCP Events");
-  const covered = new Set([...plan.map(([n]) => n), ...dependent, "create_annotation"]);
+  const covered = new Set([...plan.map(([n]) => n), ...dependent, "annotate"]);
   for (const name of tools.filter((n) => !covered.has(n)).sort()) {
     const { res, text: t, err } = await call(name, {});
     const requiredScope = name === "delete_record" ? "qyl:delete" : writes.includes(name) ? "qyl:write" : null;
@@ -116,7 +116,7 @@ try {
       check(err?.includes(`required "${requiredScope}"`), `${name} requires ${requiredScope}`, err ?? t);
     } else {
       // An unreachable server, expired login or timeout must not count as input validation.
-      const validation = (res?.isError || err !== null) && /^(?:Input validation error:|MCP error -32602:|trace_id:|target:|failure_id:)/u.test(err ?? t);
+      const validation = (res?.isError || err !== null) && /^(?:Input validation error:|MCP error -32602:|\S+ failed: invalid_argument — )/u.test(err ?? t);
       check(validation, `${name} rejects missing arguments with an input diagnostic`, err ?? t);
     }
   }

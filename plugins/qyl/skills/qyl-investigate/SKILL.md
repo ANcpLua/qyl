@@ -106,18 +106,19 @@ saved queries and failure status in that project, never the telemetry.
 
 ## Record and reuse (only when asked)
 
-- `create_annotation` puts a plain-text note on a trace, span, session or
-  failure (`target: {kind: "failure", failure_id}`); `get_trace`,
-  `list_sessions` and `get_failure_context` show it later with its `id` and
-  `etag`, and `triage` counts the notes on each failure.
-  `update_annotation` and `delete_record` take that `id` and the current `etag`; a
+- `annotate` puts a plain-text note on a trace, span, session or failure
+  (`target: {kind: "failure", failure_id}`); `get_trace`, `list_sessions`
+  and `get_failure_context` show it later with its `id` and `etag`, and
+  `triage` counts the notes on each failure. `annotate` with that `id` and
+  the current `etag` changes the note, and `delete_record` removes it; a
   stale etag fails with `precondition_failed`, so read the object again
   first.
 - `update_failure_status` sets `open`, `resolved` or `ignored` (with
   `ignore_until`) and an `assignee`; `triage` with that `status` shows the
   result.
-- `create_saved_query` stores a named filter, `list_saved_queries` finds it
-  and `run_saved_query` answers it.
+- `save_query` stores a named filter (with `id` and `etag` it changes one),
+  `run_saved_query` without `id` lists the saved queries and with `id`
+  answers one.
 
 ## Rules
 

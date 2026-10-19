@@ -31,13 +31,13 @@ const cases = [
   },
   {
     // A discriminator none of the union's branches accepts: the branches' other complaints are noise.
-    tool: "create_saved_query", arguments: { name: "errors", filter: { signal: "trace" } },
+    tool: "save_query", arguments: { name: "errors", filter: { signal: "trace" } },
     field: "filter.signal", keyword: "enum", allowed: ["traces", "logs", "metrics"],
     message: /^filter\.signal: must be one of: traces, logs, metrics$/u,
   },
   {
     // The discriminator matched one branch: only that branch's rule is reported.
-    tool: "create_saved_query", arguments: { name: "errors", filter: { signal: "logs", errors_only: true } },
+    tool: "save_query", arguments: { name: "errors", filter: { signal: "logs", errors_only: true } },
     field: "filter.errors_only", keyword: "additionalProperties", allowedIncludes: ["severity_min", "query"],
     message: /^filter\.errors_only: is not accepted here; accepted: matchers, signal, lookback_minutes, service_name, severity_min/u,
   },

@@ -223,7 +223,12 @@ internal static partial class CollectorEndpointExtensions
             var project = ResolveProjectScope(httpContext);
             var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct: ct).ConfigureAwait(false);
             var result = new Analysis.AnalysisEngine(snapshot, project, CreateAnalysisHandles(httpContext, project), timeProvider.GetUtcNow()).Run("run_saved_query", body);
-            var typed = JsonSerializer.Deserialize(result["result"]!.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
+            // The analysis answer names its rows by signal; the HTTP route answers with the run result of the contract.
+            var signal = Analysis.J.String(result["saved_query"]?["filter"], "signal")!;
+            var run = signal == "metrics"
+                ? Analysis.J.O(("signal", signal), ("result", result["metric"]))
+                : Analysis.J.O(("signal", signal), ("items", result[signal]), ("has_more", result["has_more"]), ("next_cursor", result["next_cursor"]));
+            var typed = JsonSerializer.Deserialize(run.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
             return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);
         }
         catch (Analysis.AnalysisInputException invalid) { return AnalysisError(invalid); }

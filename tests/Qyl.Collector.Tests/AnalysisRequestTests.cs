@@ -38,7 +38,10 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(count, Assert.ContainsSingle(result.GetProperty("groups").EnumerateArray()).GetProperty("measures").GetProperty("count").GetInt32());
     }
 
-    /// <summary>A saved query's coverage counts what its saved filter matched, not every record in the window.</summary>
+    /// <summary>
+    /// Without an id run_saved_query lists the saved queries; a run answers like list_traces, and its coverage counts
+    /// what its saved filter matched, not every record in the window.
+    /// </summary>
     [TestMethod]
     public async Task A_saved_query_run_reports_the_coverage_of_its_filter()
     {
@@ -53,9 +56,14 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
         var id = (await host.JsonAsync(created)).GetProperty("id").GetString();
 
-        var run = await Read(host, "run_saved_query", $$"""{"id":"{{id}}"}""");
+        var listed = await Read(host, "run_saved_query", """{"signal":"traces"}""");
+        Assert.AreEqual(id, Assert.ContainsSingle(listed.GetProperty("saved_queries").EnumerateArray()).GetProperty("id").GetString());
+        Assert.IsEmpty((await Read(host, "run_saved_query", """{"signal":"logs"}""")).GetProperty("saved_queries").EnumerateArray());
 
-        Assert.AreEqual(TraceId(1), Assert.ContainsSingle(run.GetProperty("result").GetProperty("items").EnumerateArray()).GetProperty("trace_id").GetString());
+        var run = await Read(host, "run_saved_query", $$"""{"id":"{{id}}","signal":"logs"}""");
+
+        Assert.AreEqual("wanted traces", run.GetProperty("saved_query").GetProperty("name").GetString());
+        Assert.AreEqual(TraceId(1), Assert.ContainsSingle(run.GetProperty("traces").EnumerateArray()).GetProperty("trace_id").GetString());
         var coverage = run.GetProperty("coverage");
         Assert.AreEqual((2, 1, 1), (coverage.GetProperty("examined").GetInt32(), coverage.GetProperty("matched").GetInt32(), coverage.GetProperty("returned").GetInt32()));
     }

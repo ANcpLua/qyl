@@ -1113,38 +1113,29 @@ public sealed class MetricRawExemplar
     public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>? FilteredAttributes { get; init; }
 }
 
-public sealed class CreateAnnotationInput
+public sealed class AnnotateInput
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("idempotency_key")]
-    public string? IdempotencyKey { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("labels")]
-    public IReadOnlyList<string>? Labels { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("classification")]
-    public Qyl.Api.Contracts.Annotations.AnnotationClassification? Classification { get; init; }
-    [JsonPropertyName("target")]
-    public required Qyl.Api.Contracts.Annotations.AnnotationTarget Target { get; init; }
-    [JsonPropertyName("text")]
-    public required string Text { get; init; }
-}
-
-public sealed class UpdateAnnotationInput
-{
     [JsonPropertyName("id")]
-    public required string Id { get; init; }
+    public string? Id { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
+    public string? Etag { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("labels")]
-    public IReadOnlyList<string>? Labels { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("classification")]
-    public Qyl.Api.Contracts.Annotations.AnnotationClassification? Classification { get; init; }
+    [JsonPropertyName("target")]
+    public Qyl.Api.Contracts.Annotations.AnnotationTarget? Target { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("text")]
     public string? Text { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("labels")]
+    public IReadOnlyList<string>? Labels { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("classification")]
+    public Qyl.Api.Contracts.Annotations.AnnotationClassification? Classification { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("idempotency_key")]
+    public string? IdempotencyKey { get; init; }
 }
 
 public sealed class AnnotationOutput
@@ -1157,26 +1148,14 @@ public sealed class AnnotationOutput
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
 }
 
-public sealed class CreateSavedQueryInput
+public sealed class SaveQueryInput
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("idempotency_key")]
-    public string? IdempotencyKey { get; init; }
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("description")]
-    public string? Description { get; init; }
-    [JsonPropertyName("filter")]
-    public required Qyl.Api.Contracts.SavedQueries.SavedQueryFilter Filter { get; init; }
-}
-
-public sealed class UpdateSavedQueryInput
-{
     [JsonPropertyName("id")]
-    public required string Id { get; init; }
+    public string? Id { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
+    public string? Etag { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
     public string? Name { get; init; }
@@ -1186,6 +1165,9 @@ public sealed class UpdateSavedQueryInput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("filter")]
     public Qyl.Api.Contracts.SavedQueries.SavedQueryFilter? Filter { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("idempotency_key")]
+    public string? IdempotencyKey { get; init; }
 }
 
 public sealed class SavedQueryOutput
@@ -1193,57 +1175,6 @@ public sealed class SavedQueryOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("saved_query")]
     public Qyl.Api.Contracts.SavedQueries.SavedQuery? SavedQuery { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("error")]
-    public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
-}
-
-public sealed class ListSavedQueriesInput
-{
-    public const int LookbackMinutesMinimum = 1;
-    public const int LookbackMinutesMaximum = 43200;
-    public const int LimitDefault = 20;
-    public const int LimitMinimum = 1;
-    public const int LimitMaximum = 100;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("matchers")]
-    public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("signal")]
-    public Qyl.Api.Contracts.SavedQueries.SavedQuerySignal? Signal { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
-}
-
-public sealed class ListSavedQueriesOutput
-{
-    [JsonPropertyName("window")]
-    public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
-    [JsonPropertyName("coverage")]
-    public required Qyl.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("page_totals")]
-    public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
-    [JsonPropertyName("saved_queries")]
-    public required IReadOnlyList<Qyl.Api.Contracts.SavedQueries.SavedQuery> SavedQueries { get; init; }
-    [JsonPropertyName("has_more")]
-    public required bool HasMore { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("next_cursor")]
-    public string? NextCursor { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
@@ -1257,8 +1188,12 @@ public sealed class RunSavedQueryInput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("id")]
-    public required string Id { get; init; }
+    public string? Id { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("signal")]
+    public Qyl.Api.Contracts.SavedQueries.SavedQuerySignal? Signal { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
     public DateTimeOffset? StartTime { get; init; }
@@ -1266,11 +1201,38 @@ public sealed class RunSavedQueryInput
     [JsonPropertyName("end_time")]
     public DateTimeOffset? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("limit")]
+    public int? Limit { get; init; }
+}
+
+public sealed class SavedMetricAnswer
+{
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+    [JsonPropertyName("kind")]
+    public required Qyl.Api.Contracts.OTel.Metrics.MetricKind Kind { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("unit")]
+    public string? Unit { get; init; }
+    [JsonPropertyName("aggregation")]
+    public required Qyl.Api.Contracts.OTel.Metrics.MetricAggregation Aggregation { get; init; }
+    [JsonPropertyName("step_ms")]
+    public required long StepMs { get; init; }
+    [JsonPropertyName("series")]
+    public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeriesResult> Series { get; init; }
+    [JsonPropertyName("numeric_representation")]
+    public required string NumericRepresentation { get; init; }
+    [JsonPropertyName("approximate")]
+    public required bool Approximate { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("method")]
+    public string? Method { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("exemplar_trace_ids")]
+    public IReadOnlyList<string>? ExemplarTraceIds { get; init; }
 }
 
 public sealed class RunSavedQueryOutput
@@ -1283,11 +1245,26 @@ public sealed class RunSavedQueryOutput
     [JsonPropertyName("page_totals")]
     public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("result")]
-    public Qyl.Api.Contracts.SavedQueries.SavedQueryRunResult? Result { get; init; }
+    [JsonPropertyName("saved_queries")]
+    public IReadOnlyList<Qyl.Api.Contracts.SavedQueries.SavedQuery>? SavedQueries { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("mode")]
-    public Qyl.Api.Contracts.Mcp.Tools.McpDataMode? Mode { get; init; }
+    [JsonPropertyName("saved_query")]
+    public Qyl.Api.Contracts.SavedQueries.SavedQuery? SavedQuery { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("traces")]
+    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolTraceRow>? Traces { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("logs")]
+    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolLogRow>? Logs { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("metric")]
+    public Qyl.Api.Contracts.Mcp.Tools.SavedMetricAnswer? Metric { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("has_more")]
+    public bool? HasMore { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }

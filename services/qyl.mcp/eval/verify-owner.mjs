@@ -149,24 +149,24 @@ try {
   const ci = await call(owner, "ci_log", { ...w, run_id: sessions.ci_current, compare_to: "last_success" });
   check(ci.comparison.new_failures.some(item => item.leg === "test"), "CI analysis retains the deliberately failed test leg");
 
-  const created = await call(owner, "create_annotation", { target: { kind: "trace", trace_id: key["db-root"].trace_id },
+  const created = await call(owner, "annotate", { target: { kind: "trace", trace_id: key["db-root"].trace_id },
     text: `Owner verification ${fixture.run_id}`, labels: ["owner-verification"], classification: "finding", idempotency_key: `${fixture.run_id}-annotation` });
   owned.set(created.annotation.id, { kind: "annotation", ...created.annotation });
   const annotated = await call(owner, "get_trace", { ...w, trace_id: key["db-root"].trace_id });
   check(annotated.annotations.some(item => item.id === created.annotation.id), "Created annotation is read back through the trace tool");
-  const changed = await call(owner, "update_annotation", { id: created.annotation.id, etag: created.annotation.etag, text: `Verified update ${fixture.run_id}` });
+  const changed = await call(owner, "annotate", { id: created.annotation.id, etag: created.annotation.etag, text: `Verified update ${fixture.run_id}` });
   owned.set(changed.annotation.id, { kind: "annotation", ...changed.annotation });
   const reread = await call(owner, "get_trace", { ...w, trace_id: key["db-root"].trace_id });
   check(reread.annotations.some(item => item.id === changed.annotation.id && item.text === changed.annotation.text), "Updated annotation persists with its new text");
 
-  const saved = await call(owner, "create_saved_query", { name: `owner-verification-${fixture.run_id}`, filter: { signal: "traces", service_name: services.checkout, lookback_minutes: 60 }, idempotency_key: `${fixture.run_id}-query` });
+  const saved = await call(owner, "save_query", { name: `owner-verification-${fixture.run_id}`, filter: { signal: "traces", service_name: services.checkout, lookback_minutes: 60 }, idempotency_key: `${fixture.run_id}-query` });
   owned.set(saved.saved_query.id, { kind: "saved_query", ...saved.saved_query });
-  const updated = await call(owner, "update_saved_query", { id: saved.saved_query.id, etag: saved.saved_query.etag, description: `Verified owner query ${fixture.run_id}` });
+  const updated = await call(owner, "save_query", { id: saved.saved_query.id, etag: saved.saved_query.etag, description: `Verified owner query ${fixture.run_id}` });
   owned.set(updated.saved_query.id, { kind: "saved_query", ...updated.saved_query });
-  const queries = await call(owner, "list_saved_queries", { signal: "traces", limit: 100 });
+  const queries = await call(owner, "run_saved_query", { signal: "traces", limit: 100 });
   check(queries.saved_queries.some(item => item.id === updated.saved_query.id && item.description === updated.saved_query.description), "Updated saved query is listed with persisted metadata");
   const run = await call(owner, "run_saved_query", { ...w, id: updated.saved_query.id });
-  check(run.result.items.some(item => item.trace_id === key["db-root"].trace_id), "Saved query executes against recorded fixture telemetry");
+  check(run.traces.some(item => item.trace_id === key["db-root"].trace_id), "Saved query executes against recorded fixture telemetry");
 
   latestFailure = (await call(owner, "update_failure_status", { failure_id: failure.failure_id, etag: failure.etag, status: "ignored" })).failure;
   check(latestFailure.status === "ignored", "Owner can update only the isolated fixture's failure status");

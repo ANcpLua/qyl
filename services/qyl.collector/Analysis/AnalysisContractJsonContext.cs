@@ -43,8 +43,6 @@ namespace Qyl.Collector.Analysis;
 [JsonSerializable(typeof(QueryMetricOutput))]
 [JsonSerializable(typeof(CiLogInput))]
 [JsonSerializable(typeof(CiLogOutput))]
-[JsonSerializable(typeof(ListSavedQueriesInput))]
-[JsonSerializable(typeof(ListSavedQueriesOutput))]
 [JsonSerializable(typeof(RunSavedQueryInput))]
 [JsonSerializable(typeof(RunSavedQueryOutput))]
 [JsonSerializable(typeof(UpdateFailureStatusInput))]

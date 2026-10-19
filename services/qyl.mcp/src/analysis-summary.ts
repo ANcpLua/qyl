@@ -20,7 +20,6 @@ import type {
   GetTraceOutput,
   ListMetricsOutput,
   ListReleasesOutput,
-  ListSavedQueriesOutput,
   ListSessionsOutput,
   ListTracesOutput,
   QueryMetricOutput,
@@ -343,25 +342,23 @@ function queryMetric(output: QueryMetricOutput): string {
   return `query_metric: ${output.name} ${output.aggregation} (${output.kind}) step ${output.step_ms} ms, ${series.length} series${output.approximate ? ", approximate" : ""}.${rows ? ` ${rows}.` : ""}${step}${coverageNote(output.coverage)} → ${exemplar === undefined ? "aggregate_telemetry for exact per-request span durations" : `get_trace trace_id=${exemplar}`}`;
 }
 
-function savedQueries(output: ListSavedQueriesOutput): string {
-  const rows = top(output.saved_queries, (query) => `${short(query.name, 60)} (${query.filter.signal}, id ${query.id}, etag ${query.etag})`);
-  const first = output.saved_queries[0];
-  return `list_saved_queries: ${output.saved_queries.length} saved queries.${rows ? ` ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${first === undefined ? "create_saved_query to save one" : `run_saved_query id=${first.id}`}`;
-}
-
 function runSavedQuery(output: RunSavedQueryOutput): string {
-  const result = output.result;
-  if (result === undefined) return `run_saved_query: no result.${coverageNote(output.coverage)} → list_saved_queries`;
-  if (result.signal === "metrics") {
-    return `run_saved_query: metric ${result.result.name} ${result.result.aggregation}, ${result.result.series.length} series.${coverageNote(output.coverage)} → query_metric metric_name=${result.result.name} for other windows`;
+  if (output.saved_queries !== undefined) {
+    const rows = top(output.saved_queries, (query) => `${short(query.name, 60)} (${query.filter.signal}, id ${query.id}, etag ${query.etag})`);
+    const first = output.saved_queries[0];
+    return `run_saved_query: ${output.saved_queries.length} saved queries.${rows ? ` ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${first === undefined ? "save_query to save one" : `run_saved_query id=${first.id}`}`;
   }
-  const pageMore = result.has_more ? " More: repeat with next_cursor as cursor." : "";
-  if (result.signal === "logs") {
-    const traced = result.items.find((log) => log.trace_id !== undefined)?.trace_id;
-    return `run_saved_query: ${result.items.length} logs.${result.items.length ? ` Top: ${top(result.items, logLine)}.` : ""}${coverageNote(output.coverage)}${pageMore} → ${traced === undefined ? "search_logs" : `get_trace trace_id=${traced}`}`;
+  const name = output.saved_query === undefined ? "run_saved_query" : `run_saved_query ${short(output.saved_query.name, 60)}`;
+  if (output.metric !== undefined) {
+    return `${name}: metric ${output.metric.name} ${output.metric.aggregation}, ${output.metric.series.length} series.${coverageNote(output.coverage)} → query_metric metric_name=${output.metric.name} for other windows`;
   }
-  const rows = top(result.items, traceRow);
-  return `run_saved_query: ${result.items.length} traces.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${pageMore} → ${traceNext(result.items)}`;
+  if (output.logs !== undefined) {
+    const traced = output.logs.find((log) => log.trace_id !== undefined)?.trace_id;
+    return `${name}: ${output.logs.length} logs.${output.logs.length ? ` Top: ${top(output.logs, logLine)}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traced === undefined ? "search_logs" : `get_trace trace_id=${traced}`}`;
+  }
+  const traces = output.traces ?? [];
+  const rows = top(traces, traceRow);
+  return `${name}: ${traces.length} traces.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traceNext(traces)}`;
 }
 
 /** The headline of one analysis result; `input` supplies what the output does not repeat. */
@@ -387,7 +384,6 @@ export function analysisHeadline(operation: string, input: object, output: objec
     case "ci_log": return ciLog(output as CiLogOutput);
     case "list_metrics": return listMetrics(output as ListMetricsOutput);
     case "query_metric": return queryMetric(output as QueryMetricOutput);
-    case "list_saved_queries": return savedQueries(output as ListSavedQueriesOutput);
     case "run_saved_query": return runSavedQuery(output as RunSavedQueryOutput);
     default: return `${operation}: result follows as JSON.`;
   }

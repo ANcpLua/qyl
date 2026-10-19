@@ -28,16 +28,16 @@ Read operations carry `readOnlyHint: true`:
 - Logs and metrics: `search_logs`, `list_metrics`, `query_metric`.
 - Comparisons and discovery: `aggregate_telemetry`, `compare_groups`, `compare_traces`, `discover_attributes`.
 - Operational context: `list_releases`, `get_service_map`, `check_telemetry_health`, `get_mcp_stats`.
-- Saved questions: `list_saved_queries`, `run_saved_query`.
+- Saved questions: `run_saved_query`, which lists the saved queries when called without an id.
 
-Write operations carry `readOnlyHint: false`:
+Write operations carry `readOnlyHint: false` and `destructiveHint: true`:
 
-- `create_annotation` and `update_annotation` record or revise a finding.
-- `create_saved_query` and `update_saved_query` store or revise a reusable filter.
+- `annotate` records a finding, or revises one with its identifier and current `etag`.
+- `save_query` stores a reusable filter, or revises one with its identifier and current `etag`.
 - `update_failure_status` records a failure's status or assignee.
 - `delete_record` deletes an annotation or saved query using its identifier, kind and current `etag`.
 
-The update operations and `delete_record` carry `destructiveHint: true`. The tools do not edit or delete the underlying traces, logs or metrics.
+The tools do not edit or delete the underlying traces, logs or metrics.
 
 ## Skills
 

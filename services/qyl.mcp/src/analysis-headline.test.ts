@@ -19,6 +19,7 @@ const evidence = {
 } as const;
 const regression = { service: "checkout", operation: "POST /cart", measure: "p95_ms", value: 1840, baseline_value: 210, denominator: 195, unit: "ms" } as const;
 const fixture = getTelemetryFixture();
+const savedQuery = { id: "sq-1", etag: "\"1\"", created_at: NOW, updated_at: NOW, name: "checkout errors", filter: { signal: "traces", errors_only: true } } as const;
 const errorTrace = fixture.traces.find((trace) => trace.has_error)!;
 
 /** One contract-valid result per analysis tool, with the headline each must produce. */
@@ -206,15 +207,14 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
       /90 buckets in one series: omit step_ms for at most 60\./u, /→ aggregate_telemetry for exact per-request span durations$/u],
   },
   {
-    operation: "list_saved_queries", schema: "Mcp.Tools.ListSavedQueriesOutput",
-    output: { ...context, saved_queries: [{ id: "sq-1", etag: "\"1\"", created_at: NOW, updated_at: NOW, name: "checkout errors",
-      filter: { signal: "traces", errors_only: true } }] },
-    expect: [/^list_saved_queries: 1 saved queries\. checkout errors \(traces, id sq-1, etag "1"\)\./u, /→ run_saved_query id=sq-1$/u],
+    operation: "run_saved_query", schema: "Mcp.Tools.RunSavedQueryOutput",
+    output: { ...context, saved_queries: [savedQuery] },
+    expect: [/^run_saved_query: 1 saved queries\. checkout errors \(traces, id sq-1, etag "1"\)\./u, /→ run_saved_query id=sq-1$/u],
   },
   {
-    operation: "run_saved_query", schema: "Mcp.Tools.RunSavedQueryOutput",
-    output: { ...readContext(1, false), mode: "live", result: { signal: "traces", items: [toolSummary(errorTrace)], has_more: false } },
-    expect: [new RegExp(`^run_saved_query: 1 traces\\. Top: ${errorTrace.trace_id} `, "u"), new RegExp(`→ get_failure_context trace_id=${errorTrace.trace_id}$`, "u")],
+    operation: "run_saved_query", schema: "Mcp.Tools.RunSavedQueryOutput", input: { id: "sq-1" },
+    output: { ...readContext(1), saved_query: savedQuery, traces: [toolSummary(errorTrace)] },
+    expect: [new RegExp(`^run_saved_query checkout errors: 1 traces\\. Top: ${errorTrace.trace_id} `, "u"), new RegExp(`→ get_failure_context trace_id=${errorTrace.trace_id}$`, "u")],
   },
 ];
 

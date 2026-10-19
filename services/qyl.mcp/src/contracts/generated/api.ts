@@ -327,13 +327,13 @@ export type MetricComparison = "previous_window" | MetricComparisonOffset;
 
 export type SavedQueryFilter = SavedTraceQueryFilter | SavedLogQueryFilter | SavedMetricQueryFilter;
 
-export type SavedQueryRunResult = SavedTraceQueryRun | SavedLogQueryRun | SavedMetricQueryRun;
-
 export type AnalysisBaseline = "previous_window" | ToolWindow | BaselineOffset;
 
 export type FailureStatusFilter = FailureStatus | "all";
 
 export type McpStatsComparison = string | McpComparisonOffset | McpComparisonVersion;
+
+export type SavedQueryRunResult = SavedTraceQueryRun | SavedLogQueryRun | SavedMetricQueryRun;
 
 export type LogEvents = LogStreamEvent | HeartbeatEvent;
 
@@ -1306,20 +1306,14 @@ export interface MetricRawExemplar {
   "filtered_attributes"?: Attribute[];
 }
 
-export interface CreateAnnotationInput {
-  "idempotency_key"?: string;
-  "labels"?: string[];
-  "classification"?: AnnotationClassification;
-  "target": AnnotationTarget;
-  "text": string;
-}
-
-export interface UpdateAnnotationInput {
-  "id": string;
-  "etag": string;
-  "labels"?: string[];
-  "classification"?: AnnotationClassification;
+export interface AnnotateInput {
+  "id"?: string;
+  "etag"?: string;
+  "target"?: AnnotationTarget;
   "text"?: string;
+  "labels"?: string[];
+  "classification"?: AnnotationClassification;
+  "idempotency_key"?: string;
 }
 
 export interface AnnotationOutput {
@@ -1327,11 +1321,13 @@ export interface AnnotationOutput {
   "error"?: ToolError;
 }
 
-export interface CreateSavedQueryInput {
-  "idempotency_key"?: string;
-  "name": string;
+export interface SaveQueryInput {
+  "id"?: string;
+  "etag"?: string;
+  "name"?: string;
   "description"?: string;
-  "filter": SavedQueryFilter;
+  "filter"?: SavedQueryFilter;
+  "idempotency_key"?: string;
 }
 
 export interface SavedTraceQueryFilter {
@@ -1364,14 +1360,6 @@ export interface SavedMetricQueryFilter {
   "matchers"?: MetricAttributeMatcher[];
 }
 
-export interface UpdateSavedQueryInput {
-  "id": string;
-  "etag": string;
-  "name"?: string;
-  "description"?: string;
-  "filter"?: SavedQueryFilter;
-}
-
 export interface SavedQueryOutput {
   "saved_query"?: SavedQuery;
   "error"?: ToolError;
@@ -1383,61 +1371,41 @@ export interface SavedQuery extends ResourceBase {
   "filter": SavedQueryFilter;
 }
 
-export interface ListSavedQueriesInput {
-  "matchers"?: TelemetryMatcher[];
-  "lookback_minutes"?: number;
-  "start_time"?: string;
-  "end_time"?: string;
-  "signal"?: SavedQuerySignal;
-  "limit"?: number;
-  "cursor"?: string;
-}
-
-export interface ListSavedQueriesOutput {
-  "window": ToolWindow;
-  "coverage": ToolCoverage;
-  "page_totals"?: Record<string, number>;
-  "saved_queries": SavedQuery[];
-  "has_more": boolean;
-  "next_cursor"?: string;
-  "error"?: ToolError;
-}
-
 export interface RunSavedQueryInput {
   "lookback_minutes"?: number;
-  "id": string;
+  "id"?: string;
+  "signal"?: SavedQuerySignal;
   "start_time"?: string;
   "end_time"?: string;
-  "limit"?: number;
   "cursor"?: string;
+  "limit"?: number;
+}
+
+export interface SavedMetricAnswer {
+  "name": string;
+  "kind": MetricKind;
+  "unit"?: string;
+  "aggregation": MetricAggregation;
+  "step_ms": number;
+  "series": MetricSeriesResult[];
+  "numeric_representation": "float64";
+  "approximate": boolean;
+  "method"?: string;
+  "exemplar_trace_ids"?: TraceId[];
 }
 
 export interface RunSavedQueryOutput {
   "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
-  "result"?: SavedQueryRunResult;
-  "mode"?: McpDataMode;
+  "saved_queries"?: SavedQuery[];
+  "saved_query"?: SavedQuery;
+  "traces"?: ToolTraceRow[];
+  "logs"?: ToolLogRow[];
+  "metric"?: SavedMetricAnswer;
+  "has_more"?: boolean;
+  "next_cursor"?: string;
   "error"?: ToolError;
-}
-
-export interface SavedTraceQueryRun {
-  "signal": "traces";
-  "items": ToolTraceRow[];
-  "next_cursor"?: string;
-  "has_more": boolean;
-}
-
-export interface SavedLogQueryRun {
-  "signal": "logs";
-  "items": ToolLogRow[];
-  "next_cursor"?: string;
-  "has_more": boolean;
-}
-
-export interface SavedMetricQueryRun {
-  "signal": "metrics";
-  "result": MetricQueryResult;
 }
 
 export interface DeleteInput {
@@ -2270,14 +2238,21 @@ export interface AnnotationUpdateRequest {
   "text"?: string;
 }
 
+export interface SavedQueryWindow {
+  "lookback_minutes"?: number;
+}
+
+export interface SavedQueryRunRequest {
+  "start_time"?: string;
+  "end_time"?: string;
+  "limit"?: number;
+  "cursor"?: string;
+}
+
 export interface SavedQueryCreateRequest {
   "name": string;
   "description"?: string;
   "filter": SavedQueryFilter;
-}
-
-export interface SavedQueryWindow {
-  "lookback_minutes"?: number;
 }
 
 export interface SavedQueryUpdateRequest {
@@ -2286,11 +2261,23 @@ export interface SavedQueryUpdateRequest {
   "filter"?: SavedQueryFilter;
 }
 
-export interface SavedQueryRunRequest {
-  "start_time"?: string;
-  "end_time"?: string;
-  "limit"?: number;
-  "cursor"?: string;
+export interface SavedTraceQueryRun {
+  "signal": "traces";
+  "items": ToolTraceRow[];
+  "next_cursor"?: string;
+  "has_more": boolean;
+}
+
+export interface SavedLogQueryRun {
+  "signal": "logs";
+  "items": ToolLogRow[];
+  "next_cursor"?: string;
+  "has_more": boolean;
+}
+
+export interface SavedMetricQueryRun {
+  "signal": "metrics";
+  "result": MetricQueryResult;
 }
 
 export interface LogStreamEvent {
@@ -2360,4 +2347,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:05a42ecb208fca2a";
+export const CONTRACT_REVISION: string = "sha256:e5fc403bab841342";

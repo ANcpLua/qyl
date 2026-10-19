@@ -107,11 +107,6 @@ interface AnalysisApi {
   @route("/ci_log")
   @operationId("analysis_ci_log")
   ci_log(...ProjectScopeHeader, @body request: CiLogInput): CiLogOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
-  @doc("Read list_saved_queries evidence in the authenticated project without changing telemetry or user resources.")
-  @post
-  @route("/list_saved_queries")
-  @operationId("analysis_list_saved_queries")
-  list_saved_queries(...ProjectScopeHeader, @body request: ListSavedQueriesInput): ListSavedQueriesOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
   @doc("Read run_saved_query evidence in the authenticated project without changing telemetry or user resources.")
   @post
   @route("/run_saved_query")

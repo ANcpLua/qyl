@@ -83,7 +83,6 @@ internal static partial class CollectorEndpointExtensions
         api.MapPost("/analysis/list_metrics", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_metrics");
         api.MapPost("/analysis/query_metric", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("query_metric");
         api.MapPost("/analysis/ci_log", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("ci_log");
-        api.MapPost("/analysis/list_saved_queries", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_saved_queries");
         api.MapPost("/analysis/run_saved_query", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("run_saved_query");
 
         api.MapPatch("/failures/{failure_id}", UpdateFailureStatusAsync).RequireKeyRole(ApiKeyRoles.Write);

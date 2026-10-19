@@ -42,8 +42,8 @@ The committed [`tool-manifest.snapshot.json`](tool-manifest.snapshot.json) is th
 | Explore telemetry | `aggregate_telemetry`, `discover_attributes`, `get_agent_run`, `list_releases`, `get_service_map`, `check_telemetry_health`, `get_mcp_stats` |
 | Read executions | `list_sessions`, `list_traces`, `get_trace`, `search_logs`, `ci_log` |
 | Read metrics | `list_metrics`, `query_metric` |
-| Saved questions | `list_saved_queries`, `run_saved_query` |
-| Write project records | `create_annotation`, `update_annotation`, `create_saved_query`, `update_saved_query`, `delete_record`, `update_failure_status` |
+| Saved questions | `run_saved_query` |
+| Write project records | `annotate`, `save_query`, `delete_record`, `update_failure_status` |
 
 Every result has one shape: `content[0]` is a one-line headline naming the top rows, their ids and
 the tool to call next; `content[1]` is the whole result as compact JSON; `structuredContent` is the
@@ -76,10 +76,11 @@ Every read tool carries `readOnlyHint: true`. The write tools change only record
 Collector project: annotations (plain-text notes of at most 2000 characters on a trace, span,
 session or failure, with optional labels; a bookmark is a note labelled `bookmark`), saved queries
 (named filters for traces, logs or metrics) and the status of recorded failures (`open`,
-`resolved`, `ignored`, assignee, ignore-until). `delete_record` removes one annotation or saved
-query (`kind` is `annotation` or `saved_query`). Updates and deletes send the current `etag` as
+`resolved`, `ignored`, assignee, ignore-until). `annotate` and `save_query` create a record
+without an `id` and change the one an `id` names; `delete_record` removes one annotation or saved
+query (`kind` is `annotation` or `saved_query`). Changes and deletes send the current `etag` as
 `If-Match`: a stale etag is refused with `precondition_failed`, a duplicate saved-query name with
-`conflict`. Create calls reuse the stored result for 24 hours; without an explicit
+`conflict`. Creates reuse the stored result for 24 hours; without an explicit
 `idempotency_key` the server derives one from the project, operation and request body. No tool
 edits or deletes recorded telemetry; retention alone removes it.
 

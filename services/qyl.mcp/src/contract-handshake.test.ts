@@ -73,7 +73,7 @@ test("skew blocks every tool with both revisions and clears on the next matching
 
   collector.advertise(foreign);
   assert.deepEqual(collectorContract(), { kind: "mismatch", revision: foreign });
-  for (const name of ["list_metrics", "create_annotation", "get_trace"]) {
+  for (const name of ["list_metrics", "annotate", "get_trace"]) {
     const result = await connection.client.callTool({ name, arguments: name === "list_metrics" ? {} : name === "get_trace"
       ? { trace_id: "0".repeat(32) }
       : { target: { kind: "trace", trace_id: "0".repeat(32) }, text: "note" } });

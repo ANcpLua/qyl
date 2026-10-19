@@ -50,12 +50,9 @@ const READ_TOOLS = [
   "triage", "get_failure_context", "compare_groups", "compare_traces", "verify_fix",
   "aggregate_telemetry", "discover_attributes", "get_agent_run", "list_releases", "get_service_map",
   "check_telemetry_health", "get_mcp_stats", "ci_log", "get_trace", "list_metrics",
-  "list_saved_queries", "list_sessions", "list_traces", "query_metric", "run_saved_query", "search_logs",
+  "list_sessions", "list_traces", "query_metric", "run_saved_query", "search_logs",
 ];
-const WRITE_TOOLS = [
-  "create_annotation", "update_annotation", "create_saved_query", "update_saved_query",
-  "update_failure_status", "delete_record",
-];
+const WRITE_TOOLS = ["annotate", "save_query", "update_failure_status", "delete_record"];
 
 // This fixture verifies the child-process transport only.
 // Recorded-telemetry query semantics are verified in verify-answer-key.mjs.
@@ -187,13 +184,12 @@ check("no tool advertises an outputSchema", tools.every((t) => t.outputSchema ==
 // the collector enforces the verified project and required write roles.
 const hints = (name) => JSON.stringify(tools.find((t) => t.name === name)?.annotations);
 check(
-  "create tools are additive, update and delete destructive and idempotent",
-  hints("create_annotation") === JSON.stringify({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }) &&
-    hints("create_saved_query") === hints("create_annotation") &&
-    hints("update_annotation") === JSON.stringify({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }) &&
-    hints("update_saved_query") === hints("update_annotation") &&
-    hints("delete_record") === hints("update_annotation"),
-  `${hints("create_annotation")} ${hints("update_annotation")} ${hints("delete_record")}`,
+  "the write tools may replace or remove a version, and repeating one changes nothing more",
+  hints("annotate") === JSON.stringify({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }) &&
+    hints("save_query") === hints("annotate") &&
+    hints("update_failure_status") === hints("annotate") &&
+    hints("delete_record") === hints("annotate"),
+  `${hints("annotate")} ${hints("save_query")} ${hints("delete_record")}`,
 );
 check(
   "every other tool stays read-only",
@@ -201,7 +197,7 @@ check(
     .filter((t) => !WRITE_TOOLS.includes(t.name))
     .every((t) => t.annotations?.readOnlyHint === true && t.annotations?.destructiveHint === false),
 );
-const fixtureWrite = await callTool(client, "create_annotation", {
+const fixtureWrite = await callTool(client, "annotate", {
   target: { kind: "trace", trace_id: "0af7651916cd43dd8448eb211c80319c" },
   text: "smoke",
 });

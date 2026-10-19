@@ -30,7 +30,6 @@ internal static partial class CollectorEndpointExtensions
             ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput),
             ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput),
             ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput),
-            ["list_saved_queries"] = (AnalysisContractJsonContext.Default.ListSavedQueriesInput, AnalysisContractJsonContext.Default.ListSavedQueriesOutput),
             ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
@@ -59,7 +58,7 @@ internal static partial class CollectorEndpointExtensions
             if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
             {
                 if (await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false) is not { } saved)
-                return ContractErrorResults.NotFound("saved_query", savedId, $"Saved query {savedId} was not found in this project; list_saved_queries lists the saved queries.");
+                return ContractErrorResults.NotFound("saved_query", savedId, $"Saved query {savedId} was not found in this project; run_saved_query without id lists the saved queries.");
                 readInput = JsonNode.Parse(saved.FilterJson)!.AsObject();
                 foreach (var pair in input) readInput[pair.Key] = pair.Value?.DeepClone();
             }

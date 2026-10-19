@@ -10,7 +10,7 @@ published listing. The sections follow the portal steps in the
 | Step | Draft value |
 | --- | --- |
 | Server URL | https://mcp.qyl.at/mcp |
-| Tools | The committed manifest `services/qyl.mcp/tool-manifest.snapshot.json` lists every tool with a `title`: read tools with `readOnlyHint: true`, and write tools for annotations, saved queries and failure status with `readOnlyHint: false` (the update tools and `delete_record` also `destructiveHint: true`). The server also serves the bundled skill through the MCP skills extension; Claude reads it from the plugin bundle. |
+| Tools | The committed manifest `services/qyl.mcp/tool-manifest.snapshot.json` lists every tool with a `title`: read tools with `readOnlyHint: true`, and write tools for annotations, saved queries and failure status with `readOnlyHint: false` and `destructiveHint: true`. The server also serves the bundled skill through the MCP skills extension; Claude reads it from the plugin bundle. |
 
 ## Listing
 

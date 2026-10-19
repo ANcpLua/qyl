@@ -25,11 +25,7 @@ import {
 } from "./oauth.js";
 import { createServer } from "./server.js";
 import { READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS } from "./tools.js";
-import {
-  CREATE_TOOL_ANNOTATIONS,
-  DELETE_TOOL_ANNOTATIONS,
-  UPDATE_TOOL_ANNOTATIONS,
-} from "./write-tools.js";
+import { DELETE_TOOL_ANNOTATIONS, UPDATE_TOOL_ANNOTATIONS } from "./write-tools.js";
 
 const RESOURCE = new URL(QYL_MCP_RESOURCE);
 const METADATA_URL = getOAuthProtectedResourceMetadataUrl(RESOURCE);
@@ -44,13 +40,10 @@ const SPAN_ID = TRACE.spans[0]!.span_id;
 const SESSION_ID = getTelemetryFixture().sessions[0]!.session_id;
 
 const WRITE_TOOLS = {
-  create_annotation: { annotations: CREATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
-  update_annotation: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
-  create_saved_query: { annotations: CREATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
-  update_saved_query: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
+  annotate: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
+  save_query: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
   update_failure_status: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
   delete_record: { annotations: DELETE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_DELETE_SCOPE] },
-  list_saved_queries: { annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE] },
   run_saved_query: { annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE] },
 } as const;
 
@@ -269,14 +262,14 @@ for (const era of ["modern", "legacy"] as const) {
     const reader = await hostedClient(context, OWNER, [QYL_MCP_SCOPE], era);
     await assert.rejects(
       reader.callTool({
-        name: "create_annotation",
+        name: "annotate",
         arguments: { target: { kind: "trace", trace_id: TRACE.trace_id }, text: "note" },
       }),
       (error: unknown) => {
         assert(error instanceof InsufficientScopeError, String(error));
         assert.equal(error.requiredScope, "qyl:write");
         assert.equal(error.resourceMetadataUrl?.href, METADATA_URL);
-        assert.equal(error.errorDescription, "create_annotation needs the qyl:write scope");
+        assert.equal(error.errorDescription, "annotate needs the qyl:write scope");
         return true;
       },
     );
@@ -299,11 +292,11 @@ for (const era of ["modern", "legacy"] as const) {
 test("qyl:read alone keeps the read surface, saved-query reads included", async (context) => {
   liveCollector(context);
   mockCollector(context, (call) => {
-    if (call.path === "/api/v1/analysis/list_saved_queries") return Response.json({ ...readContext(1), saved_queries: [savedQuery()], has_more: false });
+    if (call.path === "/api/v1/analysis/run_saved_query") return Response.json({ ...readContext(1), saved_queries: [savedQuery()], has_more: false });
     return problem(404, "Not Found");
   });
   const reader = await hostedClient(context, OWNER, [QYL_MCP_SCOPE]);
-  const listed = await reader.callTool({ name: "list_saved_queries", arguments: {} });
+  const listed = await reader.callTool({ name: "run_saved_query", arguments: {} });
   assert.equal(listed.isError, undefined, JSON.stringify(listed));
 });
 
@@ -331,13 +324,13 @@ test("writes reach only the verified subject's project, with its key and the eta
 
   const target = { kind: "span", trace_id: TRACE.trace_id, span_id: SPAN_ID };
   const created = await owner.callTool({
-    name: "create_annotation",
+    name: "annotate",
     arguments: { target, text: "The checkout retry loop starts here.", idempotency_key: "repeat-note" },
     _meta: { project: "review", subject: REVIEWER },
   }) as CallToolResult;
   assert.equal(created.isError, undefined, JSON.stringify(created));
   assert.deepEqual(structured<{ annotation: Annotation }>(created).annotation.target, target);
-  assert.match(JSON.stringify(created.content), /create_annotation: created annotation ann-1 on span/u);
+  assert.match(JSON.stringify(created.content), /annotate: created annotation ann-1 on span/u);
   const firstCreate = calls.at(-1);
   assert.ok(firstCreate);
   assert.match(firstCreate.idempotencyKey ?? "", /^[a-f0-9]{64}$/u, "a create carries a derived Idempotency-Key");
@@ -348,14 +341,14 @@ test("writes reach only the verified subject's project, with its key and the eta
   });
   // No argument can name a project: the published input is sealed.
   const smuggled = await reviewer.callTool({
-    name: "create_annotation",
+    name: "annotate",
     arguments: { target, text: "x", project: "owner" },
   }) as CallToolResult;
   assert.equal(smuggled.isError, true);
   assert.equal(calls.length, 1);
 
   const stale = await reviewer.callTool({
-    name: "update_annotation",
+    name: "annotate",
     arguments: { id: "ann-1", etag: "\"0\"", text: "edited" },
   }) as CallToolResult;
   assert.deepEqual(errorOf(stale), {
@@ -367,11 +360,18 @@ test("writes reach only the verified subject's project, with its key and the eta
   assert.equal(calls.at(-1)!.project, "review");
   assert.equal(calls.at(-1)!.apiKey, "review-write-key");
 
+  const moved = await owner.callTool({
+    name: "annotate",
+    arguments: { id: "ann-1", etag: "\"1\"", target: { kind: "trace", trace_id: TRACE.trace_id } },
+  }) as CallToolResult;
+  assert.equal(errorOf(moved).code, "invalid_argument");
+  assert.match(errorOf(moved).message, /^target: is fixed at creation/u);
   const updated = await owner.callTool({
-    name: "update_annotation",
+    name: "annotate",
     arguments: { id: "ann-1", etag: "\"1\"", text: "edited" },
   }) as CallToolResult;
   assert.equal(updated.isError, undefined, JSON.stringify(updated));
+  assert.match(JSON.stringify(updated.content), /annotate: updated annotation ann-1 on span/u);
   assert.equal(structured<{ annotation: Annotation }>(updated).annotation.etag, "\"2\"");
   assert.deepEqual(calls.at(-1)!.body, { text: "edited" }, "the target is fixed at creation");
   assert.equal(calls.at(-1)!.ifMatch, "\"1\"");
@@ -395,13 +395,13 @@ test("writes reach only the verified subject's project, with its key and the eta
 
   // The same intended create repeats the same key, so a retry after a lost
   // answer returns the first object; a different note is a different key.
-  await owner.callTool({ name: "create_annotation", arguments: { target, text: "The checkout retry loop starts here.", idempotency_key: "repeat-note" } });
+  await owner.callTool({ name: "annotate", arguments: { target, text: "The checkout retry loop starts here.", idempotency_key: "repeat-note" } });
   assert.equal(calls.at(-1)?.idempotencyKey, firstCreate.idempotencyKey);
-  await owner.callTool({ name: "create_annotation", arguments: { target, text: "A different note.", idempotency_key: "different-note" } });
+  await owner.callTool({ name: "annotate", arguments: { target, text: "A different note.", idempotency_key: "different-note" } });
   assert.notEqual(calls.at(-1)?.idempotencyKey, firstCreate.idempotencyKey);
 });
 
-test("saved queries: create, conflict, update, list with paging, run and delete", async (context) => {
+test("saved queries: create, conflict, change, list with paging, run and delete", async (context) => {
   liveCollector(context, false);
   const calls = mockCollector(context, (call) => {
     if (call.method === "POST" && call.path === "/api/v1/saved-queries") {
@@ -413,11 +413,10 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
     if (call.method === "PATCH" && call.path === "/api/v1/saved-queries/sq-1") {
       return Response.json(savedQuery({ etag: "\"2\"", name: (call.body as { name: string }).name }));
     }
-    if (call.method === "POST" && call.path === "/api/v1/analysis/list_saved_queries") {
-      return Response.json({ ...readContext(1), saved_queries: [savedQuery()], has_more: true, next_cursor: "page-2" });
-    }
     if (call.method === "POST" && call.path === "/api/v1/analysis/run_saved_query") {
-      return Response.json({ ...readContext(1, false), result: { signal: "traces", items: [toolSummary(TRACE)], has_more: false }, mode: "live" });
+      return (call.body as { id?: string }).id === undefined
+        ? Response.json({ ...readContext(1), saved_queries: [savedQuery()], has_more: true, next_cursor: "page-2" })
+        : Response.json({ ...readContext(1, false), saved_query: savedQuery(), traces: [toolSummary(TRACE)], has_more: false });
     }
     if (call.method === "DELETE" && call.path === "/api/v1/saved-queries/sq-1") {
       return new Response(null, { status: 204 });
@@ -428,13 +427,17 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
   const client = await localClient(context);
   const filter = { signal: "traces", service_name: "checkout-api", errors_only: true, lookback_minutes: 60 };
 
-  const created = await client.callTool({ name: "create_saved_query", arguments: { name: "checkout errors", filter } }) as CallToolResult;
+  const incomplete = await client.callTool({ name: "save_query", arguments: { filter } }) as CallToolResult;
+  assert.equal(errorOf(incomplete).code, "invalid_argument");
+  assert.match(errorOf(incomplete).message, /^name: is required to create a saved query/u);
+  assert.equal(calls.length, 0, "a create without a name never reaches the Collector");
+  const created = await client.callTool({ name: "save_query", arguments: { name: "checkout errors", filter } }) as CallToolResult;
   assert.equal(created.isError, undefined, JSON.stringify(created));
   assert.equal(structured<{ saved_query: SavedQuery }>(created).saved_query.id, "sq-1");
   assert.equal(calls.at(-1)!.apiKey, "local-write-key");
   assert.equal(calls.at(-1)!.project, null, "unset QYL_PROJECT sends no project header");
 
-  const taken = await client.callTool({ name: "create_saved_query", arguments: { name: "taken", filter } }) as CallToolResult;
+  const taken = await client.callTool({ name: "save_query", arguments: { name: "taken", filter } }) as CallToolResult;
   assert.deepEqual(errorOf(taken), {
     code: "conflict",
     message: 'a saved query named "taken" already exists in this project',
@@ -442,21 +445,24 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
     hint: "Choose another name, or a new idempotency_key only when a second object is intended.",
   });
 
-  const nothing = await client.callTool({ name: "update_saved_query", arguments: { id: "sq-1", etag: "\"1\"" } }) as CallToolResult;
+  const nothing = await client.callTool({ name: "save_query", arguments: { id: "sq-1", etag: "\"1\"" } }) as CallToolResult;
   assert.equal(errorOf(nothing).code, "invalid_argument");
+  const untagged = await client.callTool({ name: "save_query", arguments: { id: "sq-1", name: "renamed" } }) as CallToolResult;
+  assert.match(errorOf(untagged).message, /^etag: is required with id/u);
   const before = calls.length;
   const badTag = await client.callTool({
-    name: "update_saved_query",
+    name: "save_query",
     arguments: { id: "sq-1", etag: "\"1\"\r\nX-Injected: 1", name: "renamed" },
   }) as CallToolResult;
   assert.equal(errorOf(badTag).code, "invalid_argument");
   assert.equal(calls.length, before, "an etag that is no HTTP field value never reaches the Collector");
 
-  const renamed = await client.callTool({ name: "update_saved_query", arguments: { id: "sq-1", etag: "\"1\"", name: "renamed" } }) as CallToolResult;
+  const renamed = await client.callTool({ name: "save_query", arguments: { id: "sq-1", etag: "\"1\"", name: "renamed" } }) as CallToolResult;
   assert.equal(renamed.isError, undefined, JSON.stringify(renamed));
+  assert.match(JSON.stringify(renamed.content), /save_query: updated renamed \(traces\), id sq-1/u);
   assert.deepEqual(calls.at(-1)!.body, { name: "renamed" }, "omitted fields keep their value");
 
-  const listed = await client.callTool({ name: "list_saved_queries", arguments: { signal: "traces", limit: 5, cursor: "page-1" } }) as CallToolResult;
+  const listed = await client.callTool({ name: "run_saved_query", arguments: { signal: "traces", limit: 5, cursor: "page-1" } }) as CallToolResult;
   assert.equal(listed.isError, undefined, JSON.stringify(listed));
   assert.deepEqual(
     calls.at(-1)!.body,
@@ -466,14 +472,13 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
   assert.equal(page.saved_queries.length, 1);
   assert.equal(page.has_more, true);
   assert.equal(page.next_cursor, "page-2");
-  assert.equal(calls.at(-1)!.path, "/api/v1/analysis/list_saved_queries");
+  assert.equal(calls.at(-1)!.path, "/api/v1/analysis/run_saved_query");
 
   const ran = await client.callTool({ name: "run_saved_query", arguments: { id: "sq-1" } }) as CallToolResult;
   assert.equal(ran.isError, undefined, JSON.stringify(ran));
-  const run = structured<{ result: { signal: string; items: unknown[] }; mode: string }>(ran);
-  assert.equal(run.mode, "live");
-  assert.equal(run.result.signal, "traces");
-  assert.equal(run.result.items.length, 1);
+  const run = structured<{ saved_query: SavedQuery; traces: unknown[] }>(ran);
+  assert.equal(run.saved_query.id, "sq-1");
+  assert.equal(run.traces.length, 1);
   assert.deepEqual(calls.at(-1)!.body, { id: "sq-1" }, "the call travels as given; the Collector applies the contract's default page size");
 
   const deleted = await client.callTool({ name: "delete_record", arguments: { kind: "saved_query", id: "sq-1", etag: "\"2\"" } }) as CallToolResult;
@@ -484,7 +489,7 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
   const missing = await client.callTool({ name: "delete_record", arguments: { kind: "saved_query", id: "gone", etag: "\"2\"" } }) as CallToolResult;
   assert.deepEqual(errorOf(missing), {
     code: "not_found", message: "saved query not found: gone", retryable: false, resource_type: "saved_query", resource_id: "gone",
-    hint: "Take ids only from earlier results: list_saved_queries, get_trace, list_sessions or get_failure_context return ids and current etags.",
+    hint: "Take ids only from earlier results: run_saved_query without id, get_trace, list_sessions or get_failure_context return ids and current etags.",
   });
 });
 
@@ -493,7 +498,7 @@ test("a Collector key without the write or delete role surfaces as collector_una
   mockCollector(context, () => problem(403, "Forbidden"));
   const client = await localClient(context);
   const created = await client.callTool({
-    name: "create_annotation",
+    name: "annotate",
     arguments: { target: { kind: "session", session_id: SESSION_ID }, text: "note" },
   }) as CallToolResult;
   assert.deepEqual(errorOf(created), {
@@ -548,9 +553,9 @@ test("creates without a supplied idempotency key are stable and project-scoped",
   const owner = await hostedClient(context, OWNER, [QYL_MCP_SCOPE,QYL_MCP_WRITE_SCOPE]);
   const reviewer = await hostedClient(context, REVIEWER, [QYL_MCP_SCOPE,QYL_MCP_WRITE_SCOPE]);
   const args = {target:{kind:"trace",trace_id:TRACE.trace_id},text:"retry-safe bookmark"};
-  await owner.callTool({name:"create_annotation",arguments:args});
-  await owner.callTool({name:"create_annotation",arguments:args});
-  await reviewer.callTool({name:"create_annotation",arguments:args});
+  await owner.callTool({name:"annotate",arguments:args});
+  await owner.callTool({name:"annotate",arguments:args});
+  await reviewer.callTool({name:"annotate",arguments:args});
   assert(calls[0]?.idempotencyKey);
   assert.equal(calls[0]?.idempotencyKey,calls[1]?.idempotencyKey);
   assert.notEqual(calls[0]?.idempotencyKey,calls[2]?.idempotencyKey);

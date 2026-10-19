@@ -119,7 +119,7 @@ try {
   await client.connect(transport);
   const { tools } = await client.listTools();
   const listed = new Set(tools.map((t) => t.name));
-  ok("the write tools are listed", ["create_annotation", "update_annotation", "create_saved_query", "update_saved_query", "update_failure_status", "delete_record"].every((name) => listed.has(name)), [...listed].join(","));
+  ok("the write tools are listed", ["annotate", "save_query", "update_failure_status", "delete_record"].every((name) => listed.has(name)), [...listed].join(","));
   const windowArgs = { start_time: new Date(Date.now() - 3_600_000).toISOString(), end_time: new Date(Date.now() + 60_000).toISOString() };
 
   let r = await call("list_traces", { limit: 20 });
@@ -166,35 +166,35 @@ try {
   // ------------------------------------------------------------ write tools
   // Local stdio has no OAuth: the Collector key decides what may change. Each
   // object the smoke creates is deleted again; the telemetry stays as sent.
-  r = await call("create_annotation", { target: { kind: "trace", trace_id: traceId }, text: "live smoke note", labels: ["live-smoke"] });
+  r = await call("annotate", { target: { kind: "trace", trace_id: traceId }, text: "live smoke note", labels: ["live-smoke"] });
   const note = r.structuredContent?.annotation;
-  ok("create_annotation attaches a note to the smoke trace", !r.isError && note?.target?.trace_id === traceId, summary(r));
+  ok("annotate attaches a note to the smoke trace", !r.isError && note?.target?.trace_id === traceId, summary(r));
   r = await call("get_trace", { trace_id: traceId });
   ok("get_trace reads the note back", JSON.stringify(r.structuredContent?.annotations ?? []).includes("live smoke note"));
   r = await call("list_traces", { annotation_label: "live-smoke", limit: 20 });
   ok("list_traces filters by annotation label", r.structuredContent?.traces?.some((trace) => trace.trace_id === traceId));
   r = await call("list_traces", { annotation_label: "missing-smoke-label", limit: 20 });
   ok("list_traces excludes traces without the requested label", r.structuredContent?.traces?.length === 0);
-  r = await call("update_annotation", { id: note?.id, etag: note?.etag, text: "live smoke note, edited" });
+  r = await call("annotate", { id: note?.id, etag: note?.etag, text: "live smoke note, edited" });
   const edited = r.structuredContent?.annotation;
-  ok("update_annotation replaces the text and moves the etag", !r.isError && edited?.etag !== note?.etag, summary(r));
+  ok("annotate with id replaces the text and moves the etag", !r.isError && edited?.etag !== note?.etag, summary(r));
   r = await call("get_trace", { trace_id: traceId });
   ok("get_trace reads the updated note back", r.structuredContent?.annotations?.some((annotation) => annotation.id === edited?.id && annotation.text === "live smoke note, edited"));
-  r = await call("update_annotation", { id: note?.id, etag: note?.etag, text: "stale" });
+  r = await call("annotate", { id: note?.id, etag: note?.etag, text: "stale" });
   ok("a stale etag is refused as precondition_failed", r.structuredContent?.error?.code === "precondition_failed", summary(r));
   const queryName = `${sessionId}-query`;
-  r = await call("create_saved_query", { name: queryName, filter: { signal: "traces", lookback_minutes: 60 } });
+  r = await call("save_query", { name: queryName, filter: { signal: "traces", lookback_minutes: 60 } });
   const saved = r.structuredContent?.saved_query;
-  ok("create_saved_query stores a trace filter", !r.isError && saved?.name === queryName, summary(r));
-  r = await call("create_saved_query", { name: queryName, filter: { signal: "traces" } });
+  ok("save_query stores a trace filter", !r.isError && saved?.name === queryName, summary(r));
+  r = await call("save_query", { name: queryName, filter: { signal: "traces" } });
   ok("a duplicate name is refused as conflict", r.structuredContent?.error?.code === "conflict", summary(r));
-  r = await call("list_saved_queries", { signal: "traces" });
-  ok("list_saved_queries lists it", JSON.stringify(r.structuredContent ?? r).includes(saved?.id ?? "missing"));
+  r = await call("run_saved_query", { signal: "traces" });
+  ok("run_saved_query without id lists it", JSON.stringify(r.structuredContent ?? r).includes(saved?.id ?? "missing"));
   r = await call("run_saved_query", { id: saved?.id });
   ok("run_saved_query finds the smoke trace", !r.isError && JSON.stringify(r.structuredContent ?? r).includes(traceId), summary(r));
-  r = await call("update_saved_query", { id: saved?.id, etag: saved?.etag, name: queryName + "-updated" });
+  r = await call("save_query", { id: saved?.id, etag: saved?.etag, name: queryName + "-updated" });
   const updatedQuery = r.structuredContent?.saved_query;
-  ok("update_saved_query changes the saved object", !r.isError && updatedQuery?.etag !== saved?.etag, summary(r));
+  ok("save_query with id changes the saved object", !r.isError && updatedQuery?.etag !== saved?.etag, summary(r));
   r = await call("delete_record", { kind: "saved_query", id: updatedQuery?.id, etag: updatedQuery?.etag });
   ok("delete_record removes the saved query", r.structuredContent?.deleted === true, summary(r));
   r = await call("delete_record", { kind: "annotation", id: edited?.id, etag: edited?.etag });

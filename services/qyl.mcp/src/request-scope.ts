@@ -58,12 +58,11 @@ const ID_SOURCES: Readonly<Record<string, string>> = {
   update_failure_status: "triage with status all returns each failure's id and current etag",
   get_agent_run: "list_sessions returns session ids",
   query_metric: "list_metrics returns metric names; a raw query_metric that matches several series names their series ids",
-  run_saved_query: "list_saved_queries returns saved query ids",
-  update_saved_query: "list_saved_queries returns each saved query's id and current etag",
-  update_annotation: "get_trace, list_sessions or get_failure_context return each annotation's id and current etag",
-  delete_record: "list_saved_queries, get_trace, list_sessions or get_failure_context return ids and current etags",
+  run_saved_query: "run_saved_query without id lists the saved query ids",
+  save_query: "run_saved_query without id lists each saved query's id and current etag",
+  annotate: "list_traces, list_sessions or triage return the ids a target names, and get_trace, list_sessions or get_failure_context each annotation's id and current etag",
+  delete_record: "run_saved_query without id, get_trace, list_sessions or get_failure_context return ids and current etags",
   ci_log: "ci_log without run_id lists the recent runs",
-  create_annotation: "list_traces, list_sessions or triage return the ids a target names",
 };
 
 function hintFor(tool: string, detail: ToolError): string | undefined {

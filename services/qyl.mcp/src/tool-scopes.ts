@@ -3,8 +3,9 @@
  * without it is refused.
  *
  * Every hosted request already carries `qyl:read`: it is the endpoint's
- * required scope, which the bearer gate checks (authorization.ts). The create
- * and update tools also need `qyl:write`, and `delete_record` needs `qyl:delete`.
+ * required scope, which the bearer gate checks (authorization.ts). `annotate`,
+ * `save_query` and `update_failure_status` also need `qyl:write`, and
+ * `delete_record` needs `qyl:delete`.
  *
  * A write tool registers an SDK `scopeChallenge`. The SDK's HTTP serving runs
  * it before the handler, in both protocol eras, and answers a token without

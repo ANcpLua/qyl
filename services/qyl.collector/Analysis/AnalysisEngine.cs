@@ -48,7 +48,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             "get_mcp_stats" => McpStats(input), "list_sessions" => Sessions(input),
             "list_traces" => Traces(input), "get_trace" => Trace(input), "search_logs" => Logs(input),
             "list_metrics" => Metrics(input), "query_metric" => QueryMetric(input),
-            "ci_log" => Ci(input), "list_saved_queries" => SavedQueries(input), "run_saved_query" => RunSavedQuery(input), _ => throw new AnalysisInputException("tool", "Unknown analysis operation.")
+            "ci_log" => Ci(input), "run_saved_query" => RunSavedQuery(input), _ => throw new AnalysisInputException("tool", "Unknown analysis operation.")
         };
         result["window"] ??= _window.Json;
         result["coverage"] ??= Coverage(Select(input).Count + Select(input, "logs").Count, Select(input).Count + Select(input, "logs").Count, 1, false);
