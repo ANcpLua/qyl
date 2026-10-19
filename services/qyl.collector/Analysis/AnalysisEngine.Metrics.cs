@@ -38,7 +38,7 @@ internal sealed partial class AnalysisEngine
         var result = Page(input, "items", rows.Select(s =>
         { var item = JsonSerializer.SerializeToNode(MetricMapper.ToContract(s), QylSerializerContext.Default.MetricSeries)!.AsObject(); item["new"] = _window.Contains(s.FirstSeenUnixNano); item["stale"] = s.LastSeenUnixNano < _window.StartNs; return item; }));
         var keys = rows.SelectMany(s => SeriesRecord(s).Attributes.Select(p => (p.Key, p.Value))).GroupBy(p => p.Key).Select(g =>
-        { var values = g.GroupBy(p => p.Value?.ToJsonString() ?? "null").ToList(); return J.O(("key", g.Key), ("cardinality", values.Count), ("cardinality_exact", true), ("top_values", J.A(values.OrderByDescending(v => v.Count()).Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count))); }).ToList();
+        { var values = g.GroupBy(p => p.Value?.ToJsonString() ?? "null").ToList(); return J.O(("key", g.Key), ("cardinality", values.Count), ("cardinality_exact", snapshot.ScanComplete), ("top_values", J.A(values.OrderByDescending(v => v.Count()).Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count))); }).ToList();
         result["keys"] = J.A(keys); result["suggested_group_by"] = J.N(keys.Where(k => J.Number(k, "cardinality") > 1 && J.Number(k, "cardinality") <= 20).Select(k => J.String(k, "key")!)); return result;
     }
     private static JsonArray ContractAttributes(JsonObject source)
@@ -71,6 +71,10 @@ internal sealed partial class AnalysisEngine
         if (aggregation.StartsWith('p') && rows.SelectMany(row => PointsBySeries[row.SeriesId])
                 .FirstOrDefault(point => _window.Contains(point.TimeUnixNano) && point.ProjectionUnavailableReason is not null) is { } unavailable)
             throw new AnalysisInputException("aggregation", unavailable.ProjectionUnavailableReason!, "metric.projection_unavailable");
+        // A histogram's points are already the changes of their intervals; a change or a rate applies to their count or sum.
+        var histogram = rows[0].MetricKind >= 3;
+        if (histogram && function != "none" && aggregation is not ("count" or "sum"))
+            throw new AnalysisInputException("function", $"function={function} applies to a histogram's count or sum; use aggregation count or sum, or function none.", "function.unsupported");
         var groupBy = (input["group_by"] as JsonArray)?.Select(J.Text).ToArray() ?? [];
         var step = (long)J.Number(input, "step_ms", QueryMetricInput.StepMsDefault);
         if (step is < QueryMetricInput.StepMsMinimum or > QueryMetricInput.StepMsMaximum) throw new AnalysisInputException("step_ms", $"Use a step_ms from {QueryMetricInput.StepMsMinimum} to {QueryMetricInput.StepMsMaximum}.", "step_ms.out_of_range");
@@ -88,9 +92,9 @@ internal sealed partial class AnalysisEngine
                 {
                     ct.ThrowIfCancellationRequested();
                     var value = function == "none" ? point.Value : Change(series, point, previous, function);
-                    var histogram = series is { MetricKind: >= 3, Temporality: 2 }
+                    var recorded = series is { MetricKind: >= 3, Temporality: 2 }
                         ? MetricHistogram.HistogramDelta(point, previous, _window.StartNs) : point;
-                    if (_window.Contains(point.TimeUnixNano) && histogram is not null) values.Add((point.TimeUnixNano, value, histogram));
+                    if (_window.Contains(point.TimeUnixNano) && recorded is not null) values.Add((point.TimeUnixNano, value, recorded));
                     if (point.Value.HasValue || point.HistogramCount.HasValue) previous = point;
                 }
             }
@@ -104,7 +108,7 @@ internal sealed partial class AnalysisEngine
                 var start = _window.StartNs + (ulong)i * (ulong)step * 1_000_000;
                 var bucket = byBucket.GetValueOrDefault(i) ?? [];
                 double? value;
-                if (stream.First().MetricKind >= 3) value = MetricHistogram.Histogram([.. bucket.Select(p => p.Point)], aggregation);
+                if (histogram) value = function == "rate" ? HistogramRate(bucket.Select(static p => p.Point), aggregation) : MetricHistogram.Histogram([.. bucket.Select(p => p.Point)], aggregation);
                 else
                 {
                     var recorded = bucket.Where(p => p.Value.HasValue).ToList(); var numbers = recorded.Select(p => p.Value!.Value).ToList();
@@ -120,8 +124,11 @@ internal sealed partial class AnalysisEngine
             output.Add(J.O(("attributes", ContractAttributes(attributes)), ("buckets", buckets)));
         }
         var limit = Bounded(input, "series_limit", QueryMetricInput.SeriesLimitDefault, QueryMetricInput.SeriesLimitMinimum, QueryMetricInput.SeriesLimitMaximum);
-        var result = J.O(("name", name), ("kind", rows.Count is 0 ? "gauge" : MetricKind(rows[0].MetricKind)), ("unit", function == "rate" ? rows.FirstOrDefault()?.Unit + "/s" : rows.FirstOrDefault()?.Unit), ("aggregation", aggregation), ("step_ms", step), ("start_time", _window.Start.ToString("O")), ("end_time", _window.End.ToString("O")), ("series", J.A(output.Take(limit))), ("truncated", output.Count > limit),
-            ("method", rows.Any(s => s.MetricKind >= 3) ? "per-series histogram deltas merged, linear interpolation; unknown intervals omitted" : function == "none" ? "recorded scalar points aggregated" : "per-series counter differences across resets"), ("numeric_representation", "float64"), ("approximate", rows.Any(s => s.MetricKind >= 3 && aggregation.StartsWith('p'))), ("exemplar_trace_ids", snapshot.Exemplars.Where(e => _window.Contains(e.TimeUnixNano) && rows.Any(r => r.SeriesId == e.SeriesId)).Select(e => e.TraceId).Distinct(StringComparer.Ordinal).Take(3)), ("coverage", Coverage(snapshot.Points.Count, rows.Sum(s => PointsBySeries[s.SeriesId].Count(p => _window.Contains(p.TimeUnixNano))), Math.Min(output.Count, limit), output.Count > limit)));
+        // A count is of points or observations, not of the metric's unit; a rate is per second.
+        var unit = aggregation == "count" ? "1" : rows[0].Unit;
+        if (function == "rate" && (histogram || aggregation != "count")) unit += "/s";
+        var result = J.O(("name", name), ("kind", MetricKind(rows[0].MetricKind)), ("unit", unit), ("aggregation", aggregation), ("step_ms", step), ("start_time", _window.Start.ToString("O")), ("end_time", _window.End.ToString("O")), ("series", J.A(output.Take(limit))), ("truncated", output.Count > limit),
+            ("method", histogram ? function == "rate" ? "per-series histogram deltas over the intervals they recorded, summed across series; an unknown interval leaves its bucket unknown" : "per-series histogram deltas merged, linear interpolation; unknown intervals omitted" : function == "none" ? "recorded scalar points aggregated" : "per-series counter differences across resets"), ("numeric_representation", "float64"), ("approximate", histogram && aggregation.StartsWith('p')), ("exemplar_trace_ids", snapshot.Exemplars.Where(e => _window.Contains(e.TimeUnixNano) && rows.Any(r => r.SeriesId == e.SeriesId)).Select(e => e.TraceId).Distinct(StringComparer.Ordinal).Take(3)), ("coverage", Coverage(snapshot.Points.Count, rows.Sum(s => PointsBySeries[s.SeriesId].Count(p => _window.Contains(p.TimeUnixNano))), Math.Min(output.Count, limit), output.Count > limit)));
         if (input["compare_to"] is { } compare)
         {
             var copy = input.DeepClone().AsObject(); copy.Remove("compare_to"); copy.Remove("ratio_of"); var current = _window; var offset = compare is JsonObject ? J.Number(compare, "offset_ms") : (_window.End - _window.Start).TotalMilliseconds;
@@ -175,6 +182,29 @@ internal sealed partial class AnalysisEngine
         else if (series.IsMonotonic != 0 && value < prior) { change = value; interval = null; }
         else { change = value - prior; interval = point.TimeUnixNano - previous.TimeUnixNano; }
         return function != "rate" ? change : interval is { } elapsed and > 0 ? change / (elapsed / 1_000_000_000d) : null;
+    }
+    /// <summary>
+    /// A histogram's count or sum per second: per series, what its delta points recorded over the time they
+    /// recorded it, summed across series. A point without a recorded measurement or a known interval start
+    /// leaves the rate unknown.
+    /// </summary>
+    private static double? HistogramRate(IEnumerable<MetricPointRow> points, string aggregation)
+    {
+        double? rate = null;
+        foreach (var series in points.GroupBy(static p => p.SeriesId, StringComparer.Ordinal))
+        {
+            double measure = 0, seconds = 0;
+            foreach (var point in series)
+            {
+                if (point.HistogramCount is not { } count || point.StartTimeUnixNano is not { } start || start >= point.TimeUnixNano) return null;
+                if (aggregation == "count") measure += count;
+                else if (count > 0) measure += point.HistogramSum ?? double.NaN;
+                seconds += (point.TimeUnixNano - start) / 1_000_000_000d;
+            }
+            if (double.IsNaN(measure)) return null;
+            rate = (rate ?? 0) + measure / seconds;
+        }
+        return rate;
     }
     private static void DivideMetricSeries(JsonNode? numerators, JsonNode? denominators)
     {

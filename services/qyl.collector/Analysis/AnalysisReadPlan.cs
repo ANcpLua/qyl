@@ -47,6 +47,8 @@ internal static class AnalysisReadPlan
             Start = QylTimeConversions.ToUnixNanoUnsigned(start), End = QylTimeConversions.ToUnixNanoUnsigned(end),
             TraceIds = [.. traces], SessionIds = [.. sessions],
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
+            IncludeLinkTargets = operation == "get_trace",
+            IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query",
             IncludeTelemetry = operation != "list_saved_queries"
         };
     }

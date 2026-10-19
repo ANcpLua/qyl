@@ -163,6 +163,76 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(15d, Bucket(await Read(host, "query_metric", """{"metric_name":"cumulative.latency","aggregation":"count","step_ms":3600000}""")).GetDouble());
     }
 
+    /// <summary>
+    /// A histogram's rate is its count or sum per second of the interval its points recorded: 60
+    /// observations over 60 seconds are 1/s for delta and cumulative temporality alike. A count is
+    /// observations, never the metric's unit, and no other aggregation has a rate.
+    /// </summary>
+    [TestMethod]
+    public async Task A_histogram_rate_divides_its_count_or_sum_by_the_recorded_interval()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        await InsertHistogramAsync(host, "delta.events", 1, "{event}", Observations("delta", time - Minute, (time, 60)));
+        await InsertHistogramAsync(host, "cumulative.events", 2, "{event}", Observations("cumulative", time - 240 * Minute, (time - Minute, 100), (time, 160)));
+
+        foreach (var metric in new[] { "delta.events", "cumulative.events" })
+        {
+            var count = await Read(host, "query_metric", $$"""{"metric_name":"{{metric}}","function":"rate","aggregation":"count","step_ms":3600000}""");
+            Assert.AreEqual(1d, Bucket(count).GetDouble(), 1e-9, metric);
+            Assert.AreEqual("1/s", count.GetProperty("unit").GetString());
+            var sum = await Read(host, "query_metric", $$"""{"metric_name":"{{metric}}","function":"rate","aggregation":"sum","step_ms":3600000}""");
+            Assert.AreEqual(2d, Bucket(sum).GetDouble(), 1e-9, metric);
+            Assert.AreEqual("{event}/s", sum.GetProperty("unit").GetString());
+        }
+        var observations = await Read(host, "query_metric", """{"metric_name":"delta.events","aggregation":"count","step_ms":3600000}""");
+        Assert.AreEqual(60d, Bucket(observations).GetDouble());
+        Assert.AreEqual("1", observations.GetProperty("unit").GetString());
+
+        using var rejected = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/query_metric", ReaderApiKey,
+            """{"metric_name":"delta.events","function":"rate","aggregation":"p95","step_ms":3600000}""");
+        var json = await host.JsonAsync(rejected);
+        Assert.AreEqual(System.Net.HttpStatusCode.BadRequest, rejected.StatusCode, json.GetRawText());
+        var error = Assert.ContainsSingle(json.GetProperty("errors").EnumerateArray());
+        Assert.AreEqual("function", error.GetProperty("field").GetString());
+        Assert.AreEqual("function.unsupported", error.GetProperty("code").GetString());
+    }
+
+    /// <summary>
+    /// The previous window's first cumulative point is measured against the point before it, which
+    /// precedes both windows: the read fetches each series' last recorded point before its start.
+    /// </summary>
+    [TestMethod]
+    public async Task A_previous_window_comparison_measures_its_first_cumulative_point_from_the_stored_predecessor()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var start = FixtureUnixNano - 240 * Minute;
+        (ulong Time, ulong Count)[] samples = [(FixtureUnixNano - 121 * Minute, 100), (FixtureUnixNano - 90 * Minute, 160), (FixtureUnixNano - 30 * Minute, 220)];
+        await InsertHistogramAsync(host, "comparison.events", 2, "{event}", Observations("comparison", start, samples));
+        await InsertAsync(host, Counter("comparison.counter", "c_comparison"), samples.Select(sample => (sample.Time, (ulong?)start, (double)sample.Count)).ToArray());
+
+        foreach (var query in new[]
+                 {
+                     """{"metric_name":"comparison.events","aggregation":"count","step_ms":3600000,"compare_to":"previous_window"}""",
+                     """{"metric_name":"comparison.counter","function":"increase","aggregation":"sum","step_ms":3600000,"compare_to":"previous_window"}"""
+                 })
+        {
+            var result = await Read(host, "query_metric", query);
+            Assert.AreEqual(60d, Bucket(result).GetDouble(), query);
+            var previous = Assert.ContainsSingle(Assert.ContainsSingle(result.GetProperty("comparison").GetProperty("series").EnumerateArray()).GetProperty("buckets").EnumerateArray());
+            Assert.AreEqual(60d, previous.GetProperty("value").GetDouble(), query);
+        }
+    }
+
+    private static MetricPointRow[] Observations(string seriesId, ulong start, params (ulong Time, ulong Count)[] samples) =>
+    [
+        .. samples.Select(sample => new MetricPointRow
+        {
+            ProjectId = "alpha", SeriesId = seriesId, TimeUnixNano = sample.Time, StartTimeUnixNano = start, HistogramCount = sample.Count, HistogramSum = 2d * sample.Count,
+            HistogramMin = 2, HistogramMax = 2, BucketBoundsJson = "[2]", BucketCountsJson = "[" + sample.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",0]"
+        })
+    ];
+
     private static JsonElement Bucket(JsonElement result) =>
         Assert.ContainsSingle(Assert.ContainsSingle(result.GetProperty("series").EnumerateArray()).GetProperty("buckets").EnumerateArray()).GetProperty("value");
 
@@ -186,11 +256,14 @@ public sealed partial class AnalysisApiTests
         await host.Store.InsertMetricsAsync([series], [.. points.Select(point => MetricFixtures.Observation(series,
             new MetricPointRow { ProjectId = "alpha", SeriesId = series.SeriesId, TimeUnixNano = point.Time, StartTimeUnixNano = point.Start, Value = point.Value }))], testContext.CancellationToken);
 
-    private async Task InsertHistogramAsync(CollectorApiTestHost host, string name, byte temporality, params MetricPointRow[] points)
+    private Task InsertHistogramAsync(CollectorApiTestHost host, string name, byte temporality, params MetricPointRow[] points) =>
+        InsertHistogramAsync(host, name, temporality, null, points);
+
+    private async Task InsertHistogramAsync(CollectorApiTestHost host, string name, byte temporality, string? unit, params MetricPointRow[] points)
     {
         var series = new MetricSeriesRow
         {
-            ProjectId = "alpha", SeriesId = points[0].SeriesId, MetricName = name, MetricKind = 3, Temporality = temporality, IsMonotonic = 0,
+            ProjectId = "alpha", SeriesId = points[0].SeriesId, MetricName = name, MetricKind = 3, Temporality = temporality, IsMonotonic = 0, Unit = unit,
             FirstSeenUnixNano = points.Min(static point => point.TimeUnixNano), LastSeenUnixNano = points.Max(static point => point.TimeUnixNano)
         };
         await host.Store.InsertMetricsAsync([series], [.. points.Select(point => MetricFixtures.Observation(series, point))], testContext.CancellationToken);

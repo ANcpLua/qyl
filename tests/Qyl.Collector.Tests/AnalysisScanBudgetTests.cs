@@ -50,12 +50,38 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         Assert.AreEqual("passed", verification.GetProperty("verdict").GetString());
     }
 
+    /// <summary>
+    /// A capped log read knows neither how many records matched nor every distinct value: the oldest
+    /// record holds a third region the cap cut off, so the total is omitted and the cardinality is not exact.
+    /// </summary>
+    [TestMethod]
+    public async Task A_capped_log_read_claims_no_total_and_no_exact_cardinality()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var start = FixtureUnixNano - 50 * Minute;
+        await host.Store.InsertLogsAsync([.. Enumerable.Range(0, AnalysisReadQuery.MaximumRows + 1).Select(i => new LogStorageRow
+        {
+            ProjectId = AlphaProjectId, LogId = "log-" + i, TimeUnixNano = start + (ulong)i * 1_000_000, SeverityNumber = 9, ServiceName = "checkout",
+            Body = "entry", AttributesJson = "{\"region\":\"" + (i is 0 ? "c" : i % 2 is 0 ? "a" : "b") + "\"}"
+        })], testContext.CancellationToken);
+
+        var logs = await ReadAsync(host, "search_logs", """{"limit":1}""");
+        var region = Assert.ContainsSingle((await ReadAsync(host, "discover_attributes", """{"signal":"logs","key":"region"}""")).GetProperty("attributes").EnumerateArray());
+
+        Assert.IsFalse(logs.GetProperty("coverage").GetProperty("scan_complete").GetBoolean());
+        Assert.IsFalse(logs.TryGetProperty("total_matched", out _), "the cap cut matching records off");
+        Assert.AreEqual(2, region.GetProperty("cardinality").GetInt32());
+        Assert.IsFalse(region.GetProperty("cardinality_exact").GetBoolean());
+    }
+
     private static SpanStorageRow Request(int id, ulong start, bool failed = false) =>
         Span(TraceId(id), SpanId(id), start, start + 500, status: failed ? (byte)2 : (byte)1);
 
-    private static async Task<JsonElement> VerifyAsync(CollectorApiTestHost host, string input)
+    private static Task<JsonElement> VerifyAsync(CollectorApiTestHost host, string input) => ReadAsync(host, "verify_fix", input);
+
+    private static async Task<JsonElement> ReadAsync(CollectorApiTestHost host, string operation, string input)
     {
-        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/verify_fix", ReaderApiKey, input);
+        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/" + operation, ReaderApiKey, input);
         var json = await host.JsonAsync(response);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, json.GetRawText());
         return json;

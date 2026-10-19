@@ -612,6 +612,7 @@ model DiscoveredAttribute {
   @encodedName("application/json", "coverage_share")
   coverageShare: float64;
   cardinality: int64;
+  @doc("False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded.")
   @encodedName("application/json", "cardinality_exact")
   cardinalityExact: boolean;
   @maxItems(10)
@@ -1094,6 +1095,7 @@ model TraceLinkAvailability {
   traceId: TraceId;
   @encodedName("application/json", "span_id")
   spanId: SpanId;
+  @doc("Whether this project retains the linked span, in this trace or in another one.")
   available: boolean;
 }
 
@@ -1153,6 +1155,7 @@ model LogPattern {
 model MetricKeySummary {
   key: string;
   cardinality: int64;
+  @doc("False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded.")
   @encodedName("application/json", "cardinality_exact")
   cardinalityExact: boolean;
   @encodedName("application/json", "top_values")

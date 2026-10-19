@@ -10,6 +10,10 @@ internal sealed record AnalysisReadQuery
     public bool IncludeTelemetry { get; init; } = true;
     public bool ErrorsOnly { get; init; }
     public bool IncludeWindowWithTargets { get; init; }
+    /// <summary>Look up which targets of the loaded spans' links the project retains outside the loaded spans.</summary>
+    public bool IncludeLinkTargets { get; init; }
+    /// <summary>Also load each metric series' last recorded point before <see cref="Start"/>, the predecessor its first change is measured from.</summary>
+    public bool IncludeMetricPredecessors { get; init; }
     public const int MaximumRows = 25000;
 }
 internal sealed record AnalysisSnapshot(
@@ -30,6 +34,12 @@ internal sealed record AnalysisSnapshot(
     /// spans by trace, session or status, so that no time range is complete.
     /// </summary>
     public AnalysisSpanCoverage? SpanCoverage { get; init; }
+
+    /// <summary>
+    /// The targets of the loaded spans' links that the project retains outside the loaded spans, when the
+    /// read looked them up (<see cref="AnalysisReadQuery.IncludeLinkTargets"/>).
+    /// </summary>
+    public IReadOnlySet<(string TraceId, string SpanId)> RetainedLinkTargets { get; init; } = new HashSet<(string TraceId, string SpanId)>();
 }
 
 /// <summary>Every span of the project that starts in [<see cref="FromUnixNano"/>, <see cref="ToUnixNano"/>) is loaded.</summary>
@@ -58,6 +68,8 @@ internal sealed partial record AnalysisStateRow
 
 internal sealed partial class DuckDbStore
 {
+    private const int LinkTargetsPerStatement = 256;
+
     public Task<AnalysisSnapshot> ReadAnalysisSnapshotAsync(string projectId, AnalysisReadQuery? query = null, CancellationToken ct = default) =>
         ExecuteReadAsync(con =>
         {
@@ -97,7 +109,15 @@ internal sealed partial class DuckDbStore
                 }
                 if (telemetry && targets.Count is 0)
                 {
-                    if (query.Start is { } start) Add(timeColumn, " >= ", (decimal)start);
+                    if (query.Start is { } start && table == "metric_points" && query.IncludeMetricPredecessors)
+                    {
+                        // A point's change is measured against its series' last recorded point, which may precede the read.
+                        values.Add((decimal)start);
+                        predicates.Add("(time_unix_nano >= $" + values.Count + " OR time_unix_nano = (SELECT max(prior.time_unix_nano) FROM metric_points AS prior"
+                            + " WHERE prior.project_id = metric_points.project_id AND prior.series_id = metric_points.series_id AND prior.time_unix_nano < $" + values.Count
+                            + " AND (prior.value IS NOT NULL OR prior.histogram_count IS NOT NULL)))");
+                    }
+                    else if (query.Start is { } from) Add(timeColumn, " >= ", (decimal)from);
                     if (query.End is { } end && table != "metric_series") Add(timeColumn, " < ", (decimal)end);
                 }
                 if (query.ErrorsOnly && table == "spans") predicates.Add("status_code = 2");
@@ -118,7 +138,37 @@ internal sealed partial class DuckDbStore
                 }
                 return rows;
             }
+            // A link may target any span of the project. The targets outside the loaded spans are looked up
+            // by their primary key, in the same transaction, a bounded number per statement.
+            HashSet<(string TraceId, string SpanId)> RetainedLinkTargets(List<SpanStorageRow> loaded)
+            {
+                var known = loaded.Select(static s => (s.TraceId, s.SpanId)).ToHashSet();
+                var targets = loaded.SelectMany(static s => SpanChildStorage.DeserializeLinks(s.LinksJson) ?? [])
+                    .Select(static l => (l.TraceId, l.SpanId)).Where(known.Add).ToList();
+                var retained = new HashSet<(string TraceId, string SpanId)>();
+                foreach (var batch in targets.Chunk(LinkTargetsPerStatement))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    using var cmd = con.CreateCommand();
+                    cmd.Transaction = tx;
+                    var values = new List<object> { projectId }; var pairs = new List<string>(batch.Length);
+                    foreach (var (traceId, spanId) in batch)
+                    {
+                        values.Add(traceId); values.Add(spanId);
+                        pairs.Add("(trace_id = $" + (values.Count - 1) + " AND span_id = $" + values.Count + ")");
+                    }
+                    cmd.CommandTimeout = 50;
+                    // CA2100: the statement is constants and $n placeholders; every identity is a bound parameter.
+                    cmd.CommandText = "SELECT trace_id, span_id FROM spans WHERE project_id = $1 AND (" + string.Join(" OR ", pairs) + ")";
+                    AddParameters(cmd, values.ToArray());
+                    using var cancellation = ct.Register(cmd.Cancel);
+                    using var reader = cmd.ExecuteReader();
+                    while (reader.Read()) retained.Add((reader.GetString(0), reader.GetString(1)));
+                }
+                return retained;
+            }
             var spans = Read("spans", SpanStorageRow.SelectColumnList, SpanStorageRow.MapFromReader);
+            var linkTargets = query.IncludeLinkTargets ? RetainedLinkTargets(spans) : new HashSet<(string TraceId, string SpanId)>();
             // Rows are read newest first, so the cap cuts the oldest spans; spans sharing the oldest loaded
             // start may be only partly loaded, so completeness begins just after it.
             AnalysisSpanCoverage? coverage = !query.IncludeTelemetry || query.ErrorsOnly || query.TraceIds.Length > 0 || query.SessionIds.Length > 0 ? null
@@ -131,7 +181,7 @@ internal sealed partial class DuckDbStore
                 Read("annotations", AnnotationRow.SelectColumnList, AnnotationRow.MapFromReader),
                 Read("analysis_state", AnalysisStateRow.SelectColumnList, AnalysisStateRow.MapFromReader),
                 Read("saved_queries", SavedQueryRow.SelectColumnList, SavedQueryRow.MapFromReader))
-            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage };
+            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage, RetainedLinkTargets = linkTargets };
             tx.Commit();
             return result with { ScanComplete = complete };
         }, ct);

@@ -75,7 +75,7 @@ internal sealed partial class AnalysisEngine
     {
         if (J.String(input, "trace_id") is { } requestedTrace && _spans.All(s => s.TraceId != requestedTrace))
             throw new AnalysisInputException("trace", requestedTrace, "trace.not_found");
-        var traces = _spans.GroupBy(s => s.TraceId!).Where(g =>
+        var rows = _spans.GroupBy(s => s.TraceId!).Where(g =>
         {
             var groupRows = g.ToList();
             var root = groupRows.OrderBy(s => Depth(s, groupRows)).ThenBy(s => s.Start).First(); var duration = (g.Max(s => s.End) - g.Min(s => s.Start)) / 1_000_000d;
@@ -94,8 +94,16 @@ internal sealed partial class AnalysisEngine
         }).Select(g =>
         {
             var items = g.ToList(); var root = items.OrderBy(s => Depth(s, items)).ThenBy(s => s.Start).First();
-            return J.O(("trace_id", g.Key), ("root_span", ContractSpan(root)), ("duration_ns", g.Max(s => s.End) - g.Min(s => s.Start)), ("services", g.Select(s => s.Service).Distinct()), ("has_error", g.Any(s => s.Error)), ("start_time", J.Time(g.Min(s => s.Start))), ("end_time", J.Time(g.Max(s => s.End))), ("duration_ms", (g.Max(s => s.End) - g.Min(s => s.Start)) / 1_000_000d), ("span_count", g.Count()), ("error_count", g.Count(s => s.Error)), ("root_span_name", root.Name), ("root_service_name", root.Service), ("service_names", g.Select(s => s.Service).Distinct()), ("root_error", root.Error), ("contained_error", g.Any(s => s.Error)), ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("annotation_labels", AnnotationLabels(TraceAnnotations(g.Key))));
-        }).OrderByDescending(t => J.String(t, "start_time"), StringComparer.Ordinal).ThenBy(t => J.String(t, "trace_id"), StringComparer.Ordinal).ToList();
+            var start = g.Min(s => s.Start); var duration = g.Max(s => s.End) - start; var errors = g.Count(s => s.Error);
+            return (Id: g.Key, Start: start, Duration: duration, Errors: errors, Trace: J.O(("trace_id", g.Key), ("root_span", ContractSpan(root)), ("duration_ns", duration), ("services", g.Select(s => s.Service).Distinct()), ("has_error", errors > 0), ("start_time", J.Time(start)), ("end_time", J.Time(g.Max(s => s.End))), ("duration_ms", duration / 1_000_000d), ("span_count", g.Count()), ("error_count", errors), ("root_span_name", root.Name), ("root_service_name", root.Service), ("service_names", g.Select(s => s.Service).Distinct()), ("root_error", root.Error), ("contained_error", errors > 0), ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("annotation_labels", AnnotationLabels(TraceAnnotations(g.Key)))));
+        });
+        // Newest first, longest first or most error spans first; equal values keep the newest trace first.
+        var traces = (J.String(input, "sort_by") switch
+            {
+                "duration" => rows.OrderByDescending(static t => t.Duration),
+                "errors" => rows.OrderByDescending(static t => t.Errors),
+                _ => rows.OrderByDescending(static t => t.Start)
+            }).ThenByDescending(static t => t.Start).ThenBy(static t => t.Id, StringComparer.Ordinal).Select(static t => t.Trace).ToList();
         var result = Page(input, "traces", traces); result["mode"] = "live";
         if (J.String(input, "group_by") is { } by)
             result["groups"] = J.A(traces.GroupBy(t => by == "failure_id" ? J.Text(t["failure_ids"]?[0]) : J.String(t, by == "service" ? "root_service_name" : "root_span_name") ?? "").Select(g => J.O(("key", g.Key), ("count", g.Count()), ("example_trace_ids", g.Select(t => J.String(t, "trace_id")!).Take(3)))));
@@ -126,7 +134,7 @@ internal sealed partial class AnalysisEngine
         var roleList = roles.ToList();
         for (var i = 0; i < spans.Count; i++) foreach (var pair in roleList[i]) if (pair.Key != "span_id") spans[i][pair.Key] = pair.Value?.DeepClone();
         var trace = J.O(("trace_id", J.String(input, "trace_id") ?? rows.FirstOrDefault()?.TraceId ?? ""), ("spans", J.A(spans)), ("span_count", rows.Count), ("duration_ns", rows.Count is 0 ? 0UL : rows.Max(s => s.End) - rows.Min(s => s.Start)), ("start_time", rows.Count is 0 ? now.ToString("O") : J.Time(rows.Min(s => s.Start))), ("end_time", rows.Count is 0 ? now.ToString("O") : J.Time(rows.Max(s => s.End))), ("services", rows.Select(s => s.Service).Distinct()), ("has_error", rows.Any(s => s.Error)));
-        var links = rows.SelectMany(s => JsonNode.Parse(s.Span?.LinksJson ?? "[]")?.AsArray() ?? []).OfType<JsonObject>().Select(l => { var traceId = J.String(l, "trace_id") ?? J.String(l, "traceId"); var spanId = J.String(l, "span_id") ?? J.String(l, "spanId"); return J.O(("trace_id", traceId), ("span_id", spanId), ("available", SpanIndex.ContainsKey((traceId, spanId ?? "")))); });
+        var links = rows.SelectMany(s => JsonNode.Parse(s.Span?.LinksJson ?? "[]")?.AsArray() ?? []).OfType<JsonObject>().Select(l => { var traceId = J.String(l, "trace_id") ?? J.String(l, "traceId"); var spanId = J.String(l, "span_id") ?? J.String(l, "spanId"); return J.O(("trace_id", traceId), ("span_id", spanId), ("available", SpanIndex.ContainsKey((traceId, spanId ?? "")) || traceId is not null && spanId is not null && snapshot.RetainedLinkTargets.Contains((traceId, spanId)))); });
         var traceIds = rows.Select(s => s.TraceId).ToHashSet(StringComparer.Ordinal);
         return J.O(("trace", trace), ("mode", "live"), ("annotations", J.A(TraceAnnotations(J.String(trace, "trace_id")!, rows.Select(static row => row.Id).ToHashSet(StringComparer.Ordinal)))), ("span_roles", J.A(roleList)), ("omitted", J.O(("matched", matched.Count - page.Count(matched.Contains)), ("context", selected.Count - matched.Count - page.Count(s => !matched.Contains(s))))),
             ("missing_parent_span_ids", rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).Select(s => s.Span!.ParentSpanId!).Distinct()), ("links", J.A(links)),
@@ -143,7 +151,9 @@ internal sealed partial class AnalysisEngine
         var rows = Select(input, "logs").Where(l => (J.String(input, "trace_id") is not { } trace || l.TraceId == trace) && (J.String(input, "span_id") is not { } span || l.SpanId == span) && (J.String(input, "session_id") is not { } session || l.SessionId == session)
             && (l.Log?.SeverityNumber ?? 0) >= J.Number(input, "severity_min") && (J.String(input, "query") is not { } query || LogBody(l).Contains(query, StringComparison.OrdinalIgnoreCase))).OrderByDescending(l => l.Start).ThenBy(l => l.Id, StringComparer.Ordinal).ToList();
         var context = (int)J.Number(input, "context"); if (context is < 0 or > 10) throw new AnalysisInputException("context", "context must be 0 to 10.");
-        var result = Page(input, "logs", rows.Select(LogJson)); result["mode"] = "live"; result["total_matched"] = rows.Count;
+        var result = Page(input, "logs", rows.Select(LogJson)); result["mode"] = "live";
+        // A capped read cut matching records off, so their total is unknown.
+        result["total_matched"] = snapshot.ScanComplete ? rows.Count : null;
         if (J.String(input, "group_by") == "pattern") result["patterns"] = J.A(rows.GroupBy(l => J.Normalize(LogBody(l))).Select(g => J.O(("template", g.Key), ("count", g.Count()), ("severity", g.Max(l => l.Log!.SeverityNumber)), ("first_seen", J.Time(g.Min(l => l.Start))), ("last_seen", J.Time(g.Max(l => l.Start))), ("example_ids", g.Select(l => l.TraceId).OfType<string>().Distinct().Take(3)))));
         if (context > 0 && result["logs"] is JsonArray page)
         {

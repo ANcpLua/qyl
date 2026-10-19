@@ -153,6 +153,7 @@ model ListTracesInput {
   annotationLabel?: string;
   @encodedName("application/json", "group_by")
   groupBy?: "failure_id" | "root_span" | "service";
+  @doc("Order of the traces: `start_time` (default) newest first, `duration` longest first, `errors` most error spans first. Equal values keep the newest trace first.")
   @encodedName("application/json", "sort_by")
   sortBy?: "start_time" | "duration" | "errors";
 
@@ -352,6 +353,7 @@ model SearchLogsInput {
 
 @doc("Structured output for search_logs.")
 model SearchLogsOutput {
+  @doc("Log records in the window that match the filters. Omitted when the read was capped (`coverage.scan_complete` false), because the total is then unknown.")
   @encodedName("application/json", "total_matched")
   totalMatched?: int64;
   patterns?: LogPattern[];
@@ -582,6 +584,7 @@ model GetMetricSeriesOutput {
 model QueryMetricInput {
   @encodedName("application/json", "lookback_minutes")
   lookbackMinutes?: int32;
+  @doc("Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`.")
   function?: "none" | "rate" | "increase" | "delta";
   @encodedName("application/json", "compare_to")
   compareTo?: MetricComparison;

@@ -60,38 +60,34 @@ internal sealed partial class AnalysisEngine
             {
                 var values = g.GroupBy(p => p.Value?.ToJsonString() ?? "null").OrderByDescending(v => v.Count()).ThenBy(v => v.Key, StringComparer.Ordinal).ToList();
                 return J.O(("key", g.Key.Key), ("scope", g.Key.Scope), ("type", AttributeType(g.First().Value)),
-                    ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count), ("cardinality_exact", true),
+                    ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count), ("cardinality_exact", snapshot.ScanComplete),
                     ("top_values", J.A(values.Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("semconv", SemanticMetadata.Find(g.Key.Key)));
             }).OrderBy(g => J.String(g, "key"), StringComparer.Ordinal).ThenBy(g => J.String(g, "scope"), StringComparer.Ordinal).ToList();
         return J.O(("attributes", J.A(attrs)), ("coverage", Coverage(_spans.Count + _logs.Count, rows.Count, attrs.Count, false)));
     }
+    private static string ReleaseOf(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"));
+    private static string EnvironmentOf(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource"));
     private List<JsonObject> ReleaseList(List<AnalysisRecord> rows)
     {
-        var byService = rows.ToLookup(s => s.Service, StringComparer.Ordinal);
+        // A release runs in one environment: its cohorts, traffic share and currency come from that
+        // environment's spans of its service.
+        var byDeployment = rows.ToLookup(s => (s.Service, Env: EnvironmentOf(s)));
         return
         [
-            .. rows.Where(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")).Length > 0)
-                .GroupBy(s => (s.Service,
-                    Version: J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")),
-                    Env: J.Text(s.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource"))))
+            .. rows.Where(s => ReleaseOf(s).Length > 0)
+                .GroupBy(s => (s.Service, Version: ReleaseOf(s), Env: EnvironmentOf(s)))
                 .Select(g =>
                 {
                     var first = g.Min(s => s.Start);
                     var last = g.Max(s => s.Start);
-                    var serviceRows = byService[g.Key.Service].ToList();
+                    var serviceRows = byDeployment[(g.Key.Service, g.Key.Env)].ToList();
                     var before = serviceRows.Where(s => s.Start < first).ToList();
-                    var after = serviceRows.Where(s =>
-                            s.Start >= first &&
-                            J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) ==
-                            g.Key.Version)
-                        .ToList();
+                    var after = serviceRows.Where(s => s.Start >= first && ReleaseOf(s) == g.Key.Version).ToList();
                     var previousFailures =
                         before.Where(s => s.Error).Select(Signature).ToHashSet(StringComparer.Ordinal);
                     var failures = after.Where(s => s.Error).GroupBy(Signature)
                         .Where(f => !previousFailures.Contains(f.Key)).Select(f => FailureId(f.Key));
-                    var concurrent = serviceRows.Any(s =>
-                        J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) !=
-                        g.Key.Version && s.Start >= first && s.Start <= last);
+                    var concurrent = serviceRows.Any(s => ReleaseOf(s) != g.Key.Version && s.Start >= first && s.Start <= last);
                     return J.O(("service", g.Key.Service), ("environment", g.Key.Env), ("version", g.Key.Version),
                         ("revision",
                             g.Select(s =>

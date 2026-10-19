@@ -7,15 +7,19 @@ internal static class MetricHistogram
 {
     // Cumulative exports overlap. Subtract within each series before merging streams.
     // Without a prior observation, only a sample started inside this window is attributable.
+    // The delta's start time is the start of the interval it covers, null when that is unknown.
     internal static MetricPointRow? HistogramDelta(MetricPointRow point, MetricPointRow? previous, ulong windowStart)
     {
         if (point.HistogramCount is null) return null;
         if (previous is null) return point.StartTimeUnixNano >= windowStart ? point : null;
-        if (point.StartTimeUnixNano != previous.StartTimeUnixNano || point.HistogramCount < previous.HistogramCount) return point;
+        // A new start time restarted the series there.
+        if (point.StartTimeUnixNano != previous.StartTimeUnixNano) return point;
+        // A decrease without a new start time is a reset at an unknown time.
+        if (point.HistogramCount < previous.HistogramCount) return point with { StartTimeUnixNano = null };
         var current = JsonNode.Parse(point.BucketCountsJson ?? "[]")!.AsArray().Select(v => v!.GetValue<ulong>()).ToArray();
         var before = JsonNode.Parse(previous.BucketCountsJson ?? "[]")!.AsArray().Select(v => v!.GetValue<ulong>()).ToArray();
         if (point.BucketBoundsJson != previous.BucketBoundsJson || current.Length != before.Length) return null;
-        if (current.Where((count, index) => count < before[index]).Any()) return point;
+        if (current.Where((count, index) => count < before[index]).Any()) return point with { StartTimeUnixNano = null };
         return point with
         {
             StartTimeUnixNano = previous.TimeUnixNano,

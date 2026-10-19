@@ -6119,7 +6119,8 @@
               "type": "integer"
             },
             "cardinality_exact": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded."
             },
             "top_values": {
               "type": "array",
@@ -11355,7 +11356,8 @@
               "type": "integer"
             },
             "cardinality_exact": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded."
             },
             "top_values": {
               "type": "array",
@@ -12604,7 +12606,8 @@
               ]
             },
             "available": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether this project retains the linked span, in this trace or in another one."
             }
           },
           "description": "TraceLinkAvailability contract.",
@@ -18363,7 +18366,8 @@
           "start_time",
           "duration",
           "errors"
-        ]
+        ],
+        "description": "Order of the traces: `start_time` (default) newest first, `duration` longest first, `errors` most error spans first. Equal values keep the newest trace first."
       },
       "matchers": {
         "type": "array",
@@ -19403,7 +19407,8 @@
           "rate",
           "increase",
           "delta"
-        ]
+        ],
+        "description": "Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`."
       },
       "compare_to": {
         "anyOf": [
@@ -22397,7 +22402,8 @@
     ],
     "properties": {
       "total_matched": {
-        "type": "integer"
+        "type": "integer",
+        "description": "Log records in the window that match the filters. Omitted when the read was capped (`coverage.scan_complete` false), because the total is then unknown."
       },
       "patterns": {
         "type": "array",
