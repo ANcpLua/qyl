@@ -20,15 +20,21 @@ internal sealed partial class AnalysisEngine
         foreach (var value in input.Where(p => p.Key != "id")) filter[value.Key] = value.Value?.DeepClone();
         _window = AnalysisWindow.Resolve(filter, now);
         if (J.String(filter, "cursor") is { } cursor && handles.Read(cursor, project, "cursor")["window"] is JsonObject window) _window = AnalysisWindow.Resolve(window, now);
-        JsonObject result;
-        if (row.Signal == "metrics") result = J.O(("signal", "metrics"), ("result", QueryMetric(filter)));
+        JsonObject result; JsonNode? coverage;
+        if (row.Signal == "metrics")
+        {
+            var metric = QueryMetric(filter);
+            result = J.O(("signal", "metrics"), ("result", metric)); coverage = metric["coverage"];
+        }
         else
         {
             // SavedQueryRunRequest.limit defaults to the shared page size, not to the list tool's.
             filter["limit"] ??= 100;
             var page = row.Signal == "traces" ? Traces(filter) : Logs(filter);
             result = J.O(("signal", row.Signal), ("items", page[row.Signal]), ("has_more", page["has_more"]), ("next_cursor", page["next_cursor"]));
+            coverage = page["coverage"];
         }
-        return J.O(("result", result), ("mode", "live"));
+        // The run covers what its saved filter examined and matched, not the bare id request.
+        return J.O(("result", result), ("mode", "live"), ("coverage", coverage));
     }
 }

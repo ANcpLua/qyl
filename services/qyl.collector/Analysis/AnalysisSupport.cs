@@ -54,8 +54,13 @@ internal static partial class J
     public static DateTimeOffset? Date(JsonNode? input, string name)
     {
         if ((input as JsonObject)?[name] is null) return null;
-        if (!Rfc3339().IsMatch(String(input, name) ?? "") || !DateTimeOffset.TryParse(String(input, name), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
+        var text = String(input, name) ?? "";
+        if (Rfc3339().Match(text) is not { Success: true } match || !DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
             throw new AnalysisInputException(name, name + " must be an RFC 3339 timestamp.");
+        // An instant holds 100 ns. A finer boundary cannot be applied exactly, and moving it would
+        // include or exclude records the request did not select.
+        if (match.Groups["fraction"].Value is { Length: > 7 } fraction && fraction.AsSpan(7).ContainsAnyExcept('0'))
+            throw new AnalysisInputException(name, name + " is finer than 100 nanoseconds; use at most seven fractional digits.", "time.precision_unsupported");
         if (!QylTimeConversions.TryToUnixNanoUnsigned(value, out _))
             throw new AnalysisInputException(name, name + " must be within the unsigned OTLP Unix-nanosecond range.");
         return value;
@@ -80,12 +85,13 @@ internal static partial class J
         return obj.DeepClone();
     }
     public static string Normalize(string message) => Numbers().Replace(Quoted().Replace(Hex().Replace(Uuid().Replace(message, "#"), "#"), "#"), "#");
-    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$")] private static partial Regex Rfc3339();
+    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(?<fraction>\d{1,9}))?(?:Z|[+-]\d{2}:\d{2})$")] private static partial Regex Rfc3339();
     [GeneratedRegex(@"\b\d+(?:\.\d+)?\b")] private static partial Regex Numbers();
     [GeneratedRegex("[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}")] private static partial Regex Uuid();
     [GeneratedRegex(@"\b(?:0x)?[0-9a-fA-F]{8,}\b")] private static partial Regex Hex();
     [GeneratedRegex("\"[^\"]*\"|'[^']*'")] private static partial Regex Quoted();
-    public static string Time(ulong nanos) => DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / 1_000_000)).ToString("O");
+    /// <summary>A recorded Unix-nanosecond time as RFC 3339, to the 100 ns a <see cref="DateTimeOffset"/> holds.</summary>
+    public static string Time(ulong nanos) => Instant(nanos).ToString("O");
     /// <summary>The instant of a Unix-nanosecond time, to the 100 ns a <see cref="DateTimeOffset"/> holds.</summary>
     public static DateTimeOffset Instant(ulong nanos) => DateTimeOffset.UnixEpoch.AddTicks((long)(nanos / 100));
     public static double Percentile(IEnumerable<double> source, double quantile)

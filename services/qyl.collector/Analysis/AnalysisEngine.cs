@@ -206,11 +206,11 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             var f = Failure(g); var id = J.String(f, "failure_id")!; var state = State(id);
             var old = baseline.GetValueOrDefault(g.Key); var count = g.Count(); var status = J.String(state, "status");
             var changedAfter = J.Date(state, "updated_at");
-            var change = status == "resolved" && changedAfter.HasValue && g.Any(s => s.Start > (ulong)changedAfter.Value.ToUnixTimeMilliseconds() * 1_000_000)
+            var change = status == "resolved" && changedAfter.HasValue && g.Any(s => s.Start > QylTimeConversions.ToUnixNanoUnsigned(changedAfter.Value))
                 ? "regressed" : old is 0 ? "new" : count > old ? "worsening" : count < old ? "recovering" : "ongoing";
             f["change"] = change; f["baseline_count"] = old;
             f["services"] = J.N(g.Select(s => s.Service).Distinct()); f["example_trace_id"] = g.First().TraceId;
-            var release = releases.Where(r => J.String(r, "service") == g.First().Service && _window.Contains((ulong)(J.Date(r, "first_seen")!.Value.ToUnixTimeMilliseconds()) * 1_000_000)).OrderBy(r => J.String(r, "first_seen"), StringComparer.Ordinal).LastOrDefault();
+            var release = releases.Where(r => J.String(r, "service") == g.First().Service && _window.Contains(QylTimeConversions.ToUnixNanoUnsigned(J.Date(r, "first_seen")!.Value))).OrderBy(r => J.String(r, "first_seen"), StringComparer.Ordinal).LastOrDefault();
             f["coinciding_release"] = release?.DeepClone();
             return f;
         }).Where(f => J.String(f, "status") != "ignored" || J.Date(f, "ignore_until") is { } expiry && expiry <= now)
