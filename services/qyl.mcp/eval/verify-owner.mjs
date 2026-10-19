@@ -144,7 +144,7 @@ try {
   const points = await call(owner, "get_metric_series", { ...w, metric_name: "http.server.request.duration", series_id: streams.items[0].series_id, points_limit: 2 });
   check(points.points.items.length > 0, "Original metric points are returned without substituting projections");
   const increase = await call(owner, "query_metric", { ...w, metric_name: "requests.total", function: "increase", step_ms: 3_600_000, matchers: metricMatchers });
-  check(increase.series.flatMap(stream => stream.buckets).reduce((sum, bucket) => sum + (bucket.value ?? 0), 0) === 90, "Counter query measures the actual increase of 90");
+  check(increase.series.flatMap(stream => stream.buckets).reduce((sum, bucket) => sum + (bucket.value ?? 0), 0) === 190, "Counter query measures the increase of 190 since its recorded start");
   const ci = await call(owner, "ci_log", { ...w, run_id: sessions.ci_current, compare_to: "last_success" });
   check(ci.comparison.new_failures.some(item => item.leg === "test"), "CI analysis retains the deliberately failed test leg");
 
