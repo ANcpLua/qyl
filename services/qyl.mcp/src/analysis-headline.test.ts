@@ -189,14 +189,15 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
   {
     operation: "list_metrics", schema: "Mcp.Tools.ListMetricsOutput",
     output: { ...context, items: [{ name: "http.server.request.duration", kind: "histogram", unit: "s", temporality: "cumulative",
-      services: ["checkout"], series_count: 2, last_seen: NOW, supported_aggregations: ["avg", "p95"], has_conflict: false }] },
-    expect: [/^list_metrics: 1 instruments\. Top: http\.server\.request\.duration \(histogram, s, 2 series\)\./u,
-      /→ query_metric metric_name=http\.server\.request\.duration$/u],
+      services: ["checkout"], series_count: 2, last_seen: NOW, supported_aggregations: ["avg", "p95"], has_conflict: false,
+      keys: [{ key: "http.route", cardinality: 2 }], suggested_group_by: ["http.route"] }] },
+    expect: [/^list_metrics: 1 instruments\. Top: http\.server\.request\.duration \(histogram, s, 2 series, group by http\.route\)\./u,
+      /→ query_metric metric_name=http\.server\.request\.duration group_by=\["http\.route"\]$/u],
   },
   {
     operation: "query_metric", schema: "Mcp.Tools.QueryMetricOutput",
     output: { ...readContext(1, false), numeric_representation: "float64", approximate: false, name: "http.server.request.duration", kind: "histogram", unit: "s",
-      aggregation: "p95", step_ms: 60_000, start_time: "2026-10-18T12:00:00Z", end_time: "2026-10-19T12:00:00Z", truncated: false,
+      aggregation: "p95", step_ms: 60_000,
       // A series lists only the buckets that hold points; a caller's small step_ms can still give more than 60.
       series: [{ attributes: [{ key: "http.route", value: "/cart" }], value: 0.25,
         buckets: Array.from({ length: 90 }, (_, index) => ({ bucket_start: new Date(Date.parse("2026-10-18T12:00:00Z") + index * 60_000).toISOString(),

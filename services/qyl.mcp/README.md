@@ -41,7 +41,7 @@ The committed [`tool-manifest.snapshot.json`](tool-manifest.snapshot.json) is th
 | Investigate failures | `triage`, `get_failure_context`, `compare_groups`, `compare_traces`, `verify_fix` |
 | Explore telemetry | `aggregate_telemetry`, `discover_attributes`, `get_agent_run`, `list_releases`, `get_service_map`, `check_telemetry_health`, `get_mcp_stats` |
 | Read executions | `list_sessions`, `list_traces`, `get_trace`, `search_logs`, `ci_log` |
-| Read metrics | `list_metrics`, `get_metric_series`, `query_metric` |
+| Read metrics | `list_metrics`, `query_metric` |
 | Saved questions | `list_saved_queries`, `run_saved_query` |
 | Write project records | `create_annotation`, `update_annotation`, `create_saved_query`, `update_saved_query`, `delete_record`, `update_failure_status` |
 

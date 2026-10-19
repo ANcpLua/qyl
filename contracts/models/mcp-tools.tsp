@@ -536,10 +536,10 @@ model CiLogOutput {
 }
 
 // -----------------------------------------------------------------------------
-// Metric tools: list_metrics, get_metric_series, query_metric
+// Metric tools: list_metrics, query_metric
 // -----------------------------------------------------------------------------
 
-@doc("Lists the recorded metric instruments, one compact row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts and whether its descriptors conflict. Start a metric question here; get_metric_series shows one instrument's series and attribute keys, and query_metric computes its values over time. Default: 50 instruments per page, ordered by name.")
+@doc("Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.")
 model ListMetricsInput {
   @doc("Case-insensitive substring of the instrument name or description.")
   text?: string;
@@ -581,62 +581,7 @@ model ListMetricsOutput {
   error?: ToolError;
 }
 
-@doc("Lists the series (attribute combinations) of one metric instrument that recorded a point in the window, with each attribute key's cardinality and top values and suggested `group_by` keys; with `series_id`, one series and a page of its original points. Use it to choose query_metric's `group_by` and `matchers`, or for exact original values and exemplars; query_metric aggregates the values over time. Default: the last 60 minutes, 200 series per page.")
-model GetMetricSeriesInput {
-  ...ToolTimeRange;
-
-  @doc("Select one exact series and include its first page of original points. Omitted, list series metadata only. Original points are never compacted; a point exceeding the MCP response budget returns response_too_large and remains available through the HTTP points API.")
-  @encodedName("application/json", "series_id")
-  @minLength(1)
-  seriesId?: string;
-
-  @doc("Continuation of the selected series' points page; requires series_id.")
-  @encodedName("application/json", "points_cursor")
-  pointsCursor?: Cursor;
-
-  @doc("Page size for original points from the selected series.")
-  @encodedName("application/json", "points_limit")
-  @minValue(1)
-  @maxValue(1000)
-  pointsLimit?: int32 = 100;
-
-  @doc("The instrument name, e.g. from list_metrics.")
-  @encodedName("application/json", "metric_name")
-  @minLength(1)
-  metricName: string;
-
-  @doc("Attribute matchers a series must all satisfy; serialized to `attr` and `attr_prefix`.")
-  @maxItems(32)
-  matchers?: MetricAttributeMatcher[];
-
-  @doc("Series per page, 1 to 1000; default 200.")
-  @minValue(1)
-  @maxValue(1000)
-  limit?: int32 = 200;
-
-  @doc("`next_cursor` of a previous get_metric_series call with the same filters.")
-  cursor?: Cursor;
-}
-
-@doc("Structured output for get_metric_series.")
-model GetMetricSeriesOutput {
-  @doc("Original points, present only when one exact series_id was selected. Continue with points_cursor.")
-  points?: CursorPage<MetricPoint>;
-
-  keys?: MetricKeySummary[];
-  @encodedName("application/json", "suggested_group_by")
-  suggestedGroupBy?: string[];
-
-  ...ToolReadContext;
-
-  items: MetricSeries[];
-  ...ToolPage;
-
-  @doc("Set when the call failed.")
-  error?: ToolError;
-}
-
-@doc("Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.")
+@doc("Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.")
 model QueryMetricInput {
   @doc("Minutes before `end_time` (or now) when `start_time` is omitted; default 60.")
   @encodedName("application/json", "lookback_minutes")
@@ -672,10 +617,16 @@ model QueryMetricInput {
   @doc("Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each instrument's `supported_aggregations`.")
   aggregation?: MetricAggregation = MetricAggregation.avg;
 
-  @doc("Select one exact metric series; disambiguates scopes and conflicting instrument descriptors.")
+  @doc("Select one exact metric series; disambiguates scopes and conflicting instrument descriptors. A conflict error and a `raw` read that matches several series name their series ids.")
   @encodedName("application/json", "series_id")
   @minLength(1)
   seriesId?: string;
+
+  @doc("Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `compare_to` and `ratio_of` do not apply.")
+  raw?: boolean;
+
+  @doc("With `raw`, the `next_cursor` of the previous page of the same series.")
+  cursor?: Cursor;
 
   @doc("Attribute keys to split the result by: one series per distinct combination of their values.")
   @encodedName("application/json", "group_by")
@@ -686,23 +637,67 @@ model QueryMetricInput {
   @maxItems(32)
   matchers?: MetricAttributeMatcher[];
 
-  @doc("Maximum result series, 1 to 500; default 50. `truncated` reports that more existed.")
-  @encodedName("application/json", "series_limit")
+  @doc("Result series per answer, 1 to 500, default 50, and `coverage.truncated` reports that more existed; with `raw`, original points per page.")
   @minValue(1)
   @maxValue(500)
-  seriesLimit?: int32 = 50;
+  limit?: int32 = 50;
 }
 
-@doc("Structured output for query_metric: the collector's range-query result.")
+@doc("Structured output for query_metric: the aggregated series, or with `raw` one series' original points.")
 model QueryMetricOutput {
-  method?: string;
-  @encodedName("application/json", "exemplar_trace_ids")
-  exemplarTraceIds?: TraceId[];
-  comparison?: MetricComparisonResult;
-
   ...ToolReadContext;
 
-  ...MetricQueryResult;
+  @doc("The instrument queried.")
+  name: string;
+
+  kind: MetricKind;
+
+  @doc("Unit of the values: the instrument's, `1` for a count or a ratio, with `/s` appended for a rate.")
+  unit?: string;
+
+  @doc("The reducer applied to each bucket and to the whole window; absent with `raw`.")
+  aggregation?: MetricAggregation;
+
+  @doc("Bucket width in milliseconds; absent with `raw`.")
+  @encodedName("application/json", "step_ms")
+  stepMs?: int64;
+
+  @doc("One stream per `group_by` combination: its value for the whole window and the buckets that hold points; absent with `raw`.")
+  series?: MetricSeriesResult[];
+
+  @doc("Aggregates are float64 projections; `raw` reads the exact original values.")
+  @encodedName("application/json", "numeric_representation")
+  numericRepresentation?: "float64";
+
+  @doc("Whether the reducer estimates or interpolates, as histogram percentiles do.")
+  approximate?: boolean;
+
+  @doc("How the values were computed from the points.")
+  method?: string;
+
+  @doc("Traces of exemplars recorded in the window, at most three.")
+  @encodedName("application/json", "exemplar_trace_ids")
+  exemplarTraceIds?: TraceId[];
+
+  comparison?: MetricComparisonResult;
+
+  @doc("With `raw`, the series read.")
+  @encodedName("application/json", "series_id")
+  seriesId?: string;
+
+  @doc("With `raw`, the attributes that distinguish the series.")
+  attributes?: Attribute[];
+
+  @doc("With `raw`, the series' original points in the window, newest first.")
+  points?: MetricRawPoint[];
+
+  @doc("With `raw`, whether more points follow; `next_cursor` continues them.")
+  @encodedName("application/json", "has_more")
+  hasMore?: boolean;
+
+  @doc("With `raw`, pass as `cursor` with the same arguments for the next page of points.")
+  @encodedName("application/json", "next_cursor")
+  nextCursor?: Cursor;
 
   @doc("Set when the call failed.")
   error?: ToolError;

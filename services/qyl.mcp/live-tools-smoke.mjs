@@ -134,8 +134,7 @@ try {
   ok("ci_log sees the qyl-ci service session", !r.isError && JSON.stringify(r.structuredContent ?? r).includes("ci-"));
   r = await call("list_metrics", {});
   ok("list_metrics lists both instruments", ["http.server.request.duration", "live_smoke.requests"].every((n) => JSON.stringify(r.structuredContent ?? r).includes(n)));
-  r = await call("get_metric_series", { metric_name: "http.server.request.duration" });
-  ok("get_metric_series shows http.route", JSON.stringify(r.structuredContent ?? r).includes("http.route"));
+  ok("list_metrics suggests grouping by http.route", (r.structuredContent?.items ?? []).some((m) => m.name === "http.server.request.duration" && m.suggested_group_by?.includes("http.route")), summary(r));
   r = await call("query_metric", { metric_name: "http.server.request.duration", ...windowArgs, step_ms: 3_660_000, aggregation: "p95" });
   ok("query_metric p95 over one bucket returns a number", !r.isError && /\d/.test(JSON.stringify(r.structuredContent ?? r)));
   r = await call("query_metric", { metric_name: "live_smoke.requests", ...windowArgs, step_ms: 3_660_000, aggregation: "sum", group_by: ["http.route"] });

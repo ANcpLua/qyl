@@ -6,7 +6,7 @@ namespace Qyl.Collector.Analysis;
 
 internal sealed partial class AnalysisEngine
 {
-    private static string MetricKind(byte kind) => kind switch { 1 => "gauge", 2 => "sum", 3 => "histogram", 4 => "exponential_histogram", 5 => "summary", _ => throw new InvalidDataException("Unknown persisted metric kind.") };
+    internal static string MetricKind(byte kind) => kind switch { 1 => "gauge", 2 => "sum", 3 => "histogram", 4 => "exponential_histogram", 5 => "summary", _ => throw new InvalidDataException("Unknown persisted metric kind.") };
     internal static AnalysisRecord SeriesRecord(MetricSeriesRow s) => new(s.SeriesId, null, null, null, s.ServiceName ?? "unknown_service", s.MetricName, s.LastSeenUnixNano, s.LastSeenUnixNano, false, 0, J.Attributes(s.AttributesJson), J.Attributes(s.ResourceJson));
     private List<MetricSeriesRow> SeriesRows(JsonObject input) =>
     [
@@ -26,28 +26,24 @@ internal sealed partial class AnalysisEngine
     private JsonObject Metrics(JsonObject input)
     {
         var items = SeriesRows(input).GroupBy(static row => row.InstrumentId ?? MetricStorageMapper.InstrumentId(row))
-            .Select(static group => MetricStorageMapper.ToCatalogEntry(group.ToArray()))
-            .OrderBy(static entry => entry.MetricName, StringComparer.Ordinal)
-            .ThenBy(static entry => entry.InstrumentId, StringComparer.Ordinal)
-            .Select(static entry =>
+            .Select(static group => (Entry: MetricStorageMapper.ToCatalogEntry(group.ToArray()), Series: group.ToArray()))
+            .OrderBy(static instrument => instrument.Entry.MetricName, StringComparer.Ordinal)
+            .ThenBy(static instrument => instrument.Entry.InstrumentId, StringComparer.Ordinal)
+            .Select(static instrument =>
             {
-                // One compact row per instrument; get_metric_series has its series, attributes and resource.
-                var full = JsonSerializer.SerializeToNode(MetricMapper.ToContract(entry), QylSerializerContext.Default.MetricDescriptor)!.AsObject();
+                // One row per instrument: its descriptor and how many values each attribute key of its series holds.
+                var full = JsonSerializer.SerializeToNode(MetricMapper.ToContract(instrument.Entry), QylSerializerContext.Default.MetricDescriptor)!.AsObject();
+                var keys = instrument.Series.SelectMany(static s => SeriesRecord(s).Attributes).GroupBy(static p => p.Key, StringComparer.Ordinal)
+                    .Select(static g => (Key: g.Key, Cardinality: g.Select(static p => p.Value?.ToJsonString() ?? "null").Distinct(StringComparer.Ordinal).Count()))
+                    .OrderByDescending(static k => k.Cardinality).ThenBy(static k => k.Key, StringComparer.Ordinal).ToList();
                 return J.O(("name", full["name"]), ("kind", full["kind"]), ("unit", full["unit"]), ("temporality", full["temporality"]), ("services", full["services"] ?? new JsonArray()),
-                    ("series_count", full["series_count"]), ("last_seen", full["last_seen"]), ("supported_aggregations", full["supported_aggregations"] ?? new JsonArray()), ("has_conflict", full["has_conflict"]));
+                    ("series_count", full["series_count"]), ("last_seen", full["last_seen"]), ("supported_aggregations", full["supported_aggregations"] ?? new JsonArray()), ("has_conflict", full["has_conflict"]),
+                    ("keys", J.A(keys.Select(static k => (JsonNode?)J.O(("key", k.Key), ("cardinality", k.Cardinality))))),
+                    ("suggested_group_by", J.N(keys.Where(static k => k.Cardinality is > 1 and <= 20).Select(static k => k.Key))));
             });
         return Page(input, "items", items);
     }
-    private JsonObject MetricSeries(JsonObject input)
-    {
-        var rows = SeriesRows(input).Where(s => PointsBySeries[s.SeriesId].Any(p => _window.Contains(p.TimeUnixNano))).OrderBy(s => s.SeriesId, StringComparer.Ordinal).ToList();
-        var result = Page(input, "items", rows.Select(s =>
-        { var item = JsonSerializer.SerializeToNode(MetricMapper.ToContract(s), QylSerializerContext.Default.MetricSeries)!.AsObject(); item["new"] = _window.Contains(s.FirstSeenUnixNano); item["stale"] = s.LastSeenUnixNano < _window.StartNs; return item; }));
-        var keys = rows.SelectMany(s => SeriesRecord(s).Attributes.Select(p => (p.Key, p.Value))).GroupBy(p => p.Key).Select(g =>
-        { var values = g.GroupBy(p => p.Value?.ToJsonString() ?? "null").ToList(); return J.O(("key", g.Key), ("cardinality", values.Count), ("cardinality_exact", snapshot.ScanComplete), ("top_values", J.A(values.OrderByDescending(v => v.Count()).Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count))); }).ToList();
-        result["keys"] = J.A(keys); result["suggested_group_by"] = J.N(keys.Where(k => J.Number(k, "cardinality") > 1 && J.Number(k, "cardinality") <= 20).Select(k => J.String(k, "key")!)); return result;
-    }
-    private static JsonArray ContractAttributes(JsonObject source)
+    internal static JsonArray ContractAttributes(JsonObject source)
     {
         return J.A(source.Select(static p => J.O(("key", p.Key), ("value", ContractValue(p.Value)))));
     }
@@ -124,7 +120,7 @@ internal sealed partial class AnalysisEngine
             var attributes = new JsonObject(); foreach (var key in groupBy) attributes[key] = SeriesRecord(stream.First()).Value(key)?.DeepClone() ?? JsonValue.Create("");
             output.Add(J.O(("attributes", ContractAttributes(attributes)), ("value", Reduce(values)), ("buckets", buckets)));
         }
-        var limit = Bounded(input, "series_limit", QueryMetricInput.SeriesLimitDefault, QueryMetricInput.SeriesLimitMinimum, QueryMetricInput.SeriesLimitMaximum);
+        var limit = Bounded(input, "limit", QueryMetricInput.LimitDefault, QueryMetricInput.LimitMinimum, QueryMetricInput.LimitMaximum);
         // A count is of points or observations, not of the metric's unit; a rate is per second.
         var unit = aggregation == "count" ? "1" : rows[0].Unit;
         if (function == "rate" && (histogram || aggregation != "count")) unit += "/s";
@@ -139,7 +135,7 @@ internal sealed partial class AnalysisEngine
         {
             // The denominator is another metric: the numerator's exact series selects nothing in it.
             var copy = input.DeepClone().AsObject(); copy.Remove("ratio_of"); copy.Remove("series_id"); copy["metric_name"] = ratio["metric_name"]?.DeepClone(); copy["aggregation"] = ratio["aggregation"]?.DeepClone() ?? JsonValue.Create(aggregation); copy["matchers"] = ratio["matchers"]?.DeepClone();
-            copy["series_limit"] = QueryMetricInput.SeriesLimitMaximum;
+            copy["limit"] = QueryMetricInput.LimitMaximum;
             var denominator = QueryMetric(copy);
             DivideMetricSeries(result["series"], denominator["series"]);
             DivideMetricSeries(result["comparison"]?["series"], denominator["comparison"]?["series"]);

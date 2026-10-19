@@ -8,17 +8,6 @@ using System.Text.Json.Serialization;
 
 namespace Qyl.Api.Contracts.Common.Pagination;
 
-public sealed class CursorPageMetricPoint
-{
-    [JsonPropertyName("items")]
-    public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricPoint> Items { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("next_cursor")]
-    public string? NextCursor { get; init; }
-    [JsonPropertyName("has_more")]
-    public required bool HasMore { get; init; }
-}
-
 public sealed class CursorPageTrace
 {
     [JsonPropertyName("items")]
@@ -67,6 +56,17 @@ public sealed class CursorPageMetricSeries
 {
     [JsonPropertyName("items")]
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeries> Items { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
+    [JsonPropertyName("has_more")]
+    public required bool HasMore { get; init; }
+}
+
+public sealed class CursorPageMetricPoint
+{
+    [JsonPropertyName("items")]
+    public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricPoint> Items { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("next_cursor")]
     public string? NextCursor { get; init; }

@@ -925,77 +925,10 @@ public sealed class MetricCatalogRow
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricAggregation> SupportedAggregations { get; init; }
     [JsonPropertyName("has_conflict")]
     public required bool HasConflict { get; init; }
-}
-
-public sealed class GetMetricSeriesInput
-{
-    public const int LookbackMinutesMinimum = 1;
-    public const int LookbackMinutesMaximum = 43200;
-    public const int PointsLimitDefault = 100;
-    public const int PointsLimitMinimum = 1;
-    public const int PointsLimitMaximum = 1000;
-    public const int LimitDefault = 200;
-    public const int LimitMinimum = 1;
-    public const int LimitMaximum = 1000;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("series_id")]
-    public string? SeriesId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("points_cursor")]
-    public string? PointsCursor { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("points_limit")]
-    public int? PointsLimit { get; init; }
-    [JsonPropertyName("metric_name")]
-    public required string MetricName { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("matchers")]
-    public IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricAttributeMatcher>? Matchers { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
-}
-
-public sealed class GetMetricSeriesOutput
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("points")]
-    public Qyl.Api.Contracts.Common.Pagination.CursorPageMetricPoint? Points { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("keys")]
-    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.MetricKeySummary>? Keys { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.MetricKeySummary> Keys { get; init; }
     [JsonPropertyName("suggested_group_by")]
-    public IReadOnlyList<string>? SuggestedGroupBy { get; init; }
-    [JsonPropertyName("window")]
-    public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
-    [JsonPropertyName("coverage")]
-    public required Qyl.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("page_totals")]
-    public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
-    [JsonPropertyName("items")]
-    public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeries> Items { get; init; }
-    [JsonPropertyName("has_more")]
-    public required bool HasMore { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("next_cursor")]
-    public string? NextCursor { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("error")]
-    public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
+    public required IReadOnlyList<string> SuggestedGroupBy { get; init; }
 }
 
 public sealed class MetricKeySummary
@@ -1004,23 +937,6 @@ public sealed class MetricKeySummary
     public required string Key { get; init; }
     [JsonPropertyName("cardinality")]
     public required long Cardinality { get; init; }
-    [JsonPropertyName("cardinality_exact")]
-    public required bool CardinalityExact { get; init; }
-    [JsonPropertyName("top_values")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AttributeValueCount> TopValues { get; init; }
-    [JsonPropertyName("coverage_share")]
-    public required double CoverageShare { get; init; }
-}
-
-public sealed class AttributeValueCount
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    [JsonPropertyName("value")]
-    public required Qyl.Api.Contracts.Common.AttributeValue? Value { get; init; }
-    [JsonPropertyName("count")]
-    public required long Count { get; init; }
-    [JsonPropertyName("share")]
-    public required double Share { get; init; }
 }
 
 public sealed class QueryMetricInput
@@ -1028,9 +944,9 @@ public sealed class QueryMetricInput
     public const long StepMsMinimum = 1;
     public const long StepMsMaximum = 86400000;
     public const Qyl.Api.Contracts.OTel.Metrics.MetricAggregation AggregationDefault = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg;
-    public const int SeriesLimitDefault = 50;
-    public const int SeriesLimitMinimum = 1;
-    public const int SeriesLimitMaximum = 500;
+    public const int LimitDefault = 50;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 500;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1061,14 +977,20 @@ public sealed class QueryMetricInput
     [JsonPropertyName("series_id")]
     public string? SeriesId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("raw")]
+    public bool? Raw { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("group_by")]
     public IReadOnlyList<string>? GroupBy { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricAttributeMatcher>? Matchers { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("series_limit")]
-    public int? SeriesLimit { get; init; }
+    [JsonPropertyName("limit")]
+    public int? Limit { get; init; }
 }
 
 public sealed class MetricComparisonOffset
@@ -1091,6 +1013,35 @@ public sealed class MetricRatio
 
 public sealed class QueryMetricOutput
 {
+    [JsonPropertyName("window")]
+    public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
+    [JsonPropertyName("coverage")]
+    public required Qyl.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("page_totals")]
+    public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+    [JsonPropertyName("kind")]
+    public required Qyl.Api.Contracts.OTel.Metrics.MetricKind Kind { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("unit")]
+    public string? Unit { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("aggregation")]
+    public Qyl.Api.Contracts.OTel.Metrics.MetricAggregation? Aggregation { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("step_ms")]
+    public long? StepMs { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("series")]
+    public IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeriesResult>? Series { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("numeric_representation")]
+    public string? NumericRepresentation { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("approximate")]
+    public bool? Approximate { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("method")]
     public string? Method { get; init; }
@@ -1100,36 +1051,21 @@ public sealed class QueryMetricOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("comparison")]
     public Qyl.Api.Contracts.Mcp.Tools.MetricComparisonResult? Comparison { get; init; }
-    [JsonPropertyName("window")]
-    public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
-    [JsonPropertyName("coverage")]
-    public required Qyl.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("page_totals")]
-    public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
-    [JsonPropertyName("numeric_representation")]
-    public required string NumericRepresentation { get; init; }
-    [JsonPropertyName("approximate")]
-    public required bool Approximate { get; init; }
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
-    [JsonPropertyName("kind")]
-    public required Qyl.Api.Contracts.OTel.Metrics.MetricKind Kind { get; init; }
+    [JsonPropertyName("series_id")]
+    public string? SeriesId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("unit")]
-    public string? Unit { get; init; }
-    [JsonPropertyName("aggregation")]
-    public required Qyl.Api.Contracts.OTel.Metrics.MetricAggregation Aggregation { get; init; }
-    [JsonPropertyName("step_ms")]
-    public required long StepMs { get; init; }
-    [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
-    [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
-    [JsonPropertyName("series")]
-    public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeriesResult> Series { get; init; }
-    [JsonPropertyName("truncated")]
-    public required bool Truncated { get; init; }
+    [JsonPropertyName("attributes")]
+    public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>? Attributes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("points")]
+    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.MetricRawPoint>? Points { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("has_more")]
+    public bool? HasMore { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
@@ -1141,6 +1077,40 @@ public sealed class MetricComparisonResult
     public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
     [JsonPropertyName("series")]
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeriesResult> Series { get; init; }
+}
+
+public sealed class MetricRawPoint
+{
+    [JsonPropertyName("time")]
+    public required DateTimeOffset Time { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("start_time")]
+    public DateTimeOffset? StartTime { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("data")]
+    public required Qyl.Api.Contracts.OTel.Metrics.MetricPointData? Data { get; init; }
+    [JsonPropertyName("has_conflict")]
+    public required bool HasConflict { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("exemplars")]
+    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.MetricRawExemplar>? Exemplars { get; init; }
+}
+
+public sealed class MetricRawExemplar
+{
+    [JsonPropertyName("time")]
+    public required DateTimeOffset Time { get; init; }
+    [JsonPropertyName("value")]
+    public required Qyl.Api.Contracts.OTel.Metrics.MetricNumberValue Value { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("trace_id")]
+    public string? TraceId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("span_id")]
+    public string? SpanId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("filtered_attributes")]
+    public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>? FilteredAttributes { get; init; }
 }
 
 public sealed class CreateAnnotationInput
@@ -2335,6 +2305,17 @@ public sealed class DiscoverAttributesInput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("key")]
     public string? Key { get; init; }
+}
+
+public sealed class AttributeValueCount
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("value")]
+    public required Qyl.Api.Contracts.Common.AttributeValue? Value { get; init; }
+    [JsonPropertyName("count")]
+    public required long Count { get; init; }
+    [JsonPropertyName("share")]
+    public required double Share { get; init; }
 }
 
 public sealed class AttributeSemconv

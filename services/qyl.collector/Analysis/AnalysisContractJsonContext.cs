@@ -39,8 +39,6 @@ namespace Qyl.Collector.Analysis;
 [JsonSerializable(typeof(SearchLogsOutput))]
 [JsonSerializable(typeof(ListMetricsInput))]
 [JsonSerializable(typeof(ListMetricsOutput))]
-[JsonSerializable(typeof(GetMetricSeriesInput))]
-[JsonSerializable(typeof(GetMetricSeriesOutput))]
 [JsonSerializable(typeof(QueryMetricInput))]
 [JsonSerializable(typeof(QueryMetricOutput))]
 [JsonSerializable(typeof(CiLogInput))]

@@ -139,10 +139,11 @@ try {
 
   const metrics = await call(owner, "list_metrics", { ...w, service_name: services.http, text: "http.server.request.duration" });
   check(metrics.items.some(item => item.kind === "histogram" && item.unit === "s"), "Metric catalog preserves histogram kind and seconds");
-  const streams = await call(owner, "get_metric_series", { ...w, metric_name: "http.server.request.duration", matchers: metricMatchers });
-  check(streams.items.length === 2, "Metric series selector isolates both fixture routes");
-  const points = await call(owner, "get_metric_series", { ...w, metric_name: "http.server.request.duration", series_id: streams.items[0].series_id, points_limit: 2 });
-  check(points.points.items.length > 0, "Original metric points are returned without substituting projections");
+  const routes = await call(owner, "query_metric", { ...w, metric_name: "http.server.request.duration", matchers: metricMatchers, group_by: ["http.route"], aggregation: "count" });
+  check(routes.series.length === 2, "Metric query isolates both fixture routes");
+  const points = await call(owner, "query_metric", { ...w, metric_name: "http.server.request.duration", raw: true, limit: 2,
+    matchers: [...metricMatchers, { key: "http.route", op: "eq", value: "/checkout" }] });
+  check(points.points.length > 0, "Original metric points are returned without substituting projections");
   const increase = await call(owner, "query_metric", { ...w, metric_name: "requests.total", function: "increase", step_ms: 3_600_000, matchers: metricMatchers });
   check(increase.series.flatMap(stream => stream.buckets).reduce((sum, bucket) => sum + (bucket.value ?? 0), 0) === 190, "Counter query measures the increase of 190 since its recorded start");
   const ci = await call(owner, "ci_log", { ...w, run_id: sessions.ci_current, compare_to: "last_success" });

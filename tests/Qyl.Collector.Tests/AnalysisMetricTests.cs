@@ -242,7 +242,7 @@ public sealed partial class AnalysisApiTests
         Assert.AreSequenceEqual([10d, 30d], series.GetProperty("buckets").EnumerateArray().Select(static b => b.GetProperty("value").GetDouble()));
     }
 
-    private static readonly string[] s_catalogRowKeys = ["name", "kind", "temporality", "services", "series_count", "last_seen", "supported_aggregations", "has_conflict"];
+    private static readonly string[] s_catalogRowKeys = ["name", "kind", "temporality", "services", "series_count", "last_seen", "supported_aggregations", "has_conflict", "keys", "suggested_group_by"];
 
     /// <summary>list_metrics names each instrument in one compact row, fifty to a page by default.</summary>
     [TestMethod]

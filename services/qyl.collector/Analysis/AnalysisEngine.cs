@@ -47,7 +47,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             "list_releases" => Releases(input), "get_service_map" => ServiceMap(input), "check_telemetry_health" => Health(input),
             "get_mcp_stats" => McpStats(input), "list_sessions" => Sessions(input),
             "list_traces" => Traces(input), "get_trace" => Trace(input), "search_logs" => Logs(input),
-            "list_metrics" => Metrics(input), "get_metric_series" => MetricSeries(input), "query_metric" => QueryMetric(input),
+            "list_metrics" => Metrics(input), "query_metric" => QueryMetric(input),
             "ci_log" => Ci(input), "list_saved_queries" => SavedQueries(input), "run_saved_query" => RunSavedQuery(input), _ => throw new AnalysisInputException("tool", "Unknown analysis operation.")
         };
         result["window"] ??= _window.Json;

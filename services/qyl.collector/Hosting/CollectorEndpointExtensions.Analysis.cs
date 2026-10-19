@@ -28,7 +28,6 @@ internal static partial class CollectorEndpointExtensions
             ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput),
             ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput),
             ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput),
-            ["get_metric_series"] = (AnalysisContractJsonContext.Default.GetMetricSeriesInput, AnalysisContractJsonContext.Default.GetMetricSeriesOutput),
             ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput),
             ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput),
             ["list_saved_queries"] = (AnalysisContractJsonContext.Default.ListSavedQueriesInput, AnalysisContractJsonContext.Default.ListSavedQueriesOutput),
@@ -54,12 +53,8 @@ internal static partial class CollectorEndpointExtensions
             ValidateAnalysisInput(operation, input);
             var project = ResolveProjectScope(context);
             var now = time.GetUtcNow(); var handles = CreateAnalysisHandles(context, project);
-            if (operation == "get_metric_series" && J.String(input, "series_id") is not null)
-                return AnalysisResult(operation, await SelectedMetricSeriesAsync(input, store, project, handles, now, deadline.Token));
-            // The shared schema supplies a default points_limit even for metadata-only reads.
-            // Only a continuation refers to original points and requires an exact series.
-            if (operation == "get_metric_series" && input["points_cursor"] is not null)
-                throw new AnalysisInputException("series_id", "Select exactly one series to page its original points.");
+            if (operation == "query_metric" && J.Bool(input, "raw"))
+                return AnalysisResult(operation, await RawMetricPointsAsync(input, store, project, handles, now, deadline.Token));
             var readInput = input;
             if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
             {

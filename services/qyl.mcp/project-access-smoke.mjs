@@ -159,7 +159,7 @@ try {
     ["list_traces", { limit: 10 }], ["get_trace", { trace_id: f.traceId }],
     ["list_sessions", {}], ["search_logs", {}], ["ci_log", {}],
     ["ci_log", { run_id: `${f.marker}_session` }], ["list_metrics", {}],
-    ["get_metric_series", { metric_name: `${f.marker}.requests` }],
+    ["query_metric", { metric_name: `${f.marker}.requests`, start_time: window.start_time, end_time: window.end_time, raw: true }],
     ["query_metric", { metric_name: `${f.marker}.requests`, ...window, aggregation: "avg" }],
   ];
   const writeTools = ["update_failure_status", "create_annotation", "update_annotation", "create_saved_query", "update_saved_query",

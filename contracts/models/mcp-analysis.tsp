@@ -902,7 +902,7 @@ model MetricConflictSeries {
   lastTime: utcDateTime;
 }
 
-@doc("Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, get_metric_series with the series_id returns every observation, and query_metric refuses a window that holds one.")
+@doc("Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, query_metric with `raw` and the series_id returns every observation, and query_metric refuses to aggregate a window that holds one.")
 model MetricConflicts {
   points: int64;
   unit: "points";
@@ -1215,7 +1215,7 @@ model ToolLogRow {
   attributes: Attribute[];
 }
 
-@doc("One metric instrument of list_metrics; get_metric_series returns its series and attributes.")
+@doc("One metric instrument of list_metrics.")
 model MetricCatalogRow {
   name: string;
   kind: MetricKind;
@@ -1230,22 +1230,50 @@ model MetricCatalogRow {
   @doc("The aggregations query_metric accepts for it.")
   @encodedName("application/json", "supported_aggregations")
   supportedAggregations: MetricAggregation[];
-  @doc("Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`.")
+  @doc("Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`, which its conflict error names.")
   @encodedName("application/json", "has_conflict")
   hasConflict: boolean;
+  @doc("The attribute keys of the instrument's series with their numbers of distinct values, most values first.")
+  keys: MetricKeySummary[];
+  @doc("The keys with 2 to 20 values: the ones to pass as query_metric's `group_by`.")
+  @encodedName("application/json", "suggested_group_by")
+  suggestedGroupBy: string[];
 }
 
-@doc("MetricKeySummary contract.")
+@doc("One attribute key of a metric instrument's series.")
 model MetricKeySummary {
   key: string;
+  @doc("Distinct values the key holds across the instrument's series.")
   cardinality: int64;
-  @doc("False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded.")
-  @encodedName("application/json", "cardinality_exact")
-  cardinalityExact: boolean;
-  @encodedName("application/json", "top_values")
-  topValues: AttributeValueCount[];
-  @encodedName("application/json", "coverage_share")
-  coverageShare: float64;
+}
+
+@doc("One original point of a metric series, as the producer recorded it.")
+model MetricRawPoint {
+  @doc("When the point was recorded.")
+  time: utcDateTime;
+  @doc("Start of the interval the point covers, when the producer recorded one.")
+  @encodedName("application/json", "start_time")
+  startTime?: utcDateTime;
+  @doc("The original OTLP data: a number (an int64 is a tagged string that keeps every digit), a histogram, an exponential histogram or a summary; null when an older record did not retain it.")
+  data: MetricPointData | null;
+  @doc("Whether a different measurement was recorded at the same timestamp; each one is its own point.")
+  @encodedName("application/json", "has_conflict")
+  hasConflict: boolean;
+  @doc("The point's exemplars, when it has any.")
+  exemplars?: MetricRawExemplar[];
+}
+
+@doc("One exemplar of an original metric point: a sampled measurement and the span it came from.")
+model MetricRawExemplar {
+  time: utcDateTime;
+  value: MetricNumberValue;
+  @encodedName("application/json", "trace_id")
+  traceId?: TraceId;
+  @encodedName("application/json", "span_id")
+  spanId?: SpanId;
+  @doc("Attributes the exemplar carries beyond its series'.")
+  @encodedName("application/json", "filtered_attributes")
+  filteredAttributes?: Attribute[];
 }
 
 @doc("An earlier window: the selected one shifted back by `offset_ms`.")

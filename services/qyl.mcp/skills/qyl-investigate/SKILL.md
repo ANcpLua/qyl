@@ -39,7 +39,7 @@ saved queries and failure status in that project, never the telemetry.
 | How MCP tools and servers perform | `get_mcp_stats` | `list_traces` filtered to the failing tool |
 | What an agent run did | `list_sessions` (`active_only` for live runs) | `get_agent_run` with the `session_id` |
 | What the logs say | `search_logs` with `trace_id` or `service_name` and `severity_min` 17 for errors | `get_trace` for the spans around a log |
-| What a metric shows | `list_metrics` | `query_metric` with the instrument's name; `get_metric_series` only to choose filters |
+| What a metric shows | `list_metrics` | `query_metric` with the instrument's name and its `suggested_group_by` |
 | What a CI run did | `ci_log` | `ci_log` with the `run_id` for its phases in start order, each with its status |
 
 ## Defaults, so you do not have to choose
@@ -71,9 +71,9 @@ saved queries and failure status in that project, never the telemetry.
 - **Metrics.** Two calls answer a metric question: `list_metrics` names the
   instrument, `query_metric` measures it. Without `step_ms` it splits the
   window into at most 60 buckets, lists only the buckets that hold points
-  and gives each series one `value` for the whole window.
-  `get_metric_series` is only for choosing attribute filters or reading
-  original points.
+  and gives each series one `value` for the whole window. `list_metrics`
+  shows each instrument's attribute keys and the ones to group by;
+  `query_metric` with `raw` reads one series' original points.
 - **Filters.** `matchers` take `key`, `op` (`eq`, `neq`, `in`, `prefix`,
   `contains`, `exists`, `gt`, `gte`, `lt`, `lte`) and `value` or `values`;
   `discover_attributes` lists which keys and values exist before you filter.
@@ -101,8 +101,8 @@ saved queries and failure status in that project, never the telemetry.
   rests on part of the data. Say which part.
 - `check_telemetry_health.metric_conflicts` lists metric timestamps that
   hold contradicting measurements. `query_metric` refuses a window that
-  holds one with a `conflict` error: narrow the window or choose another
-  `series_id`.
+  holds one with a `conflict` error: narrow the window, choose another
+  `series_id`, or read the points with `raw`.
 
 ## Record and reuse (only when asked)
 

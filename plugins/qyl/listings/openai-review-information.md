@@ -25,7 +25,7 @@ Read operations carry `readOnlyHint: true`:
 
 - Failure investigation: `triage`, `get_failure_context`, `verify_fix`.
 - Execution records: `list_traces`, `get_trace`, `list_sessions`, `get_agent_run`, `ci_log`.
-- Logs and metrics: `search_logs`, `list_metrics`, `get_metric_series`, `query_metric`.
+- Logs and metrics: `search_logs`, `list_metrics`, `query_metric`.
 - Comparisons and discovery: `aggregate_telemetry`, `compare_groups`, `compare_traces`, `discover_attributes`.
 - Operational context: `list_releases`, `get_service_map`, `check_telemetry_health`, `get_mcp_stats`.
 - Saved questions: `list_saved_queries`, `run_saved_query`.
@@ -63,7 +63,7 @@ Demo recording: https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-rev
 
 The reviewer rehearsal used the real hosted server and ChatGPT Work. Native connector readbacks also verified the sample data and annotation cleanup. The initial development connection needed **Refresh tools** after OAuth sign-in; a new conversation then returned the seeded results. ChatGPT Work exposes user-visible results but not raw tool arguments in its activity panel, so the evidence does not claim an argument-by-argument trace.
 
-In 17.0.1, `get_mcp_stats` does not yet receive hosted tool-call telemetry; a zero count does not establish that no calls occurred. It is excluded from the demo and review cases. The engine owner is separately correcting histogram-rate and cumulative-predecessor comparison cases. Original data remains inspectable through `get_metric_series`; do not treat the affected aggregate calculations as verified.
+In 17.0.1, `get_mcp_stats` does not yet receive hosted tool-call telemetry; a zero count does not establish that no calls occurred. It is excluded from the demo and review cases. The engine owner is separately correcting histogram-rate and cumulative-predecessor comparison cases. Original data remains inspectable through `query_metric` with `raw`; do not treat the affected aggregate calculations as verified.
 
 A missing record, unsupported aggregation or insufficient evidence must be reported as such. Neither an empty result nor a pending `verify_fix` verdict establishes that a fix succeeded.
 

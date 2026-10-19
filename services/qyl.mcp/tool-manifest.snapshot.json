@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:f66519a90d36dfc1",
+  "contract_revision": "sha256:05a42ecb208fca2a",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -2510,166 +2510,6 @@
       }
     },
     {
-      "name": "get_metric_series",
-      "title": "Get Metric Series",
-      "description": "Discover metric streams and attribute cardinality when choosing filters, or select series_id to page complete original points with points_cursor. Oversized individual points remain available through the HTTP points API.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "required": [
-          "metric_name"
-        ],
-        "properties": {
-          "lookback_minutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "series_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Select one exact series and include its first page of original points. Omitted, list series metadata only. Original points are never compacted; a point exceeding the MCP response budget returns response_too_large and remains available through the HTTP points API."
-          },
-          "points_cursor": {
-            "type": "string",
-            "description": "Continuation of the selected series' points page; requires series_id."
-          },
-          "points_limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1000,
-            "description": "Page size for original points from the selected series.",
-            "default": 100
-          },
-          "metric_name": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The instrument name, e.g. from list_metrics."
-          },
-          "matchers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "key",
-                "op"
-              ],
-              "properties": {
-                "key": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 256,
-                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                },
-                "op": {
-                  "type": "string",
-                  "enum": [
-                    "eq",
-                    "neq",
-                    "in",
-                    "prefix",
-                    "contains",
-                    "exists",
-                    "gt",
-                    "gte",
-                    "lt",
-                    "lte"
-                  ],
-                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ],
-                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ],
-                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                  },
-                  "minItems": 1,
-                  "maxItems": 256,
-                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                },
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "span",
-                    "resource",
-                    "log"
-                  ],
-                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                }
-              },
-              "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them.",
-              "additionalProperties": false
-            },
-            "maxItems": 32,
-            "description": "Attribute matchers a series must all satisfy; serialized to `attr` and `attr_prefix`."
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1000,
-            "description": "Series per page, 1 to 1000; default 200.",
-            "default": 200
-          },
-          "cursor": {
-            "type": "string",
-            "description": "`next_cursor` of a previous get_metric_series call with the same filters."
-          }
-        },
-        "description": "Lists the series (attribute combinations) of one metric instrument that recorded a point in the window, with each attribute key's cardinality and top values and suggested `group_by` keys; with `series_id`, one series and a page of its original points. Use it to choose query_metric's `group_by` and `matchers`, or for exact original values and exemplars; query_metric aggregates the values over time. Default: the last 60 minutes, 200 series per page.",
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "get_service_map",
       "title": "Get Service Map",
       "description": "Return service dependencies and their traffic, error rates and latency when investigating calls between services.",
@@ -2922,7 +2762,7 @@
     {
       "name": "list_metrics",
       "title": "List Metrics",
-      "description": "List instruments and their units, kinds and aggregation support when choosing a metric.",
+      "description": "List instruments with their units, kinds, aggregation support and attribute keys when choosing a metric and how to split it.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3078,7 +2918,7 @@
             "description": "`next_cursor` of a previous list_metrics call with the same filters."
           }
         },
-        "description": "Lists the recorded metric instruments, one compact row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts and whether its descriptors conflict. Start a metric question here; get_metric_series shows one instrument's series and attribute keys, and query_metric computes its values over time. Default: 50 instruments per page, ordered by name.",
+        "description": "Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.",
         "additionalProperties": false
       }
     },
@@ -3777,7 +3617,7 @@
     {
       "name": "query_metric",
       "title": "Query Metric",
-      "description": "Query float64 metric projections, counter changes or ratios when measuring trends across a time window. Use get_metric_series with series_id for original numeric values, buckets and exemplars.",
+      "description": "Query float64 metric projections, counter changes or ratios when measuring trends across a time window, or with raw one series' original values, buckets and exemplars.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3993,7 +3833,15 @@
           "series_id": {
             "type": "string",
             "minLength": 1,
-            "description": "Select one exact metric series; disambiguates scopes and conflicting instrument descriptors."
+            "description": "Select one exact metric series; disambiguates scopes and conflicting instrument descriptors. A conflict error and a `raw` read that matches several series name their series ids."
+          },
+          "raw": {
+            "type": "boolean",
+            "description": "Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `compare_to` and `ratio_of` do not apply."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "With `raw`, the `next_cursor` of the previous page of the same series."
           },
           "group_by": {
             "type": "array",
@@ -4084,15 +3932,15 @@
             "maxItems": 32,
             "description": "Attribute matchers a series must all satisfy; serialized to `attr` and `attr_prefix`."
           },
-          "series_limit": {
+          "limit": {
             "type": "integer",
             "minimum": 1,
             "maximum": 500,
-            "description": "Maximum result series, 1 to 500; default 50. `truncated` reports that more existed.",
+            "description": "Result series per answer, 1 to 500, default 50, and `coverage.truncated` reports that more existed; with `raw`, original points per page.",
             "default": 50
           }
         },
-        "description": "Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.",
+        "description": "Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.",
         "additionalProperties": false
       }
     },

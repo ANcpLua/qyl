@@ -54,42 +54,56 @@ internal static partial class CollectorEndpointExtensions
         };
     }
 
-    private static async Task<JsonObject> SelectedMetricSeriesAsync(JsonObject input, IQylStore store, string project,
+    // A raw read selects among at most this many series; more of them is a request to narrow the matchers.
+    private const int RawSeriesCandidates = 20;
+
+    // query_metric with raw: one series' original points, a page at a time. The signed cursor fixes the window and
+    // the series, so a continuation never pages another one.
+    private static async Task<JsonObject> RawMetricPointsAsync(JsonObject input, IQylStore store, string project,
         AnalysisHandles handles, DateTimeOffset now, CancellationToken ct)
     {
-        if (J.String(input, "cursor") is not null)
-            throw new AnalysisInputException("cursor", "Use points_cursor when selecting one series.", "cursor.invalid");
         AnalysisMatchers.Validate(input["matchers"]);
+        var name = J.String(input, "metric_name")!;
+        var seriesId = J.String(input, "series_id");
         var window = AnalysisWindow.Resolve(input, now);
         string? pointCursor = null;
-        if (J.String(input, "points_cursor") is { } continuation)
+        if (J.String(input, "cursor") is { } continuation)
         {
             var saved = handles.Read(continuation, project, "metric-points");
-            if (J.String(saved, "metric_name") != J.String(input, "metric_name") || J.String(saved, "series_id") != J.String(input, "series_id"))
-                throw new AnalysisInputException("points_cursor", "The point cursor belongs to another series.", "cursor.invalid");
+            if (J.String(saved, "metric_name") != name || seriesId is not null && J.String(saved, "series_id") != seriesId)
+                throw new AnalysisInputException("cursor", "The cursor continues another series' points.", "cursor.invalid");
             window = AnalysisWindow.Resolve(saved["window"]!.AsObject(), now);
+            seriesId = J.String(saved, "series_id");
             pointCursor = J.String(saved, "cursor");
         }
-        var name = J.String(input, "metric_name")!;
-        var id = J.String(input, "series_id")!;
-        var series = (await store.ListMetricSeriesAsync(project, name, [], 1, seriesId: id, ct: ct)).SingleOrDefault();
-        if (series is not null && !AnalysisMatchers.Match(AnalysisEngine.SeriesRecord(series), input["matchers"])) series = null;
-        var page = series is null ? new CursorPageMetricPoint { Items = [], HasMore = false }
-            : await ReadMetricPointPageAsync(store, series, project,
-                new ParsedMetricPointParameters(window.Start, window.End,
-                    input["points_limit"]?.GetValue<int>(), pointCursor), ct);
-        if (page.NextCursor is { } next)
-            page = new CursorPageMetricPoint
-            {
-                Items = page.Items, HasMore = page.HasMore,
-                NextCursor = handles.Issue(project, "metric-points", J.O(("window", window.Json),
-                    ("metric_name", name), ("series_id", id), ("cursor", next)))
-            };
-        var items = new JsonArray();
-        if (series is not null) items.Add(JsonSerializer.SerializeToNode(MetricMapper.ToContract(series), QylSerializerContext.Default.MetricSeries));
-        return J.O(("items", items), ("has_more", false),
-            ("points", JsonSerializer.SerializeToNode(page, QylSerializerContext.Default.CursorPageMetricPoint)),
+        var candidates = (await store.ListMetricSeriesAsync(project, name, [], 1000, seriesId: seriesId, ct: ct))
+            .Where(s => AnalysisMatchers.Match(AnalysisEngine.SeriesRecord(s), input["matchers"])).Take(RawSeriesCandidates + 1).ToList();
+        if (candidates.Count is 0)
+            throw seriesId is not null
+                ? new AnalysisInputException("series_id", $"Series {seriesId} of metric {name} was not found in this project; query_metric without raw lists the metric's values per group_by.", "series.not_found") { Missing = seriesId }
+                : new AnalysisInputException("metric_name", $"Metric {name} has no series in this project that the matchers select; list_metrics lists the recorded metrics and their attribute keys.", "metric.not_found") { Missing = name };
+        if (candidates.Count > 1)
+            throw new AnalysisInputException("series_id", $"{(candidates.Count > RawSeriesCandidates ? "More than " + RawSeriesCandidates : candidates.Count.ToString(CultureInfo.InvariantCulture))} series of {name} match; raw reads one: pass one of their series_id values, or matchers that select one series.", "series_id.ambiguous")
+                { Allowed = [.. candidates.Take(RawSeriesCandidates).Select(static s => s.SeriesId)], Hint = "query_metric with group_by shows how the series differ." };
+        var series = candidates[0];
+        var page = await ReadMetricPointPageAsync(store, series, project,
+            new ParsedMetricPointParameters(window.Start, window.End, (int)J.Number(input, "limit", Api.Contracts.Mcp.Tools.QueryMetricInput.LimitDefault), pointCursor), ct);
+        return J.O(("name", name), ("kind", AnalysisEngine.MetricKind(series.MetricKind)), ("unit", series.Unit),
+            ("series_id", series.SeriesId), ("attributes", AnalysisEngine.ContractAttributes(AnalysisEngine.SeriesRecord(series).Attributes)),
+            ("points", J.A(page.Items.Select(RawPoint))), ("has_more", page.HasMore),
+            ("next_cursor", page.NextCursor is { } next ? handles.Issue(project, "metric-points", J.O(("window", window.Json), ("metric_name", name), ("series_id", series.SeriesId), ("cursor", next))) : null),
             ("window", window.Json), ("coverage", J.O(("examined", page.Items.Count), ("matched", page.HasMore ? null : (int?)page.Items.Count),
-                ("returned", page.Items.Count), ("truncated", page.HasMore), ("scan_complete", !page.HasMore), ("as_of", window.End.ToString("O")))));
+                ("returned", page.Items.Count), ("truncated", page.HasMore), ("scan_complete", true), ("as_of", window.End.ToString("O")))));
+    }
+
+    // An original point with RFC 3339 times; the series' attributes are on the answer, not on every point.
+    private static JsonObject RawPoint(Api.Contracts.OTel.Metrics.MetricPoint point)
+    {
+        var json = JsonSerializer.SerializeToNode(point, QylSerializerContext.Default.MetricPoint)!.AsObject();
+        var exemplars = (json["exemplars"] as JsonArray ?? []).OfType<JsonObject>().Zip(point.Exemplars ?? []).Select(static pair => J.O(
+            ("time", J.Time(pair.Second.TimeUnixNano)), ("value", pair.First["value"]), ("trace_id", pair.Second.TraceId), ("span_id", pair.Second.SpanId),
+            ("filtered_attributes", pair.Second.FilteredAttributes.Count > 0 ? pair.First["filtered_attributes"] : null))).ToList();
+        return J.O(("time", J.Time(point.TimeUnixNano)), ("start_time", point.StartTimeUnixNano is { } start ? J.Time(start) : null), ("data", json["data"]),
+            ("has_conflict", point.HasConflict), ("exemplars", exemplars.Count > 0 ? J.A(exemplars) : null));
     }
 }

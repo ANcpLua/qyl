@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
-import type { MetricPoint } from "./contracts/generated/api.js";
+import type { MetricRawPoint } from "./contracts/generated/api.js";
 import { queryAnalysis } from "./analysis-client.js";
 import { ANALYSIS_RESPONSE_BYTES, responseBytes } from "./analysis-budget.js";
 import { analysisHeadline } from "./analysis-summary.js";
@@ -10,7 +10,7 @@ import { readContext } from "./analysis-context.test-helper.js";
 const metricName = "worker.queue.depth";
 const seriesId = "exact-meter-series";
 const window = readContext().window;
-const schema = "Mcp.Tools.GetMetricSeriesOutput";
+const schema = "Mcp.Tools.QueryMetricOutput";
 
 function environment(context: TestContext): void {
   const keys = ["MCP_COLLECTOR_PROJECTS", "QYL_API_KEY", "QYL_PROJECT", "QYL_COLLECTOR_URL"];
@@ -23,64 +23,51 @@ function environment(context: TestContext): void {
   }));
 }
 
-function point(index: number): MetricPoint {
+function point(index: number): MetricRawPoint {
   return {
-    observation_id: `observation-${index}`,
-    series_id: seriesId,
+    time: new Date(Date.parse(window.start_time) + index).toISOString(),
     has_conflict: false,
-    time_unix_nano: (1_760_264_000_000_000_000n + BigInt(index)).toString(),
-    attributes: [{ key: "worker.queue", value: "primary" }],
-    flags: 0,
     data: { type: "number", value: { type: "int", value: "9007199254740993" } },
-    exemplars: [],
   };
 }
 
-function output(points: MetricPoint[], hasMore = false) {
+function output(points: MetricRawPoint[], hasMore = false) {
   return {
-    ...readContext(1),
-    items: [{
-      series_id: seriesId, name: metricName,
-      kind: points[0]?.data?.type === "exponential_histogram" ? "exponential_histogram" : "gauge",
-      attributes: [],
-      first_seen: window.start_time, last_seen: window.end_time,
-    }],
-    points: {
-      items: points, has_more: hasMore,
-      ...(hasMore ? { next_cursor: `signed-points-after-${points.length}` } : {}),
-    },
+    ...readContext(1), name: metricName,
+    kind: points[0]?.data?.type === "exponential_histogram" ? "exponential_histogram" : "gauge",
+    series_id: seriesId, attributes: [{ key: "worker.queue", value: "primary" }], points, has_more: hasMore,
+    ...(hasMore ? { next_cursor: `signed-points-after-${points.length}` } : {}),
   };
 }
 
-test("original-point budget re-queries points_limit and preserves the signed point continuation", async context => {
+test("an original-point page over the budget is re-queried with a smaller limit and keeps its signed continuation", async context => {
   environment(context);
   const queries: Array<Record<string, unknown>> = [];
-  const points = Array.from({ length: 100 }, (_, index) => point(index));
+  const points = Array.from({ length: 500 }, (_, index) => point(index));
   const before = structuredClone(points);
   context.mock.method(globalThis, "fetch", async (_: unknown, init?: RequestInit) => {
     assert.equal(typeof init?.body, "string");
     const input = JSON.parse(init?.body as string) as Record<string, unknown>;
     queries.push(input);
-    return Response.json(output(points.slice(0, Number(input.points_limit)), true));
+    return Response.json(output(points.slice(0, Number(input.limit)), true));
   });
-  const result = await queryAnalysis("get_metric_series", {
-    metric_name: metricName, series_id: seriesId, points_limit: 100,
-    points_cursor: "signed-current-page", lookback_minutes: 60,
+  const result = await queryAnalysis("query_metric", {
+    metric_name: metricName, raw: true, limit: 500,
+    cursor: "signed-current-page", lookback_minutes: 60,
     matchers: [{ key: "worker.queue", op: "eq", value: "primary" }],
   }, schema, { collector: {}, step: async () => {} });
   assert.equal(queries.length, 2);
   const next = queries[1]!;
-  assert(Number(next.points_limit) < 100);
-  assert.equal(next.limit, undefined, "metadata limit cannot page original points");
+  assert(Number(next.limit) < 500);
   assert.equal(next.metric_name, metricName);
-  assert.equal(next.series_id, seriesId);
-  assert.equal(next.points_cursor, "signed-current-page");
+  assert.equal(next.raw, true);
+  assert.equal(next.cursor, "signed-current-page");
   assert.equal(next.start_time, window.start_time);
   assert.equal(next.end_time, window.end_time);
   assert.deepEqual(next.matchers, queries[0]?.matchers);
-  assert.deepEqual(result.structuredContent, output(points.slice(0, Number(next.points_limit)), true));
+  assert.deepEqual(result.structuredContent, output(points.slice(0, Number(next.limit)), true));
   assert(responseBytes(result) <= ANALYSIS_RESPONSE_BYTES);
-  assert.match(JSON.stringify(result.content), /points_cursor/u);
+  assert.match(JSON.stringify(result.content), /next_cursor as cursor/u);
   assert.deepEqual(points, before);
 });
 
@@ -99,8 +86,8 @@ test("one original point over the MCP budget fails explicitly without trimming i
     requests++;
     return Response.json(page);
   });
-  await assert.rejects(queryAnalysis("get_metric_series", {
-    metric_name: metricName, series_id: seriesId, points_limit: 1,
+  await assert.rejects(queryAnalysis("query_metric", {
+    metric_name: metricName, series_id: seriesId, raw: true, limit: 1,
   }, schema, { collector: {}, step: async () => {} }), error => {
     assert(error instanceof CollectorError);
     assert.equal(error.code, "response_too_large");
@@ -112,13 +99,11 @@ test("one original point over the MCP budget fails explicitly without trimming i
   assert.deepEqual(page, before);
 });
 
-test("point summaries identify historically unknown originals and the independent point continuation", () => {
+test("a raw headline counts historically unknown originals and names the point continuation", () => {
   const old = point(0);
   old.data = null;
-  old.projection = { value: 9007199254740992 };
-  const text = analysisHeadline("get_metric_series", { metric_name: metricName, series_id: seriesId }, output([point(1), old], true));
-  assert.match(text, new RegExp(`^get_metric_series: 2 original points of series ${seriesId}, 1 with an unknown original representation\\.`, "u"));
-  assert.match(text, /points\.next_cursor as points_cursor/u);
-  assert.doesNotMatch(text, /repeat with next_cursor/u);
+  const text = analysisHeadline("query_metric", { metric_name: metricName, raw: true }, output([point(1), old], true));
+  assert.match(text, new RegExp(`^query_metric: 2 original points of ${metricName} series ${seriesId} \\(worker\\.queue=primary\\), 1 with an unknown original representation\\.`, "u"));
+  assert.match(text, /More points: repeat with next_cursor as cursor\./u);
   assert.doesNotMatch(text, /\n/u);
 });

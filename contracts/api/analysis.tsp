@@ -97,11 +97,6 @@ interface AnalysisApi {
   @route("/list_metrics")
   @operationId("analysis_list_metrics")
   list_metrics(...ProjectScopeHeader, @body request: ListMetricsInput): ListMetricsOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
-  @doc("Read get_metric_series evidence in the authenticated project without changing telemetry or user resources.")
-  @post
-  @route("/get_metric_series")
-  @operationId("analysis_get_metric_series")
-  get_metric_series(...ProjectScopeHeader, @body request: GetMetricSeriesInput): GetMetricSeriesOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
   @doc("Read query_metric evidence in the authenticated project without changing telemetry or user resources.")
   @post
   @route("/query_metric")

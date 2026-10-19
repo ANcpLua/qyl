@@ -1729,7 +1729,7 @@
             }
           }
         },
-        "description": "Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, get_metric_series with the series_id returns every observation, and query_metric refuses a window that holds one.",
+        "description": "Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, query_metric with `raw` and the series_id returns every observation, and query_metric refuses to aggregate a window that holds one.",
         "additionalProperties": false
       },
       "semconv_gaps": {
@@ -9009,1617 +9009,6 @@
     "description": "MCP traffic of the window, computed by the Collector from the recorded MCP spans that match the filters: totals, the `group_by` groups, failure classes, time buckets, per-tool statistics and simultaneous server, transport and method breakdowns.",
     "additionalProperties": false
   },
-  "Mcp.Tools.GetMetricSeriesInput": {
-    "type": "object",
-    "required": [
-      "metric_name"
-    ],
-    "properties": {
-      "lookback_minutes": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 43200,
-        "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-      },
-      "start_time": {
-        "type": "string",
-        "format": "date-time",
-        "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-      },
-      "end_time": {
-        "type": "string",
-        "format": "date-time",
-        "description": "End of the window (exclusive), RFC 3339; default now."
-      },
-      "series_id": {
-        "type": "string",
-        "minLength": 1,
-        "description": "Select one exact series and include its first page of original points. Omitted, list series metadata only. Original points are never compacted; a point exceeding the MCP response budget returns response_too_large and remains available through the HTTP points API."
-      },
-      "points_cursor": {
-        "type": "string",
-        "description": "Continuation of the selected series' points page; requires series_id."
-      },
-      "points_limit": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 1000,
-        "description": "Page size for original points from the selected series.",
-        "default": 100
-      },
-      "metric_name": {
-        "type": "string",
-        "minLength": 1,
-        "description": "The instrument name, e.g. from list_metrics."
-      },
-      "matchers": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "key",
-            "op"
-          ],
-          "properties": {
-            "key": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256,
-              "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-            },
-            "op": {
-              "type": "string",
-              "enum": [
-                "eq",
-                "neq",
-                "in",
-                "prefix",
-                "contains",
-                "exists",
-                "gt",
-                "gte",
-                "lt",
-                "lte"
-              ],
-              "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-            },
-            "value": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ],
-              "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-            },
-            "values": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "boolean"
-                  }
-                ],
-                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-              },
-              "minItems": 1,
-              "maxItems": 256,
-              "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-            },
-            "scope": {
-              "type": "string",
-              "enum": [
-                "span",
-                "resource",
-                "log"
-              ],
-              "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-            }
-          },
-          "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them.",
-          "additionalProperties": false
-        },
-        "maxItems": 32,
-        "description": "Attribute matchers a series must all satisfy; serialized to `attr` and `attr_prefix`."
-      },
-      "limit": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 1000,
-        "description": "Series per page, 1 to 1000; default 200.",
-        "default": 200
-      },
-      "cursor": {
-        "type": "string",
-        "description": "`next_cursor` of a previous get_metric_series call with the same filters."
-      }
-    },
-    "description": "Lists the series (attribute combinations) of one metric instrument that recorded a point in the window, with each attribute key's cardinality and top values and suggested `group_by` keys; with `series_id`, one series and a page of its original points. Use it to choose query_metric's `group_by` and `matchers`, or for exact original values and exemplars; query_metric aggregates the values over time. Default: the last 60 minutes, 200 series per page.",
-    "additionalProperties": false
-  },
-  "Mcp.Tools.GetMetricSeriesOutput": {
-    "type": "object",
-    "required": [
-      "window",
-      "coverage",
-      "items",
-      "has_more"
-    ],
-    "properties": {
-      "points": {
-        "type": "object",
-        "required": [
-          "items",
-          "has_more"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "observation_id",
-                "has_conflict",
-                "series_id",
-                "time_unix_nano",
-                "attributes",
-                "data"
-              ],
-              "properties": {
-                "observation_id": {
-                  "type": "string",
-                  "description": "Stable identifier of this original observation. Identical export retries retain the same identity."
-                },
-                "has_conflict": {
-                  "type": "boolean",
-                  "description": "Whether a different measurement was recorded at the same series timestamp. Exemplar or metadata enrichment alone is not a measurement conflict."
-                },
-                "series_id": {
-                  "type": "string"
-                },
-                "time_unix_nano": {
-                  "type": "string",
-                  "description": "Unsigned Unix timestamp in nanoseconds since epoch, encoded as a decimal string",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
-                },
-                "start_time_unix_nano": {
-                  "type": "string",
-                  "description": "Start timestamp when known; an omitted start is never replaced with an invented interval.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
-                },
-                "flags": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 4294967295,
-                  "description": "The complete unsigned 32-bit OTLP flags field, including protocol bits unknown to this API revision."
-                },
-                "attributes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "key",
-                      "value"
-                    ],
-                    "properties": {
-                      "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256,
-                        "description": "Attribute key (dot-separated namespace)"
-                      },
-                      "value": {
-                        "$ref": "#/$defs/Common.AttributeValue",
-                        "description": "Attribute value"
-                      }
-                    },
-                    "description": "Key-value attribute pair following OTel conventions",
-                    "additionalProperties": false
-                  }
-                },
-                "data": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "oneOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "type"
-                          ],
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "number"
-                              ]
-                            },
-                            "value": {
-                              "type": "object",
-                              "oneOf": [
-                                {
-                                  "type": "object",
-                                  "required": [
-                                    "type",
-                                    "value"
-                                  ],
-                                  "properties": {
-                                    "type": {
-                                      "type": "string",
-                                      "enum": [
-                                        "int"
-                                      ]
-                                    },
-                                    "value": {
-                                      "type": "string",
-                                      "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
-                                      "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
-                                      "maxLength": 20
-                                    }
-                                  },
-                                  "description": "Tagged OTLP signed 64-bit integer attribute.",
-                                  "additionalProperties": false
-                                },
-                                {
-                                  "type": "object",
-                                  "required": [
-                                    "type",
-                                    "value"
-                                  ],
-                                  "properties": {
-                                    "type": {
-                                      "type": "string",
-                                      "enum": [
-                                        "double"
-                                      ]
-                                    },
-                                    "value": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "NaN",
-                                            "Infinity",
-                                            "-Infinity"
-                                          ]
-                                        }
-                                      ],
-                                      "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                                    }
-                                  },
-                                  "description": "Tagged OTLP double attribute.",
-                                  "additionalProperties": false
-                                }
-                              ],
-                              "description": "A numeric OTLP value. Integers preserve all signed 64 bits; doubles retain named non-finite values."
-                            }
-                          },
-                          "description": "The numeric oneof of a gauge or sum point.",
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "type",
-                            "count",
-                            "explicit_bounds",
-                            "bucket_counts"
-                          ],
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "histogram"
-                              ]
-                            },
-                            "count": {
-                              "type": "string",
-                              "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                              "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                              "maxLength": 20
-                            },
-                            "sum": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "min": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "max": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "explicit_bounds": {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "NaN",
-                                      "Infinity",
-                                      "-Infinity"
-                                    ]
-                                  }
-                                ],
-                                "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                              }
-                            },
-                            "bucket_counts": {
-                              "type": "array",
-                              "items": {
-                                "type": "string",
-                                "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                                "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                                "maxLength": 20
-                              }
-                            }
-                          },
-                          "description": "An original explicit histogram, before any query projection or interpolation.",
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "type",
-                            "count",
-                            "scale",
-                            "zero_count",
-                            "zero_threshold"
-                          ],
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "exponential_histogram"
-                              ]
-                            },
-                            "count": {
-                              "type": "string",
-                              "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                              "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                              "maxLength": 20
-                            },
-                            "sum": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "min": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "max": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "scale": {
-                              "type": "integer",
-                              "minimum": -2147483648,
-                              "maximum": 2147483647
-                            },
-                            "zero_count": {
-                              "type": "string",
-                              "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                              "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                              "maxLength": 20
-                            },
-                            "zero_threshold": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "positive": {
-                              "type": "object",
-                              "required": [
-                                "offset",
-                                "bucket_counts"
-                              ],
-                              "properties": {
-                                "offset": {
-                                  "type": "integer",
-                                  "minimum": -2147483648,
-                                  "maximum": 2147483647
-                                },
-                                "bucket_counts": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string",
-                                    "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                                    "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                                    "maxLength": 20
-                                  }
-                                }
-                              },
-                              "description": "Native exponential-histogram buckets. Each count corresponds to offset plus its array index.",
-                              "additionalProperties": false
-                            },
-                            "negative": {
-                              "type": "object",
-                              "required": [
-                                "offset",
-                                "bucket_counts"
-                              ],
-                              "properties": {
-                                "offset": {
-                                  "type": "integer",
-                                  "minimum": -2147483648,
-                                  "maximum": 2147483647
-                                },
-                                "bucket_counts": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string",
-                                    "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                                    "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                                    "maxLength": 20
-                                  }
-                                }
-                              },
-                              "description": "Native exponential-histogram buckets. Each count corresponds to offset plus its array index.",
-                              "additionalProperties": false
-                            }
-                          },
-                          "description": "An original exponential histogram. Its native scale and buckets are never reconstructed from explicit bounds.",
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "type",
-                            "count",
-                            "sum",
-                            "quantile_values"
-                          ],
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "summary"
-                              ]
-                            },
-                            "count": {
-                              "type": "string",
-                              "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                              "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                              "maxLength": 20
-                            },
-                            "sum": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "string",
-                                  "enum": [
-                                    "NaN",
-                                    "Infinity",
-                                    "-Infinity"
-                                  ]
-                                }
-                              ],
-                              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                            },
-                            "quantile_values": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "required": [
-                                  "quantile",
-                                  "value"
-                                ],
-                                "properties": {
-                                  "quantile": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1
-                                  },
-                                  "value": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "NaN",
-                                          "Infinity",
-                                          "-Infinity"
-                                        ]
-                                      }
-                                    ],
-                                    "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                                  }
-                                },
-                                "description": "An original summary quantile and its producer-supplied estimate.",
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "description": "An original OTLP summary. Query reducers must explicitly support summaries rather than invent histogram buckets.",
-                          "additionalProperties": false
-                        }
-                      ],
-                      "description": "The original typed OTLP point data, independent of the collector's derived aggregate columns."
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "exemplars": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "time_unix_nano",
-                      "value",
-                      "filtered_attributes"
-                    ],
-                    "properties": {
-                      "time_unix_nano": {
-                        "type": "string",
-                        "description": "Unsigned Unix timestamp in nanoseconds since epoch, encoded as a decimal string",
-                        "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                        "maxLength": 20
-                      },
-                      "value": {
-                        "type": "object",
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "int"
-                                ]
-                              },
-                              "value": {
-                                "type": "string",
-                                "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
-                                "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
-                                "maxLength": 20
-                              }
-                            },
-                            "description": "Tagged OTLP signed 64-bit integer attribute.",
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "value"
-                            ],
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "double"
-                                ]
-                              },
-                              "value": {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "NaN",
-                                      "Infinity",
-                                      "-Infinity"
-                                    ]
-                                  }
-                                ],
-                                "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                              }
-                            },
-                            "description": "Tagged OTLP double attribute.",
-                            "additionalProperties": false
-                          }
-                        ],
-                        "description": "A numeric OTLP value. Integers preserve all signed 64 bits; doubles retain named non-finite values."
-                      },
-                      "filtered_attributes": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": [
-                            "key",
-                            "value"
-                          ],
-                          "properties": {
-                            "key": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 256,
-                              "description": "Attribute key (dot-separated namespace)"
-                            },
-                            "value": {
-                              "$ref": "#/$defs/Common.AttributeValue",
-                              "description": "Attribute value"
-                            }
-                          },
-                          "description": "Key-value attribute pair following OTel conventions",
-                          "additionalProperties": false
-                        }
-                      },
-                      "trace_id": {
-                        "type": "string",
-                        "minLength": 32,
-                        "maxLength": 32,
-                        "pattern": "^[a-f0-9]{32}$",
-                        "description": "Unique trace identifier (32 lowercase hex characters)",
-                        "examples": [
-                          "0af7651916cd43dd8448eb211c80319c"
-                        ]
-                      },
-                      "span_id": {
-                        "type": "string",
-                        "minLength": 16,
-                        "maxLength": 16,
-                        "pattern": "^[a-f0-9]{16}$",
-                        "description": "Unique span identifier (16 lowercase hex characters)",
-                        "examples": [
-                          "b7ad6b7169203331"
-                        ]
-                      }
-                    },
-                    "description": "One original metric exemplar, in producer order.",
-                    "additionalProperties": false
-                  }
-                },
-                "historical_exemplar_trace_ids": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 32,
-                    "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
-                    "description": "Unique trace identifier (32 lowercase hex characters)",
-                    "examples": [
-                      "0af7651916cd43dd8448eb211c80319c"
-                    ]
-                  },
-                  "description": "Trace links retained by an older collector that did not record complete exemplars. These do not claim a known exemplar value, timestamp, span or attributes."
-                },
-                "instrument_metadata": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "key",
-                      "value"
-                    ],
-                    "properties": {
-                      "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256,
-                        "description": "Attribute key (dot-separated namespace)"
-                      },
-                      "value": {
-                        "$ref": "#/$defs/Common.AttributeValue",
-                        "description": "Attribute value"
-                      }
-                    },
-                    "description": "Key-value attribute pair following OTel conventions",
-                    "additionalProperties": false
-                  },
-                  "description": "Original non-identifying instrument metadata attached to this point's export."
-                },
-                "resource_dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Resource attribute drop count from this observation's export; absent on historical records that did not retain it."
-                },
-                "scope_dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Instrumentation scope attribute drop count from this observation's export; absent on historical records that did not retain it."
-                },
-                "projection": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "NaN",
-                            "Infinity",
-                            "-Infinity"
-                          ]
-                        }
-                      ],
-                      "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                    },
-                    "count": {
-                      "type": "string",
-                      "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                      "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                      "maxLength": 20
-                    },
-                    "sum": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "NaN",
-                            "Infinity",
-                            "-Infinity"
-                          ]
-                        }
-                      ],
-                      "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                    },
-                    "min": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "NaN",
-                            "Infinity",
-                            "-Infinity"
-                          ]
-                        }
-                      ],
-                      "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                    },
-                    "max": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "NaN",
-                            "Infinity",
-                            "-Infinity"
-                          ]
-                        }
-                      ],
-                      "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                    },
-                    "explicit_bounds": {
-                      "type": "array",
-                      "items": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "string",
-                            "enum": [
-                              "NaN",
-                              "Infinity",
-                              "-Infinity"
-                            ]
-                          }
-                        ],
-                        "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                      }
-                    },
-                    "bucket_counts": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
-                        "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                        "maxLength": 20
-                      }
-                    }
-                  },
-                  "description": "A derived, potentially approximate query projection. This is not the original OTLP point.",
-                  "additionalProperties": false
-                },
-                "projection_unavailable_reason": {
-                  "type": "string",
-                  "description": "Why this original point cannot be represented by the derived aggregate projection, when applicable."
-                }
-              },
-              "description": "A stored point from one exact metric series. Null data means an older record did\nnot retain the original representation; the collector does not invent it from\nnormalized values. Absent flags, exemplars or metadata mean historically unknown,\nwhile zero flags and an empty array are known producer values on new records.",
-              "additionalProperties": false
-            },
-            "description": "The items of this page."
-          },
-          "next_cursor": {
-            "type": "string",
-            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-          },
-          "has_more": {
-            "type": "boolean",
-            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-          }
-        },
-        "description": "Original points, present only when one exact series_id was selected. Continue with points_cursor.",
-        "additionalProperties": false
-      },
-      "keys": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "key",
-            "cardinality",
-            "cardinality_exact",
-            "top_values",
-            "coverage_share"
-          ],
-          "properties": {
-            "key": {
-              "type": "string"
-            },
-            "cardinality": {
-              "type": "integer"
-            },
-            "cardinality_exact": {
-              "type": "boolean",
-              "description": "False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded."
-            },
-            "top_values": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "value",
-                  "count",
-                  "share"
-                ],
-                "properties": {
-                  "value": {
-                    "$ref": "#/$defs/Common.AttributeValue",
-                    "description": "The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit."
-                  },
-                  "count": {
-                    "type": "integer"
-                  },
-                  "share": {
-                    "type": "number"
-                  }
-                },
-                "description": "AttributeValueCount contract.",
-                "additionalProperties": false
-              }
-            },
-            "coverage_share": {
-              "type": "number"
-            }
-          },
-          "description": "MetricKeySummary contract.",
-          "additionalProperties": false
-        }
-      },
-      "suggested_group_by": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      },
-      "window": {
-        "type": "object",
-        "required": [
-          "start_time",
-          "end_time"
-        ],
-        "properties": {
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339."
-          }
-        },
-        "description": "Absolute half-open window applied by the collector.",
-        "additionalProperties": false
-      },
-      "coverage": {
-        "type": "object",
-        "required": [
-          "examined",
-          "matched",
-          "returned",
-          "truncated",
-          "scan_complete",
-          "as_of"
-        ],
-        "properties": {
-          "examined": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "matched": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "returned": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "truncated": {
-            "type": "boolean"
-          },
-          "scan_complete": {
-            "type": "boolean"
-          },
-          "as_of": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
-        "additionalProperties": false
-      },
-      "page_totals": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "integer"
-        },
-        "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
-      },
-      "items": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "series_id",
-            "name",
-            "kind",
-            "attributes",
-            "first_seen",
-            "last_seen"
-          ],
-          "properties": {
-            "new": {
-              "type": "boolean"
-            },
-            "stale": {
-              "type": "boolean"
-            },
-            "series_id": {
-              "type": "string",
-              "description": "Stable identifier for this stream, derived from its instrument descriptor, attributes, resource and instrumentation scope."
-            },
-            "name": {
-              "type": "string",
-              "description": "Instrument name this series belongs to."
-            },
-            "kind": {
-              "type": "string",
-              "enum": [
-                "gauge",
-                "sum",
-                "histogram",
-                "exponential_histogram",
-                "summary"
-              ],
-              "description": "Shape of a stored metric stream."
-            },
-            "attributes": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "key",
-                  "value"
-                ],
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256,
-                    "description": "Attribute key (dot-separated namespace)"
-                  },
-                  "value": {
-                    "$ref": "#/$defs/Common.AttributeValue",
-                    "description": "Attribute value"
-                  }
-                },
-                "description": "Key-value attribute pair following OTel conventions",
-                "additionalProperties": false
-              },
-              "description": "The attributes that distinguish this series from others under the same name."
-            },
-            "service_name": {
-              "type": "string"
-            },
-            "resource": {
-              "type": "object",
-              "required": [
-                "service_name"
-              ],
-              "properties": {
-                "service_name": {
-                  "type": "string",
-                  "description": "Service name used by the Collector's service queries."
-                },
-                "attributes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "key",
-                      "value"
-                    ],
-                    "properties": {
-                      "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256,
-                        "description": "Attribute key (dot-separated namespace)"
-                      },
-                      "value": {
-                        "$ref": "#/$defs/Common.AttributeValue",
-                        "description": "Attribute value"
-                      }
-                    },
-                    "description": "Key-value attribute pair following OTel conventions",
-                    "additionalProperties": false
-                  },
-                  "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
-                },
-                "schema_url": {
-                  "type": "string",
-                  "description": "Resource schema URL supplied by the producer."
-                },
-                "dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Number of resource attributes dropped by the producer."
-                },
-                "entity_refs": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "id_keys"
-                    ],
-                    "properties": {
-                      "schema_url": {
-                        "type": "string",
-                        "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                      },
-                      "type": {
-                        "type": "string",
-                        "minLength": 1,
-                        "description": "Stable non-empty entity type, such as service or host."
-                      },
-                      "id_keys": {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                        },
-                        "minItems": 1,
-                        "description": "Non-empty set of Resource attribute keys that identify the entity."
-                      },
-                      "description_keys": {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                        },
-                        "description": "Resource attribute keys that describe but do not identify the entity."
-                      }
-                    },
-                    "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                    "additionalProperties": false
-                  },
-                  "description": "Entities participating in this resource, keyed by its attributes."
-                }
-              },
-              "description": "Resource that emitted this stream, with its attributes and schema URL.",
-              "additionalProperties": false
-            },
-            "instrumentation_scope": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Name of the instrumentation scope (library name)"
-                },
-                "version": {
-                  "type": "string",
-                  "description": "Version of the instrumentation scope"
-                },
-                "schema_url": {
-                  "type": "string",
-                  "description": "Scope schema URL supplied by the producer."
-                },
-                "attributes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "key",
-                      "value"
-                    ],
-                    "properties": {
-                      "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256,
-                        "description": "Attribute key (dot-separated namespace)"
-                      },
-                      "value": {
-                        "$ref": "#/$defs/Common.AttributeValue",
-                        "description": "Attribute value"
-                      }
-                    },
-                    "description": "Key-value attribute pair following OTel conventions",
-                    "additionalProperties": false
-                  },
-                  "description": "Additional attributes for the scope"
-                },
-                "dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Dropped attributes count"
-                }
-              },
-              "description": "Instrumentation scope that owns this instrument; distinct scopes never merge into one series.",
-              "additionalProperties": false
-            },
-            "unit": {
-              "type": "string"
-            },
-            "first_seen": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "last_seen": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          "description": "One distinct attribute stream recorded under a metric name.",
-          "additionalProperties": false
-        }
-      },
-      "has_more": {
-        "type": "boolean",
-        "description": "Whether more items exist beyond this page. False only when the result is complete; `next_cursor` is present exactly when this is true."
-      },
-      "next_cursor": {
-        "type": "string",
-        "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-      },
-      "error": {
-        "type": "object",
-        "required": [
-          "code",
-          "message",
-          "retryable"
-        ],
-        "properties": {
-          "fields": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "field",
-                "message",
-                "code"
-              ],
-              "properties": {
-                "field": {
-                  "type": "string",
-                  "description": "The field or parameter that failed validation."
-                },
-                "message": {
-                  "type": "string",
-                  "description": "What is wrong with it."
-                },
-                "code": {
-                  "type": "string",
-                  "description": "The validation rule that failed."
-                },
-                "rejected_value": {
-                  "type": "string",
-                  "description": "The rejected value, when it is safe to repeat."
-                },
-                "allowed": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "The values the field accepts, when they form a closed set."
-                },
-                "hint": {
-                  "type": "string",
-                  "description": "What to send instead."
-                }
-              },
-              "description": "One rule a request broke.",
-              "additionalProperties": false
-            },
-            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
-          },
-          "problem_type": {
-            "type": "string",
-            "enum": [
-              "https://qyl.at/problems/validation-failed",
-              "https://qyl.at/problems/unauthorized",
-              "https://qyl.at/problems/forbidden",
-              "https://qyl.at/problems/not-found",
-              "https://qyl.at/problems/conflict",
-              "https://qyl.at/problems/precondition-failed",
-              "https://qyl.at/problems/precondition-required",
-              "https://qyl.at/problems/internal-error",
-              "https://qyl.at/problems/service-unavailable"
-            ],
-            "description": "Problem type URI, the RFC 9457 `type` member: one per problem a qyl server\nreports. `code` names the same problem type."
-          },
-          "code": {
-            "type": "string",
-            "enum": [
-              "invalid_argument",
-              "not_found",
-              "no_project_access",
-              "collector_unreachable",
-              "collector_timeout",
-              "cancelled",
-              "collector_unauthorized",
-              "collector_rate_limited",
-              "collector_rejected",
-              "collector_error",
-              "contract_mismatch",
-              "collector_contract_mismatch",
-              "response_too_large",
-              "insufficient_scope",
-              "conflict",
-              "precondition_failed",
-              "precondition_required",
-              "internal"
-            ],
-            "description": "Stable failure code of a qyl MCP tool result. A model branches on the code, never on the message."
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable description of this failure."
-          },
-          "retryable": {
-            "type": "boolean",
-            "description": "Whether the same call can succeed when repeated unchanged."
-          },
-          "field": {
-            "type": "string",
-            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
-          },
-          "allowed": {
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
-            },
-            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
-          },
-          "hint": {
-            "type": "string",
-            "description": "The next step: what to change, or which tool returns the ids the call needs."
-          },
-          "resource_type": {
-            "type": "string",
-            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
-          },
-          "resource_id": {
-            "type": "string",
-            "description": "With not_found: the identifier that was not found."
-          },
-          "collector_contract_revision": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "With collector_contract_mismatch: the contract revision the Collector serves; null when its health names none."
-          },
-          "server_contract_revision": {
-            "type": "string",
-            "description": "With collector_contract_mismatch: the contract revision this MCP server was generated from."
-          }
-        },
-        "description": "Set when the call failed.",
-        "additionalProperties": false
-      }
-    },
-    "description": "Structured output for get_metric_series.",
-    "additionalProperties": false,
-    "$defs": {
-      "Common.AttributeKeyValueListValue": {
-        "type": "object",
-        "required": [
-          "type",
-          "values"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "kvlist"
-            ]
-          },
-          "values": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/$defs/Common.AttributeValue"
-            }
-          }
-        },
-        "description": "Tagged recursive OTLP key-value-list, distinct from other object-shaped attribute variants.",
-        "additionalProperties": false
-      },
-      "Common.AttributeObjectValue": {
-        "type": "object",
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "type",
-              "value"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "int"
-                ]
-              },
-              "value": {
-                "type": "string",
-                "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
-                "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
-                "maxLength": 20
-              }
-            },
-            "description": "Tagged OTLP signed 64-bit integer attribute.",
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "required": [
-              "type",
-              "value"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "double"
-                ]
-              },
-              "value": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "NaN",
-                      "Infinity",
-                      "-Infinity"
-                    ]
-                  }
-                ],
-                "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-              }
-            },
-            "description": "Tagged OTLP double attribute.",
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "required": [
-              "type",
-              "base64"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "bytes"
-                ]
-              },
-              "base64": {
-                "type": "string",
-                "contentEncoding": "base64"
-              }
-            },
-            "description": "Base64 bytes projected by qyl without colliding with an ordinary string attribute.",
-            "additionalProperties": false
-          },
-          {
-            "$ref": "#/$defs/Common.AttributeKeyValueListValue"
-          }
-        ],
-        "description": "Object-shaped AttributeValue variants. The variant name is the wire `type` tag."
-      },
-      "Common.AttributeValue": {
-        "anyOf": [
-          {
-            "type": "null"
-          },
-          {
-            "type": "string"
-          },
-          {
-            "type": "boolean"
-          },
-          {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/Common.AttributeValue"
-            }
-          },
-          {
-            "$ref": "#/$defs/Common.AttributeObjectValue"
-          }
-        ],
-        "description": "Lossless JSON projection of an OpenTelemetry AnyValue attribute. Primitive variants are bare JSON values; object variants carry a `type` tag."
-      }
-    }
-  },
   "Mcp.Tools.GetServiceMapInput": {
     "type": "object",
     "properties": {
@@ -12265,7 +10654,7 @@
         "description": "`next_cursor` of a previous list_metrics call with the same filters."
       }
     },
-    "description": "Lists the recorded metric instruments, one compact row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts and whether its descriptors conflict. Start a metric question here; get_metric_series shows one instrument's series and attribute keys, and query_metric computes its values over time. Default: 50 instruments per page, ordered by name.",
+    "description": "Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.",
     "additionalProperties": false
   },
   "Mcp.Tools.ListMetricsOutput": {
@@ -12378,7 +10767,9 @@
             "series_count",
             "last_seen",
             "supported_aggregations",
-            "has_conflict"
+            "has_conflict",
+            "keys",
+            "suggested_group_by"
           ],
           "properties": {
             "name": {
@@ -12443,10 +10834,39 @@
             },
             "has_conflict": {
               "type": "boolean",
-              "description": "Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`."
+              "description": "Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`, which its conflict error names."
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "cardinality"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "cardinality": {
+                    "type": "integer",
+                    "description": "Distinct values the key holds across the instrument's series."
+                  }
+                },
+                "description": "One attribute key of a metric instrument's series.",
+                "additionalProperties": false
+              },
+              "description": "The attribute keys of the instrument's series with their numbers of distinct values, most values first."
+            },
+            "suggested_group_by": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The keys with 2 to 20 values: the ones to pass as query_metric's `group_by`."
             }
           },
-          "description": "One metric instrument of list_metrics; get_metric_series returns its series and attributes.",
+          "description": "One metric instrument of list_metrics.",
           "additionalProperties": false
         }
       },
@@ -15804,7 +14224,15 @@
       "series_id": {
         "type": "string",
         "minLength": 1,
-        "description": "Select one exact metric series; disambiguates scopes and conflicting instrument descriptors."
+        "description": "Select one exact metric series; disambiguates scopes and conflicting instrument descriptors. A conflict error and a `raw` read that matches several series name their series ids."
+      },
+      "raw": {
+        "type": "boolean",
+        "description": "Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `compare_to` and `ratio_of` do not apply."
+      },
+      "cursor": {
+        "type": "string",
+        "description": "With `raw`, the `next_cursor` of the previous page of the same series."
       },
       "group_by": {
         "type": "array",
@@ -15895,15 +14323,15 @@
         "maxItems": 32,
         "description": "Attribute matchers a series must all satisfy; serialized to `attr` and `attr_prefix`."
       },
-      "series_limit": {
+      "limit": {
         "type": "integer",
         "minimum": 1,
         "maximum": 500,
-        "description": "Maximum result series, 1 to 500; default 50. `truncated` reports that more existed.",
+        "description": "Result series per answer, 1 to 500, default 50, and `coverage.truncated` reports that more existed; with `raw`, original points per page.",
         "default": 50
       }
     },
-    "description": "Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.",
+    "description": "Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.",
     "additionalProperties": false
   },
   "Mcp.Tools.QueryMetricOutput": {
@@ -15911,20 +14339,239 @@
     "required": [
       "window",
       "coverage",
-      "numeric_representation",
-      "approximate",
       "name",
-      "kind",
-      "aggregation",
-      "step_ms",
-      "start_time",
-      "end_time",
-      "series",
-      "truncated"
+      "kind"
     ],
     "properties": {
+      "window": {
+        "type": "object",
+        "required": [
+          "start_time",
+          "end_time"
+        ],
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the window (inclusive), RFC 3339."
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End of the window (exclusive), RFC 3339."
+          }
+        },
+        "description": "Absolute half-open window applied by the collector.",
+        "additionalProperties": false
+      },
+      "coverage": {
+        "type": "object",
+        "required": [
+          "examined",
+          "matched",
+          "returned",
+          "truncated",
+          "scan_complete",
+          "as_of"
+        ],
+        "properties": {
+          "examined": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Generic non-negative counter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "matched": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Generic non-negative counter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Generic non-negative counter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "scan_complete": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "additionalProperties": false
+      },
+      "page_totals": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
+      },
+      "name": {
+        "type": "string",
+        "description": "The instrument queried."
+      },
+      "kind": {
+        "type": "string",
+        "enum": [
+          "gauge",
+          "sum",
+          "histogram",
+          "exponential_histogram",
+          "summary"
+        ],
+        "description": "Shape of a stored metric stream."
+      },
+      "unit": {
+        "type": "string",
+        "description": "Unit of the values: the instrument's, `1` for a count or a ratio, with `/s` appended for a rate."
+      },
+      "aggregation": {
+        "type": "string",
+        "enum": [
+          "avg",
+          "min",
+          "max",
+          "sum",
+          "count",
+          "last",
+          "p50",
+          "p90",
+          "p95",
+          "p99"
+        ],
+        "description": "The reducer applied to each bucket and to the whole window; absent with `raw`."
+      },
+      "step_ms": {
+        "type": "integer",
+        "description": "Bucket width in milliseconds; absent with `raw`."
+      },
+      "series": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "attributes",
+            "buckets"
+          ],
+          "properties": {
+            "attributes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Attribute key (dot-separated namespace)"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/Common.AttributeValue",
+                    "description": "Attribute value"
+                  }
+                },
+                "description": "Key-value attribute pair following OTel conventions",
+                "additionalProperties": false
+              },
+              "description": "The grouping key that produced this stream."
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The aggregation over every point of the window, as if one bucket spanned it; null when none of them holds a value."
+            },
+            "buckets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "bucket_start",
+                  "value",
+                  "point_count"
+                ],
+                "properties": {
+                  "bucket_start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Inclusive start of the bucket, aligned to the query's step from the query's start."
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The aggregation applied to the points in this bucket. Null when none of them\nholds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes\nwithout a known interval."
+                  },
+                  "point_count": {
+                    "type": "integer",
+                    "description": "Number of stored points folded into this bucket."
+                  }
+                },
+                "description": "One aggregated time bucket of a metric range query.",
+                "additionalProperties": false
+              },
+              "description": "The buckets that hold points, in time order; a bucket without points is omitted."
+            }
+          },
+          "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
+          "additionalProperties": false
+        },
+        "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points; absent with `raw`."
+      },
+      "numeric_representation": {
+        "type": "string",
+        "enum": [
+          "float64"
+        ],
+        "description": "Aggregates are float64 projections; `raw` reads the exact original values."
+      },
+      "approximate": {
+        "type": "boolean",
+        "description": "Whether the reducer estimates or interpolates, as histogram percentiles do."
+      },
       "method": {
-        "type": "string"
+        "type": "string",
+        "description": "How the values were computed from the points."
       },
       "exemplar_trace_ids": {
         "type": "array",
@@ -15937,7 +14584,8 @@
           "examples": [
             "0af7651916cd43dd8448eb211c80319c"
           ]
-        }
+        },
+        "description": "Traces of exemplars recorded in the window, at most three."
       },
       "comparison": {
         "type": "object",
@@ -16057,241 +14705,618 @@
         "description": "MetricComparisonResult contract.",
         "additionalProperties": false
       },
-      "window": {
-        "type": "object",
-        "required": [
-          "start_time",
-          "end_time"
-        ],
-        "properties": {
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339."
-          }
-        },
-        "description": "Absolute half-open window applied by the collector.",
-        "additionalProperties": false
-      },
-      "coverage": {
-        "type": "object",
-        "required": [
-          "examined",
-          "matched",
-          "returned",
-          "truncated",
-          "scan_complete",
-          "as_of"
-        ],
-        "properties": {
-          "examined": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "matched": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "returned": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "truncated": {
-            "type": "boolean"
-          },
-          "scan_complete": {
-            "type": "boolean"
-          },
-          "as_of": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
-        "additionalProperties": false
-      },
-      "page_totals": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "integer"
-        },
-        "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
-      },
-      "numeric_representation": {
+      "series_id": {
         "type": "string",
-        "enum": [
-          "float64"
-        ],
-        "description": "Aggregate buckets use a potentially approximate float64 projection. Read original points for exact signed int64 and native histogram data."
+        "description": "With `raw`, the series read."
       },
-      "approximate": {
-        "type": "boolean",
-        "description": "Whether the reducer estimates or interpolates values, beyond the stated numeric representation."
-      },
-      "name": {
-        "type": "string",
-        "description": "Instrument name the query ran against."
-      },
-      "kind": {
-        "type": "string",
-        "enum": [
-          "gauge",
-          "sum",
-          "histogram",
-          "exponential_histogram",
-          "summary"
-        ],
-        "description": "Shape of a stored metric stream."
-      },
-      "unit": {
-        "type": "string"
-      },
-      "aggregation": {
-        "type": "string",
-        "enum": [
-          "avg",
-          "min",
-          "max",
-          "sum",
-          "count",
-          "last",
-          "p50",
-          "p90",
-          "p95",
-          "p99"
-        ],
-        "description": "Server-side reducer applied to the points falling in one time bucket."
-      },
-      "step_ms": {
-        "type": "integer",
-        "description": "Bucket width actually used, which may be widened from the requested step."
-      },
-      "start_time": {
-        "type": "string",
-        "format": "date-time"
-      },
-      "end_time": {
-        "type": "string",
-        "format": "date-time"
-      },
-      "series": {
+      "attributes": {
         "type": "array",
         "items": {
           "type": "object",
           "required": [
-            "attributes",
-            "buckets"
+            "key",
+            "value"
           ],
           "properties": {
-            "attributes": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "key",
-                  "value"
-                ],
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256,
-                    "description": "Attribute key (dot-separated namespace)"
-                  },
-                  "value": {
-                    "$ref": "#/$defs/Common.AttributeValue",
-                    "description": "Attribute value"
-                  }
-                },
-                "description": "Key-value attribute pair following OTel conventions",
-                "additionalProperties": false
-              },
-              "description": "The grouping key that produced this stream."
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "Attribute key (dot-separated namespace)"
             },
             "value": {
+              "$ref": "#/$defs/Common.AttributeValue",
+              "description": "Attribute value"
+            }
+          },
+          "description": "Key-value attribute pair following OTel conventions",
+          "additionalProperties": false
+        },
+        "description": "With `raw`, the attributes that distinguish the series."
+      },
+      "points": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "time",
+            "data",
+            "has_conflict"
+          ],
+          "properties": {
+            "time": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When the point was recorded."
+            },
+            "start_time": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Start of the interval the point covers, when the producer recorded one."
+            },
+            "data": {
               "anyOf": [
                 {
-                  "type": "number"
+                  "type": "object",
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "number"
+                          ]
+                        },
+                        "value": {
+                          "type": "object",
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "int"
+                                  ]
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
+                                  "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
+                                  "maxLength": 20
+                                }
+                              },
+                              "description": "Tagged OTLP signed 64-bit integer attribute.",
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "double"
+                                  ]
+                                },
+                                "value": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "NaN",
+                                        "Infinity",
+                                        "-Infinity"
+                                      ]
+                                    }
+                                  ],
+                                  "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                                }
+                              },
+                              "description": "Tagged OTLP double attribute.",
+                              "additionalProperties": false
+                            }
+                          ],
+                          "description": "A numeric OTLP value. Integers preserve all signed 64 bits; doubles retain named non-finite values."
+                        }
+                      },
+                      "description": "The numeric oneof of a gauge or sum point.",
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "count",
+                        "explicit_bounds",
+                        "bucket_counts"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "histogram"
+                          ]
+                        },
+                        "count": {
+                          "type": "string",
+                          "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                          "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                          "maxLength": 20
+                        },
+                        "sum": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "min": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "max": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "explicit_bounds": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NaN",
+                                  "Infinity",
+                                  "-Infinity"
+                                ]
+                              }
+                            ],
+                            "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                          }
+                        },
+                        "bucket_counts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                            "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                            "maxLength": 20
+                          }
+                        }
+                      },
+                      "description": "An original explicit histogram, before any query projection or interpolation.",
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "count",
+                        "scale",
+                        "zero_count",
+                        "zero_threshold"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "exponential_histogram"
+                          ]
+                        },
+                        "count": {
+                          "type": "string",
+                          "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                          "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                          "maxLength": 20
+                        },
+                        "sum": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "min": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "max": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "scale": {
+                          "type": "integer",
+                          "minimum": -2147483648,
+                          "maximum": 2147483647
+                        },
+                        "zero_count": {
+                          "type": "string",
+                          "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                          "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                          "maxLength": 20
+                        },
+                        "zero_threshold": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "positive": {
+                          "type": "object",
+                          "required": [
+                            "offset",
+                            "bucket_counts"
+                          ],
+                          "properties": {
+                            "offset": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "bucket_counts": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                                "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                                "maxLength": 20
+                              }
+                            }
+                          },
+                          "description": "Native exponential-histogram buckets. Each count corresponds to offset plus its array index.",
+                          "additionalProperties": false
+                        },
+                        "negative": {
+                          "type": "object",
+                          "required": [
+                            "offset",
+                            "bucket_counts"
+                          ],
+                          "properties": {
+                            "offset": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "bucket_counts": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                                "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                                "maxLength": 20
+                              }
+                            }
+                          },
+                          "description": "Native exponential-histogram buckets. Each count corresponds to offset plus its array index.",
+                          "additionalProperties": false
+                        }
+                      },
+                      "description": "An original exponential histogram. Its native scale and buckets are never reconstructed from explicit bounds.",
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "count",
+                        "sum",
+                        "quantile_values"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "summary"
+                          ]
+                        },
+                        "count": {
+                          "type": "string",
+                          "description": "An unsigned OTLP count encoded as a decimal string to preserve all 64 bits.",
+                          "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+                          "maxLength": 20
+                        },
+                        "sum": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NaN",
+                                "Infinity",
+                                "-Infinity"
+                              ]
+                            }
+                          ],
+                          "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                        },
+                        "quantile_values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "quantile",
+                              "value"
+                            ],
+                            "properties": {
+                              "quantile": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "value": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "NaN",
+                                      "Infinity",
+                                      "-Infinity"
+                                    ]
+                                  }
+                                ],
+                                "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                              }
+                            },
+                            "description": "An original summary quantile and its producer-supplied estimate.",
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "description": "An original OTLP summary. Query reducers must explicitly support summaries rather than invent histogram buckets.",
+                      "additionalProperties": false
+                    }
+                  ],
+                  "description": "The original typed OTLP point data, independent of the collector's derived aggregate columns."
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "The aggregation over every point of the window, as if one bucket spanned it; null when none of them holds a value."
+              "description": "The original OTLP data: a number (an int64 is a tagged string that keeps every digit), a histogram, an exponential histogram or a summary; null when an older record did not retain it."
             },
-            "buckets": {
+            "has_conflict": {
+              "type": "boolean",
+              "description": "Whether a different measurement was recorded at the same timestamp; each one is its own point."
+            },
+            "exemplars": {
               "type": "array",
               "items": {
                 "type": "object",
                 "required": [
-                  "bucket_start",
-                  "value",
-                  "point_count"
+                  "time",
+                  "value"
                 ],
                 "properties": {
-                  "bucket_start": {
+                  "time": {
                     "type": "string",
-                    "format": "date-time",
-                    "description": "Inclusive start of the bucket, aligned to the query's step from the query's start."
+                    "format": "date-time"
                   },
                   "value": {
-                    "anyOf": [
+                    "type": "object",
+                    "oneOf": [
                       {
-                        "type": "number"
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "int"
+                            ]
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
+                            "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
+                            "maxLength": 20
+                          }
+                        },
+                        "description": "Tagged OTLP signed 64-bit integer attribute.",
+                        "additionalProperties": false
                       },
                       {
-                        "type": "null"
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "double"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NaN",
+                                  "Infinity",
+                                  "-Infinity"
+                                ]
+                              }
+                            ],
+                            "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+                          }
+                        },
+                        "description": "Tagged OTLP double attribute.",
+                        "additionalProperties": false
                       }
                     ],
-                    "description": "The aggregation applied to the points in this bucket. Null when none of them\nholds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes\nwithout a known interval."
+                    "description": "A numeric OTLP value. Integers preserve all signed 64 bits; doubles retain named non-finite values."
                   },
-                  "point_count": {
-                    "type": "integer",
-                    "description": "Number of stored points folded into this bucket."
+                  "trace_id": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[a-f0-9]{32}$",
+                    "description": "Unique trace identifier (32 lowercase hex characters)",
+                    "examples": [
+                      "0af7651916cd43dd8448eb211c80319c"
+                    ]
+                  },
+                  "span_id": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 16,
+                    "pattern": "^[a-f0-9]{16}$",
+                    "description": "Unique span identifier (16 lowercase hex characters)",
+                    "examples": [
+                      "b7ad6b7169203331"
+                    ]
+                  },
+                  "filtered_attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "value"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Attribute key (dot-separated namespace)"
+                        },
+                        "value": {
+                          "$ref": "#/$defs/Common.AttributeValue",
+                          "description": "Attribute value"
+                        }
+                      },
+                      "description": "Key-value attribute pair following OTel conventions",
+                      "additionalProperties": false
+                    },
+                    "description": "Attributes the exemplar carries beyond its series'."
                   }
                 },
-                "description": "One aggregated time bucket of a metric range query.",
+                "description": "One exemplar of an original metric point: a sampled measurement and the span it came from.",
                 "additionalProperties": false
               },
-              "description": "The buckets that hold points, in time order; a bucket without points is omitted."
+              "description": "The point's exemplars, when it has any."
             }
           },
-          "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
+          "description": "One original point of a metric series, as the producer recorded it.",
           "additionalProperties": false
-        }
+        },
+        "description": "With `raw`, the series' original points in the window, newest first."
       },
-      "truncated": {
+      "has_more": {
         "type": "boolean",
-        "description": "Whether streams were dropped because the result exceeded the series limit."
+        "description": "With `raw`, whether more points follow; `next_cursor` continues them."
+      },
+      "next_cursor": {
+        "type": "string",
+        "description": "With `raw`, pass as `cursor` with the same arguments for the next page of points."
       },
       "error": {
         "type": "object",
@@ -16444,7 +15469,7 @@
         "additionalProperties": false
       }
     },
-    "description": "Structured output for query_metric: the collector's range-query result.",
+    "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points.",
     "additionalProperties": false,
     "$defs": {
       "Common.AttributeKeyValueListValue": {

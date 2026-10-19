@@ -9,18 +9,18 @@ using System.Text.Json.Serialization;
 namespace Qyl.Api.Contracts.OTel.Metrics;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(Qyl.Api.Contracts.Common.AttributeIntValue), "int")]
+[JsonDerivedType(typeof(Qyl.Api.Contracts.Common.AttributeDoubleValue), "double")]
+public interface MetricNumberValue
+{
+}
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(MetricNumberPointData), "number")]
 [JsonDerivedType(typeof(MetricHistogramPointData), "histogram")]
 [JsonDerivedType(typeof(MetricExponentialHistogramPointData), "exponential_histogram")]
 [JsonDerivedType(typeof(MetricSummaryPointData), "summary")]
 public interface MetricPointData
-{
-}
-
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(Qyl.Api.Contracts.Common.AttributeIntValue), "int")]
-[JsonDerivedType(typeof(Qyl.Api.Contracts.Common.AttributeDoubleValue), "double")]
-public interface MetricNumberValue
 {
 }
 
@@ -180,52 +180,6 @@ public sealed class MetricAttributeMatcher
     public Qyl.Api.Contracts.Common.MatcherScope? Scope { get; init; }
 }
 
-public sealed class MetricPoint
-{
-    [JsonPropertyName("observation_id")]
-    public required string ObservationId { get; init; }
-    [JsonPropertyName("has_conflict")]
-    public required bool HasConflict { get; init; }
-    [JsonPropertyName("series_id")]
-    public required string SeriesId { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonPropertyName("time_unix_nano")]
-    public required ulong TimeUnixNano { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time_unix_nano")]
-    public ulong? StartTimeUnixNano { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("flags")]
-    public uint? Flags { get; init; }
-    [JsonPropertyName("attributes")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> Attributes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    [JsonPropertyName("data")]
-    public required Qyl.Api.Contracts.OTel.Metrics.MetricPointData? Data { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("exemplars")]
-    public IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricExemplar>? Exemplars { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("historical_exemplar_trace_ids")]
-    public IReadOnlyList<string>? HistoricalExemplarTraceIds { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("instrument_metadata")]
-    public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>? InstrumentMetadata { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("resource_dropped_attributes_count")]
-    public long? ResourceDroppedAttributesCount { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("scope_dropped_attributes_count")]
-    public long? ScopeDroppedAttributesCount { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("projection")]
-    public Qyl.Api.Contracts.OTel.Metrics.MetricPointProjection? Projection { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("projection_unavailable_reason")]
-    public string? ProjectionUnavailableReason { get; init; }
-}
-
 public sealed class MetricNumberPointData : MetricPointData
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -370,6 +324,52 @@ public sealed class MetricPointProjection
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("bucket_counts")]
     public IReadOnlyList<ulong>? BucketCounts { get; init; }
+}
+
+public sealed class MetricPoint
+{
+    [JsonPropertyName("observation_id")]
+    public required string ObservationId { get; init; }
+    [JsonPropertyName("has_conflict")]
+    public required bool HasConflict { get; init; }
+    [JsonPropertyName("series_id")]
+    public required string SeriesId { get; init; }
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonPropertyName("time_unix_nano")]
+    public required ulong TimeUnixNano { get; init; }
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("start_time_unix_nano")]
+    public ulong? StartTimeUnixNano { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("flags")]
+    public uint? Flags { get; init; }
+    [JsonPropertyName("attributes")]
+    public required IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> Attributes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("data")]
+    public required Qyl.Api.Contracts.OTel.Metrics.MetricPointData? Data { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("exemplars")]
+    public IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricExemplar>? Exemplars { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("historical_exemplar_trace_ids")]
+    public IReadOnlyList<string>? HistoricalExemplarTraceIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("instrument_metadata")]
+    public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>? InstrumentMetadata { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("resource_dropped_attributes_count")]
+    public long? ResourceDroppedAttributesCount { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("scope_dropped_attributes_count")]
+    public long? ScopeDroppedAttributesCount { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("projection")]
+    public Qyl.Api.Contracts.OTel.Metrics.MetricPointProjection? Projection { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("projection_unavailable_reason")]
+    public string? ProjectionUnavailableReason { get; init; }
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<MetricAggregation>))]

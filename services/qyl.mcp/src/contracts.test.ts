@@ -119,24 +119,19 @@ test("generated output documents accept the test telemetry fixture", () => {
   assert(valid("Mcp.Tools.SearchLogsOutput", { ...context, logs: fixture.logs.map(toolLog), mode: "live", has_more: false }));
 });
 
-test("64-bit nanosecond timestamps survive the wire exactly, above the safe-integer ceiling", () => {
-  const window = readContext().window;
-  const output = (time_unix_nano: unknown) => ({
-    ...readContext(1),
-    items: [{ series_id: "s", name: "queue.depth", kind: "gauge", attributes: [], first_seen: window.start_time, last_seen: window.end_time }],
-    points: { items: [{ observation_id: "o", series_id: "s", has_conflict: false, time_unix_nano, attributes: [], data: { type: "number", value: { type: "int", value: "1" } } }], has_more: false },
+test("raw metric points carry RFC 3339 times and int64 values as exact strings", () => {
+  const output = (time: unknown, value: unknown) => ({
+    ...readContext(1), name: "queue.depth", kind: "gauge", series_id: "s", attributes: [], has_more: false,
+    points: [{ time, has_conflict: false, data: { type: "number", value: { type: "int", value } } }],
   });
-  // Past Number.MAX_SAFE_INTEGER: as a JS number literal this value silently becomes
-  // ...456_800, which is the precision loss the decimal-string encoding exists to remove.
-  const unixNanos = "1742000000123456789";
-  const parsed = checkContract("Mcp.Tools.GetMetricSeriesOutput", output(unixNanos));
+  // Past Number.MAX_SAFE_INTEGER: as a JS number literal this value silently becomes ...992, which is
+  // the precision loss the decimal-string encoding exists to remove.
+  const parsed = checkContract("Mcp.Tools.QueryMetricOutput", output("2026-10-12T09:30:00.1234567Z", "9007199254740993"));
   assert(parsed.valid, parsed.valid ? "" : parsed.message);
-  assert.equal(parsed.value.points!.items[0]!.time_unix_nano, unixNanos);
-  assert.equal(BigInt(parsed.value.points!.items[0]!.time_unix_nano), 1742000000123456789n);
+  assert.deepEqual(parsed.value.points![0]!.data, { type: "number", value: { type: "int", value: "9007199254740993" } });
 
-  assert(!valid("Mcp.Tools.GetMetricSeriesOutput", output("1.5")));
-  assert(!valid("Mcp.Tools.GetMetricSeriesOutput", output(1.5)));
-  assert(!valid("Mcp.Tools.GetMetricSeriesOutput", output("18446744073709551616")), "beyond uint64");
+  assert(!valid("Mcp.Tools.QueryMetricOutput", output("1742000000123456789", "1")), "times are RFC 3339, not unix nanoseconds");
+  assert(!valid("Mcp.Tools.QueryMetricOutput", output("2026-10-12T09:30:00Z", 42)), "an int64 travels as a string");
 });
 
 test("TypeSpec record dictionaries retain their value contract at runtime", () => {

@@ -16,7 +16,6 @@ import type {
   GetAgentRunOutput,
   GetFailureContextOutput,
   GetMcpStatsOutput,
-  GetMetricSeriesOutput,
   GetServiceMapOutput,
   GetTraceOutput,
   ListMetricsOutput,
@@ -313,34 +312,35 @@ function ciLog(output: CiLogOutput): string {
 }
 
 function listMetrics(output: ListMetricsOutput): string {
-  const rows = top(output.items, (item) => `${item.name} (${item.kind}${item.unit ? `, ${item.unit}` : ""}, ${item.series_count} series${item.has_conflict ? ", conflicting descriptors" : ""})`);
+  const rows = top(output.items, (item) => `${item.name} (${item.kind}${item.unit ? `, ${item.unit}` : ""}, ${item.series_count} series${item.has_conflict ? ", conflicting descriptors" : ""}${item.suggested_group_by.length ? `, group by ${item.suggested_group_by.slice(0, TOP).join(", ")}` : ""})`);
   const first = output.items[0];
-  return `list_metrics: ${output.items.length} instruments.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${first === undefined ? "widen lookback_minutes" : `query_metric metric_name=${first.name}`}`;
+  const groupBy = first?.suggested_group_by.length ? ` group_by=${JSON.stringify(first.suggested_group_by.slice(0, TOP))}` : "";
+  return `list_metrics: ${output.items.length} instruments.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${first === undefined ? "widen lookback_minutes" : `query_metric metric_name=${first.name}${groupBy}`}`;
 }
 
-function metricSeries(input: Args, output: GetMetricSeriesOutput): string {
-  if (output.points !== undefined) {
-    const unknown = output.points.items.filter((point) => point.data === null).length;
-    const pointsMore = output.points.has_more && output.points.next_cursor !== undefined ? " More points: repeat with points.next_cursor as points_cursor, the same series_id and filters." : "";
-    return `get_metric_series: ${output.points.items.length} original points of series ${short(input.series_id, 60)}${unknown ? `, ${unknown} with an unknown original representation` : ""}.${pointsMore}${coverageNote(output.coverage)} → query_metric metric_name=${short(input.metric_name, 80)} series_id=${short(input.series_id, 60)}`;
-  }
-  const keys = top(output.keys, (key) => `${key.key} (${key.cardinality}${key.cardinality_exact ? "" : "+"} values)`);
-  const groupBy = output.suggested_group_by?.length ? ` group_by=${JSON.stringify(output.suggested_group_by)}` : "";
-  return `get_metric_series: ${output.items.length} series of ${short(input.metric_name, 80)}.${keys ? ` Keys: ${keys}.` : ""}${coverageNote(output.coverage)}${more(output)} → query_metric metric_name=${short(input.metric_name, 80)}${groupBy}`;
+/** query_metric with raw: one series' original points. */
+function rawPoints(output: QueryMetricOutput & { points: NonNullable<QueryMetricOutput["points"]> }): string {
+  const unknown = output.points.filter((point) => point.data === null).length;
+  const labels = (output.attributes ?? []).map((attribute) => `${attribute.key}=${attributeText(attribute.value)}`).join(", ") || "no attributes";
+  const pointsMore = output.has_more === true && output.next_cursor !== undefined ? " More points: repeat with next_cursor as cursor." : "";
+  const exemplar = output.points.flatMap((point) => point.exemplars ?? []).find((item) => item.trace_id !== undefined)?.trace_id;
+  return `query_metric: ${output.points.length} original points of ${output.name} series ${short(output.series_id, 60)} (${short(labels, 60)})${unknown ? `, ${unknown} with an unknown original representation` : ""}.${pointsMore}${coverageNote(output.coverage)} → ${exemplar === undefined ? `query_metric metric_name=${output.name} to aggregate the series` : `get_trace trace_id=${exemplar}`}`;
 }
 
 function queryMetric(output: QueryMetricOutput): string {
+  if (output.points !== undefined) return rawPoints({ ...output, points: output.points });
   const unit = output.unit ? ` ${output.unit}` : "";
+  const series = output.series ?? [];
   // A series lists only the buckets that hold points, and `value` aggregates the whole window.
-  const rows = top(output.series, (series) => {
+  const rows = top(series, (series) => {
     const labels = series.attributes.map((attribute) => `${attribute.key}=${attributeText(attribute.value)}`).join(", ") || "all";
     const last = series.buckets.at(-1);
     return `${short(labels, 60)}: ${num(series.value)}${unit} over the window, ${series.buckets.length} buckets with points${last === undefined ? "" : `, last ${num(last.value)}${unit}`}`;
   });
-  const buckets = Math.max(0, ...output.series.map((series) => series.buckets.length));
+  const buckets = Math.max(0, ...series.map((item) => item.buckets.length));
   const step = buckets > 60 ? ` ${buckets} buckets in one series: omit step_ms for at most 60.` : "";
   const exemplar = output.exemplar_trace_ids?.[0];
-  return `query_metric: ${output.name} ${output.aggregation} (${output.kind}) step ${output.step_ms} ms, ${output.series.length} series${output.approximate ? ", approximate" : ""}${output.truncated ? ", truncated" : ""}.${rows ? ` ${rows}.` : ""}${step}${coverageNote(output.coverage)} → ${exemplar === undefined ? "aggregate_telemetry for exact per-request span durations" : `get_trace trace_id=${exemplar}`}`;
+  return `query_metric: ${output.name} ${output.aggregation} (${output.kind}) step ${output.step_ms} ms, ${series.length} series${output.approximate ? ", approximate" : ""}.${rows ? ` ${rows}.` : ""}${step}${coverageNote(output.coverage)} → ${exemplar === undefined ? "aggregate_telemetry for exact per-request span durations" : `get_trace trace_id=${exemplar}`}`;
 }
 
 function savedQueries(output: ListSavedQueriesOutput): string {
@@ -386,7 +386,6 @@ export function analysisHeadline(operation: string, input: object, output: objec
     case "search_logs": return searchLogs(output as SearchLogsOutput);
     case "ci_log": return ciLog(output as CiLogOutput);
     case "list_metrics": return listMetrics(output as ListMetricsOutput);
-    case "get_metric_series": return metricSeries(call, output as GetMetricSeriesOutput);
     case "query_metric": return queryMetric(output as QueryMetricOutput);
     case "list_saved_queries": return savedQueries(output as ListSavedQueriesOutput);
     case "run_saved_query": return runSavedQuery(output as RunSavedQueryOutput);

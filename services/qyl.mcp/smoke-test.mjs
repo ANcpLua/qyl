@@ -49,7 +49,7 @@ function framed(result) {
 const READ_TOOLS = [
   "triage", "get_failure_context", "compare_groups", "compare_traces", "verify_fix",
   "aggregate_telemetry", "discover_attributes", "get_agent_run", "list_releases", "get_service_map",
-  "check_telemetry_health", "get_mcp_stats", "ci_log", "get_metric_series", "get_trace", "list_metrics",
+  "check_telemetry_health", "get_mcp_stats", "ci_log", "get_trace", "list_metrics",
   "list_saved_queries", "list_sessions", "list_traces", "query_metric", "run_saved_query", "search_logs",
 ];
 const WRITE_TOOLS = [
@@ -65,6 +65,7 @@ const now = new Date().toISOString();
 const metricRow = (index) => ({
   name: `fixture.metric.${index}`, kind: "gauge", unit: "1", temporality: "unspecified", services: ["qyl-collector"],
   series_count: 1, last_seen: now, supported_aggregations: ["avg", "min", "max", "last"], has_conflict: false,
+  keys: [], suggested_group_by: [],
 });
 const outputSchema = (operation) => `Mcp.Tools.${operation.split("_").map((part) => part[0].toUpperCase() + part.slice(1)).join("")}Output`;
 

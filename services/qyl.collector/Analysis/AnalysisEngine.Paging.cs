@@ -32,7 +32,6 @@ internal sealed partial class AnalysisEngine
         "get_trace" => (GetTraceInput.MaxSpansDefault, GetTraceInput.MaxSpansMaximum),
         "search_logs" => (SearchLogsInput.LimitDefault, SearchLogsInput.LimitMaximum),
         "list_metrics" => (ListMetricsInput.LimitDefault, ListMetricsInput.LimitMaximum),
-        "get_metric_series" => (GetMetricSeriesInput.LimitDefault, GetMetricSeriesInput.LimitMaximum),
         "ci_log" => (CiLogInput.LimitDefault, CiLogInput.LimitMaximum),
         "ci_log.phases" => (CiPhasePageSize, CiPhasePageSize),
         "list_saved_queries" => (ListSavedQueriesInput.LimitDefault, ListSavedQueriesInput.LimitMaximum),
@@ -93,7 +92,7 @@ internal sealed partial class AnalysisEngine
             "get_trace" => ["trace.spans", "logs", "annotations", "links"],
             _ => []
         };
-        if (paths.Length is 0) { result["has_more"] ??= false; return result; }
+        if (paths.Length is 0) return result;
         var fingerprint = Fingerprint(input); var positions = Positions(input, fingerprint);
         var more = false; var totals = new JsonObject(); var next = new JsonObject(); var returned = 0;
         foreach (var path in paths)

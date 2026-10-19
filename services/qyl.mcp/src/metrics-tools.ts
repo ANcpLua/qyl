@@ -8,7 +8,7 @@ export function registerMetricsTools(server: McpServer): void {
     "list_metrics",
     {
       title: "List Metrics",
-      description: "List instruments and their units, kinds and aggregation support when choosing a metric.",
+      description: "List instruments with their units, kinds, aggregation support and attribute keys when choosing a metric and how to split it.",
       inputSchema: contractSchema("Mcp.Tools.ListMetricsInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
@@ -17,22 +17,10 @@ export function registerMetricsTools(server: McpServer): void {
       queryAnalysis("list_metrics", args, "Mcp.Tools.ListMetricsOutput", scope)),
   );
   server.registerTool(
-    "get_metric_series",
-    {
-      title: "Get Metric Series",
-      description: "Discover metric streams and attribute cardinality when choosing filters, or select series_id to page complete original points with points_cursor. Oversized individual points remain available through the HTTP points API.",
-      inputSchema: contractSchema("Mcp.Tools.GetMetricSeriesInput"),
-      annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
-      _meta: TELEMETRY_TOOL_AUTH_META,
-    },
-    (args, ctx) => runTool(ctx, "get_metric_series", 1, async (scope) =>
-      queryAnalysis("get_metric_series", args, "Mcp.Tools.GetMetricSeriesOutput", scope)),
-  );
-  server.registerTool(
     "query_metric",
     {
       title: "Query Metric",
-      description: "Query float64 metric projections, counter changes or ratios when measuring trends across a time window. Use get_metric_series with series_id for original numeric values, buckets and exemplars.",
+      description: "Query float64 metric projections, counter changes or ratios when measuring trends across a time window, or with raw one series' original values, buckets and exemplars.",
       inputSchema: contractSchema("Mcp.Tools.QueryMetricInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,

@@ -160,7 +160,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
     }
 
     [TestMethod]
-    public async Task Http_and_existing_analysis_tool_page_all_observations_with_exact_values()
+    public async Task Http_and_a_raw_query_metric_page_all_observations_with_exact_values()
     {
         await using var host = await CollectorApiTestHost.StartAsync(Ct);
         await Insert(host.Store, Enumerable.Range(0, 301).Select(i => Number(9_007_199_254_740_993 + i) with { TimeUnixNano = Time + (ulong)i }).ToArray());
@@ -176,30 +176,31 @@ public sealed class CanonicalMetricTests(TestContext testContext)
             cursor = page.TryGetProperty("next_cursor", out var next) ? next.GetString() : null;
         } while (cursor is not null);
         Assert.HasCount(301, ids);
-        using var selected = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/get_metric_series", "reader",
-            new JsonObject { ["metric_name"] = "canonical.number", ["series_id"] = series.SeriesId, ["points_limit"] = 11,
+        using var selected = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/query_metric", "reader",
+            new JsonObject { ["metric_name"] = "canonical.number", ["series_id"] = series.SeriesId, ["raw"] = true, ["limit"] = 11,
                 ["start_time"] = "2023-11-14T22:13:19Z", ["end_time"] = "2023-11-14T22:13:21Z" }.ToJsonString());
-        Assert.AreEqual(HttpStatusCode.OK, selected.StatusCode);
         var result = await host.JsonAsync(selected);
-        Assert.AreEqual(1, result.GetProperty("items").GetArrayLength());
-        Assert.AreEqual(11, result.GetProperty("points").GetProperty("items").GetArrayLength());
-        Assert.IsTrue(result.GetProperty("points").GetProperty("has_more").GetBoolean());
-        Assert.IsFalse(result.GetProperty("has_more").GetBoolean());
-        var pointPage = result.GetProperty("points");
-        var toolIds = pointPage.GetProperty("items").EnumerateArray()
-            .Select(static item => item.GetProperty("observation_id").GetString()!).ToHashSet(StringComparer.Ordinal);
-        while (pointPage.GetProperty("has_more").GetBoolean())
+        Assert.AreEqual(HttpStatusCode.OK, selected.StatusCode, result.GetRawText());
+        Assert.AreEqual((series.SeriesId, "gauge"), (result.GetProperty("series_id").GetString(), result.GetProperty("kind").GetString()));
+        Assert.AreEqual(11, result.GetProperty("points").GetArrayLength());
+        Assert.IsTrue(result.GetProperty("has_more").GetBoolean());
+        Assert.IsFalse(result.TryGetProperty("series", out _), "a raw read aggregates nothing");
+        // Exact int64 values in their lossless form at RFC 3339 times, newest first.
+        static string Value(JsonElement point) => point.GetProperty("data").GetProperty("value").GetProperty("value").GetString()!;
+        var values = result.GetProperty("points").EnumerateArray().Select(Value).ToHashSet(StringComparer.Ordinal);
+        Assert.AreEqual(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000).AddTicks(3), result.GetProperty("points")[0].GetProperty("time").GetDateTimeOffset());
+        while (result.GetProperty("has_more").GetBoolean())
         {
-            using var continuation = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/get_metric_series", "reader",
-                new JsonObject { ["metric_name"] = "canonical.number", ["series_id"] = series.SeriesId,
-                    ["points_limit"] = 73, ["points_cursor"] = pointPage.GetProperty("next_cursor").GetString() }.ToJsonString());
+            using var continuation = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/query_metric", "reader",
+                new JsonObject { ["metric_name"] = "canonical.number", ["raw"] = true, ["limit"] = 73,
+                    ["cursor"] = result.GetProperty("next_cursor").GetString() }.ToJsonString());
             Assert.AreEqual(HttpStatusCode.OK, continuation.StatusCode);
-            var continued = await host.JsonAsync(continuation);
-            pointPage = continued.GetProperty("points");
-            Assert.AreEqual(DateTimeOffset.FromUnixTimeSeconds(1_699_999_999), continued.GetProperty("window").GetProperty("start_time").GetDateTimeOffset());
-            foreach (var item in pointPage.GetProperty("items").EnumerateArray()) Assert.IsTrue(toolIds.Add(item.GetProperty("observation_id").GetString()!));
+            result = await host.JsonAsync(continuation);
+            Assert.AreEqual(DateTimeOffset.FromUnixTimeSeconds(1_699_999_999), result.GetProperty("window").GetProperty("start_time").GetDateTimeOffset());
+            foreach (var point in result.GetProperty("points").EnumerateArray()) Assert.IsTrue(values.Add(Value(point)));
         }
-        Assert.HasCount(301, toolIds);
+        Assert.HasCount(301, values);
+        Assert.Contains("9007199254741293", values);
 
         using var badCursor = await host.SendAsync(HttpMethod.Get,
             $"/api/v1/metrics/canonical.number/series/{series.SeriesId}/points?cursor=invalid", "reader");
@@ -208,41 +209,52 @@ public sealed class CanonicalMetricTests(TestContext testContext)
         using var conflicting = await host.SendAsync(HttpMethod.Get,
             $"/api/v1/metrics/canonical.number/query?series_id={series.SeriesId}&start_time=2023-11-14T22:13:19Z&end_time=2023-11-14T22:13:21Z", "reader");
         Assert.AreEqual(HttpStatusCode.Conflict, conflicting.StatusCode);
-
     }
 
+    /// <summary>
+    /// list_metrics counts each attribute key's values per instrument and suggests the keys to group by; a raw read
+    /// takes one series and, when the arguments select several, names their series ids.
+    /// </summary>
     [TestMethod]
-    public async Task Metadata_only_series_reads_accept_the_schema_default_point_limit_and_keep_cardinalities()
+    public async Task List_metrics_counts_key_values_and_a_raw_read_names_the_series_it_cannot_choose_between()
     {
         await using var host = await CollectorApiTestHost.StartAsync(Ct);
         await Insert(host.Store,
         [
-            Number(1) with { ScopeName = "first", Attributes = new Dictionary<string, OtlpAttributeValue>
-                { ["http.request.method"] = OtlpAttributeValue.FromString("GET") } },
-            Number(2) with { ScopeName = "second", Attributes = new Dictionary<string, OtlpAttributeValue>
-                { ["http.request.method"] = OtlpAttributeValue.FromString("POST") } }
+            Number(1) with { Attributes = new Dictionary<string, OtlpAttributeValue> { ["http.request.method"] = OtlpAttributeValue.FromString("GET") } },
+            Number(2) with { Attributes = new Dictionary<string, OtlpAttributeValue> { ["http.request.method"] = OtlpAttributeValue.FromString("POST") } }
         ]);
-        var input = new JsonObject
-        {
-            ["metric_name"] = "canonical.number", ["points_limit"] = 100,
-            ["start_time"] = "2023-11-14T22:13:19Z", ["end_time"] = "2023-11-14T22:13:21Z"
-        };
-        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/get_metric_series", "reader", input.ToJsonString());
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = await host.JsonAsync(response);
-        Assert.AreEqual(2, result.GetProperty("items").GetArrayLength());
-        Assert.IsFalse(result.TryGetProperty("points", out _));
-        var key = Assert.ContainsSingle(result.GetProperty("keys").EnumerateArray());
-        Assert.AreEqual("http.request.method", key.GetProperty("key").GetString());
-        Assert.AreEqual(2, key.GetProperty("cardinality").GetInt32());
-        Assert.IsTrue(key.GetProperty("cardinality_exact").GetBoolean());
-        Assert.AreEqual(2, key.GetProperty("top_values").GetArrayLength());
-        foreach (var value in key.GetProperty("top_values").EnumerateArray())
-            Assert.AreEqual(1, value.GetProperty("count").GetInt32());
+        var (status, listed) = await AskAsync(host, "list_metrics", []);
+        Assert.AreEqual(HttpStatusCode.OK, status, listed.GetRawText());
+        var instrument = Assert.ContainsSingle(listed.GetProperty("items").EnumerateArray());
+        var key = Assert.ContainsSingle(instrument.GetProperty("keys").EnumerateArray());
+        Assert.AreEqual(("http.request.method", 2), (key.GetProperty("key").GetString(), key.GetProperty("cardinality").GetInt32()));
+        Assert.AreSequenceEqual(["http.request.method"], instrument.GetProperty("suggested_group_by").EnumerateArray().Select(static k => k.GetString()));
 
-        input["points_cursor"] = "requires-an-exact-series";
-        using var invalid = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/get_metric_series", "reader", input.ToJsonString());
-        Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
+        var (ambiguousStatus, ambiguous) = await AskAsync(host, "query_metric", new JsonObject { ["metric_name"] = "canonical.number", ["raw"] = true });
+        Assert.AreEqual(HttpStatusCode.BadRequest, ambiguousStatus, ambiguous.GetRawText());
+        var error = Assert.ContainsSingle(ambiguous.GetProperty("errors").EnumerateArray());
+        Assert.AreEqual(("series_id", "series_id.ambiguous"), (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()));
+        Assert.AreEqual(2, error.GetProperty("allowed").GetArrayLength());
+
+        var (onlyStatus, only) = await AskAsync(host, "query_metric", new JsonObject { ["metric_name"] = "canonical.number", ["raw"] = true,
+            ["matchers"] = new JsonArray(new JsonObject { ["key"] = "http.request.method", ["op"] = "eq", ["value"] = "GET" }) });
+        Assert.AreEqual(HttpStatusCode.OK, onlyStatus, only.GetRawText());
+        Assert.AreEqual("GET", Assert.ContainsSingle(only.GetProperty("attributes").EnumerateArray()).GetProperty("value").GetString());
+        Assert.AreEqual("1", Assert.ContainsSingle(only.GetProperty("points").EnumerateArray()).GetProperty("data").GetProperty("value").GetProperty("value").GetString());
+
+        var (missingStatus, missing) = await AskAsync(host, "query_metric", new JsonObject { ["metric_name"] = "canonical.number", ["raw"] = true, ["series_id"] = "absent" });
+        Assert.AreEqual(HttpStatusCode.NotFound, missingStatus, missing.GetRawText());
+        Assert.AreEqual(("series", "absent"), (missing.GetProperty("resource_type").GetString(), missing.GetProperty("resource_id").GetString()));
+    }
+
+    // One analysis question over the second the canonical points were recorded in.
+    private static async Task<(HttpStatusCode Status, JsonElement Body)> AskAsync(CollectorApiTestHost host, string operation, JsonObject input)
+    {
+        input["start_time"] = "2023-11-14T22:13:19Z";
+        input["end_time"] = "2023-11-14T22:13:21Z";
+        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/" + operation, "reader", input.ToJsonString());
+        return (response.StatusCode, await host.JsonAsync(response));
     }
 
     [TestMethod]

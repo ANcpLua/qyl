@@ -311,9 +311,9 @@ export type AttributeObjectValue = AttributeIntValue | AttributeDoubleValue | At
 
 export type MatcherValue = string | number | boolean;
 
-export type MetricPointData = MetricNumberPointData | MetricHistogramPointData | MetricExponentialHistogramPointData | MetricSummaryPointData;
-
 export type MetricNumberValue = AttributeIntValue | AttributeDoubleValue;
+
+export type MetricPointData = MetricNumberPointData | MetricHistogramPointData | MetricExponentialHistogramPointData | MetricSummaryPointData;
 
 export type RunnerResourceEvents = RunnerResourceState;
 
@@ -658,24 +658,6 @@ export interface MetricAttributeMatcher {
   "scope"?: MatcherScope;
 }
 
-export interface MetricPoint {
-  "observation_id": string;
-  "has_conflict": boolean;
-  "series_id": string;
-  "time_unix_nano": string;
-  "start_time_unix_nano"?: string;
-  "flags"?: number;
-  "attributes": Attribute[];
-  "data": MetricPointData | null;
-  "exemplars"?: MetricExemplar[];
-  "historical_exemplar_trace_ids"?: TraceId[];
-  "instrument_metadata"?: Attribute[];
-  "resource_dropped_attributes_count"?: number;
-  "scope_dropped_attributes_count"?: number;
-  "projection"?: MetricPointProjection;
-  "projection_unavailable_reason"?: string;
-}
-
 export interface MetricNumberPointData {
   "type": "number";
   "value"?: MetricNumberValue;
@@ -737,6 +719,24 @@ export interface MetricPointProjection {
   "max"?: AttributeDouble;
   "explicit_bounds"?: AttributeDouble[];
   "bucket_counts"?: string[];
+}
+
+export interface MetricPoint {
+  "observation_id": string;
+  "has_conflict": boolean;
+  "series_id": string;
+  "time_unix_nano": string;
+  "start_time_unix_nano"?: string;
+  "flags"?: number;
+  "attributes": Attribute[];
+  "data": MetricPointData | null;
+  "exemplars"?: MetricExemplar[];
+  "historical_exemplar_trace_ids"?: TraceId[];
+  "instrument_metadata"?: Attribute[];
+  "resource_dropped_attributes_count"?: number;
+  "scope_dropped_attributes_count"?: number;
+  "projection"?: MetricPointProjection;
+  "projection_unavailable_reason"?: string;
 }
 
 export interface SessionEntity {
@@ -1225,52 +1225,13 @@ export interface MetricCatalogRow {
   "last_seen": string;
   "supported_aggregations": MetricAggregation[];
   "has_conflict": boolean;
-}
-
-export interface GetMetricSeriesInput {
-  "lookback_minutes"?: number;
-  "start_time"?: string;
-  "end_time"?: string;
-  "series_id"?: string;
-  "points_cursor"?: string;
-  "points_limit"?: number;
-  "metric_name": string;
-  "matchers"?: MetricAttributeMatcher[];
-  "limit"?: number;
-  "cursor"?: string;
-}
-
-export interface GetMetricSeriesOutput {
-  "points"?: CursorPageMetricPoint;
-  "keys"?: MetricKeySummary[];
-  "suggested_group_by"?: string[];
-  "window": ToolWindow;
-  "coverage": ToolCoverage;
-  "page_totals"?: Record<string, number>;
-  "items": MetricSeries[];
-  "has_more": boolean;
-  "next_cursor"?: string;
-  "error"?: ToolError;
-}
-
-export interface CursorPageMetricPoint {
-  "items": MetricPoint[];
-  "next_cursor"?: string;
-  "has_more": boolean;
+  "keys": MetricKeySummary[];
+  "suggested_group_by": string[];
 }
 
 export interface MetricKeySummary {
   "key": string;
   "cardinality": number;
-  "cardinality_exact": boolean;
-  "top_values": AttributeValueCount[];
-  "coverage_share": number;
-}
-
-export interface AttributeValueCount {
-  "value": AttributeValue;
-  "count": number;
-  "share": number;
 }
 
 export interface QueryMetricInput {
@@ -1284,9 +1245,11 @@ export interface QueryMetricInput {
   "step_ms"?: number;
   "aggregation"?: MetricAggregation;
   "series_id"?: string;
+  "raw"?: boolean;
+  "cursor"?: string;
   "group_by"?: string[];
   "matchers"?: MetricAttributeMatcher[];
-  "series_limit"?: number;
+  "limit"?: number;
 }
 
 export interface MetricComparisonOffset {
@@ -1300,29 +1263,47 @@ export interface MetricRatio {
 }
 
 export interface QueryMetricOutput {
-  "method"?: string;
-  "exemplar_trace_ids"?: TraceId[];
-  "comparison"?: MetricComparisonResult;
   "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
-  "numeric_representation": "float64";
-  "approximate": boolean;
   "name": string;
   "kind": MetricKind;
   "unit"?: string;
-  "aggregation": MetricAggregation;
-  "step_ms": number;
-  "start_time": string;
-  "end_time": string;
-  "series": MetricSeriesResult[];
-  "truncated": boolean;
+  "aggregation"?: MetricAggregation;
+  "step_ms"?: number;
+  "series"?: MetricSeriesResult[];
+  "numeric_representation"?: "float64";
+  "approximate"?: boolean;
+  "method"?: string;
+  "exemplar_trace_ids"?: TraceId[];
+  "comparison"?: MetricComparisonResult;
+  "series_id"?: string;
+  "attributes"?: Attribute[];
+  "points"?: MetricRawPoint[];
+  "has_more"?: boolean;
+  "next_cursor"?: string;
   "error"?: ToolError;
 }
 
 export interface MetricComparisonResult {
   "window": ToolWindow;
   "series": MetricSeriesResult[];
+}
+
+export interface MetricRawPoint {
+  "time": string;
+  "start_time"?: string;
+  "data": MetricPointData | null;
+  "has_conflict": boolean;
+  "exemplars"?: MetricRawExemplar[];
+}
+
+export interface MetricRawExemplar {
+  "time": string;
+  "value": MetricNumberValue;
+  "trace_id"?: TraceId;
+  "span_id"?: SpanId;
+  "filtered_attributes"?: Attribute[];
 }
 
 export interface CreateAnnotationInput {
@@ -1919,6 +1900,12 @@ export interface DiscoverAttributesInput {
   "key"?: string;
 }
 
+export interface AttributeValueCount {
+  "value": AttributeValue;
+  "count": number;
+  "share": number;
+}
+
 export interface AttributeSemconv {
   "brief": string;
   "stability": string;
@@ -2347,6 +2334,12 @@ export interface CursorPageMetricSeries {
   "has_more": boolean;
 }
 
+export interface CursorPageMetricPoint {
+  "items": MetricPoint[];
+  "next_cursor"?: string;
+  "has_more": boolean;
+}
+
 export interface CursorPageSessionEntity {
   "items": SessionEntity[];
   "next_cursor"?: string;
@@ -2367,4 +2360,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:f66519a90d36dfc1";
+export const CONTRACT_REVISION: string = "sha256:05a42ecb208fca2a";
