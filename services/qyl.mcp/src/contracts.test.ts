@@ -85,10 +85,18 @@ test("the server's error codes are the contract's ToolErrorCode enum", () => {
     new CollectorError("bad input"),
     new CollectorError("gone", false, 404),
     new CollectorError("down", true),
+    new CollectorError("aggregation: The analysis input does not match the generated contract.", false, 400, undefined,
+      "https://qyl.at/problems/validation-failed",
+      [{ field: "aggregation", message: "The analysis input does not match the generated contract.", code: "analysis.contract_invalid",
+        allowed: ["avg", "p95"], hint: "Send one of the allowed values." }]),
+    new CollectorError("Trace 0af7651916cd43dd8448eb211c80319c was not found in this project; list_traces lists the traces.", false, 404,
+      undefined, "https://qyl.at/problems/not-found", undefined, { resource_type: "trace", resource_id: "0af7651916cd43dd8448eb211c80319c" }),
     new Error("Authorization: Bearer should-never-escape"),
   ]) {
-    const structured = toolError(error).structuredContent as { error: unknown };
+    const structured = toolError("get_trace", error).structuredContent as { error: Record<string, unknown> };
+    // Every member, field, allowed and hint included, is the contract's ToolError, and each names a next step.
     assert(valid("Mcp.Tools.ToolError", structured.error), String(error));
+    assert.equal(typeof structured.error.hint, "string", String(error));
   }
 });
 
@@ -159,7 +167,7 @@ test("analysis boundary preserves RFC 3339 precision and rejects alternate wire 
   assert.equal(parse(body).traces[0]?.start_time, trace.start_time);
   assert.throws(() => parse([trace]), /collector contract mismatch/u);
   assert.throws(() => parse({ ...body, has_more: undefined }), /has_more/u);
-  assert.throws(() => parse({ ...body, invented: true }), /must NOT have additional properties/u);
+  assert.throws(() => parse({ ...body, invented: true }), /invented: is not accepted here; accepted: window, coverage, page_totals, traces/u);
   trace.root = { service: 1 } as never;
   assert.throws(() => parse(body), /collector contract mismatch/u);
 });

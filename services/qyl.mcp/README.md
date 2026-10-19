@@ -45,6 +45,14 @@ The committed [`tool-manifest.snapshot.json`](tool-manifest.snapshot.json) is th
 | Saved questions | `list_saved_queries`, `run_saved_query` |
 | Write project records | `create_annotation`, `update_annotation`, `create_saved_query`, `update_saved_query`, `delete_record`, `update_failure_status` |
 
+Every result has one shape: `content[0]` is a one-line headline naming the top rows, their ids and
+the tool to call next; `content[1]` is the whole result as compact JSON; `structuredContent` is the
+same object. No tool advertises an `outputSchema`. A failure is `isError` with the contract's
+`ToolError`, `{ error: { code, message, retryable, field, allowed, hint, ... } }`: `field` and
+`allowed` name the argument to change and the values or argument names it accepts, whether the
+input schema or the Collector rejected it; a `not_found` carries the Collector's `resource_type`,
+`resource_id` and message, and `hint` names the next step, such as the tool that lists valid ids.
+
 Read tools accept an absolute RFC 3339 time window or `lookback_minutes` and report the resolved
 `window` and `coverage`: examined, matched and returned counts, truncation, scan completeness and
 observation time. Unknown counts are null. Filtering happens before pagination; reuse an opaque
@@ -78,8 +86,8 @@ edits or deletes recorded telemetry; retention alone removes it.
 `qyl:read` covers reads, `qyl:write` adds creation and updates, and `qyl:delete` permits
 `delete_record`. A missing scope returns the OAuth step-up challenge `403`
 `insufficient_scope` naming the scopes to request, in both protocol eras, before the handler runs.
-Failed calls carry a stable code, retryability, the problem type and field-level validation
-details when available. Secrets are redacted before model text, structured content or durable
+Failed calls carry a stable code, retryability, the problem type and every rejected field when
+available. Secrets are redacted before model text, structured content or durable
 evidence. Every tool runs inside its request scope, forwarding cancellation to the Collector;
 requested progress reports completion. Analysis reads require a live Collector; synthetic data
 exists only in test fixtures.
@@ -91,10 +99,12 @@ identification**; the server does not start unless Auth0's metadata advertises a
 `private_key_jwt` (ChatGPT's CIMD client) and `none` (Claude's public CIMD client). The server never
 inspects client metadata. Auth0 owns registration and token issuance; the server validates
 resource-bound RFC 9068 access tokens (signature, issuer, resource audience, expiry and scopes) on
-every MCP request and rejects malformed or query credentials, invalid tokens and insufficient scopes
-with distinct `400`/`401`/`403` responses. Only the qyl production Auth0 issuer is accepted. Every
-request needs `qyl:read`; a tool call that writes or deletes also checks `qyl:write` or `qyl:delete`,
-and its step-up `403` names only the missing scope, so a client that re-authorizes for it must keep
+every MCP request: credentials in the query string answer `400`; a missing, malformed, invalid or
+expired token, or one issued for another resource, answers `401 invalid_token`; insufficient scopes
+answer `403`. Every `401` and `403` carries the SDK's `WWW-Authenticate` challenge with the
+`resource_metadata` URL. Only the qyl production Auth0 issuer is accepted. Every request needs
+`qyl:read`; a tool call that writes or deletes also checks `qyl:write` or `qyl:delete`, and its
+step-up `403` names only the missing scope, so a client that re-authorizes for it must keep
 `qyl:read`. `/.well-known/oauth-protected-resource/mcp` and
 `/.well-known/oauth-protected-resource` describe the same `/mcp` resource.
 
@@ -139,7 +149,7 @@ grants the read tools only, and Auth0-backed Events cannot be enabled in it.
 | --- | --- |
 | `QYL_COLLECTOR_URL` | Collector base URL; default `http://127.0.0.1:5100`. Also the OTLP base when set. |
 | `QYL_API_KEY` | Collector credential for reads and OTLP; the write tools need its `write` and `delete` roles. Outgoing only. |
-| `QYL_PROJECT` | Server-owned Collector project scope. Unset, the server sends no project header and the Collector's default project applies. Never accepted as tool input. |
+| `QYL_PROJECT` | Server-owned Collector project scope, for reads and for the server's own OTLP exports (`X-Qyl-Project` and resource `qyl.project.id`). Unset, the Collector's default project applies. Never accepted as tool input. |
 | `MCP_COLLECTOR_PROJECTS` | Optional secret JSON mapping verified Auth0 subjects to project-bound Collector keys (below). |
 | `MCP_PUBLIC_URL` | HTTPS origin, without a path, of a hosted deployment; turns on hosted authorization, sets the resource audience and the canonical `<origin>/mcp` URL, adds its host to the allowlists and disables the local execution record. |
 | `MCP_BIND_HOST`, `PORT` | Listener address and port; default `127.0.0.1:3001`. |
@@ -184,7 +194,11 @@ deployment records nothing to disk. A completed or failed record that cannot be 
 changes the call's outcome: the tool's result or error is returned, a structured `warn` line goes
 to stderr and the operation span carries `error.type=evidence_persistence_failed`; a record that
 cannot be written before the tool runs refuses the call. OTLP exports carry operation timing,
-status and trace correlation, without argument or result bodies.
+status and trace correlation, without argument or result bodies. The server span names the
+negotiated `mcp.protocol.version`, the `jsonrpc.request.id` and the caller (`user_agent.name` and
+`user_agent.version` from the client's `clientInfo`, `user_agent.original` from the HTTP
+`User-Agent`). A stdio server flushes its exports when the connection closes, so short sessions
+are recorded too.
 
 ## Checks
 

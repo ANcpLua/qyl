@@ -2,8 +2,8 @@
  * Tool-manifest snapshot (architecture gate G10b).
  *
  * The manifest is what an agent actually sees: names, titles, descriptions,
- * annotations, tool metadata, the input/output JSON Schemas the SDK derives
- * from the generated contract schemas, and the skill:// resources the server
+ * annotations, tool metadata, the input JSON Schemas the SDK derives from the
+ * generated contract schemas, and the skill:// resources the server
  * serves. Pinning it means a contract change that is not regenerated here
  * fails as a diff instead of reaching clients unnoticed, and the recorded
  * contract revision ties the snapshot to the contract it came from rather
@@ -17,6 +17,8 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { connectModernTestClient } from "./modern-test-client.test-helper.js";
+import { createServer } from "./server.js";
 import { buildToolManifest, snapshotUrl } from "./tool-manifest.test-helper.js";
 
 test("the published tool manifest matches its committed snapshot", async () => {
@@ -40,19 +42,20 @@ test("the published tool manifest matches its committed snapshot", async () => {
   );
 });
 
-test("telemetry tools advertise portable output schema spellings through the SDK", async () => {
-  const { tools } = JSON.parse(await buildToolManifest()) as {
-    tools: { name: string; outputSchema: unknown }[];
-  };
-  const affected = [
-    "get_trace", "list_traces", "search_logs", "get_metric_series", "query_metric",
-  ];
-  for (const name of affected) {
-    const tool = tools.find((candidate) => candidate.name === name);
-    assert.ok(tool, name);
-    const schema = JSON.stringify(tool.outputSchema);
-    assert.doesNotMatch(schema, /"additionalProperties":\{\}/u, name);
-    assert.doesNotMatch(schema, /"type":\[/u, name);
+test("no tool advertises an outputSchema, so no client validates an error result against one", async () => {
+  // A strict client checks structuredContent against a tool's outputSchema even on an isError
+  // result and shows its own validation error instead of the tool's. The results carry the
+  // same object as JSON text, so dropping the schema loses no information.
+  const connection = await connectModernTestClient(
+    { name: "tool-manifest-output-schema", version: "1.0.0" },
+    () => createServer({ nativeExecution: false }),
+  );
+  try {
+    const { tools } = await connection.client.listTools();
+    assert(tools.length > 0);
+    for (const tool of tools) assert.equal(tool.outputSchema, undefined, tool.name);
+  } finally {
+    await connection.close();
   }
 });
 

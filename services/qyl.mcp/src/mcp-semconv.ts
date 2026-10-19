@@ -11,6 +11,7 @@ import {
     ATTR_NETWORK_PROTOCOL_NAME,
     ATTR_NETWORK_PROTOCOL_VERSION,
     ATTR_NETWORK_TRANSPORT,
+    ATTR_USER_AGENT_ORIGINAL,
     NETWORK_TRANSPORT_VALUE_PIPE,
     NETWORK_TRANSPORT_VALUE_TCP,
 } from "@ancplua/qyl-semantic-conventions";
@@ -26,7 +27,10 @@ import {
     ATTR_MCP_METHOD_NAME,
     ATTR_MCP_PROTOCOL_VERSION,
     ATTR_MCP_RESOURCE_URI,
+    ATTR_MCP_SESSION_ID,
     ATTR_RPC_RESPONSE_STATUS_CODE,
+    ATTR_USER_AGENT_NAME,
+    ATTR_USER_AGENT_VERSION,
     GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL,
     METRIC_MCP_SERVER_OPERATION_DURATION,
     METRIC_MCP_SERVER_OPERATION_DURATION_UNIT,
@@ -55,14 +59,29 @@ interface McpNetworkInput {
 }
 
 interface McpProtocolInput extends McpNetworkInput {
+    /** The revision the request was served on: the 2026-07-28 envelope's, or the 2025 era's negotiated one. */
     protocolVersion?: string;
     jsonRpcProtocolVersion?: string;
     errorType?: string;
     rpcResponseStatusCode?: string;
 }
 
+/**
+ * The caller as the request identifies it. The MCP conventions define no client
+ * attribute: the client's self-declared `clientInfo` goes to `user_agent.name` and
+ * `user_agent.version`, the HTTP `User-Agent` header to `user_agent.original`.
+ * Span and log only, like the peer address: per-caller values would multiply the
+ * metric's series.
+ */
+interface McpCallerInput {
+    sessionId?: string;
+    clientName?: string;
+    clientVersion?: string;
+    userAgent?: string;
+}
+
 /** One operation this server answered. Payloads never enter its telemetry. */
-export interface McpOperationInput extends McpProtocolInput {
+export interface McpOperationInput extends McpProtocolInput, McpCallerInput {
     method: string;
     toolName?: string;
     promptName?: string;
@@ -221,16 +240,20 @@ function addOperationAttributes(
     }
 }
 
-/** Span and log only: a client address would explode the metric's cardinality. */
+/** Span and log only: a client address or identity would explode the metric's cardinality. */
 function addPeerAttributes(
     attributes: Attributes,
-    input: McpNetworkInput,
+    input: McpNetworkInput & McpCallerInput,
     safe: (value: string) => string,
 ): void {
     if (input.peerAddress) attributes[ATTR_CLIENT_ADDRESS] = safe(input.peerAddress);
     if (input.peerAddress && input.peerPort !== undefined) {
         attributes[ATTR_CLIENT_PORT] = input.peerPort;
     }
+    if (input.sessionId) attributes[ATTR_MCP_SESSION_ID] = safe(input.sessionId);
+    if (input.clientName) attributes[ATTR_USER_AGENT_NAME] = safe(input.clientName);
+    if (input.clientVersion) attributes[ATTR_USER_AGENT_VERSION] = safe(input.clientVersion);
+    if (input.userAgent) attributes[ATTR_USER_AGENT_ORIGINAL] = safe(input.userAgent);
 }
 
 function addQylAttributes(

@@ -114,9 +114,9 @@ const PROBLEM_TYPES: Record<number, [string, string]> = {
   503: ["service-unavailable", "service_unavailable"],
 };
 
-function problem(status: number, title: string): Response {
+function problem(status: number, title: string, extension: Readonly<Record<string, string>> = {}): Response {
   const [name, code] = PROBLEM_TYPES[status] ?? ["internal-error", "internal_error"];
-  return Response.json({ type: `https://qyl.at/problems/${name}`, code, title, status }, {
+  return Response.json({ type: `https://qyl.at/problems/${name}`, code, title, status, ...extension }, {
     status, headers: { "content-type": "application/problem+json" },
   });
 }
@@ -190,6 +190,7 @@ async function hostedClient(
   context.after(() => handler.close());
   const gate = createResourceAuthorization({
     verifier: verifier(),
+    expectedResource: RESOURCE,
     requiredScopes: [QYL_MCP_SCOPE],
     resourceMetadataUrl: METADATA_URL,
   });
@@ -336,7 +337,7 @@ test("writes reach only the verified subject's project, with its key and the eta
   }) as CallToolResult;
   assert.equal(created.isError, undefined, JSON.stringify(created));
   assert.deepEqual(structured<{ annotation: Annotation }>(created).annotation.target, target);
-  assert.match(JSON.stringify(created.content), /Created annotation ann-1 on span/u);
+  assert.match(JSON.stringify(created.content), /create_annotation: created annotation ann-1 on span/u);
   const firstCreate = calls.at(-1);
   assert.ok(firstCreate);
   assert.match(firstCreate.idempotencyKey ?? "", /^[a-f0-9]{64}$/u, "a create carries a derived Idempotency-Key");
@@ -361,6 +362,7 @@ test("writes reach only the verified subject's project, with its key and the eta
     code: "precondition_failed",
     message: "annotation ann-1 changed since that etag was read; read it again for its current etag",
     retryable: false,
+    hint: "Read the object again and retry with its current etag.",
   });
   assert.equal(calls.at(-1)!.project, "review");
   assert.equal(calls.at(-1)!.apiKey, "review-write-key");
@@ -420,7 +422,7 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
     if (call.method === "DELETE" && call.path === "/api/v1/saved-queries/sq-1") {
       return new Response(null, { status: 204 });
     }
-    return problem(404, "Not Found");
+    return problem(404, "Not Found", { resource_type: "saved_query", resource_id: call.path.split("/").at(-1)! });
   });
   // Local stdio-style serving: no verified auth, the Collector key decides.
   const client = await localClient(context);
@@ -437,6 +439,7 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
     code: "conflict",
     message: 'a saved query named "taken" already exists in this project',
     retryable: false,
+    hint: "Choose another name, or a new idempotency_key only when a second object is intended.",
   });
 
   const nothing = await client.callTool({ name: "update_saved_query", arguments: { id: "sq-1", etag: "\"1\"" } }) as CallToolResult;
@@ -479,7 +482,10 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
   assert.equal(calls.at(-1)!.ifMatch, "\"2\"");
 
   const missing = await client.callTool({ name: "delete_record", arguments: { kind: "saved_query", id: "gone", etag: "\"2\"" } }) as CallToolResult;
-  assert.deepEqual(errorOf(missing), { code: "not_found", message: "saved query not found: gone", retryable: false });
+  assert.deepEqual(errorOf(missing), {
+    code: "not_found", message: "saved query not found: gone", retryable: false, resource_type: "saved_query", resource_id: "gone",
+    hint: "Take ids only from earlier results: list_saved_queries, get_trace, list_sessions or list_failures return ids and current etags.",
+  });
 });
 
 test("a Collector key without the write or delete role surfaces as collector_unauthorized", async (context) => {
@@ -494,6 +500,7 @@ test("a Collector key without the write or delete role surfaces as collector_una
     code: "collector_unauthorized",
     message: "the Collector refused the change: the server's Collector key needs the write role",
     retryable: false,
+    hint: "The Collector refused this server's credential; tell the qyl operator.",
   });
   const deleted = await client.callTool({
     name: "delete_record",

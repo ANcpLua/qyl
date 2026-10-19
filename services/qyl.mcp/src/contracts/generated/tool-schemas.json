@@ -187,6 +187,60 @@
     ],
     "additionalProperties": false
   },
+  "Common.Errors.NotFoundError": {
+    "type": "object",
+    "description": "The addressed resource does not exist (404).",
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": [
+          "https://qyl.at/problems/not-found"
+        ]
+      },
+      "title": {
+        "type": "string",
+        "enum": [
+          "Not Found"
+        ]
+      },
+      "status": {
+        "type": "integer",
+        "description": "HTTP status code of this response, repeated for the reader of the body.",
+        "minimum": -2147483648,
+        "maximum": 2147483647
+      },
+      "detail": {
+        "type": "string",
+        "description": "Explanation specific to this occurrence."
+      },
+      "instance": {
+        "type": "string",
+        "format": "uri",
+        "description": "URI reference identifying this occurrence."
+      },
+      "code": {
+        "type": "string",
+        "enum": [
+          "not_found"
+        ]
+      },
+      "resource_type": {
+        "type": "string",
+        "description": "The kind of resource that was not found."
+      },
+      "resource_id": {
+        "type": "string",
+        "description": "The identifier that was not found."
+      }
+    },
+    "required": [
+      "type",
+      "title",
+      "status",
+      "code"
+    ],
+    "additionalProperties": false
+  },
   "Common.Errors.ProblemDetails": {
     "type": "object",
     "required": [
@@ -750,7 +804,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -798,6 +853,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -1176,7 +1264,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -1224,6 +1313,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -1735,7 +1857,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -1783,6 +1906,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -2518,7 +2674,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -2566,6 +2723,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -3343,7 +3533,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -3391,6 +3582,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -3983,7 +4207,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -4031,6 +4256,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -4901,7 +5159,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -4949,6 +5208,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -5361,7 +5653,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -5409,6 +5702,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -6205,7 +6531,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -6253,6 +6580,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -7441,7 +7801,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -7489,6 +7850,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -8507,7 +8901,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -8555,6 +8950,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -9950,7 +10378,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -9998,6 +10427,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -10553,7 +11015,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -10601,6 +11064,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -11388,7 +11884,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -11436,6 +11933,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -12162,7 +12692,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -12210,6 +12741,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -12614,7 +13178,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -12662,6 +13227,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -13085,7 +13683,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -13133,6 +13732,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -13919,7 +14551,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -13967,6 +14600,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -14946,7 +15612,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -14994,6 +15661,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -15471,7 +16171,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -15519,6 +16220,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -16279,7 +17013,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -16327,6 +17062,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -17093,7 +17861,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -17141,6 +17910,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -17831,7 +18633,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -17879,6 +18682,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -18456,7 +19292,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -18504,6 +19341,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -18833,7 +19703,8 @@
           },
           "description": "One rule a request broke.",
           "additionalProperties": false
-        }
+        },
+        "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
       },
       "problem_type": {
         "type": "string",
@@ -18881,6 +19752,39 @@
       "retryable": {
         "type": "boolean",
         "description": "Whether the same call can succeed when repeated unchanged."
+      },
+      "field": {
+        "type": "string",
+        "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+      },
+      "allowed": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+      },
+      "hint": {
+        "type": "string",
+        "description": "The next step: what to change, or which tool returns the ids the call needs."
+      },
+      "resource_type": {
+        "type": "string",
+        "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+      },
+      "resource_id": {
+        "type": "string",
+        "description": "With not_found: the identifier that was not found."
       },
       "collector_contract_revision": {
         "anyOf": [
@@ -19455,7 +20359,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -19503,6 +20408,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -19786,7 +20724,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -19834,6 +20773,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -20908,7 +21880,8 @@
               },
               "description": "One rule a request broke.",
               "additionalProperties": false
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "type": "string",
@@ -20956,6 +21929,39 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [

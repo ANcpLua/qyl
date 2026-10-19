@@ -145,6 +145,8 @@ for (const multiProject of [true, false]) {
         resourceSpans: Array<{ resource: { attributes: Attribute[] }; scopeSpans: Array<{ scope: { name: string }; spans: Span[] }> }> };
       assert.equal(traces.resourceSpans.length, 1);
       assert.equal(attribute(traces.resourceSpans[0]!.resource.attributes, "service.name"), "qyl.mcp");
+      // A keyless Collector files OTLP under the resource's project; with a key the two must agree.
+      assert.equal(attribute(traces.resourceSpans[0]!.resource.attributes, "qyl.project.id"), project.project);
       const scope = traces.resourceSpans[0]!.scopeSpans[0]!;
       assert.equal(scope.scope.name, "qyl.mcp");
       assert.equal(scope.spans.length, 1);
@@ -158,6 +160,9 @@ for (const multiProject of [true, false]) {
       assert.equal(span.status?.code ?? 0, failed ? 2 : 0);
       assert.equal(attribute(span.attributes, "gen_ai.tool.name"), "fixture.telemetry");
       assert.equal(attribute(span.attributes, "error.type"), failed ? "tool_error" : undefined);
+      // The stock client negotiates the 2025 era; its stateless calls carry the revision as a header.
+      assert.equal(attribute(span.attributes, "mcp.protocol.version"), "2025-11-25");
+      assert.match(attribute(span.attributes, "jsonrpc.request.id") ?? "", /^\d+$/u);
       const metrics = signals.find(receipt => receipt.signal === "/v1/metrics")!.body as unknown as {
         resourceMetrics: Array<{ scopeMetrics: Array<{ scope: { name: string }; metrics: Array<{ name: string; unit: string;
           histogram: { dataPoints: Array<{ count: string; attributes: Attribute[] }> } }> }> }> };

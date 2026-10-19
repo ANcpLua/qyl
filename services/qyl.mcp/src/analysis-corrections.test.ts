@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { checkContract } from "./contracts/tool-schemas.js";
 import { queryAnalysis } from "./analysis-client.js";
-import { analysisSummary } from "./analysis-summary.js";
+import { analysisHeadline } from "./analysis-summary.js";
 import { compactAnalysisResult, responseBytes, ANALYSIS_RESPONSE_BYTES } from "./analysis-budget.js";
 import { collectorPost } from "./collector.js";
 import { readContext, toolTrace } from "./analysis-context.test-helper.js";
@@ -35,7 +35,11 @@ test("budget re-query preserves filters and accepts Collector's smaller page and
   assert.equal(queries[1]?.end_time,readContext().window.end_time);
   assert.equal(queries[1]?.start,undefined,"output window names are not input fields");
   assert(Number(queries[1]?.limit)<100); assert.equal((result.structuredContent as Record<string, unknown>)?.next_cursor,"signed-next-page");
-  assert(responseBytes(result)<=ANALYSIS_RESPONSE_BYTES); assert.match(JSON.stringify(result.content),/Matched 2/u);
+  assert(responseBytes(result)<=ANALYSIS_RESPONSE_BYTES);
+  const [headline, json] = result.content as Array<{ type: "text"; text: string }>;
+  assert.match(headline!.text, /^discover_attributes: 2 attributes\. Top: key-0 \(string, 1 values, 100% coverage, e\.g\. x+…\)/u);
+  assert.match(headline!.text, /More: repeat with next_cursor\. → aggregate_telemetry group_by=\["key-0"\]$/u);
+  assert.deepEqual(JSON.parse(json!.text), result.structuredContent, "content[1] is the structured result as JSON");
 });
 
 test("one oversized trace is compacted with explicit omissions and a valid contract", () => {
@@ -43,7 +47,7 @@ test("one oversized trace is compacted with explicit omissions and a valid contr
   trace.spans = Array.from({length:300}, (_, index) => ({...trace.spans[0]!,span_id:index.toString(16).padStart(16,"0") as SpanId, name:"large span "+index,
     attributes:[{key:"recorded.evidence",value:"detail ".repeat(2000)}]}));
   const output = { ...readContext(300), trace, has_more:false, logs:[], annotations:[], links:[], mode:"live", settled:true };
-  const result = compactAnalysisResult("get_trace",output);
+  const result = compactAnalysisResult("get_trace",{trace_id:trace.trace_id},output);
   assert(responseBytes(result)<=ANALYSIS_RESPONSE_BYTES);
   const checked = checkContract("Mcp.Tools.GetTraceOutput", result.structuredContent);
   assert(checked.valid, checked.valid ? "" : checked.message);
@@ -55,7 +59,10 @@ test("one oversized trace is compacted with explicit omissions and a valid contr
 });
 
 test("null coverage is reported as unknown rather than zero", () => {
-  assert.match(analysisSummary("list_traces",{...readContext(),coverage:{...readContext().coverage,examined:null,matched:null,returned:null,scan_complete:false}}), /Matched unknown; returned unknown/u);
+  const headline = analysisHeadline("list_traces", {}, {...readContext(), mode:"live", traces:[],
+    coverage:{...readContext().coverage,examined:null,matched:null,returned:null,scan_complete:false}});
+  assert.match(headline, /scan_complete:false — a partial answer over unknown examined records/u);
+  assert.doesNotMatch(headline, /Nothing matched/u, "null is unknown, not zero");
 });
 
 test("every nested matcher input rejects 33 matchers and triage rejects 51", () => {

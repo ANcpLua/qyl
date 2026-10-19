@@ -173,7 +173,7 @@ try {
   r = await call("get_trace", { trace_id: traceId });
   ok("get_trace reads the note back", JSON.stringify(r.structuredContent?.annotations ?? []).includes("live smoke note"));
   r = await call("list_traces", { annotation_label: "live-smoke", limit: 20 });
-  ok("list_traces filters and returns annotation labels", r.structuredContent?.traces?.some((trace) => trace.trace_id === traceId && trace.annotation_labels?.includes("live-smoke")));
+  ok("list_traces filters by annotation label", r.structuredContent?.traces?.some((trace) => trace.trace_id === traceId));
   r = await call("list_traces", { annotation_label: "missing-smoke-label", limit: 20 });
   ok("list_traces excludes traces without the requested label", r.structuredContent?.traces?.length === 0);
   r = await call("update_annotation", { id: note?.id, etag: note?.etag, text: "live smoke note, edited" });

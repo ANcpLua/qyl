@@ -78,6 +78,7 @@ union ToolErrorCode {
 
 @doc("A failed tool call, carried in structuredContent.error.")
 model ToolError {
+  @doc("Every rule the arguments broke, as the input schema or the Collector reported them.")
   fields?: ValidationErrorDetail[];
   @encodedName("application/json", "problem_type")
   problemType?: ProblemType;
@@ -89,6 +90,23 @@ model ToolError {
 
   @doc("Whether the same call can succeed when repeated unchanged.")
   retryable: boolean;
+
+  @doc("The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected.")
+  field?: string;
+
+  @doc("The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set.")
+  allowed?: (string | float64 | boolean)[];
+
+  @doc("The next step: what to change, or which tool returns the ids the call needs.")
+  hint?: string;
+
+  @doc("With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`.")
+  @encodedName("application/json", "resource_type")
+  resourceType?: string;
+
+  @doc("With not_found: the identifier that was not found.")
+  @encodedName("application/json", "resource_id")
+  resourceId?: string;
 
   @doc("With collector_contract_mismatch: the contract revision the Collector serves; null when its health names none.")
   @encodedName("application/json", "collector_contract_revision")

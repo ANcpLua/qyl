@@ -38,6 +38,7 @@ import {
     ATTR_SERVICE_VERSION,
 } from "@ancplua/qyl-semantic-conventions";
 import {
+    ATTR_QYL_PROJECT_ID,
     METRIC_MCP_SERVER_OPERATION_DURATION,
     METRIC_MCP_SERVER_OPERATION_DURATION_UNIT,
 } from "@ancplua/qyl-semantic-conventions/incubating";
@@ -79,20 +80,18 @@ export interface McpSpanCorrelation {
     spanId: string;
 }
 
+/** Everything known when the request arrives, so the span starts with it (samplers see it too). */
 export type McpOperationStartInput = Omit<
     McpOperationInput,
     | "endTimeMs"
     | "errorType"
     | "rpcResponseStatusCode"
-    | "jsonRpcRequestId"
 >;
 
 export interface McpOperationCompletion {
     endTimeMs: number;
     errorType?: string;
     rpcResponseStatusCode?: string;
-    jsonRpcRequestId?: string | number;
-    protocolVersion?: string;
 }
 
 export interface ActiveMcpOperation {
@@ -170,14 +169,20 @@ export class McpTelemetry {
             }
         }
 
+        // The Collector files OTLP it ingests without an API key under the resource's
+        // qyl.project.id and ignores X-Qyl-Project there; with a key, the key's project
+        // decides and a different qyl.project.id is refused. Naming QYL_PROJECT in both
+        // places files a keyless local server's own telemetry where its tools read.
+        const project = env.QYL_PROJECT?.trim();
         const resource = resourceFromAttributes({
             [ATTR_SERVICE_NAME]: Product.name,
             [ATTR_SERVICE_VERSION]: Product.version,
             [ATTR_SERVICE_INSTANCE_ID]: randomUUID(),
+            ...(project ? { [ATTR_QYL_PROJECT_ID]: project } : {}),
         });
         const headers = {
             ...(env.QYL_API_KEY?.trim() ? { [API_KEY_AUTH_HEADER]: env.QYL_API_KEY.trim() } : {}),
-            ...(env.QYL_PROJECT?.trim() ? { [PROJECT_SCOPE_HEADER]: env.QYL_PROJECT.trim() } : {}),
+            ...(project ? { [PROJECT_SCOPE_HEADER]: project } : {}),
         };
 
         const traceExporter = new OTLPTraceExporter({

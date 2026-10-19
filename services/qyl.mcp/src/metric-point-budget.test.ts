@@ -3,7 +3,7 @@ import test, { type TestContext } from "node:test";
 import type { MetricPoint } from "./contracts/generated/api.js";
 import { queryAnalysis } from "./analysis-client.js";
 import { ANALYSIS_RESPONSE_BYTES, responseBytes } from "./analysis-budget.js";
-import { analysisSummary } from "./analysis-summary.js";
+import { analysisHeadline } from "./analysis-summary.js";
 import { CollectorError } from "./collector.js";
 import { readContext } from "./analysis-context.test-helper.js";
 
@@ -116,9 +116,9 @@ test("point summaries identify historically unknown originals and the independen
   const old = point(0);
   old.data = null;
   old.projection = { value: 9007199254740992 };
-  const text = analysisSummary("get_metric_series", output([point(1), old], true));
-  assert.match(text, /original points: 2/u);
-  assert.match(text, /1 original representation unknown/u);
-  assert.match(text, /points_cursor/u);
+  const text = analysisHeadline("get_metric_series", { metric_name: metricName, series_id: seriesId }, output([point(1), old], true));
+  assert.match(text, new RegExp(`^get_metric_series: 2 original points of series ${seriesId}, 1 with an unknown original representation\\.`, "u"));
+  assert.match(text, /points\.next_cursor as points_cursor/u);
   assert.doesNotMatch(text, /repeat with next_cursor/u);
+  assert.doesNotMatch(text, /\n/u);
 });

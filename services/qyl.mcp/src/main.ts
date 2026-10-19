@@ -20,7 +20,11 @@ import { loadHostedOAuth, QYL_MCP_ISSUER } from "./oauth.js";
 import { createResourceAuthorization } from "./authorization.js";
 import { readAuthorizationExtensions } from "./auth-extensions.js";
 import { createCloudflareAccessAuth, readAccessConfig } from "./cloudflare-access.js";
-import { closeDefaultNativeExecutionRuntime, defaultNativeExecutionRuntime } from "./native-execution.js";
+import {
+  closeDefaultNativeExecutionRuntime,
+  createNativeExecutionRuntime,
+  defaultNativeExecutionRuntime,
+} from "./native-execution.js";
 import { EventsRuntime, createEventStore } from "./events.js";
 import { hostedEventsAuthorization } from "./events-authorization.js";
 import { readCollectorProjects } from "./collector-access.js";
@@ -287,6 +291,7 @@ export async function hostedAuth(
   return {
     gate: createResourceAuthorization({
       verifier: oauth.verifier,
+      expectedResource: resourceServerUrl,
       requiredScopes: oauth.requiredScopes,
       authorizationScopes: oauth.scopesSupported,
       resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resourceServerUrl),
@@ -413,6 +418,30 @@ async function createHostedRuntime(
 
 }
 
+/**
+ * The instance one stdio connection is pinned to, with what it keeps alive: the
+ * Collector contract monitor and a telemetry runtime of its own. Both are released
+ * when the connection closes, whether stdin reached end-of-file or the process was
+ * signalled (stdio.md, "Shut down cleanly"); closing the runtime flushes the spans,
+ * metrics and logs still batched, so a short session's telemetry is not lost. A
+ * stdio server never runs the Events poller: Events need hosted authorization.
+ */
+export function createStdioMcpServer(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): McpServer {
+  const stopContractMonitor = startCollectorContractMonitor();
+  const nativeExecution = createNativeExecutionRuntime(environment, true);
+  const server = createServer({ transport: "stdio", nativeExecution });
+  server.server.onclose = () => {
+    stopContractMonitor();
+    nativeExecution.close().catch((error: unknown) => {
+      reportError("Standalone MCP stdio telemetry flush", error);
+      process.exitCode = 1;
+    });
+  };
+  return server;
+}
+
 /** The SDK selects the protocol era at the opening exchange of each connection. */
 export function startStdioServer(serverFactory: () => McpServer): StdioServerHandle {
   const handle = serveStdio(serverFactory, {
@@ -422,12 +451,10 @@ export function startStdioServer(serverFactory: () => McpServer): StdioServerHan
   const shutdown = () => {
     if (shuttingDown) return;
     shuttingDown = true;
-    void handle.close()
-      .then(closeDefaultNativeExecutionRuntime)
-      .catch((error: unknown) => {
-        reportError("Standalone MCP stdio shutdown cleanup", error);
-        process.exitCode = 1;
-      });
+    handle.close().catch((error: unknown) => {
+      reportError("Standalone MCP stdio shutdown cleanup", error);
+      process.exitCode = 1;
+    });
   };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
@@ -458,15 +485,15 @@ async function bootstrap(): Promise<void> {
     if (projects !== undefined && transport === "stdio") {
       throw new Error("MCP_COLLECTOR_PROJECTS requires hosted Auth0 resource authorization");
     }
-    // The Collector may run another contract revision for the minutes between two deploys;
-    // tools report that skew per call instead of the process refusing to start.
-    startCollectorContractMonitor();
 
     if (transport === "stdio") {
-      startStdioServer(() => createServer({ transport: "stdio" }));
+      startStdioServer(() => createStdioMcpServer());
       return undefined;
     }
 
+    // The Collector may run another contract revision for the minutes between two deploys;
+    // tools report that skew per call instead of the process refusing to start.
+    startCollectorContractMonitor();
     return await createHostedRuntime(readStreamableHTTPConfig());
   } catch (error) {
     reportError("Standalone MCP startup", error);

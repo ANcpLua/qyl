@@ -1,5 +1,6 @@
 /**
- * Builds the G10b manifest — the full tool AND resource surface an agent sees,
+ * Builds the G10b manifest — the full tool AND resource surface an agent sees
+ * (no tool advertises an outputSchema; tool-manifest.test.ts proves it),
  * plus the contract revision it was generated from. Shared by the snapshot
  * test (which only compares) and update-tool-manifest-snapshot.mjs (which
  * writes): regeneration is an explicit script run, never a side effect of
@@ -32,7 +33,6 @@ export async function buildToolManifest(): Promise<string> {
           annotations: tool.annotations ?? null,
           meta: tool._meta ?? null,
           inputSchema: tool.inputSchema,
-          outputSchema: tool.outputSchema ?? null,
         })),
       // The skill files the server serves through the skills extension are part
       // of the surface an agent resolves: a dropped or renamed file must fail as

@@ -12,9 +12,11 @@ saved queries and failure status in that project, never the telemetry.
 
 ## Connect first, then fan out
 
-1. Make **one** call before anything else: `triage` with no arguments. It
-   proves the connection and the sign-in, and its answer is the overview
-   every investigation starts from.
+1. Make **one** call before anything else: `triage` with a
+   `lookback_minutes` that covers the incident (1440 for today, 10080 for
+   the week); without it triage reads only the last 60 minutes and misses
+   an older incident. It proves the connection and the sign-in, and its
+   answer is the overview every investigation starts from.
 2. If that call asks for authentication, let the host run the sign-in once
    and retry the same call **once**. If it still asks, stop: tell the user
    that qyl's sign-in did not complete and which host connection to check.
@@ -37,7 +39,7 @@ saved queries and failure status in that project, never the telemetry.
 | How MCP tools and servers perform | `get_mcp_stats` | `list_traces` filtered to the failing tool |
 | What an agent run did | `list_sessions` (`active_only` for live runs) | `get_agent_run` with the `session_id` |
 | What the logs say | `search_logs` with `trace_id` or `service_name` and `severity_min` 17 for errors | `get_trace` for the spans around a log |
-| What a metric shows | `list_metrics` | `get_metric_series` for the streams, `query_metric` for the window |
+| What a metric shows | `list_metrics` | `query_metric` with the instrument's name; `get_metric_series` only to choose filters |
 | What a CI run did | `ci_log` | `ci_log` with the `run_id` for its phases in start order, each with its status |
 
 ## Defaults, so you do not have to choose
@@ -66,6 +68,12 @@ saved queries and failure status in that project, never the telemetry.
   `sum:<attribute key>`; `order_by` is one of them, optionally with ` asc`
   or ` desc`, defaulting to the first measure descending. `units` in the
   result names each measure's unit.
+- **Metrics.** Two calls answer a metric question: `list_metrics` names the
+  instrument, `query_metric` measures it. Without `step_ms` it splits the
+  window into at most 60 buckets, lists only the buckets that hold points
+  and gives each series one `value` for the whole window.
+  `get_metric_series` is only for choosing attribute filters or reading
+  original points.
 - **Filters.** `matchers` take `key`, `op` (`eq`, `neq`, `in`, `prefix`,
   `contains`, `exists`, `gt`, `gte`, `lt`, `lte`) and `value` or `values`;
   `discover_attributes` lists which keys and values exist before you filter.
@@ -81,10 +89,12 @@ saved queries and failure status in that project, never the telemetry.
   that did not hold the whole window after it.
 - `triage` ranks failures by `change`: `new`, `worsening`, `ongoing`,
   `recovering`, `regressed`. A `coinciding_release` is a lead, not a cause.
-- `get_failure_context.observed` is evidence (root-cause span, error spans,
-  propagation, logs, retries, fan-out); `comparison` is how the failing
-  execution differs from a baseline; `unknowns` lists what the telemetry
-  could not establish. Report the unknowns with the findings.
+- `get_failure_context.observed` is evidence: `spans` holds each span once,
+  and `root_cause_span`, `error_spans` and `propagation` name spans in it by
+  `trace_id` and `span_id`, beside logs, retries and fan-out. `comparison`
+  is how the failing execution differs from a baseline, `context.changes`
+  what changed around it, and `unknowns` what the telemetry could not
+  establish. Report the unknowns with the findings.
 - `coverage.scan_complete: false` or `truncated: true` means the answer
   rests on part of the data. Say which part.
 - `check_telemetry_health.metric_conflicts` lists metric timestamps that
@@ -94,8 +104,9 @@ saved queries and failure status in that project, never the telemetry.
 
 ## Record and reuse (only when asked)
 
-- `create_annotation` puts a plain-text note on a trace, span or session;
-  `get_trace` and `list_sessions` show it later with its `id` and `etag`.
+- `create_annotation` puts a plain-text note on a trace, span, session or
+  failure (`target: {kind: "failure", failure_id}`); `get_trace`,
+  `list_sessions` and `list_failures` show it later with its `id` and `etag`.
   `update_annotation` and `delete_record` take that `id` and the current `etag`; a
   stale etag fails with `precondition_failed`, so read the object again
   first.
@@ -103,10 +114,6 @@ saved queries and failure status in that project, never the telemetry.
   `ignore_until`) and an `assignee`; `list_failures` shows the result.
 - `create_saved_query` stores a named filter, `list_saved_queries` finds it
   and `run_saved_query` answers it.
-- Only when the user asks for notifications, and only where the client and
-  deployment offer MCP Events, subscribe to `trace.error`, optionally for
-  one `service_name`. Check the subscription result rather than assuming
-  delivery.
 
 ## Rules
 

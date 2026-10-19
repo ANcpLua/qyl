@@ -3,7 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/server";
 import { CollectorError, collectorPost, parseCollectorBody } from "./collector.js";
 import type { ContractSchemaName } from "./contracts/tool-schemas.js";
 import { ANALYSIS_RESPONSE_BYTES, compactAnalysisResult, responseBytes } from "./analysis-budget.js";
-import { analysisSummary } from "./analysis-summary.js";
+import { analysisHeadline } from "./analysis-summary.js";
 import type { ToolScope } from "./request-scope.js";
 import { telemetryToolResult } from "./telemetry-redaction.js";
 
@@ -22,7 +22,7 @@ export async function queryAnalysis<Input extends object>(
     if (remaining <= 0) throw new CollectorError("The query exceeded its time budget; narrow the time window and matchers.");
     const response = await collectorPost(path, query, { ...scope.collector, timeoutMs: remaining });
     const output = parseCollectorBody(response, path, schema);
-    const result = telemetryToolResult(analysisSummary(operation, output), output);
+    const result = telemetryToolResult(analysisHeadline(operation, input, output), output);
     // Bytes give a conservative upper bound even for token-dense identifiers.
     const bytes = responseBytes(result);
     if (bytes <= ANALYSIS_RESPONSE_BYTES) {
@@ -59,6 +59,6 @@ export async function queryAnalysis<Input extends object>(
       );
     }
     await scope.step(`Queried ${operation}; large evidence compacted`);
-    return compactAnalysisResult(operation, output);
+    return compactAnalysisResult(operation, input, output);
   }
 }

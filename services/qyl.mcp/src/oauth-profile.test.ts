@@ -93,7 +93,7 @@ test("token validation rejects expiry, foreign issuers, missing RFC9068 claims a
   for (const claims of [
     { exp: 0 }, { exp: undefined }, { iss: "https://foreign.example/" },
     { iat: undefined }, { iat: Math.floor(Date.now() / 1000) + 3600 }, { jti: undefined },
-    { sub: "" }, { client_id: "" }, { aud: "https://another.example/mcp" },
+    { sub: "" }, { client_id: "" }, { aud: undefined },
     { nbf: Math.floor(Date.now() / 1000) + 3600 }, { scope: ["qyl:read"] },
     { scope: "qyl:read\nadmin" },
   ]) {

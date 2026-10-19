@@ -233,5 +233,8 @@ test("oversized pages requery with a smaller limit and retain collector coverage
   assert.equal(output.coverage.examined, 8);
   assert.equal(output.coverage.returned, output.logs.length);
   assert.equal(output.coverage.truncated, true);
-  assert(Buffer.byteLength(JSON.stringify(result), "utf8") <= 24_000);
+  // The budget bounds what a text-reading host hands the model: the headline and the JSON.
+  const text = (result.content as Array<{ type: string; text: string }>).map((block) => block.text).join("\n");
+  assert(Buffer.byteLength(text, "utf8") <= 24_000);
+  assert.deepEqual(JSON.parse((result.content as Array<{ text: string }>)[1]!.text), result.structuredContent);
 });

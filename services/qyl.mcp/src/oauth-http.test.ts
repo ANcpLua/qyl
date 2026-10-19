@@ -95,6 +95,7 @@ test("verified SDK AuthInfo reaches the modern tool request context", async (con
 function bearerGate(): (request: Request) => Promise<AuthInfo | Response> {
   return createResourceAuthorization({
     verifier: testVerifier(),
+    expectedResource: endpoint,
     requiredScopes: [QYL_MCP_SCOPE],
     resourceMetadataUrl,
   });

@@ -67,7 +67,7 @@ test("generated documents are plain, inlined JSON Schema every host can read", (
   }
 });
 
-test("tools/list advertises the generated documents unchanged", async () => {
+test("tools/list advertises the generated input documents unchanged", async () => {
   const connection = await connectModernTestClient(
     { name: "tool-schemas-test", version: "1.0.0" },
     () => createServer({ nativeExecution: false }),
@@ -78,7 +78,6 @@ test("tools/list advertises the generated documents unchanged", async () => {
     const published = Object.values(generated);
     for (const tool of tools) {
       assert(published.some((document) => isDeepStrictEqual(document, tool.inputSchema)), `${tool.name} input`);
-      assert(published.some((document) => isDeepStrictEqual(document, tool.outputSchema)), `${tool.name} output`);
     }
   } finally {
     await connection.close();

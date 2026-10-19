@@ -1,15 +1,20 @@
 import type { CallToolResult } from "@modelcontextprotocol/server";
-import { analysisSummary } from "./analysis-summary.js";
+import { analysisHeadline } from "./analysis-summary.js";
 import { telemetryToolResult } from "./telemetry-redaction.js";
 
 export const ANALYSIS_RESPONSE_BYTES = 24_000;
-export const responseBytes = (result: object): number => Buffer.byteLength(JSON.stringify(result), "utf8");
+/**
+ * What a text-reading host hands the model: the headline and the JSON. `structuredContent`
+ * repeats the JSON for hosts that read it instead, so it is not counted twice.
+ */
+export const responseBytes = (result: CallToolResult): number => Buffer.byteLength(
+  result.content.map((block) => (block.type === "text" ? block.text : JSON.stringify(block))).join("\n"), "utf8");
 
 /** Final compaction for a single large record, after the Collector has paged it.
  * Stable identities, counts and signed continuations are preserved. Bulk text and
  * nested evidence can be omitted; totals and the text response explain the loss.
  */
-export function compactAnalysisResult(operation: string, original: object): CallToolResult {
+export function compactAnalysisResult(operation: string, input: object, original: object): CallToolResult {
   const output = structuredClone(original) as Record<string, unknown>;
   const totals = { ...(output.page_totals as Record<string, number> | undefined) };
   let omitted = 0;
@@ -18,7 +23,7 @@ export function compactAnalysisResult(operation: string, original: object): Call
   output.coverage = coverage;
   output.page_totals = totals;
   const result = (): CallToolResult => telemetryToolResult(
-    `${analysisSummary(operation, output)}\nResponse budget: ${omitted} other evidence item(s) omitted; ${shortened} text field(s) shortened. Narrow the filters or use the continuation for more evidence.`, output);
+    `${analysisHeadline(operation, input, output)} Response budget: ${omitted} other evidence item(s) omitted, ${shortened} text field(s) shortened; narrow the filters or use the continuation for more evidence.`, output);
   // These fields are descriptions/content, never identifiers, credentials or cursors.
   const textFields = new Set(["body", "text", "message", "status_message", "description", "brief", "summary", "pattern", "value", "name"]);
   function trimText(value: unknown, cap: number): void {
@@ -36,7 +41,7 @@ export function compactAnalysisResult(operation: string, original: object): Call
     const arrays: Array<{ values: unknown[]; path: string; bytes: number }> = [];
     function collect(value: unknown, path: string): void {
       if (Array.isArray(value)) {
-        if (value.length > 0) arrays.push({ values: value, path, bytes: responseBytes(value) });
+        if (value.length > 0) arrays.push({ values: value, path, bytes: Buffer.byteLength(JSON.stringify(value), "utf8") });
         value.forEach((item, index) => collect(item, `${path}.${index}`));
       } else if (value !== null && typeof value === "object") {
         for (const [key, item] of Object.entries(value)) {

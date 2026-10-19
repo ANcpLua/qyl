@@ -1,11 +1,21 @@
 import {
-  requireBearerAuth,
+  bearerAuthChallengeResponse,
+  OAuthError,
+  OAuthErrorCode,
+  verifyBearerToken,
   type AuthInfo,
   type OAuthTokenVerifier,
+  type VerifyBearerTokenOptions,
 } from "@modelcontextprotocol/server";
 
 export interface ResourceAuthorizationOptions {
   readonly verifier: OAuthTokenVerifier;
+  /**
+   * The resource identifier tokens must be issued for: the verifier reports a
+   * token's audience as `AuthInfo.resource`, and a token reported for another
+   * resource, or for none, is answered `401 invalid_token`.
+   */
+  readonly expectedResource: URL;
   readonly resourceMetadataUrl: string;
   readonly requiredScopes: readonly string[];
   /** Scopes requested at initial sign-in; individual operations still enforce their own requirements. */
@@ -43,7 +53,16 @@ export function scopeClosure(
   return result;
 }
 
-/** All grants converge on this gate. Extensions never see an unverified token. */
+/**
+ * All grants converge on this gate. Extensions never see an unverified token.
+ *
+ * The SDK's bearer core does the verification (authorization.md, "Require a bearer
+ * token on a web-standard host"): it runs the verifier, compares the reported
+ * resource with `expectedResource`, rejects a token without `exp` or past it, and
+ * stamps `resourceMetadataUrl` onto the AuthInfo it returns, so per-tool scope
+ * challenges advertise the same document. Every refusal is formatted by the SDK's
+ * one challenge formatter, so the metadata URL is configured once, here.
+ */
 export function createResourceAuthorization(
   options: ResourceAuthorizationOptions,
 ): (request: Request) => Promise<AuthInfo | Response> {
@@ -62,43 +81,40 @@ export function createResourceAuthorization(
     || Array.from(options.resourceMetadataUrl).some((character) => character.charCodeAt(0) <= 0x20)) {
     throw new Error("Resource metadata must use a safe HTTPS URL");
   }
-  const coreGate = requireBearerAuth({
+  const bearer: VerifyBearerTokenOptions = {
     verifier: options.verifier,
     resourceMetadataUrl: metadataUrl.href,
-  });
-  const challenge = (status: number, error?: string, scopes = requiredScopes): Response => {
-    const parameters = [
-      ...(error === undefined ? [] : [`error="${error}"`]),
-      ...(scopes.length === 0 ? [] : [`scope="${scopes.join(" ")}"`]),
-      `resource_metadata="${metadataUrl.href}"`,
-    ];
-    return Response.json({ error: error ?? "unauthorized" }, {
-      status,
-      headers: { "WWW-Authenticate": `Bearer ${parameters.join(", ")}`, "Cache-Control": "no-store" },
+    expectedResource: options.expectedResource,
+  };
+  const refuse = (error: unknown, scopes: readonly string[]): Response => {
+    const response = bearerAuthChallengeResponse(error, {
+      requiredScopes: [...scopes],
+      ...(bearer.resourceMetadataUrl === undefined ? {} : { resourceMetadataUrl: bearer.resourceMetadataUrl }),
     });
+    response.headers.set("cache-control", "no-store");
+    return response;
   };
   return async (request) => {
-    const authorization = request.headers.get("authorization");
-    const bearer = authorization === null ? null : /^Bearer +([A-Za-z0-9._~+/-]+=*)$/iu.exec(authorization);
-    if (new URL(request.url).searchParams.has("access_token")
-      || (authorization !== null && bearer === null)) {
-      return challenge(400, "invalid_request");
+    if (new URL(request.url).searchParams.has("access_token")) {
+      return refuse(new OAuthError(OAuthErrorCode.InvalidRequest, "Access tokens are accepted only in the Authorization header"), []);
     }
-    // RFC 6750 permits multiple spaces. The SDK splits on one space; normalize
-    // the validated header on a bodyless request so the MCP body remains unread.
-    const auth = await coreGate(bearer === null ? request : new Request(request.url, {
-      headers: { authorization: `Bearer ${bearer[1]}` },
-    }));
-    if (auth instanceof Response) {
+    const authorization = request.headers.get("authorization");
+    // RFC 6750 permits several spaces after the scheme; the SDK core splits on one.
+    // A header that is not exactly one Bearer token never reaches the verifier.
+    const token = authorization === null ? null : /^Bearer +([A-Za-z0-9._~+/-]+=*)$/iu.exec(authorization);
+    if (authorization !== null && token === null) {
+      return refuse(new OAuthError(OAuthErrorCode.InvalidToken, "Malformed Authorization header; expected one Bearer token"), authorizationScopes);
+    }
+    let auth: AuthInfo;
+    try {
+      auth = await verifyBearerToken(token === null ? undefined : `Bearer ${token[1]}`, bearer);
+    } catch (error) {
       // Hosts use this scope list for sign-in. Request the complete product
       // grant here without requiring every scope for a read-only request.
-      if (auth.status === 401) return challenge(401, authorization === null ? undefined : "invalid_token", authorizationScopes);
-      return auth;
+      return refuse(error, error instanceof OAuthError && error.code === OAuthErrorCode.InvalidToken ? authorizationScopes : []);
     }
     const effectiveScopes = scopeClosure(auth.scopes, implications);
-    if (!requiredScopes.every((scope) => effectiveScopes.has(scope))) {
-      return challenge(403, "insufficient_scope", requiredScopes.filter((scope) => !effectiveScopes.has(scope)));
-    }
-    return auth;
+    const missing = requiredScopes.filter((scope) => !effectiveScopes.has(scope));
+    return missing.length === 0 ? auth : refuse(new OAuthError(OAuthErrorCode.InsufficientScope, "Insufficient scope"), missing);
   };
 }

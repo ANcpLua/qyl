@@ -74,6 +74,7 @@ function hostedEndpoint(options: { authenticated?: boolean; openaiAppsChallenge?
         auth: {
           gate: createResourceAuthorization({
             verifier: testVerifier(),
+            expectedResource: resourceServerUrl,
             requiredScopes: [QYL_MCP_SCOPE],
             resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resourceServerUrl),
           }),

@@ -6,6 +6,8 @@ import {
   exportJWK,
   generateKeyPair,
 } from "jose";
+import { getOAuthProtectedResourceMetadataUrl, OAuthError, OAuthErrorCode } from "@modelcontextprotocol/server";
+import { createResourceAuthorization } from "./authorization.js";
 import { hostedAuth, readStreamableHTTPConfig } from "./main.js";
 import {
   QYL_MCP_DELETE_SCOPE,
@@ -93,7 +95,7 @@ test("RFC 9068 access tokens populate the SDK AuthInfo contract", async () => {
   assert.equal(typeof auth.expiresAt, "number");
 });
 
-test("token verification rejects the wrong token type, audience, or missing client ID", async () => {
+test("token verification rejects the wrong token type or a missing client ID and reports the audience it found", async () => {
   const keys = await testKeys();
   const verifier = createJwtTokenVerifier({
     issuer,
@@ -110,12 +112,11 @@ test("token verification rejects the wrong token type, audience, or missing clie
     async () => verifier.verifyAccessToken(await issueToken(keys.privateKey, validClaims, { typ: "JWT" })),
     /Access token verification failed/u,
   );
-  await assert.rejects(
-    async () => verifier.verifyAccessToken(await issueToken(keys.privateKey, validClaims, {
-      audience: "https://wrong.example/mcp",
-    })),
-    /Access token verification failed/u,
-  );
+  // The audience is reported, not judged: the gate's expectedResource refuses it.
+  const foreign = await verifier.verifyAccessToken(await issueToken(keys.privateKey, validClaims, {
+    audience: "https://wrong.example/mcp",
+  }));
+  assert.equal(foreign.resource, undefined);
   await assert.rejects(
     async () => verifier.verifyAccessToken(await issueToken(keys.privateKey, {
       sub: "auth0|user-1",
@@ -144,14 +145,62 @@ test("an access token audienced to several resources is accepted for the qyl one
   assert.equal(auth.clientId, "https://client.example/mcp.json");
   assert.equal(auth.resource?.href, resource.href);
 
-  await assert.rejects(
-    async () => verifier.verifyAccessToken(await issueToken(keys.privateKey, {
-      sub: "auth0|user-1",
-      client_id: "https://client.example/mcp.json",
-      scope: QYL_MCP_SCOPE,
-    }, { audience: [`${issuer}userinfo`, "https://wrong.example/mcp"] })),
-    /Access token verification failed/u,
-  );
+  const elsewhere = await verifier.verifyAccessToken(await issueToken(keys.privateKey, {
+    sub: "auth0|user-1",
+    client_id: "https://client.example/mcp.json",
+    scope: QYL_MCP_SCOPE,
+  }, { audience: [`${issuer}userinfo`, "https://wrong.example/mcp"] }));
+  assert.equal(elsewhere.resource, undefined);
+});
+
+test("the gate refuses a token issued for another resource with a 401 challenge", async () => {
+  const keys = await testKeys();
+  const gate = createResourceAuthorization({
+    verifier: createJwtTokenVerifier({ issuer, resource, key: keys.verificationKey }),
+    expectedResource: resource,
+    requiredScopes: [QYL_MCP_SCOPE],
+    resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource),
+  });
+  const claims = { sub: "auth0|user-1", client_id: "https://client.example/mcp.json", scope: QYL_MCP_SCOPE };
+  for (const audience of [resource.href, `${resource.href}/`, [resource.href, `${issuer}userinfo`]]) {
+    const accepted = await gate(new Request(resource, {
+      headers: { authorization: `Bearer ${await issueToken(keys.privateKey, claims, { audience })}` },
+    }));
+    assert(!(accepted instanceof Response), JSON.stringify(audience));
+    assert.equal(accepted.resource?.href.replace(/\/$/u, ""), resource.href);
+    assert.equal(typeof accepted.expiresAt, "number");
+  }
+  for (const audience of ["https://wrong.example/mcp", "https://mcp.qyl.at/other", [`${issuer}userinfo`]]) {
+    const refused = await gate(new Request(resource, {
+      headers: { authorization: `Bearer ${await issueToken(keys.privateKey, claims, { audience })}` },
+    }));
+    assert(refused instanceof Response, JSON.stringify(audience));
+    assert.equal(refused.status, 401);
+    assert.match(refused.headers.get("www-authenticate") ?? "", /error="invalid_token"/u);
+    assert.match(refused.headers.get("www-authenticate") ?? "", /resource_metadata="https:\/\/mcp\.qyl\.at\/\.well-known\/oauth-protected-resource\/mcp"/u);
+  }
+});
+
+test("an unreachable key set rejects the token as invalid, never as a server error", async () => {
+  const verifier = createJwtTokenVerifier({
+    issuer,
+    resource,
+    key: async () => { throw new TypeError("fetch failed"); },
+  });
+  const keys = await testKeys();
+  const token = await issueToken(keys.privateKey, {
+    sub: "auth0|user-1", client_id: "https://client.example/mcp.json", scope: QYL_MCP_SCOPE,
+  });
+  await assert.rejects(() => verifier.verifyAccessToken(token), (error: unknown) =>
+    error instanceof OAuthError && error.code === OAuthErrorCode.InvalidToken);
+  const gate = createResourceAuthorization({
+    verifier, expectedResource: resource, requiredScopes: [QYL_MCP_SCOPE],
+    resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource),
+  });
+  const response = await gate(new Request(resource, { headers: { authorization: `Bearer ${token}` } }));
+  assert(response instanceof Response);
+  assert.equal(response.status, 401);
+  assert.match(response.headers.get("www-authenticate") ?? "", /^Bearer error="invalid_token"/u);
 });
 
 test("token verification rejects signing algorithms other than RS256", async () => {

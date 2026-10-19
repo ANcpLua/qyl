@@ -12,11 +12,10 @@ export function registerCiTools(server: McpServer): void {
       title: "CI Log",
       description: "List or compare CI runs and phase failures when investigating a build or test regression.",
       inputSchema: contractSchema("Mcp.Tools.CiLogInput"),
-      outputSchema: contractSchema("Mcp.Tools.CiLogOutput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
     },
-    (args, ctx) => runTool(ctx, 1, async (scope) =>
+    (args, ctx) => runTool(ctx, "ci_log", 1, async (scope) =>
       queryAnalysis("ci_log", args, "Mcp.Tools.CiLogOutput", scope)),
   );
 }

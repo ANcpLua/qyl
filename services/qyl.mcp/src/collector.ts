@@ -7,6 +7,7 @@
  */
 
 import type {
+  NotFoundError,
   ProblemDetails,
   ToolErrorCode,
   ValidationErrorDetail,
@@ -64,6 +65,12 @@ function codeForUnexpectedBody(response: Response): ToolErrorCode {
   return "contract_mismatch";
 }
 
+/** What a Collector 404 names as missing: the kind of record and its identifier. */
+export interface MissingResource {
+  readonly resource_type?: string;
+  readonly resource_id?: string;
+}
+
 /**
  * Error with a message already suitable for showing to the model/user, and a
  * stable `code`. Without an explicit code, a response status decides it, a
@@ -79,7 +86,10 @@ export class CollectorError extends Error {
     readonly status?: number,
     code?: ToolErrorCode,
     readonly problemType?: ProblemDetails["type"],
+    /** Every rule a rejected request broke; the first is the argument to change. */
     readonly fields?: ValidationErrorDetail[],
+    /** With a 404: the record the Collector did not find. */
+    readonly missing?: MissingResource,
   ) {
     super(message);
     this.name = "CollectorError";
@@ -149,6 +159,33 @@ function codeForProblem(problem: ProblemDetails, status: number): ToolErrorCode 
     default:
       return codeForStatus(status);
   }
+}
+
+/**
+ * One rejected argument as the model reads it: its path, the rule and, unless the rule's text
+ * already names them, the values it accepts.
+ */
+function describeRejection(detail: ValidationErrorDetail): string {
+  const { allowed, message } = detail;
+  if (allowed === undefined || allowed.every((value) => message.includes(value))) {
+    return `${detail.field}: ${message}`;
+  }
+  return `${detail.field}: ${/[.!?]$/u.test(message) ? message : `${message}.`} Accepted: ${allowed.join(", ")}`;
+}
+
+/** A 404 names what is missing; the Collector's detail also names the tool that lists what exists. */
+function notFoundMessage(problem: NotFoundError): string | undefined {
+  if (problem.detail !== undefined && problem.detail.trim() !== "") return problem.detail;
+  if (problem.resource_type === undefined && problem.resource_id === undefined) return undefined;
+  return `${[problem.resource_type ?? "The record", problem.resource_id].filter(Boolean).join(" ")} was not found in this project.`;
+}
+
+function missingResource(problem: NotFoundError): MissingResource | undefined {
+  if (problem.resource_type === undefined && problem.resource_id === undefined) return undefined;
+  return {
+    ...(problem.resource_type === undefined ? {} : { resource_type: problem.resource_type }),
+    ...(problem.resource_id === undefined ? {} : { resource_id: problem.resource_id }),
+  };
 }
 
 /**
@@ -246,15 +283,21 @@ async function collectorRequest(
     const validation = problem.code === "validation_failed"
       ? checkContract("Common.Errors.ValidationError", responseBody)
       : undefined;
-    const fields = validation?.valid ? validation.value.errors : undefined;
-    const fieldMessage = fields?.map((field) => `${field.field}: ${field.message}`).join("; ");
+    const fields = validation?.valid && validation.value.errors.length > 0 ? validation.value.errors : undefined;
+    const notFound = problem.code === "not_found" ? checkContract("Common.Errors.NotFoundError", responseBody) : undefined;
+    const missing = notFound?.valid ? missingResource(notFound.value) : undefined;
     throw new CollectorError(
-      redactTelemetryText(fieldMessage || `Collector request failed (HTTP ${response.status}); retry reads after correcting the request or Collector access.`),
+      redactTelemetryText(
+        (fields === undefined ? undefined : fields.map(describeRejection).join("; "))
+        ?? (notFound?.valid ? notFoundMessage(notFound.value) : undefined)
+        ?? `Collector request failed (HTTP ${response.status}); retry reads after correcting the request or Collector access.`,
+      ),
       false,
       response.status,
       codeForProblem(problem, response.status),
       problem.type,
       fields,
+      missing,
     );
   }
 

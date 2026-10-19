@@ -37,14 +37,30 @@ export function redactTelemetryText(value: string): string {
   return redactor.redactText(value);
 }
 
-/** Final MCP result guard for both model text and structured telemetry. */
+/** Longest headline; the JSON beside it carries everything the headline leaves out. */
+const HEADLINE_CHARACTERS = 1_000;
+
+/** One redacted line: hosts that show only the first text block still see the whole headline. */
+export function headlineText(text: string): string {
+  const line = redactTelemetryText(text).replace(/\s+/gu, " ").trim();
+  return line.length <= HEADLINE_CHARACTERS ? line : `${line.slice(0, HEADLINE_CHARACTERS - 1)}…`;
+}
+
+/**
+ * Final MCP result guard for both model text and structured telemetry. `content[0]`
+ * is the headline, `content[1]` the compact JSON of the whole result for hosts that
+ * read text only, and `structuredContent` the same object.
+ */
 export function telemetryToolResult<T extends object>(
-  text: string,
+  headline: string,
   output: T,
 ): CallToolResult {
-  const safeOutput = redactTelemetry(output);
+  const safeOutput = redactTelemetry(output) as unknown as Record<string, unknown>;
   return {
-    content: [{ type: "text", text: redactTelemetryText(text) }],
-    structuredContent: safeOutput as unknown as Record<string, unknown>,
+    content: [
+      { type: "text", text: headlineText(headline) },
+      { type: "text", text: JSON.stringify(safeOutput) },
+    ],
+    structuredContent: safeOutput,
   };
 }

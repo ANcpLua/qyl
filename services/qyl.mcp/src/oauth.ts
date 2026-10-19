@@ -55,16 +55,13 @@ async function verifyJwt(
   key: JWTVerifyGetKey,
   token: string,
   issuer: string,
-  audience: string,
 ): Promise<JWTPayload> {
   try {
-    // jwtVerify already enforces every one of these from its options, and it
-    // does so per RFC 7519 — `aud` may be an array, which Auth0 issues whenever
-    // the client also requests userinfo. Re-checking `payload.aud !== audience`
-    // rejected those tokens outright.
+    // The audience is not compared here: the verifier reports it as
+    // AuthInfo.resource and the gate's expectedResource compares it, so one
+    // place decides whether a token was issued for this server.
     const { payload } = await jwtVerify(token, key, {
       issuer,
-      audience,
       algorithms: ["RS256"],
       typ: "at+jwt",
       requiredClaims: ["iss", "sub", "aud", "exp", "iat", "jti", "client_id"],
@@ -75,19 +72,22 @@ async function verifyJwt(
   }
 }
 
+/**
+ * RFC 9068 access tokens to the SDK's AuthInfo (authorization.md, "Verify tokens
+ * your way"): every rejection is OAuthError(InvalidToken), which the gate answers
+ * with 401 and its challenge; `expiresAt` comes from `exp`; `resource` is the
+ * token's `aud` entry on this server's origin, absent when it has none, and the
+ * gate's `expectedResource` decides whether that is this server.
+ */
 export function createJwtTokenVerifier(params: {
   issuer: string;
+  /** This server's resource identifier; its origin selects the `aud` entry to report. */
   resource: URL;
   key: JWTVerifyGetKey;
 }): OAuthTokenVerifier {
   return {
     async verifyAccessToken(token: string): Promise<AuthInfo> {
-      const payload = await verifyJwt(
-        params.key,
-        token,
-        params.issuer,
-        params.resource.href,
-      );
+      const payload = await verifyJwt(params.key, token, params.issuer);
       if (
         typeof payload.sub !== "string"
         || payload.sub.length === 0
@@ -101,6 +101,9 @@ export function createJwtTokenVerifier(params: {
       ) {
         throw invalidToken();
       }
+      // `aud` is one value or a list: report the entry on this server's origin, if any.
+      const audience = [payload.aud ?? []].flat()
+        .find((aud) => URL.canParse(aud) && new URL(aud).origin === params.resource.origin);
       return {
         token,
         clientId: payload.client_id,
@@ -108,7 +111,7 @@ export function createJwtTokenVerifier(params: {
           ? payload.scope.split(" ").filter(Boolean)
           : [],
         expiresAt: payload.exp,
-        resource: params.resource,
+        ...(audience === undefined ? {} : { resource: new URL(audience) }),
         extra: { subject: payload.sub },
       };
     },

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import test from "node:test";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 import { CollectorError, collectorPost } from "./collector.js";
 import { collectorUrl } from "./config.js";
 import { toolError } from "./request-scope.js";
@@ -16,20 +17,19 @@ test("collector URL rejects embedded credentials and query secrets", () => {
 });
 
 test("tool errors expose only controlled collector failures", () => {
-  assert.deepEqual(toolError(new CollectorError("collector unavailable", true)), {
-    content: [{ type: "text", text: "collector unavailable" }],
-    structuredContent: {
-      error: { code: "collector_unreachable", message: "collector unavailable", retryable: true },
-    },
+  const unreachable = { code: "collector_unreachable", message: "collector unavailable", retryable: true, hint: "Retry the same call later." };
+  assert.deepEqual(toolError("list_traces", new CollectorError("collector unavailable", true)), {
+    content: [
+      { type: "text", text: "list_traces failed: collector_unreachable — collector unavailable → Retry the same call later." },
+      { type: "text", text: JSON.stringify({ error: unreachable }) },
+    ],
+    structuredContent: { error: unreachable },
     isError: true,
   });
-  assert.deepEqual(toolError(new Error("Authorization: Bearer should-never-escape")), {
-    content: [{ type: "text", text: "Telemetry request failed." }],
-    structuredContent: {
-      error: { code: "internal", message: "Telemetry request failed.", retryable: false },
-    },
-    isError: true,
-  });
+  const internal = { code: "internal", message: "Telemetry request failed.", retryable: false, hint: "Tell the qyl operator; repeating the call will not help." };
+  const result = toolError("get_trace", new Error("Authorization: Bearer should-never-escape"));
+  assert.deepEqual(result.structuredContent, { error: internal });
+  assert.doesNotMatch(JSON.stringify(result), /should-never-escape/u);
 });
 
 test("collector Problem Details cannot inject remote detail into tool-facing errors", async () => {
@@ -81,7 +81,7 @@ test("transient answers without a contract body keep their retryable status code
       await assert.rejects(collectorPost("/failure", {}), (error: unknown) => {
         assert(error instanceof CollectorError);
         assert.equal(error.code, expected.code, `status ${expected.status}`);
-        const structured = toolError(error).structuredContent as { error: { retryable: boolean } };
+        const structured = toolError("list_traces", error).structuredContent as { error: { retryable: boolean } };
         assert.equal(structured.error.retryable, expected.retryable, `status ${expected.status}`);
         return true;
       });
@@ -114,6 +114,70 @@ test("collector requests fail closed on the configured timeout", async () => {
     restoreEnvironment("QYL_COLLECTOR_URL", previous);
     await close(listener);
   }
+});
+
+/** The tool error a Collector answering `status` with the Problem Details `body` produces for `tool`. */
+async function refusedWith(tool: string, status: number, body: object): Promise<CallToolResult> {
+  const listener = createServer((_request, response) => {
+    response.writeHead(status, { "content-type": "application/problem+json" });
+    response.end(JSON.stringify(body));
+  });
+  await listen(listener);
+  const address = listener.address();
+  assert(address && typeof address === "object");
+  const previous = process.env.QYL_COLLECTOR_URL;
+  process.env.QYL_COLLECTOR_URL = `http://127.0.0.1:${address.port}`;
+  try {
+    const error = await collectorPost(`/api/v1/analysis/${tool}`, {}).then(() => undefined, (failure: unknown) => failure);
+    assert(error instanceof CollectorError, String(error));
+    return toolError(tool, error);
+  } finally {
+    restoreEnvironment("QYL_COLLECTOR_URL", previous);
+    await close(listener);
+  }
+}
+
+test("a Collector 404 reaches the model with what is missing and where valid ids come from", async () => {
+  const id = "0000000000000000000000000000dead";
+  const result = await refusedWith("get_trace", 404, {
+    type: "https://qyl.at/problems/not-found", title: "Not Found", status: 404, code: "not_found",
+    detail: `Trace ${id} was not found in this project; list_traces lists the traces. Authorization: Bearer remote-secret`,
+    resource_type: "trace", resource_id: id,
+  });
+  const { error } = result.structuredContent as { error: Record<string, unknown> };
+  assert.equal(error.code, "not_found");
+  assert.equal(error.resource_type, "trace");
+  assert.equal(error.resource_id, id);
+  assert.match(String(error.message), new RegExp(`^Trace ${id} was not found in this project; list_traces lists the traces\\.`, "u"));
+  assert.match(String(error.hint), /list_traces returns the trace ids/u);
+  assert.doesNotMatch(JSON.stringify(result), /remote-secret/u, "a forwarded detail is redacted like telemetry");
+  const [headline] = result.content as Array<{ text: string }>;
+  assert.match(headline!.text, new RegExp(`^get_trace failed: not_found — Trace ${id} was not found in this project; list_traces lists the traces\\.`, "u"));
+});
+
+test("a Collector validation error reaches the model with the field, the values it accepts and its hint", async () => {
+  const aggregations = ["avg", "min", "max", "sum", "count", "last", "p50", "p90", "p95", "p99"];
+  const operators = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
+  const result = await refusedWith("query_metric", 400, {
+    type: "https://qyl.at/problems/validation-failed", title: "Validation Failed", status: 400, code: "validation_failed",
+    errors: [
+      { field: "aggregation", message: "The analysis input does not match the generated contract.", code: "analysis.contract_invalid",
+        allowed: aggregations, hint: "Send one of the allowed values." },
+      { field: "matchers[0].op", message: "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.", code: "invalid", allowed: operators },
+    ],
+  });
+  const { error } = result.structuredContent as { error: Record<string, unknown> };
+  assert.equal(error.code, "collector_rejected");
+  assert.equal(error.field, "aggregation");
+  assert.deepEqual(error.allowed, aggregations);
+  assert.equal(error.hint, "Send one of the allowed values.", "the Collector's hint is the one to follow");
+  assert.equal((error.fields as unknown[]).length, 2, "every rejected field stays available");
+  // A rule that does not name the accepted values gets them appended; one that does is left alone.
+  assert.equal(error.message,
+    `aggregation: The analysis input does not match the generated contract. Accepted: ${aggregations.join(", ")}; ` +
+    "matchers[0].op: Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.");
+  const [headline] = result.content as Array<{ text: string }>;
+  assert.match(headline!.text, /^query_metric failed: collector_rejected — aggregation: .* → Send one of the allowed values\.$/u);
 });
 
 function restoreEnvironment(name: string, value: string | undefined): void {

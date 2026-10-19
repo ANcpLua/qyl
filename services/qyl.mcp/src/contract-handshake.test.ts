@@ -85,6 +85,7 @@ test("skew blocks every tool with both revisions and clears on the next matching
     assert.equal(error.server_contract_revision, CONTRACT_REVISION);
     assert.match(String(error.message), new RegExp(`${foreign}.*${CONTRACT_REVISION}`, "u"));
     assert(checkContract("Mcp.Tools.ToolError", error).valid, "the error is the contract's ToolError");
+    assert.match(String(error.hint), /one contract revision/u);
   }
   assert.deepEqual(analysisCalls, [], "a refused call never reaches the Collector");
 

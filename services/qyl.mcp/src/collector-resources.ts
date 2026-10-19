@@ -28,7 +28,6 @@ import {
 } from "./collector.js";
 import { createHash } from "node:crypto";
 import { IDEMPOTENCY_KEY_HEADER, IF_MATCH_HEADER } from "./contracts/generated/headers.js";
-import { shortId } from "./summaries.js";
 import { redactTelemetry } from "./telemetry-redaction.js";
 
 const ANNOTATIONS_PATH = "/api/v1/annotations";
@@ -70,8 +69,9 @@ function resourcePath(base: string, id: string, suffix = ""): string {
  * Runs one Collector call and names its refusals for what the caller tried:
  * a status listed in `messages` becomes that message, keeping the code the
  * status decides (`not_found`, `conflict`, `precondition_failed`,
- * `collector_unauthorized`). A body that breaks the contract stays a
- * contract mismatch, and every other failure passes through unchanged.
+ * `collector_unauthorized`) and the record a 404 names as missing. A body
+ * that breaks the contract stays a contract mismatch, and every other
+ * failure passes through unchanged.
  */
 export async function refusals<T>(
   messages: Readonly<Partial<Record<number, string>>>,
@@ -85,7 +85,7 @@ export async function refusals<T>(
     }
     const message = messages[error.status];
     if (message === undefined) throw error;
-    throw new CollectorError(message, false, error.status);
+    throw new CollectorError(message, false, error.status, undefined, undefined, undefined, error.missing);
   }
 }
 
@@ -221,22 +221,15 @@ export function describeTarget(target: Annotation["target"]): string {
   }
 }
 
-function targetLabel(target: Annotation["target"]): string {
+/** The read that shows an annotation on `target` again, as the next call a headline names. */
+export function annotationReadBack(target: Annotation["target"]): string {
   switch (target.kind) {
     case "trace":
-      return `trace ${shortId(target.trace_id)}`;
     case "span":
-      return `span ${target.span_id}`;
+      return `get_trace trace_id=${target.trace_id}`;
     case "session":
-      return `session ${target.session_id}`;
+      return "list_sessions";
     case "failure":
-      return `failure ${target.failure_id}`;
+      return `list_failures failure_id=${target.failure_id}`;
   }
-}
-
-/** One text line per annotation: what it is on, how to change it, and the note. */
-export function annotationLine(annotation: Annotation): string {
-  const note = annotation.text.replace(/\s+/gu, " ");
-  const text = note.length > 200 ? `${note.slice(0, 200)}…` : note;
-  return `- ${targetLabel(annotation.target)} · id ${annotation.id} · etag ${annotation.etag}: ${text}`;
 }

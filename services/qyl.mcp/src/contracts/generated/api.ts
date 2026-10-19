@@ -825,6 +825,11 @@ export interface ToolError {
   "code": ToolErrorCode;
   "message": string;
   "retryable": boolean;
+  "field"?: string;
+  "allowed"?: (string | number | boolean)[];
+  "hint"?: string;
+  "resource_type"?: string;
+  "resource_id"?: string;
   "collector_contract_revision"?: string | null;
   "server_contract_revision"?: string;
 }
@@ -2324,13 +2329,6 @@ export interface UpdateFailureStatusOutput {
   "error"?: ToolError;
 }
 
-export interface ToolFieldError {
-  "field": string;
-  "code": string;
-  "message": string;
-  "change": string;
-}
-
 export interface AnnotationCreateRequest {
   "labels"?: string[];
   "classification"?: AnnotationClassification;
@@ -2428,4 +2426,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:ba80b8dde2115c1c";
+export const CONTRACT_REVISION: string = "sha256:492e163553efdcd0";

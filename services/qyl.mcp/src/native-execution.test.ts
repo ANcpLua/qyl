@@ -8,10 +8,10 @@ import type { CallToolResult } from "@modelcontextprotocol/client";
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import {
-  assertNativeExecutionRecordingArmed,
+  assertToolCallFrameArmed,
   FileNativeExecutionRepository,
   hasNativeExecutionTelemetry,
-  installNativeExecutionRecording,
+  installToolCallFrame,
   NativeExecutionRuntime,
   type NativeExecutionRecord,
   type NativeExecutionRepository,
@@ -143,6 +143,12 @@ test("native tools/call records operation metadata and keeps payloads out of tel
     assert.equal(started.toolName, "fixture.evidence");
     assert.equal(started.transport, "stdio");
     assert.equal(started.jsonRpcProtocolVersion, "2.0");
+    // Known when the request arrives, so the span starts with them.
+    assert.equal(typeof started.jsonRpcRequestId, "number");
+    assert.equal(started.protocolVersion, "2026-07-28");
+    assert.equal(started.clientName, "native-evidence-test");
+    assert.equal(started.clientVersion, "1.0.0");
+    assert.equal(started.sessionId, undefined, "a 2026-07-28 request belongs to no session");
     assert.equal(started.executionId, "native-execution-1");
     assert.deepEqual(started.remotePropagation, {
       traceparent,
@@ -154,7 +160,7 @@ test("native tools/call records operation metadata and keeps payloads out of tel
     assert.equal(completions.length, 1);
     const completion = completions[0] as Record<string, unknown>;
     assert.equal(completion.endTimeMs, Date.parse("2026-07-17T12:00:00.037Z"));
-    assert.equal(completion.jsonRpcRequestId, undefined);
+    assert.deepEqual(Object.keys(completion).sort(), ["endTimeMs"]);
     assert.doesNotMatch(JSON.stringify(completion), /NATIVE_EXECUTION_SECRET/u);
     assert.equal(completion.responseBody, undefined);
   } finally {
@@ -410,7 +416,7 @@ test("file native repository persists only operation metadata for successful and
   }
 });
 
-test("recording that never wrapped a tools/call dispatcher fails loudly", () => {
+test("a frame that never wrapped a tools/call dispatcher fails loudly", () => {
   // McpServer registers the tools/call dispatcher in its constructor as soon as
   // capabilities.tools is declared there, which is before recording can wrap it.
   // Without the guard the tools answer normally and record nothing at all.
@@ -418,7 +424,7 @@ test("recording that never wrapped a tools/call dispatcher fails loudly", () => 
     { name: "guard-fixture", version: "0.0.0" },
     { capabilities: { tools: {} } },
   );
-  installNativeExecutionRecording(
+  installToolCallFrame(
     server,
     new NativeExecutionRuntime(new MemoryRepository(), { redactor: new SecretRedactor() }),
     "builtin",
@@ -430,13 +436,14 @@ test("recording that never wrapped a tools/call dispatcher fails loudly", () => 
   );
 
   assert.throws(
-    () => assertNativeExecutionRecordingArmed(server),
+    () => assertToolCallFrameArmed(server),
     /never wrapped a tools\/call dispatcher/u,
   );
 });
 
-test("the shipped server arms recording", () => {
+test("the shipped server arms the frame, with and without native evidence", () => {
   assert.doesNotThrow(() => createServer({ transport: "builtin" }));
+  assert.doesNotThrow(() => createServer({ transport: "builtin", nativeExecution: false }));
 });
 
 test("a recording fault answers tools/call through its only failure channel", async () => {

@@ -30,11 +30,10 @@ export function registerTelemetryTools(server: McpServer): void {
       title: "List Traces",
       description: "List filtered trace summaries when finding failed, slow or matching executions.",
       inputSchema: contractSchema("Mcp.Tools.ListTracesInput"),
-      outputSchema: contractSchema("Mcp.Tools.ListTracesOutput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
     },
-    (args, ctx) => runTool(ctx, 1, async (scope) =>
+    (args, ctx) => runTool(ctx, "list_traces", 1, async (scope) =>
       queryAnalysis("list_traces", args, "Mcp.Tools.ListTracesOutput", scope)),
   );
   server.registerTool(
@@ -43,11 +42,10 @@ export function registerTelemetryTools(server: McpServer): void {
       title: "Get Trace",
       description: "Return selected spans, correlated logs and annotations when examining one execution.",
       inputSchema: contractSchema("Mcp.Tools.GetTraceInput"),
-      outputSchema: contractSchema("Mcp.Tools.GetTraceOutput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
     },
-    (args, ctx) => runTool(ctx, 1, async (scope) =>
+    (args, ctx) => runTool(ctx, "get_trace", 1, async (scope) =>
       queryAnalysis("get_trace", args, "Mcp.Tools.GetTraceOutput", scope)),
   );
   server.registerTool(
@@ -56,11 +54,10 @@ export function registerTelemetryTools(server: McpServer): void {
       title: "List Sessions",
       description: "List filtered sessions with failures and token usage when locating active or problematic agent sessions.",
       inputSchema: contractSchema("Mcp.Tools.ListSessionsInput"),
-      outputSchema: contractSchema("Mcp.Tools.ListSessionsOutput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
     },
-    (args, ctx) => runTool(ctx, 1, async (scope) =>
+    (args, ctx) => runTool(ctx, "list_sessions", 1, async (scope) =>
       queryAnalysis("list_sessions", args, "Mcp.Tools.ListSessionsOutput", scope)),
   );
   server.registerTool(
@@ -69,11 +66,10 @@ export function registerTelemetryTools(server: McpServer): void {
       title: "Search Logs",
       description: "Search log records and surrounding context when locating evidence linked to an execution.",
       inputSchema: contractSchema("Mcp.Tools.SearchLogsInput"),
-      outputSchema: contractSchema("Mcp.Tools.SearchLogsOutput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
     },
-    (args, ctx) => runTool(ctx, 1, async (scope) =>
+    (args, ctx) => runTool(ctx, "search_logs", 1, async (scope) =>
       queryAnalysis("search_logs", args, "Mcp.Tools.SearchLogsOutput", scope)),
   );
 }

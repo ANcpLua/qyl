@@ -144,6 +144,7 @@ for (const revision of ["2026-07-28", "2025-11-25"] as const) {
           };
         },
       },
+      expectedResource: new URL(QYL_MCP_RESOURCE),
       requiredScopes: [QYL_MCP_SCOPE],
       resourceMetadataUrl: "https://mcp.qyl.at/.well-known/oauth-protected-resource/mcp",
     });

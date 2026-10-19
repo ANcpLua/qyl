@@ -143,6 +143,7 @@ try {
         resource: new URL(QYL_MCP_RESOURCE), expiresAt: Math.floor(Date.now() / 1_000) + 300,
         extra: { subject: f?.subject ?? "auth0|unassigned-local-test" } };
     } },
+    expectedResource: new URL(QYL_MCP_RESOURCE),
     requiredScopes: [QYL_MCP_SCOPE],
     resourceMetadataUrl: "https://mcp.qyl.at/.well-known/oauth-protected-resource/mcp",
   });
@@ -166,7 +167,9 @@ try {
   /** @returns {Array<[string, Record<string, unknown>]>} */
   function extraReads(f, failure) { return [
     ["triage", {}], ["list_failures", {}], ["get_failure_context", { trace_id: f.traceId }],
-    ["compare_groups", { signal: "spans", group_a: { matchers: [] }, group_b: "rest" }],
+    // Each project holds one span, so "rest" would be an empty group B, which the Collector refuses.
+    ["compare_groups", { signal: "spans", group_a: { matchers: [] },
+      group_b: { matchers: [{ key: "gen_ai.tool.name", op: "eq", value: `${f.marker}_tool` }] } }],
     ["compare_traces", { a: { trace_id: f.traceId }, b: { trace_id: f.traceId } }],
     ["verify_fix", { failure_id: failure.failure_id, since: new Date().toISOString() }],
     ["aggregate_telemetry", { signal: "spans", group_by: ["service.name"], measures: ["count"] }],

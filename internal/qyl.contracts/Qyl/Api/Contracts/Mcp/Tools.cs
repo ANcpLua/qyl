@@ -23,6 +23,21 @@ public sealed class ToolError
     [JsonPropertyName("retryable")]
     public required bool Retryable { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("field")]
+    public string? Field { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("allowed")]
+    public IReadOnlyList<object>? Allowed { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("hint")]
+    public string? Hint { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("resource_type")]
+    public string? ResourceType { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("resource_id")]
+    public string? ResourceId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("collector_contract_revision")]
     public string? CollectorContractRevision { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -3215,18 +3230,6 @@ public sealed class UpdateFailureStatusOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
-}
-
-public sealed class ToolFieldError
-{
-    [JsonPropertyName("field")]
-    public required string Field { get; init; }
-    [JsonPropertyName("code")]
-    public required string Code { get; init; }
-    [JsonPropertyName("message")]
-    public required string Message { get; init; }
-    [JsonPropertyName("change")]
-    public required string Change { get; init; }
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<FailureStatus>))]

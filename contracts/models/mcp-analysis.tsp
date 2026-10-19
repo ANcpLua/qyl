@@ -1154,14 +1154,6 @@ model UpdateFailureStatusOutput {
   error?: ToolError;
 }
 
-@doc("ToolFieldError contract.")
-model ToolFieldError {
-  field: string;
-  code: string;
-  message: string;
-  change: string;
-}
-
 @doc("TraceLinkAvailability contract.")
 model TraceLinkAvailability {
   @encodedName("application/json", "trace_id")

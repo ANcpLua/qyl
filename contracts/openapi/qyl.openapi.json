@@ -13531,7 +13531,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Common.Errors.ValidationErrorDetail"
-            }
+            },
+            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
           },
           "problem_type": {
             "$ref": "#/components/schemas/Common.Errors.ProblemType"
@@ -13546,6 +13547,40 @@
           "retryable": {
             "type": "boolean",
             "description": "Whether the same call can succeed when repeated unchanged."
+          },
+          "field": {
+            "type": "string",
+            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number",
+                  "format": "double"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The next step: what to change, or which tool returns the ids the call needs."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "With not_found: the identifier that was not found."
           },
           "collector_contract_revision": {
             "anyOf": [
@@ -13591,33 +13626,6 @@
           "internal"
         ],
         "description": "Stable failure code of a qyl MCP tool result. A model branches on the code, never on the message."
-      },
-      "Mcp.Tools.ToolFieldError": {
-        "type": "object",
-        "required": [
-          "field",
-          "code",
-          "message",
-          "change"
-        ],
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "change": {
-            "type": "string"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "ToolFieldError contract."
       },
       "Mcp.Tools.ToolLogRow": {
         "type": "object",

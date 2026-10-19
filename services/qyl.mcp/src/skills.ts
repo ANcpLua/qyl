@@ -13,11 +13,20 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import type { McpServer, ServerCapabilities } from "@modelcontextprotocol/server";
-import { ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
+import type { CacheHint, McpServer, ServerContext } from "@modelcontextprotocol/server";
+import { PROTOCOL_VERSION_META_KEY, ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 
 export const SKILLS_EXTENSION = "io.modelcontextprotocol/skills";
+
+/**
+ * The cache policy of every catalog this server publishes on 2026-07-28: the
+ * discover result, tools, resources and the skills list (SEP-2549). Each is the
+ * same for every caller, and a short lifetime means a deploy's new catalog
+ * replaces a client's cached one within a minute (cache.md, "Have the server
+ * send the hint").
+ */
+export const CATALOG_CACHE = { ttlMs: 60_000, cacheScope: "public" } as const satisfies CacheHint;
 /** `skill://<server>/<skill>/<path>`: the server segment names this server. */
 const SKILL_URI_PREFIX = "skill://qyl/";
 const SKILLS_DIR = path.join(import.meta.dirname, "skills");
@@ -33,6 +42,8 @@ const MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
 export interface SkillResource {
   readonly uri: string;
   readonly digest: string;
+  /** Bytes of the file's UTF-8 text: the same bytes the digest covers. */
+  readonly size: number;
   readonly mimeType: string;
   readonly text: string;
 }
@@ -109,6 +120,7 @@ export function loadSkills(directory = SKILLS_DIR): Skill[] {
       return {
         uri: `${SKILL_URI_PREFIX}${name}/${file}`,
         digest: skillDigest(text),
+        size: Buffer.byteLength(text, "utf8"),
         mimeType: MIME_BY_EXTENSION[path.extname(file)] ?? "text/plain",
         text,
       };
@@ -120,13 +132,18 @@ export function loadSkills(directory = SKILLS_DIR): Skill[] {
 function catalogEntry(skill: Skill): {
   uri: string;
   frontmatter: Record<string, string>;
-  resources: { uri: string; digest: string }[];
+  resources: { uri: string; digest: string; size: number }[];
 } {
   return {
     uri: skill.uri,
     frontmatter: { ...skill.frontmatter },
-    resources: skill.resources.map(({ uri, digest }) => ({ uri, digest })),
+    resources: skill.resources.map(({ uri, digest, size }) => ({ uri, digest, size })),
   };
+}
+
+/** A 2026-07-28 request carries the revision in its envelope; a 2025-era one has no envelope. */
+function servedModern(ctx: ServerContext): boolean {
+  return (ctx.mcpReq.envelope as Record<string, unknown> | undefined)?.[PROTOCOL_VERSION_META_KEY] !== undefined;
 }
 
 // createServer() runs per hosted request; the files are read once per process.
@@ -138,12 +155,13 @@ function bundledSkills(): Skill[] {
 
 /** Advertise the extension, answer its two methods and serve every skill file as a resource. */
 export function registerSkills(server: McpServer, skills: readonly Skill[] = bundledSkills()): void {
-  // ServerCapabilities has no `extensions` key in the SDK yet; `server/discover` passes it through.
-  server.server.registerCapabilities({ extensions: { [SKILLS_EXTENSION]: {} } } as unknown as ServerCapabilities);
-  server.server.setRequestHandler("skills/list", { params: ListParamsSchema }, (params) => {
+  // custom-methods.md, "Declare an extension capability": `{}` means supported with no settings.
+  server.server.registerCapabilities({ extensions: { [SKILLS_EXTENSION]: {} } });
+  server.server.setRequestHandler("skills/list", { params: ListParamsSchema }, (params, ctx) => {
     // One page holds the whole catalog; a cursor can only be stale.
     if (params.cursor !== undefined) throw invalidParams("skills/list has a single page; omit cursor");
-    return { skills: skills.map(catalogEntry) };
+    // The list-caching fields exist from 2026-07-28 on; a 2025-era result carries none.
+    return { skills: skills.map(catalogEntry), ...(servedModern(ctx) ? CATALOG_CACHE : {}) };
   });
   server.server.setRequestHandler("skills/get", { params: GetParamsSchema }, (params) => {
     const skill = skills.find((candidate) => candidate.uri === params.uri);

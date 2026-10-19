@@ -1,5 +1,5 @@
 import { CallToolRequestSchema, CallToolResultSchema } from "@modelcontextprotocol/core";
-import { ProtocolError } from "@modelcontextprotocol/server";
+import { CLIENT_INFO_META_KEY, PROTOCOL_VERSION_META_KEY, ProtocolError } from "@modelcontextprotocol/server";
 import type { McpServer, CallToolRequest, CallToolResult, ServerContext } from "@modelcontextprotocol/server";
 import { randomUUID } from "node:crypto";
 import { rename } from "node:fs/promises";
@@ -13,6 +13,8 @@ import type {
 } from "./mcp-semconv.js";
 import { SecretRedactor } from "./secret-redactor.js";
 import { readCollectorProjects, type CollectorAccess } from "./collector-access.js";
+import { argumentIssues } from "./contracts/tool-schemas.js";
+import { InvalidArgumentsError, toolError } from "./request-scope.js";
 import { logWarning } from "./stderr-log.js";
 import {
   McpTelemetry,
@@ -206,10 +208,50 @@ export interface NativeExecutionRuntimeOptions {
   id?: () => string;
 }
 
+/**
+ * Who sent a request and over which protocol revision, as far as the SDK exposes it
+ * (protocol-versions.md, "Compare the eras"): the per-request envelope on 2026-07-28,
+ * the `initialize`-scoped values on a 2025-era connection, and on stateless 2025-era
+ * HTTP, where no `initialize` reaches the instance, the `MCP-Protocol-Version` header.
+ */
+export interface McpCaller {
+  protocolVersion?: string;
+  sessionId?: string;
+  clientName?: string;
+  clientVersion?: string;
+  userAgent?: string;
+}
+
+function text(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+export function describeCaller(server: McpServer, ctx: ServerContext): McpCaller {
+  const envelope = (ctx.mcpReq.envelope ?? {}) as Record<string, unknown>;
+  const declared = envelope[CLIENT_INFO_META_KEY];
+  const client = isRecord(declared) ? declared : server.server.getClientVersion();
+  const request = ctx.http?.req;
+  const protocolVersion = text(envelope[PROTOCOL_VERSION_META_KEY])
+    ?? server.server.getNegotiatedProtocolVersion()
+    ?? text(request?.headers.get("mcp-protocol-version"));
+  const sessionId = text(ctx.sessionId);
+  const clientName = text(client?.name);
+  const clientVersion = text(client?.version);
+  const userAgent = text(request?.headers.get("user-agent"));
+  return {
+    ...(protocolVersion === undefined ? {} : { protocolVersion }),
+    ...(sessionId === undefined ? {} : { sessionId }),
+    ...(clientName === undefined ? {} : { clientName }),
+    ...(clientVersion === undefined ? {} : { clientVersion }),
+    ...(userAgent === undefined ? {} : { userAgent }),
+  };
+}
+
 export interface NativeToolCallInput {
   request: CallToolRequest;
   ctx: ServerContext;
   transport: McpTelemetryTransport;
+  caller: McpCaller;
 }
 
 /** Owns inbound tools/call telemetry and, for local processes, durable evidence. */
@@ -343,6 +385,8 @@ export class NativeExecutionRuntime {
         toolName: input.request.params.name,
         transport: input.transport,
         jsonRpcProtocolVersion: "2.0",
+        jsonRpcRequestId: input.ctx.mcpReq.id,
+        ...input.caller,
         executionId,
         remotePropagation: propagationCarrier(input.request.params._meta),
         startTimeMs: startedMs,
@@ -383,19 +427,28 @@ function recordingFailureResult(error: unknown, redactor: SecretRedactor): CallT
   };
 }
 
-const instrumentedServers = new WeakSet<McpServer>();
+const framedServers = new WeakSet<McpServer>();
 const nativeTelemetryServers = new WeakSet<McpServer>();
-const recordingServers = new WeakSet<McpServer>();
+const armedServers = new WeakSet<McpServer>();
 
-/** Wrap the SDK's single tools/call dispatcher, covering all current and future tools. */
-export function installNativeExecutionRecording(
+function isErrorResult(result: unknown): boolean {
+  return isRecord(result) && result.isError === true;
+}
+
+/**
+ * Wrap the SDK's single tools/call dispatcher, covering all current and future tools:
+ * native telemetry and evidence when a runtime is given, and arguments the input schema
+ * rejected answered as the uniform `invalid_argument` result instead of the SDK's plain
+ * text (the contract validator recorded which argument failed and what it accepts).
+ */
+export function installToolCallFrame(
   server: McpServer,
-  runtime: NativeExecutionRuntime,
+  runtime: NativeExecutionRuntime | undefined,
   transport: McpTelemetryTransport,
 ): void {
-  if (instrumentedServers.has(server)) return;
-  instrumentedServers.add(server);
-  if (runtime.telemetryEnabled) nativeTelemetryServers.add(server);
+  if (framedServers.has(server)) return;
+  framedServers.add(server);
+  if (runtime?.telemetryEnabled === true) nativeTelemetryServers.add(server);
   const lowLevel = server.server as unknown as { setRequestHandler: UntypedSetRequestHandler };
   const original = lowLevel.setRequestHandler.bind(server.server);
   lowLevel.setRequestHandler = (method, handlerOrSchemas, customHandler) => {
@@ -404,36 +457,46 @@ export function installNativeExecutionRecording(
       original(method, handlerOrSchemas, customHandler);
       return;
     }
-    recordingServers.add(server);
+    armedServers.add(server);
     original(method, async (request: unknown, ctx: ServerContext) => {
-      const validated = CallToolRequestSchema.parse(request);
+      const parsed = CallToolRequestSchema.parse(request);
+      // The SDK validates `arguments ?? {}`. Handing it one object makes the issues the
+      // validator records for that object the issues of this call.
+      const validated = { ...parsed, params: { ...parsed.params, arguments: parsed.params.arguments ?? {} } };
       // The SDK converts throws into isError only inside the dispatcher this
       // wrapper calls (errors.md); a throw that reaches here is the tool call's
       // own protocol error and leaves as a JSON-RPC error.
-      return runtime.execute(
-        { request: validated, ctx, transport },
-        () => handler(validated, ctx),
-      );
+      const dispatch = async (): Promise<unknown> => {
+        const result = await handler(validated, ctx);
+        const issues = argumentIssues(validated.params.arguments);
+        return issues !== undefined && isErrorResult(result)
+          ? toolError(validated.params.name, new InvalidArgumentsError(issues))
+          : result;
+      };
+      return runtime === undefined
+        ? dispatch()
+        : runtime.execute({ request: validated, ctx, transport, caller: describeCaller(server, ctx) }, dispatch);
     });
   };
 }
 
 /**
- * Fail construction when recording never took hold, which is otherwise silent.
+ * Fail construction when the frame never took hold, which is otherwise silent.
  *
  * The wrapper above only sees a tools/call registration that happens after it is
  * installed. McpServer registers that dispatcher in its own constructor as soon as
  * `capabilities.tools` is declared there, and only defers it to the first
  * registerTool call when it is not — so declaring the capability up front would
- * leave every tool call unrecorded while answering normally. Evidence is an audit
- * surface; losing it has to be an error at startup, not a gap discovered later.
+ * leave every tool call unrecorded and its argument errors unstructured while
+ * answering normally. Evidence is an audit surface; losing it has to be an error
+ * at startup, not a gap discovered later.
  */
-export function assertNativeExecutionRecordingArmed(server: McpServer): void {
-  if (recordingServers.has(server)) return;
+export function assertToolCallFrameArmed(server: McpServer): void {
+  if (armedServers.has(server)) return;
   throw new Error(
-    "native execution recording never wrapped a tools/call dispatcher: the MCP server " +
-      "registered it before installNativeExecutionRecording ran (declaring capabilities.tools " +
-      "on the McpServer constructor does this). Register tools after installing recording.",
+    "the tool-call frame never wrapped a tools/call dispatcher: the MCP server " +
+      "registered it before installToolCallFrame ran (declaring capabilities.tools " +
+      "on the McpServer constructor does this). Register tools after installing the frame.",
   );
 }
 
@@ -453,7 +516,7 @@ export function defaultNativeExecutionRuntime(
 ): NativeExecutionRuntime {
   let runtime = defaultRuntimes.get(persistLocalEvidence);
   if (runtime === undefined) {
-    runtime = createDefaultRuntime(environment, persistLocalEvidence);
+    runtime = createNativeExecutionRuntime(environment, persistLocalEvidence);
     defaultRuntimes.set(persistLocalEvidence, runtime);
   }
   return runtime;
@@ -465,7 +528,8 @@ export async function closeDefaultNativeExecutionRuntime(): Promise<void> {
   await Promise.all(runtimes.map(runtime => runtime.close()));
 }
 
-function createDefaultRuntime(
+/** A runtime its caller owns and closes: one stdio connection's, released when it closes. */
+export function createNativeExecutionRuntime(
   environment: Readonly<Record<string, string | undefined>>,
   persistLocalEvidence: boolean,
 ): NativeExecutionRuntime {

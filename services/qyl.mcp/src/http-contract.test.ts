@@ -66,7 +66,7 @@ test("HTTP tools/list carries cache hints and preserves order across requests", 
     const body = await response.json() as { jsonrpc: string; id: number; result: ListToolsResult };
     assert.equal(body.jsonrpc, "2.0");
     assert.equal(body.id, id);
-    assert.equal(body.result.ttlMs, 300_000);
+    assert.equal(body.result.ttlMs, 60_000);
     assert.equal(body.result.cacheScope, "public");
     assert.ok(body.result.tools.some((tool) => tool.name === "delete_record"), "the catalog is the server's");
     catalogs.push(body.result);

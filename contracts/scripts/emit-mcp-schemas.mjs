@@ -23,12 +23,14 @@ const schemas = components.schemas ?? {};
 const refPrefix = "#/components/schemas/";
 
 // Bodies the MCP validates beyond its tool models: the resources the write tools create and
-// update, the Problem Details of a refused request, and its own failed-call error.
+// update, the Problem Details of a refused request (a rejected argument's and a missing record's
+// carry what the tool error forwards), and its own failed-call error.
 const readBodies = [
   "Annotations.Annotation",
   "SavedQueries.SavedQuery",
   "Common.Errors.ProblemDetails",
   "Common.Errors.ValidationError",
+  "Common.Errors.NotFoundError",
   "Mcp.Tools.ToolError",
 ];
 

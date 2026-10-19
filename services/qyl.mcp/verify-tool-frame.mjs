@@ -9,9 +9,10 @@
  *
  * Two checks, both mechanical, over the non-test sources under src/:
  *
- *   1. Every `server.registerTool("<name>", …)` site calls `runTool(ctx, …)`
- *      in the same registration, so cancellation and requested progress pass
- *      through the common frame.
+ *   1. Every `server.registerTool("<name>", …)` site calls `runTool(ctx, "<name>", …)`
+ *      in the same registration, so cancellation, requested progress and the
+ *      uniform error result pass through the common frame under the tool's
+ *      own name.
  *   2. Every tool in the generated manifest has such a site. A tool that is
  *      registered somewhere the scan does not see is a scan defect, and this
  *      is what makes it fail loudly instead of passing by omission.
@@ -42,9 +43,13 @@ for (const name of files) {
     const start = site.index;
     const end = index + 1 < sites.length ? sites[index + 1].index : source.length;
     const span = source.slice(start, end);
-    const frame = span.match(/runTool\(\s*ctx,/u);
+    const frame = span.match(/runTool\(\s*ctx,\s*"([^"]+)"/u);
     if (!frame) {
-      failures.push(`${name}: tool "${tool}" is registered without runTool(ctx, …)`);
+      failures.push(`${name}: tool "${tool}" is registered without runTool(ctx, "${tool}", …)`);
+      continue;
+    }
+    if (frame[1] !== tool) {
+      failures.push(`${name}: tool "${tool}" runs inside runTool(ctx, "${frame[1]}", …); its errors would name another tool`);
       continue;
     }
     framed.set(tool, name);
