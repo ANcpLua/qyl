@@ -1,75 +1,81 @@
-# OpenAI plugin review information (draft for the portal's review fields)
+# OpenAI plugin review information
 
-Paste each section into the field of the same name on the plugin's review page
-(https://platform.openai.com/plugins/manage/plugin_asdk_app_6acf4a9531888191af07c032f362f95d?tab=mcp).
-Fields marked OWNER FIELD need values that never go into this file.
+Use these sections for the corresponding review fields. Supply reviewer credentials only in the portal's private access fields.
 
 ## What the plugin does
 
-qyl connects ChatGPT to the telemetry a user's services send to a qyl Collector: traces, logs, metrics, sessions, CI runs and MCP tool calls, recorded on OpenTelemetry semantic conventions. Users investigate a running system from the conversation:
-- what changed, with new or worsening failures, regressions and releases ranked
-- a failure's path with its logs
-- whether a fix held
+One developer built all of it using Anthropic and OpenAI models to the fullest.
 
-They can also keep notes and saved queries beside the data.
+qyl connects ChatGPT to telemetry already recorded by the user's qyl Collector. Users can investigate traces, logs, metric streams, sessions, CI runs, agent executions and MCP calls; compare recorded behavior across windows or releases; and check the evidence for a fix. They can save questions, add annotations and record a failure's status.
 
-## Server and authentication
+Answers use the returned telemetry and its coverage information. An empty result means no matching evidence was returned; it does not establish that the system is healthy.
 
-- **MCP server:** https://mcp.qyl.at/mcp (Streamable HTTP).
-- **Sign-in:** OAuth 2.1 through Auth0, with three scopes:
-  - `qyl:read`: every read tool
-  - `qyl:write`: create and update notes and saved queries, and set a failure's status
-  - `qyl:delete`: delete notes and saved queries
-- **Project:** the server picks the Collector project the account may use. No project id is typed by the user.
-- **Tool schemas:** output schemas are inlined, without `$ref`.
-- **Skill:** the bundle carries the qyl-investigate skill, which says which tool to start with.
+## Server and access
 
-## Tools (manifest `services/qyl.mcp/tool-manifest.snapshot.json`)
+- MCP endpoint: https://mcp.qyl.at/mcp, using Streamable HTTP.
+- Sign-in uses OAuth. Read tools require `qyl:read`; creating or updating annotations, saved queries and failure status also requires `qyl:write`; `delete_record` requires `qyl:read` and `qyl:delete`.
+- The server selects the Collector project available to the connected account. Users do not supply an arbitrary project identifier.
+- Results are returned as text and structured data with the tool's declared schema.
 
-- **Read tools** with `readOnlyHint: true`:
-  - triage, failures and failure context, fix verification
-  - trace, session, log, metric and CI reads
-  - aggregates, group comparisons, attribute discovery
-  - agent runs, releases, service map, telemetry health, MCP statistics
-- **Write tools** with `readOnlyHint: false`:
-  - create and update annotations
-  - create and update saved queries
-  - update failure status
-  - `delete_record`
+## Tool catalog
 
-  The update tools and `delete_record` also carry `destructiveHint: true`.
-- **What no tool can do:** change or delete telemetry, deploy or roll back anything, or reach the public web.
+The catalog follows `services/qyl.mcp/tool-manifest.snapshot.json`.
 
-## How to test (with the reviewer account below)
+Read operations carry `readOnlyHint: true`:
 
-1. "What changed in the last 24 hours?" calls `triage`. It returns ranked failures, regressions and releases, or states plainly that nothing was recorded.
-2. "Show me the slowest traces today and open the worst one" calls `list_traces`, then `get_trace`.
-3. "Why is the checkout failing?" calls `list_failures`, then `get_failure_context`, which returns the failure's spans with their error logs.
-4. "Did the fix for that failure hold since the last release?" calls `verify_fix` with the failure id and `release`.
-5. "Compare the error rate of the two latest versions" calls `compare_groups`.
-6. "Which metrics do we record? Plot the request duration p95 per hour" calls `list_metrics`, then `query_metric`. A percentile on a gauge is refused with a clear validation error, by design.
-7. "Note on that trace: investigated, caused by the cache flush" calls `create_annotation` (needs `qyl:write`). Then "delete that note" calls `delete_record` (needs `qyl:delete`).
-8. "How are the MCP tools performing today?" calls `get_mcp_stats`.
+- Failure investigation: `triage`, `list_failures`, `get_failure_context`, `verify_fix`.
+- Execution records: `list_traces`, `get_trace`, `list_sessions`, `get_agent_run`, `ci_log`.
+- Logs and metrics: `search_logs`, `list_metrics`, `get_metric_series`, `query_metric`.
+- Comparisons and discovery: `aggregate_telemetry`, `compare_groups`, `compare_traces`, `discover_attributes`.
+- Operational context: `list_releases`, `get_service_map`, `check_telemetry_health`, `get_mcp_stats`.
+- Saved questions: `list_saved_queries`, `run_saved_query`.
 
-An empty answer means nothing matching was recorded in the project, not that the system is healthy. The tools say so in their text.
+Write operations carry `readOnlyHint: false`:
+
+- `create_annotation` and `update_annotation` record or revise a finding.
+- `create_saved_query` and `update_saved_query` store or revise a reusable filter.
+- `update_failure_status` records a failure's status or assignee.
+- `delete_record` deletes an annotation or saved query using its identifier, kind and current `etag`.
+
+The update operations and `delete_record` carry `destructiveHint: true`. The tools do not edit or delete the underlying traces, logs or metrics.
+
+## Skills
+
+The server exposes `qyl-investigate` through `io.modelcontextprotocol/skills`. The client discovers it with `skills/list`, obtains its definition with `skills/get`, and reads the advertised files through `resources/read`. Its main resource is `skill://qyl/qyl-investigate/SKILL.md`.
+
+The skill starts a fresh connection with `triage` and no arguments. If sign-in is requested, it lets the host sign in once and retries that call once before stopping on another authentication request. It then explains how to select and sequence the telemetry tools, preserve identifiers from returned records, and report missing evidence. The plugin bundle carries the same canonical investigation skill.
+
+## Events
+
+The hosted endpoint exposes `events/list`, `events/subscribe` and `events/unsubscribe` for `trace.error`.
+
+The `trace.error` event reports a newly observed trace containing an error span. Delivery uses signed webhooks to the subscribing client's public HTTPS callback. A subscription can filter by `service_name`. The user explicitly chooses whether to subscribe and what ChatGPT should do when a matching event arrives. Event data identifies the trace so ChatGPT can use `get_trace` for the recorded detail. Unsubscribing stops that subscription. New subscriptions establish a baseline rather than replaying old traces; events are not replayed after downtime. Local stdio does not advertise Events.
+
+## How to test
+
+For a fresh connection, first call `triage` with no arguments as directed by the skill; complete sign-in and retry once if requested. Then use the dedicated reviewer project described in the private access fields. It should contain representative traces, error logs, metrics, sessions, CI runs and observed releases.
+
+1. Ask, "What changed in the last 24 hours?" Expect `triage`, with the returned failures, regressions, releases and coverage reflected in the answer.
+2. Ask, "List my five most recent traces and inspect the newest one." Expect `list_traces`, followed by `get_trace` using an identifier actually returned by the list. If the list is empty, no identifier should be invented.
+3. Ask, "Investigate a recurring failure and show its recorded logs." Expect `list_failures` followed by `get_failure_context` for a returned failure identifier.
+4. Ask, "Which metric instruments are recorded, and what does one selected stream show?" Expect `list_metrics`, followed by `get_metric_series` or `query_metric` using the selected instrument and supported aggregation. Original point values, buckets and exemplars are available through `get_metric_series`; `query_metric` returns float64 projections.
+5. Ask, "Compare these two observed releases." Expect `compare_groups` using the selected release filters, with the returned group sizes and time windows stated.
+6. Ask, "Add a note to this trace saying 'review test', then show it." Expect `create_annotation` and a read that returns the annotation. Ask to remove that exact test note; expect `delete_record` with `kind`, `id` and the current `etag`.
+7. Ask, "Save this telemetry question, list my saved questions, then run it." Expect `create_saved_query`, `list_saved_queries` and `run_saved_query` using the returned identifier. Remove the reviewer-created saved query with `delete_record` when finished.
+8. Refresh the server's skill catalog. Expect `qyl-investigate` through `io.modelcontextprotocol/skills`, with readable files whose digests match the catalog.
+9. Ask, "Notify me when a new error trace appears for this test service." Expect an explicit `trace.error` subscription for that service. Produce the agreed test event in the reviewer project, inspect its trace after delivery, then stop the subscription.
+
+A missing record, unsupported aggregation or insufficient evidence must be reported as such. Neither an empty result nor a pending `verify_fix` verdict establishes that a fix succeeded.
 
 ## Data handling
 
-- **What it reads:** telemetry already stored in the user's own Collector project.
-- **What it writes:** only annotations, saved queries and failure status, in that project.
-- **What the Collector stores:** before storing, it drops attributes the qyl registry denies, such as credentials, message bodies, personal identifiers and full URLs.
-- **What it shares:** nothing with third parties.
-- **Privacy policy:** https://qyl.at/privacy/
-- **Documentation:** https://qyl.at/docs/mcp/
+Read operations access the telemetry already stored in the connected account's Collector project. Tool responses return the requested records, aggregates and evidence to ChatGPT. Write operations change annotations, saved queries or failure status; event subscriptions maintain the subscription's own state and deliver matching event data to the subscribing client.
 
-## Reviewer access — OWNER FIELD (private credential fields only)
+Telemetry retention and attribute handling follow the Collector's configured policy.
 
-An isolated, populated Collector project and a dedicated reviewer account. They must be seeded with traces, sessions, metrics, error logs and at least one failure with a later release, so steps 1–8 return data.
+Privacy policy: https://qyl.at/privacy/
+Documentation: https://qyl.at/docs/mcp/
 
-In the portal's private fields, supply:
-- the login URL
-- the account
-- the access mechanism
-- the exact sign-in steps
+## Reviewer access — private fields only
 
-Access must work without the owner's mailbox, phone or network, and stay valid through the review.
+Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, recorded release identifiers, a representative metric, and the procedure for producing the test event. Reviewer access must remain available throughout review.

@@ -11,7 +11,7 @@
         "displayName": "qyl",
         "category": "Developer Tools",
         "shortDescription": "Investigate, improve, verify",
-        "longDescription": "Investigate recorded telemetry through qyl and work on .NET source with focused skills for MSBuild, NuGet, analyzers, C# refactoring, runtime performance and native MSTest. The hosted MCP server accesses only the caller's authorized Collector project. Source edits, builds, tests and local scripts use the agent's workspace tools. The bundle includes the original skill references, scripts and fixtures; it does not add hosted build or test execution. No custom UI is required.",
+        "longDescription": "Investigate recorded telemetry through qyl and work on .NET source with focused skills for MSBuild, NuGet, analyzers, C# refactoring, runtime performance and native MSTest. The hosted MCP server accesses the connected account's Collector project. Source edits, builds, tests and bundled scripts use the agent's workspace tools. One developer built all of it using Anthropic and OpenAI models to the fullest.",
         "developerName": "Alexander Nachtmann",
         "capabilities": [
           "Read",
@@ -24,9 +24,9 @@
         "logo": "./assets/qyl-icon.png",
         "composerIcon": "./assets/qyl-icon.png",
         "defaultPrompt": [
-          "Investigate this .NET problem using source, native tests and the available qyl telemetry.",
+          "Investigate this .NET runtime performance problem using available logs, traces, metrics, spans and profiles.",
           "Audit this repository's build, package versions and analyzers.",
-          "Find weak MSTest evidence for this change and improve the relevant tests."
+          "Find stale constants and abandoned code, trace indirect production uses, and use profiles to identify expensive dead checks."
         ]
       },
       "review": {
@@ -82,7 +82,7 @@
         }
       },
       "publication": {
-        "release_notes": "Bundle ANcpLua .NET 0.7.1 and MSTest Extensions 3.4.3 with qyl telemetry guidance and focused development routing. No new MCP tools."
+        "release_notes": "qyl 17.0.0 combines the live telemetry tools and canonical investigation skill with ANcpLua .NET 0.7.1 and MSTest Extensions 3.4.3. Includes their references, scripts and focused agent routing."
       }
     }
   },
