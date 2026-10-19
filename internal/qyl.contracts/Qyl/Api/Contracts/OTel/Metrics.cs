@@ -129,6 +129,9 @@ public sealed class MetricSeriesResult
 {
     [JsonPropertyName("attributes")]
     public required IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> Attributes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("value")]
+    public double? Value { get; init; }
     [JsonPropertyName("buckets")]
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricBucket> Buckets { get; init; }
 }

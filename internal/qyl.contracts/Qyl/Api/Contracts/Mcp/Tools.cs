@@ -1032,7 +1032,6 @@ public sealed class AttributeValueCount
 
 public sealed class QueryMetricInput
 {
-    public const long StepMsDefault = 60000;
     public const long StepMsMinimum = 1;
     public const long StepMsMaximum = 86400000;
     public const Qyl.Api.Contracts.OTel.Metrics.MetricAggregation AggregationDefault = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg;

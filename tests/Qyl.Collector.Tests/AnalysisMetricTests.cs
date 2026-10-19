@@ -224,6 +224,24 @@ public sealed partial class AnalysisApiTests
         }
     }
 
+    /// <summary>
+    /// Without step_ms a day splits into at most 60 buckets. Only buckets that hold points come back, and
+    /// each series carries the aggregation over the whole window.
+    /// </summary>
+    [TestMethod]
+    public async Task Query_metric_returns_occupied_buckets_and_one_value_for_the_window()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        await InsertAsync(host, Gauge("queue.depth", "q_depth", FixtureUnixNano - 10 * Minute), (FixtureUnixNano - 50 * Minute, 10d), (FixtureUnixNano - 10 * Minute, 30d));
+
+        var result = await Read(host, "query_metric", """{"metric_name":"queue.depth","aggregation":"avg","lookback_minutes":1440}""");
+
+        Assert.AreEqual(1_440_000, result.GetProperty("step_ms").GetInt64());
+        var series = Assert.ContainsSingle(result.GetProperty("series").EnumerateArray());
+        Assert.AreEqual(20d, series.GetProperty("value").GetDouble());
+        Assert.AreSequenceEqual([10d, 30d], series.GetProperty("buckets").EnumerateArray().Select(static b => b.GetProperty("value").GetDouble()));
+    }
+
     private static MetricPointRow[] Observations(string seriesId, ulong start, params (ulong Time, ulong Count)[] samples) =>
     [
         .. samples.Select(sample => new MetricPointRow

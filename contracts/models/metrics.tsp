@@ -157,9 +157,9 @@ model MetricBucket {
   bucketStart: utcDateTime;
 
   @doc("""
-    The aggregation applied to the points in this bucket. Null when the bucket
-    holds no value: either no point landed in it, or every point that did was
-    an OTLP `NO_RECORDED_VALUE` marker.
+    The aggregation applied to the points in this bucket. Null when none of them
+    holds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes
+    without a known interval.
     """)
   value: float64 | null;
 
@@ -177,6 +177,10 @@ model MetricSeriesResult {
   @doc("The grouping key that produced this stream.")
   attributes: Attribute[];
 
+  @doc("The aggregation over every point of the window, as if one bucket spanned it; null when none of them holds a value.")
+  value?: float64 | null;
+
+  @doc("The buckets that hold points, in time order; a bucket without points is omitted.")
   buckets: MetricBucket[];
 }
 

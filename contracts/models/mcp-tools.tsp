@@ -601,11 +601,11 @@ model QueryMetricInput {
   @encodedName("application/json", "end_time")
   endTime?: utcDateTime;
 
-  @doc("Bucket width in integer milliseconds.")
+  @doc("Bucket width in integer milliseconds. Omit for whole seconds that split the window into at most 60 buckets.")
   @encodedName("application/json", "step_ms")
   @minValue(1)
   @maxValue(86400000)
-  stepMs?: int64 = 60000;
+  stepMs?: int64;
 
   aggregation?: MetricAggregation = MetricAggregation.avg;
 

@@ -19557,8 +19557,7 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 86400000,
-        "description": "Bucket width in integer milliseconds.",
-        "default": 60000
+        "description": "Bucket width in integer milliseconds. Omit for whole seconds that split the window into at most 60 buckets."
       },
       "aggregation": {
         "type": "string",
@@ -19772,6 +19771,17 @@
                   },
                   "description": "The grouping key that produced this stream."
                 },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The aggregation over every point of the window, as if one bucket spanned it; null when none of them holds a value."
+                },
                 "buckets": {
                   "type": "array",
                   "items": {
@@ -19796,7 +19806,7 @@
                             "type": "null"
                           }
                         ],
-                        "description": "The aggregation applied to the points in this bucket. Null when the bucket\nholds no value: either no point landed in it, or every point that did was\nan OTLP `NO_RECORDED_VALUE` marker."
+                        "description": "The aggregation applied to the points in this bucket. Null when none of them\nholds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes\nwithout a known interval."
                       },
                       "point_count": {
                         "type": "integer",
@@ -19805,7 +19815,8 @@
                     },
                     "description": "One aggregated time bucket of a metric range query.",
                     "additionalProperties": false
-                  }
+                  },
+                  "description": "The buckets that hold points, in time order; a bucket without points is omitted."
                 }
               },
               "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
@@ -19994,6 +20005,17 @@
               },
               "description": "The grouping key that produced this stream."
             },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The aggregation over every point of the window, as if one bucket spanned it; null when none of them holds a value."
+            },
             "buckets": {
               "type": "array",
               "items": {
@@ -20018,7 +20040,7 @@
                         "type": "null"
                       }
                     ],
-                    "description": "The aggregation applied to the points in this bucket. Null when the bucket\nholds no value: either no point landed in it, or every point that did was\nan OTLP `NO_RECORDED_VALUE` marker."
+                    "description": "The aggregation applied to the points in this bucket. Null when none of them\nholds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes\nwithout a known interval."
                   },
                   "point_count": {
                     "type": "integer",
@@ -20027,7 +20049,8 @@
                 },
                 "description": "One aggregated time bucket of a metric range query.",
                 "additionalProperties": false
-              }
+              },
+              "description": "The buckets that hold points, in time order; a bucket without points is omitted."
             }
           },
           "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
@@ -21341,6 +21364,17 @@
                           },
                           "description": "The grouping key that produced this stream."
                         },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The aggregation over every point of the window, as if one bucket spanned it; null when none of them holds a value."
+                        },
                         "buckets": {
                           "type": "array",
                           "items": {
@@ -21365,7 +21399,7 @@
                                     "type": "null"
                                   }
                                 ],
-                                "description": "The aggregation applied to the points in this bucket. Null when the bucket\nholds no value: either no point landed in it, or every point that did was\nan OTLP `NO_RECORDED_VALUE` marker."
+                                "description": "The aggregation applied to the points in this bucket. Null when none of them\nholds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes\nwithout a known interval."
                               },
                               "point_count": {
                                 "type": "integer",
@@ -21374,7 +21408,8 @@
                             },
                             "description": "One aggregated time bucket of a metric range query.",
                             "additionalProperties": false
-                          }
+                          },
+                          "description": "The buckets that hold points, in time order; a bucket without points is omitted."
                         }
                       },
                       "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
