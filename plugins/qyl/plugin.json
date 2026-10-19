@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qyl",
-  "version": "17.0.1",
+  "version": "17.0.2",
   "description": "Agent-focused telemetry investigation, .NET development and native MSTest verification.",
   "homepage": "https://qyl.at/",
   "repository": "https://github.com/ANcpLua/qyl",
@@ -83,7 +83,7 @@
         "demo_recording_url": "https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-reviewer-demo-17.0.1.mp4"
       },
       "publication": {
-        "release_notes": "qyl 17.0.1 combines the live telemetry tools and canonical investigation skill with ANcpLua .NET 0.7.1 and MSTest Extensions 3.4.3. Includes their references, scripts and focused agent routing, plus reproducible reviewer cases using the seeded project and preserved evidence windows."
+        "release_notes": "qyl 17.0.2 preserves exact analysis-window boundaries and reports saved-query coverage. The plugin retains its focused .NET and native MSTest skills, verified reviewer cases and published workflow recording."
       }
     }
   },
