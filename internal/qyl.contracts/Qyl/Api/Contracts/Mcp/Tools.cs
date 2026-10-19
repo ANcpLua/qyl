@@ -1649,6 +1649,13 @@ public sealed class TriageFailure
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("coinciding_release")]
     public Qyl.Api.Contracts.Mcp.Tools.FailureRelease? CoincidingRelease { get; init; }
+    [JsonPropertyName("status")]
+    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
+    [JsonPropertyName("etag")]
+    public required string Etag { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("root_cause_failure_id")]
+    public string? RootCauseFailureId { get; init; }
 }
 
 public sealed class TriageRegression

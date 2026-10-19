@@ -1454,7 +1454,7 @@
               "type": "string"
             }
           },
-          "description": "SilentService contract.",
+          "description": "A service whose last span in the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer.",
           "additionalProperties": false
         }
       },
@@ -23568,7 +23568,9 @@
             "baseline_count",
             "affected_traces",
             "services",
-            "first_seen"
+            "first_seen",
+            "status",
+            "etag"
           ],
           "properties": {
             "failure_id": {
@@ -23642,8 +23644,29 @@
                   "type": "string"
                 }
               },
-              "description": "FailureRelease contract.",
+              "description": "The release the failing spans run on (their most common `service.version`), when it was first seen in the window.",
               "additionalProperties": false
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "open",
+                "resolved",
+                "ignored"
+              ],
+              "description": "Persisted failure triage status."
+            },
+            "etag": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Current state version; pass it to update_failure_status."
+            },
+            "root_cause_failure_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
             }
           },
           "description": "TriageFailure contract.",
@@ -23755,7 +23778,7 @@
               "type": "string"
             }
           },
-          "description": "SilentService contract.",
+          "description": "A service whose last span in the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer.",
           "additionalProperties": false
         }
       },
@@ -25048,7 +25071,9 @@
             "baseline_count",
             "affected_traces",
             "services",
-            "first_seen"
+            "first_seen",
+            "status",
+            "etag"
           ],
           "properties": {
             "failure_id": {
@@ -25122,8 +25147,29 @@
                   "type": "string"
                 }
               },
-              "description": "FailureRelease contract.",
+              "description": "The release the failing spans run on (their most common `service.version`), when it was first seen in the window.",
               "additionalProperties": false
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "open",
+                "resolved",
+                "ignored"
+              ],
+              "description": "Persisted failure triage status."
+            },
+            "etag": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Current state version; pass it to update_failure_status."
+            },
+            "root_cause_failure_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
             }
           },
           "description": "TriageFailure contract.",

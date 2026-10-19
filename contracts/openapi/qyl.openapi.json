@@ -13223,7 +13223,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "SilentService contract."
+        "description": "A service whose last span in the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer."
       },
       "Mcp.Tools.SimilarFailure": {
         "type": "object",
@@ -13839,7 +13839,9 @@
           "baseline_count",
           "affected_traces",
           "services",
-          "first_seen"
+          "first_seen",
+          "status",
+          "etag"
         ],
         "properties": {
           "failure_id": {
@@ -13877,7 +13879,19 @@
             "$ref": "#/components/schemas/Common.TraceId"
           },
           "coinciding_release": {
-            "$ref": "#/components/schemas/Mcp.Tools.FailureRelease"
+            "$ref": "#/components/schemas/Mcp.Tools.FailureRelease",
+            "description": "The release the failing spans run on (their most common `service.version`), when it was first seen in the window."
+          },
+          "status": {
+            "$ref": "#/components/schemas/Mcp.Tools.FailureStatus"
+          },
+          "etag": {
+            "$ref": "#/components/schemas/Common.ETag",
+            "description": "Current state version; pass it to update_failure_status."
+          },
+          "root_cause_failure_id": {
+            "$ref": "#/components/schemas/Common.FailureId",
+            "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
           }
         },
         "unevaluatedProperties": {

@@ -1573,6 +1573,9 @@ export interface TriageFailure {
   "first_seen": string;
   "example_trace_id"?: TraceId;
   "coinciding_release"?: FailureRelease;
+  "status": FailureStatus;
+  "etag": string;
+  "root_cause_failure_id"?: string;
 }
 
 export interface TriageRegression {
@@ -2382,4 +2385,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:2541f1983e2e9f56";
+export const CONTRACT_REVISION: string = "sha256:c94f1355df782d83";

@@ -166,8 +166,8 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
                 ? "regressed" : old is 0 ? "new" : count > old ? "worsening" : count < old ? "recovering" : "ongoing";
             f["change"] = change; f["baseline_count"] = old;
             f["services"] = J.N(g.Select(s => s.Service).Distinct()); f["example_trace_id"] = g.First().TraceId;
-            var release = releases.Where(r => J.String(r, "service") == g.First().Service && _window.Contains(QylTimeConversions.ToUnixNanoUnsigned(J.Date(r, "first_seen")!.Value))).OrderBy(r => J.String(r, "first_seen"), StringComparer.Ordinal).LastOrDefault();
-            f["coinciding_release"] = release?.DeepClone();
+            f["coinciding_release"] = CoincidingRelease(g, releases)?.DeepClone();
+            f["root_cause_failure_id"] = RootCauseFailure(g);
             return f;
         }).Where(f => J.String(f, "status") != "ignored" || J.Date(f, "ignore_until") is { } expiry && expiry <= now)
           .OrderByDescending(f => J.Number(f, "count")).ThenBy(f => J.String(f, "failure_id"), StringComparer.Ordinal).ToList();
@@ -184,12 +184,39 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         return J.O(("failures", J.A(failures.OrderBy(f => J.String(f, "change") == "new" ? 0 : 1))), ("regressions", J.A(regressions)), ("releases", J.A(releases.Where(r => J.Date(r, "first_seen") >= _window.Start))),
             ("silent_services", Silent(input)), ("coverage", Coverage(_spans.Count, current.Count, failures.Count, false)));
     }
+    // The release the failing spans run on: their most common version, the later one among equals, when the
+    // release was first seen in the window.
+    private JsonObject? CoincidingRelease(IEnumerable<AnalysisRecord> failing, List<JsonObject> releases)
+    {
+        if (failing.Where(static s => ReleaseOf(s).Length > 0).GroupBy(static s => (s.Service, Version: ReleaseOf(s), Env: EnvironmentOf(s)))
+                .OrderByDescending(static g => g.Count()).ThenByDescending(static g => g.Max(static s => s.Start)).FirstOrDefault()?.Key is not { } run) return null;
+        return releases.FirstOrDefault(r => J.String(r, "service") == run.Service && J.String(r, "version") == run.Version && J.String(r, "environment") == run.Env
+            && _window.Contains(QylTimeConversions.ToUnixNanoUnsigned(J.Date(r, "first_seen")!.Value)));
+    }
+    private ILookup<string?, AnalysisRecord> ErrorsByTrace => field ??= _spans.Where(static s => s.Error).ToLookup(static s => s.TraceId);
+    // The failure the occurrences propagated from: in each of their traces the earliest error span without a failing
+    // child, by majority.
+    private string? RootCauseFailure(IEnumerable<AnalysisRecord> occurrences) => occurrences.Select(static s => s.TraceId).Distinct().Select(trace =>
+        {
+            var errors = ErrorsByTrace[trace].ToList();
+            var parents = errors.Select(static s => s.Span?.ParentSpanId).OfType<string>().ToHashSet(StringComparer.Ordinal);
+            return errors.Where(s => !parents.Contains(s.Id)).OrderBy(static s => s.Start).ThenBy(static s => s.Id, StringComparer.Ordinal).FirstOrDefault();
+        }).OfType<AnalysisRecord>().GroupBy(s => FailureId(Signature(s))).OrderByDescending(static g => g.Count()).ThenBy(static g => g.Key, StringComparer.Ordinal).FirstOrDefault()?.Key;
+    // A service is silent when its last span over the baseline and the window is older than the window's end minus
+    // 15 minutes or five of its usual intervals between spans, whichever is longer.
     private JsonArray Silent(JsonObject input)
     {
-        var baseline = Baseline(input); var active = Select(input).Select(s => s.Service).ToHashSet(StringComparer.Ordinal);
-        return J.A(Select(input, window: baseline).GroupBy(s => s.Service).Where(g => !active.Contains(g.Key))
-            .OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => J.O(("service", g.Key), ("last_seen", J.Time(g.Max(s => s.Start))),
-                ("usual_rate", g.Count() / (baseline.End - baseline.Start).TotalMinutes), ("unit", "spans/minute"))));
+        var baseline = Baseline(input); var minutes = (baseline.End - baseline.Start + (_window.End - _window.Start)).TotalMinutes;
+        var end = (double)QylTimeConversions.ToUnixNanoUnsigned(_window.End);
+        return J.A(Select(input, window: baseline).Concat(Select(input)).DistinctBy(static s => (s.TraceId, s.Id)).GroupBy(static s => s.Service)
+            .Select(static g =>
+            {
+                var starts = g.Select(static s => s.Start).Order().ToList();
+                var usual = starts.Count > 1 ? (starts[^1] - starts[0]) / (double)(starts.Count - 1) : 0;
+                return (Service: g.Key, Last: starts[^1], Count: starts.Count, Quiet: Math.Max(15 * 60_000_000_000d, 5 * usual));
+            })
+            .Where(s => s.Last < end - s.Quiet).OrderBy(static s => s.Service, StringComparer.Ordinal)
+            .Select(s => J.O(("service", s.Service), ("last_seen", J.Time(s.Last)), ("usual_rate", s.Count / minutes), ("unit", "spans/minute"))));
     }
     private static JsonObject SpanJson(AnalysisRecord r)
     {

@@ -169,8 +169,15 @@ model TriageFailure {
   firstSeen: utcDateTime;
   @encodedName("application/json", "example_trace_id")
   exampleTraceId?: TraceId;
+  @doc("The release the failing spans run on (their most common `service.version`), when it was first seen in the window.")
   @encodedName("application/json", "coinciding_release")
   coincidingRelease?: FailureRelease;
+  status: FailureStatus;
+  @doc("Current state version; pass it to update_failure_status.")
+  etag: ETag;
+  @doc("The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause.")
+  @encodedName("application/json", "root_cause_failure_id")
+  rootCauseFailureId?: FailureId;
 }
 
 @doc("TriageRegression contract.")
@@ -185,7 +192,7 @@ model TriageRegression {
   unit: string;
 }
 
-@doc("SilentService contract.")
+@doc("A service whose last span in the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer.")
 model SilentService {
   service: string;
   @encodedName("application/json", "last_seen")
