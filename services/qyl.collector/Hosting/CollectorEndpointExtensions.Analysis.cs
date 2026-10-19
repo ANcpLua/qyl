@@ -64,7 +64,8 @@ internal static partial class CollectorEndpointExtensions
             var readInput = input;
             if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
             {
-                if (await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false) is not { } saved) return ContractErrorResults.NotFound("saved_query", savedId);
+                if (await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false) is not { } saved)
+                return ContractErrorResults.NotFound("saved_query", savedId, $"Saved query {savedId} was not found in this project; list_saved_queries lists the saved queries.");
                 readInput = JsonNode.Parse(saved.FilterJson)!.AsObject();
                 foreach (var pair in input) readInput[pair.Key] = pair.Value?.DeepClone();
             }
@@ -76,10 +77,38 @@ internal static partial class CollectorEndpointExtensions
             catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
         catch (MetricQueryConflictException conflict) { return ContractErrorResults.Conflict("metric", conflict.Message); }
-        catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
+        catch (AnalysisInputException invalid) { return AnalysisError(invalid); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return ContractErrorResults.AnalysisDeadlineExceeded(); }
-        catch (JsonException invalid) { return ContractErrorResults.Validation(invalid.Path ?? "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid"); }
+        catch (JsonException invalid)
+        {
+            var allowed = AllowedAt(AnalysisContract(operation).Input, invalid.Path);
+            return ContractErrorResults.Validation(invalid.Path is { Length: > 2 } path ? path[2..] : "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid",
+                allowed: allowed, hint: allowed is null ? "Compare the field with the tool's input schema." : "Send one of the allowed values.");
+        }
     }
+
+    // The wire names a contract enum accepts at the JSON path of a rejected input, when the property there is one.
+    private static string[]? AllowedAt(JsonTypeInfo input, string? path)
+    {
+        if (path is null) return null;
+        var type = input;
+        foreach (var segment in path.TrimStart('$').Split(['.', '['], StringSplitOptions.RemoveEmptyEntries).Select(static s => s.Trim(']', '\'')).Where(static s => !s.All(char.IsAsciiDigit)))
+        {
+            if (type.Properties.FirstOrDefault(p => p.Name == segment) is not { } property) return null;
+            var next = type.Options.GetTypeInfo(property.PropertyType);
+            type = next.ElementType is { } element ? type.Options.GetTypeInfo(element) : next;
+        }
+        var enumType = Nullable.GetUnderlyingType(type.Type) ?? type.Type;
+        if (!enumType.IsEnum) return null;
+        var names = type.Options.GetTypeInfo(enumType);
+        return [.. Enum.GetValuesAsUnderlyingType(enumType).Cast<object>().Select(value => JsonSerializer.Serialize(Enum.ToObject(enumType, value), names).Trim('"'))];
+    }
+    // A *.not_found code answers 404 naming the missing resource; any other rejected argument 400 with its
+    // field, the values it accepts and a hint.
+    internal static IResult AnalysisError(AnalysisInputException invalid) => invalid.Code.EndsWith(".not_found", StringComparison.Ordinal)
+        ? ContractErrorResults.NotFound(invalid.Code[..^".not_found".Length], invalid.Missing, invalid.Description)
+        : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code, allowed: invalid.Allowed, hint: invalid.Hint);
+
     private static (JsonTypeInfo Input, JsonTypeInfo Output) AnalysisContract(string operation)
     {
         if (operation == "update_failure_status")
@@ -129,7 +158,7 @@ internal static partial class CollectorEndpointExtensions
             catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
         catch (MetricQueryConflictException conflict) { return ContractErrorResults.Conflict("metric", conflict.Message); }
-        catch (AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
+        catch (AnalysisInputException invalid) { return AnalysisError(invalid); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide a valid failure status request."); }
     }
 }

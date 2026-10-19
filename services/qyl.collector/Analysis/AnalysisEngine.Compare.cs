@@ -48,7 +48,7 @@ internal sealed partial class AnalysisEngine
             if (rows.Count is 0)
             {
                 var target = input[side]; var id = J.String(target, "trace_id") ?? J.String(target, "session_id") ?? J.Text(target);
-                throw new AnalysisInputException(side, $"Execution {id} was not found in this project; list_traces lists the traces it holds.", "trace.not_found");
+                throw new AnalysisInputException(side, $"Execution {id} was not found in this project; list_traces lists the traces.", "trace.not_found") { Missing = id };
             }
         var rootA = a.OrderBy(s => Depth(s, a)).ThenBy(s => s.Start).First(); var rootB = b.OrderBy(s => Depth(s, b)).ThenBy(s => s.Start).First();
         if (rootA.Name != rootB.Name) return J.O(("comparable", false), ("reason", "Root operations differ."), ("aligned", new JsonArray()), ("unmatched", new JsonArray()), ("after_divergence", new JsonArray()), ("first_divergence", null));
@@ -84,12 +84,12 @@ internal sealed partial class AnalysisEngine
     private JsonObject FailureContext(JsonObject input)
     {
         var choices = s_targetFields.Count(k => J.String(input, k) is not null);
-        if (choices != 1) throw new AnalysisInputException("target", "Provide exactly one of trace_id, session_id, failure_id or ci_run_id.");
+        if (choices != 1) throw new AnalysisInputException("target", "Provide exactly one of trace_id, session_id, failure_id or ci_run_id.") { Allowed = s_targetFields };
         List<AnalysisRecord> spans;
         if (J.String(input, "failure_id") is { } failure)
         {
             var failures = FailureRecords(failure);
-            if (failures.Count is 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
+            if (failures.Count is 0) throw NoFailure(failure);
             spans = [.. _spans.Where(s => s.TraceId == failures.OrderByDescending(item => item.Start).First().TraceId)];
         }
         else if (J.String(input, "ci_run_id") is { } run)
@@ -190,14 +190,14 @@ internal sealed partial class AnalysisEngine
     {
         if (J.String(input, "verify_id") is { } token) { input = handles.Read(token, project, "verify_id"); _window = AnalysisWindow.Resolve(input, now); }
         var fid = J.String(input, "failure_id"); var matchers = input["matchers"];
-        if ((fid is null) == (matchers is null)) throw new AnalysisInputException("failure_id", "Provide exactly one of failure_id or matchers.");
+        if ((fid is null) == (matchers is null)) throw new AnalysisInputException("failure_id", "Provide exactly one of failure_id or matchers.") { Allowed = ["failure_id", "matchers"] };
         // One scope selects the requests, and the failures are errors among exactly those requests: the
         // failure's own operation, or every span the matchers select.
         List<AnalysisRecord> requests, failures;
         if (fid is not null)
         {
             failures = FailureRecords(fid);
-            if (failures.Count is 0) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
+            if (failures.Count is 0) throw NoFailure(fid);
             var operation = failures[0];
             requests = [.. _spans.Where(s => s.Service == operation.Service && Operation(s) == Operation(operation))];
         }

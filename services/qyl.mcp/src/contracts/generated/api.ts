@@ -449,6 +449,8 @@ export interface ValidationErrorDetail {
   "message": string;
   "code": string;
   "rejected_value"?: string;
+  "allowed"?: string[];
+  "hint"?: string;
 }
 
 export interface UnauthorizedError extends ProblemDetails {
@@ -2426,4 +2428,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:76076ff28e878721";
+export const CONTRACT_REVISION: string = "sha256:5917e44841bcaab5";

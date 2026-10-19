@@ -12,7 +12,7 @@ internal sealed partial class AnalysisEngine
         if (keys.Length > 4) throw new AnalysisInputException("group_by", "Group by at most four keys.");
         var measures = (input["measures"] as JsonArray)?.Select(J.Text).ToArray() ?? ["count"];
         var valid = new[] { "count", "error_count", "error_rate", "duration_avg", "duration_p50", "duration_p90", "duration_p95", "duration_p99", "duration_max" };
-        if (measures.Any(m => !valid.Contains(m) && !m.StartsWith("sum:", StringComparison.Ordinal))) throw new AnalysisInputException("measures", "Choose documented count, error, duration or sum:<attribute> measures.");
+        if (measures.Any(m => !valid.Contains(m) && !m.StartsWith("sum:", StringComparison.Ordinal))) throw new AnalysisInputException("measures", "Choose documented count, error, duration or sum:<attribute> measures.") { Allowed = [.. valid, "sum:<attribute>"] };
         JsonObject Measure(IEnumerable<AnalysisRecord> source)
         {
             var values = source.ToList(); var result = new JsonObject();
@@ -149,7 +149,7 @@ internal sealed partial class AnalysisEngine
     {
         // A service that sent nothing in the window or its baseline is unknown here, not healthy.
         if (J.String(input, "service_name") is { } service && _spans.All(s => s.Service != service) && _logs.All(l => l.Service != service) && snapshot.Series.All(s => s.ServiceName != service))
-            throw new AnalysisInputException("service_name", $"Service '{service}' sent no telemetry in this window or its baseline; get_service_map lists the services that did.", "service.not_found");
+            throw new AnalysisInputException("service_name", $"Service {service} sent no telemetry in this window or its baseline; get_service_map lists the services that did.", "service.not_found") { Missing = service };
         var rows = Select(input);
         var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p)) && !HasRemoteParent(s)).ToList();
         var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();

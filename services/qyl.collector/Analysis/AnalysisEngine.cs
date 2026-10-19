@@ -105,6 +105,8 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private List<AnalysisRecord> FailureRecords(string id) =>
         [.. _spans.Where(s => s.Error && FailureId(Signature(s)) == id)];
     public bool OwnsFailure(string id) => FailureRecords(id).Count > 0;
+    private static AnalysisInputException NoFailure(string id) =>
+        new("failure_id", $"Failure {id} was not found in this project; triage and list_failures list the failures.", "failure.not_found") { Missing = id };
     private JsonObject Failure(IGrouping<string, AnalysisRecord> group)
     {
         var records = group.ToList(); var first = records[0]; var id = FailureId(group.Key); var state = State(id);
@@ -130,7 +132,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         var records = Select(input).Where(s => s.Error).ToList();
         if (J.String(input, "failure_id") is { } id)
         {
-            if (!OwnsFailure(id)) throw new AnalysisInputException("failure_id", "Failure was not found in this project.", "failure.not_found");
+            if (!OwnsFailure(id)) throw NoFailure(id);
             records = [.. records.Where(s => FailureId(Signature(s)) == id)];
         }
         var failures = records.GroupBy(Signature).Select(Failure).Where(f => J.String(input, "status") == "all" || J.String(f, "status") == (J.String(input, "status") ?? "open"));

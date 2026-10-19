@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:76076ff28e878721",
+  "contract_revision": "sha256:5917e44841bcaab5",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -406,6 +406,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -969,6 +980,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -1751,6 +1773,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -2569,6 +2602,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -3215,6 +3259,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -3826,6 +3881,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -4871,6 +4937,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -5043,6 +5120,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -5506,6 +5594,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -6611,6 +6710,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -7849,6 +7959,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -8912,6 +9033,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -10359,6 +10491,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -10964,6 +11107,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -11803,6 +11957,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -12579,6 +12744,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -13032,6 +13208,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -13507,6 +13694,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -14332,6 +14530,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -15390,6 +15599,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -15913,6 +16133,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -16715,6 +16946,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -17535,6 +17777,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -18297,6 +18550,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -19058,6 +19322,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -19425,6 +19700,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -19715,6 +20001,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -20767,6 +21064,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",
@@ -21423,6 +21731,17 @@
                     "rejected_value": {
                       "type": "string",
                       "description": "The rejected value, when it is safe to repeat."
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The values the field accepts, when they form a closed set."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "description": "What to send instead."
                     }
                   },
                   "description": "One rule a request broke.",

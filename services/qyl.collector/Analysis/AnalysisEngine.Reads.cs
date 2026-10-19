@@ -77,7 +77,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject Traces(JsonObject input)
     {
         if (J.String(input, "trace_id") is { } requestedTrace && _spans.All(s => s.TraceId != requestedTrace))
-            throw new AnalysisInputException("trace", requestedTrace, "trace.not_found");
+            throw new AnalysisInputException("trace_id", $"Trace {requestedTrace} was not found in this project; list_traces lists the traces.", "trace.not_found") { Missing = requestedTrace };
         var rows = _spans.GroupBy(s => s.TraceId!).Where(g =>
         {
             var groupRows = g.ToList();
@@ -115,7 +115,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject Trace(JsonObject input)
     {
         var rows = Execution(input); var selection = J.String(input, "selection") ?? "all";
-        if (rows.Count is 0) throw new AnalysisInputException("trace", J.String(input, "trace_id") ?? "", "trace.not_found");
+        if (rows.Count is 0) throw new AnalysisInputException("trace_id", $"Trace {J.String(input, "trace_id")} was not found in this project; list_traces lists the traces.", "trace.not_found") { Missing = J.String(input, "trace_id") };
         var selected = rows.Where(s => selection is "all" or "critical_path" || s.Error).ToHashSet();
         var children = rows.ToLookup(s => s.Span?.ParentSpanId ?? "", StringComparer.Ordinal);
         if (selection == "errors_with_ancestors") foreach (var s in selected.ToList())

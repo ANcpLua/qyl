@@ -16,8 +16,7 @@ internal static partial class CollectorEndpointExtensions
         var project = ResolveProjectScope(context);
         if ((await store.ListMetricSeriesAsync(project, metricName, [], 1, seriesId: seriesId, ct: ct)).SingleOrDefault() is not { } series) return ContractErrorResults.NotFound("metric series", seriesId);
         try { return Results.Ok(await ReadMetricPointPageAsync(store, series, project, query, ct)); }
-        catch (AnalysisInputException invalid)
-        { return ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
+        catch (AnalysisInputException invalid) { return AnalysisError(invalid); }
     }
 
     private static async Task<CursorPageMetricPoint> ReadMetricPointPageAsync(IQylStore store, MetricSeriesRow series,

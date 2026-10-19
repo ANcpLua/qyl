@@ -27,9 +27,9 @@ internal static class ContractErrorResults
             statusCode: StatusCodes.Status504GatewayTimeout,
             contentType: ProblemDetailsMediaType.Value);
 
-    internal static IResult NotFound(string resourceType, string resourceId) =>
+    internal static IResult NotFound(string resourceType, string? resourceId, string? detail = null) =>
         Results.Json(
-            CreateNotFound(resourceType, resourceId),
+            CreateNotFound(resourceType, resourceId, detail),
             QylSerializerContext.Default.NotFoundError,
             statusCode: StatusCodes.Status404NotFound,
             contentType: ProblemDetailsMediaType.Value);
@@ -38,9 +38,11 @@ internal static class ContractErrorResults
         string field,
         string message,
         string code,
-        string? rejectedValue = null) =>
+        string? rejectedValue = null,
+        IReadOnlyList<string>? allowed = null,
+        string? hint = null) =>
         Results.Json(
-            CreateValidation(field, message, code, rejectedValue),
+            CreateValidation(field, message, code, rejectedValue, allowed, hint),
             QylSerializerContext.Default.ValidationError,
             statusCode: StatusCodes.Status400BadRequest,
             contentType: ProblemDetailsMediaType.Value);
@@ -118,7 +120,7 @@ internal static class ContractErrorResults
         CancellationToken cancellationToken = default) =>
         WriteAsync(
             response,
-            CreateValidation(field, message, code, rejectedValue),
+            CreateValidation(field, message, code, rejectedValue, null, null),
             QylSerializerContext.Default.ValidationError,
             StatusCodes.Status400BadRequest,
             cancellationToken);
@@ -175,13 +177,15 @@ internal static class ContractErrorResults
             StatusCodes.Status503ServiceUnavailable,
             cancellationToken);
 
-    private static NotFoundError CreateNotFound(string resourceType, string resourceId) =>
+    // A 404 names what is missing; an analysis 404 also names the tool that lists what exists.
+    private static NotFoundError CreateNotFound(string resourceType, string? resourceId, string? detail = null) =>
         new()
         {
             Type = ProblemType.NotFound,
             Code = ProblemCode.NotFound,
             Title = "Not Found",
             Status = StatusCodes.Status404NotFound,
+            Detail = detail ?? $"{resourceType} {resourceId} was not found in this project.",
             ResourceType = resourceType,
             ResourceId = resourceId
         };
@@ -190,7 +194,9 @@ internal static class ContractErrorResults
         string field,
         string message,
         string code,
-        string? rejectedValue) =>
+        string? rejectedValue,
+        IReadOnlyList<string>? allowed,
+        string? hint) =>
         new()
         {
             Type = ProblemType.ValidationFailed,
@@ -204,7 +210,9 @@ internal static class ContractErrorResults
                     Field = field,
                     Message = message,
                     Code = code,
-                    RejectedValue = rejectedValue
+                    RejectedValue = rejectedValue,
+                    Allowed = allowed is null ? null : [.. allowed],
+                    Hint = hint
                 }
             ]
         };

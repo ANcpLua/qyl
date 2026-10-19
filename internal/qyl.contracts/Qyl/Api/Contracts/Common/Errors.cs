@@ -80,6 +80,12 @@ public sealed class ValidationErrorDetail
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("rejected_value")]
     public string? RejectedValue { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("allowed")]
+    public IReadOnlyList<string>? Allowed { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("hint")]
+    public string? Hint { get; init; }
 }
 
 public sealed class UnauthorizedError

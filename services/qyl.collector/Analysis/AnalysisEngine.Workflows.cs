@@ -14,7 +14,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject RunSavedQuery(JsonObject input)
     {
         var row = snapshot.SavedQueries.FirstOrDefault(row => row.SavedQueryId == J.String(input, "id"))
-            ?? throw new AnalysisInputException("id", "Saved query was not found in this project.", "saved_query.not_found");
+            ?? throw new AnalysisInputException("id", $"Saved query {J.String(input, "id")} was not found in this project; list_saved_queries lists the saved queries.", "saved_query.not_found") { Missing = J.String(input, "id") };
         var filter = JsonNode.Parse(row.FilterJson)!.AsObject();
         filter["id"] = row.SavedQueryId;
         foreach (var value in input.Where(p => p.Key != "id")) filter[value.Key] = value.Value?.DeepClone();

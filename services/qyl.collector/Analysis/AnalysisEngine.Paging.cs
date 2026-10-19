@@ -60,7 +60,7 @@ internal sealed partial class AnalysisEngine
     private static int Bounded(JsonObject input, string name, int fallback, int minimum, int maximum)
     {
         var value = J.Number(input, name, fallback);
-        if (value < minimum || value > maximum) throw new AnalysisInputException(name, $"Use {name} from {minimum} to {maximum}.", name + ".out_of_range");
+        if (value < minimum || value > maximum) throw new AnalysisInputException(name, $"Use {name} from {minimum} to {maximum}.", name + ".out_of_range") { Hint = $"Omit {name} for {fallback}." };
         return (int)value;
     }
 

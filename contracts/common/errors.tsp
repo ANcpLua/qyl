@@ -107,6 +107,12 @@ model ValidationErrorDetail {
   @doc("The rejected value, when it is safe to repeat.")
   @encodedName("application/json", "rejected_value")
   rejectedValue?: string;
+
+  @doc("The values the field accepts, when they form a closed set.")
+  allowed?: string[];
+
+  @doc("What to send instead.")
+  hint?: string;
 }
 
 @doc("The request carries no valid credential (401).")

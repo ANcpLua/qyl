@@ -9,6 +9,12 @@ internal sealed class AnalysisInputException(string field, string message, strin
     public string Field { get; } = field;
     public string Code { get; } = code;
     public string Description { get; } = message;
+    /// <summary>The values the field accepts, when they form a closed set.</summary>
+    public IReadOnlyList<string>? Allowed { get; init; }
+    /// <summary>What to send instead.</summary>
+    public string? Hint { get; init; }
+    /// <summary>For a <c>*.not_found</c> code, the identifier that was not found.</summary>
+    public string? Missing { get; init; }
 }
 
 internal readonly record struct AnalysisWindow(DateTimeOffset Start, DateTimeOffset End)
@@ -56,7 +62,7 @@ internal static partial class J
         if ((input as JsonObject)?[name] is null) return null;
         var text = String(input, name) ?? "";
         if (Rfc3339().Match(text) is not { Success: true } match || !DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
-            throw new AnalysisInputException(name, name + " must be an RFC 3339 timestamp.");
+            throw new AnalysisInputException(name, name + " must be an RFC 3339 timestamp.") { Hint = "Send a time such as 2026-10-19T12:00:00Z." };
         // An instant holds 100 ns. A finer boundary cannot be applied exactly, and moving it would
         // include or exclude records the request did not select.
         if (match.Groups["fraction"].Value is { Length: > 7 } fraction && fraction.AsSpan(7).ContainsAnyExcept('0'))
@@ -133,7 +139,8 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
 
 internal static class AnalysisMatchers
 {
-    private static readonly HashSet<string> s_ops = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
+    private static readonly string[] s_ops = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
+    private static readonly string[] s_scopes = ["span", "resource", "log"];
     public static void Validate(JsonNode? node)
     {
         if (node is null) return;
@@ -142,8 +149,8 @@ internal static class AnalysisMatchers
         {
             var op = J.String(m, "op");
             if (string.IsNullOrEmpty(J.String(m, "key"))) throw new AnalysisInputException("matchers.key", "A non-empty attribute key is required.");
-            if (op is null || !s_ops.Contains(op)) throw new AnalysisInputException("matchers.op", "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.");
-            if (J.String(m, "scope") is { } and not ("span" or "resource" or "log")) throw new AnalysisInputException("matchers.scope", "Choose span, resource or log.");
+            if (op is null || !s_ops.Contains(op)) throw new AnalysisInputException("matchers.op", "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.") { Allowed = s_ops, Hint = "eq, neq and in compare typed values; prefix and contains match text; gt to lte compare numbers." };
+            if (J.String(m, "scope") is { } and not ("span" or "resource" or "log")) throw new AnalysisInputException("matchers.scope", "Choose span, resource or log.") { Allowed = s_scopes };
             if (op == "in" && m?["values"] is not JsonArray) throw new AnalysisInputException("matchers.values", "The in operator requires values.");
             if (op != "exists" && op != "in" && m?["value"] is null) throw new AnalysisInputException("matchers.value", "This operator requires a value.");
         }

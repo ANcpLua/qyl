@@ -63,7 +63,7 @@ internal sealed partial class AnalysisEngine
     private JsonObject QueryMetric(JsonObject input)
     {
         var rows = SeriesRows(input); var name = J.String(input, "metric_name") ?? throw new AnalysisInputException("metric_name", "metric_name is required.");
-        if (rows.Count is 0) throw new AnalysisInputException("metric_name", "Metric was not found in this project.", "metric.not_found");
+        if (rows.Count is 0) throw new AnalysisInputException("metric_name", $"Metric {name} was not found in this project; list_metrics lists the recorded metrics.", "metric.not_found") { Missing = name };
         var aggregation = J.String(input, "aggregation") ?? "avg"; var function = J.String(input, "function") ?? "none";
         if (rows.Select(static row => (row.MetricKind, row.Unit, row.Temporality, row.IsMonotonic)).Distinct().Skip(1).Any())
             throw new MetricQueryConflictException();
@@ -73,20 +73,20 @@ internal sealed partial class AnalysisEngine
             .Select(static aggregation => aggregation.ToString().ToLowerInvariant()).ToArray();
         if (!supported.Contains(aggregation, StringComparer.Ordinal))
             throw new AnalysisInputException("aggregation", $"'{aggregation}' does not apply to this metric; use one of: {string.Join(", ", supported)}.",
-                aggregation.StartsWith('p') ? "aggregation.requires_histogram" : "aggregation.unsupported");
+                aggregation.StartsWith('p') ? "aggregation.requires_histogram" : "aggregation.unsupported") { Allowed = supported, Hint = "list_metrics shows each metric's supported_aggregations; percentiles need a histogram." };
         if (aggregation.StartsWith('p') && rows.SelectMany(row => PointsBySeries[row.SeriesId])
                 .FirstOrDefault(point => _window.Contains(point.TimeUnixNano) && point.ProjectionUnavailableReason is not null) is { } unavailable)
             throw new AnalysisInputException("aggregation", unavailable.ProjectionUnavailableReason!, "metric.projection_unavailable");
         // A histogram's points are already the changes of their intervals; a change or a rate applies to their count or sum.
         var histogram = rows[0].MetricKind >= 3;
         if (histogram && function != "none" && aggregation is not ("count" or "sum"))
-            throw new AnalysisInputException("function", $"function={function} applies to a histogram's count or sum; use aggregation count or sum, or function none.", "function.unsupported");
+            throw new AnalysisInputException("function", $"function={function} applies to a histogram's count or sum; use aggregation count or sum, or function none.", "function.unsupported") { Allowed = ["none"], Hint = "With aggregation count or sum a histogram also takes delta, increase or rate." };
         var groupBy = (input["group_by"] as JsonArray)?.Select(J.Text).ToArray() ?? [];
         // Without a step, whole seconds split the window into at most 60 buckets.
         var step = input["step_ms"] is null
             ? Math.Min(QueryMetricInput.StepMsMaximum, (long)Math.Ceiling((_window.End - _window.Start).TotalSeconds / 60) * 1000)
             : (long)J.Number(input, "step_ms");
-        if (step is < QueryMetricInput.StepMsMinimum or > QueryMetricInput.StepMsMaximum) throw new AnalysisInputException("step_ms", $"Use a step_ms from {QueryMetricInput.StepMsMinimum} to {QueryMetricInput.StepMsMaximum}.", "step_ms.out_of_range");
+        if (step is < QueryMetricInput.StepMsMinimum or > QueryMetricInput.StepMsMaximum) throw new AnalysisInputException("step_ms", $"Use a step_ms from {QueryMetricInput.StepMsMinimum} to {QueryMetricInput.StepMsMaximum}.", "step_ms.out_of_range") { Hint = "Omit step_ms for at most 60 buckets over the window." };
         var streams = rows.GroupBy(s => string.Join('\0', groupBy.Select(key => J.Text(SeriesRecord(s).Value(key))))).ToList();
         var output = new List<JsonObject>();
         double? Reduce(List<(ulong Time, double? Value, MetricPointRow Point)> points)
@@ -117,7 +117,7 @@ internal sealed partial class AnalysisEngine
                     if (point.Value.HasValue || point.HistogramCount.HasValue) previous = point;
                 }
             }
-            if ((_window.End - _window.Start).TotalMilliseconds / step > 10000) throw new AnalysisInputException("step_ms", "Increase step_ms so the window contains no more than 10000 buckets.");
+            if ((_window.End - _window.Start).TotalMilliseconds / step > 10000) throw new AnalysisInputException("step_ms", "Increase step_ms so the window contains no more than 10000 buckets.") { Hint = "Omit step_ms for at most 60 buckets over the window." };
             // Only buckets that hold points; the series' value reduces the whole window as one bucket.
             var buckets = J.A(values.GroupBy(p => (p.Time - _window.StartNs) / ((ulong)step * 1_000_000)).OrderBy(static g => g.Key).Select(g =>
                 (JsonNode)J.O(("bucket_start", J.Time(_window.StartNs + g.Key * (ulong)step * 1_000_000)), ("value", Reduce([.. g])), ("point_count", g.Count()))));
