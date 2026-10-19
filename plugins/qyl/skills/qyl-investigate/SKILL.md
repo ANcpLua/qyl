@@ -40,7 +40,7 @@ saved queries and failure status in that project, never the telemetry.
 | What an agent run did | `list_sessions` (`active_only` for live runs) | `get_agent_run` with the `session_id` |
 | What the logs say | `search_logs` with `trace_id` or `service_name` and `severity_min` 17 for errors | `get_trace` for the spans around a log |
 | What a metric shows | `list_metrics` | `query_metric` with the instrument's name and its `suggested_group_by` |
-| What a CI run did | `ci_log` | `ci_log` with the `run_id` for its phases in start order, each with its status |
+| What a CI run did | `ci_log` | `ci_log` with the `ci_run_id` for its phases in start order, each with its status, and `baseline: "last_success"` for what changed |
 
 ## Defaults, so you do not have to choose
 
@@ -49,9 +49,12 @@ saved queries and failure status in that project, never the telemetry.
   `lookback_minutes` to widen, up to 30 days. The result's `window` reports
   the applied bounds: pass them as `start_time` and `end_time` to later calls
   so one investigation keeps one window.
-- **Baseline.** Comparison tools default to `previous_window`, the window of
-  the same length immediately before. Give `baseline` explicit bounds only
-  when the user names a time, such as "before yesterday's deploy".
+- **Baseline.** Every comparison is a `baseline`: `previous_window`, the
+  window of the same length immediately before (triage's default),
+  `{start_time, end_time}` or `{offset_minutes}` for `triage`,
+  `query_metric` and `get_mcp_stats` (which also takes `{server_version}`),
+  and `last_success` or `{ci_run_id}` for `ci_log`. Give explicit bounds
+  only when the user names a time, such as "before yesterday's deploy".
 - **Pages.** Results are bounded: `triage` 10 failures, context tools 100
   spans and 100 logs, `aggregate_telemetry` 20 groups, `get_trace` 100
   spans. `has_more` and `next_cursor` continue the same query; `coverage`

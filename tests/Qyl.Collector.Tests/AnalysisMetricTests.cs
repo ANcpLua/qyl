@@ -213,8 +213,8 @@ public sealed partial class AnalysisApiTests
 
         foreach (var query in new[]
                  {
-                     """{"metric_name":"comparison.events","aggregation":"count","step_ms":3600000,"compare_to":"previous_window"}""",
-                     """{"metric_name":"comparison.counter","function":"increase","aggregation":"sum","step_ms":3600000,"compare_to":"previous_window"}"""
+                     """{"metric_name":"comparison.events","aggregation":"count","step_ms":3600000,"baseline":"previous_window"}""",
+                     """{"metric_name":"comparison.counter","function":"increase","aggregation":"sum","step_ms":3600000,"baseline":"previous_window"}"""
                  })
         {
             var result = await Read(host, "query_metric", query);

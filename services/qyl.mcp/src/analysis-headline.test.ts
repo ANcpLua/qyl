@@ -174,15 +174,15 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
     expect: [/^search_logs: 2 logs\. Top: /u, /→ (get_trace trace_id=[a-f0-9]{32}|widen lookback_minutes or relax the query)$/u],
   },
   {
-    operation: "search_logs", schema: "Mcp.Tools.SearchLogsOutput", input: { group_by: "pattern" },
+    operation: "search_logs", schema: "Mcp.Tools.SearchLogsOutput", input: { group_by: ["pattern"] },
     output: { ...context, mode: "live", total_matched: 7, patterns: [{ template: "orders-db timed out after # s", count: 7, severity: 17,
       first_seen: NOW, last_seen: NOW, example_trace_ids: [TRACE] }] },
     expect: [/^search_logs: 1 patterns over 7 logs\. Top: "orders-db timed out after # s" ×7 \(trace 0af7651916cd43dd8448eb211c80319c\)\./u,
       /→ get_trace trace_id=0af7651916cd43dd8448eb211c80319c$/u],
   },
   {
-    operation: "ci_log", schema: "Mcp.Tools.CiLogOutput", input: { run_id: "run-7" },
-    output: { ...context, mode: "live", run_id: "run-7", phases: [
+    operation: "ci_log", schema: "Mcp.Tools.CiLogOutput", input: { ci_run_id: "run-7" },
+    output: { ...context, mode: "live", ci_run_id: "run-7", phases: [
       { leg: "linux", phase: "build", status: "ok", duration_ms: 1000 },
       { leg: "linux", phase: "test", status: "error", duration_ms: 2000, message: "3 tests failed" }] },
     expect: [/^ci_log: run run-7: 2 phases, 1 failed\. Failed: linux\/test: 3 tests failed\./u, /→ get_failure_context ci_run_id=run-7$/u],

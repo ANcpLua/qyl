@@ -123,7 +123,7 @@ public sealed partial class AnalysisApiTests
 
     /// <summary>
     /// A failure-id cohort holds the failure's occurrences inside its window: the request's window, its
-    /// own window, or for group_b "before" the equally long window that precedes group_a's.
+    /// own window, or for group_b previous_window the equally long window that precedes group_a's.
     /// </summary>
     [TestMethod]
     public async Task Compare_groups_limits_failure_cohorts_to_their_windows()
@@ -138,11 +138,11 @@ public sealed partial class AnalysisApiTests
         await host.Store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
         var failure = AnalysisEngine.FailureIdentity("alpha", rows[0])!;
 
-        var current = await Read(host, "compare_groups", $$"""{"signal":"spans","group_a":{"failure_id":"{{failure}}"},"group_b":"before"}""");
+        var current = await Read(host, "compare_groups", $$"""{"signal":"spans","group_a":{"failure_id":"{{failure}}"},"group_b":"previous_window"}""");
         Assert.AreEqual((1, 2), (current.GetProperty("size_a").GetInt32(), current.GetProperty("size_b").GetInt32()));
 
         var window = $$"""{"start_time":"{{FixtureUtcNow.AddMinutes(-200):O}}","end_time":"{{FixtureUtcNow.AddMinutes(-180):O}}"}""";
-        var earlier = await Read(host, "compare_groups", $$"""{"signal":"spans","group_a":{"failure_id":"{{failure}}","window":{{window}}},"group_b":"before"}""");
+        var earlier = await Read(host, "compare_groups", $$"""{"signal":"spans","group_a":{"failure_id":"{{failure}}","window":{{window}}},"group_b":"previous_window"}""");
         Assert.AreEqual((1, 1), (earlier.GetProperty("size_a").GetInt32(), earlier.GetProperty("size_b").GetInt32()));
     }
 }

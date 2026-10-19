@@ -82,8 +82,6 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             if (custom["offset_minutes"] is not null) { var offset = J.Number(custom, "offset_minutes"); return new(_window.Start.AddMinutes(-offset), _window.End.AddMinutes(-offset)); }
             return AnalysisWindow.Resolve(custom, _window.Start);
         }
-        var offsetMinutes = J.Number(input, "offset_minutes");
-        if (offsetMinutes > 0) return new(_window.Start.AddMinutes(-offsetMinutes), _window.End.AddMinutes(-offsetMinutes));
         return new(_window.Start - (_window.End - _window.Start), _window.Start);
     }
     private static string FailureKind(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.RecordedFailureKind)) is { Length: > 0 } ex ? ex : J.Text(s.Value(CollectorSemanticAttributeCatalog.ErrorType));

@@ -300,14 +300,14 @@ function ciLog(output: CiLogOutput): string {
     const failed = output.phases.filter((phase) => phase.status === "error");
     const rows = top(failed, (phase) => `${phase.leg}/${phase.phase}${phase.message ? `: ${short(phase.message, 60)}` : ""}`);
     const comparison = output.comparison === undefined ? ""
-      : ` Versus ${output.comparison.baseline_run_id ?? "the baseline"}: ${output.comparison.new_failures.length} new failures, ${output.comparison.fixed.length} fixed, ${output.comparison.duration_regressions.length} slower phases.`;
+      : ` Versus ${output.comparison.baseline_ci_run_id ?? "the baseline"}: ${output.comparison.new_failures.length} new failures, ${output.comparison.fixed.length} fixed, ${output.comparison.duration_regressions.length} slower phases.`;
     const phasesMore = output.has_more && output.next_phase_cursor !== undefined ? " More phases: repeat with next_phase_cursor as phase_cursor." : "";
-    return `ci_log: run ${output.run_id ?? "unknown"}: ${output.phases.length} phases, ${failed.length} failed.${rows ? ` Failed: ${rows}.` : ""}${comparison}${coverageNote(output.coverage)}${phasesMore} → ${failed.length > 0 && output.run_id ? `get_failure_context ci_run_id=${output.run_id}` : "ci_log without run_id for other runs"}`;
+    return `ci_log: run ${output.ci_run_id ?? "unknown"}: ${output.phases.length} phases, ${failed.length} failed.${rows ? ` Failed: ${rows}.` : ""}${comparison}${coverageNote(output.coverage)}${phasesMore} → ${failed.length > 0 && output.ci_run_id ? `get_failure_context ci_run_id=${output.ci_run_id}` : "ci_log without ci_run_id for other runs"}`;
   }
   const runs = output.runs ?? [];
-  const rows = top(runs, (run) => `${run.run_id} ${run.state}, ${run.error_count} errors, ${ms(run.duration_ms)}`);
+  const rows = top(runs, (run) => `${run.ci_run_id} ${run.state}, ${run.error_count} errors, ${ms(run.duration_ms)}`);
   const target = runs.find((run) => run.error_count > 0) ?? runs[0];
-  return `ci_log: ${runs.length} runs.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${target === undefined ? "widen lookback_minutes" : `ci_log run_id=${target.run_id}`}`;
+  return `ci_log: ${runs.length} runs.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${target === undefined ? "widen lookback_minutes" : `ci_log ci_run_id=${target.ci_run_id}`}`;
 }
 
 function listMetrics(output: ListMetricsOutput): string {

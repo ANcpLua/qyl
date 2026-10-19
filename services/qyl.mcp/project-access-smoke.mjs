@@ -158,7 +158,7 @@ try {
   const cases = (f) => [
     ["list_traces", { limit: 10 }], ["get_trace", { trace_id: f.traceId }],
     ["list_sessions", {}], ["search_logs", {}], ["ci_log", {}],
-    ["ci_log", { run_id: `${f.marker}_session` }], ["list_metrics", {}],
+    ["ci_log", { ci_run_id: `${f.marker}_session` }], ["list_metrics", {}],
     ["query_metric", { metric_name: `${f.marker}.requests`, start_time: window.start_time, end_time: window.end_time, raw: true }],
     ["query_metric", { metric_name: `${f.marker}.requests`, ...window, aggregation: "avg" }],
   ];

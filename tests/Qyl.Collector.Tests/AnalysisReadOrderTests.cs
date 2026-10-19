@@ -28,8 +28,8 @@ public sealed partial class AnalysisApiTests
             Span(TraceId(3), SpanId(5), time + 1, time + Second, status: 2, parentSpanId: SpanId(3))
         ]), testContext.CancellationToken);
 
-        async Task<string?[]> Order(string sortBy) =>
-            [.. (await Read(host, "list_traces", $$"""{"sort_by":"{{sortBy}}"}""")).GetProperty("traces").EnumerateArray().Select(static t => t.GetProperty("trace_id").GetString())];
+        async Task<string?[]> Order(string orderBy) =>
+            [.. (await Read(host, "list_traces", $$"""{"order_by":"{{orderBy}}"}""")).GetProperty("traces").EnumerateArray().Select(static t => t.GetProperty("trace_id").GetString())];
 
         Assert.AreSequenceEqual([TraceId(4), TraceId(1), TraceId(2), TraceId(3)], await Order("start_time"));
         Assert.AreSequenceEqual([TraceId(2), TraceId(3), TraceId(4), TraceId(1)], await Order("duration"));

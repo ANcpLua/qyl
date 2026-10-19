@@ -67,4 +67,40 @@ public sealed partial class AnalysisApiTests
         var coverage = run.GetProperty("coverage");
         Assert.AreEqual((2, 1, 1), (coverage.GetProperty("examined").GetInt32(), coverage.GetProperty("matched").GetInt32(), coverage.GetProperty("returned").GetInt32()));
     }
+
+    /// <summary>
+    /// Every comparison names its baseline the way triage does, and every error filter is errors_only: get_mcp_stats
+    /// shifts its window back by offset_minutes or takes an explicit one, ci_log compares a run with another by its
+    /// ci_run_id, and errors_only keeps the failed runs and sessions.
+    /// </summary>
+    [TestMethod]
+    public async Task Comparisons_take_a_baseline_in_triages_shape_and_errors_only_filters_failures()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        SpanStorageRow Call(int id, ulong minutesAgo) => Span(TraceId(id), SpanId(id), FixtureUnixNano - minutesAgo * Minute, FixtureUnixNano - minutesAgo * Minute + 1000)
+            with { AttributesJson = """{"mcp.method.name":"tools/call"}""" };
+        SpanStorageRow Build(int id, ulong minutesAgo, string run, bool failed) => Span(TraceId(id), SpanId(id), FixtureUnixNano - minutesAgo * Minute,
+            FixtureUnixNano - minutesAgo * Minute + 2000, service: "qyl-ci-tests", status: failed ? (byte)2 : (byte)1, sessionId: run)
+            with { Name = "build", AttributesJson = """{"cicd.pipeline.task.name":"build"}""" };
+        await host.Store.EnqueueAsync(new SpanBatch([Call(1, 30), Call(2, 90), Call(3, 91), Build(4, 50, "ci-old", false), Build(5, 20, "ci-new", true)]),
+            testContext.CancellationToken);
+
+        var shifted = await Read(host, "get_mcp_stats", """{"baseline":{"offset_minutes":60}}""");
+        Assert.AreEqual((1, 2), (shifted.GetProperty("totals").GetProperty("requests").GetInt32(),
+            shifted.GetProperty("comparison").GetProperty("totals").GetProperty("requests").GetInt32()));
+        var start = FixtureUtcNow.AddMinutes(-95); var end = FixtureUtcNow.AddMinutes(-85);
+        var explicitWindow = (await Read(host, "get_mcp_stats", $$$"""{"baseline":{"start_time":"{{{start:O}}}","end_time":"{{{end:O}}}"}}""")).GetProperty("comparison");
+        Assert.AreEqual(2, explicitWindow.GetProperty("totals").GetProperty("requests").GetInt32());
+        Assert.AreEqual(start, explicitWindow.GetProperty("window").GetProperty("start_time").GetDateTimeOffset());
+
+        var compared = await Read(host, "ci_log", """{"ci_run_id":"ci-new","baseline":{"ci_run_id":"ci-old"}}""");
+        Assert.AreEqual("ci-new", compared.GetProperty("ci_run_id").GetString());
+        Assert.AreEqual("ci-old", compared.GetProperty("comparison").GetProperty("baseline_ci_run_id").GetString());
+        Assert.AreEqual("build", Assert.ContainsSingle(compared.GetProperty("comparison").GetProperty("new_failures").EnumerateArray()).GetProperty("phase").GetString());
+
+        var failedRuns = await Read(host, "ci_log", """{"errors_only":true}""");
+        Assert.AreEqual("ci-new", Assert.ContainsSingle(failedRuns.GetProperty("runs").EnumerateArray()).GetProperty("ci_run_id").GetString());
+        var failedSessions = await Read(host, "list_sessions", """{"errors_only":true}""");
+        Assert.AreEqual("ci-new", Assert.ContainsSingle(failedSessions.GetProperty("sessions").EnumerateArray()).GetProperty("session_id").GetString());
+    }
 }

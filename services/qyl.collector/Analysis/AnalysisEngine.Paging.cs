@@ -8,7 +8,7 @@ internal sealed partial class AnalysisEngine
 {
     // ci_log pages a run's phases separately from its runs; the contract leaves that page size to the Collector.
     private const int CiPhasePageSize = 50;
-    private static readonly string[] s_identityKeys = ["failure_id", "session_id", "trace_id", "saved_query_id", "series_id", "run_id", "name"];
+    private static readonly string[] s_identityKeys = ["failure_id", "session_id", "trace_id", "saved_query_id", "series_id", "ci_run_id", "name"];
     // aggregate_telemetry's record count per group, in the order of its groups.
     private int[]? _groupSizes;
 
@@ -50,7 +50,6 @@ internal sealed partial class AnalysisEngine
         "trace.spans" => Bounded(input, "max_spans", GetTraceInput.MaxSpansDefault, GetTraceInput.MaxSpansMinimum, GetTraceInput.MaxSpansMaximum),
         "observed.spans" => Math.Min(Limit(input), Bounded(input, "max_spans", GetFailureContextInput.MaxSpansDefault, GetFailureContextInput.MaxSpansMinimum, GetFailureContextInput.MaxSpansMaximum)),
         "observed.logs" => Math.Min(Limit(input), Bounded(input, "max_logs", GetFailureContextInput.MaxLogsDefault, GetFailureContextInput.MaxLogsMinimum, GetFailureContextInput.MaxLogsMaximum)),
-        "steps" => Math.Min(Limit(input), Bounded(input, "max_steps", GetAgentRunInput.MaxStepsDefault, GetAgentRunInput.MaxStepsMinimum, GetAgentRunInput.MaxStepsMaximum)),
         _ => Limit(input)
     };
 
@@ -122,7 +121,7 @@ internal sealed partial class AnalysisEngine
     private static string Fingerprint(JsonObject input)
     {
         var scope = input.DeepClone().AsObject();
-        foreach (var field in new[] { "cursor", "limit", "max_spans", "max_logs", "max_steps", "start_time", "end_time", "lookback_minutes" }) scope.Remove(field);
+        foreach (var field in new[] { "cursor", "limit", "max_spans", "max_logs", "start_time", "end_time", "lookback_minutes" }) scope.Remove(field);
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(scope.ToJsonString())));
     }
 

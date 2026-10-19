@@ -131,11 +131,11 @@ export const IDENTITIES: readonly IdentityBinding[] = [
     edges: {
       // Session continuity across a reconnect.
       previousSessionId: "the session this one continues from",
-      // A CI workflow run is emitted as one session; `ci_log` names it for the
-      // agent in the run's own vocabulary while keeping the session identity.
-      runId: "the CI workflow run whose telemetry is grouped under this session",
-      ciRunId: "the CI workflow run selected for failure context",
-      baselineRunId: "the baseline CI session used for comparison",
+      // A CI workflow run is emitted as one session; `ci_log` and
+      // `get_failure_context` name it for the agent in the run's own vocabulary
+      // while keeping the session identity.
+      ciRunId: "the CI workflow run whose telemetry is grouped under this session",
+      baselineCiRunId: "the CI run a ci_log comparison compares with",
     },
   },
   {
@@ -180,7 +180,7 @@ for (const identity of IDENTITIES) {
  *
  * `reserved` and `edges` overlap but are not the same list, and the gap is
  * load-bearing. `previousSessionId` is in both: it can only ever be a
- * `SessionId`, so the reserved check pins the exact scalar. `runId` is an edge
+ * `SessionId`, so the reserved check pins the exact scalar. `ciRunId` is an edge
  * only, because the same edge legitimately qualifies different identities —
  * `SessionId` on the ci_log shapes, and another run identity could be declared
  * elsewhere. Which of those is right is a modelling decision no lint rule can make;

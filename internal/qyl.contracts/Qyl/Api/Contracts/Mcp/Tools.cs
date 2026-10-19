@@ -107,14 +107,11 @@ public sealed class ListTracesInput
     [JsonPropertyName("failure_id")]
     public string? FailureId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("error_scope")]
-    public string? ErrorScope { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("annotation_label")]
     public string? AnnotationLabel { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("sort_by")]
-    public string? SortBy { get; init; }
+    [JsonPropertyName("order_by")]
+    public string? OrderBy { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -197,8 +194,8 @@ public sealed class TraceRoot
 
 public sealed class GetTraceInput
 {
-    public const int IncludeLogsMinimum = 0;
-    public const int IncludeLogsMaximum = 50;
+    public const int MaxLogsMinimum = 0;
+    public const int MaxLogsMaximum = 50;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
     public const int MaxSpansDefault = 100;
@@ -215,8 +212,8 @@ public sealed class GetTraceInput
     [JsonPropertyName("attributes")]
     public IReadOnlyList<string>? Attributes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("include_logs")]
-    public int? IncludeLogs { get; init; }
+    [JsonPropertyName("max_logs")]
+    public int? MaxLogs { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -377,11 +374,8 @@ public sealed class ListSessionsInput
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("has_error")]
-    public bool? HasError { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("min_errors")]
-    public long? MinErrors { get; init; }
+    [JsonPropertyName("errors_only")]
+    public bool? ErrorsOnly { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("service_name")]
     public string? ServiceName { get; init; }
@@ -401,8 +395,8 @@ public sealed class ListSessionsInput
     [JsonPropertyName("annotation_label")]
     public string? AnnotationLabel { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("sort_by")]
-    public string? SortBy { get; init; }
+    [JsonPropertyName("order_by")]
+    public string? OrderBy { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -541,7 +535,7 @@ public sealed class SearchLogsInput
     public string? SpanId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("group_by")]
-    public string? GroupBy { get; init; }
+    public IReadOnlyList<string>? GroupBy { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("context")]
     public int? Context { get; init; }
@@ -656,11 +650,11 @@ public sealed class CiLogInput
     [JsonPropertyName("phase_cursor")]
     public string? PhaseCursor { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("outcome")]
-    public string? Outcome { get; init; }
+    [JsonPropertyName("errors_only")]
+    public bool? ErrorsOnly { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("compare_to")]
-    public string? CompareTo { get; init; }
+    [JsonPropertyName("baseline")]
+    public object? Baseline { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -674,14 +668,20 @@ public sealed class CiLogInput
     [JsonPropertyName("end_time")]
     public DateTimeOffset? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("run_id")]
-    public string? RunId { get; init; }
+    [JsonPropertyName("ci_run_id")]
+    public string? CiRunId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("service_prefix")]
     public string? ServicePrefix { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("limit")]
     public int? Limit { get; init; }
+}
+
+public sealed class CiRunReference
+{
+    [JsonPropertyName("ci_run_id")]
+    public required string CiRunId { get; init; }
 }
 
 public sealed class CiRunSummary
@@ -702,8 +702,8 @@ public sealed class CiRunSummary
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attempts")]
     public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.CiAttempt>? Attempts { get; init; }
-    [JsonPropertyName("run_id")]
-    public required string RunId { get; init; }
+    [JsonPropertyName("ci_run_id")]
+    public required string CiRunId { get; init; }
     [JsonPropertyName("state")]
     public required Qyl.Api.Contracts.Domains.Observe.Session.SessionState State { get; init; }
     [JsonPropertyName("start_time")]
@@ -719,8 +719,8 @@ public sealed class CiRunSummary
 
 public sealed class CiAttempt
 {
-    [JsonPropertyName("run_id")]
-    public required string RunId { get; init; }
+    [JsonPropertyName("ci_run_id")]
+    public required string CiRunId { get; init; }
     [JsonPropertyName("attempt")]
     public required int Attempt { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -796,8 +796,8 @@ public sealed class CiLogOutput
     [JsonPropertyName("runs")]
     public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.CiRunSummary>? Runs { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("run_id")]
-    public string? RunId { get; init; }
+    [JsonPropertyName("ci_run_id")]
+    public string? CiRunId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("phases")]
     public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.CiPhase>? Phases { get; init; }
@@ -811,8 +811,8 @@ public sealed class CiLogOutput
 public sealed class CiComparison
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("baseline_run_id")]
-    public string? BaselineRunId { get; init; }
+    [JsonPropertyName("baseline_ci_run_id")]
+    public string? BaselineCiRunId { get; init; }
     [JsonPropertyName("new_failures")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.CiPhaseChange> NewFailures { get; init; }
     [JsonPropertyName("fixed")]
@@ -849,8 +849,8 @@ public sealed class ListMetricsInput
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("text")]
-    public string? Text { get; init; }
+    [JsonPropertyName("query")]
+    public string? Query { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("service_name")]
     public string? ServiceName { get; init; }
@@ -954,8 +954,8 @@ public sealed class QueryMetricInput
     [JsonPropertyName("function")]
     public string? Function { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("compare_to")]
-    public object? CompareTo { get; init; }
+    [JsonPropertyName("baseline")]
+    public object? Baseline { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ratio_of")]
     public Qyl.Api.Contracts.Mcp.Tools.MetricRatio? RatioOf { get; init; }
@@ -993,10 +993,10 @@ public sealed class QueryMetricInput
     public int? Limit { get; init; }
 }
 
-public sealed class MetricComparisonOffset
+public sealed class BaselineOffset
 {
-    [JsonPropertyName("offset_ms")]
-    public required long OffsetMs { get; init; }
+    [JsonPropertyName("offset_minutes")]
+    public required int OffsetMinutes { get; init; }
 }
 
 public sealed class MetricRatio
@@ -1287,18 +1287,6 @@ public sealed class DeleteOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
-}
-
-public sealed class BaselineOffset
-{
-    [JsonPropertyName("offset_minutes")]
-    public required int OffsetMinutes { get; init; }
-}
-
-public sealed class McpComparisonOffset
-{
-    [JsonPropertyName("offset_minutes")]
-    public required int OffsetMinutes { get; init; }
 }
 
 public sealed class McpComparisonVersion
@@ -2353,10 +2341,7 @@ public sealed class GetAgentRunInput
     public const int LookbackMinutesMaximum = 43200;
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
-    public const int LimitMaximum = 200;
-    public const int MaxStepsDefault = 100;
-    public const int MaxStepsMinimum = 1;
-    public const int MaxStepsMaximum = 1000;
+    public const int LimitMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2370,9 +2355,6 @@ public sealed class GetAgentRunInput
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -2382,8 +2364,8 @@ public sealed class GetAgentRunInput
     [JsonPropertyName("trace_id")]
     public string? TraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("max_steps")]
-    public int? MaxSteps { get; init; }
+    [JsonPropertyName("limit")]
+    public int? Limit { get; init; }
 }
 
 public sealed class AgentRun
@@ -2862,11 +2844,11 @@ public sealed class GetMcpStatsInput
     [JsonPropertyName("transport")]
     public string? Transport { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("compare_to")]
-    public object? CompareTo { get; init; }
+    [JsonPropertyName("baseline")]
+    public object? Baseline { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("group_by")]
-    public string? GroupBy { get; init; }
+    public IReadOnlyList<string>? GroupBy { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("buckets")]
     public bool? Buckets { get; init; }

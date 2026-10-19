@@ -21,11 +21,18 @@ enum FailureChange { new, worsening, ongoing, recovering, regressed }
 @doc("Comparison window for change detection. Omit for `previous_window`: the window of the same length immediately before the selected one. A `window` object sets explicit `start_time` and `end_time`; an `offset_minutes` object shifts the selected window back by that many minutes.")
 union AnalysisBaseline { previous: "previous_window", window: ToolWindow, offset: BaselineOffset }
 
-@doc("MCP comparison window or deployed server version.")
-union McpStatsComparison { windowOrVersion: string, offset: McpComparisonOffset, version: McpComparisonVersion }
+@doc("What get_mcp_stats compares with: an earlier window in triage's `baseline` shape, or `{server_version}`, another server version's traffic in the same window.")
+union McpStatsBaseline { previous: "previous_window", window: ToolWindow, offset: BaselineOffset, version: McpComparisonVersion }
 
-@doc("Metric comparison preceding the selected window.")
-union MetricComparison { previous: "previous_window", offset: MetricComparisonOffset }
+@doc("The run ci_log compares with: `last_success`, the latest earlier run without errors, or `{ci_run_id}`, another run.")
+union CiBaseline { lastSuccess: "last_success", run: CiRunReference }
+
+@doc("One CI run, by the `ci_run_id` ci_log lists it under.")
+model CiRunReference {
+  @doc("A `ci_run_id` of ci_log's run list.")
+  @encodedName("application/json", "ci_run_id")
+  ciRunId: SessionId;
+}
 
 @doc("Arguments every analysis tool shares: the time range, attribute matchers, page size and cursor.")
 model AnalysisInput {
@@ -224,7 +231,7 @@ model GetFailureContextInput {
   @doc("A failure_id from triage; the trace of its latest occurrence is examined, and the context holds the notes on the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
-  @doc("A CI run: its session id (ci_log's `run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
+  @doc("A CI run: its session id (ci_log's `ci_run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "ci_run_id")
   ciRunId?: SessionId;
   @doc("Maximum spans in `observed.spans` (error spans and their ancestors), or `limit` when lower; `next_cursor` continues.")
@@ -401,9 +408,9 @@ model CompareGroupsInput {
   @doc("The population to explain.")
   @encodedName("application/json", "group_a")
   groupA: CompareGroup;
-  @doc("The population to compare with: another group; `rest`, the request's other records in its window; or `before`, group A's filters over the window of equal length just before group A's.")
+  @doc("The population to compare with: another group; `rest`, the request's other records in its window; or `previous_window`, group A's filters over the window of equal length just before group A's.")
   @encodedName("application/json", "group_b")
-  groupB: CompareGroup | "rest" | "before";
+  groupB: CompareGroup | "rest" | "previous_window";
   @doc("Which attributes can discriminate: `span` (the records' own span or log attributes), `resource`, or `both` (default).")
   @encodedName("application/json", "attribute_scope")
   attributeScope?: "span" | "resource" | "both";
@@ -669,17 +676,16 @@ model DiscoverAttributesOutput {
 
 @doc("Reconstructs one agent run from its session or trace: its LLM, tool, agent and retrieval steps in time order with durations, tokens and errors, plus repeated calls, failed tool calls, the slowest steps and the token share per span name. Give `session_id` or `trace_id` (list_sessions finds agent sessions); an unknown one is answered with not_found, and the run is read whole whatever the time range and `matchers`. get_trace shows every span of a trace and get_mcp_stats aggregates MCP calls across runs.")
 model GetAgentRunInput {
-  ...AnalysisInput;
+  ...OmitProperties<AnalysisInput, "limit">;
   @doc("The agent session to reconstruct. Give `session_id` or `trace_id`; `trace_id` wins when both are sent.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
   @doc("One trace of an agent run.")
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
-  @doc("Maximum steps in `steps`, or `limit` when lower; `next_cursor` continues.")
+  @doc("Steps per page, and items per page of each findings list, 1 to 1000; default 100. `has_more` and `next_cursor` continue them.")
   @minValue(1) @maxValue(1000)
-  @encodedName("application/json", "max_steps")
-  maxSteps?: int32 = 100;
+  limit?: int32 = 100;
 }
 
 @doc("AgentTokens contract.")
@@ -933,13 +939,6 @@ model CheckTelemetryHealthOutput {
   error?: ToolError;
 }
 
-@doc("An earlier window: the selected one shifted back by `offset_minutes`.")
-model McpComparisonOffset {
-  @doc("Minutes to shift the selected window back.")
-  @encodedName("application/json", "offset_minutes")
-  offsetMinutes: int32;
-}
-
 @doc("Another server version's traffic in the same window.")
 model McpComparisonVersion {
   @doc("The server version to compare with (`mcp.server.version`, or resource `service.version`).")
@@ -947,7 +946,7 @@ model McpComparisonVersion {
   serverVersion: string;
 }
 
-@doc("Summarizes the MCP traffic recorded as spans with `mcp.method.name`: requests, errors, error rate and latency in total and per `group_by` group, per-tool statistics, request counts per server, transport and method, and failure classes. Use it for MCP tool health across many calls; list_traces with `tool_name` or `failure_class` finds the single calls, and get_agent_run follows one agent's run. Time buckets come only with `buckets: true`, and `compare_to` adds the same statistics for an earlier window or another server version.")
+@doc("Summarizes the MCP traffic recorded as spans with `mcp.method.name`: requests, errors, error rate and latency in total and per `group_by` group, per-tool statistics, request counts per server, transport and method, and failure classes. Use it for MCP tool health across many calls; list_traces with `tool_name` or `failure_class` finds the single calls, and get_agent_run follows one agent's run. Time buckets come only with `buckets: true`, and `baseline` adds the same statistics for an earlier window or another server version.")
 model GetMcpStatsInput {
   ...AnalysisInput;
   @doc("Only spans whose `mcp.server.name`, or service name, is this value.")
@@ -961,12 +960,12 @@ model GetMcpStatsInput {
   toolName?: string;
   @doc("Only spans whose `mcp.transport`, or `network.transport`, is this value.")
   transport?: string;
-  @doc("Also compute the statistics for: `previous_window`, the window of equal length just before; `{offset_minutes}`, the window shifted back; or `{server_version}` or any other string, that server version's traffic in the same window.")
-  @encodedName("application/json", "compare_to")
-  compareTo?: McpStatsComparison;
-  @doc("What `groups` breaks the traffic down by: `tool` (default), `server`, `method`, `transport` or `failure_class`.")
+  @doc("Also compute the statistics for: `previous_window`, the window of equal length just before; a `{start_time, end_time}` window; `{offset_minutes}`, the selected window shifted back; or `{server_version}`, that server version's traffic in the same window.")
+  baseline?: McpStatsBaseline;
+  @doc("What `groups` breaks the traffic down by, one of `tool` (default), `server`, `method`, `transport` or `failure_class`.")
   @encodedName("application/json", "group_by")
-  groupBy?: "server" | "tool" | "method" | "transport" | "failure_class";
+  @maxItems(1)
+  groupBy?: ("server" | "tool" | "method" | "transport" | "failure_class")[];
   @doc("Also return the window's request and error counts per bucket of one sixtieth of the window (at least one second), only the buckets that saw requests. Default false.")
   buckets?: boolean;
 }
@@ -1276,13 +1275,6 @@ model MetricRawExemplar {
   filteredAttributes?: Attribute[];
 }
 
-@doc("An earlier window: the selected one shifted back by `offset_ms`.")
-model MetricComparisonOffset {
-  @doc("Milliseconds to shift the selected window back.")
-  @encodedName("application/json", "offset_ms")
-  offsetMs: int64;
-}
-
 @doc("The denominator of a ratio: another metric, queried over the same window and step with the same `group_by` and `function`.")
 model MetricRatio {
   @doc("The denominator instrument.")
@@ -1303,8 +1295,8 @@ model MetricComparisonResult {
 
 @doc("CiAttempt contract.")
 model CiAttempt {
-  @encodedName("application/json", "run_id")
-  runId: SessionId;
+  @encodedName("application/json", "ci_run_id")
+  ciRunId: SessionId;
   attempt: int32;
   @encodedName("application/json", "provider_run_id")
   providerRunId?: string;
@@ -1327,8 +1319,9 @@ model CiPhaseChange {
 
 @doc("CiComparison contract.")
 model CiComparison {
-  @encodedName("application/json", "baseline_run_id")
-  baselineRunId?: SessionId;
+  @doc("The run the selected one was compared with; absent when no run matched the baseline.")
+  @encodedName("application/json", "baseline_ci_run_id")
+  baselineCiRunId?: SessionId;
   @encodedName("application/json", "new_failures")
   newFailures: CiPhaseChange[];
   fixed: CiPhaseChange[];

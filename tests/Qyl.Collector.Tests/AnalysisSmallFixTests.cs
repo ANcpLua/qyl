@@ -97,7 +97,7 @@ public sealed partial class AnalysisApiTests
             Span(TraceId(1), SpanId(1), time, time + 1000, service: "qyl-ci-tests", sessionId: "run-1") with { AttributesJson = """{"cicd.pipeline.task.name":"build"}""" }
         ]), testContext.CancellationToken);
 
-        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/ci_log", ReaderApiKey, """{"run_id":"run-9"}""");
+        using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/ci_log", ReaderApiKey, """{"ci_run_id":"run-9"}""");
         var json = await host.JsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode, json.GetRawText());

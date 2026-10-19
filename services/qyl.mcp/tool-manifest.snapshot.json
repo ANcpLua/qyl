@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:e5fc403bab841342",
+  "contract_revision": "sha256:da3e321f4760dcad",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -558,18 +558,37 @@
             "type": "string",
             "description": "`next_phase_cursor` of a previous call for the same run; continues its phases, 50 per page."
           },
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "failed",
-              "passed",
-              "all"
-            ],
-            "description": "`failed` keeps runs with an error span, `passed` runs without one, `all` (default) both."
+          "errors_only": {
+            "type": "boolean",
+            "description": "Keep only runs with an error span."
           },
-          "compare_to": {
-            "type": "string",
-            "description": "Compare the selected run with `last_success`, the latest earlier run without errors, or with the run of this `run_id`."
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "last_success"
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "ci_run_id"
+                ],
+                "properties": {
+                  "ci_run_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                    "description": "A `ci_run_id` of ci_log's run list."
+                  }
+                },
+                "description": "One CI run, by the `ci_run_id` ci_log lists it under.",
+                "additionalProperties": false
+              }
+            ],
+            "description": "The run to compare the selected one with: `last_success`, the latest earlier run without errors, or `{ci_run_id}`, another run."
           },
           "matchers": {
             "type": "array",
@@ -668,12 +687,12 @@
             "format": "date-time",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
-          "run_id": {
+          "ci_run_id": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
             "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-            "description": "The run to break into phases: a `run_id` of the run list, the run's session id; an unknown run is answered with not_found naming recent runs. Omitted, the newest matching run is broken down."
+            "description": "The run to break into phases: a `ci_run_id` of the run list, the run's session id; an unknown run is answered with not_found naming recent runs. Omitted, the newest matching run is broken down."
           },
           "service_prefix": {
             "type": "string",
@@ -690,7 +709,7 @@
             "default": 10
           }
         },
-        "description": "Lists the CI runs recorded as telemetry by services whose name starts with `service_prefix`, newest first, and breaks one run into its phases per leg with status, duration, message and error logs. `run_id` picks the run to break down (default: the newest matching run), and `compare_to` compares it with the last successful run or another run, naming new failures, fixed phases and duration regressions. Use get_failure_context with `ci_run_id` to explain a failed run.",
+        "description": "Lists the CI runs recorded as telemetry by services whose name starts with `service_prefix`, newest first, and breaks one run into its phases per leg with status, duration, message and error logs. `ci_run_id` picks the run to break down (default: the newest matching run), and `baseline` compares it with the last successful run or another run, naming new failures, fixed phases and duration regressions. Use get_failure_context with the same `ci_run_id` to explain a failed run.",
         "additionalProperties": false
       }
     },
@@ -1074,11 +1093,11 @@
                 "type": "string",
                 "enum": [
                   "rest",
-                  "before"
+                  "previous_window"
                 ]
               }
             ],
-            "description": "The population to compare with: another group; `rest`, the request's other records in its window; or `before`, group A's filters over the window of equal length just before group A's."
+            "description": "The population to compare with: another group; `rest`, the request's other records in its window; or `previous_window`, group A's filters over the window of equal length just before group A's."
           },
           "attribute_scope": {
             "type": "string",
@@ -1612,13 +1631,6 @@
             "maxItems": 32,
             "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
           },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 200,
-            "description": "Items per page of each list the tool returns, 1 to 200; default 100. `has_more` and `next_cursor` continue the same query.",
-            "default": 100
-          },
           "cursor": {
             "type": "string",
             "description": "`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window."
@@ -1640,11 +1652,11 @@
               "0af7651916cd43dd8448eb211c80319c"
             ]
           },
-          "max_steps": {
+          "limit": {
             "type": "integer",
             "minimum": 1,
             "maximum": 1000,
-            "description": "Maximum steps in `steps`, or `limit` when lower; `next_cursor` continues.",
+            "description": "Steps per page, and items per page of each findings list, 1 to 1000; default 100. `has_more` and `next_cursor` continue them.",
             "default": 100
           }
         },
@@ -1811,7 +1823,7 @@
             "minLength": 1,
             "maxLength": 128,
             "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-            "description": "A CI run: its session id (ci_log's `run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id."
+            "description": "A CI run: its session id (ci_log's `ci_run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "max_spans": {
             "type": "integer",
@@ -1979,10 +1991,34 @@
             "type": "string",
             "description": "Only spans whose `mcp.transport`, or `network.transport`, is this value."
           },
-          "compare_to": {
+          "baseline": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "previous_window"
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "start_time",
+                  "end_time"
+                ],
+                "properties": {
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Start of the window (inclusive), RFC 3339."
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "End of the window (exclusive), RFC 3339."
+                  }
+                },
+                "description": "Absolute half-open window applied by the collector.",
+                "additionalProperties": false
               },
               {
                 "type": "object",
@@ -1992,12 +2028,12 @@
                 "properties": {
                   "offset_minutes": {
                     "type": "integer",
-                    "description": "Minutes to shift the selected window back.",
+                    "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
                     "minimum": -2147483648,
                     "maximum": 2147483647
                   }
                 },
-                "description": "An earlier window: the selected one shifted back by `offset_minutes`.",
+                "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
                 "additionalProperties": false
               },
               {
@@ -2015,25 +2051,29 @@
                 "additionalProperties": false
               }
             ],
-            "description": "Also compute the statistics for: `previous_window`, the window of equal length just before; `{offset_minutes}`, the window shifted back; or `{server_version}` or any other string, that server version's traffic in the same window."
+            "description": "Also compute the statistics for: `previous_window`, the window of equal length just before; a `{start_time, end_time}` window; `{offset_minutes}`, the selected window shifted back; or `{server_version}`, that server version's traffic in the same window."
           },
           "group_by": {
-            "type": "string",
-            "enum": [
-              "server",
-              "tool",
-              "method",
-              "transport",
-              "failure_class"
-            ],
-            "description": "What `groups` breaks the traffic down by: `tool` (default), `server`, `method`, `transport` or `failure_class`."
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "server",
+                "tool",
+                "method",
+                "transport",
+                "failure_class"
+              ]
+            },
+            "maxItems": 1,
+            "description": "What `groups` breaks the traffic down by, one of `tool` (default), `server`, `method`, `transport` or `failure_class`."
           },
           "buckets": {
             "type": "boolean",
             "description": "Also return the window's request and error counts per bucket of one sixtieth of the window (at least one second), only the buckets that saw requests. Default false."
           }
         },
-        "description": "Summarizes the MCP traffic recorded as spans with `mcp.method.name`: requests, errors, error rate and latency in total and per `group_by` group, per-tool statistics, request counts per server, transport and method, and failure classes. Use it for MCP tool health across many calls; list_traces with `tool_name` or `failure_class` finds the single calls, and get_agent_run follows one agent's run. Time buckets come only with `buckets: true`, and `compare_to` adds the same statistics for an earlier window or another server version.",
+        "description": "Summarizes the MCP traffic recorded as spans with `mcp.method.name`: requests, errors, error rate and latency in total and per `group_by` group, per-tool statistics, request counts per server, transport and method, and failure classes. Use it for MCP tool health across many calls; list_traces with `tool_name` or `failure_class` finds the single calls, and get_agent_run follows one agent's run. Time buckets come only with `buckets: true`, and `baseline` adds the same statistics for an earlier window or another server version.",
         "additionalProperties": false
       }
     },
@@ -2238,11 +2278,11 @@
             },
             "description": "Attribute keys to keep on each returned span; omit for every recorded attribute."
           },
-          "include_logs": {
+          "max_logs": {
             "type": "integer",
             "minimum": 0,
             "maximum": 50,
-            "description": "Number of correlated log records to include, 0 to 50. Default 0, no logs; search_logs with the same `trace_id` returns the rest."
+            "description": "Most correlated log records to include, 0 to 50. Default 0, no logs; search_logs with the same `trace_id` returns the rest."
           },
           "lookback_minutes": {
             "type": "integer",
@@ -2310,7 +2350,7 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "text": {
+          "query": {
             "type": "string",
             "description": "Case-insensitive substring of the instrument name or description."
           },
@@ -2617,13 +2657,9 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "has_error": {
+          "errors_only": {
             "type": "boolean",
-            "description": "`true` keeps sessions with an error span, `false` sessions without one."
-          },
-          "min_errors": {
-            "type": "integer",
-            "description": "Keep sessions with at least this many error spans."
+            "description": "Keep only sessions with at least one error span."
           },
           "service_name": {
             "type": "string",
@@ -2650,7 +2686,7 @@
             "type": "string",
             "description": "Keep sessions with an annotation carrying this label."
           },
-          "sort_by": {
+          "order_by": {
             "type": "string",
             "enum": [
               "last_activity",
@@ -2855,19 +2891,11 @@
             "maxLength": 512,
             "description": "Keep traces in which this failure occurred, e.g. a `failure_id` from triage."
           },
-          "error_scope": {
-            "type": "string",
-            "enum": [
-              "any",
-              "root"
-            ],
-            "description": "With `errors_only`: `any` (default) keeps traces with any error span, `root` only traces whose root span failed."
-          },
           "annotation_label": {
             "type": "string",
             "description": "Keep traces with an annotation carrying this label, on the trace or one of its spans."
           },
-          "sort_by": {
+          "order_by": {
             "type": "string",
             "enum": [
               "start_time",
@@ -2986,7 +3014,7 @@
           },
           "errors_only": {
             "type": "boolean",
-            "description": "Keep only traces with at least one error span, or with a failed root span under `error_scope: root`."
+            "description": "Keep only traces with at least one error span."
           },
           "cursor": {
             "type": "string",
@@ -3039,7 +3067,7 @@
             ],
             "description": "Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`."
           },
-          "compare_to": {
+          "baseline": {
             "anyOf": [
               {
                 "type": "string",
@@ -3050,19 +3078,42 @@
               {
                 "type": "object",
                 "required": [
-                  "offset_ms"
+                  "start_time",
+                  "end_time"
                 ],
                 "properties": {
-                  "offset_ms": {
-                    "type": "integer",
-                    "description": "Milliseconds to shift the selected window back."
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Start of the window (inclusive), RFC 3339."
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "End of the window (exclusive), RFC 3339."
                   }
                 },
-                "description": "An earlier window: the selected one shifted back by `offset_ms`.",
+                "description": "Absolute half-open window applied by the collector.",
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "offset_minutes"
+                ],
+                "properties": {
+                  "offset_minutes": {
+                    "type": "integer",
+                    "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                  }
+                },
+                "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
                 "additionalProperties": false
               }
             ],
-            "description": "Also aggregate an earlier window into `comparison`: `previous_window`, the window of equal length just before, or `{offset_ms}`, the window shifted back by that many milliseconds."
+            "description": "Also aggregate an earlier window into `comparison`: `previous_window`, the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back."
           },
           "ratio_of": {
             "type": "object",
@@ -3220,7 +3271,7 @@
           },
           "raw": {
             "type": "boolean",
-            "description": "Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `compare_to` and `ratio_of` do not apply."
+            "description": "Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `baseline` and `ratio_of` do not apply."
           },
           "cursor": {
             "type": "string",
@@ -3323,7 +3374,7 @@
             "default": 50
           }
         },
-        "description": "Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.",
+        "description": "Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `baseline` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.",
         "additionalProperties": false
       }
     },
@@ -3919,11 +3970,15 @@
             ]
           },
           "group_by": {
-            "type": "string",
-            "enum": [
-              "pattern"
-            ],
-            "description": "`pattern` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records."
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pattern"
+              ]
+            },
+            "maxItems": 1,
+            "description": "`[\"pattern\"]` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records."
           },
           "context": {
             "type": "integer",

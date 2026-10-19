@@ -128,7 +128,7 @@ try {
   const searches = stats.groups.find(item => item.name === "search_logs");
   check(searches.requests === 40 && searches.errors === 8 && searches.error_rate === .2, "MCP statistics preserve all 40 requests and eight expected errors");
 
-  const sessionPage = await call(owner, "list_sessions", { ...w, service_name: services.sessions, has_error: true });
+  const sessionPage = await call(owner, "list_sessions", { ...w, service_name: services.sessions, errors_only: true });
   check(sessionPage.sessions.some(item => item.session_id === sessions.sess_bad), "Session query returns the failing invocation group");
   const traces = await call(owner, "list_traces", { ...w, session_id: sessions.sess_bad, errors_only: true });
   check(traces.traces.length === 3, "Trace query returns all three seeded session errors");
@@ -137,7 +137,7 @@ try {
   const logs = await call(owner, "search_logs", { ...w, service_name: services["qyl-mcp"], severity_min: 17 });
   check(logs.logs.length === 8, "Log query retains every seeded expected timeout error");
 
-  const metrics = await call(owner, "list_metrics", { ...w, service_name: services.http, text: "http.server.request.duration" });
+  const metrics = await call(owner, "list_metrics", { ...w, service_name: services.http, query: "http.server.request.duration" });
   check(metrics.items.some(item => item.kind === "histogram" && item.unit === "s"), "Metric catalog preserves histogram kind and seconds");
   const routes = await call(owner, "query_metric", { ...w, metric_name: "http.server.request.duration", matchers: metricMatchers, group_by: ["http.route"], aggregation: "count" });
   check(routes.series.length === 2, "Metric query isolates both fixture routes");
@@ -146,7 +146,7 @@ try {
   check(points.points.length > 0, "Original metric points are returned without substituting projections");
   const increase = await call(owner, "query_metric", { ...w, metric_name: "requests.total", function: "increase", step_ms: 3_600_000, matchers: metricMatchers });
   check(increase.series.flatMap(stream => stream.buckets).reduce((sum, bucket) => sum + (bucket.value ?? 0), 0) === 190, "Counter query measures the increase of 190 since its recorded start");
-  const ci = await call(owner, "ci_log", { ...w, run_id: sessions.ci_current, compare_to: "last_success" });
+  const ci = await call(owner, "ci_log", { ...w, ci_run_id: sessions.ci_current, baseline: "last_success" });
   check(ci.comparison.new_failures.some(item => item.leg === "test"), "CI analysis retains the deliberately failed test leg");
 
   const created = await call(owner, "annotate", { target: { kind: "trace", trace_id: key["db-root"].trace_id },

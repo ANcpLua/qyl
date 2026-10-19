@@ -132,18 +132,18 @@ verify('13 MCP stats preserve denominator, failure class, exampleids, buckets an
  }
 });
 verify('14 active error filter returns only sess_bad',async call=>{
- const data=await call('list_sessions',{...w,active_only:true,has_error:true});assert.deepEqual(data.sessions.map(s=>s.session_id),['sess_bad']);
+ const data=await call('list_sessions',{...w,active_only:true,errors_only:true});assert.deepEqual(data.sessions.map(s=>s.session_id),['sess_bad']);
 });
 verify('15 sess_bad errors returns3traces',async call=>{const data=await call('list_traces',{...w,session_id:'sess_bad',errors_only:true});assert.equal(data.traces.length,3);});
 verify('16a critical path is rooted under checkout',async call=>{const data=await call('get_trace',{...w,trace_id:key['latency-/checkout-0'].trace_id,selection:'critical_path'});assert(data.trace.spans.every(s=>s.name.includes('/checkout')));assert(data.trace.spans.length>0);});
 verify('16b error ancestors include the healthy root',async call=>{const data=await call('get_trace',{...w,trace_id:key['db-root'].trace_id,selection:'errors_with_ancestors'});assert.equal(data.trace.spans.find(s=>s.span_id===key['db-root'].span_id).status,'ok');});
-verify('17 grouped timeout log pattern count8',async call=>{const data=await call('search_logs',{...scoped('qyl-mcp'),group_by:'pattern'});assert(data.patterns.some(p=>p.count===8&&/timeout/.test(p.template)));});
-verify('18 duration histogram reports seconds and p95support',async call=>{const data=await call('list_metrics',{...w,text:'http.server.request.duration'});const metric=data.items.find(m=>m.name==='http.server.request.duration');assert.equal(metric.kind,'histogram');assert.equal(metric.unit,'s');assert(metric.supported_aggregations.includes('p95'));});
+verify('17 grouped timeout log pattern count8',async call=>{const data=await call('search_logs',{...scoped('qyl-mcp'),group_by:['pattern']});assert(data.patterns.some(p=>p.count===8&&/timeout/.test(p.template)));});
+verify('18 duration histogram reports seconds and p95support',async call=>{const data=await call('list_metrics',{...w,query:'http.server.request.duration'});const metric=data.items.find(m=>m.name==='http.server.request.duration');assert.equal(metric.kind,'histogram');assert.equal(metric.unit,'s');assert(metric.supported_aggregations.includes('p95'));});
 verify('19 metric route cardinality2 suggested for grouping',async call=>{const data=await call('list_metrics',{...w,name_prefix:'http.server.request.duration'});const metric=data.items.find(m=>m.name==='http.server.request.duration');assert.equal(metric.keys.find(k=>k.key==='http.route').cardinality,2);assert(metric.suggested_group_by.includes('http.route'));
  const raw=await call('query_metric',{...w,metric_name:'http.server.request.duration',raw:true,matchers:[{key:'http.route',op:'eq',value:'/checkout'}]});assert.equal(raw.points.length,1);assert.equal(raw.points[0].data.count,'100');});
 verify('20a histogram p95 remains seconds and approximate',async call=>{const data=await call('query_metric',{...w,metric_name:'http.server.request.duration',aggregation:'p95',group_by:['http.route'],step_ms:3_600_000});assert.equal(data.unit,'s');assert.equal(data.approximate,true);const checkout=data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value==='/checkout'));assert(checkout);const values=checkout.buckets.map(b=>b.value).filter(v=>v!==null);assert(values.some(v=>Math.abs(v-1.84)<.1),JSON.stringify(values));});
 verify('20b cumulative100,150,190 started in the window increase190',async call=>{const data=await call('query_metric',{...w,metric_name:'requests.total',function:'increase',step_ms:3_600_000});assert.equal(data.series.flatMap(s=>s.buckets).reduce((sum,b)=>sum+(b.value??0),0),fixture.expected.increase);});
-verify('21 CI new test failure and build3xregression',async call=>{const data=await call('ci_log',{...w,run_id:'ci_current',compare_to:'last_success'});assert(data.comparison.new_failures.some(p=>p.leg==='test'));assert(data.comparison.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));});
+verify('21 CI new test failure and build3xregression',async call=>{const data=await call('ci_log',{...w,ci_run_id:'ci_current',baseline:'last_success'});assert.equal(data.ci_run_id,'ci_current');assert(data.comparison.baseline_ci_run_id);assert(data.comparison.new_failures.some(p=>p.leg==='test'));assert(data.comparison.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));});
 verify('24 span discovery keeps integer attribute values whole',async call=>{
  const data=await call('discover_attributes',{...scoped('payments'),signal:'spans',key:'http.response.status_code'});
  const status=data.attributes.find(a=>a.key==='http.response.status_code'&&a.scope==='span');assert(status,JSON.stringify(data.attributes));
@@ -198,11 +198,11 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   const fix=await call('verify_fix',{...day,failure_id:F.failure_id,since:seeded.T2});
   assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,76,'the four fix requests and two checkouts per batch count');
   assert.equal((await call('get_agent_run',{...day,session_id:'agent_run'})).findings.repeated_calls[0].count,3);
-  const ci=(await call('ci_log',{...day,run_id:'ci_current',compare_to:'last_success'})).comparison;
+  const ci=(await call('ci_log',{...day,ci_run_id:'ci_current',baseline:'last_success'})).comparison;
   assert(ci.new_failures.some(p=>p.leg==='test'));assert(ci.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));
   const search=(await call('get_mcp_stats',{...day,tool_name:'search_logs'})).tools.find(t=>t.name==='search_logs');
   assert.deepEqual([search.requests,search.errors],[40,8]);
-  assert.deepEqual((await call('list_sessions',{...day,has_error:true})).sessions.map(s=>s.session_id).sort(),['ci_current','sess_bad']);
+  assert.deepEqual((await call('list_sessions',{...day,errors_only:true})).sessions.map(s=>s.session_id).sort(),['ci_current','sess_bad']);
   assert.deepEqual((await call('check_telemetry_health',day)).semconv_gaps,[]);
  },project);
 });

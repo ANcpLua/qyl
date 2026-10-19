@@ -1,11 +1,11 @@
 // INV-2, for the half of the identity table `identity-binding` cannot reach.
 //
 // `identity-binding` checks the exactly-listed `reserved` names and pins each to
-// one scalar. Most edge names are not reserved, and cannot be: `runId` is a
+// one scalar. Most edge names are not reserved, and cannot be: `ciRunId` is a
 // `SessionId` on the ci_log shapes, and a run of another kind may carry its own
 // scalar. Reserving it for one would reject the other.
 //
-// So `runId: string` was legal — the name is registered as an identity edge, the
+// So `ciRunId: string` was legal — the name is registered as an identity edge, the
 // reserved lookup misses it, and nothing else looks at the type. That is a run
 // identity with no `@minLength`/`@maxLength`, which is the unvalidated bare
 // `string` the identity convention exists to remove; per the contract's own

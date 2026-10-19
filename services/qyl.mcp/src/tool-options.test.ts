@@ -123,7 +123,7 @@ test("ci_log forwards case-sensitive service prefix, limits and run comparison w
     forwarded.push(await new Request(input, init).json() as Record<string, unknown>);
     return transport(input, init);
   });
-  for (const args of [{}, { service_prefix: "custom-ci", limit: 1 }, { run_id: "custom-run", service_prefix: "CUSTOM-ci", compare_to: "last_success" }]) {
+  for (const args of [{}, { service_prefix: "custom-ci", limit: 1 }, { ci_run_id: "custom-run", service_prefix: "CUSTOM-ci", baseline: "last_success" }, { ci_run_id: "custom-run", baseline: { ci_run_id: "prior-run" }, errors_only: true }]) {
     const result = await connection.client.callTool({ name: "ci_log", arguments: args });
     assert.equal(result.isError, undefined, JSON.stringify(result));
     assert(checkContract("Mcp.Tools.CiLogOutput", result.structuredContent).valid);

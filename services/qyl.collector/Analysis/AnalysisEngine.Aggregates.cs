@@ -262,21 +262,21 @@ internal sealed partial class AnalysisEngine
         output["span_count_analyzed"] = rows.Count;
         output["truncated"] = !snapshot.ScanComplete;
         output["mode"] = "live";
-        if (input["compare_to"] is { } comparison)
+        if (input["baseline"] is { } baseline)
         {
-            var copy = input.DeepClone().AsObject(); copy.Remove("compare_to");
-            var previousWindow = _window;
-            if (J.Text(comparison) == "previous_window") _window = new(_window.Start - (_window.End - _window.Start), _window.Start);
-            else if (comparison is JsonObject obj && obj["offset_minutes"] is not null) { var offset = J.Number(obj, "offset_minutes"); _window = new(_window.Start.AddMinutes(-offset), _window.End.AddMinutes(-offset)); }
-            else copy["server_version"] = J.String(comparison, "server_version") ?? J.Text(comparison);
-            var old = McpTraffic(copy, McpRows(copy)); old["window"] = _window.Json; output["comparison"] = old; _window = previousWindow;
+            // Another server version is compared over the same window, an earlier window with the same filters.
+            var copy = input.DeepClone().AsObject(); copy.Remove("baseline");
+            var current = _window;
+            if (J.String(baseline, "server_version") is { } version) copy["server_version"] = version;
+            else _window = Baseline(input);
+            var old = McpTraffic(copy, McpRows(copy)); old["window"] = _window.Json; output["comparison"] = old; _window = current;
         }
         return output;
     }
     private JsonObject McpTraffic(JsonObject input, List<AnalysisRecord> rows)
     {
         static JsonObject Totals(List<AnalysisRecord> items) => J.O(("requests", items.Count), ("errors", items.Count(s => s.Error)), ("error_rate", items.Count is 0 ? 0 : items.Count(s => s.Error) / (double)items.Count), ("p50_ms", J.Percentile(items.Select(s => s.Duration), .50)), ("p95_ms", J.Percentile(items.Select(s => s.Duration), .95)), ("unit", "requests"));
-        var groupBy = J.String(input, "group_by") ?? "tool";
+        var groupBy = (input["group_by"] as JsonArray)?.Select(J.Text).FirstOrDefault() ?? "tool";
         var groups = rows.GroupBy(s => groupBy switch { "server" => McpServer(s), "method" => J.Text(s.Value(CollectorSemanticAttributeCatalog.McpMethodName)), "transport" => McpTransport(s), "failure_class" => s.Error ? McpFailureClass(s) : "success", _ => J.Text(s.Value(CollectorSemanticAttributeCatalog.GenAiToolName)) })
             .OrderByDescending(g => g.Count()).Select(g => { var result = Totals([.. g]); result["name"] = g.Key; result["example_trace_ids"] = J.N(g.OrderByDescending(s => s.Error).ThenByDescending(s => s.Duration).Select(s => s.TraceId).OfType<string>().Distinct().Take(3)); return result; }).ToList();
         var classes = new JsonObject(); foreach (var kind in new[] { "transport", "protocol", "tool_result", "authentication", "cancellation", "timeout" }) classes[kind] = rows.Count(s => s.Error && McpFailureClass(s) == kind);

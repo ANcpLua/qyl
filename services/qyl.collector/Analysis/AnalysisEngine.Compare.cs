@@ -162,7 +162,7 @@ internal sealed partial class AnalysisEngine
             return [.. records.Where(occurrences.Contains)];
         }
         var windowA = WindowOf(ga); var a = Group(ga, windowA); var gb = input["group_b"];
-        var b = gb is JsonObject bg ? Group(bg, WindowOf(bg)) : J.Text(gb) == "before" ? Group(ga, new(windowA.Start - (windowA.End - windowA.Start), windowA.Start)) :
+        var b = gb is JsonObject bg ? Group(bg, WindowOf(bg)) : J.Text(gb) == "previous_window" ? Group(ga, new(windowA.Start - (windowA.End - windowA.Start), windowA.Start)) :
             [.. Select(input, signal).Except(a)];
         // Two populations compare only when both hold records.
         foreach (var (field, group) in new[] { ("group_a", a), ("group_b", b) })

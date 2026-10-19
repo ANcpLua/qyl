@@ -323,15 +323,15 @@ export type ToolErrorCode = "invalid_argument" | "not_found" | "no_project_acces
 
 export type AnnotationTarget = TraceAnnotationTarget | SpanAnnotationTarget | SessionAnnotationTarget | FailureAnnotationTarget;
 
-export type MetricComparison = "previous_window" | MetricComparisonOffset;
-
-export type SavedQueryFilter = SavedTraceQueryFilter | SavedLogQueryFilter | SavedMetricQueryFilter;
+export type CiBaseline = "last_success" | CiRunReference;
 
 export type AnalysisBaseline = "previous_window" | ToolWindow | BaselineOffset;
 
+export type SavedQueryFilter = SavedTraceQueryFilter | SavedLogQueryFilter | SavedMetricQueryFilter;
+
 export type FailureStatusFilter = FailureStatus | "all";
 
-export type McpStatsComparison = string | McpComparisonOffset | McpComparisonVersion;
+export type McpStatsBaseline = "previous_window" | ToolWindow | BaselineOffset | McpComparisonVersion;
 
 export type SavedQueryRunResult = SavedTraceQueryRun | SavedLogQueryRun | SavedMetricQueryRun;
 
@@ -856,9 +856,8 @@ export interface ListTracesInput {
   "max_duration_ms"?: number;
   "release"?: string;
   "failure_id"?: string;
-  "error_scope"?: "any" | "root";
   "annotation_label"?: string;
-  "sort_by"?: "start_time" | "duration" | "errors";
+  "order_by"?: "start_time" | "duration" | "errors";
   "matchers"?: TelemetryMatcher[];
   "limit"?: number;
   "lookback_minutes"?: number;
@@ -901,7 +900,7 @@ export interface GetTraceInput {
   "cursor"?: string;
   "selection"?: "all" | "errors" | "errors_with_ancestors" | "critical_path";
   "attributes"?: string[];
-  "include_logs"?: number;
+  "max_logs"?: number;
   "lookback_minutes"?: number;
   "start_time"?: string;
   "end_time"?: string;
@@ -1003,15 +1002,14 @@ export interface FailureAnnotationTarget {
 }
 
 export interface ListSessionsInput {
-  "has_error"?: boolean;
-  "min_errors"?: number;
+  "errors_only"?: boolean;
   "service_name"?: string;
   "agent_name"?: string;
   "model"?: string;
   "min_tokens"?: number;
   "min_duration_ms"?: number;
   "annotation_label"?: string;
-  "sort_by"?: "last_activity" | "errors" | "duration" | "tokens";
+  "order_by"?: "last_activity" | "errors" | "duration" | "tokens";
   "matchers"?: TelemetryMatcher[];
   "limit"?: number;
   "active_only"?: boolean;
@@ -1064,7 +1062,7 @@ export interface AgentTokens {
 
 export interface SearchLogsInput {
   "span_id"?: SpanId;
-  "group_by"?: "pattern";
+  "group_by"?: "pattern"[];
   "context"?: number;
   "matchers"?: TelemetryMatcher[];
   "trace_id"?: TraceId;
@@ -1109,15 +1107,19 @@ export interface CiLogInput {
   "leg"?: string;
   "phase"?: string;
   "phase_cursor"?: string;
-  "outcome"?: "failed" | "passed" | "all";
-  "compare_to"?: string;
+  "errors_only"?: boolean;
+  "baseline"?: CiBaseline;
   "matchers"?: TelemetryMatcher[];
   "lookback_minutes"?: number;
   "start_time"?: string;
   "end_time"?: string;
-  "run_id"?: SessionId;
+  "ci_run_id"?: SessionId;
   "service_prefix"?: string;
   "limit"?: number;
+}
+
+export interface CiRunReference {
+  "ci_run_id": SessionId;
 }
 
 export interface CiRunSummary {
@@ -1126,7 +1128,7 @@ export interface CiRunSummary {
   "provider_run_url"?: string;
   "attempt"?: number;
   "attempts"?: CiAttempt[];
-  "run_id": SessionId;
+  "ci_run_id": SessionId;
   "state": SessionState;
   "start_time": string;
   "duration_ms"?: number;
@@ -1135,7 +1137,7 @@ export interface CiRunSummary {
 }
 
 export interface CiAttempt {
-  "run_id": SessionId;
+  "ci_run_id": SessionId;
   "attempt": number;
   "provider_run_id"?: string;
   "provider_run_url"?: string;
@@ -1169,14 +1171,14 @@ export interface CiLogOutput {
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
   "runs"?: CiRunSummary[];
-  "run_id"?: SessionId;
+  "ci_run_id"?: SessionId;
   "phases"?: CiPhase[];
   "mode": McpDataMode;
   "error"?: ToolError;
 }
 
 export interface CiComparison {
-  "baseline_run_id"?: SessionId;
+  "baseline_ci_run_id"?: SessionId;
   "new_failures": CiPhaseChange[];
   "fixed": CiPhaseChange[];
   "duration_regressions": CiPhaseChange[];
@@ -1192,7 +1194,7 @@ export interface CiPhaseChange {
 }
 
 export interface ListMetricsInput {
-  "text"?: string;
+  "query"?: string;
   "service_name"?: string;
   "kind"?: MetricKind;
   "unit"?: string;
@@ -1237,7 +1239,7 @@ export interface MetricKeySummary {
 export interface QueryMetricInput {
   "lookback_minutes"?: number;
   "function"?: "none" | "rate" | "increase" | "delta";
-  "compare_to"?: MetricComparison;
+  "baseline"?: AnalysisBaseline;
   "ratio_of"?: MetricRatio;
   "metric_name": string;
   "start_time"?: string;
@@ -1252,8 +1254,8 @@ export interface QueryMetricInput {
   "limit"?: number;
 }
 
-export interface MetricComparisonOffset {
-  "offset_ms": number;
+export interface BaselineOffset {
+  "offset_minutes": number;
 }
 
 export interface MetricRatio {
@@ -1417,14 +1419,6 @@ export interface DeleteInput {
 export interface DeleteOutput {
   "deleted": boolean;
   "error"?: ToolError;
-}
-
-export interface BaselineOffset {
-  "offset_minutes": number;
-}
-
-export interface McpComparisonOffset {
-  "offset_minutes": number;
 }
 
 export interface McpComparisonVersion {
@@ -1688,7 +1682,7 @@ export interface CompareGroupsInput {
   "cursor"?: string;
   "signal": "spans" | "logs";
   "group_a": CompareGroup;
-  "group_b": CompareGroup | "rest" | "before";
+  "group_b": CompareGroup | "rest" | "previous_window";
   "attribute_scope"?: "span" | "resource" | "both";
 }
 
@@ -1906,11 +1900,10 @@ export interface GetAgentRunInput {
   "start_time"?: string;
   "end_time"?: string;
   "matchers"?: TelemetryMatcher[];
-  "limit"?: number;
   "cursor"?: string;
   "session_id"?: SessionId;
   "trace_id"?: TraceId;
-  "max_steps"?: number;
+  "limit"?: number;
 }
 
 export interface AgentRun {
@@ -2129,8 +2122,8 @@ export interface GetMcpStatsInput {
   "server_version"?: string;
   "tool_name"?: string;
   "transport"?: string;
-  "compare_to"?: McpStatsComparison;
-  "group_by"?: "server" | "tool" | "method" | "transport" | "failure_class";
+  "baseline"?: McpStatsBaseline;
+  "group_by"?: ("server" | "tool" | "method" | "transport" | "failure_class")[];
   "buckets"?: boolean;
 }
 
@@ -2347,4 +2340,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:e5fc403bab841342";
+export const CONTRACT_REVISION: string = "sha256:da3e321f4760dcad";

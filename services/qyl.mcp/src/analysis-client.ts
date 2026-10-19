@@ -34,7 +34,7 @@ export async function queryAnalysis<Input extends object>(
     const args = query as Record<string, unknown>;
     const page = output as Record<string, unknown>;
     const originalPoints = operation === "query_metric" && args.raw === true;
-    const sizeKey = operation === "get_trace" ? "max_spans" : operation === "get_agent_run" ? "max_steps" : "limit";
+    const sizeKey = operation === "get_trace" ? "max_spans" : "limit";
     const trace = page.trace as { spans?: unknown[] } | undefined;
     const observed = page.observed as { spans?: unknown[]; logs?: unknown[] } | undefined;
     const sizes = [trace?.spans?.length, observed?.spans?.length, observed?.logs?.length,

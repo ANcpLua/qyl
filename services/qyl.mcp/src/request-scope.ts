@@ -62,7 +62,7 @@ const ID_SOURCES: Readonly<Record<string, string>> = {
   save_query: "run_saved_query without id lists each saved query's id and current etag",
   annotate: "list_traces, list_sessions or triage return the ids a target names, and get_trace, list_sessions or get_failure_context each annotation's id and current etag",
   delete_record: "run_saved_query without id, get_trace, list_sessions or get_failure_context return ids and current etags",
-  ci_log: "ci_log without run_id lists the recent runs",
+  ci_log: "ci_log without ci_run_id lists the recent runs",
 };
 
 function hintFor(tool: string, detail: ToolError): string | undefined {

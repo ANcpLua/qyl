@@ -27,7 +27,7 @@ public sealed partial class AnalysisApiTests
             (newest.GetProperty("time").GetDateTimeOffset(), newest.GetProperty("severity").GetString(), newest.GetProperty("severity_number").GetInt32(),
                 newest.GetProperty("service").GetString(), newest.GetProperty("body").GetString()));
 
-        var grouped = await Read(host, "search_logs", """{"group_by":"pattern"}""");
+        var grouped = await Read(host, "search_logs", """{"group_by":["pattern"]}""");
         Assert.IsFalse(grouped.TryGetProperty("logs", out _), "a grouped search answers with its patterns");
         var pattern = Assert.ContainsSingle(grouped.GetProperty("patterns").EnumerateArray());
         Assert.AreEqual(("tool timeout after # seconds", 3), (pattern.GetProperty("template").GetString(), pattern.GetProperty("count").GetInt32()));

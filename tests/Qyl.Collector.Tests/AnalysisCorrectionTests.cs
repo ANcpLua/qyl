@@ -184,9 +184,9 @@ public sealed partial class AnalysisApiTests
         var triage = await Read(host, "triage", "{\"limit\":2}");
         Assert.AreEqual(2, triage.GetProperty("failures").GetArrayLength());
         Assert.IsTrue(triage.GetProperty("has_more").GetBoolean());
-        var ci = await Read(host, "ci_log", "{\"run_id\":\"ci\",\"limit\":1}");
+        var ci = await Read(host, "ci_log", "{\"ci_run_id\":\"ci\",\"limit\":1}");
         Assert.ContainsSingle(ci.GetProperty("phases").EnumerateArray());
-        var next = new JsonObject { ["run_id"] = "ci", ["limit"] = 1, ["phase_cursor"] = ci.GetProperty("next_phase_cursor").GetString() };
+        var next = new JsonObject { ["ci_run_id"] = "ci", ["limit"] = 1, ["phase_cursor"] = ci.GetProperty("next_phase_cursor").GetString() };
         var second = await Read(host, "ci_log", next.ToJsonString());
         Assert.ContainsSingle(second.GetProperty("phases").EnumerateArray());
         Assert.AreNotEqual(ci.GetProperty("phases")[0].GetProperty("span_id").GetString(), second.GetProperty("phases")[0].GetProperty("span_id").GetString());
@@ -251,7 +251,7 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(20d, tools[1].GetProperty("p95_ms").GetDouble());
         Assert.AreEqual(2, stats.GetProperty("page_totals").GetProperty("tools").GetInt32());
 
-        var comparison = (await Read(host, "get_mcp_stats", window[..^1] + ",\"compare_to\":\"previous_window\"}")).GetProperty("comparison");
+        var comparison = (await Read(host, "get_mcp_stats", window[..^1] + ",\"baseline\":\"previous_window\"}")).GetProperty("comparison");
         Assert.AreEqual(1, comparison.GetProperty("totals").GetProperty("requests").GetInt32());
         Assert.IsFalse(comparison.TryGetProperty("buckets", out _), "a comparison carries only its traffic");
     }
@@ -263,7 +263,7 @@ public sealed partial class AnalysisApiTests
         await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), Timestamp, Timestamp + 1000) with { AttributesJson = "{\"mcp.method.name\":\"tools/call\"}", ResourceJson = "{\"service.version\":\"v1\"}" }]), testContext.CancellationToken);
         var compare = await Read(host, "compare_groups", "{\"signal\":\"spans\",\"group_a\":{\"matchers\":[]},\"group_b\":{\"matchers\":[]}}");
         Assert.IsFalse(compare.GetProperty("composition").GetProperty("changed").GetBoolean());
-        var stats = await Read(host, "get_mcp_stats", "{\"compare_to\":\"v1\"}");
+        var stats = await Read(host, "get_mcp_stats", "{\"baseline\":{\"server_version\":\"v1\"}}");
         Assert.IsTrue(stats.TryGetProperty("comparison", out _));
         using var invalid = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/triage", "reader", "{\"limit\":51}");
         Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
@@ -284,7 +284,7 @@ public sealed partial class AnalysisApiTests
             MetricFixtures.Observation(metricSeries.Single(series => series.SeriesId == r.Item1),
                 new MetricPointRow { ProjectId = "alpha", SeriesId = r.Item1, TimeUnixNano = time, Value = r.Item4 }))).ToArray();
         await host.Store.InsertMetricsAsync(metricSeries, observations, testContext.CancellationToken);
-        var result = await Read(host, "query_metric", """{"metric_name":"requests","group_by":["http.route"],"step_ms":3600000,"compare_to":"previous_window","ratio_of":{"metric_name":"total"}}""");
+        var result = await Read(host, "query_metric", """{"metric_name":"requests","group_by":["http.route"],"step_ms":3600000,"baseline":"previous_window","ratio_of":{"metric_name":"total"}}""");
         foreach (var series in new[] { result.GetProperty("series"), result.GetProperty("comparison").GetProperty("series") })
         {
             var values = series.EnumerateArray().ToDictionary(
@@ -304,11 +304,11 @@ public sealed partial class AnalysisApiTests
             service: "qyl-ci-tests", sessionId: "run-" + i) with
         { AttributesJson = i < 3 ? "{\"cicd.pipeline.run.id\":\"same-provider-run\",\"cicd.pipeline.task.name\":\"build\"}" : "{}" }).ToArray();
         await host.Store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
-        var result = await Read(host, "ci_log", """{"run_id":"run-2"}""");
-        var runs = result.GetProperty("runs").EnumerateArray().ToDictionary(r => r.GetProperty("run_id").GetString()!);
+        var result = await Read(host, "ci_log", """{"ci_run_id":"run-2"}""");
+        var runs = result.GetProperty("runs").EnumerateArray().ToDictionary(r => r.GetProperty("ci_run_id").GetString()!);
         Assert.AreEqual(2, runs["run-2"].GetProperty("attempt").GetInt32());
         var prior = Assert.ContainsSingle(runs["run-2"].GetProperty("attempts").EnumerateArray());
-        Assert.AreEqual("run-1", prior.GetProperty("run_id").GetString());
+        Assert.AreEqual("run-1", prior.GetProperty("ci_run_id").GetString());
         Assert.AreEqual(1, prior.GetProperty("attempt").GetInt32());
         Assert.IsFalse(runs["run-3"].TryGetProperty("attempt", out _));
     }

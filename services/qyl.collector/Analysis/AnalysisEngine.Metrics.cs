@@ -16,9 +16,9 @@ internal sealed partial class AnalysisEngine
             && (J.String(input, "name_prefix") is not { } prefix ||
                 s.MetricName.StartsWith(prefix, StringComparison.Ordinal))
             && (J.String(input, "service_name") is not { } service || s.ServiceName == service)
-            && (J.String(input, "text") is not { } text ||
-                s.MetricName.Contains(text, StringComparison.OrdinalIgnoreCase) ||
-                s.Description?.Contains(text, StringComparison.OrdinalIgnoreCase) == true)
+            && (J.String(input, "query") is not { } query ||
+                s.MetricName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                s.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) == true)
             && (J.String(input, "kind") is not { } kind || MetricKind(s.MetricKind) == kind)
             && (J.String(input, "unit") is not { } unit || s.Unit == unit)
             && AnalysisMatchers.Match(SeriesRecord(s), input["matchers"]))
@@ -126,10 +126,10 @@ internal sealed partial class AnalysisEngine
         if (function == "rate" && (histogram || aggregation != "count")) unit += "/s";
         var result = J.O(("name", name), ("kind", MetricKind(rows[0].MetricKind)), ("unit", unit), ("aggregation", aggregation), ("step_ms", step), ("start_time", _window.Start.ToString("O")), ("end_time", _window.End.ToString("O")), ("series", J.A(output.Take(limit))), ("truncated", output.Count > limit),
             ("method", histogram ? function == "rate" ? "per-series histogram deltas over the intervals they recorded, summed across series; an unknown interval leaves its bucket unknown" : "per-series histogram deltas merged, linear interpolation; unknown intervals omitted" : function == "none" ? "recorded scalar points aggregated" : "per-series counter differences across resets"), ("numeric_representation", "float64"), ("approximate", histogram && aggregation.StartsWith('p')), ("exemplar_trace_ids", snapshot.Exemplars.Where(e => _window.Contains(e.TimeUnixNano) && rows.Any(r => r.SeriesId == e.SeriesId)).Select(e => e.TraceId).Distinct(StringComparer.Ordinal).Take(3)), ("coverage", Coverage(snapshot.Points.Count, rows.Sum(s => PointsBySeries[s.SeriesId].Count(p => _window.Contains(p.TimeUnixNano))), Math.Min(output.Count, limit), output.Count > limit)));
-        if (input["compare_to"] is { } compare)
+        if (input["baseline"] is not null)
         {
-            var copy = input.DeepClone().AsObject(); copy.Remove("compare_to"); copy.Remove("ratio_of"); var current = _window; var offset = compare is JsonObject ? J.Number(compare, "offset_ms") : (_window.End - _window.Start).TotalMilliseconds;
-            _window = new(_window.Start.AddMilliseconds(-offset), _window.End.AddMilliseconds(-offset)); var comparison = QueryMetric(copy); result["comparison"] = J.O(("window", _window.Json), ("series", comparison["series"])); _window = current;
+            var copy = input.DeepClone().AsObject(); copy.Remove("baseline"); copy.Remove("ratio_of"); var current = _window;
+            _window = Baseline(input); var comparison = QueryMetric(copy); result["comparison"] = J.O(("window", _window.Json), ("series", comparison["series"])); _window = current;
         }
         if (input["ratio_of"] is JsonObject ratio)
         {
@@ -231,11 +231,11 @@ internal sealed partial class AnalysisEngine
         bool Matches(IGrouping<string, AnalysisRecord> g) => g.Any(s => _window.Contains(s.Start) && AnalysisMatchers.Match(s, input["matchers"]))
             && (J.String(input, "branch") is not { } branch || g.Any(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.VcsRefHeadName)) == branch))
             && (J.String(input, "commit") is not { } commit || g.Any(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.VcsRefHeadRevision)) == commit))
-            && (J.String(input, "outcome") switch { "failed" => g.Any(s => s.Error), "passed" => g.All(s => !s.Error), _ => true });
+            && (!J.Bool(input, "errors_only") || g.Any(s => s.Error));
         var groups = all.Where(Matches).OrderByDescending(g => g.Max(s => s.Start)).ToList();
-        var runId = J.String(input, "run_id"); var selected = runId is not null ? all.FirstOrDefault(g => g.Key == runId) : groups.FirstOrDefault();
+        var runId = J.String(input, "ci_run_id"); var selected = runId is not null ? all.FirstOrDefault(g => g.Key == runId) : groups.FirstOrDefault();
         if (runId is not null && selected is null)
-            throw new AnalysisInputException("run_id", $"CI run {runId} was not found in this project; " + (groups.Count is 0 ? "ci_log without run_id lists the runs." : $"recent runs: {string.Join(", ", groups.Take(5).Select(static g => g.Key))}."), "run.not_found") { Missing = runId };
+            throw new AnalysisInputException("ci_run_id", $"CI run {runId} was not found in this project; " + (groups.Count is 0 ? "ci_log without ci_run_id lists the runs." : $"recent runs: {string.Join(", ", groups.Take(5).Select(static g => g.Key))}."), "ci_run.not_found") { Missing = runId };
         // Index the recorded provider runs once. Attempt numbers describe their
         // observed chronological order, rather than reporting every rerun as 1.
         var runInfo = all.ToDictionary(g => g.Key, g => new
@@ -252,12 +252,12 @@ internal sealed partial class AnalysisEngine
             ct.ThrowIfCancellationRequested();
             var info = runInfo[g.Key];
             var observed = info.ProviderId is { } provider ? attempts[provider] : [];
-            return J.O(("run_id", g.Key), ("session_id", g.Key),
+            return J.O(("ci_run_id", g.Key), ("session_id", g.Key),
                 (CollectorSemanticAttributeCatalog.State, now.ToUnixTimeMilliseconds() - (long)(info.End / 1_000_000) < 5000 ? "active" : "ended"),
                 ("start_time", J.Time(info.Start)), ("duration_ms", (info.End - info.Start) / 1_000_000d),
                 ("error_count", g.Count(s => s.Error)), ("services", g.Select(s => s.Service).Distinct()),
                 ("attempt", observed.Length > 0 ? observed.First(p => p.RunId == g.Key).Attempt : (int?)null),
-                ("attempts", J.A(observed.Where(p => p.RunId != g.Key).Select(p => J.O(("run_id", p.RunId), ("attempt", p.Attempt))))),
+                ("attempts", J.A(observed.Where(p => p.RunId != g.Key).Select(p => J.O(("ci_run_id", p.RunId), ("attempt", p.Attempt))))),
                 ("provider_run_id", info.ProviderId), ("provider_run_url", info.ProviderUrl));
         });
         var runInput = input.DeepClone().AsObject(); runInput.Remove("phase_cursor");
@@ -269,8 +269,8 @@ internal sealed partial class AnalysisEngine
             var errorLogs = _logs.Where(l => l.Error).ToLookup(l => l.TraceId);
             var phases = taskSpans.OrderBy(s => s.Start).ThenBy(s => s.Id, StringComparer.Ordinal).Where(s => (J.String(input, "leg") is not { } leg || Leg(s) == leg) && (J.String(input, "phase") is not { } phase || s.Name == phase)).Select(s =>
             { var logs = errorLogs[s.TraceId].Where(l => l.SpanId == s.Id || l.SpanId is null).ToList(); return J.O(("leg", Leg(s)), ("phase", s.Name), ("status", s.Error ? "error" : s.Span!.StatusCode == 1 ? "ok" : "unset"), ("duration_ms", s.Duration), ("message", s.Span?.StatusMessage), ("span_id", s.Id), ("trace_ids", new[] { s.TraceId! }), ("error_log_count", logs.Count), ("error_logs", J.A(logs.Take(3).Select(l => J.O(("id", l.Id), ("body", l.Log?.Body), ("trace_id", l.TraceId), ("span_id", l.SpanId)))))); }).ToList();
-            result["run_id"] = selected.Key;
-            var phaseInput = input.DeepClone().AsObject(); phaseInput.Remove("cursor"); phaseInput.Remove("phase_cursor"); phaseInput["run_id"] = selected.Key;
+            result["ci_run_id"] = selected.Key;
+            var phaseInput = input.DeepClone().AsObject(); phaseInput.Remove("cursor"); phaseInput.Remove("phase_cursor"); phaseInput["ci_run_id"] = selected.Key;
             if (input["phase_cursor"] is { } phaseCursor) phaseInput["cursor"] = phaseCursor.DeepClone();
             _operation = "ci_log.phases";
             JsonObject phasePage;
@@ -280,9 +280,9 @@ internal sealed partial class AnalysisEngine
             result["has_more"] = J.Bool(result, "has_more") || J.Bool(phasePage, "has_more");
             result["page_totals"] = J.O(("phases", phases.Count));
             if (result["coverage"] is JsonObject phaseCoverage) phaseCoverage["truncated"] = J.Bool(result, "has_more");
-            if (J.String(input, "compare_to") is { } compare)
+            if (input["baseline"] is { } requested)
             {
-                var baseline = compare == "last_success" ? all.Where(g => g.Key != selected.Key && g.Max(s => s.Start) < selected.Min(s => s.Start) && g.All(s => !s.Error)).OrderByDescending(g => g.Max(s => s.Start)).FirstOrDefault() : all.FirstOrDefault(g => g.Key == compare);
+                var baseline = J.Text(requested) == "last_success" ? all.Where(g => g.Key != selected.Key && g.Max(s => s.Start) < selected.Min(s => s.Start) && g.All(s => !s.Error)).OrderByDescending(g => g.Max(s => s.Start)).FirstOrDefault() : all.FirstOrDefault(g => g.Key == J.String(requested, "ci_run_id"));
                 var fresh = new List<JsonObject>(); var fixedItems = new List<JsonObject>(); var regressions = new List<JsonObject>();
                 if (baseline is not null)
                 {
@@ -295,7 +295,7 @@ internal sealed partial class AnalysisEngine
                         if (old?.Duration > 0 && phase.Duration > Math.Max(old.Duration * 1.2, old.Duration + 10)) regressions.Add(change);
                     }
                 }
-                result["comparison"] = J.O(("baseline_run_id", baseline?.Key), ("new_failures", J.A(fresh)), ("fixed", J.A(fixedItems)), ("duration_regressions", J.A(regressions)));
+                result["comparison"] = J.O(("baseline_ci_run_id", baseline?.Key), ("new_failures", J.A(fresh)), ("fixed", J.A(fixedItems)), ("duration_regressions", J.A(regressions)));
             }
         }
         return result;

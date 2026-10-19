@@ -16,13 +16,13 @@ internal static class AnalysisReadPlan
             if (node is not JsonObject obj) return;
             if (J.Date(obj, "start_time") is { } from && from < start) start = from;
             if (J.Date(obj, "end_time") is { } to && to > end) end = to;
-            var offset = J.Number(obj, "offset_minutes") + J.Number(obj, "offset_ms") / 60000;
+            var offset = J.Number(obj, "offset_minutes");
             if (offset > 0 && window.Start.AddMinutes(-offset) < start) start = window.Start.AddMinutes(-offset);
         }
-        Include(input["baseline"]); Include(input["compare_to"]); Include(input["group_a"]?["window"]);
+        Include(input["baseline"]); Include(input["group_a"]?["window"]);
         if (input["group_b"] is JsonObject group) Include(group["window"]);
-        // group_b "before" is the window of equal length that precedes group_a's.
-        if (J.Text(input["group_b"]) == "before" && input["group_a"]?["window"] is JsonObject cohort
+        // group_b previous_window is the window of equal length that precedes group_a's.
+        if (J.Text(input["group_b"]) == "previous_window" && input["group_a"]?["window"] is JsonObject cohort
             && J.Date(cohort, "start_time") is { } from && J.Date(cohort, "end_time") is { } to && from - (to - from) < start) start = from - (to - from);
         // A verification's before window is the lookback ahead of its change.
         if (J.Date(input, "since") is { } since && since - (window.End - window.Start) < start) start = since - (window.End - window.Start);
@@ -34,11 +34,10 @@ internal static class AnalysisReadPlan
         {
             if (J.String(target, "trace_id") is { } trace) traces.Add(trace);
             if (J.String(target, "session_id") is { } session) sessions.Add(session);
-            if (J.String(target, "run_id") is { } run) sessions.Add(run);
             if (J.String(target, "ci_run_id") is { } ci) sessions.Add(ci);
         }
         Target(input); Target(input["a"]); Target(input["b"]);
-        if (operation == "ci_log" && J.String(input, "compare_to") is { } priorRun && priorRun != "last_success") sessions.Add(priorRun);
+        if (operation == "ci_log" && J.String(input["baseline"], "ci_run_id") is { } priorRun) sessions.Add(priorRun);
         // Failure identity is independent of time. These focused queries may span retention,
         // but still have the storage cap and report incomplete coverage instead of false totals.
         if (J.String(input, "failure_id") is not null || operation == "verify_fix" && J.String(input, "verify_id") is not null) start = DateTimeOffset.UnixEpoch;

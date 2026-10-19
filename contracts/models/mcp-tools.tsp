@@ -175,15 +175,12 @@ model ListTracesInput {
   @doc("Keep traces in which this failure occurred, e.g. a `failure_id` from triage.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
-  @doc("With `errors_only`: `any` (default) keeps traces with any error span, `root` only traces whose root span failed.")
-  @encodedName("application/json", "error_scope")
-  errorScope?: "any" | "root";
   @doc("Keep traces with an annotation carrying this label, on the trace or one of its spans.")
   @encodedName("application/json", "annotation_label")
   annotationLabel?: string;
   @doc("Order of the traces: `start_time` (default) newest first, `duration` longest first, `errors` most error spans first. Equal values keep the newest trace first.")
-  @encodedName("application/json", "sort_by")
-  sortBy?: "start_time" | "duration" | "errors";
+  @encodedName("application/json", "order_by")
+  orderBy?: "start_time" | "duration" | "errors";
 
   @doc("Attribute predicates one span of the trace must all satisfy, together with `service_name` and `release`.")
   @maxItems(32)
@@ -200,7 +197,7 @@ model ListTracesInput {
   @encodedName("application/json", "service_name")
   serviceName?: string;
 
-  @doc("Keep only traces with at least one error span, or with a failed root span under `error_scope: root`.")
+  @doc("Keep only traces with at least one error span.")
   @encodedName("application/json", "errors_only")
   errorsOnly?: boolean;
 
@@ -231,10 +228,10 @@ model GetTraceInput {
   @doc("Attribute keys to keep on each returned span; omit for every recorded attribute.")
   attributes?: string[];
 
-  @doc("Number of correlated log records to include, 0 to 50. Default 0, no logs; search_logs with the same `trace_id` returns the rest.")
+  @doc("Most correlated log records to include, 0 to 50. Default 0, no logs; search_logs with the same `trace_id` returns the rest.")
   @minValue(0) @maxValue(50)
-  @encodedName("application/json", "include_logs")
-  includeLogs?: int32;
+  @encodedName("application/json", "max_logs")
+  maxLogs?: int32;
 
   ...ToolTimeRange;
 
@@ -259,7 +256,7 @@ model GetTraceOutput {
   @encodedName("application/json", "missing_parent_span_ids")
   missingParentSpanIds?: SpanId[];
   links?: TraceLinkAvailability[];
-  @doc("The trace's log records, `include_logs` of them, newest first.")
+  @doc("The trace's log records, at most `max_logs` of them, newest first.")
   logs?: ToolLogRow[];
   settled?: boolean;
 
@@ -277,12 +274,9 @@ model GetTraceOutput {
 
 @doc("Lists the sessions, spans sharing a session id, that started in the window: span, trace and error counts, duration, services, failure ids, agent name, models and token usage. Use it to find an agent or user session; get_agent_run reconstructs one session's steps and list_traces lists single executions. Default: the last 60 minutes, 20 sessions per page, most recent activity first.")
 model ListSessionsInput {
-  @doc("`true` keeps sessions with an error span, `false` sessions without one.")
-  @encodedName("application/json", "has_error")
-  hasError?: boolean;
-  @doc("Keep sessions with at least this many error spans.")
-  @encodedName("application/json", "min_errors")
-  minErrors?: int64;
+  @doc("Keep only sessions with at least one error span.")
+  @encodedName("application/json", "errors_only")
+  errorsOnly?: boolean;
   @doc("Keep sessions with a span of this service; with `matchers`, one span must satisfy both.")
   @encodedName("application/json", "service_name")
   serviceName?: string;
@@ -301,8 +295,8 @@ model ListSessionsInput {
   @encodedName("application/json", "annotation_label")
   annotationLabel?: string;
   @doc("Order of the sessions: `last_activity` (default) most recent first, `errors` most error spans first, `duration` longest first, `tokens` most tokens first.")
-  @encodedName("application/json", "sort_by")
-  sortBy?: "last_activity" | "errors" | "duration" | "tokens";
+  @encodedName("application/json", "order_by")
+  orderBy?: "last_activity" | "errors" | "duration" | "tokens";
 
   @doc("Attribute predicates one span of the session must all satisfy, together with `service_name`.")
   @maxItems(32)
@@ -343,9 +337,10 @@ model SearchLogsInput {
   @doc("Return only log records correlated with this span.")
   @encodedName("application/json", "span_id")
   spanId?: SpanId;
-  @doc("`pattern` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records.")
+  @doc("`[\"pattern\"]` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records.")
   @encodedName("application/json", "group_by")
-  groupBy?: "pattern";
+  @maxItems(1)
+  groupBy?: "pattern"[];
   @doc("Also return up to this many records before and after each returned record from the same service and resource, in `context_logs`; 0 to 10, default 0. Not applied with `group_by`.")
   @minValue(0) @maxValue(10)
   context?: int32;
@@ -414,7 +409,7 @@ enum CiPhaseStatus {
   unset: "unset",
 }
 
-@doc("Lists the CI runs recorded as telemetry by services whose name starts with `service_prefix`, newest first, and breaks one run into its phases per leg with status, duration, message and error logs. `run_id` picks the run to break down (default: the newest matching run), and `compare_to` compares it with the last successful run or another run, naming new failures, fixed phases and duration regressions. Use get_failure_context with `ci_run_id` to explain a failed run.")
+@doc("Lists the CI runs recorded as telemetry by services whose name starts with `service_prefix`, newest first, and breaks one run into its phases per leg with status, duration, message and error logs. `ci_run_id` picks the run to break down (default: the newest matching run), and `baseline` compares it with the last successful run or another run, naming new failures, fixed phases and duration regressions. Use get_failure_context with the same `ci_run_id` to explain a failed run.")
 model CiLogInput {
   @doc("`next_cursor` of a previous ci_log call with the same filters; continues the run list.")
   cursor?: Cursor;
@@ -429,11 +424,11 @@ model CiLogInput {
   @doc("`next_phase_cursor` of a previous call for the same run; continues its phases, 50 per page.")
   @encodedName("application/json", "phase_cursor")
   phaseCursor?: Cursor;
-  @doc("`failed` keeps runs with an error span, `passed` runs without one, `all` (default) both.")
-  outcome?: "failed" | "passed" | "all";
-  @doc("Compare the selected run with `last_success`, the latest earlier run without errors, or with the run of this `run_id`.")
-  @encodedName("application/json", "compare_to")
-  compareTo?: string;
+  @doc("Keep only runs with an error span.")
+  @encodedName("application/json", "errors_only")
+  errorsOnly?: boolean;
+  @doc("The run to compare the selected one with: `last_success`, the latest earlier run without errors, or `{ci_run_id}`, another run.")
+  baseline?: CiBaseline;
 
   @doc("Attribute predicates one span of a run in the window must satisfy.")
   @maxItems(32)
@@ -441,9 +436,9 @@ model CiLogInput {
 
   ...ToolTimeRange;
 
-  @doc("The run to break into phases: a `run_id` of the run list, the run's session id; an unknown run is answered with not_found naming recent runs. Omitted, the newest matching run is broken down.")
-  @encodedName("application/json", "run_id")
-  runId?: SessionId;
+  @doc("The run to break into phases: a `ci_run_id` of the run list, the run's session id; an unknown run is answered with not_found naming recent runs. Omitted, the newest matching run is broken down.")
+  @encodedName("application/json", "ci_run_id")
+  ciRunId?: SessionId;
 
   @doc("Case-sensitive service-name prefix identifying CI telemetry in both run lists and phase breakdowns.")
   @encodedName("application/json", "service_prefix")
@@ -468,8 +463,8 @@ model CiRunSummary {
   attempt?: int32;
   attempts?: CiAttempt[];
 
-  @encodedName("application/json", "run_id")
-  runId: SessionId;
+  @encodedName("application/json", "ci_run_id")
+  ciRunId: SessionId;
 
   state: SessionState;
 
@@ -525,8 +520,9 @@ model CiLogOutput {
 
   runs?: CiRunSummary[];
 
-  @encodedName("application/json", "run_id")
-  runId?: SessionId;
+  @doc("The run broken into `phases`.")
+  @encodedName("application/json", "ci_run_id")
+  ciRunId?: SessionId;
 
   phases?: CiPhase[];
   mode: McpDataMode;
@@ -542,7 +538,7 @@ model CiLogOutput {
 @doc("Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.")
 model ListMetricsInput {
   @doc("Case-insensitive substring of the instrument name or description.")
-  text?: string;
+  query?: string;
   @doc("Keep instruments this service reports.")
   @encodedName("application/json", "service_name")
   serviceName?: string;
@@ -581,16 +577,15 @@ model ListMetricsOutput {
   error?: ToolError;
 }
 
-@doc("Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.")
+@doc("Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `baseline` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.")
 model QueryMetricInput {
   @doc("Minutes before `end_time` (or now) when `start_time` is omitted; default 60.")
   @encodedName("application/json", "lookback_minutes")
   lookbackMinutes?: int32;
   @doc("Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`.")
   function?: "none" | "rate" | "increase" | "delta";
-  @doc("Also aggregate an earlier window into `comparison`: `previous_window`, the window of equal length just before, or `{offset_ms}`, the window shifted back by that many milliseconds.")
-  @encodedName("application/json", "compare_to")
-  compareTo?: MetricComparison;
+  @doc("Also aggregate an earlier window into `comparison`: `previous_window`, the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back.")
+  baseline?: AnalysisBaseline;
   @doc("Divide each series, per bucket and for the whole window, by the series with the same `group_by` values of another metric; the result's unit is `1`.")
   @encodedName("application/json", "ratio_of")
   ratioOf?: MetricRatio;
@@ -622,7 +617,7 @@ model QueryMetricInput {
   @minLength(1)
   seriesId?: string;
 
-  @doc("Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `compare_to` and `ratio_of` do not apply.")
+  @doc("Return the original points of one series instead of aggregating: exact values, histogram buckets and exemplars, newest first, `limit` per page. The series is `series_id`, or the one series that `metric_name` and `matchers` select; `function`, `aggregation`, `group_by`, `step_ms`, `baseline` and `ratio_of` do not apply.")
   raw?: boolean;
 
   @doc("With `raw`, the `next_cursor` of the previous page of the same series.")

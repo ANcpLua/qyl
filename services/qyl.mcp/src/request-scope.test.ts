@@ -80,7 +80,7 @@ function responseFor(operation: string, args: Record<string, unknown>): Response
     case "get_trace": return Response.json({ ...context, mode: "live", trace: toolTrace(getTelemetryFixture().traces[0]!) });
     case "list_sessions": return Response.json({ ...context, mode: "live", has_more: false, sessions: [getTelemetryFixture().sessions[0]] });
     case "search_logs": return Response.json({ ...context, mode: "live", has_more: false, logs: [toolLog(getTelemetryFixture().logs[0]!)] });
-    case "ci_log": return Response.json({ ...context, mode: "live", has_more: false, ...(args.run_id ? { run_id: args.run_id, phases: [] } : { runs: [] }) });
+    case "ci_log": return Response.json({ ...context, mode: "live", has_more: false, ...(args.ci_run_id ? { ci_run_id: args.ci_run_id, phases: [] } : { runs: [] }) });
     case "list_metrics": return Response.json({ ...context, has_more: false, items: [] });
     default: throw new Error(`Unexpected operation ${operation}`);
   }
@@ -89,7 +89,7 @@ function responseFor(operation: string, args: Record<string, unknown>): Response
 test("ci_log reports its collector query and final step to a client that asked", async (context) => {
   const connection = await collectorConnection(context);
   const updates: ProgressUpdate[] = [];
-  const result = await connection.client.callTool({ name: "ci_log", arguments: { run_id: "fixture-run" } }, { onprogress: update => void updates.push(update) });
+  const result = await connection.client.callTool({ name: "ci_log", arguments: { ci_run_id: "fixture-run" } }, { onprogress: update => void updates.push(update) });
   assert.equal(result.isError, undefined);
   assert.deepEqual(updates, [
     { progress: 1, total: 2, message: "Queried ci_log" },
