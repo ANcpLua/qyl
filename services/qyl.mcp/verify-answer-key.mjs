@@ -142,6 +142,30 @@ verify('19 metric route cardinality2 suggested for grouping',async call=>{const 
 verify('20a histogram p95 remains seconds and approximate',async call=>{const data=await call('query_metric',{...w,metric_name:'http.server.request.duration',aggregation:'p95',group_by:['http.route'],step_ms:3_600_000});assert.equal(data.unit,'s');assert.equal(data.approximate,true);const checkout=data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value==='/checkout'));assert(checkout);const values=checkout.buckets.map(b=>b.value).filter(v=>v!==null);assert(values.some(v=>Math.abs(v-1.84)<.1),JSON.stringify(values));});
 verify('20b cumulative100,150,190 started in the window increase190',async call=>{const data=await call('query_metric',{...w,metric_name:'requests.total',function:'increase',step_ms:3_600_000});assert.equal(data.series.flatMap(s=>s.buckets).reduce((sum,b)=>sum+(b.value??0),0),fixture.expected.increase);});
 verify('21 CI new test failure and build3xregression',async call=>{const data=await call('ci_log',{...w,run_id:'ci_current',compare_to:'last_success'});assert(data.comparison.new_failures.some(p=>p.leg==='test'));assert(data.comparison.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));});
+verify('22 health finds no seed defects: no semconv gaps, schema URLs, no orphans and no ingestion lag',async call=>{
+ const data=await call('check_telemetry_health',w);
+ assert.deepEqual(data.semconv_gaps,[],JSON.stringify(data.semconv_gaps));
+ assert.deepEqual(data.schema_urls,['https://opentelemetry.io/schemas/1.44.0']);
+ assert.equal(data.orphan_spans.count,0);
+ assert(data.ingestion_lag_ms<1000,String(data.ingestion_lag_ms));
+});
+registrations.push('23 fresh ids reseed the same services and sessions without replacing the earlier run');
+void test('23 fresh ids reseed the same services and sessions without replacing the earlier run',{concurrency:false},async()=>{
+ const project='answer-key-'+randomBytes(8).toString('hex');
+ const repo=fileURLToPath(new URL('../..',import.meta.url));
+ async function seed(run){
+  const output=join(dirname(process.env.QYL_ANSWER_KEY_FILE),`${project}-${run}.json`);
+  await promisify(execFile)('python3',[join(repo,'tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py'),process.env.QYL_ANSWER_KEY_OTLP,output,project],{env:{...process.env,QYL_ANSWER_KEY_FRESH_IDS:'1'}});
+  return JSON.parse(await readFile(output,'utf8'));
+ }
+ const first=await seed(1),second=await seed(2);
+ assert.notEqual(first.keys['db-root'].trace_id,second.keys['db-root'].trace_id);
+ assert.deepEqual(second.services,first.services);assert.deepEqual(second.sessions,first.sessions);
+ await withClient(async call=>{
+  const data=await call('list_traces',{...first.window,session_id:'sess_bad',errors_only:true});
+  assert.equal(data.traces.length,6,'both runs keep their sess_bad failures');
+ },project);
+});
 verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('create_annotation',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});const data=await call('list_failures',{...w,failure_id:F.failure_id});assert.equal(data.failures[0].annotation_count,1);});
 verifyIsolated('32a ignored F suppressed fromtriage',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const saved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'ignored'});assert.equal(saved.failure.status,'ignored');try { assert(!(await call('triage',w)).failures.some(f=>f.failure_id===F.failure_id)); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:saved.failure.etag,status:'open'}); }});
 verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
