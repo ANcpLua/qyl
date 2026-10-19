@@ -7,6 +7,9 @@ namespace Qyl.Collector.Ingestion;
 /// Shared incoming-OTLP value policy for the registry's exception text keys.
 /// This runs before any ingestion model can reach storage or an original-point journal.
 /// ILogger classification/redaction does not cover those incoming values.
+/// The outcome depends on the text alone: every pattern matches without backtracking, in time linear in
+/// the bounded input, so no wall-clock deadline exists that a loaded machine could miss and turn
+/// valid text into the failure marker.
 /// </summary>
 internal static partial class ExceptionTextSanitizer
 {
@@ -34,10 +37,6 @@ internal static partial class ExceptionTextSanitizer
             sanitized = JwtCandidates().Replace(sanitized, RedactJwt);
             sanitized = KnownApiTokens().Replace(sanitized, Replacement);
             return BoundPersistedText(sanitized);
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            return Failed(key, "timeout");
         }
         catch (EncoderFallbackException)
         {
@@ -163,22 +162,22 @@ internal static partial class ExceptionTextSanitizer
     }
 
     [GeneratedRegex("""(?:[a-z][a-z0-9+.-]*://|//)[^\s<>"'\x60]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, 100)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
     private static partial Regex EmbeddedUrls();
 
     [GeneratedRegex("""\b(?:authorization|proxy[-_ ]?authorization|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|pwd|user(?:[-_ ]?(?:id|name))?|uid|token|access[-_ ]?token|refresh[-_ ]?token|auth[-_ ]?token|bearer[-_ ]?token|session[-_ ]?(?:token|key)|id[-_ ]?token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?:(?:Bearer|Basic)[ \t]+)?""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, 100)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
     private static partial Regex CredentialAssignments();
 
     [GeneratedRegex("""(?<scheme>\b(?:Bearer|Basic)[ \t]+)[A-Za-z0-9._~+/=-]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, 100)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
     private static partial Regex AuthorizationValues();
 
     [GeneratedRegex("""\b[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*""",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, 100)]
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
     private static partial Regex JwtCandidates();
 
     [GeneratedRegex("""\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|npm_[A-Za-z0-9]{16,}|xox[baprs]-[A-Za-z0-9-]{16,})\b""",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, 100)]
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
     private static partial Regex KnownApiTokens();
 }
