@@ -28,6 +28,7 @@ class FakeAuth0:
         self.permissions = [{"resource_server_identifier": CONFIG["resource"]["identifier"],
                              "permission_name": scope} for scope in CONFIG["user_scopes"]]
         self.blocked = False
+        self.flags = dict(CONFIG["tenant_flags"], unrelated_flag=True)
 
     def list(self, path, query=()):
         if path == "resource-servers": return copy.deepcopy(self.resources)
@@ -38,6 +39,7 @@ class FakeAuth0:
 
     def request(self, method, path, data=None, query=()):
         self.assert_read(method)
+        if path == "tenants/settings": return {"flags": copy.deepcopy(self.flags)}
         return {"user_id": path.removeprefix("users/").replace("%7C", "|"), "blocked": self.blocked}
 
     @staticmethod
@@ -56,6 +58,8 @@ class WritableFakeAuth0(FakeAuth0):
         self.mutations.append((method, path, copy.deepcopy(data)))
         if method == "patch" and path.startswith("resource-servers/"):
             self.resources[0].update(copy.deepcopy(data))
+        elif method == "patch" and path == "tenants/settings":
+            self.flags.update(copy.deepcopy(data["flags"]))
         elif method == "patch" and path.startswith("client-grants/"):
             target = next(grant for grant in self.grants if path == f"client-grants/{grant['id']}")
             target.update(copy.deepcopy(data))
@@ -75,6 +79,22 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(len(changes), 2)
         self.assertIn({"value": "unrelated:scope", "description": "Preserve"}, changes[0][3]["scopes"])
         self.assertEqual(set(changes[1][3]["scope"]), {*CONFIG["user_scopes"], "unrelated:scope"})
+
+    def test_changed_scope_description_is_restored_and_unrelated_scope_kept(self):
+        api = FakeAuth0()
+        api.resources[0]["scopes"][0] = {"value": "qyl:read", "description": "read"}
+        changes, _ = plan(api, CONFIG, ENV)
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][3]["scopes"], [{"value": "unrelated:scope", "description": "Preserve"},
+                                                   *sorted(CONFIG["resource"]["scopes"], key=lambda s: s["value"])])
+
+    def test_consent_flag_drift_patches_only_that_flag(self):
+        api = WritableFakeAuth0()
+        api.flags = {"unrelated_flag": True}
+        self.assertEqual(plan(api, CONFIG, ENV)[0], [("tenant flags", "patch", "tenants/settings",
+                                                       {"flags": {"use_scope_descriptions_for_consent": True}})])
+        self.assertEqual(reconcile(api, CONFIG, ENV, apply=True, report=lambda _: None), 0)
+        self.assertEqual(api.flags, {"unrelated_flag": True, "use_scope_descriptions_for_consent": True})
 
     def test_missing_grant_targets_only_verified_client(self):
         api = FakeAuth0()

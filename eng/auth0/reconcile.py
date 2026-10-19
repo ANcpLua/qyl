@@ -2,8 +2,9 @@
 """Check/apply only qyl-owned Auth0 scopes, existing client grants and mapped users.
 
 Uses the authenticated Auth0 CLI. Secrets and subject/client identifiers are never
-printed or saved. --apply reconciles missing managed permissions; it never deletes
-unrelated scopes, clients, users or grants. No applications/users are created.
+printed or saved. --apply reconciles missing managed permissions, the managed scope
+descriptions and tenant flags; it never deletes unrelated scopes, clients, users or
+grants. No applications/users are created.
 """
 import argparse
 import json
@@ -79,14 +80,21 @@ def plan(api, config, environment):
 
     desired_scopes = {scope["value"]: scope for scope in config["resource"]["scopes"]}
     existing_scopes = {scope["value"]: scope for scope in resource.get("scopes", [])}
-    missing = desired_scopes.keys() - existing_scopes.keys()
     patch = {}
-    if missing:
-        patch["scopes"] = list(existing_scopes.values()) + [desired_scopes[key] for key in sorted(missing)]
+    if any(existing_scopes.get(value) != scope for value, scope in desired_scopes.items()):
+        patch["scopes"] = [scope for value, scope in existing_scopes.items() if value not in desired_scopes] \
+            + [desired_scopes[value] for value in sorted(desired_scopes)]
     if resource.get("enforce_policies") != config["resource"]["enforce_policies"]:
         patch["enforce_policies"] = config["resource"]["enforce_policies"]
     if patch:
         changes.append(("qyl API permissions", "patch", f"resource-servers/{resource['id']}", patch))
+
+    # Without use_scope_descriptions_for_consent the consent screen renders qyl:read as "qyl your read".
+    settings = api.request("get", "tenants/settings", query=("fields=flags", "include_fields=true")) or {}
+    flags = settings.get("flags") or {}
+    wrong_flags = {name: value for name, value in config["tenant_flags"].items() if flags.get(name) != value}
+    if wrong_flags:
+        changes.append(("tenant flags", "patch", "tenants/settings", {"flags": wrong_flags}))
 
     def grant_for(client_name, audience, subject_type, required, app_type=None):
         client = single(clients, lambda item: item.get("name") == client_name, f"client {client_name}")

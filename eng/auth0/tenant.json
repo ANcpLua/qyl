@@ -16,6 +16,7 @@
   "user_scopes": ["qyl:read", "qyl:write", "qyl:delete"],
   "user_subjects_environment": "MCP_COLLECTOR_PROJECTS",
   "third_party_default": { "scope": [], "allow_all_scopes": false },
+  "tenant_flags": { "use_scope_descriptions_for_consent": true },
   "management_client": {
     "name": "qyl.mcp Events access check",
     "app_type": "non_interactive",

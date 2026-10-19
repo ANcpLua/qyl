@@ -12,9 +12,11 @@ or add `--apply` to reconcile and recheck. Exit 0 means the configuration matche
 Use the same environment for both commands. No deployment is triggered.
 
 The reconciler requires every named client and mapped user to already exist.
-It adds missing managed API scopes, enables RBAC, adds missing client/user
-permissions and keeps the qyl third-party default grant empty. It preserves all
-other scopes, grants, users, application settings and tenant settings. Changing
+It adds missing managed API scopes and restores their descriptions, enables RBAC,
+adds missing client/user permissions, keeps the qyl third-party default grant empty
+and turns on `use_scope_descriptions_for_consent`, so the consent screen shows the
+scope descriptions instead of "qyl your read". It preserves all other scopes,
+grants, users, application settings and tenant settings. Changing
 which user owns a project remains a separate deployment mapping operation.
 API responses, subject identifiers and secrets are never printed. The Events
 client credential remains in Vitals/Railway; checking this policy never rotates it.
