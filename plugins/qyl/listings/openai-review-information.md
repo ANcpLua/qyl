@@ -15,7 +15,7 @@ Answers use the returned telemetry and its coverage information. An empty result
 - MCP endpoint: https://mcp.qyl.at/mcp, using Streamable HTTP.
 - Sign-in uses OAuth. Read tools require `qyl:read`; creating or updating annotations, saved queries and failure status also requires `qyl:write`; `delete_record` requires `qyl:read` and `qyl:delete`.
 - The server selects the Collector project available to the connected account. Users do not supply an arbitrary project identifier.
-- Results are returned as text and structured data with the tool's declared schema.
+- Each result is a one-line headline naming the top rows, their ids and the next tool to call, followed by the compact JSON, which is also returned as structured content. Tools declare no output schema. An error names the rejected `field`, the `allowed` values and a `hint`, or the missing record and the tool that lists it.
 
 ## Tool catalog
 
@@ -43,7 +43,7 @@ The tools do not edit or delete the underlying traces, logs or metrics.
 
 The server exposes `qyl-investigate` through `io.modelcontextprotocol/skills`. The client discovers it with `skills/list`, obtains its definition with `skills/get`, and reads the advertised files through `resources/read`. Its main resource is `skill://qyl/qyl-investigate/SKILL.md`.
 
-The skill starts a fresh connection with `triage` and no arguments. If sign-in is requested, it lets the host sign in once and retries that call once before stopping on another authentication request. It then explains how to select and sequence the telemetry tools, preserve identifiers from returned records, and report missing evidence. The plugin bundle carries the same canonical investigation skill.
+The skill starts a fresh connection with `triage` and a `lookback_minutes` that covers the incident (1440 for today), because without it triage reads only the last 60 minutes. If sign-in is requested, it lets the host sign in once and retries that call once before stopping on another authentication request. It then explains how to select and sequence the telemetry tools, preserve identifiers from returned records, and report missing evidence. The plugin bundle carries the same canonical investigation skill.
 
 ## Events
 
