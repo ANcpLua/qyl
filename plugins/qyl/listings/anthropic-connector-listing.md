@@ -33,7 +33,7 @@ does not establish a portal record.
 
 ## Description
 
-One developer built all of it using Anthropic and OpenAI models to the fullest.
+Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.
 
 qyl gives Claude access to the telemetry your services send to a qyl Collector, so you can investigate a running system from the conversation. Ask what changed and qyl ranks new or worsening failures, regressions and releases; it groups recurring errors, reconstructs a failure's path with its logs, compares two groups or two executions, and measures whether a fix held. List recent traces and sessions, open one trace's error path or critical path, find the error logs that belong to it, discover recorded metric instruments and their attribute streams, and compare a metric over time or across groups. CI pipelines that follow qyl's CI telemetry convention can be inspected run by run, with failed phases first, and MCP statistics report request, error and latency figures for each MCP tool and server. When you ask, Claude can leave a note on a trace, span or session, save a named filter to run again later, or mark a failure resolved or ignored.
 

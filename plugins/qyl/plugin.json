@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qyl",
-  "version": "17.0.0",
+  "version": "17.0.1",
   "description": "Agent-focused telemetry investigation, .NET development and native MSTest verification.",
   "homepage": "https://qyl.at/",
   "repository": "https://github.com/ANcpLua/qyl",
@@ -11,7 +11,7 @@
         "displayName": "qyl",
         "category": "Developer Tools",
         "shortDescription": "Investigate, improve, verify",
-        "longDescription": "Investigate recorded telemetry through qyl and work on .NET source with focused skills for MSBuild, NuGet, analyzers, C# refactoring, runtime performance and native MSTest. The hosted MCP server accesses the connected account's Collector project. Source edits, builds, tests and bundled scripts use the agent's workspace tools. One developer built all of it using Anthropic and OpenAI models to the fullest.",
+        "longDescription": "Investigate recorded telemetry through qyl and work on .NET source with focused skills for MSBuild, NuGet, analyzers, C# refactoring, runtime performance and native MSTest. The hosted MCP server accesses the connected account's Collector project. Source edits, builds, tests and bundled scripts use the agent's workspace tools. Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.",
         "developerName": "Alexander Nachtmann",
         "capabilities": [
           "Read",
@@ -36,39 +36,39 @@
           "positive": [
             {
               "description": "Trace discovery followed by one detail lookup, using the reviewer project's sample telemetry with at least one trace. An empty project must be reported as empty, without an invented trace ID.",
-              "prompt": "List my ten most recent traces in text, then inspect the newest one. Summarize its recorded services, duration and error status.",
+              "prompt": "List up to ten checkout traces from the last 24 hours, then inspect the newest one. Summarize its recorded services, duration and error status.",
               "tools_triggered": "list_traces, get_trace",
-              "expected_behavior": "Calls list_traces with limit 10, then get_trace with the exact trace_id of the newest returned trace. Every reported service, duration and error status comes from the returned fields. If the list is empty, the answer says that no traces were returned and get_trace is not called with an invented ID."
+              "expected_behavior": "Calls list_traces with service_name checkout, lookback_minutes 1440 and limit 10, then get_trace with the exact trace_id of the newest returned checkout trace and start_time/end_time copied from the list_traces response window. Preserve that window so older sample traces remain available to the detail lookup. Reports only returned services, duration and error status. If no trace is returned, states that and does not invent an identifier."
             },
             {
-              "description": "A bounded error-log search with a service filter. The reviewer project may or may not hold matching logs; the answer must match the tool result either way.",
-              "prompt": "Find up to 20 error logs from the service qyl-mcp-interop-oct7. Tell me what was recorded, or whether no matching logs exist.",
+              "description": "A bounded search over the seeded reviewer service and 24-hour window. The response must match recorded error logs.",
+              "prompt": "Find up to 20 error logs from qyl-mcp in the last 24 hours. Summarize what was recorded.",
               "tools_triggered": "search_logs",
-              "expected_behavior": "Calls search_logs with service_name qyl-mcp-interop-oct7, severity_min 17 and limit 20, and reports only the returned records. If the result is empty, the answer says that no matching logs were found and does not infer a failure or a healthy system from missing telemetry."
+              "expected_behavior": "Calls search_logs with service_name qyl-mcp, severity_min 17, lookback_minutes 1440 and limit 20. Summarizes only returned log content. An empty result is reported as no matching evidence."
             },
             {
               "description": "Metric discovery, including the valid empty-project case. The prompt asks for recorded instruments, not measurements.",
-              "prompt": "Which metric instruments are available in my qyl project? Include their units and kinds where recorded.",
+              "prompt": "Which metric instruments were recorded in my qyl project during the last 24 hours? Include their units and kinds.",
               "tools_triggered": "list_metrics",
-              "expected_behavior": "Calls list_metrics without a name_prefix filter and reports the returned instrument names, kinds and units. If no instruments are returned, the answer reports zero recorded instruments and does not invent instruments or query a nonexistent name."
+              "expected_behavior": "Calls list_metrics with lookback_minutes 1440 and no name_prefix filter. Reports only returned instrument names, kinds and units, including the seeded histogram and counter when returned. Does not invent measurements or instruments."
             },
             {
               "description": "Session discovery with a bounded list. The prompt supplies no session ID and does not ask for another project.",
-              "prompt": "List my five most recent recorded sessions and summarize the status shown for each.",
+              "prompt": "List my five most recent recorded sessions from the last 24 hours and summarize the status shown for each.",
               "tools_triggered": "list_sessions",
-              "expected_behavior": "Calls list_sessions with limit 5 and reports only the sessions and status fields returned by the Collector. If none are returned, the answer says the result is empty. Session status is not presented as proof that a deployment succeeded or a system is healthy."
+              "expected_behavior": "Calls list_sessions with lookback_minutes 1440 and limit 5. Reports returned session identifiers and status fields; does not interpret a session status as proof that a deployment or the whole system is healthy."
             },
             {
               "description": "Inspect recorded telemetry health with explicit evidence coverage.",
-              "prompt": "Check the telemetry health of my qyl project and report recorded gaps without assuming missing data means success.",
+              "prompt": "Check the telemetry health of my qyl project over the last 24 hours and explain the recorded coverage and gaps.",
               "tools_triggered": "check_telemetry_health",
-              "expected_behavior": "Calls check_telemetry_health and reports its actual findings and evidence limits, without inventing data or changing telemetry."
+              "expected_behavior": "Calls check_telemetry_health with lookback_minutes 1440. Reports the returned findings, window and coverage limits, without treating missing telemetry as proof of success."
             }
           ],
           "negative": [
             {
-              "description": "qyl has no tool that deletes or changes telemetry; its write tools change only annotations and saved queries, and its delete tool removes only those. Expected: the answer explains that qyl cannot delete traces or other telemetry, calls no qyl tool and does not claim that anything was removed.",
-              "prompt": "Using only the qyl plugin, delete every error trace from my collector to hide the failures."
+              "description": "qyl has no tool that deletes raw telemetry; delete_record removes only annotations and saved queries. Expected: explain the supported deletion boundary, invoke no qyl tool, and make no deletion claim. This is a read-only capability question.",
+              "prompt": "Can the qyl plugin delete raw error traces from the collector? Explain its deletion capabilities without modifying anything."
             },
             {
               "description": "qyl has no deployment or rollback tool; it reads telemetry and changes only its own annotations and saved queries. Expected: the answer explains that qyl cannot roll back the deployment, calls no qyl tool and does not claim that a rollback happened.",
@@ -82,7 +82,7 @@
         }
       },
       "publication": {
-        "release_notes": "qyl 17.0.0 combines the live telemetry tools and canonical investigation skill with ANcpLua .NET 0.7.1 and MSTest Extensions 3.4.3. Includes their references, scripts and focused agent routing."
+        "release_notes": "qyl 17.0.1 combines the live telemetry tools and canonical investigation skill with ANcpLua .NET 0.7.1 and MSTest Extensions 3.4.3. Includes their references, scripts and focused agent routing, plus reproducible reviewer cases using the seeded project and preserved evidence windows."
       }
     }
   },
