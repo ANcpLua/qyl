@@ -172,6 +172,39 @@ void test('23 fresh ids reseed the same services and sessions without replacing 
   assert.equal(data.traces.length,6,'both runs keep their sess_bad failures');
  },project);
 });
+registrations.push('25 traffic keeps every seeded service but billing live and every planted answer in place');
+void test('25 traffic keeps every seeded service but billing live and every planted answer in place',{concurrency:false},async()=>{
+ const project='answer-key-'+randomBytes(8).toString('hex');
+ const repo=fileURLToPath(new URL('../..',import.meta.url));
+ // The seed ran 100 minutes ago and the 10-minute traffic cron ran ten times since.
+ const seedNow=Math.floor(Date.now()/1000)-6000;
+ async function send(mode,now){
+  const output=join(dirname(process.env.QYL_ANSWER_KEY_FILE),`${project}-${now}.json`);
+  await promisify(execFile)('python3',[join(repo,'tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py'),process.env.QYL_ANSWER_KEY_OTLP,output,project],{env:{...process.env,QYL_ANSWER_KEY_MODE:mode,QYL_ANSWER_KEY_NOW:String(now)}});
+  return JSON.parse(await readFile(output,'utf8'));
+ }
+ const seeded=await send('seed',seedNow);
+ for (let run=1;run<=10;run++) await send('traffic',seedNow+run*600);
+ await withClient(async call=>{
+  const day={lookback_minutes:1440}, scope=(service)=>({...day,matchers:[{key:'service.name',op:'eq',value:service,scope:'resource'}]});
+  assert.deepEqual((await call('triage',{start_time:seeded.T,limit:50})).silent_services.map(s=>s.service),['billing']);
+  const regional=await call('compare_groups',{...scope('regional'),signal:'spans',group_a:{matchers:[{key:'error.type',op:'exists'}]},group_b:'rest',attribute_scope:'both'});
+  assert.deepEqual(new Set(regional.discriminators.slice(0,2).map(x=>`${x.key}=${x.value}`)),new Set(['cloud.region=eu','service.version=2.3']));
+  const latency=await call('aggregate_telemetry',{...scope('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95']});
+  assert.deepEqual(Object.fromEntries(latency.groups.map(g=>[g.key['http.route'],g.measures.duration_p95])),{'/checkout':1840,'/cart':210});
+  assert.equal((await call('get_failure_context',{...day,trace_id:seeded.keys['db-root'].trace_id})).observed.root_cause_span.span_id,seeded.keys['db-timeout'].span_id);
+  const F=(await call('list_failures',{...day,service_name:'checkout',status:'all'})).failures.find(f=>f.operation==='checkout');assert(F);
+  const fix=await call('verify_fix',{...day,failure_id:F.failure_id,since:seeded.T2});
+  assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,76,'the four fix requests and two checkouts per batch count');
+  assert.equal((await call('get_agent_run',{...day,session_id:'agent_run'})).findings.repeated_calls[0].count,3);
+  const ci=(await call('ci_log',{...day,run_id:'ci_current',compare_to:'last_success'})).comparison;
+  assert(ci.new_failures.some(p=>p.leg==='test'));assert(ci.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));
+  const search=(await call('get_mcp_stats',{...day,tool_name:'search_logs'})).tools.find(t=>t.name==='search_logs');
+  assert.deepEqual([search.requests,search.errors],[40,8]);
+  assert.deepEqual((await call('list_sessions',{...day,has_error:true})).sessions.map(s=>s.session_id).sort(),['ci_current','sess_bad']);
+  assert.deepEqual((await call('check_telemetry_health',day)).semconv_gaps,[]);
+ },project);
+});
 verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('create_annotation',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});const data=await call('list_failures',{...w,failure_id:F.failure_id});assert.equal(data.failures[0].annotation_count,1);});
 verifyIsolated('32a ignored F suppressed fromtriage',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const saved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'ignored'});assert.equal(saved.failure.status,'ignored');try { assert(!(await call('triage',w)).failures.some(f=>f.failure_id===F.failure_id)); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:saved.failure.etag,status:'open'}); }});
 verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
