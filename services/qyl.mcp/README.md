@@ -21,14 +21,16 @@ export QYL_API_KEY='your-collector-key'   # omit for an unsecured local Collecto
 clients, which is why the local server binds to loopback only.
 
 The hosted instance is `https://mcp.qyl.at/mcp`. It is an OAuth 2.1 resource server: an
-unauthenticated request answers `401` with an RFC 9728 protected-resource document naming issuer
-`https://qyl-eu.eu.auth0.com/` and scopes `qyl:read qyl:write qyl:delete`, which a stock MCP
-client follows on its own.
+unauthenticated request answers `401` with a `WWW-Authenticate` challenge that requests
+`qyl:read qyl:write qyl:delete` and points `resource_metadata` at its RFC 9728 document, which names
+the authorization server `https://qyl-eu.eu.auth0.com/`; a stock MCP client follows it on its own.
 
 Both use MCP TypeScript SDK v2: Streamable HTTP through `createMcpHandler` and stdio through
 `serveStdio`. One factory serves revision `2026-07-28` and negotiates down for 2025-era clients
-that send `initialize`. The HTTP server answers `/mcp`, `/healthz`, the OAuth discovery documents
-and `/.well-known/openai-apps-challenge`; every other path, `/` included, is `404`.
+that send `initialize`. The HTTP server answers `/mcp`, `/healthz`, `/.well-known/openai-apps-challenge`
+when configured and, with Auth0, `/.well-known/oauth-protected-resource[/mcp]` and
+`/.well-known/oauth-authorization-server`; every other path, `/` included, is `404`, and a disallowed
+Host or Origin is `403`.
 
 ## Tools
 
@@ -84,12 +86,15 @@ exists only in test fixtures.
 ## Hosted authentication
 
 The hosted Auth0 profile is **CIMD or DCR + OAuth 2.1 Authorization Code with PKCE S256 + issuer
-identification**. ChatGPT's client metadata advertises `none` and `private_key_jwt` and uses the
-latter; Claude's CIMD is a public client using `none`. Auth0 owns registration and token issuance;
-the server validates resource-bound RFC 9068 access tokens (signature, issuer, resource audience,
-expiry and scopes) on every MCP request and rejects malformed or query credentials, invalid tokens
-and insufficient scopes with distinct `400`/`401`/`403` responses. Only the qyl production Auth0
-issuer is accepted. `/.well-known/oauth-protected-resource/mcp` and
+identification**; the server does not start unless Auth0's metadata advertises all of it, with
+`private_key_jwt` (ChatGPT's CIMD client) and `none` (Claude's public CIMD client). The server never
+inspects client metadata. Auth0 owns registration and token issuance; the server validates
+resource-bound RFC 9068 access tokens (signature, issuer, resource audience, expiry and scopes) on
+every MCP request and rejects malformed or query credentials, invalid tokens and insufficient scopes
+with distinct `400`/`401`/`403` responses. Only the qyl production Auth0 issuer is accepted. Every
+request needs `qyl:read`; a tool call that writes or deletes also checks `qyl:write` or `qyl:delete`,
+and its step-up `403` names only the missing scope, so a client that re-authorizes for it must keep
+`qyl:read`. `/.well-known/oauth-protected-resource/mcp` and
 `/.well-known/oauth-protected-resource` describe the same `/mcp` resource.
 
 Operating a hosted deployment:
@@ -135,7 +140,7 @@ grants the read tools only, and Auth0-backed Events cannot be enabled in it.
 | `QYL_API_KEY` | Collector credential for reads and OTLP; the write tools need its `write` and `delete` roles. Outgoing only. |
 | `QYL_PROJECT` | Server-owned Collector project scope. Unset, the server sends no project header and the Collector's default project applies. Never accepted as tool input. |
 | `MCP_COLLECTOR_PROJECTS` | Optional secret JSON mapping verified Auth0 subjects to project-bound Collector keys (below). |
-| `MCP_PUBLIC_URL` | Public base URL of a hosted deployment; sets the resource audience and the canonical `/mcp` URL and disables the local execution record. |
+| `MCP_PUBLIC_URL` | HTTPS origin, without a path, of a hosted deployment; turns on hosted authorization, sets the resource audience and the canonical `<origin>/mcp` URL, adds its host to the allowlists and disables the local execution record. |
 | `MCP_BIND_HOST`, `PORT` | Listener address and port; default `127.0.0.1:3001`. |
 | `MCP_ALLOWED_HOSTS`, `MCP_ALLOWED_ORIGIN_HOSTS` | Comma-separated request and browser-origin hostnames added to the public URL's hostname. |
 | `MCP_AUTH_PROVIDER`, `MCP_AUTH_EXTENSIONS` | Authorization mode and optional extensions (above). |

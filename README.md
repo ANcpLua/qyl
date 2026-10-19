@@ -1,7 +1,7 @@
 # qyl
 
-qyl is an analytical engine for AI agents. The Collector (C#, NativeAOT) ingests OpenTelemetry
-traces, logs and metrics, stores them per project in DuckDB and answers typed analysis questions:
+qyl is an analytical engine for AI agents. The Collector (C#; NativeAOT in the hosted container,
+framework-dependent in the local `qyl` tool) ingests OpenTelemetry traces, logs and metrics, stores them per project in DuckDB and answers typed analysis questions:
 triage, failures and their context, comparisons, fix verification, aggregates, agent runs,
 releases, service maps and telemetry health. Agents use it through the MCP server
 (TypeScript SDK v2, protocol `2026-07-28`, 2025-era clients negotiated down).

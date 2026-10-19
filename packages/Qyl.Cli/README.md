@@ -18,8 +18,9 @@ The runner observes itself the way every qyl process does: its own telemetry (se
 health probes, orchestration logs, meters) goes to the diagnostics collector on `:5200`, next to the
 product collector's self-telemetry, and never into the product collector on `:5100`.
 
-The tool is a NativeAOT binary per platform: the `qyl` package selects the matching
-`qyl.<rid>` package for linux, macOS and Windows on x64 and arm64.
+The tool and the collector it starts are framework-dependent .NET 10 applications: the `qyl`
+package selects the matching `qyl.<rid>` package for linux, macOS and Windows on x64 and arm64.
+Only the hosted collector container is NativeAOT.
 
 ## Send telemetry to it
 

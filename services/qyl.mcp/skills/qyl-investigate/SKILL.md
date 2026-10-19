@@ -38,7 +38,7 @@ saved queries and failure status in that project, never the telemetry.
 | What an agent run did | `list_sessions` (`active_only` for live runs) | `get_agent_run` with the `session_id` |
 | What the logs say | `search_logs` with `trace_id` or `service_name` and `severity_min` 17 for errors | `get_trace` for the spans around a log |
 | What a metric shows | `list_metrics` | `get_metric_series` for the streams, `query_metric` for the window |
-| What a CI run did | `ci_log` | `ci_log` with the `run_id` for its phases, failures first |
+| What a CI run did | `ci_log` | `ci_log` with the `run_id` for its phases in start order, each with its status |
 
 ## Defaults, so you do not have to choose
 
