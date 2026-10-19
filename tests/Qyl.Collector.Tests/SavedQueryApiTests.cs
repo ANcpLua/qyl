@@ -286,6 +286,10 @@ public sealed class SavedQueryApiTests(TestContext testContext)
         var missingId = (await host.JsonAsync(missingMetric)).GetProperty("id").GetString();
         using var notFound = await host.SendAsync(HttpMethod.Post, $"/api/v1/saved-queries/{missingId}:run", "reader", "{}");
         Assert.AreEqual(HttpStatusCode.NotFound, notFound.StatusCode);
+        // Like the analysis route, the run's 404 names what is missing and the tool that lists what exists.
+        var missing = await host.JsonAsync(notFound);
+        Assert.AreEqual(("metric", "never.recorded"), (missing.GetProperty("resource_type").GetString(), missing.GetProperty("resource_id").GetString()));
+        StringAssert.Contains(missing.GetProperty("detail").GetString(), "list_metrics");
     }
 
     private static Task<HttpResponseMessage> Create(CollectorApiTestHost host, string name) =>

@@ -226,7 +226,7 @@ internal static partial class CollectorEndpointExtensions
             var typed = JsonSerializer.Deserialize(result["result"]!.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
             return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);
         }
-        catch (Analysis.AnalysisInputException invalid) { return invalid.Code.EndsWith(".not_found", StringComparison.Ordinal) ? ContractErrorResults.NotFound(invalid.Field, invalid.Description) : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code); }
+        catch (Analysis.AnalysisInputException invalid) { return AnalysisError(invalid); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide valid run options."); }
     }
 
