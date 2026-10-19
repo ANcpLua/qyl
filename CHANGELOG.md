@@ -1,5 +1,23 @@
 # Changelog
 
+## 17.0.3
+
+- Paging follows the contract: every tool declares its page size (20 groups for
+  `aggregate_telemetry`, 10 for `triage`, 100 elsewhere), `aggregate_telemetry.other` counts the
+  groups after the page and their records, and a continuation whose earlier items changed fails
+  with `cursor.stale` instead of skipping or repeating one.
+- Matcher `eq`, `neq` and `in` compare typed values, so 1 does not equal "1".
+  `AttributeValueCount.value` is an `AttributeValue`, so discovered integers keep every digit.
+- A metric timestamp that receives a different measurement keeps the first one and is marked
+  conflicting; both observations stay readable, an identical retry changes nothing, and
+  `check_telemetry_health` reports `metric_conflicts`.
+- The REST reads reject a window boundary finer than 100 ns with `time.precision_unsupported`,
+  as the analysis tools do.
+- Exception text is sanitized without a wall-clock deadline, so a loaded machine no longer turns
+  valid text into `[SANITIZATION_FAILED]`.
+- `get_failure_context` states that it takes exactly one of `trace_id`, `session_id`,
+  `failure_id` or `ci_run_id`.
+
 ## 17.0.2
 
 - An analysis window keeps its exact boundaries: a boundary finer than the 100 ns recorded times
