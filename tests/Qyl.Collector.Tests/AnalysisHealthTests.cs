@@ -46,4 +46,53 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(2, orphans.GetProperty("count").GetInt32());
         Assert.AreEqual(2d / 3, orphans.GetProperty("share").GetDouble(), 1e-9);
     }
+
+    /// <summary>
+    /// A semantic-convention gap is a required attribute the producer did not send. The collector does
+    /// not persist cicd.pipeline.result (its key holds a denied token), so whether a producer sent it is
+    /// unknown and never a gap; a missing url.scheme is.
+    /// </summary>
+    [TestMethod]
+    public async Task A_required_attribute_the_collector_does_not_persist_is_not_a_gap()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var start = FixtureUnixNano - 30 * Minute;
+        OtlpSpan Server(byte id, string name, params OpenTelemetry.Proto.Common.V1.KeyValue[] attributes)
+        {
+            var span = new OtlpSpan
+            {
+                TraceId = ByteString.CopyFrom([.. Enumerable.Repeat(id, 16)]), SpanId = ByteString.CopyFrom([.. Enumerable.Repeat(id, 8)]),
+                Name = name, Kind = OtlpSpan.Types.SpanKind.Server, StartTimeUnixNano = start, EndTimeUnixNano = start + 1_000_000
+            };
+            span.Attributes.Add(attributes);
+            return span;
+        }
+        await host.IngestTracesAsync(new ExportTraceServiceRequest
+        {
+            ResourceSpans =
+            {
+                new OtlpResourceSpans
+                {
+                    Resource = new Resource { Attributes = { OtlpTestSpans.String("service.name", "ci") } },
+                    ScopeSpans =
+                    {
+                        new OtlpScopeSpans
+                        {
+                            Spans =
+                            {
+                                Server(1, "RUN qyl-ci", OtlpTestSpans.String("cicd.pipeline.name", "qyl-ci"), OtlpTestSpans.String("cicd.pipeline.run.id", "42"),
+                                    OtlpTestSpans.String("cicd.pipeline.result", "success")),
+                                Server(2, "GET /", OtlpTestSpans.String("http.request.method", "GET"), OtlpTestSpans.String("url.path", "/"))
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        var gaps = (await Read(host, "check_telemetry_health", "{}")).GetProperty("semconv_gaps").EnumerateArray()
+            .Select(static gap => gap.GetProperty("operation").GetString() + ":" + gap.GetProperty("attribute").GetString());
+
+        Assert.AreSequenceEqual(["GET /:url.scheme"], gaps);
+    }
 }

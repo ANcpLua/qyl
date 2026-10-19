@@ -179,7 +179,8 @@ internal sealed partial class AnalysisEngine
             var prefix = separator > 0 ? type[..separator] : type;
             var kind = J.String(rule, "kind") switch { "internal" => 1, "server" => 2, "client" => 3, "producer" => 4, "consumer" => 5, _ => 0 };
             foreach (var group in rows.Where(row => row.Span?.Kind == kind && row.Attributes.Any(a => a.Key.StartsWith(prefix + ".", StringComparison.Ordinal))).GroupBy(row => (row.Service, row.Name)))
-                foreach (var required in rule["required"]!.AsArray().Select(J.Text))
+                // An attribute the collector does not persist is absent whether or not the producer sent it.
+                foreach (var required in rule["required"]!.AsArray().Select(J.Text).Where(AttributeKeySets.ShouldCaptureSpanAttribute))
                 {
                     var missing = group.Count(row => row.Value(required) is null);
                     if (missing > 0) gaps.Add(J.O(("service", group.Key.Service), ("operation", group.Key.Name), ("attribute", required), ("requirement_level", "required"), ("missing_share", missing / (double)group.Count())));
