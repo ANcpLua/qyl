@@ -493,21 +493,21 @@ public sealed class ToolSession
 
 public sealed class AgentTokens
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("input")]
-    public required long? Input { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public long? Input { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("output")]
-    public required long? Output { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public long? Output { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cache_read")]
-    public required long? CacheRead { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public long? CacheRead { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cache_write")]
-    public required long? CacheWrite { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public long? CacheWrite { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reasoning")]
-    public required long? Reasoning { get; init; }
+    public long? Reasoning { get; init; }
 }
 
 public sealed class SearchLogsInput
@@ -2378,7 +2378,7 @@ public sealed class AggregateBucket
 public sealed class AggregateGroup
 {
     [JsonPropertyName("key")]
-    public required IReadOnlyDictionary<string, object> Key { get; init; }
+    public required IReadOnlyDictionary<string, object?> Key { get; init; }
     [JsonPropertyName("measures")]
     public required IReadOnlyDictionary<string, double?> Measures { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -2624,7 +2624,7 @@ public sealed class AgentFindings
     [JsonPropertyName("failed_tool_calls")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AgentStep> FailedToolCalls { get; init; }
     [JsonPropertyName("slowest_steps")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AgentStep> SlowestSteps { get; init; }
+    public required IReadOnlyList<int> SlowestSteps { get; init; }
     [JsonPropertyName("token_share")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AgentTokenShare> TokenShare { get; init; }
 }

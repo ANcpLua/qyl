@@ -594,7 +594,8 @@ model AggregateBucket {
 
 @doc("AggregateGroup contract.")
 model AggregateGroup {
-  key: Record<MatcherValue>;
+  @doc("Each group_by key's value; null for records that do not carry the key.")
+  key: Record<MatcherValue | null>;
   measures: Record<float64 | null>;
   buckets?: AggregateBucket[];
 }
@@ -680,13 +681,13 @@ model GetAgentRunInput {
 
 @doc("AgentTokens contract.")
 model AgentTokens {
-  input: int64 | null;
-  output: int64 | null;
+  input?: int64;
+  output?: int64;
   @encodedName("application/json", "cache_read")
-  cacheRead: int64 | null;
+  cacheRead?: int64;
   @encodedName("application/json", "cache_write")
-  cacheWrite: int64 | null;
-  reasoning: int64 | null;
+  cacheWrite?: int64;
+  reasoning?: int64;
 }
 
 @doc("AgentRun contract.")
@@ -746,8 +747,9 @@ model AgentFindings {
   repeatedCalls: RepeatedCall[];
   @encodedName("application/json", "failed_tool_calls")
   failedToolCalls: AgentStep[];
+  @doc("Indexes into `steps` of the three slowest steps, slowest first.")
   @encodedName("application/json", "slowest_steps")
-  slowestSteps: AgentStep[];
+  slowestSteps: int32[];
   @encodedName("application/json", "token_share")
   tokenShare: AgentTokenShare[];
 }

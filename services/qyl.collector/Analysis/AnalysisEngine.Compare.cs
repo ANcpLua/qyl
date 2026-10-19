@@ -140,6 +140,8 @@ internal sealed partial class AnalysisEngine
         return J.A(countsA.Where(p => !excluded.Contains(p.Key.Key) && !(predicates?.Contains(p.Key.Key) ?? false) && p.Value >= 5).Select(p =>
         { var bc = countsB.GetValueOrDefault(p.Key); var sa = p.Value / (double)Math.Max(1, a.Count); var sb = bc / (double)Math.Max(1, b.Count);
             return J.O(("key", p.Key.Key), ("value", p.Key.Value), ("share_a", sa), ("share_b", sb), ("count_a", p.Value), ("count_b", bc), ("lift", sb is 0 ? null : sa / sb), ("difference", sa - sb)); })
+            // A value no more common in A than in B (lift at most 1) does not discriminate A.
+            .Where(static x => x["lift"] is null || J.Number(x, "lift") > 1)
             .OrderByDescending(x => J.Number(x, "difference")).ThenBy(x => J.String(x, "key"), StringComparer.Ordinal).Take(limit));
     }
     private static bool IsUniqueKey(string key) => key.EndsWith(".id", StringComparison.Ordinal) || key.Contains("timestamp", StringComparison.Ordinal) || key.Contains("hash", StringComparison.Ordinal);
@@ -162,6 +164,11 @@ internal sealed partial class AnalysisEngine
         var windowA = WindowOf(ga); var a = Group(ga, windowA); var gb = input["group_b"];
         var b = gb is JsonObject bg ? Group(bg, WindowOf(bg)) : J.Text(gb) == "before" ? Group(ga, new(windowA.Start - (windowA.End - windowA.Start), windowA.Start)) :
             [.. Select(input, signal).Except(a)];
+        // Two populations compare only when both hold records.
+        foreach (var (field, group) in new[] { ("group_a", a), ("group_b", b) })
+            if (group.Count is 0)
+                throw new AnalysisInputException(field, $"{(field == "group_a" ? "Group A" : "Group B")} holds no records in its window; widen the window or loosen its matchers.", "group.empty")
+                    { Hint = "discover_attributes lists the keys and values the records carry." };
         var scope = J.String(input, "attribute_scope") ?? "both";
         var namesA = a.Select(s => s.Name).ToHashSet(); var namesB = b.Select(s => s.Name).ToHashSet();
         JsonObject Durations(List<AnalysisRecord> rows) => J.O(("p50_ms", J.Percentile(rows.Select(s => s.Duration), .5)), ("p95_ms", J.Percentile(rows.Select(s => s.Duration), .95)), ("p99_ms", J.Percentile(rows.Select(s => s.Duration), .99)));
@@ -175,6 +182,9 @@ internal sealed partial class AnalysisEngine
             || a.Count(s => s.Error) / (double)Math.Max(1, a.Count) != b.Count(s => s.Error) / (double)Math.Max(1, b.Count);
         var predicates = new[] { ga["matchers"], (gb as JsonObject)?["matchers"] }.OfType<JsonArray>()
             .SelectMany(x => x).Select(x => J.String(x, "key") ?? "").ToHashSet(StringComparer.Ordinal);
+        // A failure cohort is defined by its signature's attributes; they cannot also discriminate it.
+        if (J.String(ga, "failure_id") is not null)
+            predicates.UnionWith([CollectorSemanticAttributeCatalog.ErrorType, CollectorSemanticAttributeCatalog.RecordedFailureKind, CollectorSemanticAttributeCatalog.HttpRoute, CollectorSemanticAttributeCatalog.ServiceName]);
         return J.O(
             ("discriminators", Discriminators(a, b, scope, int.MaxValue, predicates)),
             ("structural", J.A(names.Where(name => ShareA(name) != ShareB(name)).Select(name => J.O(("name", name), ("share_a", ShareA(name)), ("share_b", ShareB(name)))))),

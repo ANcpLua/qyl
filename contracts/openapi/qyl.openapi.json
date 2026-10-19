@@ -7697,8 +7697,10 @@
           "slowest_steps": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.AgentStep"
-            }
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Indexes into `steps` of the three slowest steps, slowest first."
           },
           "token_share": {
             "type": "array",
@@ -7843,68 +7845,26 @@
       },
       "Mcp.Tools.AgentTokens": {
         "type": "object",
-        "required": [
-          "input",
-          "output",
-          "cache_read",
-          "cache_write",
-          "reasoning"
-        ],
         "properties": {
           "input": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "format": "int64"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "format": "int64"
           },
           "output": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "format": "int64"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "format": "int64"
           },
           "cache_read": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "format": "int64"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "format": "int64"
           },
           "cache_write": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "format": "int64"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "format": "int64"
           },
           "reasoning": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "format": "int64"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "format": "int64"
           }
         },
         "unevaluatedProperties": {
@@ -7953,8 +7913,16 @@
           "key": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/Common.MatcherValue"
-            }
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Common.MatcherValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Each group_by key's value; null for records that do not carry the key."
           },
           "measures": {
             "type": "object",

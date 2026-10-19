@@ -1050,11 +1050,11 @@ export interface ToolSession {
 }
 
 export interface AgentTokens {
-  "input": number | null;
-  "output": number | null;
-  "cache_read": number | null;
-  "cache_write": number | null;
-  "reasoning": number | null;
+  "input"?: number;
+  "output"?: number;
+  "cache_read"?: number;
+  "cache_write"?: number;
+  "reasoning"?: number;
 }
 
 export interface SearchLogsInput {
@@ -1939,7 +1939,7 @@ export interface AggregateBucket {
 }
 
 export interface AggregateGroup {
-  "key": Record<string, MatcherValue>;
+  "key": Record<string, MatcherValue | null>;
   "measures": Record<string, number | null>;
   "buckets"?: AggregateBucket[];
 }
@@ -2052,7 +2052,7 @@ export interface AgentTokenShare {
 export interface AgentFindings {
   "repeated_calls": RepeatedCall[];
   "failed_tool_calls": AgentStep[];
-  "slowest_steps": AgentStep[];
+  "slowest_steps": number[];
   "token_share": AgentTokenShare[];
 }
 
@@ -2428,4 +2428,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:5917e44841bcaab5";
+export const CONTRACT_REVISION: string = "sha256:cd6e5abe3f164ab2";

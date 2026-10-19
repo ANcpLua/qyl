@@ -602,17 +602,25 @@
               "additionalProperties": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ],
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                   },
                   {
-                    "type": "number"
-                  },
-                  {
-                    "type": "boolean"
+                    "type": "null"
                   }
-                ],
-                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-              }
+                ]
+              },
+              "description": "Each group_by key's value; null for records that do not carry the key."
             },
             "measures": {
               "type": "object",
@@ -5753,63 +5761,21 @@
           },
           "tokens": {
             "type": "object",
-            "required": [
-              "input",
-              "output",
-              "cache_read",
-              "cache_write",
-              "reasoning"
-            ],
             "properties": {
               "input": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "integer"
               },
               "output": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "integer"
               },
               "cache_read": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "integer"
               },
               "cache_write": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "integer"
               },
               "reasoning": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "integer"
               }
             },
             "description": "AgentTokens contract.",
@@ -5884,63 +5850,21 @@
             },
             "tokens": {
               "type": "object",
-              "required": [
-                "input",
-                "output",
-                "cache_read",
-                "cache_write",
-                "reasoning"
-              ],
               "properties": {
                 "input": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "type": "integer"
                 },
                 "output": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "type": "integer"
                 },
                 "cache_read": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "type": "integer"
                 },
                 "cache_write": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "type": "integer"
                 },
                 "reasoning": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "type": "integer"
                 }
               },
               "description": "AgentTokens contract.",
@@ -6055,63 +5979,21 @@
                 },
                 "tokens": {
                   "type": "object",
-                  "required": [
-                    "input",
-                    "output",
-                    "cache_read",
-                    "cache_write",
-                    "reasoning"
-                  ],
                   "properties": {
                     "input": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+                      "type": "integer"
                     },
                     "output": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+                      "type": "integer"
                     },
                     "cache_read": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+                      "type": "integer"
                     },
                     "cache_write": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+                      "type": "integer"
                     },
                     "reasoning": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+                      "type": "integer"
                     }
                   },
                   "description": "AgentTokens contract.",
@@ -6151,140 +6033,11 @@
           "slowest_steps": {
             "type": "array",
             "items": {
-              "type": "object",
-              "required": [
-                "index",
-                "kind",
-                "name",
-                "duration_ms",
-                "tokens",
-                "status",
-                "trace_id",
-                "span_id"
-              ],
-              "properties": {
-                "index": {
-                  "type": "integer",
-                  "minimum": -2147483648,
-                  "maximum": 2147483647
-                },
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "llm_call",
-                    "tool_call",
-                    "agent",
-                    "retrieval"
-                  ]
-                },
-                "name": {
-                  "type": "string"
-                },
-                "mcp_method": {
-                  "type": "string"
-                },
-                "mcp_server": {
-                  "type": "string"
-                },
-                "duration_ms": {
-                  "type": "number",
-                  "minimum": 0,
-                  "description": "Duration in milliseconds"
-                },
-                "tokens": {
-                  "type": "object",
-                  "required": [
-                    "input",
-                    "output",
-                    "cache_read",
-                    "cache_write",
-                    "reasoning"
-                  ],
-                  "properties": {
-                    "input": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "output": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "cache_read": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "cache_write": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "reasoning": {
-                      "anyOf": [
-                        {
-                          "type": "integer"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    }
-                  },
-                  "description": "AgentTokens contract.",
-                  "additionalProperties": false
-                },
-                "status": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                },
-                "trace_id": {
-                  "type": "string",
-                  "minLength": 32,
-                  "maxLength": 32,
-                  "pattern": "^[a-f0-9]{32}$",
-                  "description": "Unique trace identifier (32 lowercase hex characters)",
-                  "examples": [
-                    "0af7651916cd43dd8448eb211c80319c"
-                  ]
-                },
-                "span_id": {
-                  "type": "string",
-                  "minLength": 16,
-                  "maxLength": 16,
-                  "pattern": "^[a-f0-9]{16}$",
-                  "description": "Unique span identifier (16 lowercase hex characters)",
-                  "examples": [
-                    "b7ad6b7169203331"
-                  ]
-                }
-              },
-              "description": "AgentStep contract.",
-              "additionalProperties": false
-            }
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            },
+            "description": "Indexes into `steps` of the three slowest steps, slowest first."
           },
           "token_share": {
             "type": "array",
@@ -14540,63 +14293,21 @@
               "type": "object",
               "additionalProperties": {
                 "type": "object",
-                "required": [
-                  "input",
-                  "output",
-                  "cache_read",
-                  "cache_write",
-                  "reasoning"
-                ],
                 "properties": {
                   "input": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                    "type": "integer"
                   },
                   "output": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                    "type": "integer"
                   },
                   "cache_read": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                    "type": "integer"
                   },
                   "cache_write": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                    "type": "integer"
                   },
                   "reasoning": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                    "type": "integer"
                   }
                 },
                 "description": "AgentTokens contract.",

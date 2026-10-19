@@ -30,14 +30,20 @@ internal sealed partial class AnalysisEngine
             return result;
         }
         var step = (long)J.Number(input, "step_ms"); if (step < 0) throw new AnalysisInputException("step_ms", "step_ms must be positive.");
-        var groups = rows.GroupBy(r => string.Join('\0', keys.Select(k => J.Text(r.Value(k))))).Select(g =>
+        // A key no record carries is a typo, not one group of everything.
+        if (rows.Count > 0 && keys.FirstOrDefault(k => rows.All(r => r.Value(k) is null)) is { } unrecorded)
+            throw new AnalysisInputException("group_by", $"No record in this window carries {unrecorded}.", "group_by.unrecorded") { Hint = "discover_attributes lists the keys the records carry." };
+        var order = J.String(input, "order_by") ?? measures[0]; var descending = !order.EndsWith(" asc", StringComparison.Ordinal); order = order.Split(' ')[0];
+        if (!measures.Contains(order, StringComparer.Ordinal))
+            throw new AnalysisInputException("order_by", $"order_by names one of the requested measures, optionally followed by ' asc'.", "order_by.unknown") { Allowed = measures };
+        // A record without the key groups apart from one whose value is empty, under a null key.
+        var groups = rows.GroupBy(r => string.Join('\0', keys.Select(k => r.Value(k)?.ToJsonString() ?? "\u0001"))).Select(g =>
         {
-            var key = new JsonObject(); foreach (var k in keys) key[k] = g.First().Value(k)?.DeepClone() ?? JsonValue.Create("");
+            var key = new JsonObject(); foreach (var k in keys) key[k] = g.First().Value(k)?.DeepClone();
             var result = J.O(("key", key), ("measures", Measure(g)));
             if (step > 0) result["buckets"] = J.A(g.GroupBy(r => (r.Start - _window.StartNs) / ((ulong)step * 1_000_000)).OrderBy(b => b.Key).Select(b => J.O(("start_time", J.Time(_window.StartNs + b.Key * (ulong)step * 1_000_000)), ("measures", Measure(b)))));
             return (Group: result, Size: g.Count());
         }).ToList();
-        var order = J.String(input, "order_by") ?? measures[0]; var descending = !order.EndsWith(" asc", StringComparison.Ordinal); order = order.Split(' ')[0];
         groups = descending
             ? [.. groups.OrderByDescending(g => J.Number(g.Group["measures"], order)).ThenBy(g => g.Group["key"]!.ToJsonString(), StringComparer.Ordinal)]
             : [.. groups.OrderBy(g => J.Number(g.Group["measures"], order)).ThenBy(g => g.Group["key"]!.ToJsonString(), StringComparer.Ordinal)];
@@ -89,7 +95,7 @@ internal sealed partial class AnalysisEngine
                     var failures = after.Where(s => s.Error).GroupBy(Signature)
                         .Where(f => !previousFailures.Contains(f.Key)).Select(f => FailureId(f.Key));
                     var concurrent = serviceRows.Any(s => ReleaseOf(s) != g.Key.Version && s.Start >= first && s.Start <= last);
-                    return J.O(("service", g.Key.Service), ("environment", g.Key.Env), ("version", g.Key.Version),
+                    return J.O(("service", g.Key.Service), ("environment", g.Key.Env is { Length: > 0 } env ? env : null), ("version", g.Key.Version),
                         ("revision",
                             g.Select(s =>
                                     J.Text(s.Value(CollectorSemanticAttributeCatalog.VcsRefHeadRevision, "resource")))
@@ -101,7 +107,7 @@ internal sealed partial class AnalysisEngine
 
                     JsonObject Perf(List<AnalysisRecord> items) =>
                         J.O(("error_rate", items.Count is 0 ? null : items.Count(s => s.Error) / (double)items.Count),
-                            ("p95_ms", J.Percentile(items.Select(s => s.Duration), .95)));
+                            ("p95_ms", Math.Round(J.Percentile(items.Select(s => s.Duration), .95), 3, MidpointRounding.AwayFromZero)));
                 }).OrderByDescending(r => J.String(r, "first_seen"), StringComparer.Ordinal)
         ];
     }
@@ -139,10 +145,10 @@ internal sealed partial class AnalysisEngine
             edges = [.. edges.Where(e => names.Contains(e.From) && names.Contains(e.To))]; kinds = kinds.Where(p => names.Contains(p.Key)).ToDictionary();
         }
         var grouped = edges.GroupBy(e => (e.From, e.To));
-        var resultEdges = grouped.Select(g => J.O(("from", g.Key.From), ("to", g.Key.To), ("calls", g.Count()), ("error_rate", g.Count(e => e.Span.Error) / (double)g.Count()), ("p95_ms", J.Percentile(g.Select(e => e.Span.Duration), .95)), ("example_operations", g.Select(e => e.Span.Name).Distinct().Take(3)), ("unit", "spans")));
+        var resultEdges = grouped.Select(g => J.O(("from", g.Key.From), ("to", g.Key.To), ("calls", g.Count()), ("error_rate", g.Count(e => e.Span.Error) / (double)g.Count()), ("p95_ms", Math.Round(J.Percentile(g.Select(e => e.Span.Duration), .95), 3, MidpointRounding.AwayFromZero)), ("example_operations", g.Select(e => e.Span.Name).Distinct().Take(3)), ("unit", "spans")));
         var serviceRowsByName = rows.ToLookup(s => s.Service, StringComparer.Ordinal);
         var incomingByName = edges.ToLookup(e => e.To, StringComparer.Ordinal);
-        var nodes = kinds.Select(k => { var nodeRows = serviceRowsByName[k.Key].Concat(k.Value == "service" ? [] : incomingByName[k.Key].Select(e => e.Span)).ToList(); return J.O(("name", k.Key), ("kind", k.Value), ("calls", nodeRows.Count), ("error_rate", nodeRows.Count is 0 ? 0 : nodeRows.Count(s => s.Error) / (double)nodeRows.Count), ("p95_ms", J.Percentile(nodeRows.Select(s => s.Duration), .95)), ("unit", "spans")); });
+        var nodes = kinds.Select(k => { var nodeRows = serviceRowsByName[k.Key].Concat(k.Value == "service" ? [] : incomingByName[k.Key].Select(e => e.Span)).ToList(); return J.O(("name", k.Key), ("kind", k.Value), ("calls", nodeRows.Count), ("error_rate", nodeRows.Count is 0 ? 0 : nodeRows.Count(s => s.Error) / (double)nodeRows.Count), ("p95_ms", Math.Round(J.Percentile(nodeRows.Select(s => s.Duration), .95), 3, MidpointRounding.AwayFromZero)), ("unit", "spans")); });
         return J.O(("nodes", J.A(nodes)), ("edges", J.A(resultEdges)), ("unknown_callers", rows.Count is 0 ? 0 : rows.Count(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))) / (double)rows.Count));
     }
     private JsonObject Health(JsonObject input)

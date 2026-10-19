@@ -238,6 +238,8 @@ internal sealed partial class AnalysisEngine
             && (J.String(input, "outcome") switch { "failed" => g.Any(s => s.Error), "passed" => g.All(s => !s.Error), _ => true });
         var groups = all.Where(Matches).OrderByDescending(g => g.Max(s => s.Start)).ToList();
         var runId = J.String(input, "run_id"); var selected = runId is not null ? all.FirstOrDefault(g => g.Key == runId) : groups.FirstOrDefault();
+        if (runId is not null && selected is null)
+            throw new AnalysisInputException("run_id", $"CI run {runId} was not found in this project; " + (groups.Count is 0 ? "ci_log without run_id lists the runs." : $"recent runs: {string.Join(", ", groups.Take(5).Select(static g => g.Key))}."), "run.not_found") { Missing = runId };
         // Index the recorded provider runs once. Attempt numbers describe their
         // observed chronological order, rather than reporting every rerun as 1.
         var runInfo = all.ToDictionary(g => g.Key, g => new

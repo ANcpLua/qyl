@@ -192,7 +192,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     {
         if (failing.Where(static s => ReleaseOf(s).Length > 0).GroupBy(static s => (s.Service, Version: ReleaseOf(s), Env: EnvironmentOf(s)))
                 .OrderByDescending(static g => g.Count()).ThenByDescending(static g => g.Max(static s => s.Start)).FirstOrDefault()?.Key is not { } run) return null;
-        return releases.FirstOrDefault(r => J.String(r, "service") == run.Service && J.String(r, "version") == run.Version && J.String(r, "environment") == run.Env
+        return releases.FirstOrDefault(r => J.String(r, "service") == run.Service && J.String(r, "version") == run.Version && (J.String(r, "environment") ?? "") == run.Env
             && _window.Contains(QylTimeConversions.ToUnixNanoUnsigned(J.Date(r, "first_seen")!.Value)));
     }
     private ILookup<string?, AnalysisRecord> ErrorsByTrace => field ??= _spans.Where(static s => s.Error).ToLookup(static s => s.TraceId);
