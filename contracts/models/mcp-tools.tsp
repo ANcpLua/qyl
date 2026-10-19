@@ -112,53 +112,66 @@ model ToolPage {
 
 @doc("Time-range members of a tool input. Omit all three for the tool's default window ending now; the result's `window` reports the bounds that were applied, so a follow-up call can pass them as `start_time` and `end_time` to keep the same window.")
 model ToolTimeRange {
-  @doc("Minutes before `end_time` (or now) when `start_time` is omitted. Default 60; list_releases defaults to 10080 (7 days). Maximum 43200 (30 days).")
+  @doc("Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default.")
   @minValue(1) @maxValue(43200)
   @encodedName("application/json", "lookback_minutes")
   lookbackMinutes?: int32;
 
-  @doc("Start of the window (inclusive), RFC 3339.")
+  @doc("Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`.")
   @encodedName("application/json", "start_time")
   startTime?: utcDateTime;
 
-  @doc("End of the window (exclusive), RFC 3339.")
+  @doc("End of the window (exclusive), RFC 3339; default now.")
   @encodedName("application/json", "end_time")
   endTime?: utcDateTime;
 }
 
-@doc("Input for list_traces.")
+@doc("Finds executions: one compact row per trace that started in the window, with its root service and span name, start, duration in ms, span and error counts, services, failure ids and session. Use it to get the trace ids that get_trace, compare_traces and get_failure_context take; aggregate_telemetry computes numbers per group and compare_groups explains what differs between two populations. Default: the last 60 minutes, 10 traces per page, newest first.")
 model ListTracesInput {
+  @doc("Keep traces with an error span of this failure class, the classification get_mcp_stats reports.")
   @encodedName("application/json", "failure_class")
   failureClass?: McpFailureClass;
+  @doc("Keep traces with a span whose `mcp.server.name`, or service name, is this value.")
   @encodedName("application/json", "server_name")
   serverName?: string;
+  @doc("Keep traces with a span of this tool (`gen_ai.tool.name`).")
   @encodedName("application/json", "tool_name")
   toolName?: string;
+  @doc("Keep traces with a span whose `mcp.transport`, or `network.transport`, is this value.")
   transport?: string;
 
+  @doc("Keep traces with a span in this session.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
+  @doc("Keep traces whose root span has exactly this name.")
   @encodedName("application/json", "root_span_name")
   rootSpanName?: string;
+  @doc("Keep traces lasting at least this many milliseconds, from the earliest span start to the latest span end.")
   @encodedName("application/json", "min_duration_ms")
   minDurationMs?: DurationMs;
+  @doc("Keep traces lasting at most this many milliseconds.")
   @encodedName("application/json", "max_duration_ms")
   maxDurationMs?: DurationMs;
+  @doc("Keep traces with a span of this release (resource `service.version`). With `service_name` or `matchers`, one span must satisfy all of them.")
   release?: string;
+  @doc("Keep traces in which this failure occurred, e.g. a `failure_id` from triage.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
+  @doc("With `errors_only`: `any` (default) keeps traces with any error span, `root` only traces whose root span failed.")
   @encodedName("application/json", "error_scope")
   errorScope?: "any" | "root";
+  @doc("Keep traces with an annotation carrying this label, on the trace or one of its spans.")
   @encodedName("application/json", "annotation_label")
   annotationLabel?: string;
   @doc("Order of the traces: `start_time` (default) newest first, `duration` longest first, `errors` most error spans first. Equal values keep the newest trace first.")
   @encodedName("application/json", "sort_by")
   sortBy?: "start_time" | "duration" | "errors";
 
+  @doc("Attribute predicates one span of the trace must all satisfy, together with `service_name` and `release`.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
-  @doc("Maximum traces to return in this page.")
+  @doc("Traces per page, 1 to 100; default 10.")
   @minValue(1)
   @maxValue(100)
   limit?: int32 = 10;
@@ -169,7 +182,7 @@ model ListTracesInput {
   @encodedName("application/json", "service_name")
   serviceName?: string;
 
-  @doc("Keep only traces with at least one error span.")
+  @doc("Keep only traces with at least one error span, or with a failed root span under `error_scope: root`.")
   @encodedName("application/json", "errors_only")
   errorsOnly?: boolean;
 
@@ -189,11 +202,12 @@ model ListTracesOutput {
   error?: ToolError;
 }
 
-@doc("Input for get_trace.")
+@doc("Reads one trace: its time range, span and error counts, services, the spans `selection` picks as compact rows (service, name, start, duration in ms, status, attributes), each service's resource once, links, annotations and optionally correlated logs. Use it on a trace id from list_traces, triage or get_failure_context; get_failure_context already explains a failed trace and compare_traces compares two. The whole trace is read whatever the time range; its spans page by `max_spans`, default 100.")
 model GetTraceInput {
+  @doc("`next_cursor` of a previous get_trace call for the same trace and arguments; continues its spans and its other paged lists.")
   cursor?: Cursor;
 
-  @doc("Which spans to return: `all` (default), `errors` (error status only), `errors_with_ancestors` (error spans plus their path to the root; the ancestors carry `role: context`) or `critical_path` (the chain of longest child spans from the root, each with `self_time_ms`). Start with `errors_with_ancestors` when diagnosing a failure and widen to `all` only when the error path is not enough.")
+  @doc("Which spans to return: `all` (default), `errors` (error status only), `errors_with_ancestors` (error spans plus every span on their path to the root) or `critical_path` (from the root, each span's longest child, each with `self_time_ms`). Start with `errors_with_ancestors` when diagnosing a failure and widen to `all` only when the error path is not enough.")
   selection?: "all" | "errors" | "errors_with_ancestors" | "critical_path";
 
   @doc("Attribute keys to keep on each returned span; omit for every recorded attribute.")
@@ -206,6 +220,7 @@ model GetTraceInput {
 
   ...ToolTimeRange;
 
+  @doc("The trace to read, 32 lowercase hex characters, e.g. from list_traces.")
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
 
@@ -215,7 +230,7 @@ model GetTraceInput {
   @maxValue(1000)
   maxSpans?: int32 = 100;
 
-  @doc("Include span, resource, event and link attributes; false omits those attribute collections.")
+  @doc("Include each span's attributes and each service's resource attributes; default `true`. `false` returns the spans without them.")
   @encodedName("application/json", "include_attributes")
   includeAttributes?: boolean = true;
 }
@@ -242,35 +257,45 @@ model GetTraceOutput {
   error?: ToolError;
 }
 
-@doc("Input for list_sessions.")
+@doc("Lists the sessions, spans sharing a session id, that started in the window: span, trace and error counts, duration, services, failure ids, agent name, models and token usage. Use it to find an agent or user session; get_agent_run reconstructs one session's steps and list_traces lists single executions. Default: the last 60 minutes, 20 sessions per page, most recent activity first.")
 model ListSessionsInput {
+  @doc("`true` keeps sessions with an error span, `false` sessions without one.")
   @encodedName("application/json", "has_error")
   hasError?: boolean;
+  @doc("Keep sessions with at least this many error spans.")
   @encodedName("application/json", "min_errors")
   minErrors?: int64;
+  @doc("Keep sessions with a span of this service; with `matchers`, one span must satisfy both.")
   @encodedName("application/json", "service_name")
   serviceName?: string;
+  @doc("Keep sessions whose agent (`gen_ai.agent.name`) has this name.")
   @encodedName("application/json", "agent_name")
   agentName?: string;
+  @doc("Keep sessions that used this model (`gen_ai.response.model`, else `gen_ai.request.model`).")
   `model`?: string;
+  @doc("Keep sessions with at least this many input plus output tokens.")
   @encodedName("application/json", "min_tokens")
   minTokens?: int64;
+  @doc("Keep sessions lasting at least this many milliseconds, from the first span start to the last span end.")
   @encodedName("application/json", "min_duration_ms")
   minDurationMs?: DurationMs;
+  @doc("Keep sessions with an annotation carrying this label.")
   @encodedName("application/json", "annotation_label")
   annotationLabel?: string;
+  @doc("Order of the sessions: `last_activity` (default) most recent first, `errors` most error spans first, `duration` longest first, `tokens` most tokens first.")
   @encodedName("application/json", "sort_by")
   sortBy?: "last_activity" | "errors" | "duration" | "tokens";
 
+  @doc("Attribute predicates one span of the session must all satisfy, together with `service_name`.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
-  @doc("Maximum sessions to return in this page.")
+  @doc("Sessions per page, 1 to 100; default 20.")
   @minValue(1)
   @maxValue(100)
   limit?: int32 = 20;
 
-  @doc("Return only sessions that are still active; omitted or false includes ended sessions.")
+  @doc("Return only active sessions, those whose last span ended less than 5 minutes ago; omitted or false includes ended sessions.")
   @encodedName("application/json", "active_only")
   activeOnly?: boolean;
 
@@ -295,15 +320,19 @@ model ListSessionsOutput {
   error?: ToolError;
 }
 
-@doc("Input for search_logs.")
+@doc("Searches the window's log records, newest first, by trace, span, session, service, minimum severity, body text or matchers. Use it for the logs around one execution (pass a `trace_id` from list_traces or get_trace), or with `group_by: pattern` for the repeating message templates alone; aggregate_telemetry counts logs per attribute. Default: the last 60 minutes, 50 records per page.")
 model SearchLogsInput {
+  @doc("Return only log records correlated with this span.")
   @encodedName("application/json", "span_id")
   spanId?: SpanId;
+  @doc("`pattern` returns message templates (numbers, hex ids, UUIDs and quoted strings replaced by `#`) with their counts, most frequent first, instead of the records.")
   @encodedName("application/json", "group_by")
   groupBy?: "pattern";
+  @doc("Also return up to this many records before and after each returned record from the same service and resource, in `context_logs`; 0 to 10, default 0. Not applied with `group_by`.")
   @minValue(0) @maxValue(10)
   context?: int32;
 
+  @doc("Attribute predicates every returned record must satisfy; a matcher tests log attributes unless its `scope` is `resource`.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
@@ -321,10 +350,10 @@ model SearchLogsInput {
   @maxValue(24)
   severityMin?: int32;
 
-  @doc("Substring searched in the log body.")
+  @doc("Case-insensitive substring of the log body.")
   query?: string;
 
-  @doc("Maximum log records to return in this page.")
+  @doc("Records per page, or patterns with `group_by`, 1 to 200; default 50.")
   @minValue(1)
   @maxValue(200)
   limit?: int32 = 50;
@@ -367,25 +396,34 @@ enum CiPhaseStatus {
   unset: "unset",
 }
 
-@doc("Input for ci_log.")
+@doc("Lists the CI runs recorded as telemetry by services whose name starts with `service_prefix`, newest first, and breaks one run into its phases per leg with status, duration, message and error logs. `run_id` picks the run to break down (default: the newest matching run), and `compare_to` compares it with the last successful run or another run, naming new failures, fixed phases and duration regressions. Use get_failure_context with `ci_run_id` to explain a failed run.")
 model CiLogInput {
+  @doc("`next_cursor` of a previous ci_log call with the same filters; continues the run list.")
   cursor?: Cursor;
+  @doc("Keep runs with a span on this branch (`vcs.ref.head.name`).")
   branch?: string;
+  @doc("Keep runs with a span of this commit (`vcs.ref.head.revision`).")
   commit?: string;
+  @doc("Keep only the phases of this leg (`cicd.pipeline.task.name`, else the service name).")
   leg?: string;
+  @doc("Keep only the phases with this span name.")
   phase?: string;
+  @doc("`next_phase_cursor` of a previous call for the same run; continues its phases, 50 per page.")
   @encodedName("application/json", "phase_cursor")
   phaseCursor?: Cursor;
+  @doc("`failed` keeps runs with an error span, `passed` runs without one, `all` (default) both.")
   outcome?: "failed" | "passed" | "all";
+  @doc("Compare the selected run with `last_success`, the latest earlier run without errors, or with the run of this `run_id`.")
   @encodedName("application/json", "compare_to")
   compareTo?: string;
 
+  @doc("Attribute predicates one span of a run in the window must satisfy.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
   ...ToolTimeRange;
 
-  @doc("Session id of one CI run for a per-leg phase breakdown; omit to list recent runs.")
+  @doc("The run to break into phases: a `run_id` of the run list, the run's session id; an unknown run is answered with not_found naming recent runs. Omitted, the newest matching run is broken down.")
   @encodedName("application/json", "run_id")
   runId?: SessionId;
 
@@ -395,7 +433,7 @@ model CiLogInput {
   @maxLength(256)
   servicePrefix?: string = "qyl-ci";
 
-  @doc("Maximum CI runs to list.")
+  @doc("Runs per page, 1 to 50; default 10.")
   @minValue(1)
   @maxValue(50)
   limit?: int32 = 10;
@@ -483,28 +521,34 @@ model CiLogOutput {
 // Metric tools: list_metrics, get_metric_series, query_metric
 // -----------------------------------------------------------------------------
 
-@doc("Input for list_metrics.")
+@doc("Lists the recorded metric instruments, one compact row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts and whether its descriptors conflict. Start a metric question here; get_metric_series shows one instrument's series and attribute keys, and query_metric computes its values over time. Default: 50 instruments per page, ordered by name.")
 model ListMetricsInput {
+  @doc("Case-insensitive substring of the instrument name or description.")
   text?: string;
+  @doc("Keep instruments this service reports.")
   @encodedName("application/json", "service_name")
   serviceName?: string;
+  @doc("Keep instruments of this kind.")
   kind?: MetricKind;
+  @doc("Keep instruments with exactly this unit, e.g. `s` or `By`.")
   unit?: string;
 
+  @doc("Attribute predicates one series of the instrument must satisfy; `scope: resource` tests its resource attributes.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
   ...ToolTimeRange;
 
-  @doc("Return only names starting with this prefix.")
+  @doc("Return only names starting with this prefix (case-sensitive), e.g. `http.server.`.")
   @encodedName("application/json", "name_prefix")
   namePrefix?: string;
 
+  @doc("Instruments per page, 1 to 1000; default 50.")
   @minValue(1)
   @maxValue(1000)
   limit?: int32 = 50;
 
-  @doc("`next_cursor` of a previous list_metrics call with the same prefix.")
+  @doc("`next_cursor` of a previous list_metrics call with the same filters.")
   cursor?: Cursor;
 }
 
@@ -519,7 +563,7 @@ model ListMetricsOutput {
   error?: ToolError;
 }
 
-@doc("Input for get_metric_series.")
+@doc("Lists the series (attribute combinations) of one metric instrument that recorded a point in the window, with each attribute key's cardinality and top values and suggested `group_by` keys; with `series_id`, one series and a page of its original points. Use it to choose query_metric's `group_by` and `matchers`, or for exact original values and exemplars; query_metric aggregates the values over time. Default: the last 60 minutes, 200 series per page.")
 model GetMetricSeriesInput {
   ...ToolTimeRange;
 
@@ -538,6 +582,7 @@ model GetMetricSeriesInput {
   @maxValue(1000)
   pointsLimit?: int32 = 100;
 
+  @doc("The instrument name, e.g. from list_metrics.")
   @encodedName("application/json", "metric_name")
   @minLength(1)
   metricName: string;
@@ -546,6 +591,7 @@ model GetMetricSeriesInput {
   @maxItems(32)
   matchers?: MetricAttributeMatcher[];
 
+  @doc("Series per page, 1 to 1000; default 200.")
   @minValue(1)
   @maxValue(1000)
   limit?: int32 = 200;
@@ -572,33 +618,40 @@ model GetMetricSeriesOutput {
   error?: ToolError;
 }
 
-@doc("Input for query_metric.")
+@doc("Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `compare_to` or divided by another metric by `ratio_of`. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.")
 model QueryMetricInput {
+  @doc("Minutes before `end_time` (or now) when `start_time` is omitted; default 60.")
   @encodedName("application/json", "lookback_minutes")
   lookbackMinutes?: int32;
   @doc("Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`.")
   function?: "none" | "rate" | "increase" | "delta";
+  @doc("Also aggregate an earlier window into `comparison`: `previous_window`, the window of equal length just before, or `{offset_ms}`, the window shifted back by that many milliseconds.")
   @encodedName("application/json", "compare_to")
   compareTo?: MetricComparison;
+  @doc("Divide each series, per bucket and for the whole window, by the series with the same `group_by` values of another metric; the result's unit is `1`.")
   @encodedName("application/json", "ratio_of")
   ratioOf?: MetricRatio;
 
+  @doc("The instrument to query, e.g. from list_metrics.")
   @encodedName("application/json", "metric_name")
   @minLength(1)
   metricName: string;
 
+  @doc("Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`.")
   @encodedName("application/json", "start_time")
   startTime?: utcDateTime;
 
+  @doc("End of the window (exclusive), RFC 3339; default now.")
   @encodedName("application/json", "end_time")
   endTime?: utcDateTime;
 
-  @doc("Bucket width in integer milliseconds. Omit for whole seconds that split the window into at most 60 buckets.")
+  @doc("Bucket width in integer milliseconds; the window may hold at most 10000 buckets. Omit for whole seconds that split the window into at most 60 buckets.")
   @encodedName("application/json", "step_ms")
   @minValue(1)
   @maxValue(86400000)
   stepMs?: int64;
 
+  @doc("Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each instrument's `supported_aggregations`.")
   aggregation?: MetricAggregation = MetricAggregation.avg;
 
   @doc("Select one exact metric series; disambiguates scopes and conflicting instrument descriptors.")
@@ -606,7 +659,7 @@ model QueryMetricInput {
   @minLength(1)
   seriesId?: string;
 
-  @doc("Attribute keys to split the result by.")
+  @doc("Attribute keys to split the result by: one series per distinct combination of their values.")
   @encodedName("application/json", "group_by")
   @maxItems(16)
   groupBy?: string[];
@@ -615,6 +668,7 @@ model QueryMetricInput {
   @maxItems(32)
   matchers?: MetricAttributeMatcher[];
 
+  @doc("Maximum result series, 1 to 500; default 50. `truncated` reports that more existed.")
   @encodedName("application/json", "series_limit")
   @minValue(1)
   @maxValue(500)
@@ -640,8 +694,9 @@ model QueryMetricOutput {
 // Write tools (scope qyl:write; delete needs qyl:delete)
 // -----------------------------------------------------------------------------
 
-@doc("Input for create_annotation.")
+@doc("Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, list_failures counts the notes on a failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.")
 model CreateAnnotationInput {
+  @doc("Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused.")
   @minLength(1) @maxLength(255)
   @encodedName("application/json", "idempotency_key")
   idempotencyKey?: string;
@@ -649,8 +704,9 @@ model CreateAnnotationInput {
   ...AnnotationCreateRequest;
 }
 
-@doc("Input for update_annotation.")
+@doc("Changes an annotation's text, labels or classification; its target stays fixed and omitted fields keep their value. Pass its current `etag`, from create_annotation or the annotation as get_trace or list_sessions returned it; a stale etag is refused, so re-read and retry. Needs the qyl:write scope.")
 model UpdateAnnotationInput {
+  @doc("The annotation's id, from create_annotation or a returned annotation.")
   id: ResourceId;
 
   @doc("The annotation's current `etag`, sent as If-Match.")
@@ -667,8 +723,9 @@ model AnnotationOutput {
   error?: ToolError;
 }
 
-@doc("Input for create_saved_query.")
+@doc("Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results. run_saved_query evaluates it against current telemetry with a window ending at the time of the run, and list_saved_queries lists the saved queries. Names are unique per project; needs the qyl:write scope.")
 model CreateSavedQueryInput {
+  @doc("Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused.")
   @minLength(1) @maxLength(255)
   @encodedName("application/json", "idempotency_key")
   idempotencyKey?: string;
@@ -676,8 +733,9 @@ model CreateSavedQueryInput {
   ...SavedQueryCreateRequest;
 }
 
-@doc("Input for update_saved_query.")
+@doc("Changes a saved query's name, description or filter; omitted fields keep their value and a new `filter` replaces the old one whole. Pass its current `etag` from list_saved_queries or create_saved_query; a stale etag is refused, so re-read and retry. Needs the qyl:write scope; names stay unique per project.")
 model UpdateSavedQueryInput {
+  @doc("The saved query's id, from list_saved_queries or create_saved_query.")
   id: ResourceId;
 
   @doc("The saved query's current `etag`, sent as If-Match.")
@@ -695,19 +753,23 @@ model SavedQueryOutput {
   error?: ToolError;
 }
 
-@doc("Input for list_saved_queries.")
+@doc("Lists the project's saved queries ordered by name, each with its id, current etag and filter. Use it to choose the id for run_saved_query or the etag for update_saved_query and delete_record; the time range and `matchers` do not filter this list. Default: 20 saved queries per page.")
 model ListSavedQueriesInput {
+  @doc("Not applied: the list is not filtered by attributes.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
   ...ToolTimeRange;
 
+  @doc("Keep only saved queries of this signal.")
   signal?: SavedQuerySignal;
 
+  @doc("Saved queries per page, 1 to 100; default 20.")
   @minValue(1)
   @maxValue(100)
   limit?: int32 = 20;
 
+  @doc("`next_cursor` of a previous list_saved_queries call with the same filters.")
   cursor?: Cursor;
 }
 
@@ -724,11 +786,13 @@ model ListSavedQueriesOutput {
   error?: ToolError;
 }
 
-@doc("Input for run_saved_query.")
+@doc("Runs a saved query against current telemetry: a traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric. The window is the saved lookback ending now, 60 minutes when none was saved, unless `lookback_minutes`, `start_time` or `end_time` override it. An unknown id is answered with not_found; list_saved_queries lists the ids.")
 model RunSavedQueryInput {
+  @doc("Minutes before `end_time` (or now) for this run, overriding the saved look-back window.")
   @encodedName("application/json", "lookback_minutes")
   lookbackMinutes?: int32;
 
+  @doc("The saved query to run, from list_saved_queries or create_saved_query.")
   id: ResourceId;
   ...SavedQueryRunRequest;
 }
@@ -750,9 +814,11 @@ enum DeletableKind {
   savedQuery: "saved_query",
 }
 
-@doc("Input for the delete tool. Telemetry is never deletable.")
+@doc("Deletes one annotation or saved query, named by kind, id and current etag; traces, logs and metrics are never deletable. Needs the qyl:delete scope; a stale etag is refused, so re-read the record for its current etag and retry.")
 model DeleteInput {
+  @doc("What `id` names: `annotation` or `saved_query`.")
   kind: DeletableKind;
+  @doc("The id of the annotation or saved query.")
   id: ResourceId;
 
   @doc("The resource's current `etag`, sent as If-Match.")

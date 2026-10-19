@@ -57,8 +57,9 @@ insufficient traffic as pending rather than calling an unobserved failure fixed.
 `get_trace` returns all spans, errors, errors with ancestors, or the critical path, with selected
 attributes and correlated logs. `ci_log` reads telemetry from any CI following its emitter
 convention; `service_prefix` defaults to `qyl-ci`. `get_mcp_stats` reports MCP request totals, the
-numerator and denominator behind rates, failure classes, the window's 60 time buckets, per-tool
-requests, errors and latency, and simultaneous server, transport and method breakdowns. The `qyl-investigate` skill says which
+numerator and denominator behind rates, failure classes, per-tool requests, errors and latency,
+simultaneous server, transport and method breakdowns and, with `buckets: true`, the window's time
+buckets that saw requests. The `qyl-investigate` skill says which
 tool to start with; the server serves it through the MCP skills extension (`skills/list`,
 `skills/get`, `skill://qyl/qyl-investigate/SKILL.md`), and the build copies it from `skills/` into
 `dist/skills`.

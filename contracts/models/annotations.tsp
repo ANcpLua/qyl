@@ -20,27 +20,34 @@ namespace Qyl.Api.Contracts.Annotations;
 
 @doc("An annotation on one whole trace.")
 model TraceAnnotationTarget {
+  @doc("Always `trace`.")
   kind: "trace";
 
+  @doc("The annotated trace.")
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
 }
 
 @doc("An annotation on one span of a trace.")
 model SpanAnnotationTarget {
+  @doc("Always `span`.")
   kind: "span";
 
+  @doc("The trace that holds the span.")
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
 
+  @doc("The annotated span.")
   @encodedName("application/json", "span_id")
   spanId: SpanId;
 }
 
 @doc("An annotation on one session.")
 model SessionAnnotationTarget {
+  @doc("Always `session`.")
   kind: "session";
 
+  @doc("The annotated session.")
   @encodedName("application/json", "session_id")
   sessionId: SessionId;
 }
@@ -72,11 +79,13 @@ model Annotation extends ResourceBase {
 
 @doc("Body of POST /api/v1/annotations: the `Lifecycle.Create` members of Annotation.")
 model AnnotationCreateRequest {
+  @doc("Up to 10 labels of 1 to 64 characters each; `annotation_label` filters by them.")
   @maxItems(10)
   labels?: AnnotationLabel[];
+  @doc("What the note records: `note` (default), `hypothesis`, `finding` or `rejected`.")
   classification?: AnnotationClassification;
 
-  @doc("What the note is attached to. Fixed at creation.")
+  @doc("What the note is attached to: a `trace`, `span`, `session` or `failure` recorded in the project. Fixed at creation.")
   target: AnnotationTarget;
 
   @doc("The note, plain text, at most 2000 characters.")
@@ -87,19 +96,23 @@ model AnnotationCreateRequest {
 
 @doc("Body of PATCH /api/v1/annotations/{annotation_id}: the `Lifecycle.Update` members of Annotation.")
 model AnnotationUpdateRequest {
+  @doc("New labels, replacing the old ones: up to 10 of 1 to 64 characters each. Omitted, the labels stay.")
   @maxItems(10)
   labels?: AnnotationLabel[];
+  @doc("New classification: `note`, `hypothesis`, `finding` or `rejected`. Omitted, it stays.")
   classification?: AnnotationClassification;
 
-  @doc("The new note, plain text, at most 2000 characters.")
+  @doc("The new note, plain text, at most 2000 characters. Omitted, the text stays.")
   @minLength(1)
   @maxLength(2000)
   text?: string;
 }
 
-@doc("FailureAnnotationTarget contract.")
+@doc("An annotation on one failure, named by its `failure_id`.")
 model FailureAnnotationTarget {
+  @doc("Always `failure`.")
   kind: "failure";
+  @doc("The annotated failure, e.g. from triage or list_failures.")
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
 }

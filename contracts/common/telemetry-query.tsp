@@ -21,23 +21,30 @@ enum MatcherOp { eq, neq, `in`, prefix, contains, exists, gt, gte, lt, lte }
 @doc("Attribute namespace in which the predicate is evaluated.")
 enum MatcherScope { span, resource, log }
 
-@doc("TelemetryMatcher contract.")
+@doc("One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.")
 model TelemetryMatcher {
+  @doc("Attribute key, e.g. `http.route`, or `service.name` for the record's service.")
   @minLength(1)
   @maxLength(256)
   key: string;
+  @doc("Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`.")
   `op`: MatcherOp;
+  @doc("Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`.")
   value?: MatcherValue;
+  @doc("Operands of `in`, 1 to 256; the attribute must equal one of them.")
   @minItems(1)
   @maxItems(256)
   values?: MatcherValue[];
+  @doc("Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`.")
   scope?: MatcherScope;
 }
 
 @doc("Absolute half-open window applied by the collector.")
 model ToolWindow {
+  @doc("Start of the window (inclusive), RFC 3339.")
   @encodedName("application/json", "start_time")
   startTime: utcDateTime;
+  @doc("End of the window (exclusive), RFC 3339.")
   @encodedName("application/json", "end_time")
   endTime: utcDateTime;
 }

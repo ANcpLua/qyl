@@ -74,7 +74,6 @@ public sealed class SavedMetricQueryFilter : SavedQueryFilter
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
     public const Qyl.Api.Contracts.OTel.Metrics.MetricAggregation AggregationDefault = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg;
-    public const long StepMsDefault = 60000;
     public const long StepMsMinimum = 1;
     public const long StepMsMaximum = 86400000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

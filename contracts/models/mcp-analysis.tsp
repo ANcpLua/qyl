@@ -27,28 +27,32 @@ union McpStatsComparison { windowOrVersion: string, offset: McpComparisonOffset,
 @doc("Metric comparison preceding the selected window.")
 union MetricComparison { previous: "previous_window", offset: MetricComparisonOffset }
 
-@doc("AnalysisInput contract.")
+@doc("Arguments every analysis tool shares: the time range, attribute matchers, page size and cursor.")
 model AnalysisInput {
   ...ToolTimeRange;
   @doc("Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
-  @doc("Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.")
+  @doc("Items per page of each list the tool returns, 1 to 200; default 100. `has_more` and `next_cursor` continue the same query.")
   @minValue(1) @maxValue(200)
   limit?: int32 = 100;
+  @doc("`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window.")
   cursor?: Cursor;
 }
 
-@doc("ServiceAnalysisInput contract.")
+@doc("The shared analysis arguments plus a service and an environment.")
 model ServiceAnalysisInput {
   ...AnalysisInput;
+  @doc("Restrict the analysis to this service (`service.name`, exact match).")
   @encodedName("application/json", "service_name")
   serviceName?: string;
+  @doc("Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`.")
   environment?: string;
 }
 
-@doc("BaselineOffset contract.")
+@doc("A baseline: the selected window shifted back by `offset_minutes`, with the same length.")
 model BaselineOffset {
+  @doc("Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.")
   @encodedName("application/json", "offset_minutes")
   offsetMinutes: int32;
 }
@@ -144,12 +148,13 @@ model FailureDetail {
   rawMessages?: string[];
 }
 
-@doc("TriageInput contract.")
+@doc("Start of an investigation: the window's failures, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context; list_failures lists failures by status, and an ignored failure stays out of triage until its `ignore_until`, if any, passes.")
 model TriageInput {
   ...OmitProperties<ServiceAnalysisInput, "limit">;
-  @doc("Ranked failures to return, 1 to 50; new failures keep reserved slots ahead of ongoing ones.")
+  @doc("Items per page of each list (failures, regressions, releases, silent services), 1 to 50; default 10. New failures rank first, so they lead the first page.")
   @minValue(1) @maxValue(50)
   limit?: int32 = 10;
+  @doc("The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back.")
   baseline?: AnalysisBaseline;
 }
 
@@ -214,13 +219,17 @@ model TriageOutput {
   error?: ToolError;
 }
 
-@doc("ListFailuresInput contract.")
+@doc("Lists the window's failures, one row per fingerprint (service, operation, exception or error type and normalized message), with counts, affected traces and sessions, releases and recorded status. Use triage first to rank what changed; use this to filter by status or release or to sort, and pass `failure_id` for one failure's counts per release, latest occurrences and discriminating attributes. Default: open failures of the last 60 minutes, most occurrences first.")
 model ListFailuresInput {
   ...ServiceAnalysisInput;
+  @doc("Keep failures on spans of this release (resource `service.version`).")
   release?: string;
+  @doc("Keep failures with this recorded status: `open` (default), `resolved` or `ignored`, or `all`.")
   status?: FailureStatusFilter;
+  @doc("Order of the failures: `count` (default) most occurrences first, `last_seen` most recent first, `first_seen` oldest first, `affected_traces` most traces first.")
   @encodedName("application/json", "sort_by")
   sortBy?: "count" | "last_seen" | "first_seen" | "affected_traces";
+  @doc("One failure, with its counts per release, latest occurrences and discriminating attributes; not_found when no retained span has it.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
 }
@@ -233,7 +242,7 @@ model ListFailuresOutput {
   error?: ToolError;
 }
 
-@doc("Input for get_failure_context. Give exactly one of trace_id, session_id, failure_id or ci_run_id. A request with none or several of them is rejected.")
+@doc("Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage or list_failures name a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.")
 model GetFailureContextInput {
   ...AnalysisInput;
   @doc("The failing trace, 32 lowercase hex characters. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
@@ -245,10 +254,10 @@ model GetFailureContextInput {
   @doc("A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
-  @doc("A CI run: its session id or its provider run id. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
+  @doc("A CI run: its session id (ci_log's `run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "ci_run_id")
   ciRunId?: SessionId;
-  @doc("Maximum error spans in `observed.error_spans`, or `limit` when lower; `next_cursor` continues.")
+  @doc("Maximum spans in `observed.spans` (error spans and their ancestors), or `limit` when lower; `next_cursor` continues.")
   @minValue(1) @maxValue(1000)
   @encodedName("application/json", "max_spans")
   maxSpans?: int32 = 100;
@@ -400,23 +409,30 @@ model GetFailureContextOutput {
   error?: ToolError;
 }
 
-@doc("CompareGroup contract.")
+@doc("One population of compare_groups: the request's records in `window` that satisfy `matchers`, optionally only one failure's occurrences.")
 model CompareGroup {
+  @doc("Attribute predicates the group's records satisfy, besides the request's `matchers`. Their keys are left out of the discriminators.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
+  @doc("The group's time range; omitted, the request's window.")
   window?: ToolWindow;
+  @doc("Only this failure's occurrences; needs `signal: spans`.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
 }
 
-@doc("CompareGroupsInput contract.")
+@doc("Explains what differs between two populations of spans or logs: the attribute values most over-represented in group A, the operation mix, duration percentiles and whether the traffic mix or the same traffic changed. For example, group A holds a `failure_id` from triage and group B is `rest`; aggregate_telemetry computes numbers per group and list_traces finds single executions. Discriminators leave out the groups' matcher keys, a failure group's own error type, route and service, per-request ids, nearly unique keys and values no more common in A than in B; an empty group is rejected, and the results are associations, not causes.")
 model CompareGroupsInput {
   ...AnalysisInput;
+  @doc("The records both groups hold: `spans` or `logs`.")
   signal: "spans" | "logs";
+  @doc("The population to explain.")
   @encodedName("application/json", "group_a")
   groupA: CompareGroup;
+  @doc("The population to compare with: another group; `rest`, the request's other records in its window; or `before`, group A's filters over the window of equal length just before group A's.")
   @encodedName("application/json", "group_b")
   groupB: CompareGroup | "rest" | "before";
+  @doc("Which attributes can discriminate: `span` (the records' own span or log attributes), `resource`, or `both` (default).")
   @encodedName("application/json", "attribute_scope")
   attributeScope?: "span" | "resource" | "both";
 }
@@ -473,18 +489,22 @@ model CompareGroupsOutput {
   error?: ToolError;
 }
 
-@doc("ExecutionReference contract.")
+@doc("One execution of compare_traces: a trace or a session.")
 model ExecutionReference {
+  @doc("The execution's trace; takes precedence over `session_id`.")
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
+  @doc("The execution's session, all of its traces.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
 }
 
-@doc("CompareTracesInput contract.")
+@doc("Aligns two executions span by span (by service, name and depth) and returns their first divergence, what differs between aligned spans and the spans only one side holds. Use it to set a failing execution against a successful one you chose; get_failure_context finds the nearest success itself, and compare_groups compares populations. Both executions are read whole, whatever the time range and `matchers`; root spans with different names make them not comparable, and an unknown execution is answered with not_found.")
 model CompareTracesInput {
   ...AnalysisInput;
+  @doc("The first execution, usually the failing one.")
   a: ExecutionReference;
+  @doc("The second execution, usually a successful one of the same operation.")
   b: ExecutionReference;
 }
 
@@ -515,17 +535,23 @@ model CompareTracesOutput {
   error?: ToolError;
 }
 
-@doc("VerifyFixInput contract.")
+@doc("Checks whether a fix held: counts the failure's occurrences and its operation's requests before and after the change and answers `passed`, `failed` (it recurred), `pending` (fewer than `min_requests` requests or `min_minutes` minutes since the change) or `inconclusive`. Give exactly one of `failure_id` or `matchers` (the matched spans are the requests and their errors the failures), and a `since` time or a `release` whose first span marks the change. The before window runs from the failure's first retained occurrence (with `matchers`: from `since` minus the lookback) to the change, the after window from the change to now. Repeat the check later with the returned `verify_id`.")
 model VerifyFixInput {
   ...AnalysisInput;
+  @doc("The failure to verify; its requests are the spans of its service and operation. Give exactly one of `failure_id` or `matchers`.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
+  @doc("When the fix took effect, RFC 3339; the after window runs from here to now. Takes precedence over `release`.")
   since?: utcDateTime;
+  @doc("A `service.version` whose first recorded span marks the change, when `since` is omitted.")
   release?: string;
+  @doc("Requests the after window needs before the verdict can be `passed`; default 100.")
   @encodedName("application/json", "min_requests")
   minRequests?: int32;
+  @doc("Minutes after the change before the verdict can be `passed`; default 30.")
   @encodedName("application/json", "min_minutes")
   minMinutes?: int32;
+  @doc("`verify_id` of an earlier verify_fix result: repeats that verification with its original arguments, which replace any others sent.")
   @encodedName("application/json", "verify_id")
   verifyId?: VerifyId;
 }
@@ -563,15 +589,15 @@ model VerifyFixOutput {
   error?: ToolError;
 }
 
-@doc("AggregateTelemetryInput contract.")
+@doc("Computes numbers per group of spans or logs: counts, error counts and rates, exact duration statistics in ms or sums of a numeric attribute, optionally per time bucket. Use it for how many and how slow; list_traces finds single executions, compare_groups explains what differs between two populations, and query_metric reads pre-aggregated metrics in their own unit. Default: the last 60 minutes, 20 groups per page ordered by the first measure, descending.")
 model AggregateTelemetryInput {
   ...OmitProperties<AnalysisInput, "limit">;
-  @doc("Groups per page, largest first by `order_by`; `other` sums the groups after this page.")
+  @doc("Groups per page in `order_by` order, 1 to 200; default 20. `other` counts the groups after this page and their records.")
   @minValue(1) @maxValue(200)
   limit?: int32 = 20;
   @doc("Which records to aggregate: `spans` (duration measures apply) or `logs`.")
   signal: "spans" | "logs";
-  @doc("Attribute keys that define the groups, up to 4; omit for one overall group. Each group's `key` echoes the values.")
+  @doc("Attribute keys that define the groups, up to 4; omit for one overall group. A key is looked up in the record's attributes, then its resource, and `service.name` and `span.name` work too; a key no record carries is rejected. Each group's `key` echoes the values.")
   @maxItems(4)
   @encodedName("application/json", "group_by")
   groupBy?: string[];
@@ -616,12 +642,15 @@ model AggregateTelemetryOutput {
   error?: ToolError;
 }
 
-@doc("DiscoverAttributesInput contract.")
+@doc("Lists the attribute keys recorded in the window with their type, coverage share, cardinality, ten most common values and semantic-convention description. Call it before building `matchers`, `group_by` or `measures` for another tool, so they name keys and values that exist. Default: the last 60 minutes, 100 keys per page, ordered by key.")
 model DiscoverAttributesInput {
   ...AnalysisInput;
+  @doc("Whose attributes: `spans` (span and resource attributes of spans), `logs` (log and resource attributes of log records) or `resources` (resource attributes of spans).")
   signal: "spans" | "logs" | "resources";
+  @doc("Return only keys starting with this prefix (case-sensitive), e.g. `http.`.")
   @encodedName("application/json", "key_prefix")
   keyPrefix?: string;
+  @doc("Return only this exact key.")
   key?: string;
 }
 
@@ -666,11 +695,13 @@ model DiscoverAttributesOutput {
   error?: ToolError;
 }
 
-@doc("GetAgentRunInput contract.")
+@doc("Reconstructs one agent run from its session or trace: its LLM, tool, agent and retrieval steps in time order with durations, tokens and errors, plus repeated calls, failed tool calls, the slowest steps and the token share per span name. Give `session_id` or `trace_id` (list_sessions finds agent sessions); an unknown one is answered with not_found, and the run is read whole whatever the time range and `matchers`. get_trace shows every span of a trace and get_mcp_stats aggregates MCP calls across runs.")
 model GetAgentRunInput {
   ...AnalysisInput;
+  @doc("The agent session to reconstruct. Give `session_id` or `trace_id`; `trace_id` wins when both are sent.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
+  @doc("One trace of an agent run.")
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
   @doc("Maximum steps in `steps`, or `limit` when lower; `next_cursor` continues.")
@@ -765,7 +796,7 @@ model GetAgentRunOutput {
   error?: ToolError;
 }
 
-@doc("ListReleasesInput contract.")
+@doc("Lists each service version (`service.version`) seen in the window per service and environment: first and last seen, traffic share, whether it is current or runs concurrently with another version, error rate and p95 before and after it appeared, and the failures new with it. Its default window is the last 10080 minutes (7 days), newest release first. Use it to tie a failure or regression to a deployment; triage lists only the releases first seen in its window, and verify_fix takes a `release` as the change.")
 model ListReleasesInput {
   ...ServiceAnalysisInput;
 }
@@ -806,11 +837,13 @@ model ListReleasesOutput {
   error?: ToolError;
 }
 
-@doc("GetServiceMapInput contract.")
+@doc("Returns the services and the calls between them, from parent and child spans of different services, with calls, error rate and p95 latency in ms per node and edge, plus the databases, messaging systems and external hosts the spans call. `service_name` centers the map on one service and keeps the services within `depth` calls of it. Use it to see who calls whom and where errors cross service boundaries; get_trace follows one execution.")
 model GetServiceMapInput {
   ...ServiceAnalysisInput;
+  @doc("With `service_name`, how many calls away from it services stay on the map, 1 to 3; default 1.")
   @minValue(1) @maxValue(3)
   depth?: int32;
+  @doc("Add the databases, messaging systems and external hosts that client, producer and consumer spans name (`service.peer.name`, `server.address`, `db.system.name` or `messaging.system`); default true.")
   @encodedName("application/json", "include_external")
   includeExternal?: boolean;
 }
@@ -852,7 +885,7 @@ model GetServiceMapOutput {
   error?: ToolError;
 }
 
-@doc("CheckTelemetryHealthInput contract.")
+@doc("Checks whether the telemetry can be trusted: silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag. Run it when answers look incomplete or before trusting an empty one; silent services follow the triage rule. A `service_name` that sent no telemetry in the window or its baseline is answered with service.not_found, not with an empty report.")
 model CheckTelemetryHealthInput {
   ...ServiceAnalysisInput;
 }
@@ -928,33 +961,41 @@ model CheckTelemetryHealthOutput {
   error?: ToolError;
 }
 
-@doc("McpComparisonOffset contract.")
+@doc("An earlier window: the selected one shifted back by `offset_minutes`.")
 model McpComparisonOffset {
+  @doc("Minutes to shift the selected window back.")
   @encodedName("application/json", "offset_minutes")
   offsetMinutes: int32;
 }
 
-@doc("McpComparisonVersion contract.")
+@doc("Another server version's traffic in the same window.")
 model McpComparisonVersion {
+  @doc("The server version to compare with (`mcp.server.version`, or resource `service.version`).")
   @encodedName("application/json", "server_version")
   serverVersion: string;
 }
 
-@doc("GetMcpStatsInput contract.")
+@doc("Summarizes the MCP traffic recorded as spans with `mcp.method.name`: requests, errors, error rate and latency in total and per `group_by` group, per-tool statistics, request counts per server, transport and method, and failure classes. Use it for MCP tool health across many calls; list_traces with `tool_name` or `failure_class` finds the single calls, and get_agent_run follows one agent's run. Time buckets come only with `buckets: true`, and `compare_to` adds the same statistics for an earlier window or another server version.")
 model GetMcpStatsInput {
   ...AnalysisInput;
+  @doc("Only spans whose `mcp.server.name`, or service name, is this value.")
   @encodedName("application/json", "server_name")
   serverName?: string;
+  @doc("Only spans whose `mcp.server.version`, or resource `service.version`, is this value.")
   @encodedName("application/json", "server_version")
   serverVersion?: string;
+  @doc("Only spans of this tool (`gen_ai.tool.name`).")
   @encodedName("application/json", "tool_name")
   toolName?: string;
+  @doc("Only spans whose `mcp.transport`, or `network.transport`, is this value.")
   transport?: string;
+  @doc("Also compute the statistics for: `previous_window`, the window of equal length just before; `{offset_minutes}`, the window shifted back; or `{server_version}` or any other string, that server version's traffic in the same window.")
   @encodedName("application/json", "compare_to")
   compareTo?: McpStatsComparison;
+  @doc("What `groups` breaks the traffic down by: `tool` (default), `server`, `method`, `transport` or `failure_class`.")
   @encodedName("application/json", "group_by")
   groupBy?: "server" | "tool" | "method" | "transport" | "failure_class";
-  @doc("Also return the window's request and error counts per bucket of one sixtieth of the window, only the buckets that saw requests.")
+  @doc("Also return the window's request and error counts per bucket of one sixtieth of the window (at least one second), only the buckets that saw requests. Default false.")
   buckets?: boolean;
 }
 
@@ -1090,14 +1131,19 @@ model GetMcpStatsOutput {
   error?: ToolError;
 }
 
-@doc("UpdateFailureStatusInput contract.")
+@doc("Records a triage decision on one failure: status `open`, `resolved` or `ignored`, an optional assignee and, for `ignored`, an optional `ignore_until`. Each call replaces all three and needs the failure's current `etag`; the stored failure returns with its new etag. Triage then reports a resolved failure that recurs as `regressed` and leaves an ignored one out until its `ignore_until`, if any, passes. Needs the qyl:write scope; telemetry is not changed.")
 model UpdateFailureStatusInput {
+  @doc("The failure to update, from triage or list_failures.")
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
+  @doc("The failure's current `etag` from triage or list_failures, sent as If-Match; a stale etag is refused.")
   etag: ETag;
+  @doc("The new status: `open`, `resolved` or `ignored`.")
   status: FailureStatus;
+  @doc("With `status: ignored`, when triage shows the failure again, RFC 3339; omitted, it stays ignored. Refused with any other status.")
   @encodedName("application/json", "ignore_until")
   ignoreUntil?: utcDateTime;
+  @doc("Who owns the failure, at most 256 characters; omitted, the failure has no assignee afterwards.")
   @maxLength(256)
   assignee?: string;
 }
@@ -1238,17 +1284,21 @@ model MetricKeySummary {
   coverageShare: float64;
 }
 
-@doc("MetricComparisonOffset contract.")
+@doc("An earlier window: the selected one shifted back by `offset_ms`.")
 model MetricComparisonOffset {
+  @doc("Milliseconds to shift the selected window back.")
   @encodedName("application/json", "offset_ms")
   offsetMs: int64;
 }
 
-@doc("MetricRatio contract.")
+@doc("The denominator of a ratio: another metric, queried over the same window and step with the same `group_by` and `function`.")
 model MetricRatio {
+  @doc("The denominator instrument.")
   @encodedName("application/json", "metric_name")
   metricName: string;
+  @doc("The denominator's reducer; default the numerator's `aggregation`.")
   aggregation?: MetricAggregation;
+  @doc("Attribute predicates for the denominator's series; the numerator's `matchers` do not apply to it.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 }

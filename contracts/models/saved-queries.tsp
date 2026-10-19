@@ -46,12 +46,15 @@ model SavedQueryWindow {
 
 @doc("A saved filter over traces.")
 model SavedTraceQueryFilter {
+  @doc("Attribute predicates one span of the trace must all satisfy.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
+  @doc("Always `traces`: the query lists traces.")
   signal: "traces";
   ...SavedQueryWindow;
 
+  @doc("Keep traces with at least one span from this service.")
   @encodedName("application/json", "service_name")
   @minLength(1)
   @maxLength(256)
@@ -64,27 +67,33 @@ model SavedTraceQueryFilter {
 
 @doc("A saved filter over log records.")
 model SavedLogQueryFilter {
+  @doc("Attribute predicates every log record must satisfy.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
+  @doc("Always `logs`: the query searches log records.")
   signal: "logs";
   ...SavedQueryWindow;
 
+  @doc("Keep log records of this service.")
   @encodedName("application/json", "service_name")
   @minLength(1)
   @maxLength(256)
   serviceName?: string;
 
+  @doc("Keep log records of at least this OpenTelemetry severity number: 9 info, 13 warn, 17 error.")
   @encodedName("application/json", "severity_min")
   severityMin?: SeverityNumber;
 
+  @doc("Keep log records of this session.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
 
+  @doc("Keep log records correlated with this trace.")
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
 
-  @doc("Substring searched in the log body.")
+  @doc("Case-insensitive substring of the log body.")
   @minLength(1)
   @maxLength(1024)
   query?: string;
@@ -96,21 +105,24 @@ model SavedMetricQueryFilter {
   @encodedName("application/json", "series_id")
   @minLength(1)
   seriesId?: string;
+  @doc("Always `metrics`: the query is a metric range query.")
   signal: "metrics";
   ...SavedQueryWindow;
 
+  @doc("The instrument to query.")
   @encodedName("application/json", "metric_name")
   @minLength(1)
   @maxLength(256)
   metricName: string;
 
+  @doc("Reducer of the points in each bucket; default `avg`.")
   aggregation?: MetricAggregation = MetricAggregation.avg;
 
-  @doc("Bucket width in integer milliseconds.")
+  @doc("Bucket width in integer milliseconds. Omit for whole seconds that split the run's window into at most 60 buckets.")
   @encodedName("application/json", "step_ms")
   @minValue(1)
   @maxValue(86400000)
-  stepMs?: int64 = 60000;
+  stepMs?: int64;
 
   @doc("Attribute keys to split the result by.")
   @encodedName("application/json", "group_by")
@@ -150,9 +162,11 @@ model SavedQueryCreateRequest {
   @maxLength(200)
   name: string;
 
+  @doc("What the query answers, at most 2000 characters.")
   @maxLength(2000)
   description?: string;
 
+  @doc("The stored filter; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply.")
   filter: SavedQueryFilter;
 }
 
@@ -163,18 +177,21 @@ model SavedQueryUpdateRequest {
   @maxLength(200)
   name?: string;
 
+  @doc("New description, at most 2000 characters.")
   @maxLength(2000)
   description?: string;
 
+  @doc("New filter, replacing the stored one whole.")
   filter?: SavedQueryFilter;
 }
 
 @doc("Optional overrides for one run of a saved query.")
 model SavedQueryRunRequest {
-  @doc("Overrides the saved look-back window together with `end_time`.")
+  @doc("Start of this run's window (inclusive), RFC 3339; overrides the saved look-back window.")
   @encodedName("application/json", "start_time")
   startTime?: utcDateTime;
 
+  @doc("End of this run's window (exclusive), RFC 3339; default the time of the run.")
   @encodedName("application/json", "end_time")
   endTime?: utcDateTime;
 

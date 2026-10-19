@@ -14,5 +14,5 @@ public static class ContractRevision
     /// same contract. A client compares the two; while they differ, the two
     /// sides were built from different contracts.
     /// </summary>
-    public static readonly string Value = "sha256:cd6e5abe3f164ab2";
+    public static readonly string Value = "sha256:ba80b8dde2115c1c";
 }
