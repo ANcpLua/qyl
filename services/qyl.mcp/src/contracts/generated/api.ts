@@ -2140,6 +2140,21 @@ export interface TelemetryRetention {
   "days": number | null;
 }
 
+export interface MetricConflictSeries {
+  "metric_name": string;
+  "series_id": string;
+  "service": string;
+  "points": number;
+  "first_time": string;
+  "last_time": string;
+}
+
+export interface MetricConflicts {
+  "points": number;
+  "unit": "points";
+  "series": MetricConflictSeries[];
+}
+
 export interface CheckTelemetryHealthOutput {
   "window": ToolWindow;
   "coverage": ToolCoverage;
@@ -2148,6 +2163,7 @@ export interface CheckTelemetryHealthOutput {
   "next_cursor"?: string;
   "silent_services": SilentService[];
   "orphan_spans": OrphanSpans;
+  "metric_conflicts": MetricConflicts;
   "semconv_gaps": SemconvGap[];
   "unknown_service_share": number;
   "schema_urls": string[];
@@ -2366,4 +2382,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:dce3a55167f4163a";
+export const CONTRACT_REVISION: string = "sha256:2541f1983e2e9f56";

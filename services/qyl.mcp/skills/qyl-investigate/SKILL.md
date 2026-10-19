@@ -76,7 +76,9 @@ saved queries and failure status in that project, never the telemetry.
 
 - `verify_fix.verdict` is `passed`, `failed`, `pending` or `inconclusive`.
   `pending` means the `needs` (requests and minutes) are not met yet: say
-  so and offer to check again later with the `verify_id`.
+  so and offer to check again later with the `verify_id`. `inconclusive`
+  means the evidence cannot decide: no requests after the change, or a scan
+  that did not hold the whole window after it.
 - `triage` ranks failures by `change`: `new`, `worsening`, `ongoing`,
   `recovering`, `regressed`. A `coinciding_release` is a lead, not a cause.
 - `get_failure_context.observed` is evidence (root-cause span, error spans,
@@ -85,6 +87,10 @@ saved queries and failure status in that project, never the telemetry.
   could not establish. Report the unknowns with the findings.
 - `coverage.scan_complete: false` or `truncated: true` means the answer
   rests on part of the data. Say which part.
+- `check_telemetry_health.metric_conflicts` lists metric timestamps that
+  hold contradicting measurements. `query_metric` refuses a window that
+  holds one with a `conflict` error: narrow the window or choose another
+  `series_id`.
 
 ## Record and reuse (only when asked)
 

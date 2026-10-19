@@ -23,20 +23,46 @@ internal sealed partial class DuckDbStore
         return Convert.ToBoolean(command.ExecuteScalar(), CultureInfo.InvariantCulture);
     }
 
-    private static void RefreshMetricProjection(DuckDBConnection connection, DbTransaction transaction, MetricObservationKey key) =>
-        WriteMetricProjection(connection, transaction, key, ReadMetricProjection(connection, transaction, key));
+    private static void RefreshMetricProjection(DuckDBConnection connection, DbTransaction transaction, MetricObservationKey key,
+        MetricObservationRow? arriving = null) =>
+        WriteMetricProjection(connection, transaction, key, ReadMetricProjection(connection, transaction, key, arriving));
 
-    private static MetricPointRow? ReadMetricProjection(DuckDBConnection connection, DbTransaction transaction, MetricObservationKey key)
+    /// <summary>
+    /// Observations of one measurement project it. A different measurement at a recorded timestamp never
+    /// replaces the first: the point keeps the measurement recorded first (the stored point, or else the
+    /// first of the arriving export) and is marked conflicting, while the journal keeps every observation.
+    /// A rebuild cannot tell which arrived first, so its conflicting points keep no measurement.
+    /// </summary>
+    private static MetricPointRow? ReadMetricProjection(DuckDBConnection connection, DbTransaction transaction, MetricObservationKey key,
+        MetricObservationRow? arriving)
+    {
+        MetricObservationRow first; long measurements;
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "SELECT " + MetricObservationRow.SelectColumnList +
+                ", count(DISTINCT measurement_id) OVER () FROM metric_observations " +
+                "WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3 ORDER BY observation_id LIMIT 1";
+            AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
+            using var reader = command.ExecuteReader();
+            if (!reader.Read()) return null;
+            first = MetricObservationRow.MapFromReader(reader);
+            measurements = reader.GetInt64(MetricObservationRow.ColumnCount);
+        }
+        if (measurements <= 1) return MetricProjection.Project(first, false);
+        var kept = ReadMetricPoint(connection, transaction, key) ?? (arriving is null ? null : MetricProjection.Project(arriving, false));
+        return kept is null ? MetricProjection.Project(first, true) : kept with { HasConflict = 1 };
+    }
+
+    private static MetricPointRow? ReadMetricPoint(DuckDBConnection connection, DbTransaction transaction, MetricObservationKey key)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT " + MetricObservationRow.SelectColumnList +
-            ", count(DISTINCT measurement_id) OVER () FROM metric_observations " +
-            "WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3 ORDER BY observation_id LIMIT 1";
+        command.CommandText = "SELECT " + MetricPointRow.SelectColumnList +
+            " FROM metric_points WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3";
         AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
         using var reader = command.ExecuteReader();
-        return reader.Read() ? MetricProjection.Project(MetricObservationRow.MapFromReader(reader),
-            reader.GetInt64(MetricObservationRow.ColumnCount) > 1) : null;
+        return reader.Read() ? MetricPointRow.MapFromReader(reader) : null;
     }
 
     private static void WriteMetricProjection(DuckDBConnection connection, DbTransaction transaction,

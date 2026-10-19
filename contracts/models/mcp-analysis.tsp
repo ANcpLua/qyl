@@ -839,6 +839,28 @@ model TelemetryRetention {
   days: float64 | null;
 }
 
+@doc("The conflicting points of one metric series.")
+model MetricConflictSeries {
+  @encodedName("application/json", "metric_name")
+  metricName: string;
+  @encodedName("application/json", "series_id")
+  seriesId: string;
+  service: string;
+  @doc("Timestamps of this series in the window that hold different measurements.")
+  points: int64;
+  @encodedName("application/json", "first_time")
+  firstTime: utcDateTime;
+  @encodedName("application/json", "last_time")
+  lastTime: utcDateTime;
+}
+
+@doc("Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, get_metric_series with the series_id returns every observation, and query_metric refuses a window that holds one.")
+model MetricConflicts {
+  points: int64;
+  unit: "points";
+  series: MetricConflictSeries[];
+}
+
 @doc("CheckTelemetryHealthOutput contract.")
 model CheckTelemetryHealthOutput {
   ...ToolReadContext;
@@ -847,6 +869,8 @@ model CheckTelemetryHealthOutput {
   silentServices: SilentService[];
   @encodedName("application/json", "orphan_spans")
   orphanSpans: OrphanSpans;
+  @encodedName("application/json", "metric_conflicts")
+  metricConflicts: MetricConflicts;
   @encodedName("application/json", "semconv_gaps")
   semconvGaps: SemconvGap[];
   @encodedName("application/json", "unknown_service_share")

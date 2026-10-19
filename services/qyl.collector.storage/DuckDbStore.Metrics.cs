@@ -75,10 +75,11 @@ internal sealed partial class DuckDbStore
                 MetricSeriesRow.BuildMultiRowInsertSql, MaxMetricSeriesPerBatch, token);
             await InsertRowsBatchedAsync(con, tx, observations, MetricObservationRow.AddParameters,
                 MetricObservationRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
-            foreach (var key in observations.Select(static row => new MetricObservationKey(row.ProjectId, row.SeriesId, row.TimeUnixNano)).Distinct())
+            // An export's first observation of a timestamp is the one that arrived first.
+            foreach (var arriving in observations.GroupBy(static row => new MetricObservationKey(row.ProjectId, row.SeriesId, row.TimeUnixNano)))
             {
                 token.ThrowIfCancellationRequested();
-                RefreshMetricProjection(con, tx, key);
+                RefreshMetricProjection(con, tx, arriving.Key, arriving.First());
             }
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);

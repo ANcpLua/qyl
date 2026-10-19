@@ -153,7 +153,16 @@ internal sealed partial class AnalysisEngine
         var rows = Select(input); var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).ToList();
         var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();
         var lag = snapshot.Logs.Where(l => l.TimeUnixNano is > 0 && l.ObservedTimeUnixNano is > 0).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano!.Value, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
-        return J.O(("silent_services", Silent(input)), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count is 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
+        // A conflicting point keeps its first measurement; query_metric still refuses to aggregate it.
+        var series = snapshot.Series.ToDictionary(static s => s.SeriesId, StringComparer.Ordinal);
+        var conflicts = snapshot.Points.Where(p => p.HasConflict != 0 && _window.Contains(p.TimeUnixNano)).GroupBy(static p => p.SeriesId)
+            .Select(g => (Series: series.GetValueOrDefault(g.Key), Times: g.Select(static p => p.TimeUnixNano).ToList()))
+            .Where(c => c.Series is not null && InScope(input, SeriesRecord(c.Series)))
+            .OrderBy(c => c.Series!.MetricName, StringComparer.Ordinal).ThenBy(c => c.Series!.SeriesId, StringComparer.Ordinal).ToList();
+        var metricConflicts = J.O(("points", conflicts.Sum(static c => c.Times.Count)), ("unit", "points"), ("series", J.A(conflicts.Select(c => J.O(
+            ("metric_name", c.Series!.MetricName), ("series_id", c.Series.SeriesId), ("service", c.Series.ServiceName ?? "unknown_service"),
+            ("points", c.Times.Count), ("first_time", J.Time(c.Times.Min())), ("last_time", J.Time(c.Times.Max())))))));
+        return J.O(("silent_services", Silent(input)), ("metric_conflicts", metricConflicts), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count is 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
             ("semconv_gaps", SemanticGaps(rows)), ("unknown_service_share", rows.Count is 0 ? 0 : rows.Count(s => s.Service.StartsWith("unknown", StringComparison.Ordinal)) / (double)rows.Count),
             ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("retention", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
             ("ingestion_lag_ms", lag.Count is 0 ? null : lag.Average()));

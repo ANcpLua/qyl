@@ -2906,6 +2906,32 @@ public sealed class TelemetryRetention
     public required double? Days { get; init; }
 }
 
+public sealed class MetricConflictSeries
+{
+    [JsonPropertyName("metric_name")]
+    public required string MetricName { get; init; }
+    [JsonPropertyName("series_id")]
+    public required string SeriesId { get; init; }
+    [JsonPropertyName("service")]
+    public required string Service { get; init; }
+    [JsonPropertyName("points")]
+    public required long Points { get; init; }
+    [JsonPropertyName("first_time")]
+    public required DateTimeOffset FirstTime { get; init; }
+    [JsonPropertyName("last_time")]
+    public required DateTimeOffset LastTime { get; init; }
+}
+
+public sealed class MetricConflicts
+{
+    [JsonPropertyName("points")]
+    public required long Points { get; init; }
+    [JsonPropertyName("unit")]
+    public required string Unit { get; init; }
+    [JsonPropertyName("series")]
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.MetricConflictSeries> Series { get; init; }
+}
+
 public sealed class CheckTelemetryHealthOutput
 {
     [JsonPropertyName("window")]
@@ -2924,6 +2950,8 @@ public sealed class CheckTelemetryHealthOutput
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SilentService> SilentServices { get; init; }
     [JsonPropertyName("orphan_spans")]
     public required Qyl.Api.Contracts.Mcp.Tools.OrphanSpans OrphanSpans { get; init; }
+    [JsonPropertyName("metric_conflicts")]
+    public required Qyl.Api.Contracts.Mcp.Tools.MetricConflicts MetricConflicts { get; init; }
     [JsonPropertyName("semconv_gaps")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SemconvGap> SemconvGaps { get; init; }
     [JsonPropertyName("unknown_service_share")]

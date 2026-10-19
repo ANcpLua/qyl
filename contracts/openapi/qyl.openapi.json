@@ -8409,6 +8409,7 @@
           "has_more",
           "silent_services",
           "orphan_spans",
+          "metric_conflicts",
           "semconv_gaps",
           "unknown_service_share",
           "schema_urls",
@@ -8445,6 +8446,9 @@
           },
           "orphan_spans": {
             "$ref": "#/components/schemas/Mcp.Tools.OrphanSpans"
+          },
+          "metric_conflicts": {
+            "$ref": "#/components/schemas/Mcp.Tools.MetricConflicts"
           },
           "semconv_gaps": {
             "type": "array",
@@ -12234,6 +12238,75 @@
           "not": {}
         },
         "description": "MetricComparisonResult contract."
+      },
+      "Mcp.Tools.MetricConflictSeries": {
+        "type": "object",
+        "required": [
+          "metric_name",
+          "series_id",
+          "service",
+          "points",
+          "first_time",
+          "last_time"
+        ],
+        "properties": {
+          "metric_name": {
+            "type": "string"
+          },
+          "series_id": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "points": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Timestamps of this series in the window that hold different measurements."
+          },
+          "first_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "The conflicting points of one metric series."
+      },
+      "Mcp.Tools.MetricConflicts": {
+        "type": "object",
+        "required": [
+          "points",
+          "unit",
+          "series"
+        ],
+        "properties": {
+          "points": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "points"
+            ]
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mcp.Tools.MetricConflictSeries"
+            }
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, get_metric_series with the series_id returns every observation, and query_metric refuses a window that holds one."
       },
       "Mcp.Tools.MetricKeySummary": {
         "type": "object",

@@ -64,32 +64,16 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private List<AnalysisRecord> Select(JsonObject input, string signal = "spans", AnalysisWindow? window = null)
     {
         var w = window ?? _window;
-        return
-        [
-            .. (signal == "logs" ? _logs : _spans).Where(r => Checked(r) && w.Contains(r.Start)
-                                                                         && (J.String(input, "service_name") is not
-                                                                             { } svc || r.Service == svc)
-                                                                         && (J.String(input, "environment") is not
-                                                                                 { } env ||
-                                                                             J.Text(r.Value(
-                                                                                 CollectorSemanticAttributeCatalog
-                                                                                     .DeploymentEnvironmentName,
-                                                                                 "resource")) == env ||
-                                                                             J.Text(r.Value(
-                                                                                 CollectorSemanticAttributeCatalog
-                                                                                     .DeploymentEnvironment,
-                                                                                 "resource")) ==
-                                                                             env)
-                                                                         && (J.String(input, "release") is not
-                                                                                 { } version ||
-                                                                             J.Text(r.Value(
-                                                                                 CollectorSemanticAttributeCatalog
-                                                                                     .ServiceVersion, "resource")) ==
-                                                                             version)
-                                                                         && AnalysisMatchers.Match(r,
-                                                                             input["matchers"]))
-        ];
+        return [.. (signal == "logs" ? _logs : _spans).Where(r => Checked(r) && w.Contains(r.Start) && InScope(input, r))];
     }
+    // The request's service, environment, release and matcher filters.
+    private static bool InScope(JsonObject input, AnalysisRecord r) =>
+        (J.String(input, "service_name") is not { } service || r.Service == service)
+        && (J.String(input, "environment") is not { } environment
+            || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource")) == environment
+            || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironment, "resource")) == environment)
+        && (J.String(input, "release") is not { } version || J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == version)
+        && AnalysisMatchers.Match(r, input["matchers"]);
     private bool Checked(AnalysisRecord _) { ct.ThrowIfCancellationRequested(); return true; }
     private AnalysisWindow Baseline(JsonObject input)
     {

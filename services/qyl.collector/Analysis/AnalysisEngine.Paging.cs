@@ -89,7 +89,7 @@ internal sealed partial class AnalysisEngine
             "discover_attributes" => ["attributes"],
             "get_agent_run" => ["steps", "findings.repeated_calls", "findings.failed_tool_calls", "findings.token_share"],
             "get_service_map" => ["edges", "nodes"],
-            "check_telemetry_health" => ["silent_services", "semconv_gaps", "orphan_spans.services", "schema_urls"],
+            "check_telemetry_health" => ["silent_services", "semconv_gaps", "orphan_spans.services", "schema_urls", "metric_conflicts.series"],
             "get_mcp_stats" => ["groups", "tools", "comparison.groups"],
             "get_trace" => ["trace.spans", "logs", "annotations", "links"],
             _ => []

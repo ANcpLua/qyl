@@ -84,7 +84,9 @@ internal sealed partial record MetricSeriesRow
 
 /// <summary>
 /// One row per data point. Narrow on purpose: everything constant for a stream lives in
-/// <see cref="MetricSeriesRow" />, so a range scan reads only what changes over time.
+/// <see cref="MetricSeriesRow" />, so a range scan reads only what changes over time. The row is the
+/// projection of the journal in <see cref="MetricObservationRow" />, rewritten when an observation of its
+/// timestamp arrives; a conflicting measurement keeps the first one and sets <see cref="HasConflict" />.
 /// </summary>
 [DuckDbTable(
     "metric_points",
