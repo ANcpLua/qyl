@@ -70,7 +70,14 @@ test("discovered attribute values keep int64 precision in the lossless attribute
   assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "int", value: "9007199254740993" })));
   assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "double", value: 0.5 })));
   assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered("text")));
-  assert(!valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "int", value: 9007199254740993 })), "an int64 travels as a string");
+  assert(!valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "int", value: 42 })), "an int64 travels as a string");
+});
+
+test("get_failure_context says that exactly one target selects the failure", () => {
+  const rule = /exactly one of trace_id, session_id, failure_id or ci_run_id/u;
+  assert.match(String((documents["Mcp.Tools.GetFailureContextInput"] as unknown as { description?: string }).description), rule);
+  for (const key of ["trace_id", "session_id", "failure_id", "ci_run_id"])
+    assert.match(String(property("Mcp.Tools.GetFailureContextInput", key).description), rule, key);
 });
 
 test("the server's error codes are the contract's ToolErrorCode enum", () => {

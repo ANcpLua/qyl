@@ -27,7 +27,7 @@ saved queries and failure status in that project, never the telemetry.
 | The user wants to know | Start with | Then |
 | --- | --- | --- |
 | What is wrong or what changed (open-ended) | `triage` | `get_failure_context` for the top failure, `list_releases` when a release coincides |
-| Why this request, trace or session failed | `get_failure_context` with the `trace_id`, `session_id` or `failure_id` | `compare_traces` against a passing execution, `get_trace` for the span tree |
+| Why this request, trace or session failed | `get_failure_context` with exactly one of `trace_id`, `session_id`, `failure_id` or `ci_run_id` | `compare_traces` against a passing execution, `get_trace` for the span tree |
 | Which errors recur and their status | `list_failures` | `update_failure_status` when the user records a decision |
 | Why something is slow | `aggregate_telemetry` grouped by operation with `duration_p95` | `get_trace` with `selection: critical_path` on a slow `trace_id` |
 | Whether a fix held | `verify_fix` with the `failure_id` and `since` (when the fix shipped) or `release` | repeat with the returned `verify_id` once `needs` is met |

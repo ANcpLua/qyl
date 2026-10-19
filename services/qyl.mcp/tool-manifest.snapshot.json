@@ -7734,7 +7734,7 @@
     {
       "name": "get_failure_context",
       "title": "Get Failure Context",
-      "description": "Return the recorded failure path, correlated logs and comparison evidence when investigating a failed execution.",
+      "description": "Return the recorded failure path, correlated logs and comparison evidence when investigating a failed execution. Pass exactly one of trace_id, session_id, failure_id or ci_run_id.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7865,7 +7865,7 @@
             "minLength": 32,
             "maxLength": 32,
             "pattern": "^[a-f0-9]{32}$",
-            "description": "Unique trace identifier (32 lowercase hex characters)",
+            "description": "The failing trace, 32 lowercase hex characters. Give exactly one of trace_id, session_id, failure_id or ci_run_id.",
             "examples": [
               "0af7651916cd43dd8448eb211c80319c"
             ]
@@ -7875,20 +7875,20 @@
             "minLength": 1,
             "maxLength": 128,
             "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-            "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
+            "description": "A session whose traces hold the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "failure_id": {
             "type": "string",
             "minLength": 1,
             "maxLength": 512,
-            "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
+            "description": "A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "ci_run_id": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
             "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-            "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
+            "description": "A CI run: its session id or its provider run id. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "max_spans": {
             "type": "integer",
@@ -7905,7 +7905,7 @@
             "default": 100
           }
         },
-        "description": "GetFailureContextInput contract.",
+        "description": "Input for get_failure_context. Give exactly one of trace_id, session_id, failure_id or ci_run_id. A request with none or several of them is rejected.",
         "additionalProperties": false
       },
       "outputSchema": {

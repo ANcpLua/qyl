@@ -22,7 +22,7 @@ interface AnalysisApi {
   @route("/list_failures")
   @operationId("analysis_list_failures")
   list_failures(...ProjectScopeHeader, @body request: ListFailuresInput): ListFailuresOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
-  @doc("Read get_failure_context evidence in the authenticated project without changing telemetry or user resources.")
+  @doc("Read get_failure_context evidence for exactly one of trace_id, session_id, failure_id or ci_run_id in the authenticated project without changing telemetry or user resources.")
   @post
   @route("/get_failure_context")
   @operationId("analysis_get_failure_context")

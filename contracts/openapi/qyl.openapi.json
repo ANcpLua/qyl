@@ -704,7 +704,7 @@
     "/api/v1/analysis/get_failure_context": {
       "post": {
         "operationId": "analysis_get_failure_context",
-        "description": "Read get_failure_context evidence in the authenticated project without changing telemetry or user resources.",
+        "description": "Read get_failure_context evidence for exactly one of trace_id, session_id, failure_id or ci_run_id in the authenticated project without changing telemetry or user resources.",
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectScopeHeader"
@@ -10258,16 +10258,20 @@
             "$ref": "#/components/schemas/Common.Cursor"
           },
           "trace_id": {
-            "$ref": "#/components/schemas/Common.TraceId"
+            "$ref": "#/components/schemas/Common.TraceId",
+            "description": "The failing trace, 32 lowercase hex characters. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "session_id": {
-            "$ref": "#/components/schemas/Common.SessionId"
+            "$ref": "#/components/schemas/Common.SessionId",
+            "description": "A session whose traces hold the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "failure_id": {
-            "$ref": "#/components/schemas/Common.FailureId"
+            "$ref": "#/components/schemas/Common.FailureId",
+            "description": "A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "ci_run_id": {
-            "$ref": "#/components/schemas/Common.SessionId"
+            "$ref": "#/components/schemas/Common.SessionId",
+            "description": "A CI run: its session id or its provider run id. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "max_spans": {
             "type": "integer",
@@ -10289,7 +10293,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "GetFailureContextInput contract."
+        "description": "Input for get_failure_context. Give exactly one of trace_id, session_id, failure_id or ci_run_id. A request with none or several of them is rejected."
       },
       "Mcp.Tools.GetFailureContextOutput": {
         "type": "object",

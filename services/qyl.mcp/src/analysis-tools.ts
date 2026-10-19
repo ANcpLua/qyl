@@ -42,7 +42,7 @@ export function registerAnalysisTools(server: McpServer): void {
     "get_failure_context",
     {
       title: "Get Failure Context",
-      description: "Return the recorded failure path, correlated logs and comparison evidence when investigating a failed execution.",
+      description: "Return the recorded failure path, correlated logs and comparison evidence when investigating a failed execution. Pass exactly one of trace_id, session_id, failure_id or ci_run_id.",
       inputSchema: contractSchema("Mcp.Tools.GetFailureContextInput"),
       outputSchema: contractSchema("Mcp.Tools.GetFailureContextOutput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,

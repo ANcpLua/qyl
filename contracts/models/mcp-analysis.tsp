@@ -226,15 +226,19 @@ model ListFailuresOutput {
   error?: ToolError;
 }
 
-@doc("GetFailureContextInput contract.")
+@doc("Input for get_failure_context. Give exactly one of trace_id, session_id, failure_id or ci_run_id. A request with none or several of them is rejected.")
 model GetFailureContextInput {
   ...AnalysisInput;
+  @doc("The failing trace, 32 lowercase hex characters. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
+  @doc("A session whose traces hold the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
+  @doc("A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
+  @doc("A CI run: its session id or its provider run id. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "ci_run_id")
   ciRunId?: SessionId;
   @doc("Maximum error spans in `observed.error_spans`, or `limit` when lower; `next_cursor` continues.")
