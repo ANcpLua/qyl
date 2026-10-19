@@ -84,11 +84,13 @@ for (const multiProject of [true, false]) {
     });
     const address = receiver.address();
     assert(address && typeof address !== "string");
+    // traceFlags "00": the caller propagates a trace it does not sample. Its project still
+    // receives the server's span, the record get_mcp_stats counts.
     const projects = multiProject ? [
-      { project: "owner", apiKey: "owner-test-key", subjects: ["auth0|owner"], traceId: "11111111111111111111111111111111" },
-      { project: "review", apiKey: "review-test-key", subjects: ["auth0|review"], traceId: "22222222222222222222222222222222" },
+      { project: "owner", apiKey: "owner-test-key", subjects: ["auth0|owner"], traceId: "11111111111111111111111111111111", traceFlags: "01" },
+      { project: "review", apiKey: "review-test-key", subjects: ["auth0|review"], traceId: "22222222222222222222222222222222", traceFlags: "00" },
     ] : [
-      { project: "single", apiKey: "single-test-key", subjects: ["auth0|single"], traceId: "33333333333333333333333333333333" },
+      { project: "single", apiKey: "single-test-key", subjects: ["auth0|single"], traceId: "33333333333333333333333333333333", traceFlags: "01" },
     ];
     const savedEnvironment = { ...process.env };
     Object.assign(process.env, {
@@ -99,7 +101,7 @@ for (const multiProject of [true, false]) {
     });
     for (const key of ["QYL_MCP_TELEMETRY", "QYL_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
       "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"]) delete process.env[key];
-    if (multiProject) process.env.MCP_COLLECTOR_PROJECTS = JSON.stringify(projects.map(({ traceId: _, ...project }) => project));
+    if (multiProject) process.env.MCP_COLLECTOR_PROJECTS = JSON.stringify(projects.map(({ project, apiKey, subjects }) => ({ project, apiKey, subjects })));
     else delete process.env.MCP_COLLECTOR_PROJECTS;
     const config = readStreamableHTTPConfig({ MCP_PUBLIC_URL: "https://mcp.qyl.at" });
     const handler = createMcpHandler(() => {
@@ -129,7 +131,7 @@ for (const multiProject of [true, false]) {
       }));
       const fail = multiProject && project.project === "review";
       const result = await client.callTool({ name: "fixture.telemetry", arguments: { private_text: "never-export-this", fail },
-        _meta: { traceparent: `00-${project.traceId}-aaaaaaaaaaaaaaaa-01`, subject: "auth0|owner", project: "owner" } });
+        _meta: { traceparent: `00-${project.traceId}-aaaaaaaaaaaaaaaa-${project.traceFlags}`, subject: "auth0|owner", project: "owner" } });
       assert.equal(result.isError, fail ? true : undefined);
     }));
     await closeDefaultNativeExecutionRuntime();

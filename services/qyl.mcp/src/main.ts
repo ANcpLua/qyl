@@ -24,6 +24,7 @@ import { closeDefaultNativeExecutionRuntime, defaultNativeExecutionRuntime } fro
 import { EventsRuntime, createEventStore } from "./events.js";
 import { hostedEventsAuthorization } from "./events-authorization.js";
 import { readCollectorProjects } from "./collector-access.js";
+import { logInfo } from "./stderr-log.js";
 
 export function sanitizedErrorType(error: unknown): string {
   if (!(error instanceof Error)) return "UnknownError";
@@ -407,7 +408,7 @@ async function createHostedRuntime(
   const endpoint = config.publicUrl
     ? new URL("/mcp", config.publicUrl).href
     : `http://${urlHost(config.bindHost)}:${config.port}/mcp`;
-  console.error(`MCP server serving ${endpoint}`);
+  logInfo(`MCP server serving ${endpoint}`);
 
 
 }

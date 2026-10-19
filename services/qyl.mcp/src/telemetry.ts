@@ -30,7 +30,7 @@ import {
     MeterProvider,
     PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
-import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { AlwaysOnSampler, BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import {
     ATTR_SERVICE_INSTANCE_ID,
@@ -193,6 +193,12 @@ export class McpTelemetry {
         });
         this.traceProvider = new NodeTracerProvider({
             resource,
+            // The operation span is this server's record in the caller's project, the one
+            // get_mcp_stats counts. A caller's traceparent supplies the trace and the parent,
+            // not whether the span exists: the default parent-based sampler would drop the
+            // span of every call whose traceparent is unsampled and export only its metric
+            // and log.
+            sampler: new AlwaysOnSampler(),
             spanProcessors: [spanProcessor],
             spanLimits: {
                 attributeValueLengthLimit: ATTRIBUTE_VALUE_LIMIT,

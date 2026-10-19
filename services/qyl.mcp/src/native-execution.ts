@@ -132,7 +132,7 @@ export class FileNativeExecutionRepository implements NativeExecutionRepository 
   private async archiveUnreadableState(reason: PersistenceError): Promise<void> {
     const archived = `${this.filePath}.unreadable-${new Date(this.now()).toISOString().replaceAll(":", "-")}`;
     await rename(this.filePath, archived);
-    console.error(
+    logWarning(
       `qyl.mcp could not read its execution evidence (${reason.kind}); ` +
         `moved it to ${archived} and started a new log`,
     );
