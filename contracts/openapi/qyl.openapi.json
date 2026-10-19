@@ -9847,7 +9847,7 @@
           "logs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OTel.Logs.LogRecord"
+              "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
             }
           },
           "retries": {
@@ -10438,6 +10438,10 @@
               "transport",
               "failure_class"
             ]
+          },
+          "buckets": {
+            "type": "boolean",
+            "description": "Also return the window's request and error counts per bucket of one sixtieth of the window, only the buckets that saw requests."
           }
         },
         "unevaluatedProperties": {
@@ -10454,8 +10458,6 @@
           "totals",
           "groups",
           "failure_classes",
-          "bucket_ms",
-          "buckets",
           "by_server",
           "by_transport",
           "by_method",
@@ -10506,14 +10508,14 @@
             "type": "integer",
             "format": "int64",
             "minimum": 1000,
-            "description": "Width of every entry in `buckets` in integer milliseconds: the window split into 60 buckets of at least one second."
+            "description": "With `buckets`, the width of every bucket in integer milliseconds: the window split into 60 buckets of at least one second."
           },
           "buckets": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.McpTrafficBucket"
             },
-            "description": "Requests and errors per bucket from the window's start, oldest first; a bucket without requests counts zero."
+            "description": "With `buckets`, requests and errors of each bucket that saw requests, oldest first."
           },
           "by_server": {
             "type": "array",
@@ -10944,14 +10946,9 @@
           "logs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OTel.Logs.LogRecord"
-            }
-          },
-          "context_logs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OTel.Logs.LogRecord"
-            }
+              "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
+            },
+            "description": "The trace's log records, `include_logs` of them, newest first."
           },
           "settled": {
             "type": "boolean"
@@ -11227,7 +11224,7 @@
             "format": "int32",
             "minimum": 1,
             "maximum": 1000,
-            "default": 200
+            "default": 50
           },
           "cursor": {
             "$ref": "#/components/schemas/Common.Cursor",
@@ -11265,7 +11262,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OTel.Metrics.MetricDescriptor"
+              "$ref": "#/components/schemas/Mcp.Tools.MetricCatalogRow"
             }
           },
           "has_more": {
@@ -11779,7 +11776,7 @@
           "severity",
           "first_seen",
           "last_seen",
-          "example_ids"
+          "example_trace_ids"
         ],
         "properties": {
           "template": {
@@ -11801,12 +11798,13 @@
             "type": "string",
             "format": "date-time"
           },
-          "example_ids": {
+          "example_trace_ids": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Common.TraceId"
             },
-            "maxItems": 3
+            "maxItems": 3,
+            "description": "Traces the pattern was seen in."
           }
         },
         "unevaluatedProperties": {
@@ -12181,6 +12179,63 @@
           "not": {}
         },
         "description": "McpTrafficTotals contract."
+      },
+      "Mcp.Tools.MetricCatalogRow": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "temporality",
+          "services",
+          "series_count",
+          "last_seen",
+          "supported_aggregations",
+          "has_conflict"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricKind"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "temporality": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricTemporality"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Services that report the instrument."
+          },
+          "series_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "supported_aggregations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Metrics.MetricAggregation"
+            },
+            "description": "The aggregations query_metric accepts for it."
+          },
+          "has_conflict": {
+            "type": "boolean",
+            "description": "Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One metric instrument of list_metrics; get_metric_series returns its series and attributes."
       },
       "Mcp.Tools.MetricComparison": {
         "anyOf": [
@@ -12928,7 +12983,6 @@
         "required": [
           "window",
           "coverage",
-          "logs",
           "mode",
           "has_more"
         ],
@@ -12961,8 +13015,16 @@
           "logs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OTel.Logs.LogRecord"
-            }
+              "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
+            },
+            "description": "Matching records, newest first; absent when `group_by` asks for patterns."
+          },
+          "context_logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
+            },
+            "description": "With `context`, the records next to each returned one from the same service and resource."
           },
           "mode": {
             "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
@@ -13430,6 +13492,54 @@
           "not": {}
         },
         "description": "ToolFieldError contract."
+      },
+      "Mcp.Tools.ToolLogRow": {
+        "type": "object",
+        "required": [
+          "time",
+          "severity_number",
+          "service",
+          "body",
+          "attributes"
+        ],
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The record's event time, else the time it was observed."
+          },
+          "severity": {
+            "type": "string",
+            "description": "The severity text, else the OTel short name of its severity number."
+          },
+          "severity_number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "service": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "The body as text; a structured body is its JSON."
+          },
+          "trace_id": {
+            "$ref": "#/components/schemas/Common.TraceId"
+          },
+          "span_id": {
+            "$ref": "#/components/schemas/Common.SpanId"
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common.Attribute"
+            }
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A log record as the analysis tools return it."
       },
       "Mcp.Tools.ToolPage": {
         "type": "object",
@@ -15856,7 +15966,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OTel.Logs.LogRecord"
+              "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
             }
           },
           "next_cursor": {
@@ -15871,7 +15981,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "One page of log records produced by a saved log query."
+        "description": "One page of log records produced by a saved log query, as search_logs returns them."
       },
       "SavedQueries.SavedMetricQueryFilter": {
         "type": "object",

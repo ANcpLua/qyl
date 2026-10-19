@@ -242,6 +242,26 @@ public sealed partial class AnalysisApiTests
         Assert.AreSequenceEqual([10d, 30d], series.GetProperty("buckets").EnumerateArray().Select(static b => b.GetProperty("value").GetDouble()));
     }
 
+    private static readonly string[] s_catalogRowKeys = ["name", "kind", "temporality", "services", "series_count", "last_seen", "supported_aggregations", "has_conflict"];
+
+    /// <summary>list_metrics names each instrument in one compact row, fifty to a page by default.</summary>
+    [TestMethod]
+    public async Task List_metrics_returns_compact_rows_fifty_by_default()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 10 * Minute;
+        foreach (var index in Enumerable.Range(0, 60))
+            await InsertAsync(host, Gauge($"metric.{index:D3}", $"m_{index:D3}", time), (time, index));
+
+        var result = await Read(host, "list_metrics", "{}");
+
+        var items = result.GetProperty("items").EnumerateArray().ToArray();
+        Assert.HasCount(50, items);
+        Assert.IsTrue(result.GetProperty("has_more").GetBoolean());
+        Assert.AreEquivalent(s_catalogRowKeys, items[0].EnumerateObject().Select(static p => p.Name).ToArray());
+        Assert.AreEqual(("metric.000", "gauge", 1), (items[0].GetProperty("name").GetString(), items[0].GetProperty("kind").GetString(), items[0].GetProperty("series_count").GetInt32()));
+    }
+
     private static MetricPointRow[] Observations(string seriesId, ulong start, params (ulong Time, ulong Count)[] samples) =>
     [
         .. samples.Select(sample => new MetricPointRow

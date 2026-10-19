@@ -199,10 +199,10 @@ model SavedTraceQueryRun {
   hasMore: boolean;
 }
 
-@doc("One page of log records produced by a saved log query.")
+@doc("One page of log records produced by a saved log query, as search_logs returns them.")
 model SavedLogQueryRun {
   signal: "logs";
-  items: LogRecord[];
+  items: Qyl.Api.Contracts.Mcp.Tools.ToolLogRow[];
 
   @doc("Pass back as `cursor` for the next page of the same run. Absent on the last page.")
   @encodedName("application/json", "next_cursor")

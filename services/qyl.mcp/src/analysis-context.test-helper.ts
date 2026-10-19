@@ -1,5 +1,5 @@
-import type { ToolCoverage, ToolTrace, ToolTraceRow } from "./contracts/generated/api.js";
-import type { QylTrace } from "./wire.js";
+import type { ToolCoverage, ToolLogRow, ToolTrace, ToolTraceRow } from "./contracts/generated/api.js";
+import type { QylLogRecord, QylTrace } from "./wire.js";
 
 /** Fixed metadata for transport/schema tests; query semantics use the OTLP answer-key suite. */
 export function readContext(count = 0, paged = true) {
@@ -25,6 +25,21 @@ export function toolTrace(trace: QylTrace): ToolTrace {
       ...(span.status.message ? { message: span.status.message } : {}),
       ...(span.attributes ? { attributes: span.attributes } : {}),
     })),
+  };
+}
+const SEVERITIES = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"] as const;
+/** The search_logs row of a fixture log record. */
+export function toolLog(log: QylLogRecord): ToolLogRow {
+  const severity = log.severity_text ?? (log.severity_number >= 1 && log.severity_number <= 24 ? SEVERITIES[Math.floor((log.severity_number - 1) / 4)] : undefined);
+  return {
+    time: instant(log.time_unix_nano ?? log.observed_time_unix_nano ?? "0"),
+    ...(severity ? { severity } : {}),
+    severity_number: log.severity_number,
+    service: log.resource.service_name ?? "unknown_service",
+    body: typeof log.body === "string" ? log.body : JSON.stringify(log.body),
+    ...(log.trace_id ? { trace_id: log.trace_id } : {}),
+    ...(log.span_id ? { span_id: log.span_id } : {}),
+    attributes: log.attributes ?? [],
   };
 }
 /** The list_traces row of a fixture trace. */

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import test from "node:test";
 import { CallToolResultSchema } from "@modelcontextprotocol/core";
-import { readContext, toolTrace } from "./analysis-context.test-helper.js";
+import { readContext, toolLog, toolTrace } from "./analysis-context.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
 import { connectModernTestClient } from "./modern-test-client.test-helper.js";
 import { createServer } from "./server.js";
@@ -70,7 +70,7 @@ test("telemetry tools redact secrets before model text and structured content", 
   const collector = createHttpServer((request, response) => {
     response.setHeader("content-type", "application/json");
     if (request.url?.startsWith("/api/v1/analysis/search_logs")) {
-      response.end(JSON.stringify({ ...readContext(2), logs: [textualLog, semanticLog], mode: "live", has_more: false }));
+      response.end(JSON.stringify({ ...readContext(2), logs: [toolLog(textualLog!), toolLog(semanticLog!)], mode: "live", has_more: false }));
       return;
     }
     if (request.url?.startsWith("/api/v1/analysis/get_trace")) {

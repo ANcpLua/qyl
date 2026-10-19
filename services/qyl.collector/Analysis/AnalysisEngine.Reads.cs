@@ -17,12 +17,16 @@ internal sealed partial class AnalysisEngine
     private static IEnumerable<string> AnnotationLabels(IEnumerable<JsonObject> notes) => notes
         .SelectMany(static note => (note["labels"] as JsonArray)?.Select(J.Text) ?? [])
         .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
-    private static JsonObject LogJson(AnalysisRecord row)
+    // A log record as the analysis tools return it: when, how severe, from which service, what it said and
+    // where it belongs. log_id identifies it for paging and leaves before the response does.
+    private static JsonObject LogJson(AnalysisRecord row) => J.O(("log_id", row.Id), ("time", J.Time(row.Start)),
+        ("severity", row.Log!.SeverityText is { Length: > 0 } text ? text : SeverityName(row.Log.SeverityNumber)), ("severity_number", row.Log.SeverityNumber),
+        ("service", row.Service), ("body", LogBody(row)), ("trace_id", row.TraceId), ("span_id", row.SpanId), ("attributes", ContractAttributes(row.Attributes)));
+    // The OTel log data model's short names for its severity number ranges.
+    private static string? SeverityName(byte number) => number switch
     {
-        var result = JsonSerializer.SerializeToNode(LogMapper.ToContract(row.Log!), QylSerializerContext.Default.LogRecord)!.AsObject();
-        result["log_id"] = row.Id;
-        return result;
-    }
+        >= 1 and <= 4 => "TRACE", <= 8 and >= 5 => "DEBUG", <= 12 and >= 9 => "INFO", <= 16 and >= 13 => "WARN", <= 20 and >= 17 => "ERROR", <= 24 and >= 21 => "FATAL", _ => null
+    };
     private static JsonObject Tokens(IEnumerable<AnalysisRecord> rows)
     {
         var spans = rows.Where(s => s.Span is not null).Select(s => s.Span!).ToList();
@@ -158,10 +162,16 @@ internal sealed partial class AnalysisEngine
         var rows = Select(input, "logs").Where(l => (J.String(input, "trace_id") is not { } trace || l.TraceId == trace) && (J.String(input, "span_id") is not { } span || l.SpanId == span) && (J.String(input, "session_id") is not { } session || l.SessionId == session)
             && (l.Log?.SeverityNumber ?? 0) >= J.Number(input, "severity_min") && (J.String(input, "query") is not { } query || LogBody(l).Contains(query, StringComparison.OrdinalIgnoreCase))).OrderByDescending(l => l.Start).ThenBy(l => l.Id, StringComparer.Ordinal).ToList();
         var context = (int)J.Number(input, "context"); if (context is < 0 or > 10) throw new AnalysisInputException("context", "context must be 0 to 10.");
-        var result = Page(input, "logs", rows.Select(LogJson)); result["mode"] = "live";
+        JsonObject result;
+        // A grouped search answers with its patterns alone, the most frequent first.
+        if (J.String(input, "group_by") == "pattern")
+            result = Page(input, "patterns", rows.GroupBy(l => J.Normalize(LogBody(l))).OrderByDescending(static g => g.Count()).ThenBy(static g => g.Key, StringComparer.Ordinal)
+                .Select(g => J.O(("template", g.Key), ("count", g.Count()), ("severity", g.Max(l => l.Log!.SeverityNumber)), ("first_seen", J.Time(g.Min(l => l.Start))), ("last_seen", J.Time(g.Max(l => l.Start))),
+                    ("example_trace_ids", g.Select(l => l.TraceId).OfType<string>().Distinct().Take(3)))));
+        else result = Page(input, "logs", rows.Select(LogJson));
+        result["mode"] = "live";
         // A capped read cut matching records off, so their total is unknown.
         result["total_matched"] = snapshot.ScanComplete ? rows.Count : null;
-        if (J.String(input, "group_by") == "pattern") result["patterns"] = J.A(rows.GroupBy(l => J.Normalize(LogBody(l))).Select(g => J.O(("template", g.Key), ("count", g.Count()), ("severity", g.Max(l => l.Log!.SeverityNumber)), ("first_seen", J.Time(g.Min(l => l.Start))), ("last_seen", J.Time(g.Max(l => l.Start))), ("example_ids", g.Select(l => l.TraceId).OfType<string>().Distinct().Take(3)))));
         if (context > 0 && result["logs"] is JsonArray page)
         {
             var seen = page.Select(p => J.String(p, "log_id")).OfType<string>().ToHashSet(); var extra = new List<JsonObject>();

@@ -226,9 +226,8 @@ model GetTraceOutput {
   @encodedName("application/json", "missing_parent_span_ids")
   missingParentSpanIds?: SpanId[];
   links?: TraceLinkAvailability[];
-  logs?: LogRecord[];
-  @encodedName("application/json", "context_logs")
-  contextLogs?: LogRecord[];
+  @doc("The trace's log records, `include_logs` of them, newest first.")
+  logs?: ToolLogRow[];
   settled?: boolean;
 
   ...ToolReadContext;
@@ -349,7 +348,11 @@ model SearchLogsOutput {
 
   ...ToolReadContext;
 
-  logs: LogRecord[];
+  @doc("Matching records, newest first; absent when `group_by` asks for patterns.")
+  logs?: ToolLogRow[];
+  @doc("With `context`, the records next to each returned one from the same service and resource.")
+  @encodedName("application/json", "context_logs")
+  contextLogs?: ToolLogRow[];
   mode: McpDataMode;
   ...ToolPage;
 
@@ -499,7 +502,7 @@ model ListMetricsInput {
 
   @minValue(1)
   @maxValue(1000)
-  limit?: int32 = 200;
+  limit?: int32 = 50;
 
   @doc("`next_cursor` of a previous list_metrics call with the same prefix.")
   cursor?: Cursor;
@@ -509,7 +512,7 @@ model ListMetricsInput {
 model ListMetricsOutput {
   ...ToolReadContext;
 
-  items: MetricDescriptor[];
+  items: MetricCatalogRow[];
   ...ToolPage;
 
   @doc("Set when the call failed.")

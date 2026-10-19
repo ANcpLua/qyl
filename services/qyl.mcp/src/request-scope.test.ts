@@ -3,7 +3,7 @@ import test, { type TestContext } from "node:test";
 import { LOG_LEVEL_META_KEY } from "@modelcontextprotocol/client";
 import { connectModernTestClient, type ModernTestClient } from "./modern-test-client.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
-import { readContext, toolSummary, toolTrace } from "./analysis-context.test-helper.js";
+import { readContext, toolLog, toolSummary, toolTrace } from "./analysis-context.test-helper.js";
 import { createServer } from "./server.js";
 
 interface ProgressUpdate {
@@ -79,7 +79,7 @@ function responseFor(operation: string, args: Record<string, unknown>): Response
     case "list_traces": return Response.json({ ...context, mode: "live", has_more: false, traces: [toolSummary(getTelemetryFixture().traces[0]!)] });
     case "get_trace": return Response.json({ ...context, mode: "live", trace: toolTrace(getTelemetryFixture().traces[0]!) });
     case "list_sessions": return Response.json({ ...context, mode: "live", has_more: false, sessions: [getTelemetryFixture().sessions[0]] });
-    case "search_logs": return Response.json({ ...context, mode: "live", has_more: false, logs: [getTelemetryFixture().logs[0]] });
+    case "search_logs": return Response.json({ ...context, mode: "live", has_more: false, logs: [toolLog(getTelemetryFixture().logs[0]!)] });
     case "ci_log": return Response.json({ ...context, mode: "live", has_more: false, ...(args.run_id ? { run_id: args.run_id, phases: [] } : { runs: [] }) });
     case "list_metrics": return Response.json({ ...context, has_more: false, items: [] });
     default: throw new Error(`Unexpected operation ${operation}`);
@@ -214,7 +214,7 @@ test("cancelling a tool call aborts the in-flight collector fetch", async () => 
 
 test("oversized pages requery with a smaller limit and retain collector coverage", async (context) => {
   const requests: Record<string, unknown>[] = [];
-  const log = { ...getTelemetryFixture().logs[0]!, body: "x".repeat(6_000) };
+  const log = { ...toolLog(getTelemetryFixture().logs[0]!), body: "x".repeat(6_000) };
   const logs = Array.from({ length: 8 }, () => log);
   const connection = await collectorConnection(context, (_operation, args) => {
     requests.push(args);

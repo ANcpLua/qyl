@@ -335,7 +335,7 @@ model FailureObserved {
   @encodedName("application/json", "error_spans")
   errorSpans: SpanRef[];
   propagation: FailurePropagation[];
-  logs: LogRecord[];
+  logs: ToolLogRow[];
   retries: RetryEvidence[];
   fanout: FanoutEvidence[];
 }
@@ -952,6 +952,8 @@ model GetMcpStatsInput {
   compareTo?: McpStatsComparison;
   @encodedName("application/json", "group_by")
   groupBy?: "server" | "tool" | "method" | "transport" | "failure_class";
+  @doc("Also return the window's request and error counts per bucket of one sixtieth of the window, only the buckets that saw requests.")
+  buckets?: boolean;
 }
 
 @doc("McpTrafficTotals contract.")
@@ -1051,13 +1053,13 @@ model GetMcpStatsOutput {
   failureClasses: McpFailureClasses;
   comparison?: McpStatsComparisonResult;
 
-  @doc("Width of every entry in `buckets` in integer milliseconds: the window split into 60 buckets of at least one second.")
+  @doc("With `buckets`, the width of every bucket in integer milliseconds: the window split into 60 buckets of at least one second.")
   @encodedName("application/json", "bucket_ms")
   @minValue(1000)
-  bucketMs: int64;
+  bucketMs?: int64;
 
-  @doc("Requests and errors per bucket from the window's start, oldest first; a bucket without requests counts zero.")
-  buckets: McpTrafficBucket[];
+  @doc("With `buckets`, requests and errors of each bucket that saw requests, oldest first.")
+  buckets?: McpTrafficBucket[];
 
   @doc("Requests per MCP server: `mcp.server.name`, else the service name. Most requests first.")
   @encodedName("application/json", "by_server")
@@ -1177,9 +1179,48 @@ model LogPattern {
   firstSeen: utcDateTime;
   @encodedName("application/json", "last_seen")
   lastSeen: utcDateTime;
+  @doc("Traces the pattern was seen in.")
   @maxItems(3)
-  @encodedName("application/json", "example_ids")
-  exampleIds: string[];
+  @encodedName("application/json", "example_trace_ids")
+  exampleTraceIds: TraceId[];
+}
+
+@doc("A log record as the analysis tools return it.")
+model ToolLogRow {
+  @doc("The record's event time, else the time it was observed.")
+  time: utcDateTime;
+  @doc("The severity text, else the OTel short name of its severity number.")
+  severity?: string;
+  @encodedName("application/json", "severity_number")
+  severityNumber: int32;
+  service: string;
+  @doc("The body as text; a structured body is its JSON.")
+  body: string;
+  @encodedName("application/json", "trace_id")
+  traceId?: TraceId;
+  @encodedName("application/json", "span_id")
+  spanId?: SpanId;
+  attributes: Attribute[];
+}
+
+@doc("One metric instrument of list_metrics; get_metric_series returns its series and attributes.")
+model MetricCatalogRow {
+  name: string;
+  kind: MetricKind;
+  unit?: string;
+  temporality: MetricTemporality;
+  @doc("Services that report the instrument.")
+  services: string[];
+  @encodedName("application/json", "series_count")
+  seriesCount: int64;
+  @encodedName("application/json", "last_seen")
+  lastSeen: utcDateTime;
+  @doc("The aggregations query_metric accepts for it.")
+  @encodedName("application/json", "supported_aggregations")
+  supportedAggregations: MetricAggregation[];
+  @doc("Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`.")
+  @encodedName("application/json", "has_conflict")
+  hasConflict: boolean;
 }
 
 @doc("MetricKeySummary contract.")

@@ -3,7 +3,7 @@ import test from "node:test";
 import { CollectorError, parseCollectorBody } from "./collector.js";
 import { checkContract, contractSchema, type ContractSchemaName } from "./contracts/tool-schemas.js";
 import documents from "./contracts/generated/tool-schemas.json" with { type: "json" };
-import { readContext, toolTrace, toolSummary } from "./analysis-context.test-helper.js";
+import { readContext, toolLog, toolTrace, toolSummary } from "./analysis-context.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
 import { toolError } from "./request-scope.js";
 
@@ -106,7 +106,7 @@ test("generated output documents accept the test telemetry fixture", () => {
   assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, mode: "live", has_more: true, next_cursor: "c" }));
   assert(valid("Mcp.Tools.GetTraceOutput", { ...context, trace: toolTrace(trace!), mode: "live" }));
   assert(valid("Mcp.Tools.ListSessionsOutput", { ...context, sessions: fixture.sessions, mode: "live", has_more: false }));
-  assert(valid("Mcp.Tools.SearchLogsOutput", { ...context, logs: fixture.logs, mode: "live", has_more: false }));
+  assert(valid("Mcp.Tools.SearchLogsOutput", { ...context, logs: fixture.logs.map(toolLog), mode: "live", has_more: false }));
 });
 
 test("64-bit nanosecond timestamps survive the wire exactly, above the safe-integer ceiling", () => {

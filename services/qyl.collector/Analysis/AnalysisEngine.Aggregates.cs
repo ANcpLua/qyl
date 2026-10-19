@@ -225,19 +225,23 @@ internal sealed partial class AnalysisEngine
     {
         var rows = McpRows(input);
         var output = McpTraffic(input, rows);
-        // The window's 60 buckets, the breakdowns and the per-tool statistics come from the same
-        // spans as the totals; a comparison window carries only its traffic.
-        var bucketMs = Math.Max(1000L, (long)(_window.End - _window.Start).TotalMilliseconds / 60);
-        var bucketNs = (ulong)bucketMs * 1_000_000;
-        var buckets = new (int Requests, int Errors)[(int)((QylTimeConversions.ToUnixNanoUnsigned(_window.End) - _window.StartNs + bucketNs - 1) / bucketNs)];
-        foreach (var span in rows)
+        // On request, the window's 60 buckets that saw requests; they, the breakdowns and the per-tool
+        // statistics come from the same spans as the totals, and a comparison window carries only its traffic.
+        if (J.Bool(input, "buckets"))
         {
-            ref var bucket = ref buckets[(span.Start - _window.StartNs) / bucketNs];
-            bucket.Requests++;
-            if (span.Error) bucket.Errors++;
+            var bucketMs = Math.Max(1000L, (long)(_window.End - _window.Start).TotalMilliseconds / 60);
+            var bucketNs = (ulong)bucketMs * 1_000_000;
+            var buckets = new (int Requests, int Errors)[(int)((QylTimeConversions.ToUnixNanoUnsigned(_window.End) - _window.StartNs + bucketNs - 1) / bucketNs)];
+            foreach (var span in rows)
+            {
+                ref var bucket = ref buckets[(span.Start - _window.StartNs) / bucketNs];
+                bucket.Requests++;
+                if (span.Error) bucket.Errors++;
+            }
+            output["bucket_ms"] = bucketMs;
+            output["buckets"] = J.A(buckets.Select((bucket, index) => (bucket, index)).Where(static b => b.bucket.Requests > 0)
+                .Select(b => J.O(("start", _window.Start.AddMilliseconds(b.index * bucketMs).ToString("O")), ("requests", b.bucket.Requests), ("errors", b.bucket.Errors))));
         }
-        output["bucket_ms"] = bucketMs;
-        output["buckets"] = J.A(buckets.Select((bucket, index) => J.O(("start", _window.Start.AddMilliseconds(index * bucketMs).ToString("O")), ("requests", bucket.Requests), ("errors", bucket.Errors))));
         output["by_server"] = RequestCounts(rows, McpServer);
         output["by_transport"] = RequestCounts(rows, McpTransport);
         output["by_method"] = RequestCounts(rows, static s => J.Text(s.Value(CollectorSemanticAttributeCatalog.McpMethodName)));

@@ -221,7 +221,8 @@ public sealed partial class AnalysisApiTests
         ]), testContext.CancellationToken);
 
         var window = $$"""{"start_time":"{{FixtureUtcNow.AddMinutes(-60):O}}","end_time":"{{FixtureUtcNow:O}}"}""";
-        var stats = await Read(host, "get_mcp_stats", window);
+        Assert.IsFalse((await Read(host, "get_mcp_stats", window)).TryGetProperty("buckets", out _), "buckets come only on request");
+        var stats = await Read(host, "get_mcp_stats", window[..^1] + ",\"buckets\":true}");
 
         Assert.AreEqual(4, stats.GetProperty("span_count_analyzed").GetInt32());
         Assert.AreEqual(4, stats.GetProperty("totals").GetProperty("requests").GetInt32());
@@ -230,13 +231,12 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual("live", stats.GetProperty("mode").GetString());
 
         Assert.AreEqual(60_000, stats.GetProperty("bucket_ms").GetInt64());
+        // Only the buckets that saw requests.
         var buckets = stats.GetProperty("buckets").EnumerateArray().ToArray();
-        Assert.HasCount(60, buckets);
-        Assert.AreEqual(FixtureUtcNow.AddMinutes(-60), buckets[0].GetProperty("start").GetDateTimeOffset());
-        Assert.AreEqual(FixtureUtcNow.AddMinutes(-1), buckets[59].GetProperty("start").GetDateTimeOffset());
+        Assert.AreSequenceEqual([FixtureUtcNow.AddMinutes(-60), FixtureUtcNow.AddMinutes(-59), FixtureUtcNow.AddMinutes(-1)], buckets.Select(static b => b.GetProperty("start").GetDateTimeOffset()));
         Assert.AreEqual((2, 1), (buckets[0].GetProperty("requests").GetInt32(), buckets[0].GetProperty("errors").GetInt32()));
         Assert.AreEqual(1, buckets[1].GetProperty("requests").GetInt32());
-        Assert.AreEqual(1, buckets[59].GetProperty("requests").GetInt32());
+        Assert.AreEqual(1, buckets[2].GetProperty("requests").GetInt32());
         Assert.AreEqual(4, buckets.Sum(static bucket => bucket.GetProperty("requests").GetInt32()));
 
         static string[] Counts(JsonElement list) => [.. list.EnumerateArray().Select(static item => $"{item.GetProperty("name").GetString()}={item.GetProperty("requests").GetInt32()}")];

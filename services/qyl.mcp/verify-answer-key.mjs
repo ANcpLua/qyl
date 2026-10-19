@@ -118,10 +118,11 @@ verify('12 silent billing last seen2hours beforeseed',async call=>{
  const data=await call('check_telemetry_health',w);const service=data.silent_services.find(s=>s.service==='billing');assert.equal(Date.parse(service.last_seen),Date.parse(fixture.now)-7_200_000);
 });
 verify('13 MCP stats preserve denominator, failure class, exampleids, buckets and breakdowns',async call=>{
- const data=await call('get_mcp_stats',{...w,tool_name:'search_logs'});const group=data.groups.find(g=>g.name==='search_logs');assert.equal(group.requests,40);assert.equal(group.errors,8);assert.equal(group.error_rate,.2);assert.equal(data.failure_classes.timeout,8);assert(group.example_trace_ids.length>0);
+ assert.equal((await call('get_mcp_stats',{...w,tool_name:'search_logs'})).buckets,undefined,'buckets come only on request');
+ const data=await call('get_mcp_stats',{...w,tool_name:'search_logs',buckets:true});const group=data.groups.find(g=>g.name==='search_logs');assert.equal(group.requests,40);assert.equal(group.errors,8);assert.equal(group.error_rate,.2);assert.equal(data.failure_classes.timeout,8);assert(group.example_trace_ids.length>0);
  const tool=data.tools.find(t=>t.name==='search_logs');assert.equal(tool.requests,40);assert.equal(tool.errors,8);assert.equal(tool.error_rate,.2);assert.equal(tool.avg_ms,20);assert.equal(tool.p95_ms,20);
  assert.equal(data.span_count_analyzed,40);assert.equal(data.truncated,false);assert.equal(data.mode,'live');
- assert.equal(data.buckets.length,Math.ceil((Date.parse(w.end_time)-Date.parse(w.start_time))/data.bucket_ms));
+ assert(data.buckets.length>0&&data.buckets.every(b=>b.requests>0),'only buckets that saw requests');
  assert.equal(data.buckets.reduce((sum,b)=>sum+b.requests,0),40);assert.equal(data.buckets.reduce((sum,b)=>sum+b.errors,0),8);
  assert.equal(data.by_method.find(m=>m.name==='tools/call').requests,40);assert.equal(data.by_transport.find(t=>t.name==='http').requests,40);
  assert.equal(data.by_server.find(s=>s.name===fixture.mcp_server_name).requests,40);
@@ -142,6 +143,11 @@ verify('19 metric route cardinality2 suggested for grouping',async call=>{const 
 verify('20a histogram p95 remains seconds and approximate',async call=>{const data=await call('query_metric',{...w,metric_name:'http.server.request.duration',aggregation:'p95',group_by:['http.route'],step_ms:3_600_000});assert.equal(data.unit,'s');assert.equal(data.approximate,true);const checkout=data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value==='/checkout'));assert(checkout);const values=checkout.buckets.map(b=>b.value).filter(v=>v!==null);assert(values.some(v=>Math.abs(v-1.84)<.1),JSON.stringify(values));});
 verify('20b cumulative100,150,190 started in the window increase190',async call=>{const data=await call('query_metric',{...w,metric_name:'requests.total',function:'increase',step_ms:3_600_000});assert.equal(data.series.flatMap(s=>s.buckets).reduce((sum,b)=>sum+(b.value??0),0),fixture.expected.increase);});
 verify('21 CI new test failure and build3xregression',async call=>{const data=await call('ci_log',{...w,run_id:'ci_current',compare_to:'last_success'});assert(data.comparison.new_failures.some(p=>p.leg==='test'));assert(data.comparison.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));});
+verify('24 span discovery keeps integer attribute values whole',async call=>{
+ const data=await call('discover_attributes',{...scoped('payments'),signal:'spans',key:'http.response.status_code'});
+ const status=data.attributes.find(a=>a.key==='http.response.status_code'&&a.scope==='span');assert(status,JSON.stringify(data.attributes));
+ assert.equal(status.type,'int');assert.deepEqual(status.top_values[0].value,{type:'int',value:'500'});assert.equal(status.top_values[0].count,2);
+});
 verify('22 health finds no seed defects: no semconv gaps, schema URLs, no orphans and no ingestion lag',async call=>{
  const data=await call('check_telemetry_health',w);
  assert.deepEqual(data.semconv_gaps,[],JSON.stringify(data.semconv_gaps));

@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:34738a7213e27d35",
+  "contract_revision": "sha256:76076ff28e878721",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -7270,61 +7270,53 @@
                 "items": {
                   "type": "object",
                   "required": [
+                    "time",
                     "severity_number",
+                    "service",
                     "body",
-                    "resource"
+                    "attributes"
                   ],
                   "properties": {
-                    "time_unix_nano": {
+                    "time": {
                       "type": "string",
-                      "description": "Timestamp when the event occurred (nanoseconds since epoch). Absent when the source timestamp is unknown; use observed_time_unix_nano as the display fallback when present.",
-                      "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                      "maxLength": 20
+                      "format": "date-time",
+                      "description": "The record's event time, else the time it was observed."
                     },
-                    "observed_time_unix_nano": {
+                    "severity": {
                       "type": "string",
-                      "description": "Timestamp when the log was observed/collected (nanoseconds since epoch). Absent when a historical record did not capture it.",
-                      "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                      "maxLength": 20
+                      "description": "The severity text, else the OTel short name of its severity number."
                     },
                     "severity_number": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1,
-                        2,
-                        3,
-                        4,
-                        5,
-                        6,
-                        7,
-                        8,
-                        9,
-                        10,
-                        11,
-                        12,
-                        13,
-                        14,
-                        15,
-                        16,
-                        17,
-                        18,
-                        19,
-                        20,
-                        21,
-                        22,
-                        23,
-                        24
-                      ],
-                      "description": "Severity number (1-24)"
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
                     },
-                    "severity_text": {
-                      "type": "string",
-                      "description": "Severity text exactly as supplied by the producer; classification uses severity_number."
+                    "service": {
+                      "type": "string"
                     },
                     "body": {
-                      "$ref": "#/$defs/Common.AttributeValue",
-                      "description": "Log body: the OTLP AnyValue, projected exactly like an attribute value"
+                      "type": "string",
+                      "description": "The body as text; a structured body is its JSON."
+                    },
+                    "trace_id": {
+                      "type": "string",
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[a-f0-9]{32}$",
+                      "description": "Unique trace identifier (32 lowercase hex characters)",
+                      "examples": [
+                        "0af7651916cd43dd8448eb211c80319c"
+                      ]
+                    },
+                    "span_id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 16,
+                      "pattern": "^[a-f0-9]{16}$",
+                      "description": "Unique span identifier (16 lowercase hex characters)",
+                      "examples": [
+                        "b7ad6b7169203331"
+                      ]
                     },
                     "attributes": {
                       "type": "array",
@@ -7348,186 +7340,10 @@
                         },
                         "description": "Key-value attribute pair following OTel conventions",
                         "additionalProperties": false
-                      },
-                      "description": "Log attributes"
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Dropped attributes count"
-                    },
-                    "flags": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 4294967295,
-                      "description": "Flags (trace flags)"
-                    },
-                    "trace_id": {
-                      "type": "string",
-                      "minLength": 32,
-                      "maxLength": 32,
-                      "pattern": "^[a-f0-9]{32}$",
-                      "description": "Associated trace ID",
-                      "examples": [
-                        "0af7651916cd43dd8448eb211c80319c"
-                      ]
-                    },
-                    "span_id": {
-                      "type": "string",
-                      "minLength": 16,
-                      "maxLength": 16,
-                      "pattern": "^[a-f0-9]{16}$",
-                      "description": "Associated span ID",
-                      "examples": [
-                        "b7ad6b7169203331"
-                      ]
-                    },
-                    "event_name": {
-                      "type": "string",
-                      "description": "Optional event category whose presence identifies this log record as an event; records with the same name are expected to share one body and attribute schema."
-                    },
-                    "resource": {
-                      "type": "object",
-                      "required": [
-                        "service_name"
-                      ],
-                      "properties": {
-                        "service_name": {
-                          "type": "string",
-                          "description": "Service name used by the Collector's service queries."
-                        },
-                        "attributes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "key",
-                              "value"
-                            ],
-                            "properties": {
-                              "key": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256,
-                                "description": "Attribute key (dot-separated namespace)"
-                              },
-                              "value": {
-                                "$ref": "#/$defs/Common.AttributeValue",
-                                "description": "Attribute value"
-                              }
-                            },
-                            "description": "Key-value attribute pair following OTel conventions",
-                            "additionalProperties": false
-                          },
-                          "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
-                        },
-                        "schema_url": {
-                          "type": "string",
-                          "description": "Resource schema URL supplied by the producer."
-                        },
-                        "dropped_attributes_count": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "description": "Number of resource attributes dropped by the producer."
-                        },
-                        "entity_refs": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "type",
-                              "id_keys"
-                            ],
-                            "properties": {
-                              "schema_url": {
-                                "type": "string",
-                                "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                              },
-                              "type": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Stable non-empty entity type, such as service or host."
-                              },
-                              "id_keys": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                                },
-                                "minItems": 1,
-                                "description": "Non-empty set of Resource attribute keys that identify the entity."
-                              },
-                              "description_keys": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                                },
-                                "description": "Resource attribute keys that describe but do not identify the entity."
-                              }
-                            },
-                            "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                            "additionalProperties": false
-                          },
-                          "description": "Entities participating in this resource, keyed by its attributes."
-                        }
-                      },
-                      "description": "Resource describing the entity that produced this log",
-                      "additionalProperties": false
-                    },
-                    "instrumentation_scope": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "description": "Name of the instrumentation scope (library name)"
-                        },
-                        "version": {
-                          "type": "string",
-                          "description": "Version of the instrumentation scope"
-                        },
-                        "schema_url": {
-                          "type": "string",
-                          "description": "Scope schema URL supplied by the producer."
-                        },
-                        "attributes": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "key",
-                              "value"
-                            ],
-                            "properties": {
-                              "key": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256,
-                                "description": "Attribute key (dot-separated namespace)"
-                              },
-                              "value": {
-                                "$ref": "#/$defs/Common.AttributeValue",
-                                "description": "Attribute value"
-                              }
-                            },
-                            "description": "Key-value attribute pair following OTel conventions",
-                            "additionalProperties": false
-                          },
-                          "description": "Additional attributes for the scope"
-                        },
-                        "dropped_attributes_count": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "description": "Dropped attributes count"
-                        }
-                      },
-                      "description": "Instrumentation scope",
-                      "additionalProperties": false
+                      }
                     }
                   },
-                  "description": "OpenTelemetry Log Record",
+                  "description": "A log record as the analysis tools return it.",
                   "additionalProperties": false
                 }
               },
@@ -8430,6 +8246,10 @@
               "transport",
               "failure_class"
             ]
+          },
+          "buckets": {
+            "type": "boolean",
+            "description": "Also return the window's request and error counts per bucket of one sixtieth of the window, only the buckets that saw requests."
           }
         },
         "description": "GetMcpStatsInput contract.",
@@ -8444,8 +8264,6 @@
           "totals",
           "groups",
           "failure_classes",
-          "bucket_ms",
-          "buckets",
           "by_server",
           "by_transport",
           "by_method",
@@ -8895,7 +8713,7 @@
           "bucket_ms": {
             "type": "integer",
             "minimum": 1000,
-            "description": "Width of every entry in `buckets` in integer milliseconds: the window split into 60 buckets of at least one second."
+            "description": "With `buckets`, the width of every bucket in integer milliseconds: the window split into 60 buckets of at least one second."
           },
           "buckets": {
             "type": "array",
@@ -8926,7 +8744,7 @@
               "description": "Requests and errors of one bucket of the window.",
               "additionalProperties": false
             },
-            "description": "Requests and errors per bucket from the window's start, oldest first; a bucket without requests counts zero."
+            "description": "With `buckets`, requests and errors of each bucket that saw requests, oldest first."
           },
           "by_server": {
             "type": "array",
@@ -11393,61 +11211,53 @@
             "items": {
               "type": "object",
               "required": [
+                "time",
                 "severity_number",
+                "service",
                 "body",
-                "resource"
+                "attributes"
               ],
               "properties": {
-                "time_unix_nano": {
+                "time": {
                   "type": "string",
-                  "description": "Timestamp when the event occurred (nanoseconds since epoch). Absent when the source timestamp is unknown; use observed_time_unix_nano as the display fallback when present.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
+                  "format": "date-time",
+                  "description": "The record's event time, else the time it was observed."
                 },
-                "observed_time_unix_nano": {
+                "severity": {
                   "type": "string",
-                  "description": "Timestamp when the log was observed/collected (nanoseconds since epoch). Absent when a historical record did not capture it.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
+                  "description": "The severity text, else the OTel short name of its severity number."
                 },
                 "severity_number": {
-                  "type": "number",
-                  "enum": [
-                    0,
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    17,
-                    18,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    24
-                  ],
-                  "description": "Severity number (1-24)"
+                  "type": "integer",
+                  "minimum": -2147483648,
+                  "maximum": 2147483647
                 },
-                "severity_text": {
-                  "type": "string",
-                  "description": "Severity text exactly as supplied by the producer; classification uses severity_number."
+                "service": {
+                  "type": "string"
                 },
                 "body": {
-                  "$ref": "#/$defs/Common.AttributeValue",
-                  "description": "Log body: the OTLP AnyValue, projected exactly like an attribute value"
+                  "type": "string",
+                  "description": "The body as text; a structured body is its JSON."
+                },
+                "trace_id": {
+                  "type": "string",
+                  "minLength": 32,
+                  "maxLength": 32,
+                  "pattern": "^[a-f0-9]{32}$",
+                  "description": "Unique trace identifier (32 lowercase hex characters)",
+                  "examples": [
+                    "0af7651916cd43dd8448eb211c80319c"
+                  ]
+                },
+                "span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Unique span identifier (16 lowercase hex characters)",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
                 },
                 "attributes": {
                   "type": "array",
@@ -11471,454 +11281,13 @@
                     },
                     "description": "Key-value attribute pair following OTel conventions",
                     "additionalProperties": false
-                  },
-                  "description": "Log attributes"
-                },
-                "dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Dropped attributes count"
-                },
-                "flags": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 4294967295,
-                  "description": "Flags (trace flags)"
-                },
-                "trace_id": {
-                  "type": "string",
-                  "minLength": 32,
-                  "maxLength": 32,
-                  "pattern": "^[a-f0-9]{32}$",
-                  "description": "Associated trace ID",
-                  "examples": [
-                    "0af7651916cd43dd8448eb211c80319c"
-                  ]
-                },
-                "span_id": {
-                  "type": "string",
-                  "minLength": 16,
-                  "maxLength": 16,
-                  "pattern": "^[a-f0-9]{16}$",
-                  "description": "Associated span ID",
-                  "examples": [
-                    "b7ad6b7169203331"
-                  ]
-                },
-                "event_name": {
-                  "type": "string",
-                  "description": "Optional event category whose presence identifies this log record as an event; records with the same name are expected to share one body and attribute schema."
-                },
-                "resource": {
-                  "type": "object",
-                  "required": [
-                    "service_name"
-                  ],
-                  "properties": {
-                    "service_name": {
-                      "type": "string",
-                      "description": "Service name used by the Collector's service queries."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Resource schema URL supplied by the producer."
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Number of resource attributes dropped by the producer."
-                    },
-                    "entity_refs": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "type",
-                          "id_keys"
-                        ],
-                        "properties": {
-                          "schema_url": {
-                            "type": "string",
-                            "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                          },
-                          "type": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Stable non-empty entity type, such as service or host."
-                          },
-                          "id_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "minItems": 1,
-                            "description": "Non-empty set of Resource attribute keys that identify the entity."
-                          },
-                          "description_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "description": "Resource attribute keys that describe but do not identify the entity."
-                          }
-                        },
-                        "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                        "additionalProperties": false
-                      },
-                      "description": "Entities participating in this resource, keyed by its attributes."
-                    }
-                  },
-                  "description": "Resource describing the entity that produced this log",
-                  "additionalProperties": false
-                },
-                "instrumentation_scope": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the instrumentation scope (library name)"
-                    },
-                    "version": {
-                      "type": "string",
-                      "description": "Version of the instrumentation scope"
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Scope schema URL supplied by the producer."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Additional attributes for the scope"
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Dropped attributes count"
-                    }
-                  },
-                  "description": "Instrumentation scope",
-                  "additionalProperties": false
+                  }
                 }
               },
-              "description": "OpenTelemetry Log Record",
+              "description": "A log record as the analysis tools return it.",
               "additionalProperties": false
-            }
-          },
-          "context_logs": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "severity_number",
-                "body",
-                "resource"
-              ],
-              "properties": {
-                "time_unix_nano": {
-                  "type": "string",
-                  "description": "Timestamp when the event occurred (nanoseconds since epoch). Absent when the source timestamp is unknown; use observed_time_unix_nano as the display fallback when present.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
-                },
-                "observed_time_unix_nano": {
-                  "type": "string",
-                  "description": "Timestamp when the log was observed/collected (nanoseconds since epoch). Absent when a historical record did not capture it.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
-                },
-                "severity_number": {
-                  "type": "number",
-                  "enum": [
-                    0,
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    17,
-                    18,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    24
-                  ],
-                  "description": "Severity number (1-24)"
-                },
-                "severity_text": {
-                  "type": "string",
-                  "description": "Severity text exactly as supplied by the producer; classification uses severity_number."
-                },
-                "body": {
-                  "$ref": "#/$defs/Common.AttributeValue",
-                  "description": "Log body: the OTLP AnyValue, projected exactly like an attribute value"
-                },
-                "attributes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "key",
-                      "value"
-                    ],
-                    "properties": {
-                      "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256,
-                        "description": "Attribute key (dot-separated namespace)"
-                      },
-                      "value": {
-                        "$ref": "#/$defs/Common.AttributeValue",
-                        "description": "Attribute value"
-                      }
-                    },
-                    "description": "Key-value attribute pair following OTel conventions",
-                    "additionalProperties": false
-                  },
-                  "description": "Log attributes"
-                },
-                "dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Dropped attributes count"
-                },
-                "flags": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 4294967295,
-                  "description": "Flags (trace flags)"
-                },
-                "trace_id": {
-                  "type": "string",
-                  "minLength": 32,
-                  "maxLength": 32,
-                  "pattern": "^[a-f0-9]{32}$",
-                  "description": "Associated trace ID",
-                  "examples": [
-                    "0af7651916cd43dd8448eb211c80319c"
-                  ]
-                },
-                "span_id": {
-                  "type": "string",
-                  "minLength": 16,
-                  "maxLength": 16,
-                  "pattern": "^[a-f0-9]{16}$",
-                  "description": "Associated span ID",
-                  "examples": [
-                    "b7ad6b7169203331"
-                  ]
-                },
-                "event_name": {
-                  "type": "string",
-                  "description": "Optional event category whose presence identifies this log record as an event; records with the same name are expected to share one body and attribute schema."
-                },
-                "resource": {
-                  "type": "object",
-                  "required": [
-                    "service_name"
-                  ],
-                  "properties": {
-                    "service_name": {
-                      "type": "string",
-                      "description": "Service name used by the Collector's service queries."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Resource schema URL supplied by the producer."
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Number of resource attributes dropped by the producer."
-                    },
-                    "entity_refs": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "type",
-                          "id_keys"
-                        ],
-                        "properties": {
-                          "schema_url": {
-                            "type": "string",
-                            "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                          },
-                          "type": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Stable non-empty entity type, such as service or host."
-                          },
-                          "id_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "minItems": 1,
-                            "description": "Non-empty set of Resource attribute keys that identify the entity."
-                          },
-                          "description_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "description": "Resource attribute keys that describe but do not identify the entity."
-                          }
-                        },
-                        "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                        "additionalProperties": false
-                      },
-                      "description": "Entities participating in this resource, keyed by its attributes."
-                    }
-                  },
-                  "description": "Resource describing the entity that produced this log",
-                  "additionalProperties": false
-                },
-                "instrumentation_scope": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the instrumentation scope (library name)"
-                    },
-                    "version": {
-                      "type": "string",
-                      "description": "Version of the instrumentation scope"
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Scope schema URL supplied by the producer."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Additional attributes for the scope"
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Dropped attributes count"
-                    }
-                  },
-                  "description": "Instrumentation scope",
-                  "additionalProperties": false
-                }
-              },
-              "description": "OpenTelemetry Log Record",
-              "additionalProperties": false
-            }
+            },
+            "description": "The trace's log records, `include_logs` of them, newest first."
           },
           "settled": {
             "type": "boolean"
@@ -13432,7 +12801,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 1000,
-            "default": 200
+            "default": 50
           },
           "cursor": {
             "type": "string",
@@ -13543,163 +12912,55 @@
             "items": {
               "type": "object",
               "required": [
-                "has_conflict",
-                "instrument_id",
                 "name",
                 "kind",
                 "temporality",
-                "monotonic",
+                "services",
                 "series_count",
-                "last_seen"
+                "last_seen",
+                "supported_aggregations",
+                "has_conflict"
               ],
               "properties": {
-                "has_conflict": {
-                  "type": "boolean",
-                  "description": "Whether this resource/scope/name group contains incompatible recorded descriptors. The conflicts array lists the actual variants."
+                "name": {
+                  "type": "string"
                 },
-                "instrument_id": {
+                "kind": {
                   "type": "string",
-                  "description": "Stable catalog group identifier, derived from resource, instrumentation scope and metric name."
-                },
-                "resource": {
-                  "type": "object",
-                  "required": [
-                    "service_name"
+                  "enum": [
+                    "gauge",
+                    "sum",
+                    "histogram",
+                    "exponential_histogram",
+                    "summary"
                   ],
-                  "properties": {
-                    "service_name": {
-                      "type": "string",
-                      "description": "Service name used by the Collector's service queries."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Resource schema URL supplied by the producer."
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Number of resource attributes dropped by the producer."
-                    },
-                    "entity_refs": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "type",
-                          "id_keys"
-                        ],
-                        "properties": {
-                          "schema_url": {
-                            "type": "string",
-                            "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                          },
-                          "type": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Stable non-empty entity type, such as service or host."
-                          },
-                          "id_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "minItems": 1,
-                            "description": "Non-empty set of Resource attribute keys that identify the entity."
-                          },
-                          "description_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "description": "Resource attribute keys that describe but do not identify the entity."
-                          }
-                        },
-                        "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                        "additionalProperties": false
-                      },
-                      "description": "Entities participating in this resource, keyed by its attributes."
-                    }
-                  },
-                  "description": "Resource that owns this metric group, when recorded.",
-                  "additionalProperties": false
+                  "description": "Shape of a stored metric stream."
                 },
-                "instrumentation_scope": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the instrumentation scope (library name)"
-                    },
-                    "version": {
-                      "type": "string",
-                      "description": "Version of the instrumentation scope"
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Scope schema URL supplied by the producer."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Additional attributes for the scope"
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Dropped attributes count"
-                    }
+                "unit": {
+                  "type": "string"
+                },
+                "temporality": {
+                  "type": "string",
+                  "enum": [
+                    "unspecified",
+                    "delta",
+                    "cumulative"
+                  ],
+                  "description": "How successive points of a sum or histogram relate to each other."
+                },
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
                   },
-                  "description": "Instrumentation scope that owns this metric group, when recorded.",
-                  "additionalProperties": false
+                  "description": "Services that report the instrument."
+                },
+                "series_count": {
+                  "type": "integer"
+                },
+                "last_seen": {
+                  "type": "string",
+                  "format": "date-time"
                 },
                 "supported_aggregations": {
                   "type": "array",
@@ -13718,109 +12979,15 @@
                       "p99"
                     ],
                     "description": "Server-side reducer applied to the points falling in one time bucket."
-                  }
+                  },
+                  "description": "The aggregations query_metric accepts for it."
                 },
-                "services": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "conflicts": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "kind",
-                      "temporality",
-                      "monotonic",
-                      "services"
-                    ],
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "enum": [
-                          "gauge",
-                          "sum",
-                          "histogram",
-                          "exponential_histogram",
-                          "summary"
-                        ],
-                        "description": "Shape of a stored metric stream."
-                      },
-                      "temporality": {
-                        "type": "string",
-                        "enum": [
-                          "unspecified",
-                          "delta",
-                          "cumulative"
-                        ],
-                        "description": "How successive points of a sum or histogram relate to each other."
-                      },
-                      "monotonic": {
-                        "type": "boolean"
-                      },
-                      "unit": {
-                        "type": "string"
-                      },
-                      "services": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "description": "MetricDescriptorConflict contract.",
-                    "additionalProperties": false
-                  }
-                },
-                "name": {
-                  "type": "string",
-                  "description": "Instrument name, e.g. `http.server.request.duration`."
-                },
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "gauge",
-                    "sum",
-                    "histogram",
-                    "exponential_histogram",
-                    "summary"
-                  ],
-                  "description": "Shape of a stored metric stream."
-                },
-                "temporality": {
-                  "type": "string",
-                  "enum": [
-                    "unspecified",
-                    "delta",
-                    "cumulative"
-                  ],
-                  "description": "How successive points of a sum or histogram relate to each other."
-                },
-                "monotonic": {
+                "has_conflict": {
                   "type": "boolean",
-                  "description": "Whether a sum only ever increases. Meaningless for other kinds."
-                },
-                "unit": {
-                  "type": "string",
-                  "description": "UCUM unit as reported by the producer, e.g. `s` or `{request}`."
-                },
-                "description": {
-                  "type": "string",
-                  "description": "Producer-supplied description of the instrument."
-                },
-                "series_count": {
-                  "type": "integer",
-                  "description": "Number of distinct attribute streams recorded under this name."
-                },
-                "last_seen": {
-                  "type": "string",
-                  "format": "date-time",
-                  "description": "Timestamp of the most recent point recorded under this name."
+                  "description": "Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`."
                 }
               },
-              "description": "One resource, instrumentation scope and metric name recorded for a project.\nIncompatible instrument descriptors within that group are reported as conflicts.\nThe primary descriptor is an actual recorded variant, never a combination of variants.",
+              "description": "One metric instrument of list_metrics; get_metric_series returns its series and attributes.",
               "additionalProperties": false
             }
           },
@@ -13939,141 +13106,7 @@
           }
         },
         "description": "Structured output for list_metrics.",
-        "additionalProperties": false,
-        "$defs": {
-          "Common.AttributeKeyValueListValue": {
-            "type": "object",
-            "required": [
-              "type",
-              "values"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "kvlist"
-                ]
-              },
-              "values": {
-                "type": "object",
-                "additionalProperties": {
-                  "$ref": "#/$defs/Common.AttributeValue"
-                }
-              }
-            },
-            "description": "Tagged recursive OTLP key-value-list, distinct from other object-shaped attribute variants.",
-            "additionalProperties": false
-          },
-          "Common.AttributeObjectValue": {
-            "type": "object",
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "value"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "int"
-                    ]
-                  },
-                  "value": {
-                    "type": "string",
-                    "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
-                    "pattern": "^(?:(?:0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)|-(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$",
-                    "maxLength": 20
-                  }
-                },
-                "description": "Tagged OTLP signed 64-bit integer attribute.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "value"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "double"
-                    ]
-                  },
-                  "value": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "string",
-                        "enum": [
-                          "NaN",
-                          "Infinity",
-                          "-Infinity"
-                        ]
-                      }
-                    ],
-                    "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
-                  }
-                },
-                "description": "Tagged OTLP double attribute.",
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "base64"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "bytes"
-                    ]
-                  },
-                  "base64": {
-                    "type": "string",
-                    "contentEncoding": "base64"
-                  }
-                },
-                "description": "Base64 bytes projected by qyl without colliding with an ordinary string attribute.",
-                "additionalProperties": false
-              },
-              {
-                "$ref": "#/$defs/Common.AttributeKeyValueListValue"
-              }
-            ],
-            "description": "Object-shaped AttributeValue variants. The variant name is the wire `type` tag."
-          },
-          "Common.AttributeValue": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/$defs/Common.AttributeValue"
-                }
-              },
-              {
-                "$ref": "#/$defs/Common.AttributeObjectValue"
-              }
-            ],
-            "description": "Lossless JSON projection of an OpenTelemetry AnyValue attribute. Primitive variants are bare JSON values; object variants carry a `type` tag."
-          }
-        }
+        "additionalProperties": false
       }
     },
     {
@@ -18186,61 +17219,53 @@
                     "items": {
                       "type": "object",
                       "required": [
+                        "time",
                         "severity_number",
+                        "service",
                         "body",
-                        "resource"
+                        "attributes"
                       ],
                       "properties": {
-                        "time_unix_nano": {
+                        "time": {
                           "type": "string",
-                          "description": "Timestamp when the event occurred (nanoseconds since epoch). Absent when the source timestamp is unknown; use observed_time_unix_nano as the display fallback when present.",
-                          "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                          "maxLength": 20
+                          "format": "date-time",
+                          "description": "The record's event time, else the time it was observed."
                         },
-                        "observed_time_unix_nano": {
+                        "severity": {
                           "type": "string",
-                          "description": "Timestamp when the log was observed/collected (nanoseconds since epoch). Absent when a historical record did not capture it.",
-                          "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                          "maxLength": 20
+                          "description": "The severity text, else the OTel short name of its severity number."
                         },
                         "severity_number": {
-                          "type": "number",
-                          "enum": [
-                            0,
-                            1,
-                            2,
-                            3,
-                            4,
-                            5,
-                            6,
-                            7,
-                            8,
-                            9,
-                            10,
-                            11,
-                            12,
-                            13,
-                            14,
-                            15,
-                            16,
-                            17,
-                            18,
-                            19,
-                            20,
-                            21,
-                            22,
-                            23,
-                            24
-                          ],
-                          "description": "Severity number (1-24)"
+                          "type": "integer",
+                          "minimum": -2147483648,
+                          "maximum": 2147483647
                         },
-                        "severity_text": {
-                          "type": "string",
-                          "description": "Severity text exactly as supplied by the producer; classification uses severity_number."
+                        "service": {
+                          "type": "string"
                         },
                         "body": {
-                          "$ref": "#/$defs/Common.AttributeValue",
-                          "description": "Log body: the OTLP AnyValue, projected exactly like an attribute value"
+                          "type": "string",
+                          "description": "The body as text; a structured body is its JSON."
+                        },
+                        "trace_id": {
+                          "type": "string",
+                          "minLength": 32,
+                          "maxLength": 32,
+                          "pattern": "^[a-f0-9]{32}$",
+                          "description": "Unique trace identifier (32 lowercase hex characters)",
+                          "examples": [
+                            "0af7651916cd43dd8448eb211c80319c"
+                          ]
+                        },
+                        "span_id": {
+                          "type": "string",
+                          "minLength": 16,
+                          "maxLength": 16,
+                          "pattern": "^[a-f0-9]{16}$",
+                          "description": "Unique span identifier (16 lowercase hex characters)",
+                          "examples": [
+                            "b7ad6b7169203331"
+                          ]
                         },
                         "attributes": {
                           "type": "array",
@@ -18264,186 +17289,10 @@
                             },
                             "description": "Key-value attribute pair following OTel conventions",
                             "additionalProperties": false
-                          },
-                          "description": "Log attributes"
-                        },
-                        "dropped_attributes_count": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "description": "Dropped attributes count"
-                        },
-                        "flags": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 4294967295,
-                          "description": "Flags (trace flags)"
-                        },
-                        "trace_id": {
-                          "type": "string",
-                          "minLength": 32,
-                          "maxLength": 32,
-                          "pattern": "^[a-f0-9]{32}$",
-                          "description": "Associated trace ID",
-                          "examples": [
-                            "0af7651916cd43dd8448eb211c80319c"
-                          ]
-                        },
-                        "span_id": {
-                          "type": "string",
-                          "minLength": 16,
-                          "maxLength": 16,
-                          "pattern": "^[a-f0-9]{16}$",
-                          "description": "Associated span ID",
-                          "examples": [
-                            "b7ad6b7169203331"
-                          ]
-                        },
-                        "event_name": {
-                          "type": "string",
-                          "description": "Optional event category whose presence identifies this log record as an event; records with the same name are expected to share one body and attribute schema."
-                        },
-                        "resource": {
-                          "type": "object",
-                          "required": [
-                            "service_name"
-                          ],
-                          "properties": {
-                            "service_name": {
-                              "type": "string",
-                              "description": "Service name used by the Collector's service queries."
-                            },
-                            "attributes": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "required": [
-                                  "key",
-                                  "value"
-                                ],
-                                "properties": {
-                                  "key": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 256,
-                                    "description": "Attribute key (dot-separated namespace)"
-                                  },
-                                  "value": {
-                                    "$ref": "#/$defs/Common.AttributeValue",
-                                    "description": "Attribute value"
-                                  }
-                                },
-                                "description": "Key-value attribute pair following OTel conventions",
-                                "additionalProperties": false
-                              },
-                              "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
-                            },
-                            "schema_url": {
-                              "type": "string",
-                              "description": "Resource schema URL supplied by the producer."
-                            },
-                            "dropped_attributes_count": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "description": "Number of resource attributes dropped by the producer."
-                            },
-                            "entity_refs": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "required": [
-                                  "type",
-                                  "id_keys"
-                                ],
-                                "properties": {
-                                  "schema_url": {
-                                    "type": "string",
-                                    "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "description": "Stable non-empty entity type, such as service or host."
-                                  },
-                                  "id_keys": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                                    },
-                                    "minItems": 1,
-                                    "description": "Non-empty set of Resource attribute keys that identify the entity."
-                                  },
-                                  "description_keys": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                                    },
-                                    "description": "Resource attribute keys that describe but do not identify the entity."
-                                  }
-                                },
-                                "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                                "additionalProperties": false
-                              },
-                              "description": "Entities participating in this resource, keyed by its attributes."
-                            }
-                          },
-                          "description": "Resource describing the entity that produced this log",
-                          "additionalProperties": false
-                        },
-                        "instrumentation_scope": {
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string",
-                              "description": "Name of the instrumentation scope (library name)"
-                            },
-                            "version": {
-                              "type": "string",
-                              "description": "Version of the instrumentation scope"
-                            },
-                            "schema_url": {
-                              "type": "string",
-                              "description": "Scope schema URL supplied by the producer."
-                            },
-                            "attributes": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "required": [
-                                  "key",
-                                  "value"
-                                ],
-                                "properties": {
-                                  "key": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 256,
-                                    "description": "Attribute key (dot-separated namespace)"
-                                  },
-                                  "value": {
-                                    "$ref": "#/$defs/Common.AttributeValue",
-                                    "description": "Attribute value"
-                                  }
-                                },
-                                "description": "Key-value attribute pair following OTel conventions",
-                                "additionalProperties": false
-                              },
-                              "description": "Additional attributes for the scope"
-                            },
-                            "dropped_attributes_count": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "description": "Dropped attributes count"
-                            }
-                          },
-                          "description": "Instrumentation scope",
-                          "additionalProperties": false
+                          }
                         }
                       },
-                      "description": "OpenTelemetry Log Record",
+                      "description": "A log record as the analysis tools return it.",
                       "additionalProperties": false
                     }
                   },
@@ -18456,7 +17305,7 @@
                     "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
                   }
                 },
-                "description": "One page of log records produced by a saved log query.",
+                "description": "One page of log records produced by a saved log query, as search_logs returns them.",
                 "additionalProperties": false
               },
               {
@@ -19086,7 +17935,6 @@
         "required": [
           "window",
           "coverage",
-          "logs",
           "mode",
           "has_more"
         ],
@@ -19105,7 +17953,7 @@
                 "severity",
                 "first_seen",
                 "last_seen",
-                "example_ids"
+                "example_trace_ids"
               ],
               "properties": {
                 "template": {
@@ -19127,12 +17975,20 @@
                   "type": "string",
                   "format": "date-time"
                 },
-                "example_ids": {
+                "example_trace_ids": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[a-f0-9]{32}$",
+                    "description": "Unique trace identifier (32 lowercase hex characters)",
+                    "examples": [
+                      "0af7651916cd43dd8448eb211c80319c"
+                    ]
                   },
-                  "maxItems": 3
+                  "maxItems": 3,
+                  "description": "Traces the pattern was seen in."
                 }
               },
               "description": "LogPattern contract.",
@@ -19231,61 +18087,53 @@
             "items": {
               "type": "object",
               "required": [
+                "time",
                 "severity_number",
+                "service",
                 "body",
-                "resource"
+                "attributes"
               ],
               "properties": {
-                "time_unix_nano": {
+                "time": {
                   "type": "string",
-                  "description": "Timestamp when the event occurred (nanoseconds since epoch). Absent when the source timestamp is unknown; use observed_time_unix_nano as the display fallback when present.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
+                  "format": "date-time",
+                  "description": "The record's event time, else the time it was observed."
                 },
-                "observed_time_unix_nano": {
+                "severity": {
                   "type": "string",
-                  "description": "Timestamp when the log was observed/collected (nanoseconds since epoch). Absent when a historical record did not capture it.",
-                  "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
-                  "maxLength": 20
+                  "description": "The severity text, else the OTel short name of its severity number."
                 },
                 "severity_number": {
-                  "type": "number",
-                  "enum": [
-                    0,
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    17,
-                    18,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    24
-                  ],
-                  "description": "Severity number (1-24)"
+                  "type": "integer",
+                  "minimum": -2147483648,
+                  "maximum": 2147483647
                 },
-                "severity_text": {
-                  "type": "string",
-                  "description": "Severity text exactly as supplied by the producer; classification uses severity_number."
+                "service": {
+                  "type": "string"
                 },
                 "body": {
-                  "$ref": "#/$defs/Common.AttributeValue",
-                  "description": "Log body: the OTLP AnyValue, projected exactly like an attribute value"
+                  "type": "string",
+                  "description": "The body as text; a structured body is its JSON."
+                },
+                "trace_id": {
+                  "type": "string",
+                  "minLength": 32,
+                  "maxLength": 32,
+                  "pattern": "^[a-f0-9]{32}$",
+                  "description": "Unique trace identifier (32 lowercase hex characters)",
+                  "examples": [
+                    "0af7651916cd43dd8448eb211c80319c"
+                  ]
+                },
+                "span_id": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 16,
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Unique span identifier (16 lowercase hex characters)",
+                  "examples": [
+                    "b7ad6b7169203331"
+                  ]
                 },
                 "attributes": {
                   "type": "array",
@@ -19309,26 +18157,53 @@
                     },
                     "description": "Key-value attribute pair following OTel conventions",
                     "additionalProperties": false
-                  },
-                  "description": "Log attributes"
+                  }
+                }
+              },
+              "description": "A log record as the analysis tools return it.",
+              "additionalProperties": false
+            },
+            "description": "Matching records, newest first; absent when `group_by` asks for patterns."
+          },
+          "context_logs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "time",
+                "severity_number",
+                "service",
+                "body",
+                "attributes"
+              ],
+              "properties": {
+                "time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "The record's event time, else the time it was observed."
                 },
-                "dropped_attributes_count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Dropped attributes count"
+                "severity": {
+                  "type": "string",
+                  "description": "The severity text, else the OTel short name of its severity number."
                 },
-                "flags": {
+                "severity_number": {
                   "type": "integer",
-                  "minimum": 0,
-                  "maximum": 4294967295,
-                  "description": "Flags (trace flags)"
+                  "minimum": -2147483648,
+                  "maximum": 2147483647
+                },
+                "service": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string",
+                  "description": "The body as text; a structured body is its JSON."
                 },
                 "trace_id": {
                   "type": "string",
                   "minLength": 32,
                   "maxLength": 32,
                   "pattern": "^[a-f0-9]{32}$",
-                  "description": "Associated trace ID",
+                  "description": "Unique trace identifier (32 lowercase hex characters)",
                   "examples": [
                     "0af7651916cd43dd8448eb211c80319c"
                   ]
@@ -19338,159 +18213,40 @@
                   "minLength": 16,
                   "maxLength": 16,
                   "pattern": "^[a-f0-9]{16}$",
-                  "description": "Associated span ID",
+                  "description": "Unique span identifier (16 lowercase hex characters)",
                   "examples": [
                     "b7ad6b7169203331"
                   ]
                 },
-                "event_name": {
-                  "type": "string",
-                  "description": "Optional event category whose presence identifies this log record as an event; records with the same name are expected to share one body and attribute schema."
-                },
-                "resource": {
-                  "type": "object",
-                  "required": [
-                    "service_name"
-                  ],
-                  "properties": {
-                    "service_name": {
-                      "type": "string",
-                      "description": "Service name used by the Collector's service queries."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
+                "attributes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "key",
+                      "value"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "Attribute key (dot-separated namespace)"
                       },
-                      "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
+                      "value": {
+                        "$ref": "#/$defs/Common.AttributeValue",
+                        "description": "Attribute value"
+                      }
                     },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Resource schema URL supplied by the producer."
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Number of resource attributes dropped by the producer."
-                    },
-                    "entity_refs": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "type",
-                          "id_keys"
-                        ],
-                        "properties": {
-                          "schema_url": {
-                            "type": "string",
-                            "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
-                          },
-                          "type": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Stable non-empty entity type, such as service or host."
-                          },
-                          "id_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "minItems": 1,
-                            "description": "Non-empty set of Resource attribute keys that identify the entity."
-                          },
-                          "description_keys": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
-                            },
-                            "description": "Resource attribute keys that describe but do not identify the entity."
-                          }
-                        },
-                        "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
-                        "additionalProperties": false
-                      },
-                      "description": "Entities participating in this resource, keyed by its attributes."
-                    }
-                  },
-                  "description": "Resource describing the entity that produced this log",
-                  "additionalProperties": false
-                },
-                "instrumentation_scope": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the instrumentation scope (library name)"
-                    },
-                    "version": {
-                      "type": "string",
-                      "description": "Version of the instrumentation scope"
-                    },
-                    "schema_url": {
-                      "type": "string",
-                      "description": "Scope schema URL supplied by the producer."
-                    },
-                    "attributes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "value"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256,
-                            "description": "Attribute key (dot-separated namespace)"
-                          },
-                          "value": {
-                            "$ref": "#/$defs/Common.AttributeValue",
-                            "description": "Attribute value"
-                          }
-                        },
-                        "description": "Key-value attribute pair following OTel conventions",
-                        "additionalProperties": false
-                      },
-                      "description": "Additional attributes for the scope"
-                    },
-                    "dropped_attributes_count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "description": "Dropped attributes count"
-                    }
-                  },
-                  "description": "Instrumentation scope",
-                  "additionalProperties": false
+                    "description": "Key-value attribute pair following OTel conventions",
+                    "additionalProperties": false
+                  }
                 }
               },
-              "description": "OpenTelemetry Log Record",
+              "description": "A log record as the analysis tools return it.",
               "additionalProperties": false
-            }
+            },
+            "description": "With `context`, the records next to each returned one from the same service and resource."
           },
           "mode": {
             "type": "string",

@@ -908,8 +908,7 @@ export interface GetTraceOutput {
   "next_cursor"?: string;
   "missing_parent_span_ids"?: SpanId[];
   "links"?: TraceLinkAvailability[];
-  "logs"?: LogRecord[];
-  "context_logs"?: LogRecord[];
+  "logs"?: ToolLogRow[];
   "settled"?: boolean;
   "window": ToolWindow;
   "coverage": ToolCoverage;
@@ -924,6 +923,17 @@ export interface TraceLinkAvailability {
   "trace_id": TraceId;
   "span_id": SpanId;
   "available": boolean;
+}
+
+export interface ToolLogRow {
+  "time": string;
+  "severity"?: string;
+  "severity_number": number;
+  "service": string;
+  "body": string;
+  "trace_id"?: TraceId;
+  "span_id"?: SpanId;
+  "attributes": Attribute[];
 }
 
 export interface ToolTrace {
@@ -1068,7 +1078,8 @@ export interface SearchLogsOutput {
   "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
-  "logs": LogRecord[];
+  "logs"?: ToolLogRow[];
+  "context_logs"?: ToolLogRow[];
   "mode": McpDataMode;
   "has_more": boolean;
   "next_cursor"?: string;
@@ -1081,7 +1092,7 @@ export interface LogPattern {
   "severity": number;
   "first_seen": string;
   "last_seen": string;
-  "example_ids": string[];
+  "example_trace_ids": TraceId[];
 }
 
 export interface CiLogInput {
@@ -1191,10 +1202,22 @@ export interface ListMetricsOutput {
   "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
-  "items": MetricDescriptor[];
+  "items": MetricCatalogRow[];
   "has_more": boolean;
   "next_cursor"?: string;
   "error"?: ToolError;
+}
+
+export interface MetricCatalogRow {
+  "name": string;
+  "kind": MetricKind;
+  "unit"?: string;
+  "temporality": MetricTemporality;
+  "services": string[];
+  "series_count": number;
+  "last_seen": string;
+  "supported_aggregations": MetricAggregation[];
+  "has_conflict": boolean;
 }
 
 export interface GetMetricSeriesInput {
@@ -1419,7 +1442,7 @@ export interface SavedTraceQueryRun {
 
 export interface SavedLogQueryRun {
   "signal": "logs";
-  "items": LogRecord[];
+  "items": ToolLogRow[];
   "next_cursor"?: string;
   "has_more": boolean;
 }
@@ -1700,7 +1723,7 @@ export interface FailureObserved {
   "root_cause_span": SpanRef | null;
   "error_spans": SpanRef[];
   "propagation": FailurePropagation[];
-  "logs": LogRecord[];
+  "logs": ToolLogRow[];
   "retries": RetryEvidence[];
   "fanout": FanoutEvidence[];
 }
@@ -2205,6 +2228,7 @@ export interface GetMcpStatsInput {
   "transport"?: string;
   "compare_to"?: McpStatsComparison;
   "group_by"?: "server" | "tool" | "method" | "transport" | "failure_class";
+  "buckets"?: boolean;
 }
 
 export interface McpTrafficTotals {
@@ -2273,8 +2297,8 @@ export interface GetMcpStatsOutput {
   "groups": McpTrafficGroup[];
   "failure_classes": McpFailureClasses;
   "comparison"?: McpStatsComparisonResult;
-  "bucket_ms": number;
-  "buckets": McpTrafficBucket[];
+  "bucket_ms"?: number;
+  "buckets"?: McpTrafficBucket[];
   "by_server": McpNameRequestCount[];
   "by_transport": McpNameRequestCount[];
   "by_method": McpNameRequestCount[];
@@ -2402,4 +2426,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:34738a7213e27d35";
+export const CONTRACT_REVISION: string = "sha256:76076ff28e878721";

@@ -29,7 +29,13 @@ internal sealed partial class AnalysisEngine
             .Select(static group => MetricStorageMapper.ToCatalogEntry(group.ToArray()))
             .OrderBy(static entry => entry.MetricName, StringComparer.Ordinal)
             .ThenBy(static entry => entry.InstrumentId, StringComparer.Ordinal)
-            .Select(static entry => JsonSerializer.SerializeToNode(MetricMapper.ToContract(entry), QylSerializerContext.Default.MetricDescriptor)!.AsObject());
+            .Select(static entry =>
+            {
+                // One compact row per instrument; get_metric_series has its series, attributes and resource.
+                var full = JsonSerializer.SerializeToNode(MetricMapper.ToContract(entry), QylSerializerContext.Default.MetricDescriptor)!.AsObject();
+                return J.O(("name", full["name"]), ("kind", full["kind"]), ("unit", full["unit"]), ("temporality", full["temporality"]), ("services", full["services"] ?? new JsonArray()),
+                    ("series_count", full["series_count"]), ("last_seen", full["last_seen"]), ("supported_aggregations", full["supported_aggregations"] ?? new JsonArray()), ("has_conflict", full["has_conflict"]));
+            });
         return Page(input, "items", items);
     }
     private JsonObject MetricSeries(JsonObject input)
