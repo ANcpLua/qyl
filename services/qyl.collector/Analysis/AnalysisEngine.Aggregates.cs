@@ -34,22 +34,16 @@ internal sealed partial class AnalysisEngine
             var key = new JsonObject(); foreach (var k in keys) key[k] = g.First().Value(k)?.DeepClone() ?? JsonValue.Create("");
             var result = J.O(("key", key), ("measures", Measure(g)));
             if (step > 0) result["buckets"] = J.A(g.GroupBy(r => (r.Start - _window.StartNs) / ((ulong)step * 1_000_000)).OrderBy(b => b.Key).Select(b => J.O(("start_time", J.Time(_window.StartNs + b.Key * (ulong)step * 1_000_000)), ("measures", Measure(b)))));
-            return result;
+            return (Group: result, Size: g.Count());
         }).ToList();
         var order = J.String(input, "order_by") ?? measures[0]; var descending = !order.EndsWith(" asc", StringComparison.Ordinal); order = order.Split(' ')[0];
-        groups = descending ?
-            [
-                .. groups.OrderByDescending(g => J.Number(g["measures"], order))
-                    .ThenBy(g => g["key"]!.ToJsonString(), StringComparer.Ordinal)
-            ]
-            :
-            [
-                .. groups.OrderBy(g => J.Number(g["measures"], order))
-                    .ThenBy(g => g["key"]!.ToJsonString(), StringComparer.Ordinal)
-            ];
-        var limit = (int)J.Number(input, "limit", 20); if (limit is < 1 or > 200) throw new AnalysisInputException("limit", "Use a limit from 1 to 200.");
+        groups = descending
+            ? [.. groups.OrderByDescending(g => J.Number(g.Group["measures"], order)).ThenBy(g => g.Group["key"]!.ToJsonString(), StringComparer.Ordinal)]
+            : [.. groups.OrderBy(g => J.Number(g.Group["measures"], order)).ThenBy(g => g.Group["key"]!.ToJsonString(), StringComparer.Ordinal)];
+        // Paging writes other from these sizes for the groups after the returned page.
+        _groupSizes = [.. groups.Select(static g => g.Size)];
         var units = new JsonObject(); foreach (var m in measures) units[m] = m.StartsWith("duration", StringComparison.Ordinal) ? "ms" : m == "error_rate" ? "1" : signal == "spans" ? "spans" : "logs";
-        return J.O(("groups", J.A(groups)), ("other", J.O(("groups", Math.Max(0, groups.Count - limit)), ("count", groups.Skip(limit).Sum(g => J.Number(g["measures"], "count"))))), ("units", units), ("coverage", Coverage(signal == "logs" ? _logs.Count : _spans.Count, rows.Count, Math.Min(limit, groups.Count), groups.Count > limit)));
+        return J.O(("groups", J.A(groups.Select(static g => g.Group))), ("units", units), ("coverage", Coverage(signal == "logs" ? _logs.Count : _spans.Count, rows.Count, groups.Count, false)));
     }
     private static string AttributeType(JsonNode? value) => value?.GetValueKind() switch
     {
@@ -69,8 +63,7 @@ internal sealed partial class AnalysisEngine
                     ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count), ("cardinality_exact", true),
                     ("top_values", J.A(values.Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("semconv", SemanticMetadata.Find(g.Key.Key)));
             }).OrderBy(g => J.String(g, "key"), StringComparer.Ordinal).ThenBy(g => J.String(g, "scope"), StringComparer.Ordinal).ToList();
-        var limit = (int)J.Number(input, "limit", 100); if (limit is < 1 or > 1000) throw new AnalysisInputException("limit", "Use a limit from 1 to 1000.");
-        return J.O(("attributes", J.A(attrs)), ("coverage", Coverage(_spans.Count + _logs.Count, rows.Count, Math.Min(limit, attrs.Count), attrs.Count > limit)));
+        return J.O(("attributes", J.A(attrs)), ("coverage", Coverage(_spans.Count + _logs.Count, rows.Count, attrs.Count, false)));
     }
     private List<JsonObject> ReleaseList(List<AnalysisRecord> rows)
     {
@@ -257,8 +250,7 @@ internal sealed partial class AnalysisEngine
         var groups = rows.GroupBy(s => groupBy switch { "server" => McpServer(s), "method" => J.Text(s.Value(CollectorSemanticAttributeCatalog.McpMethodName)), "transport" => McpTransport(s), "failure_class" => s.Error ? McpFailureClass(s) : "success", _ => J.Text(s.Value(CollectorSemanticAttributeCatalog.GenAiToolName)) })
             .OrderByDescending(g => g.Count()).Select(g => { var result = Totals([.. g]); result["name"] = g.Key; result["example_trace_ids"] = J.N(g.OrderByDescending(s => s.Error).ThenByDescending(s => s.Duration).Select(s => s.TraceId).OfType<string>().Distinct().Take(3)); return result; }).ToList();
         var classes = new JsonObject(); foreach (var kind in new[] { "transport", "protocol", "tool_result", "authentication", "cancellation", "timeout" }) classes[kind] = rows.Count(s => s.Error && McpFailureClass(s) == kind);
-        var limit = (int)J.Number(input, "limit", 100);
-        return J.O(("totals", Totals(rows)), ("groups", J.A(groups)), ("failure_classes", classes), ("coverage", Coverage(_spans.Count, rows.Count, Math.Min(limit, groups.Count), groups.Count > limit)));
+        return J.O(("totals", Totals(rows)), ("groups", J.A(groups)), ("failure_classes", classes), ("coverage", Coverage(_spans.Count, rows.Count, groups.Count, false)));
     }
     private static JsonArray RequestCounts(List<AnalysisRecord> rows, Func<AnalysisRecord, string> name) =>
         J.A(rows.GroupBy(name).OrderByDescending(static g => g.Count()).ThenBy(static g => g.Key, StringComparer.Ordinal)

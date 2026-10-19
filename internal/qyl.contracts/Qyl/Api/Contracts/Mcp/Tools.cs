@@ -41,6 +41,8 @@ public sealed class ToolPage
 
 public sealed class ToolTimeRange
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -54,6 +56,11 @@ public sealed class ToolTimeRange
 
 public sealed class ListTracesInput
 {
+    public const int LimitDefault = 20;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 100;
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("failure_class")]
     public Qyl.Api.Contracts.Mcp.Tools.McpFailureClass? FailureClass { get; init; }
@@ -190,6 +197,15 @@ public sealed class ToolTraceSummary
 
 public sealed class GetTraceInput
 {
+    public const int IncludeLogsMinimum = 0;
+    public const int IncludeLogsMaximum = 50;
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const bool ErrorsOnlyDefault = false;
+    public const int MaxSpansDefault = 100;
+    public const int MaxSpansMinimum = 1;
+    public const int MaxSpansMaximum = 1000;
+    public const bool IncludeAttributesDefault = true;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -389,6 +405,11 @@ public sealed class ToolSpan
 
 public sealed class ListSessionsInput
 {
+    public const int LimitDefault = 20;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 100;
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("has_error")]
     public bool? HasError { get; init; }
@@ -467,6 +488,9 @@ public sealed class ListSessionsOutput
 
 public sealed class ToolSession
 {
+    public const int TraceCountMinimum = 0;
+    public const int SpanCountMinimum = 0;
+    public const int ErrorCountMinimum = 0;
     [JsonPropertyName("session_id")]
     public required string SessionId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -537,6 +561,15 @@ public sealed class AgentTokens
 
 public sealed class SearchLogsInput
 {
+    public const int ContextMinimum = 0;
+    public const int ContextMaximum = 10;
+    public const int SeverityMinMinimum = 1;
+    public const int SeverityMinMaximum = 24;
+    public const int LimitDefault = 50;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("span_id")]
     public string? SpanId { get; init; }
@@ -628,6 +661,12 @@ public sealed class LogPattern
 
 public sealed class CiLogInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const string ServicePrefixDefault = "qyl-ci";
+    public const int LimitDefault = 10;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 50;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -677,6 +716,7 @@ public sealed class CiLogInput
 
 public sealed class CiRunSummary
 {
+    public const int ErrorCountMinimum = 0;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("session_id")]
     public string? SessionId { get; init; }
@@ -833,6 +873,11 @@ public sealed class CiPhaseChange
 
 public sealed class ListMetricsInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 200;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("text")]
     public string? Text { get; init; }
@@ -891,6 +936,14 @@ public sealed class ListMetricsOutput
 
 public sealed class GetMetricSeriesInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int PointsLimitDefault = 100;
+    public const int PointsLimitMinimum = 1;
+    public const int PointsLimitMaximum = 1000;
+    public const int LimitDefault = 200;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -978,6 +1031,13 @@ public sealed class AttributeValueCount
 
 public sealed class QueryMetricInput
 {
+    public const long StepMsDefault = 60000;
+    public const long StepMsMinimum = 1;
+    public const long StepMsMaximum = 86400000;
+    public const Qyl.Api.Contracts.OTel.Metrics.MetricAggregation AggregationDefault = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg;
+    public const int SeriesLimitDefault = 50;
+    public const int SeriesLimitMinimum = 1;
+    public const int SeriesLimitMaximum = 500;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1177,6 +1237,11 @@ public sealed class SavedQueryOutput
 
 public sealed class ListSavedQueriesInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 20;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 100;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -1223,6 +1288,9 @@ public sealed class ListSavedQueriesOutput
 
 public sealed class RunSavedQueryInput
 {
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1301,6 +1369,11 @@ public sealed class McpComparisonVersion
 
 public sealed class AnalysisInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1323,6 +1396,11 @@ public sealed class AnalysisInput
 
 public sealed class ServiceAnalysisInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1512,6 +1590,11 @@ public sealed class FailureDetail
 
 public sealed class TriageInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 10;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 50;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1627,6 +1710,11 @@ public sealed class TriageOutput
 
 public sealed class ListFailuresInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1688,6 +1776,17 @@ public sealed class ListFailuresOutput
 
 public sealed class GetFailureContextInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
+    public const int MaxSpansDefault = 100;
+    public const int MaxSpansMinimum = 1;
+    public const int MaxSpansMaximum = 1000;
+    public const int MaxLogsDefault = 100;
+    public const int MaxLogsMinimum = 1;
+    public const int MaxLogsMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1916,6 +2015,11 @@ public sealed class CompareGroup
 
 public sealed class CompareGroupsInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2033,6 +2137,11 @@ public sealed class ExecutionReference
 
 public sealed class CompareTracesInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2102,6 +2211,11 @@ public sealed class CompareTracesOutput
 
 public sealed class VerifyFixInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2199,6 +2313,11 @@ public sealed class VerifyFixOutput
 
 public sealed class AggregateTelemetryInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 20;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2212,11 +2331,11 @@ public sealed class AggregateTelemetryInput
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("limit")]
+    public int? Limit { get; init; }
     [JsonPropertyName("signal")]
     public required string Signal { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -2286,6 +2405,11 @@ public sealed class AggregateTelemetryOutput
 
 public sealed class DiscoverAttributesInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2368,6 +2492,14 @@ public sealed class DiscoverAttributesOutput
 
 public sealed class GetAgentRunInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
+    public const int MaxStepsDefault = 100;
+    public const int MaxStepsMinimum = 1;
+    public const int MaxStepsMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2510,6 +2642,11 @@ public sealed class GetAgentRunOutput
 
 public sealed class ListReleasesInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2599,6 +2736,13 @@ public sealed class ListReleasesOutput
 
 public sealed class GetServiceMapInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
+    public const int DepthMinimum = 1;
+    public const int DepthMaximum = 3;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2694,6 +2838,11 @@ public sealed class GetServiceMapOutput
 
 public sealed class CheckTelemetryHealthInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2792,6 +2941,11 @@ public sealed class CheckTelemetryHealthOutput
 
 public sealed class GetMcpStatsInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2900,6 +3054,8 @@ public sealed class McpStatsComparisonResult
 
 public sealed class McpTrafficBucket
 {
+    public const int RequestsMinimum = 0;
+    public const int ErrorsMinimum = 0;
     [JsonPropertyName("start")]
     public required DateTimeOffset Start { get; init; }
     [JsonPropertyName("requests")]
@@ -2910,6 +3066,7 @@ public sealed class McpTrafficBucket
 
 public sealed class McpNameRequestCount
 {
+    public const int RequestsMinimum = 0;
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonPropertyName("requests")]
@@ -2918,6 +3075,12 @@ public sealed class McpNameRequestCount
 
 public sealed class McpToolStats
 {
+    public const int RequestsMinimum = 0;
+    public const int ErrorsMinimum = 0;
+    public const double ErrorRateMinimum = 0;
+    public const double ErrorRateMaximum = 1;
+    public const double AvgMsMinimum = 0;
+    public const double P95MsMinimum = 0;
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonPropertyName("requests")]
@@ -2934,6 +3097,8 @@ public sealed class McpToolStats
 
 public sealed class GetMcpStatsOutput
 {
+    public const long BucketMsMinimum = 1000;
+    public const int SpanCountAnalyzedMinimum = 0;
     [JsonPropertyName("window")]
     public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
     [JsonPropertyName("coverage")]

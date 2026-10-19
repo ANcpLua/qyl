@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Analysis;
@@ -29,13 +30,13 @@ internal sealed partial class AnalysisEngine
             .OrderBy(static entry => entry.MetricName, StringComparer.Ordinal)
             .ThenBy(static entry => entry.InstrumentId, StringComparer.Ordinal)
             .Select(static entry => JsonSerializer.SerializeToNode(MetricMapper.ToContract(entry), QylSerializerContext.Default.MetricDescriptor)!.AsObject());
-        return Page(input, "items", items, 200);
+        return Page(input, "items", items);
     }
     private JsonObject MetricSeries(JsonObject input)
     {
         var rows = SeriesRows(input).Where(s => PointsBySeries[s.SeriesId].Any(p => _window.Contains(p.TimeUnixNano))).OrderBy(s => s.SeriesId, StringComparer.Ordinal).ToList();
         var result = Page(input, "items", rows.Select(s =>
-        { var item = JsonSerializer.SerializeToNode(MetricMapper.ToContract(s), QylSerializerContext.Default.MetricSeries)!.AsObject(); item["new"] = _window.Contains(s.FirstSeenUnixNano); item["stale"] = s.LastSeenUnixNano < _window.StartNs; return item; }), 200);
+        { var item = JsonSerializer.SerializeToNode(MetricMapper.ToContract(s), QylSerializerContext.Default.MetricSeries)!.AsObject(); item["new"] = _window.Contains(s.FirstSeenUnixNano); item["stale"] = s.LastSeenUnixNano < _window.StartNs; return item; }));
         var keys = rows.SelectMany(s => SeriesRecord(s).Attributes.Select(p => (p.Key, p.Value))).GroupBy(p => p.Key).Select(g =>
         { var values = g.GroupBy(p => J.Text(p.Value)).ToList(); return J.O(("key", g.Key), ("cardinality", values.Count), ("cardinality_exact", true), ("top_values", J.A(values.OrderByDescending(v => v.Count()).Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count))); }).ToList();
         result["keys"] = J.A(keys); result["suggested_group_by"] = J.N(keys.Where(k => J.Number(k, "cardinality") > 1 && J.Number(k, "cardinality") <= 20).Select(k => J.String(k, "key")!)); return result;
@@ -71,7 +72,8 @@ internal sealed partial class AnalysisEngine
                 .FirstOrDefault(point => _window.Contains(point.TimeUnixNano) && point.ProjectionUnavailableReason is not null) is { } unavailable)
             throw new AnalysisInputException("aggregation", unavailable.ProjectionUnavailableReason!, "metric.projection_unavailable");
         var groupBy = (input["group_by"] as JsonArray)?.Select(J.Text).ToArray() ?? [];
-        var step = (long)J.Number(input, "step_ms", 60000); if (step < 1 || step > 86_400_000) throw new AnalysisInputException("step_ms", "step_ms must be 1–86400000.");
+        var step = (long)J.Number(input, "step_ms", QueryMetricInput.StepMsDefault);
+        if (step is < QueryMetricInput.StepMsMinimum or > QueryMetricInput.StepMsMaximum) throw new AnalysisInputException("step_ms", $"Use a step_ms from {QueryMetricInput.StepMsMinimum} to {QueryMetricInput.StepMsMaximum}.", "step_ms.out_of_range");
         var streams = rows.GroupBy(s => string.Join('\0', groupBy.Select(key => J.Text(SeriesRecord(s).Value(key))))).ToList();
         var output = new List<JsonObject>();
         foreach (var stream in streams)
@@ -117,7 +119,7 @@ internal sealed partial class AnalysisEngine
             var attributes = new JsonObject(); foreach (var key in groupBy) attributes[key] = SeriesRecord(stream.First()).Value(key)?.DeepClone() ?? JsonValue.Create("");
             output.Add(J.O(("attributes", ContractAttributes(attributes)), ("buckets", buckets)));
         }
-        var limit = (int)J.Number(input, "series_limit", 50); if (limit is < 1 or > 500) throw new AnalysisInputException("series_limit", "Use a series_limit from 1 to 500.");
+        var limit = Bounded(input, "series_limit", QueryMetricInput.SeriesLimitDefault, QueryMetricInput.SeriesLimitMinimum, QueryMetricInput.SeriesLimitMaximum);
         var result = J.O(("name", name), ("kind", rows.Count is 0 ? "gauge" : MetricKind(rows[0].MetricKind)), ("unit", function == "rate" ? rows.FirstOrDefault()?.Unit + "/s" : rows.FirstOrDefault()?.Unit), ("aggregation", aggregation), ("step_ms", step), ("start_time", _window.Start.ToString("O")), ("end_time", _window.End.ToString("O")), ("series", J.A(output.Take(limit))), ("truncated", output.Count > limit),
             ("method", rows.Any(s => s.MetricKind >= 3) ? "per-series histogram deltas merged, linear interpolation; unknown intervals omitted" : function == "none" ? "recorded scalar points aggregated" : "per-series counter differences across resets"), ("numeric_representation", "float64"), ("approximate", rows.Any(s => s.MetricKind >= 3 && aggregation.StartsWith('p'))), ("exemplar_trace_ids", snapshot.Exemplars.Where(e => _window.Contains(e.TimeUnixNano) && rows.Any(r => r.SeriesId == e.SeriesId)).Select(e => e.TraceId).Distinct(StringComparer.Ordinal).Take(3)), ("coverage", Coverage(snapshot.Points.Count, rows.Sum(s => PointsBySeries[s.SeriesId].Count(p => _window.Contains(p.TimeUnixNano))), Math.Min(output.Count, limit), output.Count > limit)));
         if (input["compare_to"] is { } compare)
@@ -129,7 +131,7 @@ internal sealed partial class AnalysisEngine
         {
             // The denominator is another metric: the numerator's exact series selects nothing in it.
             var copy = input.DeepClone().AsObject(); copy.Remove("ratio_of"); copy.Remove("series_id"); copy["metric_name"] = ratio["metric_name"]?.DeepClone(); copy["aggregation"] = ratio["aggregation"]?.DeepClone() ?? JsonValue.Create(aggregation); copy["matchers"] = ratio["matchers"]?.DeepClone();
-            copy["series_limit"] = 500;
+            copy["series_limit"] = QueryMetricInput.SeriesLimitMaximum;
             var denominator = QueryMetric(copy);
             DivideMetricSeries(result["series"], denominator["series"]);
             DivideMetricSeries(result["comparison"]?["series"], denominator["comparison"]?["series"]);
@@ -228,7 +230,7 @@ internal sealed partial class AnalysisEngine
                 ("provider_run_id", info.ProviderId), ("provider_run_url", info.ProviderUrl));
         });
         var runInput = input.DeepClone().AsObject(); runInput.Remove("phase_cursor");
-        var result = Page(runInput, "runs", runs, 10, 50); result["mode"] = "live";
+        var result = Page(runInput, "runs", runs); result["mode"] = "live";
         if (selected is not null)
         {
             string Leg(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.CicdPipelineTaskName)) is { Length: > 0 } leg ? leg : s.Service;
@@ -241,7 +243,7 @@ internal sealed partial class AnalysisEngine
             if (input["phase_cursor"] is { } phaseCursor) phaseInput["cursor"] = phaseCursor.DeepClone();
             _operation = "ci_log.phases";
             JsonObject phasePage;
-            try { phasePage = Page(phaseInput, "phases", phases, 50, 50); } finally { _operation = "ci_log"; }
+            try { phasePage = Page(phaseInput, "phases", phases); } finally { _operation = "ci_log"; }
             result["phases"] = phasePage["phases"]?.DeepClone();
             result["next_phase_cursor"] = phasePage["next_cursor"]?.DeepClone();
             result["has_more"] = J.Bool(result, "has_more") || J.Bool(phasePage, "has_more");

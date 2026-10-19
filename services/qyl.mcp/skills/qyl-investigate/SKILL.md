@@ -54,6 +54,8 @@ saved queries and failure status in that project, never the telemetry.
   spans and 100 logs, `aggregate_telemetry` 20 groups, `get_trace` 100
   spans. `has_more` and `next_cursor` continue the same query; `coverage`
   says how much was examined, so report truncation instead of guessing.
+  A `cursor.stale` error means results ahead of the cursor changed after it
+  was issued: run the query again without the cursor.
 - **Trace detail.** For a failure, call `get_trace` with
   `selection: errors_with_ancestors`: the error spans plus their path to the
   root. Widen to `all` only when that path is not enough, and raise

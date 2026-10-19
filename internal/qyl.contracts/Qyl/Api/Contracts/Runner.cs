@@ -10,6 +10,8 @@ namespace Qyl.Api.Contracts.Runner;
 
 public sealed class RunnerResourceState
 {
+    public const int AllocatedPortMinimum = 1;
+    public const int AllocatedPortMaximum = 65535;
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonPropertyName("lifecycle")]

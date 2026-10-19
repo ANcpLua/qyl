@@ -311,6 +311,8 @@ public sealed class MetricSummaryPointData : MetricPointData
 
 public sealed class MetricQuantileValue
 {
+    public const double QuantileMinimum = 0;
+    public const double QuantileMaximum = 1;
     [JsonPropertyName("quantile")]
     public required double Quantile { get; init; }
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]

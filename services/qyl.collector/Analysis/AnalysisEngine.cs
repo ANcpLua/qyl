@@ -91,34 +91,6 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         ];
     }
     private bool Checked(AnalysisRecord _) { ct.ThrowIfCancellationRequested(); return true; }
-    private JsonObject Page(JsonObject input, string field, IEnumerable<JsonObject> source, int defaultLimit = 100, int max = 1000)
-    {
-        var all = source.ToList(); var limit = (int)J.Number(input, "limit", defaultLimit);
-        if (limit < 1 || limit > max) throw new AnalysisInputException("limit", $"limit must be between 1 and {max}.", "limit.out_of_range");
-        var offset = 0; var scope = input.DeepClone().AsObject(); scope.Remove("cursor"); scope.Remove("limit");
-        // The signed token fixes its absolute window. Relative and resolved spellings
-        // identify the same query, including a budget retry with a smaller page.
-        foreach (var timeField in new[] { "start_time", "end_time", "lookback_minutes" }) scope.Remove(timeField);
-        var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(scope.ToJsonString())));
-        if (J.String(input, "cursor") is { } cursor)
-        {
-            var value = handles.Read(cursor, project, "cursor");
-            if (J.String(value, "operation") != _operation || J.String(value, "filter") != fingerprint)
-                throw new AnalysisInputException("cursor", "Use this cursor with its original operation and filters.", "cursor.invalid");
-            var anchor = J.String(value, "after");
-            offset = all.FindIndex(row => PageIdentity(row) == anchor) + 1;
-            if (offset is 0) throw new AnalysisInputException("cursor", "The continuation anchor is no longer retained. Start a new query.", "cursor.expired");
-        }
-        var page = all.Skip(offset).Take(limit).ToList(); var more = offset + page.Count < all.Count;
-        return J.O((field, J.A(page)), ("has_more", more), ("next_cursor", more ? handles.Issue(project, "cursor", J.O(("operation", _operation), ("filter", fingerprint), ("after", PageIdentity(page[^1])), ("window", _window.Json))) : null),
-            ("coverage", Coverage(_spans.Count(s => _window.Contains(s.Start)) + _logs.Count(s => _window.Contains(s.Start)), all.Count, page.Count, more)));
-    }
-    private static string PageIdentity(JsonObject row)
-    {
-        foreach (var key in new[] { "log_id", "id", "failure_id", "session_id", "trace_id", "saved_query_id", "series_id", "name", "run_id" })
-            if (J.String(row, key) is { } id) return key + ":" + id;
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(row.ToJsonString())));
-    }
     private AnalysisWindow Baseline(JsonObject input)
     {
         if (input["baseline"] is JsonObject custom)
@@ -215,10 +187,6 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             return f;
         }).Where(f => J.String(f, "status") != "ignored" || J.Date(f, "ignore_until") is { } expiry && expiry <= now)
           .OrderByDescending(f => J.Number(f, "count")).ThenBy(f => J.String(f, "failure_id"), StringComparer.Ordinal).ToList();
-        var limit = (int)J.Number(input, "limit", 10); if (limit < 1 || limit > 50) throw new AnalysisInputException("limit", "limit must be between 1 and 50.");
-        // New failures have reserved slots even when their count is low.
-        var kept = failures.Where(f => J.String(f, "change") == "new").Take(limit).ToList();
-        kept.AddRange(failures.Where(f => J.String(f, "change") != "new").Take(Math.Max(0, limit - kept.Count)));
         var regressions = new List<JsonObject>();
         foreach (var g in current.GroupBy(s => (s.Service, Op: Operation(s))))
         {
@@ -228,8 +196,9 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
                 if (m.Item1 == "throughput" ? m.Item2 < m.Item3 * .8 : m.Item1 == "error_rate" ? m.Item2 >= m.Item3 + .05 : m.Item2 > Math.Max(m.Item3 * 1.2, m.Item3 + 10))
                     regressions.Add(J.O(("service", g.Key.Service), ("operation", g.Key.Op), ("measure", m.Item1), ("value", m.Item2), ("baseline_value", m.Item3), ("denominator", g.Count()), ("unit", m.Item1 == "p95_ms" ? "ms" : m.Item1 == "error_rate" ? "1" : "spans")));
         }
+        // New failures lead the ranking, so they keep their places on the first page even when their count is low.
         return J.O(("failures", J.A(failures.OrderBy(f => J.String(f, "change") == "new" ? 0 : 1))), ("regressions", J.A(regressions)), ("releases", J.A(releases.Where(r => J.Date(r, "first_seen") >= _window.Start))),
-            ("silent_services", Silent(input)), ("coverage", Coverage(_spans.Count, current.Count, kept.Count, false)));
+            ("silent_services", Silent(input)), ("coverage", Coverage(_spans.Count, current.Count, failures.Count, false)));
     }
     private JsonArray Silent(JsonObject input)
     {

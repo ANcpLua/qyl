@@ -33,8 +33,7 @@ internal sealed partial class AnalysisEngine
     private static long TotalTokens(IEnumerable<AnalysisRecord> rows) => rows.Sum(static r => (r.Span?.GenAiInputTokens ?? 0) + (r.Span?.GenAiOutputTokens ?? 0));
     private JsonObject AgentRun(JsonObject input)
     {
-        var rows = Execution(input); var limit = (int)J.Number(input, "max_steps", 100);
-        if (limit is < 1 or > 1000) throw new AnalysisInputException("max_steps", "max_steps must be 1 to 1000.");
+        var rows = Execution(input);
         var steps = rows.Where(r => r.Span?.GenAiOperationName is not null || r.Value(CollectorSemanticAttributeCatalog.McpMethodName) is not null || r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null).Select((r, i) =>
         {
             var kind = r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null || r.Value(CollectorSemanticAttributeCatalog.McpMethodName) is not null ? "tool_call" : r.Span?.GenAiOperationName is "invoke_agent" or "create_agent" ? "agent" : r.Span?.GenAiOperationName == "retrieval" ? "retrieval" : "llm_call";
@@ -46,7 +45,7 @@ internal sealed partial class AnalysisEngine
         return J.O(("run", J.O(("agent_name", rows.Select(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiAgentName))).FirstOrDefault(v => v.Length > 0)), ("models", rows.Select(r => r.Span?.GenAiResponseModel ?? r.Span?.GenAiRequestModel).OfType<string>().Distinct()), ("started", start.ToString("O")), ("duration_ms", rows.Count is 0 ? 0 : (rows.Max(r => r.End) - rows.Min(r => r.Start)) / 1_000_000d), ("tokens", Tokens(rows)), ("errors", rows.Count(r => r.Error)), ("session_id", J.String(input, "session_id")), ("trace_id", J.String(input, "trace_id")))),
             ("steps", J.A(steps)), ("findings", J.O(("repeated_calls", J.A(repeated)), ("failed_tool_calls", J.A(steps.Where(s => J.String(s, "kind") == "tool_call" && J.String(s, "status") == "ERROR").Take(10))), ("slowest_steps", J.A(steps.OrderByDescending(s => J.Number(s, "duration_ms")).Take(3))), ("token_share", J.A(rows.GroupBy(r => r.Name).Select(g => J.O(("name", g.Key), ("tokens", TotalTokens(g)), ("share", total is 0 ? 0 : TotalTokens(g) / (double)total))))))),
             ("unknowns", J.N(rows.Any(r => r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null && r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash) is null) ? s_missingArguments : [])),
-            ("coverage", Coverage(rows.Count, steps.Count, Math.Min(steps.Count, limit), steps.Count > limit)));
+            ("coverage", Coverage(rows.Count, steps.Count, steps.Count, false)));
     }
     private JsonObject Sessions(JsonObject input)
     {
@@ -67,7 +66,7 @@ internal sealed partial class AnalysisEngine
             return J.O(("session_id", g.Key), (CollectorSemanticAttributeCatalog.State, active ? "active" : "ended"), ("start_time", J.Time(start)), ("end_time", J.Time(end)), ("duration_ms", (end - start) / 1_000_000d), ("last_activity", J.Time(end)), ("trace_count", items.Select(s => s.TraceId).Distinct().Count()), ("span_count", items.Count), ("error_count", errors), ("services", items.Select(s => s.Service).Distinct()), ("genai_usage", J.O(("request_count", items.Count(s => s.Span?.GenAiProviderName is not null)), ("total_input_tokens", TotalInput(items)), ("total_output_tokens", TotalOutput(items)), ("models_used", model), ("providers_used", items.Select(s => s.Span?.GenAiProviderName).OfType<string>().Distinct()))), ("failure_ids", items.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(5)), ("agent_name", name), ("models", model), ("tokens_by_model", byModel), ("annotations", J.A(annotations)), ("tokens", TotalTokens(items)));
         }).OfType<JsonObject>();
         var sorted = J.String(input, "sort_by") switch { "errors" => all.OrderByDescending(s => J.Number(s, "error_count")), "duration" => all.OrderByDescending(s => J.Number(s, "duration_ms")), "tokens" => all.OrderByDescending(s => J.Number(s, "tokens")), _ => all.OrderByDescending(s => J.String(s, "last_activity"), StringComparer.Ordinal) };
-        var result = Page(input, "sessions", sorted.ThenBy(s => J.String(s, "session_id"), StringComparer.Ordinal), 20, 100); result["mode"] = "live"; var sessionIds = result["sessions"]!.AsArray().Select(static item => J.String(item, "session_id")).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var result = Page(input, "sessions", sorted.ThenBy(s => J.String(s, "session_id"), StringComparer.Ordinal)); result["mode"] = "live"; var sessionIds = result["sessions"]!.AsArray().Select(static item => J.String(item, "session_id")).OfType<string>().ToHashSet(StringComparer.Ordinal);
         result["annotations"] = J.A(snapshot.Annotations.Where(note => note.SessionId is not null && sessionIds.Contains(note.SessionId)).Select(AnnotationJson)); return result;
     }
     private static long TotalInput(IEnumerable<AnalysisRecord> rows) => rows.Sum(static s => s.Span?.GenAiInputTokens ?? 0);
@@ -97,7 +96,7 @@ internal sealed partial class AnalysisEngine
             var items = g.ToList(); var root = items.OrderBy(s => Depth(s, items)).ThenBy(s => s.Start).First();
             return J.O(("trace_id", g.Key), ("root_span", ContractSpan(root)), ("duration_ns", g.Max(s => s.End) - g.Min(s => s.Start)), ("services", g.Select(s => s.Service).Distinct()), ("has_error", g.Any(s => s.Error)), ("start_time", J.Time(g.Min(s => s.Start))), ("end_time", J.Time(g.Max(s => s.End))), ("duration_ms", (g.Max(s => s.End) - g.Min(s => s.Start)) / 1_000_000d), ("span_count", g.Count()), ("error_count", g.Count(s => s.Error)), ("root_span_name", root.Name), ("root_service_name", root.Service), ("service_names", g.Select(s => s.Service).Distinct()), ("root_error", root.Error), ("contained_error", g.Any(s => s.Error)), ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("annotation_labels", AnnotationLabels(TraceAnnotations(g.Key))));
         }).OrderByDescending(t => J.String(t, "start_time"), StringComparer.Ordinal).ThenBy(t => J.String(t, "trace_id"), StringComparer.Ordinal).ToList();
-        var result = Page(input, "traces", traces, 20, 100); result["mode"] = "live";
+        var result = Page(input, "traces", traces); result["mode"] = "live";
         if (J.String(input, "group_by") is { } by)
             result["groups"] = J.A(traces.GroupBy(t => by == "failure_id" ? J.Text(t["failure_ids"]?[0]) : J.String(t, by == "service" ? "root_service_name" : "root_span_name") ?? "").Select(g => J.O(("key", g.Key), ("count", g.Count()), ("example_trace_ids", g.Select(t => J.String(t, "trace_id")!).Take(3)))));
         return result;
@@ -144,8 +143,7 @@ internal sealed partial class AnalysisEngine
         var rows = Select(input, "logs").Where(l => (J.String(input, "trace_id") is not { } trace || l.TraceId == trace) && (J.String(input, "span_id") is not { } span || l.SpanId == span) && (J.String(input, "session_id") is not { } session || l.SessionId == session)
             && (l.Log?.SeverityNumber ?? 0) >= J.Number(input, "severity_min") && (J.String(input, "query") is not { } query || LogBody(l).Contains(query, StringComparison.OrdinalIgnoreCase))).OrderByDescending(l => l.Start).ThenBy(l => l.Id, StringComparer.Ordinal).ToList();
         var context = (int)J.Number(input, "context"); if (context is < 0 or > 10) throw new AnalysisInputException("context", "context must be 0 to 10.");
-        // SearchLogsInput.limit defaults to 50.
-        var result = Page(input, "logs", rows.Select(LogJson), 50); result["mode"] = "live"; result["total_matched"] = rows.Count;
+        var result = Page(input, "logs", rows.Select(LogJson)); result["mode"] = "live"; result["total_matched"] = rows.Count;
         if (J.String(input, "group_by") == "pattern") result["patterns"] = J.A(rows.GroupBy(l => J.Normalize(LogBody(l))).Select(g => J.O(("template", g.Key), ("count", g.Count()), ("severity", g.Max(l => l.Log!.SeverityNumber)), ("first_seen", J.Time(g.Min(l => l.Start))), ("last_seen", J.Time(g.Max(l => l.Start))), ("example_ids", g.Select(l => l.TraceId).OfType<string>().Distinct().Take(3)))));
         if (context > 0 && result["logs"] is JsonArray page)
         {

@@ -3,7 +3,9 @@ import {
   emitFile,
   getDiscriminatedUnion,
   getEncode,
+  getMaxValue,
   getMediaTypeHint,
+  getMinValue,
   isArrayModelType,
   navigateProgram,
   resolveEncodedName,
@@ -227,6 +229,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
   const implementsUnion = memberships.length
     ? ` : ${memberships.map((union) => localOrQualifiedType(program, model, union)).join(", ")}` : "";
   const discriminators = new Set(memberships.map((union) => taggedUnionInfo(program, union)?.property));
+  const constants: string[] = [];
   const props: string[] = [];
   for (const prop of inheritedProperties(model)) {
     if (isHttpMetadata(program, prop)) continue;
@@ -234,6 +237,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
     if (discriminators.has(jsonName)) continue;
     const type = mapType(program, prop.type);
     const name = pascal(prop.name);
+    constants.push(...renderConstants(program, prop, type.replace(/\?$/, ""), name));
     const numberHandling = renderNumberHandling(program, prop);
     if (prop.optional) {
       const optionalType = type.endsWith("?") ? type : `${type}?`;
@@ -246,8 +250,63 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
       props.push(`${numberHandling}${alwaysWrite}    [JsonPropertyName("${jsonName}")]\n    public required ${type} ${name} { get; init; }`);
     }
   }
-  const body = props.length ? `\n${props.join("\n")}\n` : "\n";
+  const members = [...constants, ...props];
+  const body = members.length ? `\n${members.join("\n")}\n` : "\n";
   return `${keyword} ${emittedName}${implementsUnion}\n{${body}}\n`;
+}
+
+const NUMERIC_CS_TYPES = new Set(["sbyte", "byte", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal"]);
+
+/**
+ * A property's declared default and its declared numeric range become constants beside it, so a
+ * consumer applies the contract's defaults and bounds from these generated values instead of
+ * restating them. A range is the property's own, or for a property with a default its scalar's.
+ */
+function renderConstants(program: Program, property: ModelProperty, type: string, name: string): string[] {
+  const lines: string[] = [];
+  const fallback = defaultLiteral(property, type);
+  if (fallback !== undefined) lines.push(`    public const ${type} ${name}Default = ${fallback};`);
+  if (!NUMERIC_CS_TYPES.has(type)) return lines;
+  const minimum = numericBound(program, property, getMinValue, fallback !== undefined);
+  const maximum = numericBound(program, property, getMaxValue, fallback !== undefined);
+  if (minimum !== undefined) lines.push(`    public const ${type} ${name}Minimum = ${numericLiteral(String(minimum), type)};`);
+  if (maximum !== undefined) lines.push(`    public const ${type} ${name}Maximum = ${numericLiteral(String(maximum), type)};`);
+  return lines;
+}
+
+function defaultLiteral(property: ModelProperty, type: string): string | undefined {
+  const value = property.defaultValue;
+  switch (value?.valueKind) {
+    case "NumericValue":
+      return NUMERIC_CS_TYPES.has(type) ? numericLiteral(value.value.toString(), type) : undefined;
+    case "StringValue":
+      return type === "string" ? `"${escapeCsharpString(value.value)}"` : undefined;
+    case "BooleanValue":
+      return type === "bool" ? String(value.value) : undefined;
+    case "EnumValue":
+      return `${type}.${pascal(value.value.name)}`;
+    default:
+      return undefined;
+  }
+}
+
+function numericBound(
+  program: Program,
+  property: ModelProperty,
+  read: (program: Program, target: Type) => number | undefined,
+  includeScalar: boolean,
+): number | undefined {
+  const own = read(program, property);
+  if (own !== undefined || !includeScalar) return own;
+  for (let scalar = property.type.kind === "Scalar" ? property.type as Scalar : undefined; scalar; scalar = scalar.baseScalar) {
+    const bound = read(program, scalar);
+    if (bound !== undefined) return bound;
+  }
+  return undefined;
+}
+
+function numericLiteral(text: string, type: string): string {
+  return type === "float" ? `${text}f` : type === "decimal" ? `${text}m` : text;
 }
 
 function renderNumberHandling(program: Program, property: ModelProperty): string {

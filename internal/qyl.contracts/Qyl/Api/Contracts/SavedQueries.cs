@@ -26,6 +26,8 @@ public interface SavedQueryRunResult
 
 public sealed class SavedTraceQueryFilter : SavedQueryFilter
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -42,6 +44,8 @@ public sealed class SavedTraceQueryFilter : SavedQueryFilter
 
 public sealed class SavedLogQueryFilter : SavedQueryFilter
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -67,6 +71,12 @@ public sealed class SavedLogQueryFilter : SavedQueryFilter
 
 public sealed class SavedMetricQueryFilter : SavedQueryFilter
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
+    public const Qyl.Api.Contracts.OTel.Metrics.MetricAggregation AggregationDefault = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg;
+    public const long StepMsDefault = 60000;
+    public const long StepMsMinimum = 1;
+    public const long StepMsMaximum = 86400000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("series_id")]
     public string? SeriesId { get; init; }
@@ -149,6 +159,8 @@ public sealed class SavedQueryCreateRequest
 
 public sealed class SavedQueryWindow
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -169,6 +181,9 @@ public sealed class SavedQueryUpdateRequest
 
 public sealed class SavedQueryRunRequest
 {
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 1000;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
     public DateTimeOffset? StartTime { get; init; }

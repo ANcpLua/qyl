@@ -9,7 +9,7 @@ internal sealed partial class AnalysisEngine
         var rows = snapshot.SavedQueries.Where(row => J.String(input, "signal") is not { } signal || row.Signal == signal)
             .OrderBy(row => row.Name, StringComparer.Ordinal).ThenBy(row => row.SavedQueryId, StringComparer.Ordinal)
             .Select(row => JsonSerializer.SerializeToNode(SavedQueryMapper.ToContract(row), QylSerializerContext.Default.SavedQuery)!.AsObject());
-        return Page(input, "saved_queries", rows, 20, 100);
+        return Page(input, "saved_queries", rows);
     }
     private JsonObject RunSavedQuery(JsonObject input)
     {
@@ -28,8 +28,6 @@ internal sealed partial class AnalysisEngine
         }
         else
         {
-            // SavedQueryRunRequest.limit defaults to the shared page size, not to the list tool's.
-            filter["limit"] ??= 100;
             var page = row.Signal == "traces" ? Traces(filter) : Logs(filter);
             result = J.O(("signal", row.Signal), ("items", page[row.Signal]), ("has_more", page["has_more"]), ("next_cursor", page["next_cursor"]));
             coverage = page["coverage"];

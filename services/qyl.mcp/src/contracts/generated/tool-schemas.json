@@ -425,15 +425,16 @@
         "maxItems": 32,
         "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
       },
+      "cursor": {
+        "type": "string",
+        "description": "Opaque pagination cursor. Pass the `next_cursor` of one page to receive the\nnext page of the same query. Its content is not part of the contract and\nmust not be parsed or built by a client."
+      },
       "limit": {
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
-      },
-      "cursor": {
-        "type": "string",
-        "description": "Opaque pagination cursor. Pass the `next_cursor` of one page to receive the\nnext page of the same query. Its content is not part of the contract and\nmust not be parsed or built by a client."
+        "description": "Groups per page, largest first by `order_by`; `other` sums the groups after this page.",
+        "default": 20
       },
       "signal": {
         "type": "string",
@@ -885,7 +886,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -1293,7 +1295,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -2538,7 +2541,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -3333,7 +3337,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -5887,7 +5892,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -6334,7 +6340,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -6360,7 +6367,9 @@
       "max_steps": {
         "type": "integer",
         "minimum": 1,
-        "maximum": 1000
+        "maximum": 1000,
+        "description": "Maximum steps in `steps`, or `limit` when lower; `next_cursor` continues.",
+        "default": 100
       }
     },
     "description": "GetAgentRunInput contract.",
@@ -7281,7 +7290,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -7321,13 +7331,15 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 1000,
-        "description": "Maximum error spans in `observed.error_spans`. Default 100 (or `limit` when lower), maximum 1000; `next_cursor` continues."
+        "description": "Maximum error spans in `observed.error_spans`, or `limit` when lower; `next_cursor` continues.",
+        "default": 100
       },
       "max_logs": {
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Maximum correlated log records in `observed.logs`. Default 100 (or `limit` when lower), maximum 200; `next_cursor` continues."
+        "description": "Maximum correlated log records in `observed.logs`, or `limit` when lower; `next_cursor` continues.",
+        "default": 100
       }
     },
     "description": "GetFailureContextInput contract.",
@@ -9396,7 +9408,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -11870,7 +11883,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -12285,7 +12299,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 1000,
-        "description": "Maximum spans per page after `selection` is applied. Default 100, maximum 1000. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `coverage` and `omitted` report what the page left out."
+        "description": "Maximum spans per page after `selection` is applied. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `coverage` and `omitted` report what the page left out.",
+        "default": 100
       },
       "include_attributes": {
         "type": "boolean",
@@ -14514,7 +14529,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -15902,7 +15918,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -22965,7 +22982,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",
@@ -23198,7 +23216,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 50,
-        "description": "Ranked failures to return, 1 to 50. Default 10; new failures keep reserved slots ahead of ongoing ones."
+        "description": "Ranked failures to return, 1 to 50; new failures keep reserved slots ahead of ongoing ones.",
+        "default": 10
       },
       "baseline": {
         "anyOf": [
@@ -24537,7 +24556,8 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 200,
-        "description": "Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query."
+        "description": "Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.",
+        "default": 100
       },
       "cursor": {
         "type": "string",

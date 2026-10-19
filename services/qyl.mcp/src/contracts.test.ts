@@ -17,6 +17,11 @@ test("generated tool inputs own their bounds, required members and advertised de
   // The schema validates and advertises; the Collector applies the defaults it advertises.
   assert.equal(property("Mcp.Tools.ListTracesInput", "limit").default, 20);
   assert.equal(property("Mcp.Tools.SearchLogsInput", "limit").default, 50);
+  assert.equal(property("Mcp.Tools.AggregateTelemetryInput", "limit").default, 20);
+  assert.equal(property("Mcp.Tools.TriageInput", "limit").default, 10);
+  assert.equal(property("Mcp.Tools.ListFailuresInput", "limit").default, 100);
+  assert.equal(property("Mcp.Tools.GetTraceInput", "max_spans").default, 100);
+  assert.equal(property("Mcp.Tools.GetFailureContextInput", "max_logs").default, 100);
   assert.equal(property("Mcp.Tools.CiLogInput", "service_prefix").default, "qyl-ci");
   assert(valid("Mcp.Tools.ListTracesInput", {}));
   assert(!valid("Mcp.Tools.ListTracesInput", { limit: 1.5 }));

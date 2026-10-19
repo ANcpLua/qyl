@@ -96,8 +96,7 @@ internal sealed partial class AnalysisEngine
         var selected = errors.Select(static s => (s.TraceId, s.Id)).ToHashSet();
         foreach (var error in errors)
         { var current = error; while (current.Span?.ParentSpanId is { } parent && byId.TryGetValue((current.TraceId, parent), out var ancestor) && selected.Add((ancestor.TraceId, ancestor.Id))) current = ancestor; }
-        var maxSpans = (int)J.Number(input, "max_spans", 50); var maxLogs = (int)J.Number(input, "max_logs", 20);
-        if (maxSpans is < 1 or > 1000 || maxLogs is < 0 or > 1000) throw new AnalysisInputException("max_spans", "Use 1–1000 spans and 0–1000 logs.");
+        var maxSpans = PageSize(input, "observed.error_spans"); var maxLogs = PageSize(input, "observed.logs");
         var evidence = spans.Where(s => selected.Contains((s.TraceId, s.Id))).Select(s => { var row = SpanJson(s); row["role"] = s.Error ? "matched" : "context"; return row; }).ToList();
         var logs = _logs.Where(l => traceIds.Contains(l.TraceId) && (l.SpanId is null || byId.ContainsKey((l.TraceId, l.SpanId)))).ToList();
         var missing = spans.Where(s => s.Span?.ParentSpanId is { Length: > 0 } parent && !byId.ContainsKey((s.TraceId, parent))).Select(s => s.Span!.ParentSpanId!).Distinct().ToList();
@@ -116,7 +115,7 @@ internal sealed partial class AnalysisEngine
             ("comparison", J.O(("nearest_success_trace_id", success?.TraceId), ("first_divergence", divergence))),
             ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId)).Select(AnnotationJson))))),
             ("settled", spans.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
-            ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, Math.Min(evidence.Count, maxSpans) + Math.Min(logs.Count, maxLogs), evidence.Count > maxSpans || logs.Count > maxLogs)));
+            ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, evidence.Count + logs.Count, false)));
     }
     private JsonArray Discriminators(List<AnalysisRecord> a, List<AnalysisRecord> b, string scope, int limit, HashSet<string>? predicates = null)
     {
@@ -148,7 +147,7 @@ internal sealed partial class AnalysisEngine
         var windowA = WindowOf(ga); var a = Group(ga, windowA); var gb = input["group_b"];
         var b = gb is JsonObject bg ? Group(bg, WindowOf(bg)) : J.Text(gb) == "before" ? Group(ga, new(windowA.Start - (windowA.End - windowA.Start), windowA.Start)) :
             [.. Select(input, signal).Except(a)];
-        var scope = J.String(input, "attribute_scope") ?? "both"; var limit = (int)J.Number(input, "limit", 10);
+        var scope = J.String(input, "attribute_scope") ?? "both";
         var namesA = a.Select(s => s.Name).ToHashSet(); var namesB = b.Select(s => s.Name).ToHashSet();
         JsonObject Durations(List<AnalysisRecord> rows) => J.O(("p50_ms", J.Percentile(rows.Select(s => s.Duration), .5)), ("p95_ms", J.Percentile(rows.Select(s => s.Duration), .95)), ("p99_ms", J.Percentile(rows.Select(s => s.Duration), .99)));
         var countsA = a.GroupBy(r => r.Name).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
@@ -169,7 +168,7 @@ internal sealed partial class AnalysisEngine
                 ("same_traffic_changed", !mixChanged && performanceChanged), ("summary", "These are associations, not causes."))),
             ("size_a", a.Count), ("size_b", b.Count),
             ("excluded_keys", a.Concat(b).SelectMany(s => s.Attributes.Select(p => p.Key)).Where(IsUniqueKey).Distinct()),
-            ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, Math.Min(limit, a.Count), false)));
+            ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, a.Count + b.Count, false)));
     }
 
     private JsonObject VerifyFix(JsonObject input)

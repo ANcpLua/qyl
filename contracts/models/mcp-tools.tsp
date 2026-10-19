@@ -216,11 +216,11 @@ model GetTraceInput {
   @encodedName("application/json", "errors_only")
   errorsOnly?: boolean = false;
 
-  @doc("Maximum spans per page after `selection` is applied. Default 100, maximum 1000. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `coverage` and `omitted` report what the page left out.")
+  @doc("Maximum spans per page after `selection` is applied. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `coverage` and `omitted` report what the page left out.")
   @encodedName("application/json", "max_spans")
   @minValue(1)
   @maxValue(1000)
-  maxSpans?: int32;
+  maxSpans?: int32 = 100;
 
   @doc("Include span, resource, event and link attributes; false omits those attribute collections.")
   @encodedName("application/json", "include_attributes")

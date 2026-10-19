@@ -1879,8 +1879,8 @@ export interface AggregateTelemetryInput {
   "start_time"?: string;
   "end_time"?: string;
   "matchers"?: TelemetryMatcher[];
-  "limit"?: number;
   "cursor"?: string;
+  "limit"?: number;
   "signal": "spans" | "logs";
   "group_by"?: string[];
   "measures": string[];
@@ -2366,4 +2366,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:6e9d7116192a2e82";
+export const CONTRACT_REVISION: string = "sha256:b4e7904721ec5f03";

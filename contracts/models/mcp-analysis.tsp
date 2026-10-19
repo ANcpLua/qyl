@@ -33,9 +33,9 @@ model AnalysisInput {
   @doc("Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
-  @doc("Items per page. Omit for the tool's default: 20 groups for aggregate_telemetry, 100 for list_failures, discover_attributes, get_mcp_stats and the span and log collections of context tools. `has_more` and `next_cursor` continue the same query.")
+  @doc("Items per page of every collection the tool returns; aggregate_telemetry and triage default lower. `has_more` and `next_cursor` continue the same query.")
   @minValue(1) @maxValue(200)
-  limit?: int32;
+  limit?: int32 = 100;
   cursor?: Cursor;
 }
 
@@ -147,9 +147,9 @@ model FailureDetail {
 @doc("TriageInput contract.")
 model TriageInput {
   ...OmitProperties<ServiceAnalysisInput, "limit">;
-  @doc("Ranked failures to return, 1 to 50. Default 10; new failures keep reserved slots ahead of ongoing ones.")
+  @doc("Ranked failures to return, 1 to 50; new failures keep reserved slots ahead of ongoing ones.")
   @minValue(1) @maxValue(50)
-  limit?: int32;
+  limit?: int32 = 10;
   baseline?: AnalysisBaseline;
 }
 
@@ -237,14 +237,14 @@ model GetFailureContextInput {
   failureId?: FailureId;
   @encodedName("application/json", "ci_run_id")
   ciRunId?: SessionId;
-  @doc("Maximum error spans in `observed.error_spans`. Default 100 (or `limit` when lower), maximum 1000; `next_cursor` continues.")
+  @doc("Maximum error spans in `observed.error_spans`, or `limit` when lower; `next_cursor` continues.")
   @minValue(1) @maxValue(1000)
   @encodedName("application/json", "max_spans")
-  maxSpans?: int32;
-  @doc("Maximum correlated log records in `observed.logs`. Default 100 (or `limit` when lower), maximum 200; `next_cursor` continues.")
+  maxSpans?: int32 = 100;
+  @doc("Maximum correlated log records in `observed.logs`, or `limit` when lower; `next_cursor` continues.")
   @minValue(1) @maxValue(200)
   @encodedName("application/json", "max_logs")
-  maxLogs?: int32;
+  maxLogs?: int32 = 100;
 }
 
 @doc("EvidenceSpan contract.")
@@ -525,7 +525,10 @@ model VerifyFixOutput {
 
 @doc("AggregateTelemetryInput contract.")
 model AggregateTelemetryInput {
-  ...AnalysisInput;
+  ...OmitProperties<AnalysisInput, "limit">;
+  @doc("Groups per page, largest first by `order_by`; `other` sums the groups after this page.")
+  @minValue(1) @maxValue(200)
+  limit?: int32 = 20;
   @doc("Which records to aggregate: `spans` (duration measures apply) or `logs`.")
   signal: "spans" | "logs";
   @doc("Attribute keys that define the groups, up to 4; omit for one overall group. Each group's `key` echoes the values.")
@@ -627,9 +630,10 @@ model GetAgentRunInput {
   sessionId?: SessionId;
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
+  @doc("Maximum steps in `steps`, or `limit` when lower; `next_cursor` continues.")
   @minValue(1) @maxValue(1000)
   @encodedName("application/json", "max_steps")
-  maxSteps?: int32;
+  maxSteps?: int32 = 100;
 }
 
 @doc("AgentTokens contract.")

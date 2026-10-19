@@ -10,6 +10,9 @@ namespace Qyl.Api.Contracts.Domains.Observe.Session;
 
 public sealed class SessionEntity
 {
+    public const int TraceCountMinimum = 0;
+    public const int SpanCountMinimum = 0;
+    public const int ErrorCountMinimum = 0;
     [JsonPropertyName("session_id")]
     public required string SessionId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -90,6 +93,7 @@ public sealed class SessionGeoInfo
 
 public sealed class SessionGenAiUsage
 {
+    public const int RequestCountMinimum = 0;
     [JsonPropertyName("request_count")]
     public required int RequestCount { get; init; }
     [JsonPropertyName("total_input_tokens")]
