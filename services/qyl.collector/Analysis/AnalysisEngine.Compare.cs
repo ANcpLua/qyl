@@ -245,6 +245,8 @@ internal sealed partial class AnalysisEngine
             .Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; return item; }) : [];
         return J.O(("verdict", verdict), ("before", Segment(beforeNs, sinceNs, failures.Count(Before), requests.Count(Before))), ("after", Segment(sinceNs, nowNs, afterFailures.Count, after.Count)),
             ("needs", verdict == "pending" ? J.O(("requests", Math.Max(0, minRequests - after.Count)), ("minutes", (long)Math.Max(0, Math.Ceiling(minMinutes - elapsed / 60_000_000_000d)))) : null),
-            ("recurrences", afterFailures.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)), ("guardrails", J.A(guardrails)), ("verify_id", handles.Issue(project, "verify_id", input)));
+            ("recurrences", afterFailures.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)), ("guardrails", J.A(guardrails)), ("verify_id", handles.Issue(project, "verify_id", input)),
+            // The requests read, and those of the before and after windows the verdict weighs.
+            ("coverage", Coverage(requests.Count, requests.Count(s => Before(s) || After(s)), 0, false)));
     }
 }

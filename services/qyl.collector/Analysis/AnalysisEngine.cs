@@ -55,8 +55,10 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         return PageCollections(input, result);
     }
 
+    // scan_complete says whether the read held every record the answer could come from, truncated whether the answer
+    // left matching results out; a matched count is unknown only when the read was cut.
     private JsonObject Coverage(int examined, int matched, int returned, bool truncated) => J.O(
-        ("examined", examined), ("matched", snapshot.ScanComplete ? matched : null), ("returned", returned), ("truncated", truncated || !snapshot.ScanComplete),
+        ("examined", examined), ("matched", snapshot.ScanComplete ? matched : null), ("returned", returned), ("truncated", truncated),
         ("scan_complete", snapshot.ScanComplete), ("as_of", _window.End.ToString("O")));
     // Spans starting in [from, to) are all in the snapshot: a store read reports the range it covered, any
     // other snapshot only when its scan was complete.
@@ -103,7 +105,9 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private List<AnalysisRecord> FailureRecords(string id) =>
         [.. _spans.Where(s => s.Error && FailureId(Signature(s)) == id)];
     public bool OwnsFailure(string id) => FailureRecords(id).Count > 0;
-    private static AnalysisInputException NoFailure(string id) =>
+    // The trace of a failure's latest occurrence, which get_failure_context examines.
+    public string? LatestOccurrenceTrace(string id) => FailureRecords(id).OrderByDescending(static s => s.Start).FirstOrDefault()?.TraceId;
+    internal static AnalysisInputException NoFailure(string id) =>
         new("failure_id", $"Failure {id} was not found in this project; triage lists the failures.", "failure.not_found") { Missing = id };
     // A failure over every occurrence the snapshot holds, as update_failure_status returns it.
     public JsonObject FailureSummary(string id) => Failure(FailureRecords(id).GroupBy(Signature).Single());

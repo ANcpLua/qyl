@@ -41,7 +41,7 @@ internal sealed partial class AnalysisEngine
                     ("keys", J.A(keys.Select(static k => (JsonNode?)J.O(("key", k.Key), ("cardinality", k.Cardinality))))),
                     ("suggested_group_by", J.N(keys.Where(static k => k.Cardinality is > 1 and <= 20).Select(static k => k.Key))));
             });
-        return Page(input, "items", items);
+        return Page(input, "items", items, snapshot.Series.Count);
     }
     internal static JsonArray ContractAttributes(JsonObject source)
     {

@@ -44,7 +44,10 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
 
         var verification = await VerifyAsync(host, $$"""{"since":"{{FixtureUtcNow.AddMinutes(-30):O}}","matchers":{{Matchers}}}""");
 
-        Assert.IsFalse(verification.GetProperty("coverage").GetProperty("scan_complete").GetBoolean());
+        var coverage = verification.GetProperty("coverage");
+        Assert.IsFalse(coverage.GetProperty("scan_complete").GetBoolean());
+        Assert.AreEqual(JsonValueKind.Null, coverage.GetProperty("matched").ValueKind, "the cap leaves the total unknown");
+        Assert.IsFalse(coverage.GetProperty("truncated").GetBoolean(), "the answer left nothing out");
         Assert.AreEqual(1, verification.GetProperty("before").GetProperty("occurrences").GetInt64());
         Assert.AreEqual(100, verification.GetProperty("after").GetProperty("requests").GetInt64());
         Assert.AreEqual("passed", verification.GetProperty("verdict").GetString());
@@ -72,6 +75,36 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         Assert.IsFalse(logs.TryGetProperty("total_matched", out _), "the cap cut matching records off");
         Assert.AreEqual(2, region.GetProperty("cardinality").GetInt32());
         Assert.IsFalse(region.GetProperty("cardinality_exact").GetBoolean());
+    }
+
+    /// <summary>
+    /// More log records than one read holds, all older than the window, make neither the failure's context nor its
+    /// verification partial: the context reads the failure's own trace and the window, a verification only spans.
+    /// </summary>
+    [TestMethod]
+    public async Task Records_an_analysis_does_not_read_leave_its_coverage_complete()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var old = FixtureUnixNano - 180 * Minute;
+        await host.Store.InsertLogsAsync([.. Enumerable.Range(0, AnalysisReadQuery.MaximumRows + 1).Select(i => new LogStorageRow
+        {
+            ProjectId = AlphaProjectId, LogId = "old-" + i, TimeUnixNano = old + (ulong)i * 1_000, SeverityNumber = 9, ServiceName = "batch", Body = "entry"
+        })], testContext.CancellationToken);
+        await host.Store.EnqueueAsync(new SpanBatch([Request(1, FixtureUnixNano - 30 * Minute, failed: true), Request(2, FixtureUnixNano - 10 * Minute)]),
+            testContext.CancellationToken);
+        var failure = Assert.ContainsSingle((await ReadAsync(host, "triage", "{}")).GetProperty("failures").EnumerateArray()).GetProperty("failure_id").GetString();
+
+        foreach (var (operation, input) in new[]
+                 {
+                     ("get_failure_context", $$"""{"failure_id":"{{failure}}"}"""),
+                     ("verify_fix", $$"""{"failure_id":"{{failure}}","since":"{{FixtureUtcNow.AddMinutes(-20):O}}"}""")
+                 })
+        {
+            var coverage = (await ReadAsync(host, operation, input)).GetProperty("coverage");
+            Assert.IsTrue(coverage.GetProperty("scan_complete").GetBoolean(), operation);
+            Assert.IsFalse(coverage.GetProperty("truncated").GetBoolean(), operation);
+            Assert.AreEqual(JsonValueKind.Number, coverage.GetProperty("matched").ValueKind, operation);
+        }
     }
 
     private static SpanStorageRow Request(int id, ulong start, bool failed = false) =>

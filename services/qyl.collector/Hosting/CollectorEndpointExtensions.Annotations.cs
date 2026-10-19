@@ -293,7 +293,7 @@ internal static partial class CollectorEndpointExtensions
     };
     private static async Task<IResult?> ValidateFailureTargetAsync(IQylStore store, string projectId, string failureId, CancellationToken ct)
     {
-        var snapshot = await store.ReadAnalysisSnapshotAsync(projectId, new AnalysisReadQuery { ErrorsOnly = true }, ct).ConfigureAwait(false);
+        var snapshot = await store.ReadAnalysisSnapshotAsync(projectId, new AnalysisReadQuery { ErrorsOnly = true, Tables = AnalysisTables.Spans }, ct).ConfigureAwait(false);
         if (snapshot.Spans.Any(s => AnalysisEngine.FailureIdentity(projectId, s) == failureId)) return null;
         return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : Results.Problem(statusCode: 503, title: "Failure lookup exceeded its scan budget.");
     }

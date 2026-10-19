@@ -40,17 +40,37 @@ internal static class AnalysisReadPlan
         if (operation == "ci_log" && J.String(input["baseline"], "ci_run_id") is { } priorRun) sessions.Add(priorRun);
         // Failure identity is independent of time. These focused queries may span retention,
         // but still have the storage cap and report incomplete coverage instead of false totals.
-        if (J.String(input, "failure_id") is not null || operation == "verify_fix" && J.String(input, "verify_id") is not null) start = DateTimeOffset.UnixEpoch;
+        // get_failure_context reads a failure as the trace of its latest occurrence, which the request then names.
+        if (J.String(input, "failure_id") is not null && J.String(input, "trace_id") is null || operation == "verify_fix" && J.String(input, "verify_id") is not null)
+            start = DateTimeOffset.UnixEpoch;
         if (start < DateTimeOffset.UnixEpoch) start = DateTimeOffset.UnixEpoch;
         return new AnalysisReadQuery
         {
+            Tables = Tables(operation, input),
             Start = QylTimeConversions.ToUnixNanoUnsigned(start), End = QylTimeConversions.ToUnixNanoUnsigned(end),
             TraceIds = [.. traces], SessionIds = [.. sessions],
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
             IncludeLinkTargets = operation == "get_trace",
-            IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query",
-            // A list of the saved queries reads no telemetry.
-            IncludeTelemetry = operation != "run_saved_query" || J.String(input, "id") is not null
+            IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query"
         };
     }
+
+    // The tables the operation's answer comes from, so that a table it never looks at cannot make its read incomplete.
+    private static AnalysisTables Tables(string operation, JsonObject input) => operation switch
+    {
+        "search_logs" => AnalysisTables.Logs,
+        "list_metrics" => AnalysisTables.MetricSeries,
+        "query_metric" => AnalysisTables.MetricSeries | AnalysisTables.MetricPoints,
+        "check_telemetry_health" => AnalysisTables.Spans | AnalysisTables.Logs | AnalysisTables.MetricSeries | AnalysisTables.MetricPoints,
+        "get_failure_context" or "get_trace" or "ci_log" => AnalysisTables.Spans | AnalysisTables.Logs,
+        "aggregate_telemetry" or "compare_groups" or "discover_attributes" => J.String(input, "signal") == "logs" ? AnalysisTables.Logs : AnalysisTables.Spans,
+        // Without an id the saved queries are listed; with one, the run reads its saved filter's signal.
+        "run_saved_query" => AnalysisTables.SavedQueries | (J.String(input, "id") is null ? AnalysisTables.None : J.String(input, "signal") switch
+        {
+            "metrics" => AnalysisTables.MetricSeries | AnalysisTables.MetricPoints,
+            "logs" => AnalysisTables.Logs,
+            _ => AnalysisTables.Spans
+        }),
+        _ => AnalysisTables.Spans
+    };
 }

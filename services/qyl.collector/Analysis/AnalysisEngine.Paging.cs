@@ -60,14 +60,14 @@ internal sealed partial class AnalysisEngine
         return (int)value;
     }
 
-    // One collection of a list operation.
-    private JsonObject Page(JsonObject input, string field, IEnumerable<JsonObject> source)
+    // One collection of a list operation; examined defaults to the window's spans and log records.
+    private JsonObject Page(JsonObject input, string field, IEnumerable<JsonObject> source, int? examined = null)
     {
         var all = source.Cast<JsonNode?>().ToList(); var limit = Limit(input); var fingerprint = Fingerprint(input);
         var start = Resume(Positions(input, fingerprint), field, all);
         var page = all.Skip(start).Take(limit).ToList(); var end = start + page.Count; var more = end < all.Count;
         return J.O((field, J.A(page)), ("has_more", more), ("next_cursor", more ? Continue(fingerprint, J.O((field, Position(all, end)))) : null),
-            ("coverage", Coverage(_spans.Count(s => _window.Contains(s.Start)) + _logs.Count(s => _window.Contains(s.Start)), all.Count, page.Count, more)));
+            ("coverage", Coverage(examined ?? _spans.Count(s => _window.Contains(s.Start)) + _logs.Count(s => _window.Contains(s.Start)), all.Count, page.Count, more)));
     }
 
     // Each collection advances independently. The signed continuation fixes the window and

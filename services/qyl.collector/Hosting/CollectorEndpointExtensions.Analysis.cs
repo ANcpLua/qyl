@@ -60,7 +60,19 @@ internal static partial class CollectorEndpointExtensions
                 if (await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false) is not { } saved)
                 return ContractErrorResults.NotFound("saved_query", savedId, $"Saved query {savedId} was not found in this project; run_saved_query without id lists the saved queries.");
                 readInput = JsonNode.Parse(saved.FilterJson)!.AsObject();
-                foreach (var pair in input) readInput[pair.Key] = pair.Value?.DeepClone();
+                readInput["id"] = savedId;
+                foreach (var name in AnalysisEngine.RunOverrides) if (input[name] is { } value) readInput[name] = value.DeepClone();
+            }
+            if (operation == "get_failure_context" && J.String(input, "failure_id") is { } failureId)
+            {
+                // A failure is explained in the trace of its latest occurrence. Its error spans name that trace, which is
+                // then read like a trace_id request, so the answer never waits on the project's whole history.
+                var errorsQuery = AnalysisReadPlan.Resolve(operation, input, now, handles, project) with { ErrorsOnly = true, Tables = AnalysisTables.Spans };
+                var errors = await store.ReadAnalysisSnapshotAsync(project, errorsQuery, deadline.Token).ConfigureAwait(false);
+                if (new AnalysisEngine(errors, project, handles, now, deadline.Token).LatestOccurrenceTrace(failureId) is not { } trace)
+                    return errors.ScanComplete ? AnalysisError(AnalysisEngine.NoFailure(failureId)) : ContractErrorResults.ServiceUnavailable("analysis.scan_budget_exceeded");
+                readInput = input.DeepClone().AsObject();
+                readInput["trace_id"] = trace;
             }
             var query = AnalysisReadPlan.Resolve(operation, readInput, now, handles, project);
             var snapshot = await store.ReadAnalysisSnapshotAsync(project, query, deadline.Token).ConfigureAwait(false);
@@ -135,7 +147,7 @@ internal static partial class CollectorEndpointExtensions
             if (J.String(body, "assignee")?.EnumerateRunes().Count() > 256) return ContractErrorResults.Validation("assignee", "Use at most 256 characters.", "assignee.length");
             var ignoreUntil = J.Date(body, "ignore_until");
             body = J.O(("status", status), ("assignee", J.String(body, "assignee")), ("ignore_until", ignoreUntil?.ToString("O")));
-            var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, new AnalysisReadQuery { ErrorsOnly = true }, ct).ConfigureAwait(false);
+            var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, new AnalysisReadQuery { ErrorsOnly = true, Tables = AnalysisTables.Spans }, ct).ConfigureAwait(false);
             var engine = new AnalysisEngine(snapshot, project, CreateAnalysisHandles(context, project), time.GetUtcNow());
             if (!engine.OwnsFailure(failureId)) return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : ContractErrorResults.ServiceUnavailable("analysis.scan_budget_exceeded");
             var existing = snapshot.State.FirstOrDefault(s => s.StateKey == failureId); var current = existing?.Etag ?? '"' + failureId + '"';

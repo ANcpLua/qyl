@@ -170,7 +170,8 @@ public sealed partial class AnalysisApiTests
         var result = engine.Run("list_traces", new JsonObject());
         Assert.IsFalse(result["coverage"]!["scan_complete"]!.GetValue<bool>());
         Assert.IsNull(result["coverage"]!["matched"]);
-        Assert.IsTrue(result["coverage"]!["truncated"]!.GetValue<bool>());
+        // A partial read is reported by scan_complete; truncated says only that the answer left matching items out.
+        Assert.IsFalse(result["coverage"]!["truncated"]!.GetValue<bool>());
     }
 
     [TestMethod]

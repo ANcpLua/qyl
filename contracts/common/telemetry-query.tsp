@@ -49,14 +49,20 @@ model ToolWindow {
   endTime: utcDateTime;
 }
 
-@doc("Scan coverage; unknown counts are null, never an invented zero.")
+@doc("What the answer rests on; unknown counts are null, never an invented zero.")
 model ToolCoverage {
+  @doc("Records the read examined.")
   examined: Count | null;
+  @doc("Records or items that matched the request; null when the read was cut, because the total is then unknown.")
   matched: Count | null;
+  @doc("Items this answer returns; null when the response budget shortened it.")
   returned: Count | null;
+  @doc("Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one.")
   truncated: boolean;
+  @doc("Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit.")
   @encodedName("application/json", "scan_complete")
   scanComplete: boolean;
+  @doc("End of the window the answer covers.")
   @encodedName("application/json", "as_of")
   asOf: utcDateTime;
 }

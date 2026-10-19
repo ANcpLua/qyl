@@ -595,7 +595,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -607,7 +608,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -619,20 +621,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -1723,7 +1729,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -1735,7 +1742,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -1747,20 +1755,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -2537,7 +2549,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -2549,7 +2562,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -2561,20 +2575,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -3408,7 +3426,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -3420,7 +3439,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -3432,20 +3452,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -4053,7 +4077,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -4065,7 +4090,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -4077,20 +4103,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -5020,7 +5050,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -5032,7 +5063,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -5044,20 +5076,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -5648,7 +5684,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -5660,7 +5697,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -5672,20 +5710,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -6413,7 +6455,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -6425,7 +6468,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -6437,20 +6481,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -7877,7 +7925,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -7889,7 +7938,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -7901,20 +7951,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -8785,7 +8839,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -8797,7 +8852,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -8809,20 +8865,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -9375,7 +9435,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -9387,7 +9448,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -9399,20 +9461,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -10298,7 +10364,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -10310,7 +10377,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -10322,20 +10390,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -10796,7 +10868,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -10808,7 +10881,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -10820,20 +10894,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -11337,7 +11415,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -11349,7 +11428,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -11361,20 +11441,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -12427,7 +12511,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -12439,7 +12524,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -12451,20 +12537,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -13118,7 +13208,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -13130,7 +13221,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -13142,20 +13234,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -14437,7 +14533,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -14449,7 +14546,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -14461,20 +14559,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -17470,7 +17572,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -17482,7 +17585,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -17494,20 +17598,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -18505,7 +18613,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -18517,7 +18626,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -18529,20 +18639,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {
@@ -19484,7 +19598,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records the read examined."
           },
           "matched": {
             "anyOf": [
@@ -19496,7 +19611,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Records or items that matched the request; null when the read was cut, because the total is then unknown."
           },
           "returned": {
             "anyOf": [
@@ -19508,20 +19624,24 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Items this answer returns; null when the response budget shortened it."
           },
           "truncated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether matching items were left out of this answer, by its page size or the response budget; `next_cursor` continues them where there is one."
           },
           "scan_complete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "End of the window the answer covers."
           }
         },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
+        "description": "What the answer rests on; unknown counts are null, never an invented zero.",
         "additionalProperties": false
       },
       "page_totals": {

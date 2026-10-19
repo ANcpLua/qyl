@@ -54,7 +54,8 @@ input schema or the Collector rejected it; a `not_found` carries the Collector's
 `resource_id` and message, and `hint` names the next step, such as the tool that lists valid ids.
 
 Read tools accept an absolute RFC 3339 time window or `lookback_minutes` and report the resolved
-`window` and `coverage`: examined, matched and returned counts, truncation, scan completeness and
+`window` and `coverage`: examined, matched and returned counts, whether results were left out
+(`truncated`), whether the read held every record the answer could come from (`scan_complete`) and
 observation time. Unknown counts are null. Filtering happens before pagination; reuse an opaque
 `next_cursor` with the same filters to continue a page. Shared matchers support `eq`, `neq`, `in`,
 `prefix`, `contains`, `exists`, `gt`, `gte`, `lt` and `lte`, with span, resource or log scope. Span

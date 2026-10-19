@@ -100,8 +100,10 @@ saved queries and failure status in that project, never the telemetry.
   is how the failing execution differs from a baseline, `context.changes`
   what changed around it, and `unknowns` what the telemetry could not
   establish. Report the unknowns with the findings.
-- `coverage.scan_complete: false` or `truncated: true` means the answer
-  rests on part of the data. Say which part.
+- `coverage.scan_complete: false` means the read stopped at its row limit
+  and the answer rests on part of the data (`matched` is then null); say
+  which part. `truncated: true` means matching results were left out of
+  this answer: continue with `next_cursor` or narrow the filters.
 - `check_telemetry_health.metric_conflicts` lists metric timestamps that
   hold contradicting measurements. `query_metric` refuses a window that
   holds one with a `conflict` error: narrow the window, choose another

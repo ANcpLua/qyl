@@ -1,5 +1,19 @@
 namespace Qyl.Collector.Storage;
 
+/// <summary>The tables an analysis reads besides its annotations and recorded failure states, which it always reads.</summary>
+[Flags]
+internal enum AnalysisTables
+{
+    None = 0,
+    Spans = 1,
+    Logs = 2,
+    MetricSeries = 4,
+    /// <summary>Metric points and their exemplars.</summary>
+    MetricPoints = 8,
+    SavedQueries = 16,
+    All = Spans | Logs | MetricSeries | MetricPoints | SavedQueries
+}
+
 // Per-request MVCC snapshot with a bounded window and explicit incomplete-scan metadata.
 internal sealed record AnalysisReadQuery
 {
@@ -7,7 +21,11 @@ internal sealed record AnalysisReadQuery
     public ulong? End { get; init; }
     public string[] TraceIds { get; init; } = [];
     public string[] SessionIds { get; init; } = [];
-    public bool IncludeTelemetry { get; init; } = true;
+    /// <summary>
+    /// What the analysis reads. A table it does not read cannot cut its answer, so only the tables read decide
+    /// <see cref="AnalysisSnapshot.ScanComplete"/>.
+    /// </summary>
+    public AnalysisTables Tables { get; init; } = AnalysisTables.All;
     public bool ErrorsOnly { get; init; }
     public bool IncludeWindowWithTargets { get; init; }
     /// <summary>Look up which targets of the loaded spans' links the project retains outside the loaded spans.</summary>
@@ -82,7 +100,13 @@ internal sealed partial class DuckDbStore
                 using var cmd = con.CreateCommand();
                 cmd.Transaction = tx;
                 var telemetry = table is "spans" or "logs" or "metric_series" or "metric_points" or "metric_exemplars";
-                if (telemetry && !query.IncludeTelemetry) return [];
+                var tableFlag = table switch
+                {
+                    "spans" => AnalysisTables.Spans, "logs" => AnalysisTables.Logs, "metric_series" => AnalysisTables.MetricSeries,
+                    "metric_points" or "metric_exemplars" => AnalysisTables.MetricPoints, "saved_queries" => AnalysisTables.SavedQueries,
+                    _ => AnalysisTables.None
+                };
+                if (tableFlag is not AnalysisTables.None && !query.Tables.HasFlag(tableFlag)) return [];
                 var predicates = new List<string> { "project_id = $1" }; var values = new List<object> { projectId };
                 void Add(string column, string comparison, object value) { values.Add(value); predicates.Add(column + comparison + "$" + values.Count); }
                 var timeColumn = table switch
@@ -171,7 +195,7 @@ internal sealed partial class DuckDbStore
             var linkTargets = query.IncludeLinkTargets ? RetainedLinkTargets(spans) : new HashSet<(string TraceId, string SpanId)>();
             // Rows are read newest first, so the cap cuts the oldest spans; spans sharing the oldest loaded
             // start may be only partly loaded, so completeness begins just after it.
-            AnalysisSpanCoverage? coverage = !query.IncludeTelemetry || query.ErrorsOnly || query.TraceIds.Length > 0 || query.SessionIds.Length > 0 ? null
+            AnalysisSpanCoverage? coverage = !query.Tables.HasFlag(AnalysisTables.Spans) || query.ErrorsOnly || query.TraceIds.Length > 0 || query.SessionIds.Length > 0 ? null
                 : new AnalysisSpanCoverage(spansTruncated ? spans[^1].StartTimeUnixNano + 1 : query.Start ?? 0, query.End ?? ulong.MaxValue);
             var result = new AnalysisSnapshot(
                 spans,
