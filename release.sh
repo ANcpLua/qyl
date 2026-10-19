@@ -9,7 +9,8 @@
 #    artifacts/release/<version>/. A directory with SHA512SUMS is sealed and is never repacked.
 # 2. Verify the sealed set against SHA512SUMS.
 # 3. Publish what nuget.org and npm do not have yet: runtime packages before the tool pointer.
-# 4. Tag v<version> on the packed commit and push the tag.
+# 4. Tag v<version> on the packed commit, push the tag and create its GitHub release from the
+#    version's CHANGELOG.md section.
 #
 # Rerun after any failure; every step skips what is already done. The keys come from the Vitals
 # registry files below and are passed to the publishers through their environment, never printed.
@@ -73,4 +74,12 @@ else
   git tag -a "v$version" "$commit" -m "v$version"
 fi
 git push origin "refs/tags/v$version"
+
+say "GitHub release v$version"
+if gh release view "v$version" >/dev/null 2>&1; then
+  echo "GitHub release v$version exists"
+else
+  notes=$(awk -v heading="## $version" '$0 == heading { found = 1; next } /^## / && found { exit } found' CHANGELOG.md)
+  gh release create "v$version" --verify-tag --title "qyl $version" --notes "$notes"
+fi
 echo "released $version from $commit"

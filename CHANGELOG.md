@@ -1,5 +1,14 @@
 # Changelog
 
+## 17.0.2
+
+- An analysis window keeps its exact boundaries: a boundary finer than the 100 ns recorded times
+  hold is rejected with `time.precision_unsupported` instead of being rounded, recorded times are
+  reported to 100 ns instead of milliseconds, and failure-regression and release checks compare
+  nanoseconds.
+- `run_saved_query` reports the coverage of the operation its saved filter ran.
+- `release.sh` creates the GitHub release `v<version>` from the version's changelog section.
+
 ## 17.0.1
 
 - verify_fix scopes requests and failures by the same matchers and never passes on an incomplete scan.
