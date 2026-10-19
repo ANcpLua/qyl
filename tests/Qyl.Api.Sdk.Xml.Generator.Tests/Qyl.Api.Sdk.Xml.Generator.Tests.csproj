@@ -8,14 +8,11 @@
   -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <OutputType>Exe</OutputType>
-    <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>

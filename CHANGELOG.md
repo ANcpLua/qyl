@@ -1,5 +1,13 @@
 # Changelog
 
+## 16.0.1 — 2026-10-19
+
+- Consume AutoInstrumentation and Hosting 28.2.1 in the Collector and CLI, and supply 28.2.1 through the API SDK's consumer package pins. SemanticConventions stays at 14.0.0.
+- Keep `DateTimeOffset` tick precision when analysis and saved-query windows become storage nanoseconds. Reject timestamps outside the unsigned OTLP Unix-nanosecond range as field validation errors.
+- Wait for orchestration dependencies on registry readiness events instead of a polling delay; shutdown during the wait no longer reports the dependency as ready.
+- Filter, map and count sessions from one injected clock snapshot, and schedule stream heartbeats from the host clock.
+- Build with .NET SDK 10.0.402 (global.json, mise and both container build images), ANcpLua.NET.Sdk 3.4.51 (ANcpLua.Analyzers 2.1.8) and ANcpLua.Roslyn.Utilities.Sources 3.0.1. Keep the SDK's NuGetAudit escalation in Release builds. Drop settings that only restated SDK defaults, a nonexistent framework import and a stale `ANcpLua.Roslyn.Utilities` entry in global.json.
+
 ## 16.0.0 — 2026-10-17
 
 - Remove the Collector dashboard, static serving and embedded assets. Keep the product API, OTLP endpoints and JSON error contracts. Build and packaging no longer require Node, Bun or browser assets.

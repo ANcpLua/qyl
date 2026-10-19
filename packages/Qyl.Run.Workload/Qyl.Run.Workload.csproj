@@ -5,7 +5,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Qyl.Run.Workload</RootNamespace>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- CA5394: Random.Shared here fabricates demo telemetry values — nothing security-relevant. -->
     <NoWarn>$(NoWarn);CA5394</NoWarn>

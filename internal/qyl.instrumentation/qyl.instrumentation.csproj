@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Instrumentation</RootNamespace>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
     <IsAotCompatible>true</IsAotCompatible>

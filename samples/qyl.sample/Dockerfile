@@ -3,7 +3,7 @@
 # Build context is the repository root (ApiSdkContainerScenario builds it from there) so packages/Qyl.Api.Sdk/ and the
 # Directory.*.props, Version.props and global.json are available.
 # No BuildKit-only instructions (--mount, --link) on purpose: the file builds with any Docker builder.
-FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot@sha256:88446bc2708f037046d48ef2bd77c437e981ca01229d7005ac2016ec42e05347 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot@sha256:62a3ebde694544ae0790b5ca2ffd56db04298af5652b7295c88fd61097752664 AS build
 WORKDIR /source
 
 COPY . .

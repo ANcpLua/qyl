@@ -1,6 +1,6 @@
 # The pinned local build and release toolchain; `mise install` installs it. dotnet also keeps global.json, which dotnet itself reads.
 [tools]
-"dotnet" = "10.0.401"
+"dotnet" = "10.0.402"
 
 [tasks.check]
 description = "Full source gate when requested or needed: ./eng/build.sh Check"

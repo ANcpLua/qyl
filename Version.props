@@ -2,7 +2,7 @@
   <PropertyGroup Label="qyl Product Version">
     <!-- The manual release script reads this exact product version. Candidate versions
          may be developed locally; publish only the complete checked release commit. -->
-    <QylVersion>16.0.0</QylVersion>
+    <QylVersion>16.0.1</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
@@ -33,7 +33,7 @@
          Qyl.Api.Sdk pins Qyl.Telemetry.Hosting for every API it builds, so this property is also
          written into the packed Build/Qyl.Api.Sdk.Packages.props for consumers outside this repository. -->
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.Hosting -->
-    <QylTelemetryVersion>28.2.0</QylTelemetryVersion>
+    <QylTelemetryVersion>28.2.1</QylTelemetryVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Telemetry.SemanticConventions -->
     <QylSemanticConventionsVersion>14.0.0</QylSemanticConventionsVersion>
     <!-- renovate: datasource=nuget depName=Qyl.Api.Contracts -->
@@ -41,7 +41,7 @@
     <QylApiContractsVersion>14.0.1</QylApiContractsVersion>
     <!-- Also read directly by qyl.instrumentation.generators to locate the Sources contentFiles. -->
     <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
-    <ANcpLuaRoslynUtilitiesVersion>3.0.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>3.0.1</ANcpLuaRoslynUtilitiesVersion>
   </PropertyGroup>
 
   <!-- The versions the Qyl.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
