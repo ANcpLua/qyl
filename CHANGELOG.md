@@ -1,5 +1,11 @@
 # Changelog
 
+## 17.0.1
+
+- verify_fix scopes requests and failures by the same matchers and never passes on an incomplete scan.
+- get_failure_context keys spans by trace and span id; compare_groups applies the requested window to failure cohorts.
+- query_metric answers only what recorded points establish.
+
 ## 17.0.0
 
 - One repository: the MCP server (formerly ANcpLua/qyl.mcp) is `services/qyl.mcp`, the TypeSpec
