@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using OpenTelemetry.Proto.Trace.V1;
 
 namespace Qyl.Collector.Analysis;
 
@@ -146,7 +147,8 @@ internal sealed partial class AnalysisEngine
     }
     private JsonObject Health(JsonObject input)
     {
-        var rows = Select(input); var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).ToList();
+        var rows = Select(input);
+        var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p)) && !HasRemoteParent(s)).ToList();
         var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();
         var lag = snapshot.Logs.Where(l => l.TimeUnixNano is > 0 && l.ObservedTimeUnixNano is > 0).Select(l => (l.ObservedTimeUnixNano!.Value - Math.Min(l.TimeUnixNano!.Value, l.ObservedTimeUnixNano.Value)) / 1_000_000d).ToList();
         // A conflicting point keeps its first measurement; query_metric still refuses to aggregate it.
@@ -163,6 +165,11 @@ internal sealed partial class AnalysisEngine
             ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("retention", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
             ("ingestion_lag_ms", lag.Count is 0 ? null : lag.Average()));
     }
+    // OTLP span flags bits 8 and 9: the producer knew whether the parent was remote, and it was. A remote parent
+    // runs in the calling process, which need not report to qyl, so its absence does not orphan the span.
+    // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/trace/v1/trace.proto
+    private const uint RemoteParent = (uint)(SpanFlags.ContextHasIsRemoteMask | SpanFlags.ContextIsRemoteMask);
+    private static bool HasRemoteParent(AnalysisRecord s) => ((s.Span?.Flags ?? 0) & RemoteParent) == RemoteParent;
     private static JsonArray SemanticGaps(List<AnalysisRecord> rows)
     {
         var gaps = new List<JsonObject>();

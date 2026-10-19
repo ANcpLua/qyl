@@ -819,7 +819,7 @@ model CheckTelemetryHealthInput {
   ...ServiceAnalysisInput;
 }
 
-@doc("OrphanSpans contract.")
+@doc("Spans whose parent span qyl does not retain. A span whose producer marked its parent remote (OTLP span flags) is not counted: its caller runs in another process.")
 model OrphanSpans {
   count: int64;
   share: float64;

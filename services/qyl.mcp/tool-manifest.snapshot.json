@@ -796,7 +796,7 @@
                 ]
               }
             },
-            "description": "OrphanSpans contract.",
+            "description": "Spans whose parent span qyl does not retain. A span whose producer marked its parent remote (OTLP span flags) is not counted: its caller runs in another process.",
             "additionalProperties": false
           },
           "metric_conflicts": {
