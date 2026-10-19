@@ -158,8 +158,8 @@ internal static class AnalysisMatchers
             var numeric = double.TryParse(a, CultureInfo.InvariantCulture, out var an) && double.TryParse(b, CultureInfo.InvariantCulture, out var bn) ? an.CompareTo(bn) : (int?)null;
             var ok = J.String(m, "op") switch
             {
-                "exists" => actual is not null, "eq" => actual is not null && a == b,
-                "neq" => actual is null || a != b, "in" => actual is not null && ((JsonArray)m!["values"]!).Any(v => J.Text(v) == a),
+                "exists" => actual is not null, "eq" => actual is not null && Equal(actual, expected),
+                "neq" => actual is null || !Equal(actual, expected), "in" => actual is { } present && ((JsonArray)m!["values"]!).Any(v => Equal(present, v)),
                 "prefix" => actual is not null && a.StartsWith(b, StringComparison.Ordinal),
                 "contains" => actual is not null && a.Contains(b, StringComparison.Ordinal),
                 "gt" => numeric > 0, "gte" => numeric >= 0, "lt" => numeric < 0, "lte" => numeric <= 0, _ => false
@@ -168,6 +168,23 @@ internal static class AnalysisMatchers
         }
         return true;
     }
+
+    /// <summary>
+    /// Equality keeps the operand's type: a number equals a number of the same value, a string the same
+    /// string and a boolean the same boolean. A number never equals a string, so 1 does not match "1".
+    /// </summary>
+    public static bool Equal(JsonNode actual, JsonNode? expected) => (actual.GetValueKind(), expected?.GetValueKind()) switch
+    {
+        (JsonValueKind.Number, JsonValueKind.Number) => SameNumber(actual.ToJsonString(), expected!.ToJsonString()),
+        (JsonValueKind.String, JsonValueKind.String) => string.Equals(actual.GetValue<string>(), expected!.GetValue<string>(), StringComparison.Ordinal),
+        (JsonValueKind.True or JsonValueKind.False, JsonValueKind.True or JsonValueKind.False) => actual.GetValueKind() == expected!.GetValueKind(),
+        _ => false
+    };
+
+    // Integers keep every digit as decimals; only values beyond decimal's range compare as doubles.
+    private static bool SameNumber(string actual, string expected) =>
+        decimal.TryParse(actual, NumberStyles.Float, CultureInfo.InvariantCulture, out var a) && decimal.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var b)
+            ? a == b : double.Parse(actual, CultureInfo.InvariantCulture) == double.Parse(expected, CultureInfo.InvariantCulture);
 }
 
 internal sealed class AnalysisHandles(byte[] key)

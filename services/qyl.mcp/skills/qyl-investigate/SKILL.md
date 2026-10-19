@@ -69,6 +69,8 @@ saved queries and failure status in that project, never the telemetry.
 - **Filters.** `matchers` take `key`, `op` (`eq`, `neq`, `in`, `prefix`,
   `contains`, `exists`, `gt`, `gte`, `lt`, `lte`) and `value` or `values`;
   `discover_attributes` lists which keys and values exist before you filter.
+  `eq`, `neq` and `in` compare typed values: the number 1 does not match the
+  string "1", so pass a value in the type `discover_attributes` reports.
 
 ## Reading a verdict
 

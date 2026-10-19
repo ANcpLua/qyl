@@ -374,7 +374,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -388,7 +388,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -404,7 +404,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -600,7 +600,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               }
             },
             "measures": {
@@ -831,7 +831,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -845,7 +845,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -861,7 +861,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -1240,7 +1240,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -1254,7 +1254,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -1270,7 +1270,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -1735,7 +1735,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -1749,7 +1749,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -1765,7 +1765,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -2486,7 +2486,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -2500,7 +2500,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -2516,7 +2516,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -2586,7 +2586,7 @@
                     "lt",
                     "lte"
                   ],
-                  "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                  "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                 },
                 "value": {
                   "anyOf": [
@@ -2600,7 +2600,7 @@
                       "type": "boolean"
                     }
                   ],
-                  "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                  "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                 },
                 "values": {
                   "type": "array",
@@ -2616,7 +2616,7 @@
                         "type": "boolean"
                       }
                     ],
-                    "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                   },
                   "minItems": 1,
                   "maxItems": 256
@@ -2698,7 +2698,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -2712,7 +2712,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -2728,7 +2728,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -2937,7 +2937,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "share_a": {
               "type": "number"
@@ -3282,7 +3282,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -3296,7 +3296,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -3312,7 +3312,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -5252,7 +5252,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -5266,7 +5266,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -5282,7 +5282,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -5361,7 +5361,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -5375,7 +5375,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -5391,7 +5391,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -5575,7 +5575,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -5589,7 +5589,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -5605,7 +5605,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -5837,7 +5837,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -5851,7 +5851,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -5867,7 +5867,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -6082,7 +6082,7 @@
                         "type": "boolean"
                       }
                     ],
-                    "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                   },
                   "count": {
                     "type": "integer"
@@ -6285,7 +6285,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -6299,7 +6299,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -6315,7 +6315,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -7235,7 +7235,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -7249,7 +7249,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -7265,7 +7265,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -9353,7 +9353,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -9367,7 +9367,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -9383,7 +9383,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -10282,7 +10282,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -10296,7 +10296,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -10312,7 +10312,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -11194,7 +11194,7 @@
                         "type": "boolean"
                       }
                     ],
-                    "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                   },
                   "count": {
                     "type": "integer"
@@ -11828,7 +11828,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -11842,7 +11842,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -11858,7 +11858,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -14474,7 +14474,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -14488,7 +14488,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -14504,7 +14504,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -14847,7 +14847,7 @@
                         "type": "boolean"
                       }
                     ],
-                    "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                   },
                   "share_a": {
                     "type": "number"
@@ -15099,7 +15099,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -15113,7 +15113,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -15129,7 +15129,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -15863,7 +15863,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -15877,7 +15877,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -15893,7 +15893,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -16301,7 +16301,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -16315,7 +16315,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -16331,7 +16331,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -16564,7 +16564,7 @@
                               "lt",
                               "lte"
                             ],
-                            "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                            "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                           },
                           "value": {
                             "anyOf": [
@@ -16578,7 +16578,7 @@
                                 "type": "boolean"
                               }
                             ],
-                            "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                           },
                           "values": {
                             "type": "array",
@@ -16594,7 +16594,7 @@
                                   "type": "boolean"
                                 }
                               ],
-                              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                             },
                             "minItems": 1,
                             "maxItems": 256
@@ -16673,7 +16673,7 @@
                               "lt",
                               "lte"
                             ],
-                            "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                            "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                           },
                           "value": {
                             "anyOf": [
@@ -16687,7 +16687,7 @@
                                 "type": "boolean"
                               }
                             ],
-                            "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                           },
                           "values": {
                             "type": "array",
@@ -16703,7 +16703,7 @@
                                   "type": "boolean"
                                 }
                               ],
-                              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                             },
                             "minItems": 1,
                             "maxItems": 256
@@ -16887,7 +16887,7 @@
                               "lt",
                               "lte"
                             ],
-                            "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                            "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                           },
                           "value": {
                             "anyOf": [
@@ -16901,7 +16901,7 @@
                                 "type": "boolean"
                               }
                             ],
-                            "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                           },
                           "values": {
                             "type": "array",
@@ -16917,7 +16917,7 @@
                                   "type": "boolean"
                                 }
                               ],
-                              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                             },
                             "minItems": 1,
                             "maxItems": 256
@@ -17140,7 +17140,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -17154,7 +17154,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -17170,7 +17170,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -18218,7 +18218,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -18232,7 +18232,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -18248,7 +18248,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -19307,7 +19307,7 @@
                     "lt",
                     "lte"
                   ],
-                  "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                  "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                 },
                 "value": {
                   "anyOf": [
@@ -19321,7 +19321,7 @@
                       "type": "boolean"
                     }
                   ],
-                  "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                  "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                 },
                 "values": {
                   "type": "array",
@@ -19337,7 +19337,7 @@
                         "type": "boolean"
                       }
                     ],
-                    "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                   },
                   "minItems": 1,
                   "maxItems": 256
@@ -19438,7 +19438,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -19452,7 +19452,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -19468,7 +19468,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -21546,7 +21546,7 @@
                             "lt",
                             "lte"
                           ],
-                          "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                          "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                         },
                         "value": {
                           "anyOf": [
@@ -21560,7 +21560,7 @@
                               "type": "boolean"
                             }
                           ],
-                          "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                          "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                         },
                         "values": {
                           "type": "array",
@@ -21576,7 +21576,7 @@
                                 "type": "boolean"
                               }
                             ],
-                            "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                           },
                           "minItems": 1,
                           "maxItems": 256
@@ -21655,7 +21655,7 @@
                             "lt",
                             "lte"
                           ],
-                          "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                          "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                         },
                         "value": {
                           "anyOf": [
@@ -21669,7 +21669,7 @@
                               "type": "boolean"
                             }
                           ],
-                          "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                          "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                         },
                         "values": {
                           "type": "array",
@@ -21685,7 +21685,7 @@
                                 "type": "boolean"
                               }
                             ],
-                            "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                           },
                           "minItems": 1,
                           "maxItems": 256
@@ -21869,7 +21869,7 @@
                             "lt",
                             "lte"
                           ],
-                          "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                          "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                         },
                         "value": {
                           "anyOf": [
@@ -21883,7 +21883,7 @@
                               "type": "boolean"
                             }
                           ],
-                          "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                          "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                         },
                         "values": {
                           "type": "array",
@@ -21899,7 +21899,7 @@
                                 "type": "boolean"
                               }
                             ],
-                            "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                            "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                           },
                           "minItems": 1,
                           "maxItems": 256
@@ -22099,7 +22099,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -22113,7 +22113,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -22129,7 +22129,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -22927,7 +22927,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -22941,7 +22941,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -22957,7 +22957,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -23151,7 +23151,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -23165,7 +23165,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -23181,7 +23181,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -24069,7 +24069,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -24083,7 +24083,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -24099,7 +24099,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -24178,7 +24178,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -24192,7 +24192,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -24208,7 +24208,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -24392,7 +24392,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -24406,7 +24406,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -24422,7 +24422,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -24501,7 +24501,7 @@
                 "lt",
                 "lte"
               ],
-              "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+              "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
             },
             "value": {
               "anyOf": [
@@ -24515,7 +24515,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+              "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
             },
             "values": {
               "type": "array",
@@ -24531,7 +24531,7 @@
                     "type": "boolean"
                   }
                 ],
-                "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
               },
               "minItems": 1,
               "maxItems": 256
@@ -25140,7 +25140,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -25154,7 +25154,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -25170,7 +25170,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -25249,7 +25249,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -25263,7 +25263,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -25279,7 +25279,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256
@@ -25463,7 +25463,7 @@
                         "lt",
                         "lte"
                       ],
-                      "description": "Supported predicate operators; equality and prefix retain their existing meaning."
+                      "description": "Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers."
                     },
                     "value": {
                       "anyOf": [
@@ -25477,7 +25477,7 @@
                           "type": "boolean"
                         }
                       ],
-                      "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                      "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                     },
                     "values": {
                       "type": "array",
@@ -25493,7 +25493,7 @@
                             "type": "boolean"
                           }
                         ],
-                        "description": "A comparison operand preserves booleans and numbers rather than coercing them to strings."
+                        "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
                       },
                       "minItems": 1,
                       "maxItems": 256

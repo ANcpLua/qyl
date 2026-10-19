@@ -12,10 +12,10 @@ scalar FailureId extends string;
 @maxLength(8192)
 scalar VerifyId extends string;
 
-@doc("A comparison operand preserves booleans and numbers rather than coercing them to strings.")
+@doc("A comparison operand keeps its JSON type: a number or boolean is never coerced to a string.")
 union MatcherValue { text: string, number: float64, boolean: boolean }
 
-@doc("Supported predicate operators; equality and prefix retain their existing meaning.")
+@doc("Supported predicate operators. eq, neq and in compare typed values: a number equals a number of the same value, a string the same string and a boolean the same boolean, so 1 does not equal \"1\". prefix and contains match the value's text; gt, gte, lt and lte compare numbers.")
 enum MatcherOp { eq, neq, `in`, prefix, contains, exists, gt, gte, lt, lte }
 
 @doc("Attribute namespace in which the predicate is evaluated.")
