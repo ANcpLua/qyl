@@ -99,10 +99,11 @@ identification**; the server does not start unless Auth0's metadata advertises a
 `private_key_jwt` (ChatGPT's CIMD client) and `none` (Claude's public CIMD client). The server never
 inspects client metadata. Auth0 owns registration and token issuance; the server validates
 resource-bound RFC 9068 access tokens (signature, issuer, resource audience, expiry and scopes) on
-every MCP request: credentials in the query string answer `400`; a missing, malformed, invalid or
-expired token, or one issued for another resource, answers `401 invalid_token`; insufficient scopes
-answer `403`. Every `401` and `403` carries the SDK's `WWW-Authenticate` challenge with the
-`resource_metadata` URL. Only the qyl production Auth0 issuer is accepted. Every request needs
+every MCP request: a request without credentials answers `401` with the bare challenge, no error
+code (RFC 6750 §3.1); credentials in the query string answer `400 invalid_request`; a malformed,
+invalid or expired token, or one issued for another resource, answers `401 invalid_token`;
+insufficient scopes answer `403 insufficient_scope`. Every refusal carries the `WWW-Authenticate`
+challenge, in the SDK's grammar, with the scopes to sign in for and the `resource_metadata` URL. Only the qyl production Auth0 issuer is accepted. Every request needs
 `qyl:read`; a tool call that writes or deletes also checks `qyl:write` or `qyl:delete`, and its
 step-up `403` names only the missing scope, so a client that re-authorizes for it must keep
 `qyl:read`. `/.well-known/oauth-protected-resource/mcp` and

@@ -23,7 +23,7 @@ test("malformed or query credentials never reach the verifier, even alongside a 
     verifier: { async verifyAccessToken() { calls++; throw new Error("must not run"); } },
     requiredScopes: ["qyl:read"],
   });
-  // authorization.md: a missing, malformed or expired token is 401 invalid_token with the challenge.
+  // authorization.md: a malformed or expired token is 401 invalid_token with the challenge.
   for (const headers of ["Bearer", "Bearer good, Bearer evil", "Bearer one two", "Basic abc"]) {
     const response = await gate(new Request(resource, { headers: { authorization: headers } }));
     assert(response instanceof Response);
@@ -36,8 +36,34 @@ test("malformed or query credentials never reach the verifier, even alongside a 
   }));
   assert(response instanceof Response);
   assert.equal(response.status, 400);
+  // RFC 6750 §3: a refusal without a usable token still carries the challenge.
+  assert.match(response.headers.get("www-authenticate")!, new RegExp(`^Bearer error="invalid_request", error_description="[^"]+", resource_metadata="${metadata}"$`, "u"));
   assert.equal((await response.json() as { error: string }).error, "invalid_request");
   assert.equal(calls, 0);
+});
+
+test("no credentials gets the bare sign-in challenge; a rejected token names invalid_token (RFC 6750 §3.1)", async () => {
+  const scopes = { requiredScopes: ["qyl:read"], authorizationScopes: ["qyl:read", "qyl:write", "qyl:delete"] };
+  const gate = createResourceAuthorization({ ...gateOptions, verifier, ...scopes });
+  for (const method of ["GET", "POST"]) {
+    const response = await gate(new Request(resource, { method }));
+    assert(response instanceof Response);
+    assert.equal(response.status, 401, method);
+    assert.equal(response.headers.get("www-authenticate"), `Bearer scope="qyl:read qyl:write qyl:delete", resource_metadata="${metadata}"`);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(await response.text(), "");
+  }
+  const rejecting: OAuthTokenVerifier = {
+    async verifyAccessToken() { throw new OAuthError(OAuthErrorCode.InvalidToken, 'Token "expired"'); },
+  };
+  const rejected = await createResourceAuthorization({ ...gateOptions, verifier: rejecting, ...scopes })(bearer("qyl:read"));
+  assert(rejected instanceof Response);
+  assert.equal(rejected.status, 401);
+  assert.equal(rejected.headers.get("www-authenticate"),
+    `Bearer error="invalid_token", error_description="Token \\"expired\\"", scope="qyl:read qyl:write qyl:delete", resource_metadata="${metadata}"`);
+  const body = await rejected.json() as { error: string; error_description: string };
+  assert.equal(body.error, "invalid_token");
+  assert.equal(body.error_description, 'Token "expired"');
 });
 
 test("initial sign-in requests product scopes and step-up names only missing scopes", async () => {

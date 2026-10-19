@@ -23,7 +23,8 @@ test("bearer gate fails closed with the resource challenge and scopes", async ()
   const missing = await gate(new Request(endpoint));
   assert(missing instanceof Response);
   assert.equal(missing.status, 401);
-  assert.match(missing.headers.get("www-authenticate") ?? "", /Bearer/u);
+  assert.match(missing.headers.get("www-authenticate") ?? "", /^Bearer scope="qyl:read", resource_metadata=/u);
+  assert.doesNotMatch(missing.headers.get("www-authenticate") ?? "", /error=/u);
   assert.match(
     missing.headers.get("www-authenticate") ?? "",
     /resource_metadata="https:\/\/mcp\.qyl\.at\/\.well-known\/oauth-protected-resource\/mcp"/u,

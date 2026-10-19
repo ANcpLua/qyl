@@ -69,8 +69,8 @@ function top<T>(rows: readonly T[] | undefined, render: (row: T, index: number) 
   return (rows ?? []).slice(0, TOP).map(render).join("; ");
 }
 
-function span(span: EvidenceSpan): string {
-  return `${span.service}/${short(span.name, 60)} (span ${span.span_id}, trace ${span.trace_id})`;
+function span(item: EvidenceSpan): string {
+  return `${item.service}/${short(item.name, 60)} (span ${item.span_id}, trace ${item.trace_id})`;
 }
 
 function regression(row: TriageRegression): string {
