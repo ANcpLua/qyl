@@ -58,6 +58,9 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private JsonObject Coverage(int examined, int matched, int returned, bool truncated) => J.O(
         ("examined", examined), ("matched", snapshot.ScanComplete ? matched : null), ("returned", returned), ("truncated", truncated || !snapshot.ScanComplete),
         ("scan_complete", snapshot.ScanComplete), ("as_of", _window.End.ToString("O")));
+    // Spans starting in [from, to) are all in the snapshot: a store read reports the range it covered, any
+    // other snapshot only when its scan was complete.
+    private bool SpansComplete(ulong from, ulong to) => snapshot.SpanCoverage is { } coverage ? coverage.Covers(from, to) : snapshot.ScanComplete;
     private List<AnalysisRecord> Select(JsonObject input, string signal = "spans", AnalysisWindow? window = null)
     {
         var w = window ?? _window;

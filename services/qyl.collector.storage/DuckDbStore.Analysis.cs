@@ -23,6 +23,19 @@ internal sealed record AnalysisSnapshot(
     bool ScanComplete = true)
 {
     public IReadOnlyList<MetricExemplarRow> Exemplars { get; init; } = [];
+
+    /// <summary>
+    /// The start times for which this snapshot holds every span of the project: the read window, narrowed to
+    /// just after the oldest loaded start when the row cap cut older spans off. Null when the read selected
+    /// spans by trace, session or status, so that no time range is complete.
+    /// </summary>
+    public AnalysisSpanCoverage? SpanCoverage { get; init; }
+}
+
+/// <summary>Every span of the project that starts in [<see cref="FromUnixNano"/>, <see cref="ToUnixNano"/>) is loaded.</summary>
+internal readonly record struct AnalysisSpanCoverage(ulong FromUnixNano, ulong ToUnixNano)
+{
+    public bool Covers(ulong from, ulong to) => from >= FromUnixNano && to <= ToUnixNano;
 }
 
 [DuckDbTable("analysis_state", OnConflict = """
@@ -50,6 +63,7 @@ internal sealed partial class DuckDbStore
         {
             using var tx = con.BeginTransaction();
             var complete = true;
+            var spansTruncated = false;
             query ??= new AnalysisReadQuery();
             List<T> Read<T>(string table, string columns, Func<DbDataReader, T> map)
             {
@@ -97,18 +111,27 @@ internal sealed partial class DuckDbStore
                 using var reader = cmd.ExecuteReader();
                 var rows = new List<T>();
                 while (reader.Read()) { ct.ThrowIfCancellationRequested(); rows.Add(map(reader)); }
-                if (rows.Count > AnalysisReadQuery.MaximumRows) { complete = false; rows.RemoveAt(rows.Count - 1); }
+                if (rows.Count > AnalysisReadQuery.MaximumRows)
+                {
+                    complete = false; rows.RemoveAt(rows.Count - 1);
+                    spansTruncated |= table == "spans";
+                }
                 return rows;
             }
+            var spans = Read("spans", SpanStorageRow.SelectColumnList, SpanStorageRow.MapFromReader);
+            // Rows are read newest first, so the cap cuts the oldest spans; spans sharing the oldest loaded
+            // start may be only partly loaded, so completeness begins just after it.
+            AnalysisSpanCoverage? coverage = !query.IncludeTelemetry || query.ErrorsOnly || query.TraceIds.Length > 0 || query.SessionIds.Length > 0 ? null
+                : new AnalysisSpanCoverage(spansTruncated ? spans[^1].StartTimeUnixNano + 1 : query.Start ?? 0, query.End ?? ulong.MaxValue);
             var result = new AnalysisSnapshot(
-                Read("spans", SpanStorageRow.SelectColumnList, SpanStorageRow.MapFromReader),
+                spans,
                 Read("logs", LogStorageRow.SelectColumnList, LogStorageRow.MapFromReader),
                 Read("metric_series", MetricSeriesRow.SelectColumnList, MetricSeriesRow.MapFromReader),
                 Read("metric_points", MetricPointRow.SelectColumnList, MetricPointRow.MapFromReader),
                 Read("annotations", AnnotationRow.SelectColumnList, AnnotationRow.MapFromReader),
                 Read("analysis_state", AnalysisStateRow.SelectColumnList, AnalysisStateRow.MapFromReader),
                 Read("saved_queries", SavedQueryRow.SelectColumnList, SavedQueryRow.MapFromReader))
-            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader) };
+            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage };
             tx.Commit();
             return result with { ScanComplete = complete };
         }, ct);

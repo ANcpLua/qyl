@@ -86,6 +86,8 @@ internal static partial class J
     [GeneratedRegex(@"\b(?:0x)?[0-9a-fA-F]{8,}\b")] private static partial Regex Hex();
     [GeneratedRegex("\"[^\"]*\"|'[^']*'")] private static partial Regex Quoted();
     public static string Time(ulong nanos) => DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / 1_000_000)).ToString("O");
+    /// <summary>The instant of a Unix-nanosecond time, to the 100 ns a <see cref="DateTimeOffset"/> holds.</summary>
+    public static DateTimeOffset Instant(ulong nanos) => DateTimeOffset.UnixEpoch.AddTicks((long)(nanos / 100));
     public static double Percentile(IEnumerable<double> source, double quantile)
     {
         var values = source.Order().ToArray(); if (values.Length is 0) return double.NaN;
