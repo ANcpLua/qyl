@@ -15,7 +15,7 @@ function property(name: ContractSchemaName, key: string): Record<string, unknown
 
 test("generated tool inputs own their bounds, required members and advertised defaults", () => {
   // The schema validates and advertises; the Collector applies the defaults it advertises.
-  assert.equal(property("Mcp.Tools.ListTracesInput", "limit").default, 20);
+  assert.equal(property("Mcp.Tools.ListTracesInput", "limit").default, 10);
   assert.equal(property("Mcp.Tools.SearchLogsInput", "limit").default, 50);
   assert.equal(property("Mcp.Tools.AggregateTelemetryInput", "limit").default, 20);
   assert.equal(property("Mcp.Tools.TriageInput", "limit").default, 10);
@@ -110,22 +110,23 @@ test("generated output documents accept the test telemetry fixture", () => {
 });
 
 test("64-bit nanosecond timestamps survive the wire exactly, above the safe-integer ceiling", () => {
-  const trace = toolTrace(structuredClone(getTelemetryFixture().traces[0]!));
-  const output = (start_time_unix_nano: unknown) => ({
-    ...readContext(1), mode: "live",
-    trace: { ...trace, spans: [{ ...trace.spans[0]!, start_time_unix_nano }] },
+  const window = readContext().window;
+  const output = (time_unix_nano: unknown) => ({
+    ...readContext(1),
+    items: [{ series_id: "s", name: "queue.depth", kind: "gauge", attributes: [], first_seen: window.start_time, last_seen: window.end_time }],
+    points: { items: [{ observation_id: "o", series_id: "s", has_conflict: false, time_unix_nano, attributes: [], data: { type: "number", value: { type: "int", value: "1" } } }], has_more: false },
   });
   // Past Number.MAX_SAFE_INTEGER: as a JS number literal this value silently becomes
   // ...456_800, which is the precision loss the decimal-string encoding exists to remove.
   const unixNanos = "1742000000123456789";
-  const parsed = checkContract("Mcp.Tools.GetTraceOutput", output(unixNanos));
-  assert(parsed.valid);
-  assert.equal(parsed.value.trace.spans[0]!.start_time_unix_nano, unixNanos);
-  assert.equal(BigInt(parsed.value.trace.spans[0]!.start_time_unix_nano), 1742000000123456789n);
+  const parsed = checkContract("Mcp.Tools.GetMetricSeriesOutput", output(unixNanos));
+  assert(parsed.valid, parsed.valid ? "" : parsed.message);
+  assert.equal(parsed.value.points!.items[0]!.time_unix_nano, unixNanos);
+  assert.equal(BigInt(parsed.value.points!.items[0]!.time_unix_nano), 1742000000123456789n);
 
-  assert(!valid("Mcp.Tools.GetTraceOutput", output("1.5")));
-  assert(!valid("Mcp.Tools.GetTraceOutput", output(1.5)));
-  assert(!valid("Mcp.Tools.GetTraceOutput", output("18446744073709551616")), "beyond uint64");
+  assert(!valid("Mcp.Tools.GetMetricSeriesOutput", output("1.5")));
+  assert(!valid("Mcp.Tools.GetMetricSeriesOutput", output(1.5)));
+  assert(!valid("Mcp.Tools.GetMetricSeriesOutput", output("18446744073709551616")), "beyond uint64");
 });
 
 test("TypeSpec record dictionaries retain their value contract at runtime", () => {
@@ -159,7 +160,7 @@ test("analysis boundary preserves RFC 3339 precision and rejects alternate wire 
   assert.throws(() => parse([trace]), /collector contract mismatch/u);
   assert.throws(() => parse({ ...body, has_more: undefined }), /has_more/u);
   assert.throws(() => parse({ ...body, invented: true }), /must NOT have additional properties/u);
-  trace.root_span!.kind = "Client" as never;
+  trace.root = { service: 1 } as never;
   assert.throws(() => parse(body), /collector contract mismatch/u);
 });
 

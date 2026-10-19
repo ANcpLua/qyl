@@ -42,7 +42,7 @@ test("one oversized trace is compacted with explicit omissions and a valid contr
   const trace = toolTrace(getTelemetryFixture().traces[0]!);
   trace.spans = Array.from({length:300}, (_, index) => ({...trace.spans[0]!,span_id:index.toString(16).padStart(16,"0") as SpanId, name:"large span "+index,
     attributes:[{key:"recorded.evidence",value:"detail ".repeat(2000)}]}));
-  const output = { ...readContext(300), trace, has_more:false, logs:[], annotations:[], links:[], span_roles:[], omitted:{matched:0,context:0}, mode:"live", settled:true };
+  const output = { ...readContext(300), trace, has_more:false, logs:[], annotations:[], links:[], mode:"live", settled:true };
   const result = compactAnalysisResult("get_trace",output);
   assert(responseBytes(result)<=ANALYSIS_RESPONSE_BYTES);
   const checked = checkContract("Mcp.Tools.GetTraceOutput", result.structuredContent);

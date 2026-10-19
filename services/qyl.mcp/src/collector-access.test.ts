@@ -11,13 +11,13 @@ import { createResourceAuthorization } from "./authorization.js";
 import { CollectorAccessError, collectorAccessForSubject, readCollectorProjects } from "./collector-access.js";
 import { collectorPost } from "./collector.js";
 import { API_KEY_AUTH_HEADER, PROJECT_SCOPE_HEADER } from "./contracts/generated/headers.js";
+import type { ToolTraceRow } from "./contracts/generated/api.js";
 import { readContext, toolTrace, toolSummary } from "./analysis-context.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
 import { EventsRuntime, createEventStore, type Principal, type SubscribeParams } from "./events.js";
 import { hostedAuth } from "./main.js";
 import { QYL_MCP_RESOURCE, QYL_MCP_SCOPE } from "./oauth.js";
 import { createServer } from "./server.js";
-import type { QylTrace } from "./wire.js";
 
 const OWNER = "auth0|project-owner-test";
 const REVIEWER = "auth0|project-reviewer-test";
@@ -209,9 +209,9 @@ test("Events poll and deduplicate within each account's Collector scope", { time
   let markReviewDelivered!: () => void;
   const reviewDelivered = new Promise<void>((resolve) => { markReviewDelivered = resolve; });
   const sharedId = getTelemetryFixture().traces[0]!.trace_id;
-  const traces = new Map<string, QylTrace>(PROJECTS.map((entry) => [entry.project, {
-    ...getTelemetryFixture().traces[0]!, trace_id: sharedId, has_error: true,
-    services: [entry.project], root_span: { ...getTelemetryFixture().traces[0]!.root_span!, name: `${entry.project}-sample` },
+  const traces = new Map<string, ToolTraceRow>(PROJECTS.map((entry) => [entry.project, {
+    ...toolSummary(getTelemetryFixture().traces[0]!), trace_id: sharedId, error_count: 1,
+    services: [entry.project], root: { service: entry.project, name: `${entry.project}-sample` },
   }]));
   context.mock.method(globalThis, "fetch", async (input: string | Request | URL, init?: RequestInit) => {
     const request = new Request(input, init);
@@ -222,7 +222,7 @@ test("Events poll and deduplicate within each account's Collector scope", { time
       await ownerGate;
       throw new Error("upstream unavailable");
     }
-    return Response.json({ ...readContext(phase === 0 ? 0 : 1), traces: phase === 0 ? [] : [toolSummary(traces.get(project)!)], has_more: false, mode: "live" });
+    return Response.json({ ...readContext(phase === 0 ? 0 : 1), traces: phase === 0 ? [] : [traces.get(project)!], has_more: false, mode: "live" });
   });
   const deliveries: Array<{ url: string; body: string }> = [];
   const runtime = new EventsRuntime({
@@ -295,7 +295,7 @@ for (const configured of [false, true]) {
       log: () => {},
       recentTraces: async () => {
         reads++;
-        return phase === 0 ? [] : [{ ...getTelemetryFixture().traces[0]!, has_error: true }];
+        return phase === 0 ? [] : [{ ...toolSummary(getTelemetryFixture().traces[0]!), error_count: 1 }];
       },
       post: async (url, body) => {
         const event = JSON.parse(body) as { type?: string; challenge?: string };

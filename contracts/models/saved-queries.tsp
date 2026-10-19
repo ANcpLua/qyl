@@ -185,10 +185,10 @@ model SavedQueryRunRequest {
   cursor?: Cursor;
 }
 
-@doc("One page of trace summaries produced by a saved trace query, like list_traces; get_trace reads one full span tree.")
+@doc("One page of trace rows produced by a saved trace query, as list_traces returns them; get_trace reads one trace's spans.")
 model SavedTraceQueryRun {
   signal: "traces";
-  items: TraceSummary[];
+  items: Qyl.Api.Contracts.Mcp.Tools.ToolTraceRow[];
 
   @doc("Pass back as `cursor` for the next page of the same run. Absent on the last page.")
   @encodedName("application/json", "next_cursor")

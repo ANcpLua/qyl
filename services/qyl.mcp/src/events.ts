@@ -29,9 +29,8 @@ import { AtomicJsonStore } from "./atomic-json-store.js";
 import { fetchTraces } from "./data.js";
 import { CollectorAccessError, collectorAccessForSubject } from "./collector-access.js";
 import { collectorUrl } from "./config.js";
-import { rootSpanName } from "./summaries.js";
-import type { QylTrace } from "./wire.js";
-type EventTrace = Pick<QylTrace, "trace_id" | "root_span" | "services" | "span_count" | "duration_ns" | "start_time" | "has_error">;
+import type { ToolTraceRow } from "./contracts/generated/api.js";
+type EventTrace = Pick<ToolTraceRow, "trace_id" | "root" | "services" | "span_count" | "duration_ms" | "start_time" | "error_count">;
 import {
   CallbackAddressError,
   WEBHOOK_MAX_BODY_BYTES,
@@ -249,10 +248,10 @@ function sameText(a: string, b: string): boolean {
 export function traceErrorPayload(trace: EventTrace): Record<string, unknown> {
   return {
     trace_id: trace.trace_id,
-    root_span: rootSpanName(trace),
+    root_span: trace.root.name,
     services: [...trace.services],
     span_count: trace.span_count,
-    duration_ms: Math.round(Number(trace.duration_ns) / 1_000) / 1_000,
+    duration_ms: Math.round(trace.duration_ms * 1_000) / 1_000,
     start_time: new Date(trace.start_time).toISOString(),
   };
 }
@@ -605,13 +604,13 @@ export class EventsRuntime {
         if (previous === undefined || previous.source !== key) {
           this.seen.set(subscription.id, {
             source: key,
-            traces: new Set(traces.filter((trace) => trace.has_error).map((trace) => trace.trace_id)),
+            traces: new Set(traces.filter((trace) => trace.error_count > 0).map((trace) => trace.trace_id)),
           });
           continue;
         }
         // Fetch once per project; authorization outages must not advance the
         // delivery baseline belonging to a different subscription.
-        const fresh = traces.filter((trace) => trace.has_error && !previous.traces.has(trace.trace_id));
+        const fresh = traces.filter((trace) => trace.error_count > 0 && !previous.traces.has(trace.trace_id));
         for (const trace of fresh) previous.traces.add(trace.trace_id);
         if (previous.traces.size > MAX_SEEN_TRACES) {
           previous.traces = new Set([...previous.traces].slice(-MAX_SEEN_TRACES));

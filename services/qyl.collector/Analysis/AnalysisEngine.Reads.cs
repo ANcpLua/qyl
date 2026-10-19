@@ -23,7 +23,6 @@ internal sealed partial class AnalysisEngine
         result["log_id"] = row.Id;
         return result;
     }
-    private static JsonObject ContractSpan(AnalysisRecord row) => JsonSerializer.SerializeToNode(SpanMapper.ToContracts([row.Span!])[0], QylSerializerContext.Default.Span)!.AsObject();
     private static JsonObject Tokens(IEnumerable<AnalysisRecord> rows)
     {
         var spans = rows.Where(s => s.Span is not null).Select(s => s.Span!).ToList();
@@ -95,7 +94,9 @@ internal sealed partial class AnalysisEngine
         {
             var items = g.ToList(); var root = items.OrderBy(s => Depth(s, items)).ThenBy(s => s.Start).First();
             var start = g.Min(s => s.Start); var duration = g.Max(s => s.End) - start; var errors = g.Count(s => s.Error);
-            return (Id: g.Key, Start: start, Duration: duration, Errors: errors, Trace: J.O(("trace_id", g.Key), ("root_span", ContractSpan(root)), ("duration_ns", duration), ("services", g.Select(s => s.Service).Distinct()), ("has_error", errors > 0), ("start_time", J.Time(start)), ("end_time", J.Time(g.Max(s => s.End))), ("duration_ms", duration / 1_000_000d), ("span_count", g.Count()), ("error_count", errors), ("root_span_name", root.Name), ("root_service_name", root.Service), ("service_names", g.Select(s => s.Service).Distinct()), ("root_error", root.Error), ("contained_error", errors > 0), ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("annotation_labels", AnnotationLabels(TraceAnnotations(g.Key)))));
+            return (Id: g.Key, Start: start, Duration: duration, Errors: errors, Trace: J.O(("trace_id", g.Key), ("root", J.O(("service", root.Service), ("name", root.Name))),
+                ("start_time", J.Time(start)), ("duration_ms", duration / 1_000_000d), ("span_count", g.Count()), ("error_count", errors), ("services", g.Select(s => s.Service).Distinct()),
+                ("failure_ids", g.Where(s => s.Error).Select(s => FailureId(Signature(s))).Distinct().Take(3)), ("session_id", g.Select(static s => s.SessionId).FirstOrDefault(static s => s is not null))));
         });
         // Newest first, longest first or most error spans first; equal values keep the newest trace first.
         var traces = (J.String(input, "sort_by") switch
@@ -105,46 +106,52 @@ internal sealed partial class AnalysisEngine
                 _ => rows.OrderByDescending(static t => t.Start)
             }).ThenByDescending(static t => t.Start).ThenBy(static t => t.Id, StringComparer.Ordinal).Select(static t => t.Trace).ToList();
         var result = Page(input, "traces", traces); result["mode"] = "live";
-        if (J.String(input, "group_by") is { } by)
-            result["groups"] = J.A(traces.GroupBy(t => by == "failure_id" ? J.Text(t["failure_ids"]?[0]) : J.String(t, by == "service" ? "root_service_name" : "root_span_name") ?? "").Select(g => J.O(("key", g.Key), ("count", g.Count()), ("example_trace_ids", g.Select(t => J.String(t, "trace_id")!).Take(3)))));
         return result;
     }
     private JsonObject Trace(JsonObject input)
     {
-        var rows = Execution(input); var selection = J.String(input, "selection") ?? (J.Bool(input, "errors_only") ? "errors" : "all");
+        var rows = Execution(input); var selection = J.String(input, "selection") ?? "all";
         if (rows.Count is 0) throw new AnalysisInputException("trace", J.String(input, "trace_id") ?? "", "trace.not_found");
-        if (J.Bool(input, "errors_only") && selection != "errors") throw new AnalysisInputException("selection", "errors_only=true requires selection=errors.");
-        var matched = rows.Where(s => selection is "all" or "critical_path" || s.Error).ToHashSet(); var selected = matched.ToHashSet();
+        var selected = rows.Where(s => selection is "all" or "critical_path" || s.Error).ToHashSet();
         var children = rows.ToLookup(s => s.Span?.ParentSpanId ?? "", StringComparer.Ordinal);
-        if (selection == "errors_with_ancestors") foreach (var s in matched)
+        if (selection == "errors_with_ancestors") foreach (var s in selected.ToList())
             { var current = s; while (current.Span?.ParentSpanId is { } parent && SpanIndex.GetValueOrDefault((current.TraceId, parent)) is { } ancestor && selected.Add(ancestor)) current = ancestor; }
-        if (selection == "critical_path" && rows.Count > 0)
+        if (selection == "critical_path")
         {
             selected.Clear(); var current = rows.OrderBy(s => Depth(s, rows)).ThenBy(s => s.Start).First(); selected.Add(current);
             while (children[current.Id].OrderByDescending(s => s.Duration).FirstOrDefault() is { } child && selected.Add(child)) current = child;
         }
-        var page = selected.OrderBy(s => s.Start).ThenBy(s => s.Id, StringComparer.Ordinal).ToList();
-        var roles = page.Select(s =>
+        var withAttributes = J.Bool(input, "include_attributes", true);
+        var keep = (input["attributes"] as JsonArray)?.Select(J.Text).ToHashSet(StringComparer.Ordinal);
+        var spans = selected.OrderBy(s => s.Start).ThenBy(s => s.Id, StringComparer.Ordinal).Select(s =>
         {
-            var role = J.O(("span_id", s.Id), ("role", matched.Contains(s) ? "matched" : "context"));
-            if (selection == "critical_path") { var intervals = children[s.Id].Select(c => (Start: Math.Max(c.Start, s.Start), End: Math.Min(c.End, s.End))).Where(x => x.End > x.Start).OrderBy(x => x.Start).ToList(); ulong total = 0, end = 0; foreach (var interval in intervals) { total += interval.End - Math.Max(interval.Start, Math.Min(end, interval.End)); end = Math.Max(end, interval.End); } var self = Math.Max(0, s.Duration - total / 1_000_000d); role["self_time_ms"] = self; role["self_time_share"] = s.Duration is 0 ? 0 : self / s.Duration; }
-            return role;
-        });
-        var spans = page.Select(s => { var span = ContractSpan(s); if (!J.Bool(input, "include_attributes", true)) { StripAttributes(span); } else if (input["attributes"] is JsonArray attrs && span["attributes"] is JsonArray values) span["attributes"] = J.A(values.Where(v => attrs.Any(a => J.Text(a) == J.String(v, "key")))); return span; }).ToList();
-        var roleList = roles.ToList();
-        for (var i = 0; i < spans.Count; i++) foreach (var pair in roleList[i]) if (pair.Key != "span_id") spans[i][pair.Key] = pair.Value?.DeepClone();
-        var trace = J.O(("trace_id", J.String(input, "trace_id") ?? rows.FirstOrDefault()?.TraceId ?? ""), ("spans", J.A(spans)), ("span_count", rows.Count), ("duration_ns", rows.Count is 0 ? 0UL : rows.Max(s => s.End) - rows.Min(s => s.Start)), ("start_time", rows.Count is 0 ? now.ToString("O") : J.Time(rows.Min(s => s.Start))), ("end_time", rows.Count is 0 ? now.ToString("O") : J.Time(rows.Max(s => s.End))), ("services", rows.Select(s => s.Service).Distinct()), ("has_error", rows.Any(s => s.Error)));
+            var row = J.O(("span_id", s.Id), ("parent_span_id", s.Span?.ParentSpanId is { Length: > 0 } parent ? parent : null), ("service", s.Service), ("name", s.Name),
+                ("start_time", J.Time(s.Start)), ("duration_ms", s.Duration), ("status", s.Error ? "error" : s.Span?.StatusCode == 1 ? "ok" : "unset"),
+                ("message", s.Span?.StatusMessage is { Length: > 0 } message ? message : null));
+            if (withAttributes) row["attributes"] = ContractAttributes(keep is null ? s.Attributes : new JsonObject(s.Attributes.Where(p => keep.Contains(p.Key)).Select(static p => KeyValuePair.Create(p.Key, p.Value?.DeepClone()))));
+            if (selection == "critical_path")
+            {
+                var intervals = children[s.Id].Select(c => (Start: Math.Max(c.Start, s.Start), End: Math.Min(c.End, s.End))).Where(x => x.End > x.Start).OrderBy(x => x.Start).ToList();
+                ulong covered = 0, reached = 0;
+                foreach (var interval in intervals) { covered += interval.End - Math.Max(interval.Start, Math.Min(reached, interval.End)); reached = Math.Max(reached, interval.End); }
+                var self = Math.Max(0, s.Duration - covered / 1_000_000d); row["self_time_ms"] = self; row["self_time_share"] = s.Duration is 0 ? 0 : self / s.Duration;
+            }
+            return row;
+        }).ToList();
+        var start = rows.Min(static s => s.Start); var end = Math.Max(start, rows.Max(static s => s.End));
+        var trace = J.O(("trace_id", rows[0].TraceId), ("start_time", J.Time(start)), ("end_time", J.Time(end)), ("duration_ms", (end - start) / 1_000_000d), ("span_count", rows.Count),
+            ("error_count", rows.Count(static s => s.Error)), ("services", rows.Select(static s => s.Service).Distinct()), ("spans", J.A(spans)));
+        // Each service's resource once, not on every span.
+        if (withAttributes) trace["resources"] = J.A(rows.GroupBy(static s => (s.Service, Resource: s.Resource.ToJsonString()))
+            .OrderBy(static g => g.Key.Service, StringComparer.Ordinal).ThenBy(static g => g.Key.Resource, StringComparer.Ordinal)
+            .Select(static g => J.O(("service", g.Key.Service), ("attributes", ContractAttributes(g.First().Resource)))));
         var links = rows.SelectMany(s => JsonNode.Parse(s.Span?.LinksJson ?? "[]")?.AsArray() ?? []).OfType<JsonObject>().Select(l => { var traceId = J.String(l, "trace_id") ?? J.String(l, "traceId"); var spanId = J.String(l, "span_id") ?? J.String(l, "spanId"); return J.O(("trace_id", traceId), ("span_id", spanId), ("available", SpanIndex.ContainsKey((traceId, spanId ?? "")) || traceId is not null && spanId is not null && snapshot.RetainedLinkTargets.Contains((traceId, spanId)))); });
         var traceIds = rows.Select(s => s.TraceId).ToHashSet(StringComparer.Ordinal);
-        return J.O(("trace", trace), ("mode", "live"), ("annotations", J.A(TraceAnnotations(J.String(trace, "trace_id")!, rows.Select(static row => row.Id).ToHashSet(StringComparer.Ordinal)))), ("span_roles", J.A(roleList)), ("omitted", J.O(("matched", matched.Count - page.Count(matched.Contains)), ("context", selected.Count - matched.Count - page.Count(s => !matched.Contains(s))))),
+        // The window is the trace's own range, which a follow-up read can pass on.
+        return J.O(("trace", trace), ("window", new AnalysisWindow(J.Instant(start), J.Instant(end)).Json), ("mode", "live"), ("annotations", J.A(TraceAnnotations(rows[0].TraceId!, rows.Select(static row => row.Id).ToHashSet(StringComparer.Ordinal)))),
             ("missing_parent_span_ids", rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).Select(s => s.Span!.ParentSpanId!).Distinct()), ("links", J.A(links)),
             ("logs", J.A(J.Bool(input, "include_logs") || J.Number(input, "include_logs") > 0 ? _logs.Where(l => traceIds.Contains(l.TraceId)).Take((int)Math.Min(50, J.Number(input, "include_logs", 50))).Select(LogJson) : [])),
-            ("settled", rows.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(rows.Max(s => s.End) / 1_000_000) >= 5000), ("coverage", Coverage(rows.Count, selected.Count, page.Count, page.Count < selected.Count)));
-    }
-    private static void StripAttributes(JsonNode node)
-    {
-        if (node is JsonObject obj) { obj.Remove("attributes"); foreach (var child in obj.Select(static p => p.Value).OfType<JsonNode>().ToList()) StripAttributes(child); }
-        else if (node is JsonArray list) foreach (var child in list.OfType<JsonNode>()) StripAttributes(child);
+            ("settled", now.ToUnixTimeMilliseconds() - (long)(end / 1_000_000) >= 5000), ("coverage", Coverage(rows.Count, selected.Count, spans.Count, false)));
     }
     private JsonObject Logs(JsonObject input)
     {

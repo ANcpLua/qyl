@@ -127,7 +127,7 @@ verify('13 MCP stats preserve denominator, failure class, exampleids, buckets an
  assert.equal(data.by_server.find(s=>s.name===fixture.mcp_server_name).requests,40);
  for (const id of group.example_trace_ids) {
    const trace = await call('get_trace', {...w, trace_id:id});
-   assert(trace.trace.spans.some(span => span.status.code === 2), 'example must contain an error');
+   assert(trace.trace.spans.some(span => span.status === 'error'), 'example must contain an error');
  }
 });
 verify('14 active error filter returns only sess_bad',async call=>{
@@ -135,7 +135,7 @@ verify('14 active error filter returns only sess_bad',async call=>{
 });
 verify('15 sess_bad errors returns3traces',async call=>{const data=await call('list_traces',{...w,session_id:'sess_bad',errors_only:true});assert.equal(data.traces.length,3);});
 verify('16a critical path is rooted under checkout',async call=>{const data=await call('get_trace',{...w,trace_id:key['latency-/checkout-0'].trace_id,selection:'critical_path'});assert(data.trace.spans.every(s=>s.name.includes('/checkout')));assert(data.trace.spans.length>0);});
-verify('16b error ancestors include root as context',async call=>{const data=await call('get_trace',{...w,trace_id:key['db-root'].trace_id,selection:'errors_with_ancestors'});assert.equal(data.trace.spans.find(s=>s.span_id===key['db-root'].span_id).role,'context');});
+verify('16b error ancestors include the healthy root',async call=>{const data=await call('get_trace',{...w,trace_id:key['db-root'].trace_id,selection:'errors_with_ancestors'});assert.equal(data.trace.spans.find(s=>s.span_id===key['db-root'].span_id).status,'ok');});
 verify('17 grouped timeout log pattern count8',async call=>{const data=await call('search_logs',{...scoped('qyl-mcp'),group_by:'pattern'});assert(data.patterns.some(p=>p.count===8&&/timeout/.test(p.template)));});
 verify('18 duration histogram reports seconds and p95support',async call=>{const data=await call('list_metrics',{...w,text:'http.server.request.duration'});const metric=data.items.find(m=>m.name==='http.server.request.duration');assert.equal(metric.kind,'histogram');assert.equal(metric.unit,'s');assert(metric.supported_aggregations.includes('p95'));});
 verify('19 metric route cardinality2 suggested for grouping',async call=>{const data=await call('get_metric_series',{...w,metric_name:'http.server.request.duration'});assert.equal(data.keys.find(k=>k.key==='http.route').cardinality,2);assert(data.suggested_group_by.includes('http.route'));});
@@ -182,23 +182,23 @@ verify('regression get_trace removes all attribute collections without changing 
  const complete=await call('get_trace',args);
  const compact=await call('get_trace',{...args,include_attributes:false,max_spans:1});
  assert.equal(compact.trace.span_count,complete.trace.span_count);
- assert.equal(compact.trace.duration_ns,complete.trace.duration_ns);
+ assert.equal(compact.trace.duration_ms,complete.trace.duration_ms);
  assert.equal(compact.trace.spans.length,1);
  assert(!JSON.stringify(compact.trace).includes('"attributes"'));
  const repeated=await call('get_trace',args);assert.deepEqual(repeated.trace,complete.trace);
 });
 verify('regression get_trace filters errors before capping and returns empty matches honestly', async call=>{
- const selected=await call('get_trace',{...w,trace_id:key['db-root'].trace_id,errors_only:true,max_spans:1});
- assert.equal(selected.trace.spans.length,1);assert.equal(selected.trace.spans[0].status.code,2);
- const empty=await call('get_trace',{...w,trace_id:key['db-success-root'].trace_id,errors_only:true});
- assert.deepEqual(empty.trace.spans,[]);assert.equal(empty.trace.root_span,undefined);assert(empty.trace.span_count>0);
+ const selected=await call('get_trace',{...w,trace_id:key['db-root'].trace_id,selection:'errors',max_spans:1});
+ assert.equal(selected.trace.spans.length,1);assert.equal(selected.trace.spans[0].status,'error');
+ const empty=await call('get_trace',{...w,trace_id:key['db-success-root'].trace_id,selection:'errors'});
+ assert.deepEqual(empty.trace.spans,[]);assert(empty.trace.span_count>0);
 });
 verify('regression pagination filters before issuing opaque cursors', async call=>{
  const args={...w,session_id:'sess_bad',errors_only:true,limit:1};
  const first=await call('list_traces',args);assert.equal(first.traces.length,1);assert(first.has_more);assert(first.next_cursor);
  const second=await call('list_traces',{...args,cursor:first.next_cursor});
  assert.equal(second.traces.length,1);assert.notEqual(first.traces[0].trace_id,second.traces[0].trace_id);
- assert(first.traces[0].has_error && second.traces[0].has_error);
+ assert(first.traces[0].error_count>0 && second.traces[0].error_count>0);
 });
 
 console.log(`Registered ${registrations.length} answer-key Verify checks through real MCP calls.`);

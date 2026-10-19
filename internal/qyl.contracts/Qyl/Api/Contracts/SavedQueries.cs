@@ -121,7 +121,7 @@ public sealed class SavedQuery
 public sealed class SavedTraceQueryRun : SavedQueryRunResult
 {
     [JsonPropertyName("items")]
-    public required IReadOnlyList<Qyl.Api.Contracts.OTel.Traces.TraceSummary> Items { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolTraceRow> Items { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("next_cursor")]
     public string? NextCursor { get; init; }

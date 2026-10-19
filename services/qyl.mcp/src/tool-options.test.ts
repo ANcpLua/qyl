@@ -101,8 +101,8 @@ test("get_trace preserves complete typed collector results and forwards optional
   });
   for (const options of [
     {},
-    { errors_only: false, include_attributes: true },
-    { errors_only: true, max_spans: 1, include_attributes: false },
+    { selection: "all", include_attributes: true },
+    { selection: "errors", max_spans: 1, include_attributes: false },
     { include_attributes: false, max_spans: 1 },
     { selection: "errors_with_ancestors", max_spans: 10 },
     { selection: "critical_path" },
@@ -135,7 +135,7 @@ test("filtered tools preserve upstream errors instead of manufacturing empty or 
   const trace = fixtureTrace();
   const connection = await connectCollector(context, trace, 503);
   for (const call of [
-    { name: "get_trace", arguments: { trace_id: trace.trace_id, errors_only: true, max_spans: 1 } },
+    { name: "get_trace", arguments: { trace_id: trace.trace_id, selection: "errors", max_spans: 1 } },
     { name: "ci_log", arguments: { service_prefix: "custom-ci" } },
   ]) {
     const result = await connection.client.callTool(call);

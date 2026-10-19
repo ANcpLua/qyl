@@ -1083,21 +1083,6 @@ model ToolFieldError {
   change: string;
 }
 
-@doc("TraceGroup contract.")
-model TraceGroup {
-  key: string;
-  count: int64;
-  @maxItems(3)
-  @encodedName("application/json", "example_trace_ids")
-  exampleTraceIds: TraceId[];
-}
-
-@doc("TraceOmitted contract.")
-model TraceOmitted {
-  matched: int64;
-  context: int64;
-}
-
 @doc("TraceLinkAvailability contract.")
 model TraceLinkAvailability {
   @encodedName("application/json", "trace_id")
@@ -1108,28 +1093,36 @@ model TraceLinkAvailability {
   available: boolean;
 }
 
-@doc("SpanEvidenceRole contract.")
-model SpanEvidenceRole {
-  @encodedName("application/json", "span_id")
-  spanId: SpanId;
-  role: "matched" | "context";
-  @encodedName("application/json", "self_time_ms")
-  selfTimeMs?: DurationMs;
-  @encodedName("application/json", "self_time_share")
-  selfTimeShare?: float64;
+@doc("The service and name of a trace's root span.")
+model TraceRoot {
+  service: string;
+  name: string;
 }
 
-@doc("ToolTraceSummary contract.")
-model ToolTraceSummary {
-  ...TraceSummary;
-  @encodedName("application/json", "root_error")
-  rootError: boolean;
-  @encodedName("application/json", "contained_error")
-  containedError: boolean;
+@doc("One trace of list_traces.")
+model ToolTraceRow {
+  @encodedName("application/json", "trace_id")
+  traceId: TraceId;
+  root: TraceRoot;
+  @doc("Start of the trace's earliest span.")
+  @encodedName("application/json", "start_time")
+  startTime: utcDateTime;
+  @doc("From the earliest span's start to the latest span's end.")
+  @encodedName("application/json", "duration_ms")
+  durationMs: DurationMs;
+  @encodedName("application/json", "span_count")
+  spanCount: int32;
+  @doc("Spans with error status.")
+  @encodedName("application/json", "error_count")
+  errorCount: int64;
+  @doc("Services with a span in the trace.")
+  services: string[];
+  @doc("Failures of the trace's error spans; get_failure_context explains one.")
+  @maxItems(3)
   @encodedName("application/json", "failure_ids")
   failureIds: FailureId[];
-  @encodedName("application/json", "annotation_labels")
-  annotationLabels: string[];
+  @encodedName("application/json", "session_id")
+  sessionId?: SessionId;
 }
 
 @doc("ToolSession contract.")
@@ -1240,18 +1233,56 @@ model CiErrorExcerpt {
 }
 
 
-@doc("A span returned as evidence, with selection role and optional critical-path self time.")
-model ToolSpan extends Span {
-  role: "matched" | "context";
+@doc("One span of get_trace; its service's resource is in the trace's `resources`.")
+model TraceSpanRow {
+  @encodedName("application/json", "span_id")
+  spanId: SpanId;
+  @doc("Absent for a root span.")
+  @encodedName("application/json", "parent_span_id")
+  parentSpanId?: SpanId;
+  service: string;
+  name: string;
+  @encodedName("application/json", "start_time")
+  startTime: utcDateTime;
+  @encodedName("application/json", "duration_ms")
+  durationMs: DurationMs;
+  status: "unset" | "ok" | "error";
+  @doc("The status description, when the producer set one.")
+  message?: string;
+  @doc("Span attributes; omitted when `include_attributes` is false.")
+  attributes?: Attribute[];
+  @doc("With `selection: critical_path`, the time not covered by the span's children.")
   @encodedName("application/json", "self_time_ms")
   selfTimeMs?: DurationMs;
   @encodedName("application/json", "self_time_share")
   selfTimeShare?: float64;
 }
 
-@doc("Full trace evidence with the selection role on every returned span.")
-model ToolTrace extends TraceSummary {
-  spans: ToolSpan[];
+@doc("The resource attributes one service reported for this trace.")
+model TraceResource {
+  service: string;
+  attributes: Attribute[];
+}
+
+@doc("One trace: its range, size and errors, the selected spans and each service's resource once.")
+model ToolTrace {
+  @encodedName("application/json", "trace_id")
+  traceId: TraceId;
+  @encodedName("application/json", "start_time")
+  startTime: utcDateTime;
+  @encodedName("application/json", "end_time")
+  endTime: utcDateTime;
+  @encodedName("application/json", "duration_ms")
+  durationMs: DurationMs;
+  @doc("Spans of the trace, before `selection` and paging.")
+  @encodedName("application/json", "span_count")
+  spanCount: int32;
+  @encodedName("application/json", "error_count")
+  errorCount: int64;
+  services: string[];
+  spans: TraceSpanRow[];
+  @doc("Omitted when `include_attributes` is false.")
+  resources?: TraceResource[];
 }
 
 @doc("Canonical classification shared by MCP aggregates and their trace drilldowns.")

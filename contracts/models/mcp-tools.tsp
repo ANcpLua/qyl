@@ -151,8 +151,6 @@ model ListTracesInput {
   errorScope?: "any" | "root";
   @encodedName("application/json", "annotation_label")
   annotationLabel?: string;
-  @encodedName("application/json", "group_by")
-  groupBy?: "failure_id" | "root_span" | "service";
   @doc("Order of the traces: `start_time` (default) newest first, `duration` longest first, `errors` most error spans first. Equal values keep the newest trace first.")
   @encodedName("application/json", "sort_by")
   sortBy?: "start_time" | "duration" | "errors";
@@ -163,7 +161,7 @@ model ListTracesInput {
   @doc("Maximum traces to return in this page.")
   @minValue(1)
   @maxValue(100)
-  limit?: int32 = 20;
+  limit?: int32 = 10;
 
   ...ToolTimeRange;
 
@@ -181,11 +179,9 @@ model ListTracesInput {
 
 @doc("Structured output for list_traces.")
 model ListTracesOutput {
-  groups?: TraceGroup[];
-
   ...ToolReadContext;
 
-  traces: ToolTraceSummary[];
+  traces: ToolTraceRow[];
   mode: McpDataMode;
   ...ToolPage;
 
@@ -213,11 +209,7 @@ model GetTraceInput {
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
 
-  @doc("Return only spans with error status; omitted or false includes all span statuses.")
-  @encodedName("application/json", "errors_only")
-  errorsOnly?: boolean = false;
-
-  @doc("Maximum spans per page after `selection` is applied. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `coverage` and `omitted` report what the page left out.")
+  @doc("Maximum spans per page after `selection` is applied. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `page_totals` counts every selected span.")
   @encodedName("application/json", "max_spans")
   @minValue(1)
   @maxValue(1000)
@@ -231,9 +223,6 @@ model GetTraceInput {
 @doc("Structured output for get_trace.")
 model GetTraceOutput {
   ...ToolPage;
-  @encodedName("application/json", "span_roles")
-  spanRoles?: SpanEvidenceRole[];
-  omitted?: TraceOmitted;
   @encodedName("application/json", "missing_parent_span_ids")
   missingParentSpanIds?: SpanId[];
   links?: TraceLinkAvailability[];

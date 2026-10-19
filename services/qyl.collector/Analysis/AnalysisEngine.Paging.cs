@@ -115,18 +115,6 @@ internal sealed partial class AnalysisEngine
         if (more) result["next_cursor"] = Continue(fingerprint, next);
         else result.Remove("next_cursor");
         if (result["coverage"] is JsonObject coverage) { coverage["returned"] = returned; coverage["truncated"] = more || J.Bool(coverage, "truncated"); }
-        if (result["trace"]?["spans"] is JsonArray spans)
-        {
-            var ids = spans.Select(s => J.String(s, "span_id")).ToHashSet(StringComparer.Ordinal);
-            if (result["span_roles"] is JsonArray roles)
-            {
-                var omitted = roles.Where(r => !ids.Contains(J.String(r, "span_id"))).ToList();
-                result["omitted"] = J.O(
-                    ("matched", J.Number(result["omitted"], "matched") + omitted.Count(r => J.String(r, "role") == "matched")),
-                    ("context", J.Number(result["omitted"], "context") + omitted.Count(r => J.String(r, "role") == "context")));
-                result["span_roles"] = J.A(roles.Where(r => ids.Contains(J.String(r, "span_id"))));
-            }
-        }
         return result;
     }
 

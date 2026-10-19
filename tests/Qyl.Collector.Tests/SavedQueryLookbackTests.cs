@@ -108,7 +108,7 @@ public sealed class SavedQueryLookbackTests(TestContext testContext)
     [DataRow("traces", "run", 100)]
     [DataRow("logs", "run", 100)]
     [DataRow("logs", "search_logs", 50)]
-    [DataRow("traces", "list_traces", 20)]
+    [DataRow("traces", "list_traces", 10)]
     public async Task Reads_without_a_limit_use_the_contract_default_page_size(string signal, string read, int pageSize)
     {
         await SeedAsync(signal, [.. Enumerable.Range(0, 120).Select(i => StartNs + (ulong)i * 1_000_000_000)]);

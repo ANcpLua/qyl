@@ -24,7 +24,7 @@ import {
 } from "./events.js";
 import { createServer } from "./server.js";
 import type { WebhookPost, WebhookResponse } from "./webhook.js";
-import type { QylTrace } from "./wire.js";
+import type { ToolTraceRow, TraceId } from "./contracts/generated/api.js";
 
 const SECRET = `whsec_${Buffer.alloc(32, 1).toString("base64")}`;
 const NEXT_SECRET = `whsec_${Buffer.alloc(32, 2).toString("base64")}`;
@@ -63,22 +63,22 @@ function verifies(secret: string, message: Posted): boolean {
   return message.headers["webhook-signature"]!.split(" ").includes(`v1,${expected}`);
 }
 
-function trace(id: string, services: string[], hasError: boolean): QylTrace {
+function trace(id: string, services: string[], hasError: boolean): ToolTraceRow {
   return {
-    trace_id: id.padEnd(32, "0"),
-    root_span: { name: `GET /${id}` },
+    trace_id: id.padEnd(32, "0") as TraceId,
+    root: { service: services[0] ?? "unknown_service", name: `GET /${id}` },
     span_count: 3,
-    duration_ns: "12500000",
+    duration_ms: 12.5,
     start_time: "2026-10-01T11:59:30.000Z",
-    end_time: "2026-10-01T11:59:30.012Z",
     services,
-    has_error: hasError,
-  } as unknown as QylTrace;
+    error_count: hasError ? 1 : 0,
+    failure_ids: [],
+  };
 }
 
 async function fixture(
   post: WebhookPost,
-  traces: () => readonly QylTrace[] = () => [],
+  traces: () => readonly ToolTraceRow[] = () => [],
   overrides: Partial<EventsRuntimeOptions> = {},
 ) {
   const dir = await mkdtemp(join(tmpdir(), "qyl-events-"));
@@ -338,7 +338,7 @@ test("a poll delivers each new matching error trace once, signed, after a baseli
 
 test("transient failures retry with the same event ID; 410 ends the subscription", async () => {
   const { posted, post } = receiver([503, 500, 200]);
-  let traces: QylTrace[] = [];
+  let traces: ToolTraceRow[] = [];
   const { runtime, store, cleanup } = await fixture(post, () => traces);
   try {
     await runtime.subscribe(subscribeParams({ arguments: {} }), ALICE);
@@ -369,7 +369,7 @@ test("transient failures retry with the same event ID; 410 ends the subscription
 
 test("a refresh with a new secret signs with both keys during rotation", async () => {
   const { posted, post } = receiver();
-  let traces: QylTrace[] = [];
+  let traces: ToolTraceRow[] = [];
   const { runtime, cleanup } = await fixture(post, () => traces);
   try {
     await runtime.subscribe(subscribeParams(), ALICE);
@@ -474,7 +474,7 @@ test("over MCP: server/discover advertises events and the three methods answer",
 
 test("revoked access removes the subscription and never reaches its callback", async () => {
   let allowed = true;
-  let traces: QylTrace[] = [];
+  let traces: ToolTraceRow[] = [];
   const { posted, post } = receiver();
   const { runtime, store, cleanup } = await fixture(post, () => traces, {
     isAuthorized: async () => allowed,
@@ -494,7 +494,7 @@ test("revoked access removes the subscription and never reaches its callback", a
 
 test("access-check outages suspend delivery while keeping subscription state", async () => {
   let unavailable = false;
-  let traces: QylTrace[] = [];
+  let traces: ToolTraceRow[] = [];
   const { posted, post } = receiver();
   const { runtime, store, cleanup } = await fixture(post, () => traces, {
     isAuthorized: async () => {
@@ -519,7 +519,7 @@ test("access-check outages suspend delivery while keeping subscription state", a
 });
 
 test("unsubscribe cancels a webhook in flight and prevents retries", async () => {
-  let traces: QylTrace[] = [];
+  let traces: ToolTraceRow[] = [];
   let deliveries = 0;
   let entered!: () => void;
   const delivering = new Promise<void>((resolve) => { entered = resolve; });
@@ -550,7 +550,7 @@ test("unsubscribe cancels a webhook in flight and prevents retries", async () =>
 
 test("retry uses refreshed signing keys and rechecks subscription expiry", async () => {
   let now = NOW;
-  let traces: QylTrace[] = [];
+  let traces: ToolTraceRow[] = [];
   const { posted, post } = receiver([503, 503]);
   let runtime!: EventsRuntime;
   let sleeps = 0;

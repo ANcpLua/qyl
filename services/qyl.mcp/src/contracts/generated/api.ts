@@ -851,7 +851,6 @@ export interface ListTracesInput {
   "failure_id"?: string;
   "error_scope"?: "any" | "root";
   "annotation_label"?: string;
-  "group_by"?: "failure_id" | "root_span" | "service";
   "sort_by"?: "start_time" | "duration" | "errors";
   "matchers"?: TelemetryMatcher[];
   "limit"?: number;
@@ -864,36 +863,31 @@ export interface ListTracesInput {
 }
 
 export interface ListTracesOutput {
-  "groups"?: TraceGroup[];
   "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
-  "traces": ToolTraceSummary[];
+  "traces": ToolTraceRow[];
   "mode": McpDataMode;
   "has_more": boolean;
   "next_cursor"?: string;
   "error"?: ToolError;
 }
 
-export interface TraceGroup {
-  "key": string;
-  "count": number;
-  "example_trace_ids": TraceId[];
+export interface ToolTraceRow {
+  "trace_id": TraceId;
+  "root": TraceRoot;
+  "start_time": string;
+  "duration_ms": number;
+  "span_count": number;
+  "error_count": number;
+  "services": string[];
+  "failure_ids": string[];
+  "session_id"?: SessionId;
 }
 
-export interface ToolTraceSummary {
-  "trace_id": TraceId;
-  "root_span"?: Span;
-  "span_count": number;
-  "duration_ns": string;
-  "start_time": string;
-  "end_time": string;
-  "services": string[];
-  "has_error": boolean;
-  "root_error": boolean;
-  "contained_error": boolean;
-  "failure_ids": string[];
-  "annotation_labels": string[];
+export interface TraceRoot {
+  "service": string;
+  "name": string;
 }
 
 export interface GetTraceInput {
@@ -905,7 +899,6 @@ export interface GetTraceInput {
   "start_time"?: string;
   "end_time"?: string;
   "trace_id": TraceId;
-  "errors_only"?: boolean;
   "max_spans"?: number;
   "include_attributes"?: boolean;
 }
@@ -913,8 +906,6 @@ export interface GetTraceInput {
 export interface GetTraceOutput {
   "has_more": boolean;
   "next_cursor"?: string;
-  "span_roles"?: SpanEvidenceRole[];
-  "omitted"?: TraceOmitted;
   "missing_parent_span_ids"?: SpanId[];
   "links"?: TraceLinkAvailability[];
   "logs"?: LogRecord[];
@@ -929,32 +920,41 @@ export interface GetTraceOutput {
   "error"?: ToolError;
 }
 
-export interface SpanEvidenceRole {
-  "span_id": SpanId;
-  "role": "matched" | "context";
-  "self_time_ms"?: number;
-  "self_time_share"?: number;
-}
-
-export interface TraceOmitted {
-  "matched": number;
-  "context": number;
-}
-
 export interface TraceLinkAvailability {
   "trace_id": TraceId;
   "span_id": SpanId;
   "available": boolean;
 }
 
-export interface ToolTrace extends TraceSummary {
-  "spans": ToolSpan[];
+export interface ToolTrace {
+  "trace_id": TraceId;
+  "start_time": string;
+  "end_time": string;
+  "duration_ms": number;
+  "span_count": number;
+  "error_count": number;
+  "services": string[];
+  "spans": TraceSpanRow[];
+  "resources"?: TraceResource[];
 }
 
-export interface ToolSpan extends Span {
-  "role": "matched" | "context";
+export interface TraceSpanRow {
+  "span_id": SpanId;
+  "parent_span_id"?: SpanId;
+  "service": string;
+  "name": string;
+  "start_time": string;
+  "duration_ms": number;
+  "status": "unset" | "ok" | "error";
+  "message"?: string;
+  "attributes"?: Attribute[];
   "self_time_ms"?: number;
   "self_time_share"?: number;
+}
+
+export interface TraceResource {
+  "service": string;
+  "attributes": Attribute[];
 }
 
 export interface Annotation extends ResourceBase {
@@ -1412,7 +1412,7 @@ export interface RunSavedQueryOutput {
 
 export interface SavedTraceQueryRun {
   "signal": "traces";
-  "items": TraceSummary[];
+  "items": ToolTraceRow[];
   "next_cursor"?: string;
   "has_more": boolean;
 }
@@ -2386,4 +2386,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:c9f5d61678a67aaf";
+export const CONTRACT_REVISION: string = "sha256:d4e8d5e788e0de86";

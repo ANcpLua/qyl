@@ -61,7 +61,7 @@ public sealed partial class AnalysisApiTests(TestContext testContext)
             Span(TraceId(1), SpanId(1), time, time + 1000, status: 1),
             Span(TraceId(1), SpanId(2), time + 10, time + 100, status: 2, parentSpanId: SpanId(1)) with { AttributesJson = """{"safe":"value"}""", ResourceJson = """{"service.name":"checkout"}""" }
         ]), testContext.CancellationToken);
-        var result = await Read(host, "get_trace", $$"""{"trace_id":"{{TraceId(1)}}","errors_only":true,"max_spans":1,"include_attributes":false}""");
+        var result = await Read(host, "get_trace", $$"""{"trace_id":"{{TraceId(1)}}","selection":"errors","max_spans":1,"include_attributes":false}""");
         var trace = result.GetProperty("trace");
         Assert.AreEqual(2, trace.GetProperty("span_count").GetInt32());
         var span = Assert.ContainsSingle(trace.GetProperty("spans").EnumerateArray());
@@ -110,7 +110,6 @@ public sealed partial class AnalysisApiTests(TestContext testContext)
         var filtered = await Read(host, "list_traces", """{"annotation_label":"child","limit":1}""");
         var item = Assert.ContainsSingle(filtered.GetProperty("traces").EnumerateArray());
         Assert.AreEqual(TraceId(1), item.GetProperty("trace_id").GetString());
-        Assert.Contains(static label => label.GetString() == "child",item.GetProperty("annotation_labels").EnumerateArray());
         var sessions = await Read(host, "list_sessions", """{"annotation_label":"absent"}""");
         Assert.IsEmpty(sessions.GetProperty("annotations").EnumerateArray());
         sessions = await Read(host, "list_sessions", """{}""");

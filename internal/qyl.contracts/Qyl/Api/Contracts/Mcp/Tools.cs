@@ -56,7 +56,7 @@ public sealed class ToolTimeRange
 
 public sealed class ListTracesInput
 {
-    public const int LimitDefault = 20;
+    public const int LimitDefault = 10;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 100;
     public const int LookbackMinutesMinimum = 1;
@@ -98,9 +98,6 @@ public sealed class ListTracesInput
     [JsonPropertyName("annotation_label")]
     public string? AnnotationLabel { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("group_by")]
-    public string? GroupBy { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("sort_by")]
     public string? SortBy { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -131,9 +128,6 @@ public sealed class ListTracesInput
 
 public sealed class ListTracesOutput
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("groups")]
-    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.TraceGroup>? Groups { get; init; }
     [JsonPropertyName("window")]
     public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
     [JsonPropertyName("coverage")]
@@ -142,7 +136,7 @@ public sealed class ListTracesOutput
     [JsonPropertyName("page_totals")]
     public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
     [JsonPropertyName("traces")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolTraceSummary> Traces { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolTraceRow> Traces { get; init; }
     [JsonPropertyName("mode")]
     public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonPropertyName("has_more")]
@@ -155,44 +149,35 @@ public sealed class ListTracesOutput
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
 }
 
-public sealed class TraceGroup
-{
-    [JsonPropertyName("key")]
-    public required string Key { get; init; }
-    [JsonPropertyName("count")]
-    public required long Count { get; init; }
-    [JsonPropertyName("example_trace_ids")]
-    public required IReadOnlyList<string> ExampleTraceIds { get; init; }
-}
-
-public sealed class ToolTraceSummary
+public sealed class ToolTraceRow
 {
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("root_span")]
-    public Qyl.Api.Contracts.OTel.Traces.Span? RootSpan { get; init; }
-    [JsonPropertyName("span_count")]
-    public required int SpanCount { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonPropertyName("duration_ns")]
-    public required ulong DurationNs { get; init; }
+    [JsonPropertyName("root")]
+    public required Qyl.Api.Contracts.Mcp.Tools.TraceRoot Root { get; init; }
     [JsonPropertyName("start_time")]
     public required DateTimeOffset StartTime { get; init; }
-    [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
+    [JsonPropertyName("span_count")]
+    public required int SpanCount { get; init; }
+    [JsonPropertyName("error_count")]
+    public required long ErrorCount { get; init; }
     [JsonPropertyName("services")]
     public required IReadOnlyList<string> Services { get; init; }
-    [JsonPropertyName("has_error")]
-    public required bool HasError { get; init; }
-    [JsonPropertyName("root_error")]
-    public required bool RootError { get; init; }
-    [JsonPropertyName("contained_error")]
-    public required bool ContainedError { get; init; }
     [JsonPropertyName("failure_ids")]
     public required IReadOnlyList<string> FailureIds { get; init; }
-    [JsonPropertyName("annotation_labels")]
-    public required IReadOnlyList<string> AnnotationLabels { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("session_id")]
+    public string? SessionId { get; init; }
+}
+
+public sealed class TraceRoot
+{
+    [JsonPropertyName("service")]
+    public required string Service { get; init; }
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
 }
 
 public sealed class GetTraceInput
@@ -201,7 +186,6 @@ public sealed class GetTraceInput
     public const int IncludeLogsMaximum = 50;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    public const bool ErrorsOnlyDefault = false;
     public const int MaxSpansDefault = 100;
     public const int MaxSpansMinimum = 1;
     public const int MaxSpansMaximum = 1000;
@@ -230,9 +214,6 @@ public sealed class GetTraceInput
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("errors_only")]
-    public bool? ErrorsOnly { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("max_spans")]
     public int? MaxSpans { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -247,12 +228,6 @@ public sealed class GetTraceOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("next_cursor")]
     public string? NextCursor { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("span_roles")]
-    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SpanEvidenceRole>? SpanRoles { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("omitted")]
-    public Qyl.Api.Contracts.Mcp.Tools.TraceOmitted? Omitted { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("missing_parent_span_ids")]
     public IReadOnlyList<string>? MissingParentSpanIds { get; init; }
@@ -287,28 +262,6 @@ public sealed class GetTraceOutput
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
 }
 
-public sealed class SpanEvidenceRole
-{
-    [JsonPropertyName("span_id")]
-    public required string SpanId { get; init; }
-    [JsonPropertyName("role")]
-    public required string Role { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("self_time_ms")]
-    public double? SelfTimeMs { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("self_time_share")]
-    public double? SelfTimeShare { get; init; }
-}
-
-public sealed class TraceOmitted
-{
-    [JsonPropertyName("matched")]
-    public required long Matched { get; init; }
-    [JsonPropertyName("context")]
-    public required long Context { get; init; }
-}
-
 public sealed class TraceLinkAvailability
 {
     [JsonPropertyName("trace_id")]
@@ -323,84 +276,62 @@ public sealed class ToolTrace
 {
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("root_span")]
-    public Qyl.Api.Contracts.OTel.Traces.Span? RootSpan { get; init; }
-    [JsonPropertyName("span_count")]
-    public required int SpanCount { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonPropertyName("duration_ns")]
-    public required ulong DurationNs { get; init; }
     [JsonPropertyName("start_time")]
     public required DateTimeOffset StartTime { get; init; }
     [JsonPropertyName("end_time")]
     public required DateTimeOffset EndTime { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
+    [JsonPropertyName("span_count")]
+    public required int SpanCount { get; init; }
+    [JsonPropertyName("error_count")]
+    public required long ErrorCount { get; init; }
     [JsonPropertyName("services")]
     public required IReadOnlyList<string> Services { get; init; }
-    [JsonPropertyName("has_error")]
-    public required bool HasError { get; init; }
     [JsonPropertyName("spans")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolSpan> Spans { get; init; }
+    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.TraceSpanRow> Spans { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("resources")]
+    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.TraceResource>? Resources { get; init; }
 }
 
-public sealed class ToolSpan
+public sealed class TraceSpanRow
 {
     [JsonPropertyName("span_id")]
     public required string SpanId { get; init; }
-    [JsonPropertyName("trace_id")]
-    public required string TraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("parent_span_id")]
     public string? ParentSpanId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("trace_state")]
-    public string? TraceState { get; init; }
+    [JsonPropertyName("service")]
+    public required string Service { get; init; }
     [JsonPropertyName("name")]
     public required string Name { get; init; }
-    [JsonPropertyName("kind")]
-    public required Qyl.Api.Contracts.OTel.Enums.SpanKind Kind { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonPropertyName("start_time_unix_nano")]
-    public required ulong StartTimeUnixNano { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonPropertyName("end_time_unix_nano")]
-    public required ulong EndTimeUnixNano { get; init; }
+    [JsonPropertyName("start_time")]
+    public required DateTimeOffset StartTime { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
+    [JsonPropertyName("status")]
+    public required string Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("message")]
+    public string? Message { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attributes")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>? Attributes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("dropped_attributes_count")]
-    public long? DroppedAttributesCount { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("events")]
-    public IReadOnlyList<Qyl.Api.Contracts.OTel.Traces.SpanEvent>? Events { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("dropped_events_count")]
-    public long? DroppedEventsCount { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("links")]
-    public IReadOnlyList<Qyl.Api.Contracts.OTel.Traces.SpanLink>? Links { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("dropped_links_count")]
-    public long? DroppedLinksCount { get; init; }
-    [JsonPropertyName("status")]
-    public required Qyl.Api.Contracts.OTel.Traces.SpanStatus Status { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("flags")]
-    public uint? Flags { get; init; }
-    [JsonPropertyName("resource")]
-    public required Qyl.Api.Contracts.OTel.Resource.Resource Resource { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("instrumentation_scope")]
-    public Qyl.Api.Contracts.Common.InstrumentationScope? InstrumentationScope { get; init; }
-    [JsonPropertyName("role")]
-    public required string Role { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("self_time_ms")]
     public double? SelfTimeMs { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("self_time_share")]
     public double? SelfTimeShare { get; init; }
+}
+
+public sealed class TraceResource
+{
+    [JsonPropertyName("service")]
+    public required string Service { get; init; }
+    [JsonPropertyName("attributes")]
+    public required IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> Attributes { get; init; }
 }
 
 public sealed class ListSessionsInput

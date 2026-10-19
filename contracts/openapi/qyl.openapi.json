@@ -10875,17 +10875,12 @@
           "trace_id": {
             "$ref": "#/components/schemas/Common.TraceId"
           },
-          "errors_only": {
-            "type": "boolean",
-            "description": "Return only spans with error status; omitted or false includes all span statuses.",
-            "default": false
-          },
           "max_spans": {
             "type": "integer",
             "format": "int32",
             "minimum": 1,
             "maximum": 1000,
-            "description": "Maximum spans per page after `selection` is applied. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `coverage` and `omitted` report what the page left out.",
+            "description": "Maximum spans per page after `selection` is applied. When more spans match, `has_more` is true and `next_cursor` continues the same trace; `page_totals` counts every selected span.",
             "default": 100
           },
           "include_attributes": {
@@ -10916,15 +10911,6 @@
           "next_cursor": {
             "$ref": "#/components/schemas/Common.Cursor",
             "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-          },
-          "span_roles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.SpanEvidenceRole"
-            }
-          },
-          "omitted": {
-            "$ref": "#/components/schemas/Mcp.Tools.TraceOmitted"
           },
           "missing_parent_span_ids": {
             "type": "array",
@@ -11658,14 +11644,6 @@
           "annotation_label": {
             "type": "string"
           },
-          "group_by": {
-            "type": "string",
-            "enum": [
-              "failure_id",
-              "root_span",
-              "service"
-            ]
-          },
           "sort_by": {
             "type": "string",
             "enum": [
@@ -11688,7 +11666,7 @@
             "minimum": 1,
             "maximum": 100,
             "description": "Maximum traces to return in this page.",
-            "default": 20
+            "default": 10
           },
           "lookback_minutes": {
             "type": "integer",
@@ -11735,12 +11713,6 @@
           "has_more"
         ],
         "properties": {
-          "groups": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.TraceGroup"
-            }
-          },
           "window": {
             "$ref": "#/components/schemas/Common.ToolWindow"
           },
@@ -11758,7 +11730,7 @@
           "traces": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.ToolTraceSummary"
+              "$ref": "#/components/schemas/Mcp.Tools.ToolTraceRow"
             }
           },
           "mode": {
@@ -13256,36 +13228,6 @@
         },
         "description": "SimilarFailure contract."
       },
-      "Mcp.Tools.SpanEvidenceRole": {
-        "type": "object",
-        "required": [
-          "span_id",
-          "role"
-        ],
-        "properties": {
-          "span_id": {
-            "$ref": "#/components/schemas/Common.SpanId"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "matched",
-              "context"
-            ]
-          },
-          "self_time_ms": {
-            "$ref": "#/components/schemas/Common.DurationMs"
-          },
-          "self_time_share": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "SpanEvidenceRole contract."
-      },
       "Mcp.Tools.TelemetryRetention": {
         "type": "object",
         "required": [
@@ -13550,37 +13492,6 @@
         },
         "description": "ToolSession contract."
       },
-      "Mcp.Tools.ToolSpan": {
-        "type": "object",
-        "required": [
-          "role"
-        ],
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "matched",
-              "context"
-            ]
-          },
-          "self_time_ms": {
-            "$ref": "#/components/schemas/Common.DurationMs"
-          },
-          "self_time_share": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/OTel.Traces.Span"
-          }
-        ],
-        "description": "A span returned as evidence, with selection role and optional critical-path self time."
-      },
       "Mcp.Tools.ToolTimeRange": {
         "type": "object",
         "properties": {
@@ -13610,103 +13521,124 @@
       "Mcp.Tools.ToolTrace": {
         "type": "object",
         "required": [
+          "trace_id",
+          "start_time",
+          "end_time",
+          "duration_ms",
+          "span_count",
+          "error_count",
+          "services",
           "spans"
         ],
         "properties": {
+          "trace_id": {
+            "$ref": "#/components/schemas/Common.TraceId"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs"
+          },
+          "span_count": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Spans of the trace, before `selection` and paging."
+          },
+          "error_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "spans": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.ToolSpan"
+              "$ref": "#/components/schemas/Mcp.Tools.TraceSpanRow"
             }
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mcp.Tools.TraceResource"
+            },
+            "description": "Omitted when `include_attributes` is false."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/OTel.Traces.TraceSummary"
-          }
-        ],
-        "description": "Full trace evidence with the selection role on every returned span."
+        "description": "One trace: its range, size and errors, the selected spans and each service's resource once."
       },
-      "Mcp.Tools.ToolTraceSummary": {
+      "Mcp.Tools.ToolTraceRow": {
         "type": "object",
         "required": [
           "trace_id",
-          "span_count",
-          "duration_ns",
+          "root",
           "start_time",
-          "end_time",
+          "duration_ms",
+          "span_count",
+          "error_count",
           "services",
-          "has_error",
-          "root_error",
-          "contained_error",
-          "failure_ids",
-          "annotation_labels"
+          "failure_ids"
         ],
         "properties": {
           "trace_id": {
-            "$ref": "#/components/schemas/Common.TraceId",
-            "description": "Trace identifier"
+            "$ref": "#/components/schemas/Common.TraceId"
           },
-          "root_span": {
-            "$ref": "#/components/schemas/OTel.Traces.Span",
-            "description": "Root span of the trace"
-          },
-          "span_count": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Total span count"
-          },
-          "duration_ns": {
-            "$ref": "#/components/schemas/Common.DurationNs",
-            "description": "Trace duration in nanoseconds"
+          "root": {
+            "$ref": "#/components/schemas/Mcp.Tools.TraceRoot"
           },
           "start_time": {
             "type": "string",
             "format": "date-time",
-            "description": "Trace start time"
+            "description": "Start of the trace's earliest span."
           },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Trace end time"
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs",
+            "description": "From the earliest span's start to the latest span's end."
+          },
+          "span_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "error_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Spans with error status."
           },
           "services": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Services involved in this trace"
-          },
-          "has_error": {
-            "type": "boolean",
-            "description": "Whether trace contains errors"
-          },
-          "root_error": {
-            "type": "boolean"
-          },
-          "contained_error": {
-            "type": "boolean"
+            "description": "Services with a span in the trace."
           },
           "failure_ids": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Common.FailureId"
-            }
+            },
+            "maxItems": 3,
+            "description": "Failures of the trace's error spans; get_failure_context explains one."
           },
-          "annotation_labels": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "session_id": {
+            "$ref": "#/components/schemas/Common.SessionId"
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "ToolTraceSummary contract."
+        "description": "One trace of list_traces."
       },
       "Mcp.Tools.TraceDivergence": {
         "type": "object",
@@ -13755,34 +13687,6 @@
         },
         "description": "TraceDivergence contract."
       },
-      "Mcp.Tools.TraceGroup": {
-        "type": "object",
-        "required": [
-          "key",
-          "count",
-          "example_trace_ids"
-        ],
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "count": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "example_trace_ids": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Common.TraceId"
-            },
-            "maxItems": 3
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "TraceGroup contract."
-      },
       "Mcp.Tools.TraceLinkAvailability": {
         "type": "object",
         "required": [
@@ -13807,26 +13711,110 @@
         },
         "description": "TraceLinkAvailability contract."
       },
-      "Mcp.Tools.TraceOmitted": {
+      "Mcp.Tools.TraceResource": {
         "type": "object",
         "required": [
-          "matched",
-          "context"
+          "service",
+          "attributes"
         ],
         "properties": {
-          "matched": {
-            "type": "integer",
-            "format": "int64"
+          "service": {
+            "type": "string"
           },
-          "context": {
-            "type": "integer",
-            "format": "int64"
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common.Attribute"
+            }
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "TraceOmitted contract."
+        "description": "The resource attributes one service reported for this trace."
+      },
+      "Mcp.Tools.TraceRoot": {
+        "type": "object",
+        "required": [
+          "service",
+          "name"
+        ],
+        "properties": {
+          "service": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "The service and name of a trace's root span."
+      },
+      "Mcp.Tools.TraceSpanRow": {
+        "type": "object",
+        "required": [
+          "span_id",
+          "service",
+          "name",
+          "start_time",
+          "duration_ms",
+          "status"
+        ],
+        "properties": {
+          "span_id": {
+            "$ref": "#/components/schemas/Common.SpanId"
+          },
+          "parent_span_id": {
+            "$ref": "#/components/schemas/Common.SpanId",
+            "description": "Absent for a root span."
+          },
+          "service": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unset",
+              "ok",
+              "error"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "The status description, when the producer set one."
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common.Attribute"
+            },
+            "description": "Span attributes; omitted when `include_attributes` is false."
+          },
+          "self_time_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs",
+            "description": "With `selection: critical_path`, the time not covered by the span's children."
+          },
+          "self_time_share": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One span of get_trace; its service's resource is in the trace's `resources`."
       },
       "Mcp.Tools.TriageFailure": {
         "type": "object",
@@ -15465,6 +15453,9 @@
             "description": "Instrumentation scope"
           }
         },
+        "unevaluatedProperties": {
+          "not": {}
+        },
         "description": "OpenTelemetry Span representing a single operation in a distributed trace"
       },
       "OTel.Traces.SpanEvent": {
@@ -16124,7 +16115,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OTel.Traces.TraceSummary"
+              "$ref": "#/components/schemas/Mcp.Tools.ToolTraceRow"
             }
           },
           "next_cursor": {
@@ -16139,7 +16130,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "One page of trace summaries produced by a saved trace query, like list_traces; get_trace reads one full span tree."
+        "description": "One page of trace rows produced by a saved trace query, as list_traces returns them; get_trace reads one trace's spans."
       },
       "Streaming.HeartbeatEvent": {
         "type": "object",

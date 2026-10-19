@@ -15,7 +15,7 @@ import {
 import type { Annotation, SavedQuery } from "./contracts/generated/api.js";
 import { createResourceAuthorization } from "./authorization.js";
 import { API_KEY_AUTH_HEADER, IDEMPOTENCY_KEY_HEADER, IF_MATCH_HEADER, PROJECT_SCOPE_HEADER } from "./contracts/generated/headers.js";
-import { readContext, toolTrace } from "./analysis-context.test-helper.js";
+import { readContext, toolSummary, toolTrace } from "./analysis-context.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
 import {
   QYL_MCP_DELETE_SCOPE,
@@ -415,8 +415,7 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
       return Response.json({ ...readContext(1), saved_queries: [savedQuery()], has_more: true, next_cursor: "page-2" });
     }
     if (call.method === "POST" && call.path === "/api/v1/analysis/run_saved_query") {
-      const { spans: _spans, ...summary } = TRACE;
-      return Response.json({ ...readContext(1, false), result: { signal: "traces", items: [summary], has_more: false }, mode: "live" });
+      return Response.json({ ...readContext(1, false), result: { signal: "traces", items: [toolSummary(TRACE)], has_more: false }, mode: "live" });
     }
     if (call.method === "DELETE" && call.path === "/api/v1/saved-queries/sq-1") {
       return new Response(null, { status: 204 });
