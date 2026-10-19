@@ -175,9 +175,9 @@ internal static class AnalysisMatchers
     /// </summary>
     public static bool Equal(JsonNode actual, JsonNode? expected) => (actual.GetValueKind(), expected?.GetValueKind()) switch
     {
-        (JsonValueKind.Number, JsonValueKind.Number) => SameNumber(actual.ToJsonString(), expected!.ToJsonString()),
-        (JsonValueKind.String, JsonValueKind.String) => string.Equals(actual.GetValue<string>(), expected!.GetValue<string>(), StringComparison.Ordinal),
-        (JsonValueKind.True or JsonValueKind.False, JsonValueKind.True or JsonValueKind.False) => actual.GetValueKind() == expected!.GetValueKind(),
+        (JsonValueKind.Number, JsonValueKind.Number) => SameNumber(actual.ToJsonString(), expected.ToJsonString()),
+        (JsonValueKind.String, JsonValueKind.String) => string.Equals(actual.GetValue<string>(), expected.GetValue<string>(), StringComparison.Ordinal),
+        (JsonValueKind.True or JsonValueKind.False, JsonValueKind.True or JsonValueKind.False) => actual.GetValueKind() == expected.GetValueKind(),
         _ => false
     };
 
