@@ -87,7 +87,7 @@ export function registerWriteTools(server: McpServer): void {
     "create_annotation",
     {
       title: "Create Annotation",
-      description: "Create a labeled note on a trace, span, session or failure when recording a finding; get_trace, list_sessions or list_failures returns it.",
+      description: "Create a labeled note on a trace, span, session or failure when recording a finding; get_trace, list_sessions or get_failure_context returns it.",
       inputSchema: contractSchema("Mcp.Tools.CreateAnnotationInput"),
       annotations: CREATE_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("create_annotation", WRITE_SCOPES),
@@ -109,7 +109,7 @@ export function registerWriteTools(server: McpServer): void {
     "update_annotation",
     {
       title: "Update Annotation",
-      description: "Update annotation text, labels or class with its current etag when revising a finding; get_trace, list_sessions or list_failures returns it.",
+      description: "Update annotation text, labels or class with its current etag when revising a finding; get_trace, list_sessions or get_failure_context returns it.",
       inputSchema: contractSchema("Mcp.Tools.UpdateAnnotationInput"),
       annotations: UPDATE_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("update_annotation", WRITE_SCOPES),

@@ -96,7 +96,7 @@ try {
   check(["display_traces", "display_mcp_dashboard", "fetch_telemetry", "delete"].every(name => !published.includes(name)),
     "Hosted manifest publishes no viewer, app-only or pre-rename tool");
 
-  const failures = await call(owner, "list_failures", { ...w, service_name: services.checkout, status: "all" });
+  const failures = await call(owner, "triage", { ...w, service_name: services.checkout, status: "all" });
   const failure = failures.failures.find(item => item.operation === "checkout");
   check(!!failure && failure.count > 0, "Owner reads the isolated checkout failure family");
   originalFailure = failure;
@@ -169,8 +169,8 @@ try {
 
   latestFailure = (await call(owner, "update_failure_status", { failure_id: failure.failure_id, etag: failure.etag, status: "ignored" })).failure;
   check(latestFailure.status === "ignored", "Owner can update only the isolated fixture's failure status");
-  const changedFailures = await call(owner, "list_failures", { ...w, failure_id: failure.failure_id, status: "all" });
-  check(changedFailures.failures[0].status === "ignored", "Changed failure status is read back");
+  const changedFailures = await call(owner, "triage", { ...w, service_name: services.checkout, status: "ignored" });
+  check(changedFailures.failures.some(item => item.failure_id === failure.failure_id), "Changed failure status is read back");
 
   const reviewerOwn = await raw(reviewer, "reviewer", "get_trace", { ...foreign.window, trace_id: foreign.keys["db-root"].trace_id });
   check(!reviewerOwn.isError && reviewerOwn.structuredContent.trace.spans.length > 0, "Reviewer reads its own fixture with the real login");

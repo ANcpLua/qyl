@@ -22,7 +22,7 @@ public sealed partial class AnalysisApiTests
             Span(TraceId(1), SpanId(3), time + 2_000_000, time + 3_000_000, parentSpanId: SpanId(1), service: "payments", status: 2) with { Name = "charge", StatusMessage = "declined" },
             Span(TraceId(1), SpanId(4), time + 4_000_000, time + 5_000_000, parentSpanId: SpanId(1), status: 2) with { Name = "render", StatusMessage = "template missing" }
         ]), testContext.CancellationToken);
-        var failures = (await Read(host, "list_failures", "{}")).GetProperty("failures").EnumerateArray().ToArray();
+        var failures = (await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray().ToArray();
         var charge = failures.Single(static f => f.GetProperty("operation").GetString() == "charge").GetProperty("failure_id").GetString();
         var render = failures.Single(static f => f.GetProperty("operation").GetString() == "render").GetProperty("failure_id").GetString();
 

@@ -17,11 +17,6 @@ interface AnalysisApi {
   @route("/triage")
   @operationId("analysis_triage")
   triage(...ProjectScopeHeader, @body request: TriageInput): TriageOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
-  @doc("Read list_failures evidence in the authenticated project without changing telemetry or user resources.")
-  @post
-  @route("/list_failures")
-  @operationId("analysis_list_failures")
-  list_failures(...ProjectScopeHeader, @body request: ListFailuresInput): ListFailuresOutput | ValidationError | NotFoundError | UnauthorizedError | CollectorServerErrorResponse;
   @doc("Read get_failure_context evidence for exactly one of trace_id, session_id, failure_id or ci_run_id in the authenticated project without changing telemetry or user resources.")
   @post
   @route("/get_failure_context")
@@ -141,7 +136,7 @@ model UpdateFailureStatusRequest {
 @route("/api/v1/failures")
 @tag("Failures")
 interface FailuresApi {
-  @doc("Set a project's failure status or assignee using the version returned by list_failures.")
+  @doc("Set a project's failure status or assignee using the version returned by triage.")
   @useAuth(QylWriteKeyAuth)
   @patch(#{ implicitOptionality: false })
   @route("/{failure_id}")

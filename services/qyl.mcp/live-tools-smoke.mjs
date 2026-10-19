@@ -143,7 +143,7 @@ try {
   // Every added read has a concrete call; results are validated by the client.
   /** @type {Array<[string, Record<string, unknown>]>} */
   const addedReads = [
-    ["triage", windowArgs], ["list_failures", windowArgs],
+    ["triage", windowArgs], ["triage", { ...windowArgs, status: "all" }],
     ["get_failure_context", { ...windowArgs, trace_id: traceId }],
     ["compare_groups", { ...windowArgs, signal: "spans", group_a: { matchers: [{ key: "error.type", op: "exists" }] }, group_b: "rest" }],
     ["compare_traces", { ...windowArgs, a: { trace_id: traceId }, b: { trace_id: traceId } }],
@@ -154,7 +154,7 @@ try {
     ["check_telemetry_health", windowArgs], ["get_mcp_stats", windowArgs],
   ];
   for (const [name, args] of addedReads) { const result = await call(name, args); ok(name + " validates", !result.isError, summary(result)); }
-  const failureList = await call("list_failures", windowArgs);
+  const failureList = await call("triage", { ...windowArgs, status: "all" });
   const failure = failureList.structuredContent?.failures?.[0];
   ok("failure available for lifecycle checks", !!failure);
   if (failure) {

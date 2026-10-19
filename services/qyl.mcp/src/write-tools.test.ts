@@ -484,7 +484,7 @@ test("saved queries: create, conflict, update, list with paging, run and delete"
   const missing = await client.callTool({ name: "delete_record", arguments: { kind: "saved_query", id: "gone", etag: "\"2\"" } }) as CallToolResult;
   assert.deepEqual(errorOf(missing), {
     code: "not_found", message: "saved query not found: gone", retryable: false, resource_type: "saved_query", resource_id: "gone",
-    hint: "Take ids only from earlier results: list_saved_queries, get_trace, list_sessions or list_failures return ids and current etags.",
+    hint: "Take ids only from earlier results: list_saved_queries, get_trace, list_sessions or get_failure_context return ids and current etags.",
   });
 });
 

@@ -69,7 +69,7 @@ try {
   /** @type {ReadonlyArray<readonly [string, Record<string, unknown>]>} */
   const plan = [
     ["triage", {}],
-    ["list_failures", {}],
+    ["triage", { status: "all" }],
     ["aggregate_telemetry", { signal: "spans", measures: ["count", "error_rate"] }],
     ["discover_attributes", { signal: "resources" }],
     ["list_releases", {}],

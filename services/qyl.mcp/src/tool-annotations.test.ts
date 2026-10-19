@@ -17,7 +17,7 @@ const WRITE_TOOLS = new Set(["create_annotation", "update_annotation", "create_s
 const READ_TOOLS = [
   "aggregate_telemetry", "check_telemetry_health", "ci_log", "compare_groups", "compare_traces",
   "discover_attributes", "get_agent_run", "get_failure_context", "get_mcp_stats", "get_metric_series",
-  "get_service_map", "get_trace", "list_failures", "list_metrics", "list_releases", "list_saved_queries",
+  "get_service_map", "get_trace", "list_metrics", "list_releases", "list_saved_queries",
   "list_sessions", "list_traces", "query_metric", "run_saved_query", "search_logs", "triage", "verify_fix",
 ];
 

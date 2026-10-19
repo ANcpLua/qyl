@@ -35,7 +35,7 @@ async function withClient(run, project = fixture.project) {
  });} finally {await client.close();await handler.close();process.env.QYL_PROJECT=previousProject;}
 }
 async function failures(call) {
- return (await call('list_failures',{...w,service_name:'checkout',status:'all'})).failures;
+ return (await call('triage',{...w,service_name:'checkout',status:'all'})).failures;
 }
 const registrations=[];
 function verify(name,run){registrations.push(name);void test(name,{concurrency:false},()=>withClient(run));}
@@ -54,9 +54,9 @@ verify('01 triage ranks F first, includes rare R and silent billing, excludes he
  const F=(await failures(call)).find(f=>f.operation==='checkout'); assert(F);
  assert.equal(data.failures[0].failure_id,F.failure_id);
  assert.equal(data.failures[0].coinciding_release.version,'1.4.1');
- assert(data.failures.some(f=>f.count===2 && f.services.includes('payments')));
+ assert(data.failures.some(f=>f.count===2 && f.service==='payments'));
  assert(data.silent_services.some(s=>s.service==='billing'));
- const sessionFailures = data.failures.filter(f => f.services.includes('sessions'));
+ const sessionFailures = data.failures.filter(f => f.service==='sessions');
  assert.equal(sessionFailures.length, 1);
  assert.equal(sessionFailures[0].count, 3, 'only sess_bad contributes failures');
  const badIds = new Set(Object.entries(key).filter(([name]) => name.startsWith('sess_bad-')).map(([, id]) => id.trace_id));
@@ -69,7 +69,7 @@ verify('01 triage ranks F first, includes rare R and silent billing, excludes he
 verify('02 db chain yields two stable failure ids',async call=>{
  const time=Date.parse(fixture.T)+60_000;
  const args={start_time:new Date(time-10).toISOString(),end_time:new Date(time+500).toISOString()};
- const a=await call('list_failures',args),b=await call('list_failures',args);
+ const a=await call('triage',args),b=await call('triage',args);
  assert.equal(a.failures.length,2);assert.deepEqual(a.failures.map(f=>f.failure_id),b.failures.map(f=>f.failure_id));
 });
 verify('03a db child is the root cause, not propagated checkout error',async call=>{
@@ -193,7 +193,7 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   const latency=await call('aggregate_telemetry',{...scope('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95']});
   assert.deepEqual(Object.fromEntries(latency.groups.map(g=>[g.key['http.route'],g.measures.duration_p95])),{'/checkout':1840,'/cart':210});
   assert.equal((await call('get_failure_context',{...day,trace_id:seeded.keys['db-root'].trace_id})).observed.root_cause_span.span_id,seeded.keys['db-timeout'].span_id);
-  const F=(await call('list_failures',{...day,service_name:'checkout',status:'all'})).failures.find(f=>f.operation==='checkout');assert(F);
+  const F=(await call('triage',{...day,service_name:'checkout',status:'all'})).failures.find(f=>f.operation==='checkout');assert(F);
   const fix=await call('verify_fix',{...day,failure_id:F.failure_id,since:seeded.T2});
   assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,76,'the four fix requests and two checkouts per batch count');
   assert.equal((await call('get_agent_run',{...day,session_id:'agent_run'})).findings.repeated_calls[0].count,3);
@@ -205,7 +205,7 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   assert.deepEqual((await call('check_telemetry_health',day)).semconv_gaps,[]);
  },project);
 });
-verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('create_annotation',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});const data=await call('list_failures',{...w,failure_id:F.failure_id});assert.equal(data.failures[0].annotation_count,1);});
+verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('create_annotation',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);const context=await call('get_failure_context',{...w,failure_id:F.failure_id});assert(context.context.annotations.some(a=>a.text==='Answer-key finding'));});
 verifyIsolated('32a ignored F suppressed fromtriage',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const saved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'ignored'});assert.equal(saved.failure.status,'ignored');try { assert(!(await call('triage',w)).failures.some(f=>f.failure_id===F.failure_id)); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:saved.failure.etag,status:'open'}); }});
 verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const resolved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'resolved'});

@@ -12,7 +12,6 @@ internal static partial class CollectorEndpointExtensions
         new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output)>(StringComparer.Ordinal)
         {
             ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput),
-            ["list_failures"] = (AnalysisContractJsonContext.Default.ListFailuresInput, AnalysisContractJsonContext.Default.ListFailuresOutput),
             ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput),
             ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput),
             ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput),
@@ -152,9 +151,9 @@ internal static partial class CollectorEndpointExtensions
             var outcome = await store.WriteAnalysisStateAsync(row, existing?.Etag, ct).ConfigureAwait(false);
             if (outcome.Status == ResourceWriteStatus.PreconditionFailed) return ContractErrorResults.PreconditionFailed(outcome.CurrentEtag);
             var updated = snapshot with { State = snapshot.State.Where(s => s.StateKey != failureId).Append(row).ToArray() };
-            var result = new AnalysisEngine(updated, project, CreateAnalysisHandles(context, project), time.GetUtcNow()).Run("list_failures", J.O(("failure_id", failureId), ("status", "all"), ("start_time", DateTimeOffset.UnixEpoch.ToString("O"))));
+            var failure = new AnalysisEngine(updated, project, CreateAnalysisHandles(context, project), time.GetUtcNow()).FailureSummary(failureId);
             context.Response.Headers.ETag = row.Etag;
-            try { return AnalysisResult("update_failure_status", J.O(("failure", result["failures"]?[0]))); }
+            try { return AnalysisResult("update_failure_status", J.O(("failure", failure))); }
             catch (JsonException) { return ContractErrorResults.InternalServerError("analysis.response_invalid"); }
         }
         catch (MetricQueryConflictException conflict) { return ContractErrorResults.Conflict("metric", conflict.Message); }

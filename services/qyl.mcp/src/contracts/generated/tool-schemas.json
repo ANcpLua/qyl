@@ -161,7 +161,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 512,
-                "description": "The annotated failure, e.g. from triage or list_failures."
+                "description": "The annotated failure, e.g. from triage."
               }
             },
             "description": "An annotation on one failure, named by its `failure_id`.",
@@ -1190,7 +1190,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 512,
-                    "description": "The annotated failure, e.g. from triage or list_failures."
+                    "description": "The annotated failure, e.g. from triage."
                   }
                 },
                 "description": "An annotation on one failure, named by its `failure_id`.",
@@ -4593,7 +4593,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 512,
-                "description": "The annotated failure, e.g. from triage or list_failures."
+                "description": "The annotated failure, e.g. from triage."
               }
             },
             "description": "An annotation on one failure, named by its `failure_id`.",
@@ -4609,7 +4609,7 @@
         "description": "The note, plain text, at most 2000 characters."
       }
     },
-    "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, list_failures counts the notes on a failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.",
+    "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.",
     "additionalProperties": false
   },
   "Mcp.Tools.CreateSavedQueryInput": {
@@ -6769,7 +6769,7 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 512,
-        "description": "A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
+        "description": "A failure_id from triage; the trace of its latest occurrence is examined, and the context holds the notes on the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
       },
       "ci_run_id": {
         "type": "string",
@@ -6793,7 +6793,7 @@
         "default": 100
       }
     },
-    "description": "Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage or list_failures name a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.",
+    "description": "Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage names a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.",
     "additionalProperties": false
   },
   "Mcp.Tools.GetFailureContextOutput": {
@@ -7502,7 +7502,8 @@
               },
               "description": "SimilarFailure contract.",
               "additionalProperties": false
-            }
+            },
+            "description": "Other failures among the examined spans; the explained failure is not among them."
           },
           "changes": {
             "type": "array",
@@ -7713,7 +7714,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 512,
-                          "description": "The annotated failure, e.g. from triage or list_failures."
+                          "description": "The annotated failure, e.g. from triage."
                         }
                       },
                       "description": "An annotation on one failure, named by its `failure_id`.",
@@ -7738,10 +7739,11 @@
                 "text"
               ],
               "additionalProperties": false
-            }
+            },
+            "description": "Annotations on the examined traces, spans and sessions and on the explained failure."
           }
         },
-        "description": "FailureContext contract.",
+        "description": "What surrounds the failure: other failures in the examined spans, regressions of the root cause's service and the notes.",
         "additionalProperties": false
       },
       "settled": {
@@ -11808,7 +11810,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 512,
-                      "description": "The annotated failure, e.g. from triage or list_failures."
+                      "description": "The annotated failure, e.g. from triage."
                     }
                   },
                   "description": "An annotation on one failure, named by its `failure_id`.",
@@ -12123,680 +12125,6 @@
         "description": "Lossless JSON projection of an OpenTelemetry AnyValue attribute. Primitive variants are bare JSON values; object variants carry a `type` tag."
       }
     }
-  },
-  "Mcp.Tools.ListFailuresInput": {
-    "type": "object",
-    "properties": {
-      "lookback_minutes": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 43200,
-        "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-      },
-      "start_time": {
-        "type": "string",
-        "format": "date-time",
-        "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-      },
-      "end_time": {
-        "type": "string",
-        "format": "date-time",
-        "description": "End of the window (exclusive), RFC 3339; default now."
-      },
-      "matchers": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "key",
-            "op"
-          ],
-          "properties": {
-            "key": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256,
-              "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-            },
-            "op": {
-              "type": "string",
-              "enum": [
-                "eq",
-                "neq",
-                "in",
-                "prefix",
-                "contains",
-                "exists",
-                "gt",
-                "gte",
-                "lt",
-                "lte"
-              ],
-              "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-            },
-            "value": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ],
-              "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-            },
-            "values": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "boolean"
-                  }
-                ],
-                "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-              },
-              "minItems": 1,
-              "maxItems": 256,
-              "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-            },
-            "scope": {
-              "type": "string",
-              "enum": [
-                "span",
-                "resource",
-                "log"
-              ],
-              "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-            }
-          },
-          "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-          "additionalProperties": false
-        },
-        "maxItems": 32,
-        "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
-      },
-      "limit": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 200,
-        "description": "Items per page of each list the tool returns, 1 to 200; default 100. `has_more` and `next_cursor` continue the same query.",
-        "default": 100
-      },
-      "cursor": {
-        "type": "string",
-        "description": "`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window."
-      },
-      "service_name": {
-        "type": "string",
-        "description": "Restrict the analysis to this service (`service.name`, exact match)."
-      },
-      "environment": {
-        "type": "string",
-        "description": "Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`."
-      },
-      "release": {
-        "type": "string",
-        "description": "Keep failures on spans of this release (resource `service.version`)."
-      },
-      "status": {
-        "anyOf": [
-          {
-            "type": "string",
-            "enum": [
-              "open",
-              "resolved",
-              "ignored"
-            ],
-            "description": "Persisted failure triage status."
-          },
-          {
-            "type": "string",
-            "enum": [
-              "all"
-            ]
-          }
-        ],
-        "description": "Keep failures with this recorded status: `open` (default), `resolved` or `ignored`, or `all`."
-      },
-      "sort_by": {
-        "type": "string",
-        "enum": [
-          "count",
-          "last_seen",
-          "first_seen",
-          "affected_traces"
-        ],
-        "description": "Order of the failures: `count` (default) most occurrences first, `last_seen` most recent first, `first_seen` oldest first, `affected_traces` most traces first."
-      },
-      "failure_id": {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 512,
-        "description": "One failure, with its counts per release, latest occurrences and discriminating attributes; not_found when no retained span has it."
-      }
-    },
-    "description": "Lists the window's failures, one row per fingerprint (service, operation, exception or error type and normalized message), with counts, affected traces and sessions, releases and recorded status. Use triage first to rank what changed; use this to filter by status or release or to sort, and pass `failure_id` for one failure's counts per release, latest occurrences and discriminating attributes. Default: open failures of the last 60 minutes, most occurrences first.",
-    "additionalProperties": false
-  },
-  "Mcp.Tools.ListFailuresOutput": {
-    "type": "object",
-    "required": [
-      "window",
-      "coverage",
-      "has_more",
-      "failures"
-    ],
-    "properties": {
-      "window": {
-        "type": "object",
-        "required": [
-          "start_time",
-          "end_time"
-        ],
-        "properties": {
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339."
-          }
-        },
-        "description": "Absolute half-open window applied by the collector.",
-        "additionalProperties": false
-      },
-      "coverage": {
-        "type": "object",
-        "required": [
-          "examined",
-          "matched",
-          "returned",
-          "truncated",
-          "scan_complete",
-          "as_of"
-        ],
-        "properties": {
-          "examined": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "matched": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "returned": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Generic non-negative counter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "truncated": {
-            "type": "boolean"
-          },
-          "scan_complete": {
-            "type": "boolean"
-          },
-          "as_of": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "Scan coverage; unknown counts are null, never an invented zero.",
-        "additionalProperties": false
-      },
-      "page_totals": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "integer"
-        },
-        "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
-      },
-      "has_more": {
-        "type": "boolean",
-        "description": "Whether more items exist beyond this page. False only when the result is complete; `next_cursor` is present exactly when this is true."
-      },
-      "next_cursor": {
-        "type": "string",
-        "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-      },
-      "failures": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "failure_id",
-            "etag",
-            "signature",
-            "normalized_message",
-            "operation",
-            "service",
-            "first_seen",
-            "last_seen",
-            "count",
-            "affected_traces",
-            "affected_sessions",
-            "releases_seen",
-            "status",
-            "updated_at",
-            "annotation_count",
-            "example_trace_ids"
-          ],
-          "properties": {
-            "failure_id": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 512,
-              "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
-            },
-            "etag": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Opaque entity tag of one resource version. It changes on every successful\nupdate; send it back in `If-Match` to update or delete that version."
-            },
-            "signature": {
-              "type": "string"
-            },
-            "exception_type": {
-              "type": "string"
-            },
-            "normalized_message": {
-              "type": "string"
-            },
-            "operation": {
-              "type": "string"
-            },
-            "service": {
-              "type": "string"
-            },
-            "first_seen": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "last_seen": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "count": {
-              "type": "integer"
-            },
-            "affected_traces": {
-              "type": "integer"
-            },
-            "affected_sessions": {
-              "type": "integer"
-            },
-            "releases_seen": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "open",
-                "resolved",
-                "ignored"
-              ],
-              "description": "Persisted failure triage status."
-            },
-            "updated_at": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "ignore_until": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "assignee": {
-              "type": "string"
-            },
-            "annotation_count": {
-              "type": "integer"
-            },
-            "example_trace_ids": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "minLength": 32,
-                "maxLength": 32,
-                "pattern": "^[a-f0-9]{32}$",
-                "description": "Unique trace identifier (32 lowercase hex characters)",
-                "examples": [
-                  "0af7651916cd43dd8448eb211c80319c"
-                ]
-              },
-              "maxItems": 3
-            },
-            "counts_per_release": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "release",
-                  "count"
-                ],
-                "properties": {
-                  "release": {
-                    "type": "string"
-                  },
-                  "count": {
-                    "type": "integer"
-                  }
-                },
-                "description": "FailureReleaseCount contract.",
-                "additionalProperties": false
-              }
-            },
-            "discriminators": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "key",
-                  "value",
-                  "share_a",
-                  "share_b",
-                  "count_a",
-                  "count_b",
-                  "lift"
-                ],
-                "properties": {
-                  "key": {
-                    "type": "string"
-                  },
-                  "value": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ],
-                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                  },
-                  "share_a": {
-                    "type": "number"
-                  },
-                  "share_b": {
-                    "type": "number"
-                  },
-                  "count_a": {
-                    "type": "integer"
-                  },
-                  "count_b": {
-                    "type": "integer"
-                  },
-                  "lift": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "description": "AttributeAssociation contract.",
-                "additionalProperties": false
-              }
-            },
-            "recent_occurrences": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "trace_id",
-                  "span_id",
-                  "timestamp"
-                ],
-                "properties": {
-                  "trace_id": {
-                    "type": "string",
-                    "minLength": 32,
-                    "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
-                    "description": "Unique trace identifier (32 lowercase hex characters)",
-                    "examples": [
-                      "0af7651916cd43dd8448eb211c80319c"
-                    ]
-                  },
-                  "span_id": {
-                    "type": "string",
-                    "minLength": 16,
-                    "maxLength": 16,
-                    "pattern": "^[a-f0-9]{16}$",
-                    "description": "Unique span identifier (16 lowercase hex characters)",
-                    "examples": [
-                      "b7ad6b7169203331"
-                    ]
-                  },
-                  "session_id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                    "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-                  },
-                  "timestamp": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "message": {
-                    "type": "string"
-                  },
-                  "release": {
-                    "type": "string"
-                  }
-                },
-                "description": "FailureOccurrence contract.",
-                "additionalProperties": false
-              }
-            },
-            "raw_messages": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "description": "FailureDetail contract.",
-          "additionalProperties": false
-        }
-      },
-      "error": {
-        "type": "object",
-        "required": [
-          "code",
-          "message",
-          "retryable"
-        ],
-        "properties": {
-          "fields": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "field",
-                "message",
-                "code"
-              ],
-              "properties": {
-                "field": {
-                  "type": "string",
-                  "description": "The field or parameter that failed validation."
-                },
-                "message": {
-                  "type": "string",
-                  "description": "What is wrong with it."
-                },
-                "code": {
-                  "type": "string",
-                  "description": "The validation rule that failed."
-                },
-                "rejected_value": {
-                  "type": "string",
-                  "description": "The rejected value, when it is safe to repeat."
-                },
-                "allowed": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "The values the field accepts, when they form a closed set."
-                },
-                "hint": {
-                  "type": "string",
-                  "description": "What to send instead."
-                }
-              },
-              "description": "One rule a request broke.",
-              "additionalProperties": false
-            },
-            "description": "Every rule the arguments broke, as the input schema or the Collector reported them."
-          },
-          "problem_type": {
-            "type": "string",
-            "enum": [
-              "https://qyl.at/problems/validation-failed",
-              "https://qyl.at/problems/unauthorized",
-              "https://qyl.at/problems/forbidden",
-              "https://qyl.at/problems/not-found",
-              "https://qyl.at/problems/conflict",
-              "https://qyl.at/problems/precondition-failed",
-              "https://qyl.at/problems/precondition-required",
-              "https://qyl.at/problems/internal-error",
-              "https://qyl.at/problems/service-unavailable"
-            ],
-            "description": "Problem type URI, the RFC 9457 `type` member: one per problem a qyl server\nreports. `code` names the same problem type."
-          },
-          "code": {
-            "type": "string",
-            "enum": [
-              "invalid_argument",
-              "not_found",
-              "no_project_access",
-              "collector_unreachable",
-              "collector_timeout",
-              "cancelled",
-              "collector_unauthorized",
-              "collector_rate_limited",
-              "collector_rejected",
-              "collector_error",
-              "contract_mismatch",
-              "collector_contract_mismatch",
-              "response_too_large",
-              "insufficient_scope",
-              "conflict",
-              "precondition_failed",
-              "precondition_required",
-              "internal"
-            ],
-            "description": "Stable failure code of a qyl MCP tool result. A model branches on the code, never on the message."
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable description of this failure."
-          },
-          "retryable": {
-            "type": "boolean",
-            "description": "Whether the same call can succeed when repeated unchanged."
-          },
-          "field": {
-            "type": "string",
-            "description": "The argument to change, by its path such as `status`, `filter.signal` or `matchers[0].op`: the first one the input schema or the Collector rejected."
-          },
-          "allowed": {
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
-            },
-            "description": "The values `field` accepts, or for an argument the tool does not take, the arguments it does; present when they form a closed set."
-          },
-          "hint": {
-            "type": "string",
-            "description": "The next step: what to change, or which tool returns the ids the call needs."
-          },
-          "resource_type": {
-            "type": "string",
-            "description": "With not_found: the kind of record that was not found, such as `trace`, `failure`, `metric` or `saved_query`."
-          },
-          "resource_id": {
-            "type": "string",
-            "description": "With not_found: the identifier that was not found."
-          },
-          "collector_contract_revision": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "With collector_contract_mismatch: the contract revision the Collector serves; null when its health names none."
-          },
-          "server_contract_revision": {
-            "type": "string",
-            "description": "With collector_contract_mismatch: the contract revision this MCP server was generated from."
-          }
-        },
-        "description": "A failed tool call, carried in structuredContent.error.",
-        "additionalProperties": false
-      }
-    },
-    "description": "ListFailuresOutput contract.",
-    "additionalProperties": false
   },
   "Mcp.Tools.ListMetricsInput": {
     "type": "object",
@@ -15324,7 +14652,7 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 512,
-                            "description": "The annotated failure, e.g. from triage or list_failures."
+                            "description": "The annotated failure, e.g. from triage."
                           }
                         },
                         "description": "An annotation on one failure, named by its `failure_id`.",
@@ -15536,7 +14864,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 512,
-                      "description": "The annotated failure, e.g. from triage or list_failures."
+                      "description": "The annotated failure, e.g. from triage."
                     }
                   },
                   "description": "An annotation on one failure, named by its `failure_id`.",
@@ -19971,9 +19299,29 @@
           }
         ],
         "description": "The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back."
+      },
+      "status": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved",
+              "ignored"
+            ],
+            "description": "Persisted failure triage status."
+          },
+          {
+            "type": "string",
+            "enum": [
+              "all"
+            ]
+          }
+        ],
+        "description": "Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window."
       }
     },
-    "description": "Start of an investigation: the window's failures, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context; list_failures lists failures by status, and an ignored failure stays out of triage until its `ignore_until`, if any, passes.",
+    "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status.",
     "additionalProperties": false
   },
   "Mcp.Tools.TriageOutput": {
@@ -20091,15 +19439,17 @@
           "type": "object",
           "required": [
             "failure_id",
-            "signature",
+            "etag",
+            "status",
+            "service",
+            "operation",
             "change",
             "count",
             "baseline_count",
             "affected_traces",
-            "services",
             "first_seen",
-            "status",
-            "etag"
+            "last_seen",
+            "annotation_count"
           ],
           "properties": {
             "failure_id": {
@@ -20108,8 +19458,44 @@
               "maxLength": 512,
               "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
             },
-            "signature": {
+            "etag": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Current state version; pass it to update_failure_status."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "open",
+                "resolved",
+                "ignored"
+              ],
+              "description": "The recorded status; update_failure_status sets it."
+            },
+            "assignee": {
+              "type": "string",
+              "description": "Who owns the failure, when update_failure_status named one."
+            },
+            "ignore_until": {
+              "type": "string",
+              "format": "date-time",
+              "description": "With `status: ignored`, when triage lists the failure again."
+            },
+            "service": {
               "type": "string"
+            },
+            "operation": {
+              "type": "string",
+              "description": "The failing spans' `http.route`, else their span name."
+            },
+            "exception_type": {
+              "type": "string",
+              "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
+            },
+            "normalized_message": {
+              "type": "string",
+              "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
             },
             "change": {
               "type": "string",
@@ -20123,21 +19509,21 @@
               "description": "Failure trend in the selected comparison window."
             },
             "count": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Occurrences in the window."
             },
             "baseline_count": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Occurrences in the baseline window."
             },
             "affected_traces": {
               "type": "integer"
             },
-            "services": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "first_seen": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "last_seen": {
               "type": "string",
               "format": "date-time"
             },
@@ -20176,29 +19562,18 @@
               "description": "The release the failing spans run on (their most common `service.version`), when it was first seen in the window.",
               "additionalProperties": false
             },
-            "status": {
-              "type": "string",
-              "enum": [
-                "open",
-                "resolved",
-                "ignored"
-              ],
-              "description": "Persisted failure triage status."
-            },
-            "etag": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Current state version; pass it to update_failure_status."
-            },
             "root_cause_failure_id": {
               "type": "string",
               "minLength": 1,
               "maxLength": 512,
               "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
+            },
+            "annotation_count": {
+              "type": "integer",
+              "description": "Annotations on the failure; get_failure_context with its `failure_id` returns them."
             }
           },
-          "description": "TriageFailure contract.",
+          "description": "One failure of the window: its fingerprint (service, operation, exception or error type and normalized message), recorded status and how it changed against the baseline.",
           "additionalProperties": false
         }
       },
@@ -20527,13 +19902,13 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 512,
-        "description": "The failure to update, from triage or list_failures."
+        "description": "The failure to update, from triage."
       },
       "etag": {
         "type": "string",
         "minLength": 1,
         "maxLength": 128,
-        "description": "The failure's current `etag` from triage or list_failures, sent as If-Match; a stale etag is refused."
+        "description": "The failure's current `etag` from triage (`status: all` lists every failure), sent as If-Match; a stale etag is refused."
       },
       "status": {
         "type": "string",
@@ -20569,8 +19944,6 @@
         "required": [
           "failure_id",
           "etag",
-          "signature",
-          "normalized_message",
           "operation",
           "service",
           "first_seen",
@@ -20597,17 +19970,17 @@
             "maxLength": 128,
             "description": "Opaque entity tag of one resource version. It changes on every successful\nupdate; send it back in `If-Match` to update or delete that version."
           },
-          "signature": {
-            "type": "string"
-          },
           "exception_type": {
-            "type": "string"
+            "type": "string",
+            "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
           },
           "normalized_message": {
-            "type": "string"
+            "type": "string",
+            "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
           },
           "operation": {
-            "type": "string"
+            "type": "string",
+            "description": "The failing spans' `http.route`, else their span name."
           },
           "service": {
             "type": "string"
@@ -20673,7 +20046,7 @@
             "maxItems": 3
           }
         },
-        "description": "FailureSummary contract.",
+        "description": "A failure with its recorded status over the whole retained history: one fingerprint of service, operation, exception or error type and normalized message.",
         "additionalProperties": false
       },
       "error": {
@@ -21715,15 +21088,17 @@
           "type": "object",
           "required": [
             "failure_id",
-            "signature",
+            "etag",
+            "status",
+            "service",
+            "operation",
             "change",
             "count",
             "baseline_count",
             "affected_traces",
-            "services",
             "first_seen",
-            "status",
-            "etag"
+            "last_seen",
+            "annotation_count"
           ],
           "properties": {
             "failure_id": {
@@ -21732,8 +21107,44 @@
               "maxLength": 512,
               "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
             },
-            "signature": {
+            "etag": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Current state version; pass it to update_failure_status."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "open",
+                "resolved",
+                "ignored"
+              ],
+              "description": "The recorded status; update_failure_status sets it."
+            },
+            "assignee": {
+              "type": "string",
+              "description": "Who owns the failure, when update_failure_status named one."
+            },
+            "ignore_until": {
+              "type": "string",
+              "format": "date-time",
+              "description": "With `status: ignored`, when triage lists the failure again."
+            },
+            "service": {
               "type": "string"
+            },
+            "operation": {
+              "type": "string",
+              "description": "The failing spans' `http.route`, else their span name."
+            },
+            "exception_type": {
+              "type": "string",
+              "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
+            },
+            "normalized_message": {
+              "type": "string",
+              "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
             },
             "change": {
               "type": "string",
@@ -21747,21 +21158,21 @@
               "description": "Failure trend in the selected comparison window."
             },
             "count": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Occurrences in the window."
             },
             "baseline_count": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Occurrences in the baseline window."
             },
             "affected_traces": {
               "type": "integer"
             },
-            "services": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "first_seen": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "last_seen": {
               "type": "string",
               "format": "date-time"
             },
@@ -21800,29 +21211,18 @@
               "description": "The release the failing spans run on (their most common `service.version`), when it was first seen in the window.",
               "additionalProperties": false
             },
-            "status": {
-              "type": "string",
-              "enum": [
-                "open",
-                "resolved",
-                "ignored"
-              ],
-              "description": "Persisted failure triage status."
-            },
-            "etag": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Current state version; pass it to update_failure_status."
-            },
             "root_cause_failure_id": {
               "type": "string",
               "minLength": 1,
               "maxLength": 512,
               "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
+            },
+            "annotation_count": {
+              "type": "integer",
+              "description": "Annotations on the failure; get_failure_context with its `failure_id` returns them."
             }
           },
-          "description": "TriageFailure contract.",
+          "description": "One failure of the window: its fingerprint (service, operation, exception or error type and normalized message), recorded status and how it changed against the baseline.",
           "additionalProperties": false
         }
       },

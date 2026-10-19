@@ -230,6 +230,6 @@ export function annotationReadBack(target: Annotation["target"]): string {
     case "session":
       return "list_sessions";
     case "failure":
-      return `list_failures failure_id=${target.failure_id}`;
+      return `get_failure_context failure_id=${target.failure_id}`;
   }
 }

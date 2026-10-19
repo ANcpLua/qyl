@@ -1433,33 +1433,6 @@ public sealed class FailureRelease
     public string? Revision { get; init; }
 }
 
-public sealed class FailureOccurrence
-{
-    [JsonPropertyName("trace_id")]
-    public required string TraceId { get; init; }
-    [JsonPropertyName("span_id")]
-    public required string SpanId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("session_id")]
-    public string? SessionId { get; init; }
-    [JsonPropertyName("timestamp")]
-    public required DateTimeOffset Timestamp { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("message")]
-    public string? Message { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("release")]
-    public string? Release { get; init; }
-}
-
-public sealed class FailureReleaseCount
-{
-    [JsonPropertyName("release")]
-    public required string Release { get; init; }
-    [JsonPropertyName("count")]
-    public required long Count { get; init; }
-}
-
 public sealed class AttributeAssociation
 {
     [JsonPropertyName("key")]
@@ -1485,13 +1458,12 @@ public sealed class FailureSummary
     public required string FailureId { get; init; }
     [JsonPropertyName("etag")]
     public required string Etag { get; init; }
-    [JsonPropertyName("signature")]
-    public required string Signature { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("exception_type")]
     public string? ExceptionType { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("normalized_message")]
-    public required string NormalizedMessage { get; init; }
+    public string? NormalizedMessage { get; init; }
     [JsonPropertyName("operation")]
     public required string Operation { get; init; }
     [JsonPropertyName("service")]
@@ -1522,63 +1494,6 @@ public sealed class FailureSummary
     public required long AnnotationCount { get; init; }
     [JsonPropertyName("example_trace_ids")]
     public required IReadOnlyList<string> ExampleTraceIds { get; init; }
-}
-
-public sealed class FailureDetail
-{
-    [JsonPropertyName("failure_id")]
-    public required string FailureId { get; init; }
-    [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
-    [JsonPropertyName("signature")]
-    public required string Signature { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("exception_type")]
-    public string? ExceptionType { get; init; }
-    [JsonPropertyName("normalized_message")]
-    public required string NormalizedMessage { get; init; }
-    [JsonPropertyName("operation")]
-    public required string Operation { get; init; }
-    [JsonPropertyName("service")]
-    public required string Service { get; init; }
-    [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
-    [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
-    [JsonPropertyName("count")]
-    public required long Count { get; init; }
-    [JsonPropertyName("affected_traces")]
-    public required long AffectedTraces { get; init; }
-    [JsonPropertyName("affected_sessions")]
-    public required long AffectedSessions { get; init; }
-    [JsonPropertyName("releases_seen")]
-    public required IReadOnlyList<string> ReleasesSeen { get; init; }
-    [JsonPropertyName("status")]
-    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
-    [JsonPropertyName("updated_at")]
-    public required DateTimeOffset UpdatedAt { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("assignee")]
-    public string? Assignee { get; init; }
-    [JsonPropertyName("annotation_count")]
-    public required long AnnotationCount { get; init; }
-    [JsonPropertyName("example_trace_ids")]
-    public required IReadOnlyList<string> ExampleTraceIds { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("counts_per_release")]
-    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.FailureReleaseCount>? CountsPerRelease { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("discriminators")]
-    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AttributeAssociation>? Discriminators { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("recent_occurrences")]
-    public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.FailureOccurrence>? RecentOccurrences { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("raw_messages")]
-    public IReadOnlyList<string>? RawMessages { get; init; }
 }
 
 public sealed class TriageInput
@@ -1615,14 +1530,35 @@ public sealed class TriageInput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("baseline")]
     public object? Baseline { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("status")]
+    public object? Status { get; init; }
 }
 
 public sealed class TriageFailure
 {
     [JsonPropertyName("failure_id")]
     public required string FailureId { get; init; }
-    [JsonPropertyName("signature")]
-    public required string Signature { get; init; }
+    [JsonPropertyName("etag")]
+    public required string Etag { get; init; }
+    [JsonPropertyName("status")]
+    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("assignee")]
+    public string? Assignee { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("ignore_until")]
+    public DateTimeOffset? IgnoreUntil { get; init; }
+    [JsonPropertyName("service")]
+    public required string Service { get; init; }
+    [JsonPropertyName("operation")]
+    public required string Operation { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("exception_type")]
+    public string? ExceptionType { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("normalized_message")]
+    public string? NormalizedMessage { get; init; }
     [JsonPropertyName("change")]
     public required Qyl.Api.Contracts.Mcp.Tools.FailureChange Change { get; init; }
     [JsonPropertyName("count")]
@@ -1631,23 +1567,21 @@ public sealed class TriageFailure
     public required long BaselineCount { get; init; }
     [JsonPropertyName("affected_traces")]
     public required long AffectedTraces { get; init; }
-    [JsonPropertyName("services")]
-    public required IReadOnlyList<string> Services { get; init; }
     [JsonPropertyName("first_seen")]
     public required DateTimeOffset FirstSeen { get; init; }
+    [JsonPropertyName("last_seen")]
+    public required DateTimeOffset LastSeen { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("example_trace_id")]
     public string? ExampleTraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("coinciding_release")]
     public Qyl.Api.Contracts.Mcp.Tools.FailureRelease? CoincidingRelease { get; init; }
-    [JsonPropertyName("status")]
-    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
-    [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("root_cause_failure_id")]
     public string? RootCauseFailureId { get; init; }
+    [JsonPropertyName("annotation_count")]
+    public required long AnnotationCount { get; init; }
 }
 
 public sealed class TriageRegression
@@ -1703,72 +1637,6 @@ public sealed class TriageOutput
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.FailureRelease> Releases { get; init; }
     [JsonPropertyName("silent_services")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.SilentService> SilentServices { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("error")]
-    public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
-}
-
-public sealed class ListFailuresInput
-{
-    public const int LookbackMinutesMinimum = 1;
-    public const int LookbackMinutesMaximum = 43200;
-    public const int LimitDefault = 100;
-    public const int LimitMinimum = 1;
-    public const int LimitMaximum = 200;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("matchers")]
-    public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("service_name")]
-    public string? ServiceName { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("environment")]
-    public string? Environment { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("release")]
-    public string? Release { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("status")]
-    public object? Status { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("sort_by")]
-    public string? SortBy { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("failure_id")]
-    public string? FailureId { get; init; }
-}
-
-public sealed class ListFailuresOutput
-{
-    [JsonPropertyName("window")]
-    public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
-    [JsonPropertyName("coverage")]
-    public required Qyl.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("page_totals")]
-    public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
-    [JsonPropertyName("has_more")]
-    public required bool HasMore { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("next_cursor")]
-    public string? NextCursor { get; init; }
-    [JsonPropertyName("failures")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.FailureDetail> Failures { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }

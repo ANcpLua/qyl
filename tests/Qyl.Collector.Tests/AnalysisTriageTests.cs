@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Qyl.Collector.Storage;
 using static Qyl.Collector.Tests.CollectorApiTestHost;
 
@@ -67,7 +69,7 @@ public sealed partial class AnalysisApiTests
         ]), testContext.CancellationToken);
 
         var rows = (await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray().ToArray();
-        string Id(string service) => rows.Single(r => r.GetProperty("services")[0].GetString() == service).GetProperty("failure_id").GetString()!;
+        string Id(string service) => rows.Single(r => r.GetProperty("service").GetString() == service).GetProperty("failure_id").GetString()!;
 
         Assert.HasCount(2, rows);
         foreach (var row in rows)
@@ -76,5 +78,64 @@ public sealed partial class AnalysisApiTests
             Assert.IsFalse(string.IsNullOrEmpty(row.GetProperty("etag").GetString()));
             Assert.AreEqual(Id("orders-db"), row.GetProperty("root_cause_failure_id").GetString());
         }
+    }
+
+    /// <summary>
+    /// triage lists the failures that need attention unless a status is asked for: open ones, a resolved one that
+    /// recurred after it was resolved and an ignored one whose ignore_until passed. Any other status lists the
+    /// failures recorded with it, and all lists every failure of the window.
+    /// </summary>
+    [TestMethod]
+    public async Task Triage_lists_the_open_failures_by_default_and_the_others_by_their_recorded_status()
+    {
+        var clock = new FakeTimeProvider(FixtureUtcNow);
+        await using var host = await StartAsync(testContext.CancellationToken, timeProvider: clock);
+        SpanStorageRow Failing(int id, string operation, ulong start) =>
+            Span(TraceId(id), SpanId(id), start, start + 1000, status: 2) with { Name = operation, StatusMessage = operation + " failed" };
+        var time = FixtureUnixNano - 30 * Minute;
+        await host.Store.EnqueueAsync(new SpanBatch([Failing(1, "resolved", time), Failing(2, "ignored", time), Failing(3, "expired", time), Failing(4, "open", time)]),
+            testContext.CancellationToken);
+        var rows = (await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray().ToDictionary(static r => r.GetProperty("operation").GetString()!);
+        async Task RecordAsync(string operation, string body)
+        {
+            using var response = await host.SendAsync(HttpMethod.Patch, "/api/v1/failures/" + rows[operation].GetProperty("failure_id").GetString(), "writer", body,
+                new Dictionary<string, string> { ["If-Match"] = rows[operation].GetProperty("etag").GetString()! });
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        }
+        await RecordAsync("resolved", """{"status":"resolved"}""");
+        await RecordAsync("ignored", """{"status":"ignored"}""");
+        await RecordAsync("expired", $$"""{"status":"ignored","ignore_until":"{{FixtureUtcNow.AddMinutes(5):O}}"}""");
+        async Task<string[]> ListedAsync(string input) => [.. (await Read(host, "triage", input)).GetProperty("failures").EnumerateArray()
+            .Select(static r => r.GetProperty("operation").GetString()!).Order(StringComparer.Ordinal)];
+
+        Assert.AreSequenceEqual(["open"], await ListedAsync("{}"));
+        Assert.AreSequenceEqual(["resolved"], await ListedAsync("""{"status":"resolved"}"""));
+        Assert.AreSequenceEqual(["expired", "ignored"], await ListedAsync("""{"status":"ignored"}"""));
+        Assert.AreSequenceEqual(["expired", "ignored", "open", "resolved"], await ListedAsync("""{"status":"all"}"""));
+
+        // Ten minutes later the ignore has expired and the resolved failure has recurred.
+        clock.Advance(TimeSpan.FromMinutes(10));
+        await host.Store.EnqueueAsync(new SpanBatch([Failing(5, "resolved", FixtureUnixNano + Minute)]), testContext.CancellationToken);
+        Assert.AreSequenceEqual(["expired", "open", "resolved"], await ListedAsync("{}"));
+        var recurred = (await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray().Single(static r => r.GetProperty("operation").GetString() == "resolved");
+        Assert.AreEqual(("resolved", "regressed"), (recurred.GetProperty("status").GetString(), recurred.GetProperty("change").GetString()));
+    }
+
+    /// <summary>A note on a failure is counted on its triage row and returned by get_failure_context with its failure_id.</summary>
+    [TestMethod]
+    public async Task A_note_on_a_failure_is_counted_by_triage_and_returned_by_its_context()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), time, time + 1000, status: 2) with { Name = "charge", StatusMessage = "declined" }]),
+            testContext.CancellationToken);
+        var failure = Assert.ContainsSingle((await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray()).GetProperty("failure_id").GetString();
+        using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/annotations", "writer",
+            $$"""{"target":{"kind":"failure","failure_id":"{{failure}}"},"text":"card network outage","classification":"finding"}""");
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
+
+        Assert.AreEqual(1, Assert.ContainsSingle((await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray()).GetProperty("annotation_count").GetInt32());
+        var notes = (await Read(host, "get_failure_context", $$"""{"failure_id":"{{failure}}"}""")).GetProperty("context").GetProperty("annotations").EnumerateArray();
+        Assert.AreEqual("card network outage", Assert.ContainsSingle(notes).GetProperty("text").GetString());
     }
 }

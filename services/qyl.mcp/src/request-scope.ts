@@ -53,18 +53,18 @@ export class InvalidArgumentsError extends Error {
 const ID_SOURCES: Readonly<Record<string, string>> = {
   get_trace: "list_traces returns the trace ids of this project and window",
   compare_traces: "list_traces returns the trace ids of this project and window",
-  get_failure_context: "triage or list_failures returns failure ids, list_traces trace ids and list_sessions session ids",
-  verify_fix: "triage or list_failures returns failure ids; a verify_id comes from an earlier verify_fix",
-  update_failure_status: "list_failures returns each failure's id and current etag",
+  get_failure_context: "triage returns failure ids, list_traces trace ids and list_sessions session ids",
+  verify_fix: "triage returns failure ids; a verify_id comes from an earlier verify_fix",
+  update_failure_status: "triage with status all returns each failure's id and current etag",
   get_agent_run: "list_sessions returns session ids",
   get_metric_series: "list_metrics returns metric names; get_metric_series without series_id returns series ids",
   query_metric: "list_metrics returns metric names; get_metric_series returns series ids",
   run_saved_query: "list_saved_queries returns saved query ids",
   update_saved_query: "list_saved_queries returns each saved query's id and current etag",
-  update_annotation: "get_trace, list_sessions or list_failures return each annotation's id and current etag",
-  delete_record: "list_saved_queries, get_trace, list_sessions or list_failures return ids and current etags",
+  update_annotation: "get_trace, list_sessions or get_failure_context return each annotation's id and current etag",
+  delete_record: "list_saved_queries, get_trace, list_sessions or get_failure_context return ids and current etags",
   ci_log: "ci_log without run_id lists the recent runs",
-  create_annotation: "list_traces, list_sessions or list_failures return the ids a target names",
+  create_annotation: "list_traces, list_sessions or triage return the ids a target names",
 };
 
 function hintFor(tool: string, detail: ToolError): string | undefined {

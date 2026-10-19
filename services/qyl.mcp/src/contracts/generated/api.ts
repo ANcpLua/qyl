@@ -1509,20 +1509,6 @@ export interface FailureRelease {
   "revision"?: string;
 }
 
-export interface FailureOccurrence {
-  "trace_id": TraceId;
-  "span_id": SpanId;
-  "session_id"?: SessionId;
-  "timestamp": string;
-  "message"?: string;
-  "release"?: string;
-}
-
-export interface FailureReleaseCount {
-  "release": string;
-  "count": number;
-}
-
 export interface AttributeAssociation {
   "key": string;
   "value": MatcherValue;
@@ -1536,9 +1522,8 @@ export interface AttributeAssociation {
 export interface FailureSummary {
   "failure_id": string;
   "etag": string;
-  "signature": string;
   "exception_type"?: string;
-  "normalized_message": string;
+  "normalized_message"?: string;
   "operation": string;
   "service": string;
   "first_seen": string;
@@ -1553,32 +1538,6 @@ export interface FailureSummary {
   "assignee"?: string;
   "annotation_count": number;
   "example_trace_ids": TraceId[];
-}
-
-export interface FailureDetail {
-  "failure_id": string;
-  "etag": string;
-  "signature": string;
-  "exception_type"?: string;
-  "normalized_message": string;
-  "operation": string;
-  "service": string;
-  "first_seen": string;
-  "last_seen": string;
-  "count": number;
-  "affected_traces": number;
-  "affected_sessions": number;
-  "releases_seen": string[];
-  "status": FailureStatus;
-  "updated_at": string;
-  "ignore_until"?: string;
-  "assignee"?: string;
-  "annotation_count": number;
-  "example_trace_ids": TraceId[];
-  "counts_per_release"?: FailureReleaseCount[];
-  "discriminators"?: AttributeAssociation[];
-  "recent_occurrences"?: FailureOccurrence[];
-  "raw_messages"?: string[];
 }
 
 export interface TriageInput {
@@ -1591,22 +1550,29 @@ export interface TriageInput {
   "environment"?: string;
   "limit"?: number;
   "baseline"?: AnalysisBaseline;
+  "status"?: FailureStatusFilter;
 }
 
 export interface TriageFailure {
   "failure_id": string;
-  "signature": string;
+  "etag": string;
+  "status": FailureStatus;
+  "assignee"?: string;
+  "ignore_until"?: string;
+  "service": string;
+  "operation": string;
+  "exception_type"?: string;
+  "normalized_message"?: string;
   "change": FailureChange;
   "count": number;
   "baseline_count": number;
   "affected_traces": number;
-  "services": string[];
   "first_seen": string;
+  "last_seen": string;
   "example_trace_id"?: TraceId;
   "coinciding_release"?: FailureRelease;
-  "status": FailureStatus;
-  "etag": string;
   "root_cause_failure_id"?: string;
+  "annotation_count": number;
 }
 
 export interface TriageRegression {
@@ -1636,31 +1602,6 @@ export interface TriageOutput {
   "regressions": TriageRegression[];
   "releases": FailureRelease[];
   "silent_services": SilentService[];
-  "error"?: ToolError;
-}
-
-export interface ListFailuresInput {
-  "lookback_minutes"?: number;
-  "start_time"?: string;
-  "end_time"?: string;
-  "matchers"?: TelemetryMatcher[];
-  "limit"?: number;
-  "cursor"?: string;
-  "service_name"?: string;
-  "environment"?: string;
-  "release"?: string;
-  "status"?: FailureStatusFilter;
-  "sort_by"?: "count" | "last_seen" | "first_seen" | "affected_traces";
-  "failure_id"?: string;
-}
-
-export interface ListFailuresOutput {
-  "window": ToolWindow;
-  "coverage": ToolCoverage;
-  "page_totals"?: Record<string, number>;
-  "has_more": boolean;
-  "next_cursor"?: string;
-  "failures": FailureDetail[];
   "error"?: ToolError;
 }
 
@@ -2426,4 +2367,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:492e163553efdcd0";
+export const CONTRACT_REVISION: string = "sha256:f66519a90d36dfc1";

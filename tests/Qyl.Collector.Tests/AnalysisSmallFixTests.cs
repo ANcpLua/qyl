@@ -24,7 +24,7 @@ public sealed partial class AnalysisApiTests
             .. Enumerable.Range(1, 10).Select(i => Span(TraceId(i), SpanId(i), time + (ulong)i, time + (ulong)i + 1000, status: i <= 5 ? (byte)2 : (byte)1)
                 with { Name = "request", AttributesJson = i <= 5 ? """{"error.type":"timeout","region":"eu"}""" : """{"region":"us"}""" })
         ]), testContext.CancellationToken);
-        var failure = Assert.ContainsSingle((await Read(host, "list_failures", "{}")).GetProperty("failures").EnumerateArray()).GetProperty("failure_id").GetString();
+        var failure = Assert.ContainsSingle((await Read(host, "triage", "{}")).GetProperty("failures").EnumerateArray()).GetProperty("failure_id").GetString();
 
         var compared = await Read(host, "compare_groups", $$"""{"signal":"spans","group_a":{"failure_id":"{{failure}}"},"group_b":"rest","attribute_scope":"both"}""");
 

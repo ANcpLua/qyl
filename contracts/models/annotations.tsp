@@ -112,7 +112,7 @@ model AnnotationUpdateRequest {
 model FailureAnnotationTarget {
   @doc("Always `failure`.")
   kind: "failure";
-  @doc("The annotated failure, e.g. from triage or list_failures.")
+  @doc("The annotated failure, e.g. from triage.")
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
 }

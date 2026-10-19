@@ -7,8 +7,6 @@ namespace Qyl.Collector.Analysis;
 [JsonSerializable(typeof(Api.Contracts.Common.AttributeValue))]
 [JsonSerializable(typeof(TriageInput))]
 [JsonSerializable(typeof(TriageOutput))]
-[JsonSerializable(typeof(ListFailuresInput))]
-[JsonSerializable(typeof(ListFailuresOutput))]
 [JsonSerializable(typeof(GetFailureContextInput))]
 [JsonSerializable(typeof(GetFailureContextOutput))]
 [JsonSerializable(typeof(CompareGroupsInput))]

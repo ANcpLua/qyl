@@ -1151,96 +1151,6 @@
         ]
       }
     },
-    "/api/v1/analysis/list_failures": {
-      "post": {
-        "operationId": "analysis_list_failures",
-        "description": "Read list_failures evidence in the authenticated project without changing telemetry or user resources.",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ProjectScopeHeader"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request has succeeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Mcp.Tools.ListFailuresOutput"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation (400).",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.ValidationError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The request carries no valid credential (401).",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.UnauthorizedError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The addressed resource does not exist (404).",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.NotFoundError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The collector failed while handling the request (500). `X-Trace-Id` names the collector's own trace of the failed request.",
-            "headers": {
-              "X-Trace-Id": {
-                "required": false,
-                "description": "Trace id of the collector's own trace of the failed request, for finding it in the collector's telemetry.",
-                "schema": {
-                  "$ref": "#/components/schemas/Common.TraceId"
-                }
-              }
-            },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Common.Errors.InternalServerError"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Analysis"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Mcp.Tools.ListFailuresInput"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ]
-      }
-    },
     "/api/v1/analysis/list_metrics": {
       "post": {
         "operationId": "analysis_list_metrics",
@@ -2739,7 +2649,7 @@
     "/api/v1/failures/{failure_id}": {
       "patch": {
         "operationId": "FailuresApi_update",
-        "description": "Set a project's failure status or assignee using the version returned by list_failures.",
+        "description": "Set a project's failure status or assignee using the version returned by triage.",
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectScopeHeader"
@@ -6012,7 +5922,7 @@
           },
           "failure_id": {
             "$ref": "#/components/schemas/Common.FailureId",
-            "description": "The annotated failure, e.g. from triage or list_failures."
+            "description": "The annotated failure, e.g. from triage."
           }
         },
         "unevaluatedProperties": {
@@ -9257,7 +9167,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, list_failures counts the notes on a failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag."
+        "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag."
       },
       "Mcp.Tools.CreateSavedQueryInput": {
         "type": "object",
@@ -9697,7 +9607,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.SimilarFailure"
-            }
+            },
+            "description": "Other failures among the examined spans; the explained failure is not among them."
           },
           "changes": {
             "type": "array",
@@ -9709,136 +9620,14 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Annotations.Annotation"
-            }
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "FailureContext contract."
-      },
-      "Mcp.Tools.FailureDetail": {
-        "type": "object",
-        "required": [
-          "failure_id",
-          "etag",
-          "signature",
-          "normalized_message",
-          "operation",
-          "service",
-          "first_seen",
-          "last_seen",
-          "count",
-          "affected_traces",
-          "affected_sessions",
-          "releases_seen",
-          "status",
-          "updated_at",
-          "annotation_count",
-          "example_trace_ids"
-        ],
-        "properties": {
-          "failure_id": {
-            "$ref": "#/components/schemas/Common.FailureId"
-          },
-          "etag": {
-            "$ref": "#/components/schemas/Common.ETag"
-          },
-          "signature": {
-            "type": "string"
-          },
-          "exception_type": {
-            "type": "string"
-          },
-          "normalized_message": {
-            "type": "string"
-          },
-          "operation": {
-            "type": "string"
-          },
-          "service": {
-            "type": "string"
-          },
-          "first_seen": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "last_seen": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "count": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "affected_traces": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "affected_sessions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "releases_seen": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "status": {
-            "$ref": "#/components/schemas/Mcp.Tools.FailureStatus"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "ignore_until": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "assignee": {
-            "type": "string"
-          },
-          "annotation_count": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "example_trace_ids": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Common.TraceId"
             },
-            "maxItems": 3
-          },
-          "counts_per_release": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.FailureReleaseCount"
-            }
-          },
-          "discriminators": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.AttributeAssociation"
-            }
-          },
-          "recent_occurrences": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.FailureOccurrence"
-            }
-          },
-          "raw_messages": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "description": "Annotations on the examined traces, spans and sessions and on the explained failure."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "FailureDetail contract."
+        "description": "What surrounds the failure: other failures in the examined spans, regressions of the root cause's service and the notes."
       },
       "Mcp.Tools.FailureObserved": {
         "type": "object",
@@ -9907,39 +9696,6 @@
         },
         "description": "What the execution shows. Every span appears once in `spans`; the other lists name spans by trace and span id."
       },
-      "Mcp.Tools.FailureOccurrence": {
-        "type": "object",
-        "required": [
-          "trace_id",
-          "span_id",
-          "timestamp"
-        ],
-        "properties": {
-          "trace_id": {
-            "$ref": "#/components/schemas/Common.TraceId"
-          },
-          "span_id": {
-            "$ref": "#/components/schemas/Common.SpanId"
-          },
-          "session_id": {
-            "$ref": "#/components/schemas/Common.SessionId"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "message": {
-            "type": "string"
-          },
-          "release": {
-            "type": "string"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "FailureOccurrence contract."
-      },
       "Mcp.Tools.FailurePropagation": {
         "type": "object",
         "required": [
@@ -9986,26 +9742,6 @@
         },
         "description": "FailureRelease contract."
       },
-      "Mcp.Tools.FailureReleaseCount": {
-        "type": "object",
-        "required": [
-          "release",
-          "count"
-        ],
-        "properties": {
-          "release": {
-            "type": "string"
-          },
-          "count": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "FailureReleaseCount contract."
-      },
       "Mcp.Tools.FailureStatus": {
         "type": "string",
         "enum": [
@@ -10034,8 +9770,6 @@
         "required": [
           "failure_id",
           "etag",
-          "signature",
-          "normalized_message",
           "operation",
           "service",
           "first_seen",
@@ -10056,17 +9790,17 @@
           "etag": {
             "$ref": "#/components/schemas/Common.ETag"
           },
-          "signature": {
-            "type": "string"
-          },
           "exception_type": {
-            "type": "string"
+            "type": "string",
+            "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
           },
           "normalized_message": {
-            "type": "string"
+            "type": "string",
+            "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
           },
           "operation": {
-            "type": "string"
+            "type": "string",
+            "description": "The failing spans' `http.route`, else their span name."
           },
           "service": {
             "type": "string"
@@ -10126,7 +9860,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "FailureSummary contract."
+        "description": "A failure with its recorded status over the whole retained history: one fingerprint of service, operation, exception or error type and normalized message."
       },
       "Mcp.Tools.FanoutEvidence": {
         "type": "object",
@@ -10328,7 +10062,7 @@
           },
           "failure_id": {
             "$ref": "#/components/schemas/Common.FailureId",
-            "description": "A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
+            "description": "A failure_id from triage; the trace of its latest occurrence is examined, and the context holds the notes on the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "ci_run_id": {
             "$ref": "#/components/schemas/Common.SessionId",
@@ -10354,7 +10088,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage or list_failures name a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose."
+        "description": "Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage names a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose."
       },
       "Mcp.Tools.GetFailureContextOutput": {
         "type": "object",
@@ -11119,128 +10853,6 @@
           "not": {}
         },
         "description": "GroupStructure contract."
-      },
-      "Mcp.Tools.ListFailuresInput": {
-        "type": "object",
-        "properties": {
-          "lookback_minutes": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "matchers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Common.TelemetryMatcher"
-            },
-            "maxItems": 32,
-            "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
-          },
-          "limit": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 1,
-            "maximum": 200,
-            "description": "Items per page of each list the tool returns, 1 to 200; default 100. `has_more` and `next_cursor` continue the same query.",
-            "default": 100
-          },
-          "cursor": {
-            "$ref": "#/components/schemas/Common.Cursor",
-            "description": "`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window."
-          },
-          "service_name": {
-            "type": "string",
-            "description": "Restrict the analysis to this service (`service.name`, exact match)."
-          },
-          "environment": {
-            "type": "string",
-            "description": "Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`."
-          },
-          "release": {
-            "type": "string",
-            "description": "Keep failures on spans of this release (resource `service.version`)."
-          },
-          "status": {
-            "$ref": "#/components/schemas/Mcp.Tools.FailureStatusFilter",
-            "description": "Keep failures with this recorded status: `open` (default), `resolved` or `ignored`, or `all`."
-          },
-          "sort_by": {
-            "type": "string",
-            "enum": [
-              "count",
-              "last_seen",
-              "first_seen",
-              "affected_traces"
-            ],
-            "description": "Order of the failures: `count` (default) most occurrences first, `last_seen` most recent first, `first_seen` oldest first, `affected_traces` most traces first."
-          },
-          "failure_id": {
-            "$ref": "#/components/schemas/Common.FailureId",
-            "description": "One failure, with its counts per release, latest occurrences and discriminating attributes; not_found when no retained span has it."
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "Lists the window's failures, one row per fingerprint (service, operation, exception or error type and normalized message), with counts, affected traces and sessions, releases and recorded status. Use triage first to rank what changed; use this to filter by status or release or to sort, and pass `failure_id` for one failure's counts per release, latest occurrences and discriminating attributes. Default: open failures of the last 60 minutes, most occurrences first."
-      },
-      "Mcp.Tools.ListFailuresOutput": {
-        "type": "object",
-        "required": [
-          "window",
-          "coverage",
-          "has_more",
-          "failures"
-        ],
-        "properties": {
-          "window": {
-            "$ref": "#/components/schemas/Common.ToolWindow"
-          },
-          "coverage": {
-            "$ref": "#/components/schemas/Common.ToolCoverage"
-          },
-          "page_totals": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
-          },
-          "has_more": {
-            "type": "boolean",
-            "description": "Whether more items exist beyond this page. False only when the result is complete; `next_cursor` is present exactly when this is true."
-          },
-          "next_cursor": {
-            "$ref": "#/components/schemas/Common.Cursor",
-            "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-          },
-          "failures": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.FailureDetail"
-            }
-          },
-          "error": {
-            "$ref": "#/components/schemas/Mcp.Tools.ToolError"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "ListFailuresOutput contract."
       },
       "Mcp.Tools.ListMetricsInput": {
         "type": "object",
@@ -14125,45 +13737,76 @@
         "type": "object",
         "required": [
           "failure_id",
-          "signature",
+          "etag",
+          "status",
+          "service",
+          "operation",
           "change",
           "count",
           "baseline_count",
           "affected_traces",
-          "services",
           "first_seen",
-          "status",
-          "etag"
+          "last_seen",
+          "annotation_count"
         ],
         "properties": {
           "failure_id": {
             "$ref": "#/components/schemas/Common.FailureId"
           },
-          "signature": {
+          "etag": {
+            "$ref": "#/components/schemas/Common.ETag",
+            "description": "Current state version; pass it to update_failure_status."
+          },
+          "status": {
+            "$ref": "#/components/schemas/Mcp.Tools.FailureStatus",
+            "description": "The recorded status; update_failure_status sets it."
+          },
+          "assignee": {
+            "type": "string",
+            "description": "Who owns the failure, when update_failure_status named one."
+          },
+          "ignore_until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "With `status: ignored`, when triage lists the failure again."
+          },
+          "service": {
             "type": "string"
+          },
+          "operation": {
+            "type": "string",
+            "description": "The failing spans' `http.route`, else their span name."
+          },
+          "exception_type": {
+            "type": "string",
+            "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
+          },
+          "normalized_message": {
+            "type": "string",
+            "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
           },
           "change": {
             "$ref": "#/components/schemas/Mcp.Tools.FailureChange"
           },
           "count": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Occurrences in the window."
           },
           "baseline_count": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Occurrences in the baseline window."
           },
           "affected_traces": {
             "type": "integer",
             "format": "int64"
           },
-          "services": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "first_seen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_seen": {
             "type": "string",
             "format": "date-time"
           },
@@ -14174,22 +13817,20 @@
             "$ref": "#/components/schemas/Mcp.Tools.FailureRelease",
             "description": "The release the failing spans run on (their most common `service.version`), when it was first seen in the window."
           },
-          "status": {
-            "$ref": "#/components/schemas/Mcp.Tools.FailureStatus"
-          },
-          "etag": {
-            "$ref": "#/components/schemas/Common.ETag",
-            "description": "Current state version; pass it to update_failure_status."
-          },
           "root_cause_failure_id": {
             "$ref": "#/components/schemas/Common.FailureId",
             "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
+          },
+          "annotation_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Annotations on the failure; get_failure_context with its `failure_id` returns them."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "TriageFailure contract."
+        "description": "One failure of the window: its fingerprint (service, operation, exception or error type and normalized message), recorded status and how it changed against the baseline."
       },
       "Mcp.Tools.TriageInput": {
         "type": "object",
@@ -14242,12 +13883,16 @@
           "baseline": {
             "$ref": "#/components/schemas/Mcp.Tools.AnalysisBaseline",
             "description": "The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back."
+          },
+          "status": {
+            "$ref": "#/components/schemas/Mcp.Tools.FailureStatusFilter",
+            "description": "Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Start of an investigation: the window's failures, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context; list_failures lists failures by status, and an ignored failure stays out of triage until its `ignore_until`, if any, passes."
+        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status."
       },
       "Mcp.Tools.TriageOutput": {
         "type": "object",
@@ -14412,11 +14057,11 @@
         "properties": {
           "failure_id": {
             "$ref": "#/components/schemas/Common.FailureId",
-            "description": "The failure to update, from triage or list_failures."
+            "description": "The failure to update, from triage."
           },
           "etag": {
             "$ref": "#/components/schemas/Common.ETag",
-            "description": "The failure's current `etag` from triage or list_failures, sent as If-Match; a stale etag is refused."
+            "description": "The failure's current `etag` from triage (`status: all` lists every failure), sent as If-Match; a stale etag is refused."
           },
           "status": {
             "$ref": "#/components/schemas/Mcp.Tools.FailureStatus",

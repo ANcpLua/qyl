@@ -30,7 +30,7 @@ public sealed partial class AnalysisApiTests
     [TestMethod]
     [DataRow("query_metric", """{"metric_name":"absent.metric"}""", "metric", "absent.metric", "list_metrics")]
     [DataRow("get_trace", """{"trace_id":"0000000000000000000000000000abcd"}""", "trace", "0000000000000000000000000000abcd", "list_traces")]
-    [DataRow("list_failures", """{"failure_id":"fail_absent"}""", "failure", "fail_absent", "triage")]
+    [DataRow("get_failure_context", """{"failure_id":"fail_absent"}""", "failure", "fail_absent", "triage")]
     [DataRow("run_saved_query", """{"id":"sq_absent"}""", "saved_query", "sq_absent", "list_saved_queries")]
     public async Task A_not_found_names_what_is_missing_and_the_tool_that_lists_it(string operation, string input, string type, string id, string tool)
     {

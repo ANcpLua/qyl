@@ -16,7 +16,6 @@ internal sealed partial class AnalysisEngine
     private (int Default, int Maximum) Limits => _operation switch
     {
         "triage" => (TriageInput.LimitDefault, TriageInput.LimitMaximum),
-        "list_failures" => (ListFailuresInput.LimitDefault, ListFailuresInput.LimitMaximum),
         "get_failure_context" => (GetFailureContextInput.LimitDefault, GetFailureContextInput.LimitMaximum),
         "compare_groups" => (CompareGroupsInput.LimitDefault, CompareGroupsInput.LimitMaximum),
         "compare_traces" => (CompareTracesInput.LimitDefault, CompareTracesInput.LimitMaximum),

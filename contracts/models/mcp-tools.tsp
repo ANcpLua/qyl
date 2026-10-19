@@ -712,7 +712,7 @@ model QueryMetricOutput {
 // Write tools (scope qyl:write; delete needs qyl:delete)
 // -----------------------------------------------------------------------------
 
-@doc("Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, list_failures counts the notes on a failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.")
+@doc("Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.")
 model CreateAnnotationInput {
   @doc("Retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused.")
   @minLength(1) @maxLength(255)

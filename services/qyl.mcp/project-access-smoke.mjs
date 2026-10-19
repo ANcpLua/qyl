@@ -166,7 +166,7 @@ try {
     "delete_record", "list_saved_queries", "run_saved_query"];
   /** @returns {Array<[string, Record<string, unknown>]>} */
   function extraReads(f, failure) { return [
-    ["triage", {}], ["list_failures", {}], ["get_failure_context", { trace_id: f.traceId }],
+    ["triage", {}], ["triage", { status: "all" }], ["get_failure_context", { trace_id: f.traceId }],
     // Each project holds one span, so "rest" would be an empty group B, which the Collector refuses.
     ["compare_groups", { signal: "spans", group_a: { matchers: [] },
       group_b: { matchers: [{ key: "gen_ai.tool.name", op: "eq", value: `${f.marker}_tool` }] } }],
@@ -206,7 +206,7 @@ try {
         assert(!json.includes(foreign.marker), `${name} leaked the other project's data`);
         for (const entry of fixtures) assert(!json.includes(entry.apiKey), `${name} exposed a key`);
       }
-      const failures = await client.callTool({ name: "list_failures", arguments: {} });
+      const failures = await client.callTool({ name: "triage", arguments: {} });
       assert(!failures.isError, JSON.stringify(failures));
       const failure = failures.structuredContent.failures[0];
       assert(failure, "each project has its own seeded failure");

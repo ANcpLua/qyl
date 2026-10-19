@@ -19,7 +19,7 @@ public sealed partial class AnalysisApiTests
                 with { Name = "checkout", StatusMessage = failed ? "boom" : null };
         await host.Store.EnqueueAsync(new SpanBatch([Checkout(1, 180, true), Checkout(2, 150, false), Checkout(3, 120, true), Checkout(4, 90, false), Checkout(5, 5, false)]),
             testContext.CancellationToken);
-        var failureId = Assert.ContainsSingle((await Read(host, "list_failures", """{"lookback_minutes":240}""")).GetProperty("failures").EnumerateArray())
+        var failureId = Assert.ContainsSingle((await Read(host, "triage", """{"lookback_minutes":240}""")).GetProperty("failures").EnumerateArray())
             .GetProperty("failure_id").GetString();
         var since = FixtureUtcNow.AddMinutes(-10.5).ToString("O");
 

@@ -23,7 +23,7 @@ The catalog follows `services/qyl.mcp/tool-manifest.snapshot.json`.
 
 Read operations carry `readOnlyHint: true`:
 
-- Failure investigation: `triage`, `list_failures`, `get_failure_context`, `verify_fix`.
+- Failure investigation: `triage`, `get_failure_context`, `verify_fix`.
 - Execution records: `list_traces`, `get_trace`, `list_sessions`, `get_agent_run`, `ci_log`.
 - Logs and metrics: `search_logs`, `list_metrics`, `get_metric_series`, `query_metric`.
 - Comparisons and discovery: `aggregate_telemetry`, `compare_groups`, `compare_traces`, `discover_attributes`.

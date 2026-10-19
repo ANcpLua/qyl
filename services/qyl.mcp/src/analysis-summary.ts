@@ -19,7 +19,6 @@ import type {
   GetMetricSeriesOutput,
   GetServiceMapOutput,
   GetTraceOutput,
-  ListFailuresOutput,
   ListMetricsOutput,
   ListReleasesOutput,
   ListSavedQueriesOutput,
@@ -31,6 +30,7 @@ import type {
   ToolCoverage,
   ToolLogRow,
   ToolTraceRow,
+  TriageFailure,
   TriageOutput,
   TriageRegression,
   VerifyFixOutput,
@@ -108,12 +108,17 @@ function more(output: { has_more?: boolean; next_cursor?: string }): string {
   return output.has_more === true && output.next_cursor !== undefined ? " More: repeat with next_cursor." : "";
 }
 
+/** A failure as service/operation, its error type and its message, the way its fingerprint reads. */
+function failureName(row: TriageFailure): string {
+  return `${row.service}/${short(row.operation, 50)}${row.exception_type ? ` ${short(row.exception_type, 40)}` : ""}${row.normalized_message ? `: "${short(row.normalized_message, 60)}"` : ""}`;
+}
+
 function triage(output: TriageOutput): string {
   const head = `triage: ${output.failures.length} failures, ${output.regressions.length} regressions, ${output.releases.length} releases, ${output.silent_services.length} silent services.`;
   const failures = top(output.failures, (row, index) => {
     const release = row.coinciding_release === undefined ? "" : ` with ${row.coinciding_release.service}@${row.coinciding_release.version}`;
     const cause = row.root_cause_failure_id === undefined || row.root_cause_failure_id === row.failure_id ? "" : `, caused by ${row.root_cause_failure_id}`;
-    return `${index + 1}. ${row.change} ×${row.count} ${short(row.signature, 60)} [${row.services.join(", ")}]${release}${cause} (failure_id ${row.failure_id}${row.status === "open" ? "" : `, ${row.status}`})`;
+    return `${index + 1}. ${row.change} ×${row.count} ${failureName(row)}${release}${cause} (failure_id ${row.failure_id}${row.status === "open" ? "" : `, ${row.status}`})`;
   });
   const regressions = top(output.regressions, regression);
   const silent = top(output.silent_services, (row) => `${row.service} last seen ${row.last_seen}`);
@@ -124,13 +129,6 @@ function triage(output: TriageOutput): string {
       : output.silent_services[0] !== undefined ? `check_telemetry_health service_name=${output.silent_services[0].service}`
         : "widen lookback_minutes to cover the incident";
   return `${head}${failures ? ` Top failures: ${failures}.` : ""}${regressions ? ` Regressions: ${regressions}.` : ""}${silent ? ` Silent: ${silent}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
-}
-
-function listFailures(output: ListFailuresOutput): string {
-  const rows = top(output.failures, (row, index) =>
-    `${index + 1}. ${row.service}/${short(row.operation, 50)} ×${row.count} ${row.status} "${short(row.normalized_message, 60)}" (failure_id ${row.failure_id}, etag ${row.etag})`);
-  const next = output.failures[0] === undefined ? "triage with a wider lookback_minutes" : `get_failure_context failure_id=${output.failures[0].failure_id}`;
-  return `list_failures: ${output.failures.length} failures.${rows ? ` ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
 }
 
 function failureContext(input: Args, output: GetFailureContextOutput): string {
@@ -371,7 +369,6 @@ export function analysisHeadline(operation: string, input: object, output: objec
   const call = input as Args;
   switch (operation) {
     case "triage": return triage(output as TriageOutput);
-    case "list_failures": return listFailures(output as ListFailuresOutput);
     case "get_failure_context": return failureContext(call, output as GetFailureContextOutput);
     case "compare_groups": return compareGroups(output as CompareGroupsOutput);
     case "compare_traces": return compareTraces(call, output as CompareTracesOutput);

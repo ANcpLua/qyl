@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Copy or check the exact skill revisions declared in skill-sources.json.
+"""Copy or check the exact skill revisions declared in skill-sources.json, and the
+investigation skill the qyl MCP server serves from this repository.
 
 Use --source-root with local clones; otherwise retrieve the pinned public archives.
-Only the named component skill directories and their license notices are managed.
-The companion routing is adapted to the combined qyl namespace during copying;
-Markdown files keep one trailing newline.
+Only the named component skill directories, their license notices and the in-repo
+skills are managed. The companion routing is adapted to the combined qyl namespace
+during copying; Markdown files keep one trailing newline.
 """
 import argparse
 from io import BytesIO
@@ -19,6 +20,8 @@ from urllib.request import Request, urlopen
 import zipfile
 
 MAX_ARCHIVE_BYTES = 20 * 1024 * 1024
+# The skills the MCP server serves, copied from their source in this repository.
+IN_REPO_SKILLS = {"qyl-investigate": "services/qyl.mcp/skills/qyl-investigate"}
 
 
 def component_files(component, source_root):
@@ -97,6 +100,24 @@ def select_files(component, members):
     return selected
 
 
+def in_repo_files(root):
+    repository = root.parent.parent
+    selected = {}
+    for name, source in IN_REPO_SKILLS.items():
+        directory = repository / source
+        if not (directory / "SKILL.md").is_file():
+            raise ValueError(f"Missing in-repo skill: {source}")
+        for path in sorted(directory.rglob("*")):
+            if path.is_symlink():
+                raise ValueError(f"Unsafe in-repo skill entry: {path}")
+            if path.is_file():
+                data = path.read_bytes()
+                if path.suffix == ".md":
+                    data = data.rstrip(b"\r\n") + b"\n"
+                selected[f"skills/{name}/{path.relative_to(directory).as_posix()}"] = (data, 0o644)
+    return selected
+
+
 def bundle_routing(data):
     """Keep the upstream task table while selecting skills in this same bundle."""
     text = data.decode()
@@ -131,6 +152,11 @@ def main():
         expected.update(files)
         owned.extend(root / "skills" / name for name in component["skills"])
         owned.append(root / "licenses" / component["name"])
+    local = in_repo_files(root)
+    if set(expected) & set(local):
+        raise ValueError("In-repo skills conflict with a component")
+    expected.update(local)
+    owned.extend(root / "skills" / name for name in IN_REPO_SKILLS)
     if args.check:
         actual = {str(p.relative_to(root)): (p.read_bytes(), stat.S_IMODE(p.stat().st_mode))
                   for directory in owned for p in directory.rglob("*") if p.is_file()}
@@ -151,7 +177,8 @@ def main():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
             path.chmod(mode)
-    print(f"{'Checked' if args.check else 'Bundled'} {sum(len(c['skills']) for c in components)} skills from {len(components)} pinned sources ({len(expected)} files).")
+    print(f"{'Checked' if args.check else 'Bundled'} {sum(len(c['skills']) for c in components)} skills from {len(components)} pinned sources"
+          f" and {len(IN_REPO_SKILLS)} from this repository ({len(expected)} files).")
 
 
 if __name__ == "__main__":

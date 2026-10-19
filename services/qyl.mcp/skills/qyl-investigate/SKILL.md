@@ -30,7 +30,7 @@ saved queries and failure status in that project, never the telemetry.
 | --- | --- | --- |
 | What is wrong or what changed (open-ended) | `triage` | `get_failure_context` for the top failure, `list_releases` when a release coincides |
 | Why this request, trace or session failed | `get_failure_context` with exactly one of `trace_id`, `session_id`, `failure_id` or `ci_run_id` | `compare_traces` against a passing execution, `get_trace` for the span tree |
-| Which errors recur and their status | `list_failures` | `update_failure_status` when the user records a decision |
+| Which errors recur and their status | `triage` with `status` `all`, `resolved` or `ignored` | `update_failure_status` when the user records a decision |
 | Why something is slow | `aggregate_telemetry` grouped by operation with `duration_p95` | `get_trace` with `selection: critical_path` on a slow `trace_id` |
 | Whether a fix held | `verify_fix` with the `failure_id` and `since` (when the fix shipped) or `release` | repeat with the returned `verify_id` once `needs` is met |
 | How two populations differ | `compare_groups` | `discover_attributes` to choose the discriminating keys |
@@ -89,6 +89,8 @@ saved queries and failure status in that project, never the telemetry.
   that did not hold the whole window after it.
 - `triage` ranks failures by `change`: `new`, `worsening`, `ongoing`,
   `recovering`, `regressed`. A `coinciding_release` is a lead, not a cause.
+  It lists the open failures, those that need attention, unless `status`
+  asks for `resolved`, `ignored` or `all`.
 - `get_failure_context.observed` is evidence: `spans` holds each span once,
   and `root_cause_span`, `error_spans` and `propagation` name spans in it by
   `trace_id` and `span_id`, beside logs, retries and fan-out. `comparison`
@@ -106,12 +108,14 @@ saved queries and failure status in that project, never the telemetry.
 
 - `create_annotation` puts a plain-text note on a trace, span, session or
   failure (`target: {kind: "failure", failure_id}`); `get_trace`,
-  `list_sessions` and `list_failures` show it later with its `id` and `etag`.
+  `list_sessions` and `get_failure_context` show it later with its `id` and
+  `etag`, and `triage` counts the notes on each failure.
   `update_annotation` and `delete_record` take that `id` and the current `etag`; a
   stale etag fails with `precondition_failed`, so read the object again
   first.
 - `update_failure_status` sets `open`, `resolved` or `ignored` (with
-  `ignore_until`) and an `assignee`; `list_failures` shows the result.
+  `ignore_until`) and an `assignee`; `triage` with that `status` shows the
+  result.
 - `create_saved_query` stores a named filter, `list_saved_queries` finds it
   and `run_saved_query` answers it.
 

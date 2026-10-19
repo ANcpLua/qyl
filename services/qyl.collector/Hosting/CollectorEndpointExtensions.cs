@@ -65,7 +65,6 @@ internal static partial class CollectorEndpointExtensions
         // Read operations share typed contract dispatch; failure-status changes
         // retain their explicit write route below.
         api.MapPost("/analysis/triage", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("triage");
-        api.MapPost("/analysis/list_failures", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("list_failures");
         api.MapPost("/analysis/get_failure_context", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("get_failure_context");
         api.MapPost("/analysis/compare_groups", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("compare_groups");
         api.MapPost("/analysis/compare_traces", AnalyzeReadEndpointAsync).RequireKeyRole(ApiKeyRoles.Read).WithName("compare_traces");

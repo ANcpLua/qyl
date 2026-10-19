@@ -41,7 +41,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         AnalysisMatchers.Validate(input["matchers"]);
         var result = operation switch
         {
-            "triage" => Triage(input), "list_failures" => ListFailures(input), "get_failure_context" => FailureContext(input),
+            "triage" => Triage(input), "get_failure_context" => FailureContext(input),
             "compare_groups" => CompareGroups(input), "compare_traces" => CompareTraces(input), "verify_fix" => VerifyFix(input),
             "aggregate_telemetry" => Aggregate(input), "discover_attributes" => Discover(input), "get_agent_run" => AgentRun(input),
             "list_releases" => Releases(input), "get_service_map" => ServiceMap(input), "check_telemetry_health" => Health(input),
@@ -106,59 +106,35 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         [.. _spans.Where(s => s.Error && FailureId(Signature(s)) == id)];
     public bool OwnsFailure(string id) => FailureRecords(id).Count > 0;
     private static AnalysisInputException NoFailure(string id) =>
-        new("failure_id", $"Failure {id} was not found in this project; triage and list_failures list the failures.", "failure.not_found") { Missing = id };
+        new("failure_id", $"Failure {id} was not found in this project; triage lists the failures.", "failure.not_found") { Missing = id };
+    // A failure over every occurrence the snapshot holds, as update_failure_status returns it.
+    public JsonObject FailureSummary(string id) => Failure(FailureRecords(id).GroupBy(Signature).Single());
     private JsonObject Failure(IGrouping<string, AnalysisRecord> group)
     {
         var records = group.ToList(); var first = records[0]; var id = FailureId(group.Key); var state = State(id);
         var notes = snapshot.Annotations.Count(n => AnnotationTargetsFailure(n, id, records));
-        return J.O(("failure_id", id), ("etag", Etag(id)), ("signature", group.Key), ("exception_type", FailureKind(first)),
-            ("normalized_message", J.Normalize(Message(first))), ("operation", Operation(first)), ("service", first.Service),
+        return J.O(("failure_id", id), ("etag", Etag(id)), ("exception_type", NonEmpty(FailureKind(first))),
+            ("normalized_message", NonEmpty(J.Normalize(Message(first)))), ("operation", Operation(first)), ("service", first.Service),
             ("first_seen", J.Time(records.Min(s => s.Start))), ("last_seen", J.Time(records.Max(s => s.Start))),
             ("count", records.Count), ("affected_traces", records.Select(s => s.TraceId).Distinct().Count()),
             ("affected_sessions", records.Select(s => s.SessionId).Where(s => s is not null).Distinct().Count()),
-            ("releases_seen", records.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Where(s => s.Length > 0).Distinct()),
+            ("releases_seen", records.Select(ReleaseOf).Where(s => s.Length > 0).Distinct()),
             ("status", J.String(state, "status") ?? "open"), ("updated_at", J.String(state, "updated_at") ?? J.Time(records.Min(s => s.Start))), ("ignore_until", state["ignore_until"]), ("assignee", state["assignee"]),
-            ("annotation_count", notes), ("example_trace_ids", records.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)),
-            ("raw_messages", records.Select(Message).Distinct().Take(3)));
+            ("annotation_count", notes), ("example_trace_ids", records.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)));
     }
-    private bool AnnotationTargetsFailure(AnnotationRow note, string id, List<AnalysisRecord> records)
-    {
-        var metadata = _state.GetValueOrDefault("annotation:" + note.AnnotationId);
-        if (metadata is not null && J.String(JsonNode.Parse(metadata.ValueJson)?["target"], "failure_id") == id) return true;
-        return note.TargetKind switch { "trace" => records.Any(r => r.TraceId == note.TraceId), "span" => records.Any(r => r.SpanId == note.SpanId && r.TraceId == note.TraceId), "session" => records.Any(r => r.SessionId == note.SessionId), _ => false };
-    }
-    private JsonObject ListFailures(JsonObject input)
-    {
-        var records = Select(input).Where(s => s.Error).ToList();
-        if (J.String(input, "failure_id") is { } id)
-        {
-            if (!OwnsFailure(id)) throw NoFailure(id);
-            records = [.. records.Where(s => FailureId(Signature(s)) == id)];
-        }
-        var failures = records.GroupBy(Signature).Select(Failure).Where(f => J.String(input, "status") == "all" || J.String(f, "status") == (J.String(input, "status") ?? "open"));
-        failures = J.String(input, "sort_by") switch
-        {
-            "first_seen" => failures.OrderBy(f => J.String(f, "first_seen"), StringComparer.Ordinal),
-            "last_seen" => failures.OrderByDescending(f => J.String(f, "last_seen"), StringComparer.Ordinal),
-            "affected_traces" => failures.OrderByDescending(f => J.Number(f, "affected_traces")),
-            _ => failures.OrderByDescending(f => J.Number(f, "count"))
-        };
-        var result = Page(input, "failures", failures.ThenByStable());
-        if (J.String(input, "failure_id") is not null)
-        {
-            if (result["failures"]?.AsArray().FirstOrDefault()?.AsObject() is not { } detail) return result;
-            detail["counts_per_release"] = J.A(records.GroupBy(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Select(g => J.O(("release", g.Key), ("count", g.Count()))));
-            detail["recent_occurrences"] = J.A(records.OrderByDescending(r => r.Start).Take(3).Select(r => J.O(("trace_id", r.TraceId), ("span_id", r.Id), ("session_id", r.SessionId), ("timestamp", J.Time(r.Start)), ("message", Message(r)), ("release", J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))))));
-            detail["discriminators"] = Discriminators(records, [.. Select(input).Except(records)], "both", 10);
-        }
-        return result;
-    }
+    private static string? NonEmpty(string value) => value.Length > 0 ? value : null;
+    private bool AnnotationTargetsFailure(AnnotationRow note, string id, List<AnalysisRecord> records) => FailureNote(note, id)
+        || note.TargetKind switch { "trace" => records.Any(r => r.TraceId == note.TraceId), "span" => records.Any(r => r.SpanId == note.SpanId && r.TraceId == note.TraceId), "session" => records.Any(r => r.SessionId == note.SessionId), _ => false };
+    // A note whose target is the failure itself; its failure id lives in the annotation's stored metadata.
+    private bool FailureNote(AnnotationRow note, string id) => _state.GetValueOrDefault("annotation:" + note.AnnotationId) is { } metadata
+        && J.String(JsonNode.Parse(metadata.ValueJson)?["target"], "failure_id") == id;
     private JsonObject Triage(JsonObject input)
     {
         var current = Select(input); var before = Select(input, window: Baseline(input));
         var releases = ReleaseList([.. current, .. before]);
         var baselineOperations = before.GroupBy(s => (s.Service, Op: Operation(s))).ToDictionary(g => g.Key, g => g.ToList());
         var errors = current.Where(s => s.Error).GroupBy(Signature); var baseline = before.Where(s => s.Error).GroupBy(Signature).ToDictionary(g => g.Key, g => g.Count());
+        var listed = J.String(input, "status") ?? "open";
         var failures = errors.Select(g =>
         {
             var f = Failure(g); var id = J.String(f, "failure_id")!; var state = State(id);
@@ -166,13 +142,22 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             var changedAfter = J.Date(state, "updated_at");
             var change = status == "resolved" && changedAfter.HasValue && g.Any(s => s.Start > QylTimeConversions.ToUnixNanoUnsigned(changedAfter.Value))
                 ? "regressed" : old is 0 ? "new" : count > old ? "worsening" : count < old ? "recovering" : "ongoing";
-            f["change"] = change; f["baseline_count"] = old;
-            f["services"] = J.N(g.Select(s => s.Service).Distinct()); f["example_trace_id"] = g.First().TraceId;
+            f["change"] = change; f["baseline_count"] = old; f["example_trace_id"] = g.First().TraceId;
             f["coinciding_release"] = CoincidingRelease(g, releases)?.DeepClone();
             f["root_cause_failure_id"] = RootCauseFailure(g);
             return f;
-        }).Where(f => J.String(f, "status") != "ignored" || J.Date(f, "ignore_until") is { } expiry && expiry <= now)
-          .OrderByDescending(f => J.Number(f, "count")).ThenBy(f => J.String(f, "failure_id"), StringComparer.Ordinal).ToList();
+        }).Where(f => listed switch
+        {
+            "all" => true,
+            // Open is what needs attention: a resolved failure that recurred and an ignored one whose ignore_until passed.
+            "open" => J.String(f, "status") switch
+            {
+                "resolved" => J.String(f, "change") == "regressed",
+                "ignored" => J.Date(f, "ignore_until") is { } expiry && expiry <= now,
+                _ => true
+            },
+            _ => J.String(f, "status") == listed
+        }).OrderByDescending(f => J.Number(f, "count")).ThenBy(f => J.String(f, "failure_id"), StringComparer.Ordinal).ToList();
         var regressions = new List<JsonObject>();
         foreach (var g in current.GroupBy(s => (s.Service, Op: Operation(s))))
         {
@@ -229,10 +214,4 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         foreach (var key in result.Where(static p => p.Value is null || p.Key == "parent_span_id" && J.Text(p.Value).Length is 0).Select(static p => p.Key).ToArray()) result.Remove(key);
         return result;
     }
-}
-
-internal static class AnalysisSortExtensions
-{
-    public static IEnumerable<JsonObject> ThenByStable(this IEnumerable<JsonObject> source) => source is IOrderedEnumerable<JsonObject> ordered
-        ? ordered.ThenBy(static f => J.String(f, "failure_id"), StringComparer.Ordinal) : source.OrderBy(static f => J.String(f, "failure_id"), StringComparer.Ordinal);
 }

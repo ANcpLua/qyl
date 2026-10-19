@@ -47,7 +47,7 @@ function framed(result) {
 
 // Presence of named tools; the committed manifest pins the whole catalog.
 const READ_TOOLS = [
-  "triage", "list_failures", "get_failure_context", "compare_groups", "compare_traces", "verify_fix",
+  "triage", "get_failure_context", "compare_groups", "compare_traces", "verify_fix",
   "aggregate_telemetry", "discover_attributes", "get_agent_run", "list_releases", "get_service_map",
   "check_telemetry_health", "get_mcp_stats", "ci_log", "get_metric_series", "get_trace", "list_metrics",
   "list_saved_queries", "list_sessions", "list_traces", "query_metric", "run_saved_query", "search_logs",

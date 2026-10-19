@@ -58,7 +58,7 @@ public sealed partial class AnalysisApiTests
             EventsJson = """[{"name":"exception","attributes":{"exception.type":"TimeoutException"}}]"""
         }).ToArray();
         await host.Store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
-        var first = await Read(host, "list_failures", "{}");
+        var first = await Read(host, "triage", "{}");
         var failure = Assert.ContainsSingle(first.GetProperty("failures").EnumerateArray());
         Assert.AreEqual(100, failure.GetProperty("count").GetInt32());
         Assert.AreEqual("TimeoutException", failure.GetProperty("exception_type").GetString());
@@ -100,7 +100,7 @@ public sealed partial class AnalysisApiTests
     {
         await using var host = await StartAsync(testContext.CancellationToken);
         await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), Timestamp, Timestamp + 10, status: 2)]), testContext.CancellationToken);
-        var failure = (await Read(host, "list_failures", "{}")).GetProperty("failures")[0];
+        var failure = (await Read(host, "triage", "{}")).GetProperty("failures")[0];
         var route = "/api/v1/failures/" + failure.GetProperty("failure_id").GetString();
         var etag = failure.GetProperty("etag").GetString()!;
         var headers = new Dictionary<string, string> { ["If-Match"] = etag };
@@ -116,7 +116,7 @@ public sealed partial class AnalysisApiTests
         Assert.IsTrue((await host.JsonAsync(changed)).GetProperty("failure").TryGetProperty("updated_at", out _));
         using var stale = await host.SendAsync(HttpMethod.Patch, route, "writer", "{\"status\":\"ignored\"}", headers);
         Assert.AreEqual(HttpStatusCode.PreconditionFailed, stale.StatusCode);
-        Assert.AreEqual("resolved", (await Read(host, "list_failures", "{\"status\":\"all\"}")).GetProperty("failures")[0].GetProperty("status").GetString());
+        Assert.AreEqual("resolved", (await Read(host, "triage", "{\"status\":\"all\"}")).GetProperty("failures")[0].GetProperty("status").GetString());
     }
 
     [TestMethod]

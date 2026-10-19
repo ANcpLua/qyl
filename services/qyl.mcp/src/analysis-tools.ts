@@ -16,25 +16,13 @@ export function registerAnalysisTools(server: McpServer): void {
     "triage",
     {
       title: "Triage",
-      description: "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed.",
+      description: "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status.",
       inputSchema: contractSchema("Mcp.Tools.TriageInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
     },
     (args, ctx) => runTool(ctx, "triage", 1, async (scope) =>
       queryAnalysis("triage", args, "Mcp.Tools.TriageOutput", scope)),
-  );
-  server.registerTool(
-    "list_failures",
-    {
-      title: "List Failures",
-      description: "List failures grouped by stable fingerprints when investigating recurring errors or their recorded status.",
-      inputSchema: contractSchema("Mcp.Tools.ListFailuresInput"),
-      annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
-      _meta: TELEMETRY_TOOL_AUTH_META,
-    },
-    (args, ctx) => runTool(ctx, "list_failures", 1, async (scope) =>
-      queryAnalysis("list_failures", args, "Mcp.Tools.ListFailuresOutput", scope)),
   );
   server.registerTool(
     "get_failure_context",
@@ -172,7 +160,7 @@ export function registerAnalysisTools(server: McpServer): void {
     "update_failure_status",
     {
       title: "Update Failure Status",
-      description: "Set a failure's status or assignee when recording triage decisions, returning the stored failure available through list_failures.",
+      description: "Set a failure's status or assignee when recording triage decisions, returning the stored failure that triage then lists by status.",
       inputSchema: contractSchema("Mcp.Tools.UpdateFailureStatusInput"),
       annotations: UPDATE_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("update_failure_status", WRITE_SCOPES),
@@ -193,7 +181,7 @@ export function registerAnalysisTools(server: McpServer): void {
       await scope.step("Failure status saved");
       const { failure } = output;
       return telemetryToolResult(
-        `update_failure_status: failure ${failure.failure_id} is now ${failure.status}${failure.assignee ? `, assignee ${failure.assignee}` : ""}, etag ${failure.etag}. → list_failures failure_id=${failure.failure_id}`,
+        `update_failure_status: failure ${failure.failure_id} is now ${failure.status}${failure.assignee ? `, assignee ${failure.assignee}` : ""}, etag ${failure.etag}. → triage status=${failure.status}`,
         output,
       );
     }),

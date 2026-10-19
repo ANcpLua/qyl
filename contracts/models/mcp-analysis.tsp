@@ -66,25 +66,6 @@ model FailureRelease {
   revision?: string;
 }
 
-@doc("FailureOccurrence contract.")
-model FailureOccurrence {
-  @encodedName("application/json", "trace_id")
-  traceId: TraceId;
-  @encodedName("application/json", "span_id")
-  spanId: SpanId;
-  @encodedName("application/json", "session_id")
-  sessionId?: SessionId;
-  timestamp: utcDateTime;
-  message?: string;
-  release?: string;
-}
-
-@doc("FailureReleaseCount contract.")
-model FailureReleaseCount {
-  release: string;
-  count: int64;
-}
-
 @doc("AttributeAssociation contract.")
 model AttributeAssociation {
   key: string;
@@ -100,16 +81,18 @@ model AttributeAssociation {
   lift: float64 | null;
 }
 
-@doc("FailureSummary contract.")
+@doc("A failure with its recorded status over the whole retained history: one fingerprint of service, operation, exception or error type and normalized message.")
 model FailureSummary {
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
   etag: ETag;
-  signature: string;
+  @doc("The failing spans' `exception.type`, else their `error.type`; absent when they carry neither.")
   @encodedName("application/json", "exception_type")
   exceptionType?: string;
+  @doc("The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none.")
   @encodedName("application/json", "normalized_message")
-  normalizedMessage: string;
+  normalizedMessage?: string;
+  @doc("The failing spans' `http.route`, else their span name.")
   operation: string;
   service: string;
   @encodedName("application/json", "first_seen")
@@ -136,19 +119,7 @@ model FailureSummary {
   exampleTraceIds: TraceId[];
 }
 
-@doc("FailureDetail contract.")
-model FailureDetail {
-  ...FailureSummary;
-  @encodedName("application/json", "counts_per_release")
-  countsPerRelease?: FailureReleaseCount[];
-  discriminators?: AttributeAssociation[];
-  @encodedName("application/json", "recent_occurrences")
-  recentOccurrences?: FailureOccurrence[];
-  @encodedName("application/json", "raw_messages")
-  rawMessages?: string[];
-}
-
-@doc("Start of an investigation: the window's failures, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context; list_failures lists failures by status, and an ignored failure stays out of triage until its `ignore_until`, if any, passes.")
+@doc("Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status.")
 model TriageInput {
   ...OmitProperties<ServiceAnalysisInput, "limit">;
   @doc("Items per page of each list (failures, regressions, releases, silent services), 1 to 50; default 10. New failures rank first, so they lead the first page.")
@@ -156,33 +127,55 @@ model TriageInput {
   limit?: int32 = 10;
   @doc("The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back.")
   baseline?: AnalysisBaseline;
+  @doc("Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window.")
+  status?: FailureStatusFilter;
 }
 
-@doc("TriageFailure contract.")
+@doc("One failure of the window: its fingerprint (service, operation, exception or error type and normalized message), recorded status and how it changed against the baseline.")
 model TriageFailure {
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
-  signature: string;
+  @doc("Current state version; pass it to update_failure_status.")
+  etag: ETag;
+  @doc("The recorded status; update_failure_status sets it.")
+  status: FailureStatus;
+  @doc("Who owns the failure, when update_failure_status named one.")
+  assignee?: string;
+  @doc("With `status: ignored`, when triage lists the failure again.")
+  @encodedName("application/json", "ignore_until")
+  ignoreUntil?: utcDateTime;
+  service: string;
+  @doc("The failing spans' `http.route`, else their span name.")
+  operation: string;
+  @doc("The failing spans' `exception.type`, else their `error.type`; absent when they carry neither.")
+  @encodedName("application/json", "exception_type")
+  exceptionType?: string;
+  @doc("The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none.")
+  @encodedName("application/json", "normalized_message")
+  normalizedMessage?: string;
   change: FailureChange;
+  @doc("Occurrences in the window.")
   count: int64;
+  @doc("Occurrences in the baseline window.")
   @encodedName("application/json", "baseline_count")
   baselineCount: int64;
   @encodedName("application/json", "affected_traces")
   affectedTraces: int64;
-  services: string[];
   @encodedName("application/json", "first_seen")
   firstSeen: utcDateTime;
+  @encodedName("application/json", "last_seen")
+  lastSeen: utcDateTime;
   @encodedName("application/json", "example_trace_id")
   exampleTraceId?: TraceId;
   @doc("The release the failing spans run on (their most common `service.version`), when it was first seen in the window.")
   @encodedName("application/json", "coinciding_release")
   coincidingRelease?: FailureRelease;
-  status: FailureStatus;
-  @doc("Current state version; pass it to update_failure_status.")
-  etag: ETag;
   @doc("The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause.")
   @encodedName("application/json", "root_cause_failure_id")
   rootCauseFailureId?: FailureId;
+  @doc("Annotations on the failure; get_failure_context with its `failure_id` returns them.")
+  @encodedName("application/json", "annotation_count")
+  annotationCount: int64;
 }
 
 @doc("TriageRegression contract.")
@@ -219,30 +212,7 @@ model TriageOutput {
   error?: ToolError;
 }
 
-@doc("Lists the window's failures, one row per fingerprint (service, operation, exception or error type and normalized message), with counts, affected traces and sessions, releases and recorded status. Use triage first to rank what changed; use this to filter by status or release or to sort, and pass `failure_id` for one failure's counts per release, latest occurrences and discriminating attributes. Default: open failures of the last 60 minutes, most occurrences first.")
-model ListFailuresInput {
-  ...ServiceAnalysisInput;
-  @doc("Keep failures on spans of this release (resource `service.version`).")
-  release?: string;
-  @doc("Keep failures with this recorded status: `open` (default), `resolved` or `ignored`, or `all`.")
-  status?: FailureStatusFilter;
-  @doc("Order of the failures: `count` (default) most occurrences first, `last_seen` most recent first, `first_seen` oldest first, `affected_traces` most traces first.")
-  @encodedName("application/json", "sort_by")
-  sortBy?: "count" | "last_seen" | "first_seen" | "affected_traces";
-  @doc("One failure, with its counts per release, latest occurrences and discriminating attributes; not_found when no retained span has it.")
-  @encodedName("application/json", "failure_id")
-  failureId?: FailureId;
-}
-
-@doc("ListFailuresOutput contract.")
-model ListFailuresOutput {
-  ...ToolReadContext;
-  ...ToolPage;
-  failures: FailureDetail[];
-  error?: ToolError;
-}
-
-@doc("Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage or list_failures name a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.")
+@doc("Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage names a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.")
 model GetFailureContextInput {
   ...AnalysisInput;
   @doc("The failing trace, 32 lowercase hex characters. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
@@ -251,7 +221,7 @@ model GetFailureContextInput {
   @doc("A session whose traces hold the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
-  @doc("A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
+  @doc("A failure_id from triage; the trace of its latest occurrence is examined, and the context holds the notes on the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
   @doc("A CI run: its session id (ci_log's `run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id.")
@@ -389,11 +359,13 @@ model SimilarFailure {
   releases: string[];
 }
 
-@doc("FailureContext contract.")
+@doc("What surrounds the failure: other failures in the examined spans, regressions of the root cause's service and the notes.")
 model FailureContext {
+  @doc("Other failures among the examined spans; the explained failure is not among them.")
   @encodedName("application/json", "similar_failures")
   similarFailures: SimilarFailure[];
   changes: TriageRegression[];
+  @doc("Annotations on the examined traces, spans and sessions and on the explained failure.")
   annotations: Annotation[];
 }
 
@@ -1133,10 +1105,10 @@ model GetMcpStatsOutput {
 
 @doc("Records a triage decision on one failure: status `open`, `resolved` or `ignored`, an optional assignee and, for `ignored`, an optional `ignore_until`. Each call replaces all three and needs the failure's current `etag`; the stored failure returns with its new etag. Triage then reports a resolved failure that recurs as `regressed` and leaves an ignored one out until its `ignore_until`, if any, passes. Needs the qyl:write scope; telemetry is not changed.")
 model UpdateFailureStatusInput {
-  @doc("The failure to update, from triage or list_failures.")
+  @doc("The failure to update, from triage.")
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
-  @doc("The failure's current `etag` from triage or list_failures, sent as If-Match; a stale etag is refused.")
+  @doc("The failure's current `etag` from triage (`status: all` lists every failure), sent as If-Match; a stale etag is refused.")
   etag: ETag;
   @doc("The new status: `open`, `resolved` or `ignored`.")
   status: FailureStatus;

@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:492e163553efdcd0",
+  "contract_revision": "sha256:f66519a90d36dfc1",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -1090,7 +1090,7 @@
     {
       "name": "create_annotation",
       "title": "Create Annotation",
-      "description": "Create a labeled note on a trace, span, session or failure when recording a finding; get_trace, list_sessions or list_failures returns it.",
+      "description": "Create a labeled note on a trace, span, session or failure when recording a finding; get_trace, list_sessions or get_failure_context returns it.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1254,7 +1254,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 512,
-                    "description": "The annotated failure, e.g. from triage or list_failures."
+                    "description": "The annotated failure, e.g. from triage."
                   }
                 },
                 "description": "An annotation on one failure, named by its `failure_id`.",
@@ -1270,7 +1270,7 @@
             "description": "The note, plain text, at most 2000 characters."
           }
         },
-        "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, list_failures counts the notes on a failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.",
+        "description": "Attaches a note to a trace, span, session or failure in the project; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; update_annotation changes a note with its etag.",
         "additionalProperties": false
       }
     },
@@ -2276,7 +2276,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512,
-            "description": "A failure_id from triage or list_failures; the trace of its latest occurrence is examined. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
+            "description": "A failure_id from triage; the trace of its latest occurrence is examined, and the context holds the notes on the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "ci_run_id": {
             "type": "string",
@@ -2300,7 +2300,7 @@
             "default": 100
           }
         },
-        "description": "Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage or list_failures name a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.",
+        "description": "Explains one failed execution: its error spans with their ancestors, the root-cause span, propagation, retries and fan-out, correlated logs, the first divergence from the nearest successful execution of the same operation, similar failures and annotations. Give exactly one of trace_id, session_id, failure_id or ci_run_id; a request with none or several of them is rejected, and a failure_id examines the trace of its latest occurrence. Use it after triage names a failure; get_trace reads every span of a trace and compare_traces compares two executions you choose.",
         "additionalProperties": false
       }
     },
@@ -2916,190 +2916,6 @@
           }
         },
         "description": "Reads one trace: its time range, span and error counts, services, the spans `selection` picks as compact rows (service, name, start, duration in ms, status, attributes), each service's resource once, links, annotations and optionally correlated logs. Use it on a trace id from list_traces, triage or get_failure_context; get_failure_context already explains a failed trace and compare_traces compares two. The whole trace is read whatever the time range; its spans page by `max_spans`, default 100.",
-        "additionalProperties": false
-      }
-    },
-    {
-      "name": "list_failures",
-      "title": "List Failures",
-      "description": "List failures grouped by stable fingerprints when investigating recurring errors or their recorded status.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "qyl:read"
-            ]
-          }
-        ]
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "lookback_minutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 43200,
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339; default now."
-          },
-          "matchers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "key",
-                "op"
-              ],
-              "properties": {
-                "key": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 256,
-                  "description": "Attribute key, e.g. `http.route`, or `service.name` for the record's service."
-                },
-                "op": {
-                  "type": "string",
-                  "enum": [
-                    "eq",
-                    "neq",
-                    "in",
-                    "prefix",
-                    "contains",
-                    "exists",
-                    "gt",
-                    "gte",
-                    "lt",
-                    "lte"
-                  ],
-                  "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ],
-                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ],
-                    "description": "A comparison operand keeps its JSON type: a number or boolean is never coerced to a string."
-                  },
-                  "minItems": 1,
-                  "maxItems": 256,
-                  "description": "Operands of `in`, 1 to 256; the attribute must equal one of them."
-                },
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "span",
-                    "resource",
-                    "log"
-                  ],
-                  "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
-                }
-              },
-              "description": "One attribute predicate. It tests the record's own span or log attributes unless `scope` is `resource`; every matcher of a list must hold.",
-              "additionalProperties": false
-            },
-            "maxItems": 32,
-            "description": "Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded."
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 200,
-            "description": "Items per page of each list the tool returns, 1 to 200; default 100. `has_more` and `next_cursor` continue the same query.",
-            "default": 100
-          },
-          "cursor": {
-            "type": "string",
-            "description": "`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window."
-          },
-          "service_name": {
-            "type": "string",
-            "description": "Restrict the analysis to this service (`service.name`, exact match)."
-          },
-          "environment": {
-            "type": "string",
-            "description": "Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`."
-          },
-          "release": {
-            "type": "string",
-            "description": "Keep failures on spans of this release (resource `service.version`)."
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "open",
-                  "resolved",
-                  "ignored"
-                ],
-                "description": "Persisted failure triage status."
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "all"
-                ]
-              }
-            ],
-            "description": "Keep failures with this recorded status: `open` (default), `resolved` or `ignored`, or `all`."
-          },
-          "sort_by": {
-            "type": "string",
-            "enum": [
-              "count",
-              "last_seen",
-              "first_seen",
-              "affected_traces"
-            ],
-            "description": "Order of the failures: `count` (default) most occurrences first, `last_seen` most recent first, `first_seen` oldest first, `affected_traces` most traces first."
-          },
-          "failure_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512,
-            "description": "One failure, with its counts per release, latest occurrences and discriminating attributes; not_found when no retained span has it."
-          }
-        },
-        "description": "Lists the window's failures, one row per fingerprint (service, operation, exception or error type and normalized message), with counts, affected traces and sessions, releases and recorded status. Use triage first to rank what changed; use this to filter by status or release or to sort, and pass `failure_id` for one failure's counts per release, latest occurrences and discriminating attributes. Default: open failures of the last 60 minutes, most occurrences first.",
         "additionalProperties": false
       }
     },
@@ -4537,7 +4353,7 @@
     {
       "name": "triage",
       "title": "Triage",
-      "description": "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed.",
+      "description": "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4720,16 +4536,36 @@
               }
             ],
             "description": "The window to compare with: `previous_window` (default), the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back."
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "resolved",
+                  "ignored"
+                ],
+                "description": "Persisted failure triage status."
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "all"
+                ]
+              }
+            ],
+            "description": "Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window."
           }
         },
-        "description": "Start of an investigation: the window's failures, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context; list_failures lists failures by status, and an ignored failure stays out of triage until its `ignore_until`, if any, passes.",
+        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status.",
         "additionalProperties": false
       }
     },
     {
       "name": "update_annotation",
       "title": "Update Annotation",
-      "description": "Update annotation text, labels or class with its current etag when revising a finding; get_trace, list_sessions or list_failures returns it.",
+      "description": "Update annotation text, labels or class with its current etag when revising a finding; get_trace, list_sessions or get_failure_context returns it.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
@@ -4801,7 +4637,7 @@
     {
       "name": "update_failure_status",
       "title": "Update Failure Status",
-      "description": "Set a failure's status or assignee when recording triage decisions, returning the stored failure available through list_failures.",
+      "description": "Set a failure's status or assignee when recording triage decisions, returning the stored failure that triage then lists by status.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
@@ -4831,13 +4667,13 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512,
-            "description": "The failure to update, from triage or list_failures."
+            "description": "The failure to update, from triage."
           },
           "etag": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "description": "The failure's current `etag` from triage or list_failures, sent as If-Match; a stale etag is refused."
+            "description": "The failure's current `etag` from triage (`status: all` lists every failure), sent as If-Match; a stale etag is refused."
           },
           "status": {
             "type": "string",
