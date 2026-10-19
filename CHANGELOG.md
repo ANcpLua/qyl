@@ -1,5 +1,23 @@
 # Changelog
 
+## 17.0.5
+
+- 24 tools instead of 29, without aliases. `triage` takes over `list_failures` with a `status`
+  filter (default `open`, which also covers regressed failures and ignored ones past
+  `ignore_until`). `list_metrics` shows each instrument's attribute keys, their cardinality and
+  `suggested_group_by`, and `query_metric` with `raw` returns one series' recorded points
+  (`get_metric_series` is gone). `run_saved_query` lists the saved queries when `id` is omitted
+  (`list_saved_queries` is gone). `save_query` and `annotate` create without an `id` and update
+  with `id` and `etag` (`create_saved_query`, `update_saved_query`, `create_annotation` and
+  `update_annotation` are gone).
+- One name per concept across the tools: `query` for substring search, `*_prefix` for prefixes,
+  `baseline` for every comparison window (`previous_window`, `{start_time, end_time}` or
+  `{offset_minutes}`; `ci_log` takes `last_success`), `group_by` as a list, `order_by`,
+  `errors_only`, `limit` and `ci_run_id`. Answers use `duration_ms` and RFC 3339 times.
+- Coverage reports only what an answer read: `scan_complete` is true when the read was
+  complete, and `truncated` only when results were cut.
+- Empty and repeated fields are gone from the answers, including `mode`, which was always `live`.
+
 ## 17.0.4
 
 - Results read the way an agent reads them: a one-line headline naming the top rows, their ids
