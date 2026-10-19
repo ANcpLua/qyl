@@ -121,10 +121,10 @@ for (const revision of ["2026-07-28", "2025-11-25"] as const) {
       calls.push({ project, path: pathname });
       // Overlap calls to expose any process-global credential switching.
       await new Promise((resolve) => setTimeout(resolve, project === "owner" ? 5 : 1));
-      if (pathname === "/api/v1/analysis/list_traces") return Response.json({ ...readContext(1), traces: [toolSummary(selected)], mode: "live", has_more: false });
+      if (pathname === "/api/v1/analysis/list_traces") return Response.json({ ...readContext(1), traces: [toolSummary(selected)], has_more: false });
       if (pathname === "/api/v1/analysis/get_trace") {
         const args = await request.json() as { trace_id: string };
-        if (args.trace_id === selected.trace_id) return Response.json({ ...readContext(1), trace: toolTrace(selected), mode: "live" });
+        if (args.trace_id === selected.trace_id) return Response.json({ ...readContext(1), trace: toolTrace(selected) });
       }
       return Response.json({ type: "https://qyl.at/problems/not-found", code: "not_found", title: "Not Found", status: 404 }, {
         status: 404, headers: { "content-type": "application/problem+json" },
@@ -223,7 +223,7 @@ test("Events poll and deduplicate within each account's Collector scope", { time
       await ownerGate;
       throw new Error("upstream unavailable");
     }
-    return Response.json({ ...readContext(phase === 0 ? 0 : 1), traces: phase === 0 ? [] : [traces.get(project)!], has_more: false, mode: "live" });
+    return Response.json({ ...readContext(phase === 0 ? 0 : 1), traces: phase === 0 ? [] : [traces.get(project)!], has_more: false });
   });
   const deliveries: Array<{ url: string; body: string }> = [];
   const runtime = new EventsRuntime({

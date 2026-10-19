@@ -111,9 +111,13 @@ public sealed partial class AnalysisApiTests(TestContext testContext)
         var item = Assert.ContainsSingle(filtered.GetProperty("traces").EnumerateArray());
         Assert.AreEqual(TraceId(1), item.GetProperty("trace_id").GetString());
         var sessions = await Read(host, "list_sessions", """{"annotation_label":"absent"}""");
-        Assert.IsEmpty(sessions.GetProperty("annotations").EnumerateArray());
+        Assert.IsEmpty(sessions.GetProperty("sessions").EnumerateArray());
         sessions = await Read(host, "list_sessions", """{}""");
-        Assert.ContainsSingle(sessions.GetProperty("annotations").EnumerateArray());
+        var annotated = sessions.GetProperty("sessions").EnumerateArray().Single(static s => s.GetProperty("session_id").GetString() == "annotated-session");
+        Assert.ContainsSingle(annotated.GetProperty("annotations").EnumerateArray());
+        Assert.IsFalse(sessions.TryGetProperty("annotations", out _), "each session carries its own notes");
+        Assert.IsFalse(sessions.GetProperty("sessions").EnumerateArray().Single(static s => s.GetProperty("session_id").GetString() == "other-session")
+            .TryGetProperty("annotations", out _), "a session without notes carries no empty list");
         using var updated = await host.SendAsync(HttpMethod.Patch, "/api/v1/annotations/" + note.GetProperty("id").GetString(), "writer",
             """{"text":"resolved note","labels":["resolved"]}""", new Dictionary<string, string> { ["If-Match"] = note.GetProperty("etag").GetString()! });
         Assert.AreEqual(HttpStatusCode.OK, updated.StatusCode);

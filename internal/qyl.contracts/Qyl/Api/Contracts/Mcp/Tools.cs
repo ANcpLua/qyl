@@ -149,8 +149,6 @@ public sealed class ListTracesOutput
     public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
     [JsonPropertyName("traces")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolTraceRow> Traces { get; init; }
-    [JsonPropertyName("mode")]
-    public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonPropertyName("has_more")]
     public required bool HasMore { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -261,8 +259,6 @@ public sealed class GetTraceOutput
     public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
     [JsonPropertyName("trace")]
     public required Qyl.Api.Contracts.Mcp.Tools.ToolTrace Trace { get; init; }
-    [JsonPropertyName("mode")]
-    public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("annotations")]
     public IReadOnlyList<Qyl.Api.Contracts.Annotations.Annotation>? Annotations { get; init; }
@@ -431,16 +427,11 @@ public sealed class ListSessionsOutput
     public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
     [JsonPropertyName("sessions")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolSession> Sessions { get; init; }
-    [JsonPropertyName("mode")]
-    public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonPropertyName("has_more")]
     public required bool HasMore { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("next_cursor")]
     public string? NextCursor { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("annotations")]
-    public IReadOnlyList<Qyl.Api.Contracts.Annotations.Annotation>? Annotations { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
@@ -489,9 +480,6 @@ public sealed class ToolSession
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("agent_name")]
     public string? AgentName { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("models")]
-    public IReadOnlyList<string>? Models { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("tokens_by_model")]
     public IReadOnlyDictionary<string, Qyl.Api.Contracts.Mcp.Tools.AgentTokens>? TokensByModel { get; init; }
@@ -577,9 +565,6 @@ public sealed class SearchLogsInput
 public sealed class SearchLogsOutput
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("total_matched")]
-    public long? TotalMatched { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("patterns")]
     public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.LogPattern>? Patterns { get; init; }
     [JsonPropertyName("window")]
@@ -595,8 +580,6 @@ public sealed class SearchLogsOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("context_logs")]
     public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.ToolLogRow>? ContextLogs { get; init; }
-    [JsonPropertyName("mode")]
-    public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonPropertyName("has_more")]
     public required bool HasMore { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -687,9 +670,6 @@ public sealed class CiRunReference
 public sealed class CiRunSummary
 {
     public const int ErrorCountMinimum = 0;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("session_id")]
-    public string? SessionId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("provider_run_id")]
     public string? ProviderRunId { get; init; }
@@ -801,8 +781,6 @@ public sealed class CiLogOutput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("phases")]
     public IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.CiPhase>? Phases { get; init; }
-    [JsonPropertyName("mode")]
-    public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
@@ -1630,12 +1608,6 @@ public sealed class GetFailureContextInput
 
 public sealed class EvidenceSpan
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonPropertyName("span_id")]
@@ -1650,33 +1622,20 @@ public sealed class EvidenceSpan
     public required string Service { get; init; }
     [JsonPropertyName("name")]
     public required string Name { get; init; }
+    [JsonPropertyName("start_time")]
+    public required DateTimeOffset StartTime { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
     [JsonPropertyName("status")]
     public required string Status { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("status_message")]
     public string? StatusMessage { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("exception")]
-    public Qyl.Api.Contracts.Mcp.Tools.RecordedException? Exception { get; init; }
+    [JsonPropertyName("exception_type")]
+    public string? ExceptionType { get; init; }
     [JsonPropertyName("key_attributes")]
     public required IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> KeyAttributes { get; init; }
-    [JsonPropertyName("duration_ms")]
-    public required double DurationMs { get; init; }
-    [JsonPropertyName("role")]
-    public required string Role { get; init; }
-}
-
-public sealed class RecordedException
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("type")]
-    public string? Type { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("message")]
-    public string? Message { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("stacktrace")]
-    public string? Stacktrace { get; init; }
 }
 
 public sealed class SpanRef
@@ -1707,8 +1666,6 @@ public sealed class RetryEvidence
 
 public sealed class FanoutEvidence
 {
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
     [JsonPropertyName("count")]
     public required int Count { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -2113,8 +2070,6 @@ public sealed class VerificationNeeds
 
 public sealed class VerifyFixOutput
 {
-    [JsonPropertyName("window")]
-    public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
     [JsonPropertyName("coverage")]
     public required Qyl.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -2305,8 +2260,6 @@ public sealed class DiscoveredAttribute
     public required double CoverageShare { get; init; }
     [JsonPropertyName("cardinality")]
     public required long Cardinality { get; init; }
-    [JsonPropertyName("cardinality_exact")]
-    public required bool CardinalityExact { get; init; }
     [JsonPropertyName("top_values")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AttributeValueCount> TopValues { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
@@ -2445,7 +2398,7 @@ public sealed class AgentFindings
     [JsonPropertyName("repeated_calls")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.RepeatedCall> RepeatedCalls { get; init; }
     [JsonPropertyName("failed_tool_calls")]
-    public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.AgentStep> FailedToolCalls { get; init; }
+    public required IReadOnlyList<int> FailedToolCalls { get; init; }
     [JsonPropertyName("slowest_steps")]
     public required IReadOnlyList<int> SlowestSteps { get; init; }
     [JsonPropertyName("token_share")]
@@ -2968,7 +2921,6 @@ public sealed class McpToolStats
 public sealed class GetMcpStatsOutput
 {
     public const long BucketMsMinimum = 1000;
-    public const int SpanCountAnalyzedMinimum = 0;
     [JsonPropertyName("window")]
     public required Qyl.Api.Contracts.Common.ToolWindow Window { get; init; }
     [JsonPropertyName("coverage")]
@@ -3004,12 +2956,6 @@ public sealed class GetMcpStatsOutput
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.McpNameRequestCount> ByMethod { get; init; }
     [JsonPropertyName("tools")]
     public required IReadOnlyList<Qyl.Api.Contracts.Mcp.Tools.McpToolStats> Tools { get; init; }
-    [JsonPropertyName("span_count_analyzed")]
-    public required int SpanCountAnalyzed { get; init; }
-    [JsonPropertyName("truncated")]
-    public required bool Truncated { get; init; }
-    [JsonPropertyName("mode")]
-    public required Qyl.Api.Contracts.Mcp.Tools.McpDataMode Mode { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error")]
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
@@ -3066,15 +3012,6 @@ public enum McpFailureClass
     Cancellation,
     [JsonStringEnumMemberName("timeout")]
     Timeout
-}
-
-[JsonConverter(typeof(JsonStringEnumConverter<McpDataMode>))]
-public enum McpDataMode
-{
-    [JsonStringEnumMemberName("live")]
-    Live,
-    [JsonStringEnumMemberName("demo")]
-    Demo
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<CiPhaseStatus>))]

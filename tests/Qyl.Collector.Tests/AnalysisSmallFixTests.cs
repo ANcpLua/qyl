@@ -124,4 +124,62 @@ public sealed partial class AnalysisApiTests
         Assert.IsFalse(release.TryGetProperty("environment", out _));
         Assert.AreEqual("253", release.GetProperty("after").GetProperty("p95_ms").GetRawText());
     }
+
+    private static readonly string[] s_verificationFields = ["coverage", "page_totals", "has_more", "verdict", "before", "after", "needs", "recurrences", "guardrails", "verify_id"];
+    private static readonly string[] s_ciRunFields = ["ci_run_id", "state", "start_time", "duration_ms", "error_count", "services", "attempts"];
+    private static readonly string[] s_plainSessionFields =
+        ["session_id", "state", "start_time", "end_time", "duration_ms", "trace_count", "span_count", "error_count", "services", "failure_ids"];
+    private static readonly string[] s_pageFields = ["window", "coverage", "has_more"];
+
+    /// <summary>
+    /// Answers leave out what is empty or said twice: an evidence span says its status once and carries an exception
+    /// type only when one was recorded, a release that was never recorded is no empty string, a verification's windows
+    /// are its own, a failed tool call is an index into the steps, a CI run is named once, a session without GenAI
+    /// requests has no GenAI block and no answer says it is live.
+    /// </summary>
+    [TestMethod]
+    public async Task Answers_leave_out_empty_and_repeated_fields()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        await host.Store.EnqueueAsync(new SpanBatch([
+            Span(TraceId(1), SpanId(1), time, time + 50_000_000, status: 1, sessionId: "plain") with { Name = "checkout" },
+            Span(TraceId(1), SpanId(2), time + 10, time + 1_000_000, parentSpanId: SpanId(1), service: "payments", status: 2, sessionId: "plain")
+                with { Name = "charge", StatusMessage = "declined", AttributesJson = """{"error.type":"card"}""" },
+            Span(TraceId(1), SpanId(3), time + 2_000_000, time + 3_000_000, parentSpanId: SpanId(1), status: 2, sessionId: "plain") with { Name = "render" },
+            Span(TraceId(2), SpanId(4), time, time + 5_000_000, status: 2, sessionId: "agent")
+                with { Name = "execute_tool search", StatusMessage = "tool failed", AttributesJson = """{"gen_ai.tool.name":"search"}""" },
+            Span(TraceId(5), SpanId(5), time, time + 1000, service: "qyl-ci-tests", sessionId: "ci-run") with { Name = "build", AttributesJson = """{"cicd.pipeline.task.name":"build"}""" }
+        ]), testContext.CancellationToken);
+
+        var context = await Read(host, "get_failure_context", $$"""{"trace_id":"{{TraceId(1)}}"}""");
+        var spans = context.GetProperty("observed").GetProperty("spans").EnumerateArray().ToDictionary(static s => s.GetProperty("span_id").GetString()!);
+        var charge = spans[SpanId(2)];
+        Assert.AreEqual(("error", "declined", "card"), (charge.GetProperty("status").GetString(), charge.GetProperty("status_message").GetString(), charge.GetProperty("exception_type").GetString()));
+        static string[] Fields(JsonElement element) => [.. element.EnumerateObject().Select(static p => p.Name).Order(StringComparer.Ordinal)];
+        static string[] Sorted(IEnumerable<string> names) => [.. names.Order(StringComparer.Ordinal)];
+        string[] span = ["span_id", "trace_id", "session_id", "service", "name", "start_time", "duration_ms", "status", "key_attributes"];
+        Assert.AreSequenceEqual(Sorted(span.Concat(["status_message", "parent_span_id", "exception_type"])), Fields(charge));
+        Assert.AreEqual("ok", spans[SpanId(1)].GetProperty("status").GetString());
+        Assert.AreSequenceEqual(Sorted(span), Fields(spans[SpanId(1)]), "a root without a message or an error type says nothing empty");
+        var similar = Assert.ContainsSingle(context.GetProperty("context").GetProperty("similar_failures").EnumerateArray());
+        Assert.IsEmpty(similar.GetProperty("releases").EnumerateArray(), "no service.version was recorded, so no release is named");
+
+        var verification = await Read(host, "verify_fix", $$"""{"matchers":[{"key":"service.name","op":"eq","value":"payments"}],"since":"{{FixtureUtcNow.AddMinutes(-10):O}}"}""");
+        Assert.AreSequenceEqual(Sorted(s_verificationFields), Fields(verification), "the before and after windows bound a verification");
+
+        var run = await Read(host, "get_agent_run", """{"session_id":"agent"}""");
+        Assert.AreSequenceEqual([0], run.GetProperty("findings").GetProperty("failed_tool_calls").EnumerateArray().Select(static index => index.GetInt32()));
+        Assert.AreEqual("error", run.GetProperty("steps")[0].GetProperty("status").GetString());
+
+        var ci = Assert.ContainsSingle((await Read(host, "ci_log", "{}")).GetProperty("runs").EnumerateArray());
+        Assert.AreEqual("ci-run", ci.GetProperty("ci_run_id").GetString());
+        Assert.AreSequenceEqual(Sorted(s_ciRunFields), Fields(ci), "the run's id is its session id");
+
+        var sessions = await Read(host, "list_sessions", "{}");
+        var session = sessions.GetProperty("sessions").EnumerateArray().Single(static s => s.GetProperty("session_id").GetString() == "plain");
+        Assert.AreSequenceEqual(Sorted(s_plainSessionFields), Fields(session), "a session without GenAI requests or notes carries no empty block");
+        foreach (var (operation, rows) in new[] { ("list_sessions", "sessions"), ("list_traces", "traces"), ("search_logs", "logs") })
+            Assert.AreSequenceEqual(Sorted(s_pageFields.Append(rows)), Fields(await Read(host, operation, "{}")), operation);
+    }
 }

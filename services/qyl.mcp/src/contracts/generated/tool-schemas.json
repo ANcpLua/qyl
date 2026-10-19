@@ -2334,8 +2334,7 @@
     "required": [
       "has_more",
       "window",
-      "coverage",
-      "mode"
+      "coverage"
     ],
     "properties": {
       "next_phase_cursor": {
@@ -2614,13 +2613,6 @@
             "services"
           ],
           "properties": {
-            "session_id": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-              "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-            },
             "provider_run_id": {
               "type": "string"
             },
@@ -2709,7 +2701,7 @@
               "description": "Service names observed in the run, at least one of which is CI-emitted."
             }
           },
-          "description": "One CI run, summarized from the session its telemetry is grouped under.",
+          "description": "One CI run, summarized from the session its telemetry is grouped under; its `ci_run_id` is that session's id.",
           "additionalProperties": false
         }
       },
@@ -2827,14 +2819,6 @@
           "description": "One phase span of a CI run, attributed to the leg that executed it.",
           "additionalProperties": false
         }
-      },
-      "mode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "error": {
         "type": "object",
@@ -5121,7 +5105,6 @@
             "type",
             "coverage_share",
             "cardinality",
-            "cardinality_exact",
             "top_values",
             "semconv"
           ],
@@ -5145,11 +5128,8 @@
               "type": "number"
             },
             "cardinality": {
-              "type": "integer"
-            },
-            "cardinality_exact": {
-              "type": "boolean",
-              "description": "False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded."
+              "type": "integer",
+              "description": "Distinct values the key holds; with `coverage.scan_complete` false, among the records the read held."
             },
             "top_values": {
               "type": "array",
@@ -5885,7 +5865,12 @@
               "additionalProperties": false
             },
             "status": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "unset",
+                "ok",
+                "error"
+              ]
             },
             "error": {
               "type": "string"
@@ -5951,98 +5936,11 @@
           "failed_tool_calls": {
             "type": "array",
             "items": {
-              "type": "object",
-              "required": [
-                "index",
-                "kind",
-                "name",
-                "duration_ms",
-                "tokens",
-                "status",
-                "trace_id",
-                "span_id"
-              ],
-              "properties": {
-                "index": {
-                  "type": "integer",
-                  "minimum": -2147483648,
-                  "maximum": 2147483647
-                },
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "llm_call",
-                    "tool_call",
-                    "agent",
-                    "retrieval"
-                  ]
-                },
-                "name": {
-                  "type": "string"
-                },
-                "mcp_method": {
-                  "type": "string"
-                },
-                "mcp_server": {
-                  "type": "string"
-                },
-                "duration_ms": {
-                  "type": "number",
-                  "minimum": 0,
-                  "description": "Duration in milliseconds"
-                },
-                "tokens": {
-                  "type": "object",
-                  "properties": {
-                    "input": {
-                      "type": "integer"
-                    },
-                    "output": {
-                      "type": "integer"
-                    },
-                    "cache_read": {
-                      "type": "integer"
-                    },
-                    "cache_write": {
-                      "type": "integer"
-                    },
-                    "reasoning": {
-                      "type": "integer"
-                    }
-                  },
-                  "description": "AgentTokens contract.",
-                  "additionalProperties": false
-                },
-                "status": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                },
-                "trace_id": {
-                  "type": "string",
-                  "minLength": 32,
-                  "maxLength": 32,
-                  "pattern": "^[a-f0-9]{32}$",
-                  "description": "Unique trace identifier (32 lowercase hex characters)",
-                  "examples": [
-                    "0af7651916cd43dd8448eb211c80319c"
-                  ]
-                },
-                "span_id": {
-                  "type": "string",
-                  "minLength": 16,
-                  "maxLength": 16,
-                  "pattern": "^[a-f0-9]{16}$",
-                  "description": "Unique span identifier (16 lowercase hex characters)",
-                  "examples": [
-                    "b7ad6b7169203331"
-                  ]
-                }
-              },
-              "description": "AgentStep contract.",
-              "additionalProperties": false
-            }
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            },
+            "description": "Indexes into `steps` of the tool calls that failed, at most ten, in step order."
           },
           "slowest_steps": {
             "type": "array",
@@ -6537,20 +6435,12 @@
                 "span_id",
                 "service",
                 "name",
-                "status",
-                "key_attributes",
+                "start_time",
                 "duration_ms",
-                "role"
+                "status",
+                "key_attributes"
               ],
               "properties": {
-                "start_time": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "end_time": {
-                  "type": "string",
-                  "format": "date-time"
-                },
                 "trace_id": {
                   "type": "string",
                   "minLength": 32,
@@ -6576,7 +6466,7 @@
                   "minLength": 16,
                   "maxLength": 16,
                   "pattern": "^[a-f0-9]{16}$",
-                  "description": "Unique span identifier (16 lowercase hex characters)",
+                  "description": "Absent for a root span.",
                   "examples": [
                     "b7ad6b7169203331"
                   ]
@@ -6594,27 +6484,30 @@
                 "name": {
                   "type": "string"
                 },
+                "start_time": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "duration_ms": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Duration in milliseconds"
+                },
                 "status": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "unset",
+                    "ok",
+                    "error"
+                  ]
                 },
                 "status_message": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The status description, when the producer set one."
                 },
-                "exception": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "stacktrace": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "RecordedException contract.",
-                  "additionalProperties": false
+                "exception_type": {
+                  "type": "string",
+                  "description": "The span's `exception.type`, else its `error.type`; absent when it carries neither."
                 },
                 "key_attributes": {
                   "type": "array",
@@ -6639,24 +6532,12 @@
                     "description": "Key-value attribute pair following OTel conventions",
                     "additionalProperties": false
                   }
-                },
-                "duration_ms": {
-                  "type": "number",
-                  "minimum": 0,
-                  "description": "Duration in milliseconds"
-                },
-                "role": {
-                  "type": "string",
-                  "enum": [
-                    "matched",
-                    "context"
-                  ]
                 }
               },
-              "description": "EvidenceSpan contract.",
+              "description": "One span of a failure's evidence: an error span, or with status ok or unset an ancestor on its path to the root.",
               "additionalProperties": false
             },
-            "description": "The error spans and their ancestors, each once; an ancestor has `role` context."
+            "description": "The error spans and their ancestors, each once."
           },
           "root_cause_span": {
             "anyOf": [
@@ -6952,16 +6833,13 @@
             "items": {
               "type": "object",
               "required": [
-                "name",
                 "count",
                 "trace_id"
               ],
               "properties": {
-                "name": {
-                  "type": "string"
-                },
                 "count": {
                   "type": "integer",
+                  "description": "The parent's children.",
                   "minimum": -2147483648,
                   "maximum": 2147483647
                 },
@@ -6986,7 +6864,7 @@
                   ]
                 }
               },
-              "description": "FanoutEvidence contract.",
+              "description": "A parent span with several children in one trace.",
               "additionalProperties": false
             }
           }
@@ -7877,10 +7755,7 @@
       "by_server",
       "by_transport",
       "by_method",
-      "tools",
-      "span_count_analyzed",
-      "truncated",
-      "mode"
+      "tools"
     ],
     "properties": {
       "window": {
@@ -8480,24 +8355,6 @@
           "additionalProperties": false
         },
         "description": "Per tool (`gen_ai.tool.name`), the requests that name one: most requests first, paged with `groups`."
-      },
-      "span_count_analyzed": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "MCP spans the statistics were computed from.",
-        "maximum": 2147483647
-      },
-      "truncated": {
-        "type": "boolean",
-        "description": "True when the Collector stopped reading before every matching span was read (`coverage.scan_complete` is false); every statistic then describes only the spans read."
-      },
-      "mode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "error": {
         "type": "object",
@@ -9243,8 +9100,7 @@
       "has_more",
       "window",
       "coverage",
-      "trace",
-      "mode"
+      "trace"
     ],
     "properties": {
       "has_more": {
@@ -9682,14 +9538,6 @@
         },
         "description": "One trace: its range, size and errors, the selected spans and each service's resource once.",
         "additionalProperties": false
-      },
-      "mode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "annotations": {
         "type": "array",
@@ -11369,7 +11217,6 @@
       "window",
       "coverage",
       "sessions",
-      "mode",
       "has_more"
     ],
     "properties": {
@@ -11679,12 +11526,6 @@
             "agent_name": {
               "type": "string"
             },
-            "models": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "tokens_by_model": {
               "type": "object",
               "additionalProperties": {
@@ -11708,7 +11549,8 @@
                 },
                 "description": "AgentTokens contract.",
                 "additionalProperties": false
-              }
+              },
+              "description": "Tokens per model of `genai_usage.models_used`; absent for a session without GenAI requests."
             },
             "annotations": {
               "type": "array",
@@ -11899,20 +11741,13 @@
                   "text"
                 ],
                 "additionalProperties": false
-              }
+              },
+              "description": "Annotations on the session; absent when it has none."
             }
           },
-          "description": "ToolSession contract.",
+          "description": "One session of list_sessions; `genai_usage` comes only with GenAI requests.",
           "additionalProperties": false
         }
-      },
-      "mode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "has_more": {
         "type": "boolean",
@@ -11921,198 +11756,6 @@
       "next_cursor": {
         "type": "string",
         "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-      },
-      "annotations": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "description": "A user note attached to a trace, span or session.",
-          "properties": {
-            "id": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Server-assigned identifier.",
-              "readOnly": true
-            },
-            "created_at": {
-              "type": "string",
-              "format": "date-time",
-              "description": "When the resource was created.",
-              "readOnly": true
-            },
-            "updated_at": {
-              "type": "string",
-              "format": "date-time",
-              "description": "When the resource was last changed.",
-              "readOnly": true
-            },
-            "etag": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Entity tag of this version; also served as the `ETag` response header.",
-              "readOnly": true
-            },
-            "labels": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "description": "A short user-defined annotation label."
-              },
-              "maxItems": 10
-            },
-            "classification": {
-              "type": "string",
-              "enum": [
-                "note",
-                "hypothesis",
-                "finding",
-                "rejected"
-              ],
-              "description": "Classification of the human annotation."
-            },
-            "target": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "trace_id"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "trace"
-                      ],
-                      "description": "Always `trace`."
-                    },
-                    "trace_id": {
-                      "type": "string",
-                      "minLength": 32,
-                      "maxLength": 32,
-                      "pattern": "^[a-f0-9]{32}$",
-                      "description": "The annotated trace.",
-                      "examples": [
-                        "0af7651916cd43dd8448eb211c80319c"
-                      ]
-                    }
-                  },
-                  "description": "An annotation on one whole trace.",
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "trace_id",
-                    "span_id"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "span"
-                      ],
-                      "description": "Always `span`."
-                    },
-                    "trace_id": {
-                      "type": "string",
-                      "minLength": 32,
-                      "maxLength": 32,
-                      "pattern": "^[a-f0-9]{32}$",
-                      "description": "The trace that holds the span.",
-                      "examples": [
-                        "0af7651916cd43dd8448eb211c80319c"
-                      ]
-                    },
-                    "span_id": {
-                      "type": "string",
-                      "minLength": 16,
-                      "maxLength": 16,
-                      "pattern": "^[a-f0-9]{16}$",
-                      "description": "The annotated span.",
-                      "examples": [
-                        "b7ad6b7169203331"
-                      ]
-                    }
-                  },
-                  "description": "An annotation on one span of a trace.",
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "session_id"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "session"
-                      ],
-                      "description": "Always `session`."
-                    },
-                    "session_id": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128,
-                      "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
-                      "description": "The annotated session."
-                    }
-                  },
-                  "description": "An annotation on one session.",
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "failure_id"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "failure"
-                      ],
-                      "description": "Always `failure`."
-                    },
-                    "failure_id": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 512,
-                      "description": "The annotated failure, e.g. from triage."
-                    }
-                  },
-                  "description": "An annotation on one failure, named by its `failure_id`.",
-                  "additionalProperties": false
-                }
-              ],
-              "description": "What the note is attached to. Fixed at creation."
-            },
-            "text": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 2000,
-              "description": "The note, plain text, at most 2000 characters."
-            }
-          },
-          "required": [
-            "id",
-            "created_at",
-            "updated_at",
-            "etag",
-            "target",
-            "text"
-          ],
-          "additionalProperties": false
-        },
-        "description": "Annotations on the listed sessions, newest first; each names its session in `target`."
       },
       "error": {
         "type": "object",
@@ -12465,7 +12108,6 @@
       "window",
       "coverage",
       "traces",
-      "mode",
       "has_more"
     ],
     "properties": {
@@ -12654,14 +12296,6 @@
           "description": "One trace of list_traces.",
           "additionalProperties": false
         }
-      },
-      "mode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "has_more": {
         "type": "boolean",
@@ -17470,14 +17104,9 @@
     "required": [
       "window",
       "coverage",
-      "mode",
       "has_more"
     ],
     "properties": {
-      "total_matched": {
-        "type": "integer",
-        "description": "Log records in the window that match the filters. Omitted when the read was capped (`coverage.scan_complete` false), because the total is then unknown."
-      },
       "patterns": {
         "type": "array",
         "items": {
@@ -17528,7 +17157,8 @@
           },
           "description": "LogPattern contract.",
           "additionalProperties": false
-        }
+        },
+        "description": "With `group_by: [\"pattern\"]`, the message templates, most frequent first; `coverage.matched` counts the log records they cover."
       },
       "window": {
         "type": "object",
@@ -17790,14 +17420,6 @@
           "additionalProperties": false
         },
         "description": "With `context`, the records next to each returned one from the same service and resource."
-      },
-      "mode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "has_more": {
         "type": "boolean",
@@ -19545,7 +19167,6 @@
   "Mcp.Tools.VerifyFixOutput": {
     "type": "object",
     "required": [
-      "window",
       "coverage",
       "has_more",
       "verdict",
@@ -19556,27 +19177,6 @@
       "verify_id"
     ],
     "properties": {
-      "window": {
-        "type": "object",
-        "required": [
-          "start_time",
-          "end_time"
-        ],
-        "properties": {
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Start of the window (inclusive), RFC 3339."
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "End of the window (exclusive), RFC 3339."
-          }
-        },
-        "description": "Absolute half-open window applied by the collector.",
-        "additionalProperties": false
-      },
       "coverage": {
         "type": "object",
         "required": [
@@ -20116,7 +19716,7 @@
         "additionalProperties": false
       }
     },
-    "description": "VerifyFixOutput contract.",
+    "description": "The verdict of a fix and the before and after windows it weighs; each window states its own bounds.",
     "additionalProperties": false
   },
   "SavedQueries.SavedQuery": {

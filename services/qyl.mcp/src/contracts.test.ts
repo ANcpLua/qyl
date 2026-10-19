@@ -68,7 +68,7 @@ test("generated tool inputs own their bounds, required members and advertised de
 
 test("discovered attribute values keep int64 precision in the lossless attribute form", () => {
   const discovered = (value: unknown) => ({ ...readContext(1), has_more: false, attributes: [{ key: "probe.number", scope: "span", type: "int",
-    coverage_share: 1, cardinality: 1, cardinality_exact: true, top_values: [{ value, count: 1, share: 1 }], semconv: null }] });
+    coverage_share: 1, cardinality: 1, top_values: [{ value, count: 1, share: 1 }], semconv: null }] });
   assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "int", value: "9007199254740993" })));
   assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered({ type: "double", value: 0.5 })));
   assert(valid("Mcp.Tools.DiscoverAttributesOutput", discovered("text")));
@@ -108,15 +108,15 @@ test("generated output documents accept the test telemetry fixture", () => {
   const summaries = fixture.traces.map(toolSummary);
   const context = readContext(fixture.traces.length);
 
-  assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, mode: "live", has_more: false }));
+  assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, has_more: false }));
   assert(
-    !valid("Mcp.Tools.ListTracesOutput", { ...readContext(fixture.traces.length, false), traces: summaries, mode: "live" }),
+    !valid("Mcp.Tools.ListTracesOutput", { ...readContext(fixture.traces.length, false), traces: summaries }),
     "has_more is required: a page must say whether it is the whole result",
   );
-  assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, mode: "live", has_more: true, next_cursor: "c" }));
-  assert(valid("Mcp.Tools.GetTraceOutput", { ...context, trace: toolTrace(trace!), mode: "live" }));
-  assert(valid("Mcp.Tools.ListSessionsOutput", { ...context, sessions: fixture.sessions, mode: "live", has_more: false }));
-  assert(valid("Mcp.Tools.SearchLogsOutput", { ...context, logs: fixture.logs.map(toolLog), mode: "live", has_more: false }));
+  assert(valid("Mcp.Tools.ListTracesOutput", { ...context, traces: summaries, has_more: true, next_cursor: "c" }));
+  assert(valid("Mcp.Tools.GetTraceOutput", { ...context, trace: toolTrace(trace!) }));
+  assert(valid("Mcp.Tools.ListSessionsOutput", { ...context, sessions: fixture.sessions, has_more: false }));
+  assert(valid("Mcp.Tools.SearchLogsOutput", { ...context, logs: fixture.logs.map(toolLog), has_more: false }));
 });
 
 test("raw metric points carry RFC 3339 times and int64 values as exact strings", () => {
@@ -150,7 +150,7 @@ test("TypeSpec record dictionaries retain their value contract at runtime", () =
       },
     },
   ];
-  const output = () => ({ ...readContext(1), mode: "live", trace: { ...trace, spans: [span] } });
+  const output = () => ({ ...readContext(1), trace: { ...trace, spans: [span] } });
   assert(valid("Mcp.Tools.GetTraceOutput", output()));
   span.attributes[0]!.value = { unsupported: null } as never;
   assert(!valid("Mcp.Tools.GetTraceOutput", output()));
@@ -159,7 +159,7 @@ test("TypeSpec record dictionaries retain their value contract at runtime", () =
 test("analysis boundary preserves RFC 3339 precision and rejects alternate wire encodings", () => {
   const trace = toolSummary(structuredClone(getTelemetryFixture().traces[0]!));
   trace.start_time = "2026-07-28T12:00:00.123456789+02:00";
-  const body = { ...readContext(1), traces: [trace], mode: "live" };
+  const body = { ...readContext(1), traces: [trace] };
   const parse = (value: unknown) => parseCollectorBody(value, "/api/v1/analysis/list_traces", "Mcp.Tools.ListTracesOutput");
   assert.equal(parse(body).traces[0]?.start_time, trace.start_time);
   assert.throws(() => parse([trace]), /collector contract mismatch/u);
@@ -182,7 +182,7 @@ test("contract date-time fields accept RFC 3339 and reject missing seconds or of
 
   for (const [value, accepted] of cases) {
     assert.equal(
-      valid("Mcp.Tools.ListTracesOutput", { ...readContext(1), mode: "live", traces: [{ ...trace, start_time: value }] }),
+      valid("Mcp.Tools.ListTracesOutput", { ...readContext(1), traces: [{ ...trace, start_time: value }] }),
       accepted,
       `start_time ${value} should be ${accepted ? "accepted" : "rejected"}`,
     );

@@ -72,9 +72,8 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         var region = Assert.ContainsSingle((await ReadAsync(host, "discover_attributes", """{"signal":"logs","key":"region"}""")).GetProperty("attributes").EnumerateArray());
 
         Assert.IsFalse(logs.GetProperty("coverage").GetProperty("scan_complete").GetBoolean());
-        Assert.IsFalse(logs.TryGetProperty("total_matched", out _), "the cap cut matching records off");
-        Assert.AreEqual(2, region.GetProperty("cardinality").GetInt32());
-        Assert.IsFalse(region.GetProperty("cardinality_exact").GetBoolean());
+        Assert.AreEqual(JsonValueKind.Null, logs.GetProperty("coverage").GetProperty("matched").ValueKind, "the cap cut matching records off");
+        Assert.AreEqual(2, region.GetProperty("cardinality").GetInt32(), "the values of the records the read held");
     }
 
     /// <summary>

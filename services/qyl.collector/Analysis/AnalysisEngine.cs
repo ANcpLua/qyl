@@ -50,7 +50,8 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             "list_metrics" => Metrics(input), "query_metric" => QueryMetric(input),
             "ci_log" => Ci(input), "run_saved_query" => RunSavedQuery(input), _ => throw new AnalysisInputException("tool", "Unknown analysis operation.")
         };
-        result["window"] ??= _window.Json;
+        // A verification's before and after windows bound it; the request's window would only mislead.
+        if (operation != "verify_fix") result["window"] ??= _window.Json;
         result["coverage"] ??= Coverage(Select(input).Count + Select(input, "logs").Count, Select(input).Count + Select(input, "logs").Count, 1, false);
         return PageCollections(input, result);
     }
@@ -207,13 +208,10 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             .Where(s => s.Last < end - s.Quiet).OrderBy(static s => s.Service, StringComparer.Ordinal)
             .Select(s => J.O(("service", s.Service), ("last_seen", J.Time(s.Last)), ("usual_rate", s.Count / minutes), ("unit", "spans/minute"))));
     }
-    private static JsonObject SpanJson(AnalysisRecord r)
-    {
-        var result = J.O(("span_id", r.SpanId), ("trace_id", r.TraceId), ("session_id", r.SessionId),
-        ("service", r.Service), ("name", r.Name), ("start_time", J.Time(r.Start)), ("end_time", J.Time(r.End)), ("duration_ms", r.Duration),
-        ("status", r.Error ? "ERROR" : "OK"), ("status_message", r.Span?.StatusMessage), ("parent_span_id", r.Span?.ParentSpanId),
-        ("key_attributes", ContractAttributes(r.Attributes)), ("exception", J.O(("type", FailureKind(r)), ("message", Message(r)))), ("role", r.Error ? "matched" : "context"));
-        foreach (var key in result.Where(static p => p.Value is null || p.Key == "parent_span_id" && J.Text(p.Value).Length is 0).Select(static p => p.Key).ToArray()) result.Remove(key);
-        return result;
-    }
+    // An evidence span: what failed, where and when; its message is its status description, its type an exception or error type.
+    private static JsonObject SpanJson(AnalysisRecord r) => J.O(("span_id", r.SpanId), ("trace_id", r.TraceId), ("session_id", r.SessionId),
+        ("service", r.Service), ("name", r.Name), ("start_time", J.Time(r.Start)), ("duration_ms", r.Duration), ("status", Status(r)),
+        ("status_message", r.Span?.StatusMessage is { Length: > 0 } message ? message : null),
+        ("parent_span_id", r.Span?.ParentSpanId is { Length: > 0 } parent ? parent : null),
+        ("exception_type", NonEmpty(FailureKind(r))), ("key_attributes", ContractAttributes(r.Attributes)));
 }

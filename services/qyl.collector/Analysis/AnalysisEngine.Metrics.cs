@@ -252,7 +252,7 @@ internal sealed partial class AnalysisEngine
             ct.ThrowIfCancellationRequested();
             var info = runInfo[g.Key];
             var observed = info.ProviderId is { } provider ? attempts[provider] : [];
-            return J.O(("ci_run_id", g.Key), ("session_id", g.Key),
+            return J.O(("ci_run_id", g.Key),
                 (CollectorSemanticAttributeCatalog.State, now.ToUnixTimeMilliseconds() - (long)(info.End / 1_000_000) < 5000 ? "active" : "ended"),
                 ("start_time", J.Time(info.Start)), ("duration_ms", (info.End - info.Start) / 1_000_000d),
                 ("error_count", g.Count(s => s.Error)), ("services", g.Select(s => s.Service).Distinct()),
@@ -261,7 +261,7 @@ internal sealed partial class AnalysisEngine
                 ("provider_run_id", info.ProviderId), ("provider_run_url", info.ProviderUrl));
         });
         var runInput = input.DeepClone().AsObject(); runInput.Remove("phase_cursor");
-        var result = Page(runInput, "runs", runs); result["mode"] = "live";
+        var result = Page(runInput, "runs", runs);
         if (selected is not null)
         {
             string Leg(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.CicdPipelineTaskName)) is { Length: > 0 } leg ? leg : s.Service;

@@ -111,9 +111,9 @@ public sealed partial class AnalysisApiTests
 
         var root = observed.GetProperty("root_cause_span");
         Assert.AreEqual((first, SpanId(1)), (root.GetProperty("trace_id").GetString(), root.GetProperty("span_id").GetString()));
-        Assert.AreEquivalent(new[] { $"{first}/{SpanId(9)}/context", $"{first}/{SpanId(1)}/matched", $"{second}/{SpanId(9)}/matched" },
+        Assert.AreEquivalent(new[] { $"{first}/{SpanId(9)}/ok", $"{first}/{SpanId(1)}/error", $"{second}/{SpanId(9)}/error" },
             observed.GetProperty("spans").EnumerateArray().Select(static span =>
-                $"{span.GetProperty("trace_id").GetString()}/{span.GetProperty("span_id").GetString()}/{span.GetProperty("role").GetString()}").ToArray());
+                $"{span.GetProperty("trace_id").GetString()}/{span.GetProperty("span_id").GetString()}/{span.GetProperty("status").GetString()}").ToArray());
         Assert.AreEquivalent(new[] { $"{first}/{SpanId(1)}", $"{second}/{SpanId(9)}" },
             observed.GetProperty("error_spans").EnumerateArray().Select(static span => $"{span.GetProperty("trace_id").GetString()}/{span.GetProperty("span_id").GetString()}").ToArray());
         var propagation = Assert.ContainsSingle(observed.GetProperty("propagation").EnumerateArray());

@@ -66,10 +66,10 @@ async function connectCollector(
       // Projection now belongs to the collector. Verify the transport forwards
       // every option unchanged and preserves the collector's typed result.
       assert.equal(body.trace_id, trace.trace_id);
-      return Response.json({ ...readContext(trace.span_count), mode: "live", trace: toolTrace(trace) });
+      return Response.json({ ...readContext(trace.span_count), trace: toolTrace(trace) });
     }
     if (url.pathname === "/api/v1/analysis/ci_log") {
-      return Response.json({ ...readContext(), mode: "live", has_more: false, runs: [] });
+      return Response.json({ ...readContext(), has_more: false, runs: [] });
     }
     return Response.json({ error: "not found" }, { status: 404 });
   });
@@ -108,7 +108,6 @@ test("get_trace preserves complete typed collector results and forwards optional
     { selection: "critical_path" },
   ]) {
     const { output } = await readTrace(connection, { trace_id: trace.trace_id, ...options });
-    assert.equal(output.mode, "live");
     assert.deepEqual(output.trace, toolTrace(trace));
     const input = forwarded.at(-1)!;
     for (const [key, value] of Object.entries(options)) assert.deepEqual(input[key], value, key);

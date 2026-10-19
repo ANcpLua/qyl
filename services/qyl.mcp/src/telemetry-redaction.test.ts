@@ -70,11 +70,11 @@ test("telemetry tools redact secrets before model text and structured content", 
   const collector = createHttpServer((request, response) => {
     response.setHeader("content-type", "application/json");
     if (request.url?.startsWith("/api/v1/analysis/search_logs")) {
-      response.end(JSON.stringify({ ...readContext(2), logs: [toolLog(textualLog!), toolLog(semanticLog!)], mode: "live", has_more: false }));
+      response.end(JSON.stringify({ ...readContext(2), logs: [toolLog(textualLog!), toolLog(semanticLog!)], has_more: false }));
       return;
     }
     if (request.url?.startsWith("/api/v1/analysis/get_trace")) {
-      response.end(JSON.stringify({ ...readContext(1), trace: toolTrace(trace), mode: "live" }));
+      response.end(JSON.stringify({ ...readContext(1), trace: toolTrace(trace) }));
       return;
     }
     response.statusCode = 404;

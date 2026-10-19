@@ -7447,8 +7447,10 @@
           "failed_tool_calls": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mcp.Tools.AgentStep"
-            }
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Indexes into `steps` of the tool calls that failed, at most ten, in step order."
           },
           "slowest_steps": {
             "type": "array",
@@ -7557,7 +7559,12 @@
             "$ref": "#/components/schemas/Mcp.Tools.AgentTokens"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "unset",
+              "ok",
+              "error"
+            ]
           },
           "error": {
             "type": "string"
@@ -8464,8 +8471,7 @@
         "required": [
           "has_more",
           "window",
-          "coverage",
-          "mode"
+          "coverage"
         ],
         "properties": {
           "next_phase_cursor": {
@@ -8511,9 +8517,6 @@
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.CiPhase"
             }
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
           },
           "error": {
             "$ref": "#/components/schemas/Mcp.Tools.ToolError",
@@ -8647,9 +8650,6 @@
           "services"
         ],
         "properties": {
-          "session_id": {
-            "$ref": "#/components/schemas/Common.SessionId"
-          },
           "provider_run_id": {
             "type": "string"
           },
@@ -8696,7 +8696,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "One CI run, summarized from the session its telemetry is grouped under."
+        "description": "One CI run, summarized from the session its telemetry is grouped under; its `ci_run_id` is that session's id."
       },
       "Mcp.Tools.CompareGroup": {
         "type": "object",
@@ -9199,7 +9199,6 @@
           "type",
           "coverage_share",
           "cardinality",
-          "cardinality_exact",
           "top_values",
           "semconv"
         ],
@@ -9219,11 +9218,8 @@
           },
           "cardinality": {
             "type": "integer",
-            "format": "int64"
-          },
-          "cardinality_exact": {
-            "type": "boolean",
-            "description": "False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded."
+            "format": "int64",
+            "description": "Distinct values the key holds; with `coverage.scan_complete` false, among the records the read held."
           },
           "top_values": {
             "type": "array",
@@ -9302,20 +9298,12 @@
           "span_id",
           "service",
           "name",
-          "status",
-          "key_attributes",
+          "start_time",
           "duration_ms",
-          "role"
+          "status",
+          "key_attributes"
         ],
         "properties": {
-          "start_time": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time"
-          },
           "trace_id": {
             "$ref": "#/components/schemas/Common.TraceId"
           },
@@ -9323,7 +9311,8 @@
             "$ref": "#/components/schemas/Common.SpanId"
           },
           "parent_span_id": {
-            "$ref": "#/components/schemas/Common.SpanId"
+            "$ref": "#/components/schemas/Common.SpanId",
+            "description": "Absent for a root span."
           },
           "session_id": {
             "$ref": "#/components/schemas/Common.SessionId"
@@ -9334,36 +9323,40 @@
           "name": {
             "type": "string"
           },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs"
+          },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "unset",
+              "ok",
+              "error"
+            ]
           },
           "status_message": {
-            "type": "string"
+            "type": "string",
+            "description": "The status description, when the producer set one."
           },
-          "exception": {
-            "$ref": "#/components/schemas/Mcp.Tools.RecordedException"
+          "exception_type": {
+            "type": "string",
+            "description": "The span's `exception.type`, else its `error.type`; absent when it carries neither."
           },
           "key_attributes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Common.Attribute"
             }
-          },
-          "duration_ms": {
-            "$ref": "#/components/schemas/Common.DurationMs"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "matched",
-              "context"
-            ]
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "EvidenceSpan contract."
+        "description": "One span of a failure's evidence: an error span, or with status ok or unset an ancestor on its path to the root."
       },
       "Mcp.Tools.ExecutionReference": {
         "type": "object",
@@ -9469,7 +9462,7 @@
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.EvidenceSpan"
             },
-            "description": "The error spans and their ancestors, each once; an ancestor has `role` context."
+            "description": "The error spans and their ancestors, each once."
           },
           "root_cause_span": {
             "anyOf": [
@@ -9688,17 +9681,14 @@
       "Mcp.Tools.FanoutEvidence": {
         "type": "object",
         "required": [
-          "name",
           "count",
           "trace_id"
         ],
         "properties": {
-          "name": {
-            "type": "string"
-          },
           "count": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "The parent's children."
           },
           "parent_span_id": {
             "$ref": "#/components/schemas/Common.SpanId"
@@ -9710,7 +9700,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "FanoutEvidence contract."
+        "description": "A parent span with several children in one trace."
       },
       "Mcp.Tools.GetAgentRunInput": {
         "type": "object",
@@ -10064,10 +10054,7 @@
           "by_server",
           "by_transport",
           "by_method",
-          "tools",
-          "span_count_analyzed",
-          "truncated",
-          "mode"
+          "tools"
         ],
         "properties": {
           "window": {
@@ -10147,19 +10134,6 @@
               "$ref": "#/components/schemas/Mcp.Tools.McpToolStats"
             },
             "description": "Per tool (`gen_ai.tool.name`), the requests that name one: most requests first, paged with `groups`."
-          },
-          "span_count_analyzed": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0,
-            "description": "MCP spans the statistics were computed from."
-          },
-          "truncated": {
-            "type": "boolean",
-            "description": "True when the Collector stopped reading before every matching span was read (`coverage.scan_complete` is false); every statistic then describes only the spans read."
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
           },
           "error": {
             "$ref": "#/components/schemas/Mcp.Tools.ToolError"
@@ -10373,8 +10347,7 @@
           "has_more",
           "window",
           "coverage",
-          "trace",
-          "mode"
+          "trace"
         ],
         "properties": {
           "has_more": {
@@ -10423,9 +10396,6 @@
           },
           "trace": {
             "$ref": "#/components/schemas/Mcp.Tools.ToolTrace"
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
           },
           "annotations": {
             "type": "array",
@@ -10823,7 +10793,6 @@
           "window",
           "coverage",
           "sessions",
-          "mode",
           "has_more"
         ],
         "properties": {
@@ -10847,9 +10816,6 @@
               "$ref": "#/components/schemas/Mcp.Tools.ToolSession"
             }
           },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
-          },
           "has_more": {
             "type": "boolean",
             "description": "Whether more items exist beyond this page. False only when the result is complete; `next_cursor` is present exactly when this is true."
@@ -10857,13 +10823,6 @@
           "next_cursor": {
             "$ref": "#/components/schemas/Common.Cursor",
             "description": "Pass as `cursor` to the same tool with the same filters for the next page. Absent on the last page."
-          },
-          "annotations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Annotations.Annotation"
-            },
-            "description": "Annotations on the listed sessions, newest first; each names its session in `target`."
           },
           "error": {
             "$ref": "#/components/schemas/Mcp.Tools.ToolError",
@@ -10988,7 +10947,6 @@
           "window",
           "coverage",
           "traces",
-          "mode",
           "has_more"
         ],
         "properties": {
@@ -11011,9 +10969,6 @@
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.ToolTraceRow"
             }
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
           },
           "has_more": {
             "type": "boolean",
@@ -11092,14 +11047,6 @@
           "not": {}
         },
         "description": "Another server version's traffic in the same window."
-      },
-      "Mcp.Tools.McpDataMode": {
-        "type": "string",
-        "enum": [
-          "live",
-          "demo"
-        ],
-        "description": "Whether a qyl MCP tool read live collector data or the explicit demo dataset."
       },
       "Mcp.Tools.McpFailureClass": {
         "type": "string",
@@ -11973,24 +11920,6 @@
         },
         "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points."
       },
-      "Mcp.Tools.RecordedException": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "stacktrace": {
-            "type": "string"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "RecordedException contract."
-      },
       "Mcp.Tools.ReleasePerformance": {
         "type": "object",
         "required": [
@@ -12459,20 +12388,15 @@
         "required": [
           "window",
           "coverage",
-          "mode",
           "has_more"
         ],
         "properties": {
-          "total_matched": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Log records in the window that match the filters. Omitted when the read was capped (`coverage.scan_complete` false), because the total is then unknown."
-          },
           "patterns": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Mcp.Tools.LogPattern"
-            }
+            },
+            "description": "With `group_by: [\"pattern\"]`, the message templates, most frequent first; `coverage.matched` counts the log records they cover."
           },
           "window": {
             "$ref": "#/components/schemas/Common.ToolWindow"
@@ -12501,9 +12425,6 @@
               "$ref": "#/components/schemas/Mcp.Tools.ToolLogRow"
             },
             "description": "With `context`, the records next to each returned one from the same service and resource."
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mcp.Tools.McpDataMode"
           },
           "has_more": {
             "type": "boolean",
@@ -13133,29 +13054,25 @@
           "agent_name": {
             "type": "string"
           },
-          "models": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "tokens_by_model": {
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/Mcp.Tools.AgentTokens"
-            }
+            },
+            "description": "Tokens per model of `genai_usage.models_used`; absent for a session without GenAI requests."
           },
           "annotations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Annotations.Annotation"
-            }
+            },
+            "description": "Annotations on the session; absent when it has none."
           }
         },
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "ToolSession contract."
+        "description": "One session of list_sessions; `genai_usage` comes only with GenAI requests."
       },
       "Mcp.Tools.ToolTimeRange": {
         "type": "object",
@@ -13946,7 +13863,6 @@
       "Mcp.Tools.VerifyFixOutput": {
         "type": "object",
         "required": [
-          "window",
           "coverage",
           "has_more",
           "verdict",
@@ -13957,9 +13873,6 @@
           "verify_id"
         ],
         "properties": {
-          "window": {
-            "$ref": "#/components/schemas/Common.ToolWindow"
-          },
           "coverage": {
             "$ref": "#/components/schemas/Common.ToolCoverage"
           },
@@ -14020,7 +13933,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "VerifyFixOutput contract."
+        "description": "The verdict of a fix and the before and after windows it weighs; each window states its own bounds."
       },
       "OTel.Enums.SeverityNumber": {
         "type": "number",

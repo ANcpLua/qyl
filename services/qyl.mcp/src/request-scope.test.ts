@@ -76,11 +76,11 @@ async function collectorConnection(context: TestContext, reply: (operation: stri
 function responseFor(operation: string, args: Record<string, unknown>): Response {
   const context = readContext(1);
   switch (operation) {
-    case "list_traces": return Response.json({ ...context, mode: "live", has_more: false, traces: [toolSummary(getTelemetryFixture().traces[0]!)] });
-    case "get_trace": return Response.json({ ...context, mode: "live", trace: toolTrace(getTelemetryFixture().traces[0]!) });
-    case "list_sessions": return Response.json({ ...context, mode: "live", has_more: false, sessions: [getTelemetryFixture().sessions[0]] });
-    case "search_logs": return Response.json({ ...context, mode: "live", has_more: false, logs: [toolLog(getTelemetryFixture().logs[0]!)] });
-    case "ci_log": return Response.json({ ...context, mode: "live", has_more: false, ...(args.ci_run_id ? { ci_run_id: args.ci_run_id, phases: [] } : { runs: [] }) });
+    case "list_traces": return Response.json({ ...context, has_more: false, traces: [toolSummary(getTelemetryFixture().traces[0]!)] });
+    case "get_trace": return Response.json({ ...context, trace: toolTrace(getTelemetryFixture().traces[0]!) });
+    case "list_sessions": return Response.json({ ...context, has_more: false, sessions: [getTelemetryFixture().sessions[0]] });
+    case "search_logs": return Response.json({ ...context, has_more: false, logs: [toolLog(getTelemetryFixture().logs[0]!)] });
+    case "ci_log": return Response.json({ ...context, has_more: false, ...(args.ci_run_id ? { ci_run_id: args.ci_run_id, phases: [] } : { runs: [] }) });
     case "list_metrics": return Response.json({ ...context, has_more: false, items: [] });
     default: throw new Error(`Unexpected operation ${operation}`);
   }
@@ -141,7 +141,7 @@ test("list tools forward opaque cursors unchanged across the MCP boundary", asyn
   const connection = await collectorConnection(context, (operation, args) => {
     assert.equal(operation, "list_traces"); calls.push(args);
     const second = args.cursor !== undefined;
-    return Response.json({ ...readContext(1), mode: "live", traces: [toolSummary(getTelemetryFixture().traces[second ? 1 : 0]!)], has_more: !second, ...(second ? {} : { next_cursor: "opaque.signed.cursor" }) });
+    return Response.json({ ...readContext(1), traces: [toolSummary(getTelemetryFixture().traces[second ? 1 : 0]!)], has_more: !second, ...(second ? {} : { next_cursor: "opaque.signed.cursor" }) });
   });
   const first = await connection.client.callTool({ name: "list_traces", arguments: { limit: 1, errors_only: true } });
   assert.equal(first.isError, undefined);
@@ -220,7 +220,7 @@ test("oversized pages requery with a smaller limit and retain collector coverage
     requests.push(args);
     const page = logs.slice(0, Number(args.limit ?? logs.length));
     const metadata = readContext(8);
-    return Response.json({ ...metadata, mode: "live", logs: page,
+    return Response.json({ ...metadata, logs: page,
       coverage: { ...metadata.coverage, returned: page.length, truncated: page.length < 8 } });
   });
   const result = await connection.client.callTool({ name: "search_logs", arguments: {} });

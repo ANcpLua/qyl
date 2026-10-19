@@ -244,39 +244,32 @@ model GetFailureContextInput {
   maxLogs?: int32 = 100;
 }
 
-@doc("EvidenceSpan contract.")
+@doc("One span of a failure's evidence: an error span, or with status ok or unset an ancestor on its path to the root.")
 model EvidenceSpan {
-  @encodedName("application/json", "start_time")
-  startTime?: utcDateTime;
-  @encodedName("application/json", "end_time")
-  endTime?: utcDateTime;
-
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
   @encodedName("application/json", "span_id")
   spanId: SpanId;
+  @doc("Absent for a root span.")
   @encodedName("application/json", "parent_span_id")
   parentSpanId?: SpanId;
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
   service: string;
   name: string;
-  status: string;
-  @encodedName("application/json", "status_message")
-  statusMessage?: string;
-  exception?: RecordedException;
-  @encodedName("application/json", "key_attributes")
-  keyAttributes: Attribute[];
+  @encodedName("application/json", "start_time")
+  startTime: utcDateTime;
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
-  role: "matched" | "context";
-}
-
-@doc("RecordedException contract.")
-model RecordedException {
-  type?: string;
-  message?: string;
-  stacktrace?: string;
+  status: "unset" | "ok" | "error";
+  @doc("The status description, when the producer set one.")
+  @encodedName("application/json", "status_message")
+  statusMessage?: string;
+  @doc("The span's `exception.type`, else its `error.type`; absent when it carries neither.")
+  @encodedName("application/json", "exception_type")
+  exceptionType?: string;
+  @encodedName("application/json", "key_attributes")
+  keyAttributes: Attribute[];
 }
 
 @doc("A span named by its trace and span id; a span id is unique only within its trace.")
@@ -300,9 +293,9 @@ model RetryEvidence {
   spans: SpanRef[];
 }
 
-@doc("FanoutEvidence contract.")
+@doc("A parent span with several children in one trace.")
 model FanoutEvidence {
-  name: string;
+  @doc("The parent's children.")
   count: int32;
   @encodedName("application/json", "parent_span_id")
   parentSpanId?: SpanId;
@@ -312,7 +305,7 @@ model FanoutEvidence {
 
 @doc("What the execution shows. Every span appears once in `spans`; the other lists name spans by trace and span id.")
 model FailureObserved {
-  @doc("The error spans and their ancestors, each once; an ancestor has `role` context.")
+  @doc("The error spans and their ancestors, each once.")
   spans: EvidenceSpan[];
   @doc("The earliest error span without a failing child: where the failure began.")
   @encodedName("application/json", "root_cause_span")
@@ -552,9 +545,12 @@ model VerificationNeeds {
   minutes: int64;
 }
 
-@doc("VerifyFixOutput contract.")
+@doc("The verdict of a fix and the before and after windows it weighs; each window states its own bounds.")
 model VerifyFixOutput {
-  ...ToolReadContext;
+  coverage: ToolCoverage;
+  @doc("Item totals by paged collection path. Omitted totals are unknown, not zero.")
+  @encodedName("application/json", "page_totals")
+  pageTotals?: Record<int64>;
   ...ToolPage;
   verdict: "passed" | "failed" | "pending" | "inconclusive";
   before: VerificationPeriod;
@@ -656,10 +652,8 @@ model DiscoveredAttribute {
   type: string;
   @encodedName("application/json", "coverage_share")
   coverageShare: float64;
+  @doc("Distinct values the key holds; with `coverage.scan_complete` false, among the records the read held.")
   cardinality: int64;
-  @doc("False when the read was capped (`coverage.scan_complete` false): `cardinality` then counts only the values of the records the read loaded.")
-  @encodedName("application/json", "cardinality_exact")
-  cardinalityExact: boolean;
   @maxItems(10)
   @encodedName("application/json", "top_values")
   topValues: AttributeValueCount[];
@@ -727,7 +721,7 @@ model AgentStep {
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
   tokens: AgentTokens;
-  status: string;
+  status: "unset" | "ok" | "error";
   error?: string;
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
@@ -754,8 +748,9 @@ model AgentTokenShare {
 model AgentFindings {
   @encodedName("application/json", "repeated_calls")
   repeatedCalls: RepeatedCall[];
+  @doc("Indexes into `steps` of the tool calls that failed, at most ten, in step order.")
   @encodedName("application/json", "failed_tool_calls")
-  failedToolCalls: AgentStep[];
+  failedToolCalls: int32[];
   @doc("Indexes into `steps` of the three slowest steps, slowest first.")
   @encodedName("application/json", "slowest_steps")
   slowestSteps: int32[];
@@ -1090,15 +1085,6 @@ model GetMcpStatsOutput {
   @doc("Per tool (`gen_ai.tool.name`), the requests that name one: most requests first, paged with `groups`.")
   tools: McpToolStats[];
 
-  @doc("MCP spans the statistics were computed from.")
-  @encodedName("application/json", "span_count_analyzed")
-  @minValue(0)
-  spanCountAnalyzed: int32;
-
-  @doc("True when the Collector stopped reading before every matching span was read (`coverage.scan_complete` is false); every statistic then describes only the spans read.")
-  truncated: boolean;
-
-  mode: McpDataMode;
   error?: ToolError;
 }
 
@@ -1167,7 +1153,7 @@ model ToolTraceRow {
   sessionId?: SessionId;
 }
 
-@doc("ToolSession contract.")
+@doc("One session of list_sessions; `genai_usage` comes only with GenAI requests.")
 model ToolSession {
   ...SessionEntity;
   @maxItems(5)
@@ -1175,9 +1161,10 @@ model ToolSession {
   failureIds?: FailureId[];
   @encodedName("application/json", "agent_name")
   agentName?: string;
-  models?: string[];
+  @doc("Tokens per model of `genai_usage.models_used`; absent for a session without GenAI requests.")
   @encodedName("application/json", "tokens_by_model")
   tokensByModel?: Record<AgentTokens>;
+  @doc("Annotations on the session; absent when it has none.")
   annotations?: Annotation[];
 }
 

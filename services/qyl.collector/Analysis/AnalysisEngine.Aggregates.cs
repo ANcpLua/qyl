@@ -67,7 +67,7 @@ internal sealed partial class AnalysisEngine
             {
                 var values = g.GroupBy(p => p.Value?.ToJsonString() ?? "null").OrderByDescending(v => v.Count()).ThenBy(v => v.Key, StringComparer.Ordinal).ToList();
                 return J.O(("key", g.Key.Key), ("scope", g.Key.Scope), ("type", AttributeType(g.First().Value)),
-                    ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count), ("cardinality_exact", snapshot.ScanComplete),
+                    ("coverage_share", g.Count() / (double)Math.Max(1, rows.Count)), ("cardinality", values.Count),
                     ("top_values", J.A(values.Take(10).Select(v => J.O(("value", ContractValue(v.First().Value)), ("count", v.Count()), ("share", v.Count() / (double)Math.Max(1, rows.Count)))))), ("semconv", SemanticMetadata.Find(g.Key.Key)));
             }).OrderBy(g => J.String(g, "key"), StringComparer.Ordinal).ThenBy(g => J.String(g, "scope"), StringComparer.Ordinal).ToList();
         return J.O(("attributes", J.A(attrs)), ("coverage", Coverage(_spans.Count + _logs.Count, rows.Count, attrs.Count, false)));
@@ -259,9 +259,6 @@ internal sealed partial class AnalysisEngine
                 return J.O(("name", g.Key), ("requests", g.Count()), ("errors", errors), ("error_rate", errors / (double)g.Count()),
                     ("avg_ms", g.Average(static s => s.Duration)), ("p95_ms", J.Percentile(g.Select(static s => s.Duration), .95)));
             }));
-        output["span_count_analyzed"] = rows.Count;
-        output["truncated"] = !snapshot.ScanComplete;
-        output["mode"] = "live";
         if (input["baseline"] is { } baseline)
         {
             // Another server version is compared over the same window, an earlier window with the same filters.

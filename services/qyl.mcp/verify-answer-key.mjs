@@ -28,7 +28,8 @@ async function withClient(run, project = fixture.project) {
    assert(!result.isError, `${name}: ${JSON.stringify(result)}`);
    assert(Buffer.byteLength(JSON.stringify(result), 'utf8') <= 24_000, name+' exceeds response budget');
    if (!['annotate','update_failure_status'].includes(name)) {
-     assert(result.structuredContent.window, name+' omits absolute window');
+     // A verification's before and after windows are its bounds; every other read reports the window it applied.
+     if (name!=='verify_fix') assert(result.structuredContent.window, name+' omits absolute window');
      assert(result.structuredContent.coverage, name+' omits coverage');
    }
    return result.structuredContent;
@@ -121,7 +122,7 @@ verify('13 MCP stats preserve denominator, failure class, exampleids, buckets an
  assert.equal((await call('get_mcp_stats',{...w,tool_name:'search_logs'})).buckets,undefined,'buckets come only on request');
  const data=await call('get_mcp_stats',{...w,tool_name:'search_logs',buckets:true});const group=data.groups.find(g=>g.name==='search_logs');assert.equal(group.requests,40);assert.equal(group.errors,8);assert.equal(group.error_rate,.2);assert.equal(data.failure_classes.timeout,8);assert(group.example_trace_ids.length>0);
  const tool=data.tools.find(t=>t.name==='search_logs');assert.equal(tool.requests,40);assert.equal(tool.errors,8);assert.equal(tool.error_rate,.2);assert.equal(tool.avg_ms,20);assert.equal(tool.p95_ms,20);
- assert.equal(data.span_count_analyzed,40);assert.equal(data.truncated,false);assert.equal(data.mode,'live');
+ assert.equal(data.totals.requests,40);assert.equal(data.coverage.scan_complete,true);assert.equal(data.coverage.truncated,false);
  assert(data.buckets.length>0&&data.buckets.every(b=>b.requests>0),'only buckets that saw requests');
  assert.equal(data.buckets.reduce((sum,b)=>sum+b.requests,0),40);assert.equal(data.buckets.reduce((sum,b)=>sum+b.errors,0),8);
  assert.equal(data.by_method.find(m=>m.name==='tools/call').requests,40);assert.equal(data.by_transport.find(t=>t.name==='http').requests,40);

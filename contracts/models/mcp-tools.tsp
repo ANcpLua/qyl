@@ -24,12 +24,6 @@ using Qyl.Api.Contracts.OTel.Traces;
 
 namespace Qyl.Api.Contracts.Mcp.Tools;
 
-@doc("Whether a qyl MCP tool read live collector data or the explicit demo dataset.")
-enum McpDataMode {
-  live: "live",
-  demo: "demo",
-}
-
 @doc("""
   OAuth scopes of the qyl MCP server. `qyl:read` alone keeps the read-only
   tool surface; `qyl:write` adds the create and update tools; `qyl:delete`
@@ -210,7 +204,6 @@ model ListTracesOutput {
   ...ToolReadContext;
 
   traces: ToolTraceRow[];
-  mode: McpDataMode;
   ...ToolPage;
 
   @doc("Set when the call failed.")
@@ -263,7 +256,6 @@ model GetTraceOutput {
   ...ToolReadContext;
 
   trace: ToolTrace;
-  mode: McpDataMode;
 
   @doc("Annotations on the trace and its spans, newest first.")
   annotations?: Annotation[];
@@ -322,11 +314,7 @@ model ListSessionsOutput {
   ...ToolReadContext;
 
   sessions: ToolSession[];
-  mode: McpDataMode;
   ...ToolPage;
-
-  @doc("Annotations on the listed sessions, newest first; each names its session in `target`.")
-  annotations?: Annotation[];
 
   @doc("Set when the call failed.")
   error?: ToolError;
@@ -383,9 +371,7 @@ model SearchLogsInput {
 
 @doc("Structured output for search_logs.")
 model SearchLogsOutput {
-  @doc("Log records in the window that match the filters. Omitted when the read was capped (`coverage.scan_complete` false), because the total is then unknown.")
-  @encodedName("application/json", "total_matched")
-  totalMatched?: int64;
+  @doc("With `group_by: [\"pattern\"]`, the message templates, most frequent first; `coverage.matched` counts the log records they cover.")
   patterns?: LogPattern[];
 
   ...ToolReadContext;
@@ -395,7 +381,6 @@ model SearchLogsOutput {
   @doc("With `context`, the records next to each returned one from the same service and resource.")
   @encodedName("application/json", "context_logs")
   contextLogs?: ToolLogRow[];
-  mode: McpDataMode;
   ...ToolPage;
 
   @doc("Set when the call failed.")
@@ -452,10 +437,8 @@ model CiLogInput {
   limit?: int32 = 10;
 }
 
-@doc("One CI run, summarized from the session its telemetry is grouped under.")
+@doc("One CI run, summarized from the session its telemetry is grouped under; its `ci_run_id` is that session's id.")
 model CiRunSummary {
-  @encodedName("application/json", "session_id")
-  sessionId?: SessionId;
   @encodedName("application/json", "provider_run_id")
   providerRunId?: string;
   @encodedName("application/json", "provider_run_url")
@@ -525,7 +508,6 @@ model CiLogOutput {
   ciRunId?: SessionId;
 
   phases?: CiPhase[];
-  mode: McpDataMode;
 
   @doc("Set when the call failed.")
   error?: ToolError;

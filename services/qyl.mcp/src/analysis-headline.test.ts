@@ -13,9 +13,8 @@ const context = readContext(3);
 const window = context.window;
 const tokens = { input: 1200, output: 300 };
 const evidence = {
-  trace_id: TRACE, span_id: SPAN, service: "checkout", name: "SELECT orders", status: "error",
-  status_message: "timeout", exception: { type: "TimeoutError", message: "orders-db timed out after 5s" },
-  key_attributes: [], duration_ms: 5000, role: "matched",
+  trace_id: TRACE, span_id: SPAN, service: "checkout", name: "SELECT orders", start_time: NOW, duration_ms: 5000, status: "error",
+  status_message: "orders-db timed out after 5s", exception_type: "TimeoutError", key_attributes: [],
 } as const;
 const regression = { service: "checkout", operation: "POST /cart", measure: "p95_ms", value: 1840, baseline_value: 210, denominator: 195, unit: "ms" } as const;
 const fixture = getTelemetryFixture();
@@ -89,7 +88,7 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
   },
   {
     operation: "verify_fix", schema: "Mcp.Tools.VerifyFixOutput",
-    output: { ...context, verdict: "pending",
+    output: { coverage: context.coverage, has_more: false, verdict: "pending",
       before: { window, occurrences: 10, requests: 100, rate: 0.1, unit: "requests" },
       after: { window, occurrences: 0, requests: 4, rate: 0, unit: "requests" },
       needs: { requests: 96, minutes: 24 }, recurrences: [], guardrails: [], verify_id: "vf_1" },
@@ -106,7 +105,7 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
   {
     operation: "discover_attributes", schema: "Mcp.Tools.DiscoverAttributesOutput",
     output: { ...context, attributes: [{ key: "http.response.status_code", scope: "span", type: "int", coverage_share: 0.5, cardinality: 3,
-      cardinality_exact: true, top_values: [{ value: { type: "int", value: "500" }, count: 4, share: 0.4 }], semconv: null }] },
+      top_values: [{ value: { type: "int", value: "500" }, count: 4, share: 0.4 }], semconv: null }] },
     expect: [/^discover_attributes: 1 attributes\. Top: http\.response\.status_code \(int, 3 values, 50% coverage, e\.g\. 500\)\./u,
       /→ aggregate_telemetry group_by=\["http\.response\.status_code"\]$/u],
   },
@@ -115,7 +114,7 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
     output: { ...context, run: { agent_name: "triager", models: ["claude"], started: NOW, duration_ms: 4200, tokens, errors: 1, trace_id: TRACE },
       steps: [{ index: 0, kind: "tool_call", name: "search", duration_ms: 300, tokens, status: "error", error: "timeout", trace_id: TRACE, span_id: SPAN }],
       findings: { repeated_calls: [{ tool: "search", argument_hash: "h", count: 3 }],
-        failed_tool_calls: [{ index: 0, kind: "tool_call", name: "search", duration_ms: 300, tokens, status: "error", error: "timeout", trace_id: TRACE, span_id: SPAN }],
+        failed_tool_calls: [0],
         slowest_steps: [0], token_share: [] }, unknowns: [] },
     expect: [/^get_agent_run: triager 1 steps, 1 errors, 4200 ms, tokens in 1200 out 300\. Failed tool calls: search: timeout \(step 0, trace 0af7651916cd43dd8448eb211c80319c\)\. Repeated: search ×3\./u,
       /Slowest: search 300 ms \(step 0\)\./u, /→ get_trace trace_id=0af7651916cd43dd8448eb211c80319c$/u],
@@ -147,42 +146,42 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
     output: { ...context, totals: { requests: 10, errors: 2, error_rate: 0.2, p50_ms: 10, p95_ms: 90, unit: "requests" }, groups: [],
       failure_classes: { transport: 0, protocol: 0, tool_result: 2, authentication: 0, cancellation: 0, timeout: 0 },
       bucket_ms: 60_000, buckets: [], by_server: [], by_transport: [], by_method: [],
-      tools: [{ name: "get_trace", requests: 4, errors: 2, error_rate: 0.5, avg_ms: 40, p95_ms: 90 }], span_count_analyzed: 10, truncated: false, mode: "live" },
-    expect: [/^get_mcp_stats: 10 requests, 2 errors \(20%\), p95 90 ms over 10 spans\. Tools: get_trace 4 requests, 2 errors, p95 90 ms\./u,
+      tools: [{ name: "get_trace", requests: 4, errors: 2, error_rate: 0.5, avg_ms: 40, p95_ms: 90 }] },
+    expect: [/^get_mcp_stats: 10 requests, 2 errors \(20%\), p95 90 ms\. Tools: get_trace 4 requests, 2 errors, p95 90 ms\./u,
       /→ list_traces tool_name=get_trace errors_only=true$/u],
   },
   {
     operation: "list_traces", schema: "Mcp.Tools.ListTracesOutput",
-    output: { ...context, mode: "live", traces: fixture.traces.map(toolSummary) },
+    output: { ...context, traces: fixture.traces.map(toolSummary) },
     expect: [new RegExp(`^list_traces: ${fixture.traces.length} traces, ${fixture.traces.filter((trace) => trace.has_error).length} with errors\\. Top: ${fixture.traces[0]!.trace_id} `, "u"),
       new RegExp(`→ get_failure_context trace_id=${errorTrace.trace_id}$`, "u")],
   },
   {
     operation: "get_trace", schema: "Mcp.Tools.GetTraceOutput",
-    output: { ...context, mode: "live", trace: toolTrace(errorTrace) },
+    output: { ...context, trace: toolTrace(errorTrace) },
     expect: [new RegExp(`^get_trace: ${errorTrace.trace_id} ${errorTrace.span_count} spans \\(${errorTrace.spans.length} returned\\), [1-9]\\d* error spans`, "u"),
       new RegExp(`→ get_failure_context trace_id=${errorTrace.trace_id}$`, "u")],
   },
   {
     operation: "list_sessions", schema: "Mcp.Tools.ListSessionsOutput",
-    output: { ...context, mode: "live", sessions: fixture.sessions },
+    output: { ...context, sessions: fixture.sessions },
     expect: [new RegExp(`^list_sessions: ${fixture.sessions.length} sessions\\. Top: ${fixture.sessions[0]!.session_id} `, "u"), /→ get_(failure_context|agent_run) session_id=/u],
   },
   {
     operation: "search_logs", schema: "Mcp.Tools.SearchLogsOutput",
-    output: { ...context, mode: "live", logs: fixture.logs.slice(0, 2).map(toolLog) },
+    output: { ...readContext(2), logs: fixture.logs.slice(0, 2).map(toolLog) },
     expect: [/^search_logs: 2 logs\. Top: /u, /→ (get_trace trace_id=[a-f0-9]{32}|widen lookback_minutes or relax the query)$/u],
   },
   {
     operation: "search_logs", schema: "Mcp.Tools.SearchLogsOutput", input: { group_by: ["pattern"] },
-    output: { ...context, mode: "live", total_matched: 7, patterns: [{ template: "orders-db timed out after # s", count: 7, severity: 17,
+    output: { ...readContext(7), patterns: [{ template: "orders-db timed out after # s", count: 7, severity: 17,
       first_seen: NOW, last_seen: NOW, example_trace_ids: [TRACE] }] },
     expect: [/^search_logs: 1 patterns over 7 logs\. Top: "orders-db timed out after # s" ×7 \(trace 0af7651916cd43dd8448eb211c80319c\)\./u,
       /→ get_trace trace_id=0af7651916cd43dd8448eb211c80319c$/u],
   },
   {
     operation: "ci_log", schema: "Mcp.Tools.CiLogOutput", input: { ci_run_id: "run-7" },
-    output: { ...context, mode: "live", ci_run_id: "run-7", phases: [
+    output: { ...context, ci_run_id: "run-7", phases: [
       { leg: "linux", phase: "build", status: "ok", duration_ms: 1000 },
       { leg: "linux", phase: "test", status: "error", duration_ms: 2000, message: "3 tests failed" }] },
     expect: [/^ci_log: run run-7: 2 phases, 1 failed\. Failed: linux\/test: 3 tests failed\./u, /→ get_failure_context ci_run_id=run-7$/u],

@@ -25,7 +25,7 @@ test("budget re-query preserves filters and accepts Collector's smaller page and
     const input = JSON.parse(init?.body as string) as Record<string, unknown>; queries.push(input);
     const count = queries.length === 1 ? 100 : 2;
     return Response.json({ ...readContext(count), has_more:true, next_cursor:"signed-next-page",
-      attributes:Array.from({length:count}, (_, i) => ({key:`key-${i}`,scope:"span",type:"string",cardinality:1,cardinality_exact:true,coverage_share:1,
+      attributes:Array.from({length:count}, (_, i) => ({key:`key-${i}`,scope:"span",type:"string",cardinality:1,coverage_share:1,
         top_values:[{value:"x".repeat(1000),count:1,share:1}],semconv:null})),
     });
   });
@@ -46,7 +46,7 @@ test("one oversized trace is compacted with explicit omissions and a valid contr
   const trace = toolTrace(getTelemetryFixture().traces[0]!);
   trace.spans = Array.from({length:300}, (_, index) => ({...trace.spans[0]!,span_id:index.toString(16).padStart(16,"0") as SpanId, name:"large span "+index,
     attributes:[{key:"recorded.evidence",value:"detail ".repeat(2000)}]}));
-  const output = { ...readContext(300), trace, has_more:false, logs:[], annotations:[], links:[], mode:"live", settled:true };
+  const output = { ...readContext(300), trace, has_more:false, logs:[], annotations:[], links:[], settled:true };
   const result = compactAnalysisResult("get_trace",{trace_id:trace.trace_id},output);
   assert(responseBytes(result)<=ANALYSIS_RESPONSE_BYTES);
   const checked = checkContract("Mcp.Tools.GetTraceOutput", result.structuredContent);
@@ -59,7 +59,7 @@ test("one oversized trace is compacted with explicit omissions and a valid contr
 });
 
 test("null coverage is reported as unknown rather than zero", () => {
-  const headline = analysisHeadline("list_traces", {}, {...readContext(), mode:"live", traces:[],
+  const headline = analysisHeadline("list_traces", {}, {...readContext(), traces:[],
     coverage:{...readContext().coverage,examined:null,matched:null,returned:null,scan_complete:false}});
   assert.match(headline, /scan_complete:false — a partial answer over unknown examined records/u);
   assert.doesNotMatch(headline, /Nothing matched/u, "null is unknown, not zero");

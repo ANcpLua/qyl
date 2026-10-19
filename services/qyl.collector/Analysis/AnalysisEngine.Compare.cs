@@ -109,13 +109,11 @@ internal sealed partial class AnalysisEngine
         var selected = errors.Select(static s => (s.TraceId, s.Id)).ToHashSet();
         foreach (var error in errors)
         { var current = error; while (current.Span?.ParentSpanId is { } parent && byId.TryGetValue((current.TraceId, parent), out var ancestor) && selected.Add((ancestor.TraceId, ancestor.Id))) current = ancestor; }
-        var maxSpans = PageSize(input, "observed.spans"); var maxLogs = PageSize(input, "observed.logs");
         var evidence = spans.Where(s => selected.Contains((s.TraceId, s.Id))).ToList();
         var logs = _logs.Where(l => traceIds.Contains(l.TraceId) && (l.SpanId is null || byId.ContainsKey((l.TraceId, l.SpanId)))).ToList();
         var missing = spans.Where(s => s.Span?.ParentSpanId is { Length: > 0 } parent && !byId.ContainsKey((s.TraceId, parent))).Select(s => s.Span!.ParentSpanId!).Distinct().ToList();
         var unknowns = missing.Select(id => (JsonNode?)JsonValue.Create("Missing parent span " + id)).ToList();
         if (spans.Any(s => s.End < s.Start)) unknowns.Add(JsonValue.Create("Clock skew: span end precedes start."));
-        if (evidence.Count > maxSpans || logs.Count > maxLogs) unknowns.Add(JsonValue.Create("Evidence was truncated."));
         var errorTraces = _spans.Where(s => s.Error).Select(s => s.TraceId).ToHashSet(StringComparer.Ordinal);
         var success = rootCause is null ? null : _spans.Where(s => s.Name == spans.FirstOrDefault()?.Name && !s.Error && !errorTraces.Contains(s.TraceId)).OrderBy(s => Math.Abs((decimal)s.Start - rootCause.Start)).FirstOrDefault();
         JsonObject? divergence = null;
@@ -126,9 +124,9 @@ internal sealed partial class AnalysisEngine
         return J.O(("observed", J.O(("spans", J.A(evidence.Select(SpanJson))), ("root_cause_span", rootCause is null ? null : SpanRef(rootCause)), ("error_spans", J.A(errors.Select(SpanRef))),
             ("propagation", J.A(spans.Where(s => s.Span?.ParentSpanId is { } parent && selected.Contains((s.TraceId, parent)) && selected.Contains((s.TraceId, s.Id))).Select(s => J.O(("from", SpanRef(byId[(s.TraceId, s.Span!.ParentSpanId!)])), ("to", SpanRef(s)))))), ("logs", J.A(logs.Select(LogJson))),
             ("retries", J.A(spans.GroupBy(s => (s.TraceId, s.Span?.ParentSpanId, s.Name)).Where(g => g.Count() > 1).Select(g => J.O(("name", g.Key.Name), ("attempts", g.Count()), ("spans", J.A(g.Select(SpanRef))))))),
-            ("fanout", J.A(spans.GroupBy(s => (s.TraceId, Parent: s.Span?.ParentSpanId)).Where(g => g.Key.Parent is not null && g.Count() > 1).Select(g => J.O(("parent_span_id", g.Key.Parent), ("name", "children"), ("count", g.Count()), ("trace_id", g.Key.TraceId))))))),
+            ("fanout", J.A(spans.GroupBy(s => (s.TraceId, Parent: s.Span?.ParentSpanId)).Where(g => g.Key.Parent is not null && g.Count() > 1).Select(g => J.O(("parent_span_id", g.Key.Parent), ("count", g.Count()), ("trace_id", g.Key.TraceId))))))),
             ("comparison", J.O(("nearest_success_trace_id", success?.TraceId), ("first_divergence", divergence))),
-            ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Where(g => FailureId(g.Key) != explained).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource"))).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId) || explained is not null && FailureNote(n, explained)).Select(AnnotationJson))))),
+            ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Where(g => FailureId(g.Key) != explained).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(ReleaseOf).Where(static v => v.Length > 0).Distinct()))))), ("changes", Triage(J.O(("service_name", rootCause?.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId) || explained is not null && FailureNote(n, explained)).Select(AnnotationJson))))),
             ("settled", spans.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
             ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, evidence.Count + logs.Count, false)));
     }

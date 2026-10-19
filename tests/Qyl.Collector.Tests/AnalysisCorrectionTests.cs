@@ -82,7 +82,7 @@ public sealed partial class AnalysisApiTests
         {
             var input = new JsonObject { ["limit"] = 2, ["cursor"] = cursor };
             var result = await Read(host, "search_logs", input.ToJsonString());
-            Assert.AreEqual(5, result.GetProperty("total_matched").GetInt32());
+            Assert.AreEqual(5, result.GetProperty("coverage").GetProperty("matched").GetInt32());
             foreach (var log in result.GetProperty("logs").EnumerateArray())
             {
                 var body = log.GetProperty("body").GetString()!;
@@ -158,6 +158,9 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual("aggregation.requires_histogram", error.GetProperty("code").GetString());
     }
 
+    private static readonly string[] s_mcpStatsFields =
+        ["window", "coverage", "page_totals", "has_more", "totals", "groups", "failure_classes", "bucket_ms", "buckets", "by_server", "by_transport", "by_method", "tools"];
+
     [TestMethod]
     public async Task Snapshot_window_and_incomplete_coverage_are_honest()
     {
@@ -225,11 +228,11 @@ public sealed partial class AnalysisApiTests
         Assert.IsFalse((await Read(host, "get_mcp_stats", window)).TryGetProperty("buckets", out _), "buckets come only on request");
         var stats = await Read(host, "get_mcp_stats", window[..^1] + ",\"buckets\":true}");
 
-        Assert.AreEqual(4, stats.GetProperty("span_count_analyzed").GetInt32());
         Assert.AreEqual(4, stats.GetProperty("totals").GetProperty("requests").GetInt32());
         Assert.AreEqual(1, stats.GetProperty("totals").GetProperty("errors").GetInt32());
-        Assert.IsFalse(stats.GetProperty("truncated").GetBoolean());
-        Assert.AreEqual("live", stats.GetProperty("mode").GetString());
+        Assert.IsTrue(stats.GetProperty("coverage").GetProperty("scan_complete").GetBoolean());
+        Assert.AreSequenceEqual(s_mcpStatsFields.Order(StringComparer.Ordinal), stats.EnumerateObject().Select(static p => p.Name).Order(StringComparer.Ordinal),
+            "every field once, none always the same");
 
         Assert.AreEqual(60_000, stats.GetProperty("bucket_ms").GetInt64());
         // Only the buckets that saw requests.

@@ -135,10 +135,10 @@ function failureContext(input: Args, output: GetFailureContextOutput): string {
   const reference = observed.root_cause_span;
   const cause = reference === null ? undefined
     : observed.spans.find((item) => item.span_id === reference.span_id && item.trace_id === reference.trace_id);
-  const reason = cause?.exception?.message ?? cause?.status_message;
+  const reason = cause?.status_message;
   const head = reference === null ? "get_failure_context: no root-cause span was recorded."
     : cause === undefined ? `get_failure_context: root cause span ${reference.span_id} (trace ${reference.trace_id}).`
-      : `get_failure_context: root cause ${span(cause)}${cause.exception?.type ? ` ${cause.exception.type}` : ""}${reason ? `: ${short(reason)}` : ""}.`;
+      : `get_failure_context: root cause ${span(cause)}${cause.exception_type ? ` ${cause.exception_type}` : ""}${reason ? `: ${short(reason)}` : ""}.`;
   const changes = top(output.context.changes, regression);
   const evidence = ` ${observed.error_spans.length} error spans, ${observed.logs.length} logs, ${output.context.similar_failures.length} similar failures; ${output.settled ? "settled" : "not settled"}.`;
   const unknowns = output.unknowns.length === 0 ? "" : ` Unknowns: ${short(output.unknowns.join("; "), 160)}.`;
@@ -201,7 +201,7 @@ function aggregate(output: AggregateTelemetryOutput): string {
 
 function discover(output: DiscoverAttributesOutput): string {
   const rows = top(output.attributes, (row) =>
-    `${row.key} (${row.type}, ${row.cardinality}${row.cardinality_exact ? "" : "+"} values, ${pct(row.coverage_share)} coverage${row.top_values[0] ? `, e.g. ${attributeText(row.top_values[0].value)}` : ""})`);
+    `${row.key} (${row.type}, ${row.cardinality}${output.coverage.scan_complete ? "" : "+"} values, ${pct(row.coverage_share)} coverage${row.top_values[0] ? `, e.g. ${attributeText(row.top_values[0].value)}` : ""})`);
   const first = output.attributes[0];
   const next = first === undefined ? "widen lookback_minutes or another signal" : `aggregate_telemetry group_by=["${first.key}"]`;
   return `discover_attributes: ${output.attributes.length} attributes.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
@@ -209,13 +209,14 @@ function discover(output: DiscoverAttributesOutput): string {
 
 function agentRun(output: GetAgentRunOutput): string {
   const run = output.run;
-  const failed = top(output.findings.failed_tool_calls, (step) => `${step.name}${step.error ? `: ${short(step.error, 60)}` : ""} (step ${step.index}, trace ${step.trace_id})`);
+  // failed_tool_calls and slowest_steps are indexes into steps.
+  const failedSteps = output.findings.failed_tool_calls.map((index) => output.steps.find((step) => step.index === index)).filter((step) => step !== undefined);
+  const failed = top(failedSteps, (step) => `${step.name}${step.error ? `: ${short(step.error, 60)}` : ""} (step ${step.index}, trace ${step.trace_id})`);
   const repeated = top(output.findings.repeated_calls, (call) => `${call.tool} ×${call.count}`);
-  // slowest_steps are indexes into steps.
   const slowest = output.steps.find((step) => step.index === output.findings.slowest_steps[0]);
   const tokens = [run.tokens.input === undefined ? "" : `in ${num(run.tokens.input)}`, run.tokens.output === undefined ? "" : `out ${num(run.tokens.output)}`]
     .filter(Boolean).join(" ");
-  const target = output.findings.failed_tool_calls[0]?.trace_id ?? slowest?.trace_id ?? run.trace_id;
+  const target = failedSteps[0]?.trace_id ?? slowest?.trace_id ?? run.trace_id;
   const next = target === undefined ? "list_sessions for another run" : `get_trace trace_id=${target}`;
   return `get_agent_run: ${run.agent_name ?? "agent"} ${output.steps.length} steps, ${run.errors} errors, ${ms(run.duration_ms)}${tokens ? `, tokens ${tokens}` : ""}.` +
     `${failed ? ` Failed tool calls: ${failed}.` : ""}${repeated ? ` Repeated: ${repeated}.` : ""}` +
@@ -255,7 +256,7 @@ function mcpStats(output: GetMcpStatsOutput): string {
   const rows = top(tools, (tool) => `${tool.name} ${tool.requests} requests, ${tool.errors} errors, p95 ${ms(tool.p95_ms)}`);
   const worst = tools[0];
   const next = worst === undefined ? "widen lookback_minutes" : `list_traces tool_name=${worst.name}${worst.errors > 0 ? " errors_only=true" : ""}`;
-  return `get_mcp_stats: ${output.totals.requests} requests, ${output.totals.errors} errors (${pct(output.totals.error_rate)}), p95 ${ms(output.totals.p95_ms)} over ${output.span_count_analyzed} spans${output.truncated ? " from an incomplete scan" : ""}.${rows ? ` Tools: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return `get_mcp_stats: ${output.totals.requests} requests, ${output.totals.errors} errors (${pct(output.totals.error_rate)}), p95 ${ms(output.totals.p95_ms)}.${rows ? ` Tools: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
 }
 
 function listTraces(output: ListTracesOutput): string {
@@ -286,13 +287,14 @@ function searchLogs(output: SearchLogsOutput): string {
   if (output.patterns !== undefined) {
     const rows = top(output.patterns, (pattern) => `"${short(pattern.template, 70)}" ×${pattern.count}${pattern.example_trace_ids[0] ? ` (trace ${pattern.example_trace_ids[0]})` : ""}`);
     const example = output.patterns.find((pattern) => pattern.example_trace_ids.length > 0)?.example_trace_ids[0];
-    return `search_logs: ${output.patterns.length} patterns${output.total_matched === undefined ? "" : ` over ${output.total_matched} logs`}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${example === undefined ? "search_logs with query to read the records" : `get_trace trace_id=${example}`}`;
+    return `search_logs: ${output.patterns.length} patterns${typeof output.coverage.matched === "number" ? ` over ${output.coverage.matched} logs` : ""}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${example === undefined ? "search_logs with query to read the records" : `get_trace trace_id=${example}`}`;
   }
   const logs = output.logs ?? [];
   const rows = top(logs, logLine);
   const traced = logs.find((log) => log.trace_id !== undefined)?.trace_id;
   const context = output.context_logs?.length ? `, ${output.context_logs.length} context records` : "";
-  return `search_logs: ${logs.length} logs${output.total_matched === undefined ? "" : ` of ${output.total_matched}`}${context}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traced === undefined ? "widen lookback_minutes or relax the query" : `get_trace trace_id=${traced}`}`;
+  const matched = output.coverage.matched;
+  return `search_logs: ${logs.length} logs${typeof matched === "number" && matched > logs.length ? ` of ${matched}` : ""}${context}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traced === undefined ? "widen lookback_minutes or relax the query" : `get_trace trace_id=${traced}`}`;
 }
 
 function ciLog(output: CiLogOutput): string {

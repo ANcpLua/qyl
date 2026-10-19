@@ -70,7 +70,7 @@ const outputSchema = (operation) => `Mcp.Tools.${operation.split("_").map((part)
 function analysisAnswer(operation, args) {
   switch (operation) {
     case "list_traces":
-      return { ...readContext(fixture.traces.length), mode: "live", traces: fixture.traces.map(toolSummary) };
+      return { ...readContext(fixture.traces.length), traces: fixture.traces.map(toolSummary) };
     case "get_trace": {
       const trace = fixture.traces.find((candidate) => candidate.trace_id === args.trace_id);
       if (!trace) {
@@ -80,16 +80,16 @@ function analysisAnswer(operation, args) {
           resource_type: "trace", resource_id: args.trace_id,
         } };
       }
-      return { ...readContext(trace.spans.length), mode: "live", trace: toolTrace(trace) };
+      return { ...readContext(trace.spans.length), trace: toolTrace(trace) };
     }
     case "search_logs": {
       const logs = fixture.logs
         .filter((log) => (args.severity_min === undefined || log.severity_number >= args.severity_min) && (args.trace_id === undefined || log.trace_id === args.trace_id))
         .map(toolLog);
-      return { ...readContext(logs.length), mode: "live", logs };
+      return { ...readContext(logs.length), logs };
     }
     case "ci_log":
-      return { ...readContext(0), mode: "live", runs: [] };
+      return { ...readContext(0), runs: [] };
     case "list_metrics":
       return { ...readContext(3), items: [0, 1, 2].map(metricRow) };
     default:
@@ -220,7 +220,6 @@ check(
   listed.structuredContent?.traces?.length === 8 &&
     listed.structuredContent.traces.every((t) => t.spans === undefined && typeof t.root?.name === "string" && typeof t.error_count === "number"),
 );
-check("mode is live", listed.structuredContent?.mode === "live");
 check("list_traces: headline, compact JSON and structuredContent", framed(listed), JSON.stringify(listed.content?.[0]));
 const errorRow = listed.structuredContent?.traces?.find((t) => t.error_count > 0);
 check(

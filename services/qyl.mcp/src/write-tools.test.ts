@@ -520,8 +520,9 @@ test("get_trace and list_sessions read the annotations back; a failed read leave
   const sessions = getTelemetryFixture().sessions.slice(0, 2);
   let annotationsUp = true;
   const calls = mockCollector(context, (call) => {
-    if (call.path === "/api/v1/analysis/get_trace") return Response.json({ ...readContext(1), trace: toolTrace(TRACE), mode: "live", ...(annotationsUp ? { annotations: [annotation()] } : {}) });
-    if (call.path === "/api/v1/analysis/list_sessions") return Response.json({ ...readContext(sessions.length), sessions, mode: "live", has_more: false, annotations: [...sessions].reverse().map(session => annotation({ id: `ann-${session.session_id}`, target: { kind: "session", session_id: session.session_id } })) });
+    if (call.path === "/api/v1/analysis/get_trace") return Response.json({ ...readContext(1), trace: toolTrace(TRACE), ...(annotationsUp ? { annotations: [annotation()] } : {}) });
+    if (call.path === "/api/v1/analysis/list_sessions") return Response.json({ ...readContext(sessions.length), has_more: false,
+      sessions: sessions.map(session => ({ ...session, annotations: [annotation({ id: `ann-${session.session_id}`, target: { kind: "session", session_id: session.session_id } })] })) });
     return problem(404, "Not Found");
   });
   const client = await localClient(context);
@@ -534,9 +535,9 @@ test("get_trace and list_sessions read the annotations back; a failed read leave
   const listed = await client.callTool({ name: "list_sessions", arguments: {} }) as CallToolResult;
   assert.equal(listed.isError, undefined, JSON.stringify(listed));
   assert.deepEqual(
-    structured<{ annotations: Annotation[] }>(listed).annotations.map((note) => note.id),
-    [`ann-${sessions[1]!.session_id}`, `ann-${sessions[0]!.session_id}`],
-    "merged newest first across sessions",
+    structured<{ sessions: Array<{ annotations?: Annotation[] }> }>(listed).sessions.map((session) => session.annotations?.map((note) => note.id)),
+    sessions.map((session) => [`ann-${session.session_id}`]),
+    "each session carries its own notes",
   );
 
   annotationsUp = false;

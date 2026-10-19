@@ -253,12 +253,6 @@ export const McpFailureClassValues = {
 } as const;
 export type McpFailureClass = typeof McpFailureClassValues[keyof typeof McpFailureClassValues];
 
-export const McpDataModeValues = {
-  "live": "live",
-  "demo": "demo",
-} as const;
-export type McpDataMode = typeof McpDataModeValues[keyof typeof McpDataModeValues];
-
 export const AnnotationClassificationValues = {
   "note": "note",
   "hypothesis": "hypothesis",
@@ -873,7 +867,6 @@ export interface ListTracesOutput {
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
   "traces": ToolTraceRow[];
-  "mode": McpDataMode;
   "has_more": boolean;
   "next_cursor"?: string;
   "error"?: ToolError;
@@ -920,7 +913,6 @@ export interface GetTraceOutput {
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
   "trace": ToolTrace;
-  "mode": McpDataMode;
   "annotations"?: Annotation[];
   "error"?: ToolError;
 }
@@ -1024,10 +1016,8 @@ export interface ListSessionsOutput {
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
   "sessions": ToolSession[];
-  "mode": McpDataMode;
   "has_more": boolean;
   "next_cursor"?: string;
-  "annotations"?: Annotation[];
   "error"?: ToolError;
 }
 
@@ -1047,7 +1037,6 @@ export interface ToolSession {
   "genai_usage"?: SessionGenAiUsage;
   "failure_ids"?: string[];
   "agent_name"?: string;
-  "models"?: string[];
   "tokens_by_model"?: Record<string, AgentTokens>;
   "annotations"?: Annotation[];
 }
@@ -1078,14 +1067,12 @@ export interface SearchLogsInput {
 }
 
 export interface SearchLogsOutput {
-  "total_matched"?: number;
   "patterns"?: LogPattern[];
   "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
   "logs"?: ToolLogRow[];
   "context_logs"?: ToolLogRow[];
-  "mode": McpDataMode;
   "has_more": boolean;
   "next_cursor"?: string;
   "error"?: ToolError;
@@ -1123,7 +1110,6 @@ export interface CiRunReference {
 }
 
 export interface CiRunSummary {
-  "session_id"?: SessionId;
   "provider_run_id"?: string;
   "provider_run_url"?: string;
   "attempt"?: number;
@@ -1173,7 +1159,6 @@ export interface CiLogOutput {
   "runs"?: CiRunSummary[];
   "ci_run_id"?: SessionId;
   "phases"?: CiPhase[];
-  "mode": McpDataMode;
   "error"?: ToolError;
 }
 
@@ -1564,26 +1549,18 @@ export interface GetFailureContextInput {
 }
 
 export interface EvidenceSpan {
-  "start_time"?: string;
-  "end_time"?: string;
   "trace_id": TraceId;
   "span_id": SpanId;
   "parent_span_id"?: SpanId;
   "session_id"?: SessionId;
   "service": string;
   "name": string;
-  "status": string;
-  "status_message"?: string;
-  "exception"?: RecordedException;
-  "key_attributes": Attribute[];
+  "start_time": string;
   "duration_ms": number;
-  "role": "matched" | "context";
-}
-
-export interface RecordedException {
-  "type"?: string;
-  "message"?: string;
-  "stacktrace"?: string;
+  "status": "unset" | "ok" | "error";
+  "status_message"?: string;
+  "exception_type"?: string;
+  "key_attributes": Attribute[];
 }
 
 export interface SpanRef {
@@ -1603,7 +1580,6 @@ export interface RetryEvidence {
 }
 
 export interface FanoutEvidence {
-  "name": string;
   "count": number;
   "parent_span_id"?: SpanId;
   "trace_id": TraceId;
@@ -1793,7 +1769,6 @@ export interface VerificationNeeds {
 }
 
 export interface VerifyFixOutput {
-  "window": ToolWindow;
   "coverage": ToolCoverage;
   "page_totals"?: Record<string, number>;
   "has_more": boolean;
@@ -1880,7 +1855,6 @@ export interface DiscoveredAttribute {
   "type": string;
   "coverage_share": number;
   "cardinality": number;
-  "cardinality_exact": boolean;
   "top_values": AttributeValueCount[];
   "semconv": AttributeSemconv | null;
 }
@@ -1925,7 +1899,7 @@ export interface AgentStep {
   "mcp_server"?: string;
   "duration_ms": number;
   "tokens": AgentTokens;
-  "status": string;
+  "status": "unset" | "ok" | "error";
   "error"?: string;
   "trace_id": TraceId;
   "span_id": SpanId;
@@ -1945,7 +1919,7 @@ export interface AgentTokenShare {
 
 export interface AgentFindings {
   "repeated_calls": RepeatedCall[];
-  "failed_tool_calls": AgentStep[];
+  "failed_tool_calls": number[];
   "slowest_steps": number[];
   "token_share": AgentTokenShare[];
 }
@@ -2199,9 +2173,6 @@ export interface GetMcpStatsOutput {
   "by_transport": McpNameRequestCount[];
   "by_method": McpNameRequestCount[];
   "tools": McpToolStats[];
-  "span_count_analyzed": number;
-  "truncated": boolean;
-  "mode": McpDataMode;
   "error"?: ToolError;
 }
 
@@ -2340,4 +2311,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:da3e321f4760dcad";
+export const CONTRACT_REVISION: string = "sha256:3d9ca69ff65c018a";
