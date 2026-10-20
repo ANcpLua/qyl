@@ -106,6 +106,32 @@ function more(output: { has_more?: boolean; next_cursor?: string }): string {
   return output.has_more === true && output.next_cursor !== undefined ? " More: repeat with next_cursor." : "";
 }
 
+/** A labelled part of a headline, ` Label: text.`, or nothing when there is no text. */
+function section(label: string, text: string): string {
+  return text ? ` ${label}: ${text}.` : "";
+}
+
+/** Every headline ends the same way: its parts, the coverage note, the paging note and the call to make next. */
+function finish(
+  head: string,
+  parts: readonly string[],
+  output: { coverage?: ToolCoverage; has_more?: boolean; next_cursor?: string },
+  next: string,
+): string {
+  return `${head}${parts.join("")}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+}
+
+/** A series' attributes as `key=value` labels, or `none` when it has no attributes. */
+function labels(attributes: ReadonlyArray<{ readonly key: string; readonly value: AttributeValue }> | undefined, none: string): string {
+  return (attributes ?? []).map((attribute) => `${attribute.key}=${attributeText(attribute.value)}`).join(", ") || none;
+}
+
+/** The first log that names a trace is read next; without one, `otherwise`. */
+function tracedLog(logs: readonly ToolLogRow[], otherwise: string): string {
+  const traced = logs.find((log) => log.trace_id !== undefined)?.trace_id;
+  return traced === undefined ? otherwise : `get_trace trace_id=${traced}`;
+}
+
 /** A failure as service/operation, its error type and its message, the way its fingerprint reads. */
 function failureName(row: TriageFailure): string {
   return `${row.service}/${short(row.operation, 50)}${row.exception_type ? ` ${short(row.exception_type, 40)}` : ""}${row.normalized_message ? `: "${short(row.normalized_message, 60)}"` : ""}`;
@@ -126,7 +152,7 @@ function triage(output: TriageOutput): string {
     : output.regressions[0] !== undefined ? `aggregate_telemetry for ${output.regressions[0].service}/${output.regressions[0].operation}`
       : output.silent_services[0] !== undefined ? `check_telemetry_health service_name=${output.silent_services[0].service}`
         : "widen lookback_minutes to cover the incident";
-  return `${head}${failures ? ` Top failures: ${failures}.` : ""}${regressions ? ` Regressions: ${regressions}.` : ""}${silent ? ` Silent: ${silent}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(head, [section("Top failures", failures), section("Regressions", regressions), section("Silent", silent)], output, next);
 }
 
 function failureContext(input: Args, output: GetFailureContextOutput): string {
@@ -148,7 +174,7 @@ function failureContext(input: Args, output: GetFailureContextOutput): string {
     : nearest !== undefined && trace !== undefined ? `compare_traces a={trace_id:${trace}} b={trace_id:${nearest}}`
       : trace !== undefined ? `get_trace trace_id=${trace} selection=errors_with_ancestors`
         : "triage over a wider lookback_minutes";
-  return `${head}${evidence}${changes ? ` Changed: ${changes}.` : ""}${unknowns}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(head, [evidence, section("Changed", changes), unknowns], output, next);
 }
 
 function compareGroups(output: CompareGroupsOutput): string {
@@ -156,7 +182,8 @@ function compareGroups(output: CompareGroupsOutput): string {
     `${row.key}=${short(row.value, 40)} (A ${pct(row.share_a)} vs B ${pct(row.share_b)}, lift ${num(row.lift)})`);
   const first = output.discriminators[0];
   const next = first === undefined ? "discover_attributes to choose other keys" : `list_traces matchers=[{key:${first.key},op:eq,value:${short(first.value, 40)}}]`;
-  return `compare_groups: A ${output.size_a} vs B ${output.size_b}; p95 ${ms(output.durations.a.p95_ms)} vs ${ms(output.durations.b.p95_ms)}.${rows ? ` Top discriminators: ${rows}.` : " No discriminating attribute."} ${short(output.composition.summary, 120)}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`compare_groups: A ${output.size_a} vs B ${output.size_b}; p95 ${ms(output.durations.a.p95_ms)} vs ${ms(output.durations.b.p95_ms)}.`,
+    [rows ? section("Top discriminators", rows) : " No discriminating attribute.", ` ${short(output.composition.summary, 120)}`], output, next);
 }
 
 function compareTraces(input: Args, output: CompareTracesOutput): string {
@@ -174,7 +201,7 @@ function compareTraces(input: Args, output: CompareTracesOutput): string {
   const next = execution?.trace_id !== undefined ? `get_trace trace_id=${execution.trace_id}`
     : execution?.session_id !== undefined ? `list_traces session_id=${execution.session_id}`
       : "get_failure_context with one of the executions";
-  return `${head} ${output.aligned.length} aligned spans, ${output.after_divergence.length} later differences, ${output.unmatched.length} unmatched.${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`${head} ${output.aligned.length} aligned spans, ${output.after_divergence.length} later differences, ${output.unmatched.length} unmatched.`, [], output, next);
 }
 
 function verifyFix(output: VerifyFixOutput): string {
@@ -198,7 +225,7 @@ function aggregate(output: AggregateTelemetryOutput): string {
   const other = output.other.groups > 0 ? ` (+${output.other.groups} other groups, ${output.other.count} records)` : "";
   const first = output.groups[0];
   const next = first === undefined ? "discover_attributes to check the group_by keys" : `compare_groups or list_traces with ${key(first.key)} as matchers`;
-  return `aggregate_telemetry: ${output.groups.length} groups${other}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`aggregate_telemetry: ${output.groups.length} groups${other}.`, [section("Top", rows)], output, next);
 }
 
 function discover(output: DiscoverAttributesOutput): string {
@@ -206,7 +233,7 @@ function discover(output: DiscoverAttributesOutput): string {
     `${row.key} (${row.type}, ${row.cardinality}${output.coverage.scan_complete ? "" : "+"} values, ${pct(row.coverage_share)} coverage${row.top_values[0] ? `, e.g. ${attributeText(row.top_values[0].value)}` : ""})`);
   const first = output.attributes[0];
   const next = first === undefined ? "widen lookback_minutes or another signal" : `aggregate_telemetry group_by=["${first.key}"]`;
-  return `discover_attributes: ${output.attributes.length} attributes.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`discover_attributes: ${output.attributes.length} attributes.`, [section("Top", rows)], output, next);
 }
 
 function agentRun(output: GetAgentRunOutput): string {
@@ -220,10 +247,12 @@ function agentRun(output: GetAgentRunOutput): string {
     .filter(Boolean).join(" ");
   const target = failedSteps[0]?.trace_id ?? slowest?.trace_id ?? run.trace_id;
   const next = target === undefined ? "list_sessions for another run" : `get_trace trace_id=${target}`;
-  return `get_agent_run: ${run.agent_name ?? "agent"} ${output.steps.length} steps, ${run.errors} errors, ${ms(run.duration_ms)}${tokens ? `, tokens ${tokens}` : ""}.` +
-    `${failed ? ` Failed tool calls: ${failed}.` : ""}${repeated ? ` Repeated: ${repeated}.` : ""}` +
-    `${slowest === undefined ? "" : ` Slowest: ${short(slowest.name, 50)} ${ms(slowest.duration_ms)} (step ${slowest.index}).`}` +
-    `${output.unknowns.length ? ` Unknowns: ${short(output.unknowns.join("; "), 120)}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(
+    `get_agent_run: ${run.agent_name ?? "agent"} ${output.steps.length} steps, ${run.errors} errors, ${ms(run.duration_ms)}${tokens ? `, tokens ${tokens}` : ""}.`,
+    [section("Failed tool calls", failed), section("Repeated", repeated),
+      slowest === undefined ? "" : ` Slowest: ${short(slowest.name, 50)} ${ms(slowest.duration_ms)} (step ${slowest.index}).`,
+      output.unknowns.length ? ` Unknowns: ${short(output.unknowns.join("; "), 120)}.` : ""],
+    output, next);
 }
 
 function releases(output: ListReleasesOutput): string {
@@ -231,7 +260,7 @@ function releases(output: ListReleasesOutput): string {
     `${row.service}@${row.version}${row.current ? " (current)" : ""}: error rate ${pct(row.before.error_rate)}→${pct(row.after.error_rate)}, p95 ${ms(row.before.p95_ms)}→${ms(row.after.p95_ms)}${row.new_failure_ids.length ? `, new failures ${row.new_failure_ids.slice(0, TOP).join(", ")}` : ""}`);
   const newFailure = output.releases.flatMap((row) => row.new_failure_ids)[0];
   const next = newFailure !== undefined ? `get_failure_context failure_id=${newFailure}` : "triage over the release window";
-  return `list_releases: ${output.releases.length} releases.${rows ? ` ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`list_releases: ${output.releases.length} releases.`, [rows ? ` ${rows}.` : ""], output, next);
 }
 
 function serviceMap(output: GetServiceMapOutput): string {
@@ -239,7 +268,8 @@ function serviceMap(output: GetServiceMapOutput): string {
   const rows = top(edges, (edge) => `${edge.from}→${edge.to} ${edge.calls} calls, ${pct(edge.error_rate)} errors, p95 ${ms(edge.p95_ms)}`);
   const worst = edges[0];
   const next = worst === undefined ? "widen lookback_minutes" : `list_traces service_name=${worst.to} errors_only=true`;
-  return `get_service_map: ${output.nodes.length} services, ${output.edges.length} edges${output.unknown_callers ? `, ${output.unknown_callers} unknown callers` : ""}.${rows ? ` Worst edges: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`get_service_map: ${output.nodes.length} services, ${output.edges.length} edges${output.unknown_callers ? `, ${output.unknown_callers} unknown callers` : ""}.`,
+    [section("Worst edges", rows)], output, next);
 }
 
 function health(output: CheckTelemetryHealthOutput): string {
@@ -250,7 +280,8 @@ function health(output: CheckTelemetryHealthOutput): string {
     : output.semconv_gaps[0] !== undefined ? "discover_attributes signal=spans"
       : output.metric_conflicts.points > 0 ? `query_metric metric_name=${output.metric_conflicts.series[0]?.metric_name ?? "<conflicting metric>"} over a narrower window`
         : "triage";
-  return `check_telemetry_health: ${output.silent_services.length} silent services${silent ? ` (${silent})` : ""}, ${output.orphan_spans.count} orphan spans (${pct(output.orphan_spans.share)}), ${output.metric_conflicts.points} conflicting metric points, ${output.semconv_gaps.length} semconv gaps${gaps ? ` (${gaps})` : ""}, unknown service share ${pct(output.unknown_service_share)}${lag}.${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`check_telemetry_health: ${output.silent_services.length} silent services${silent ? ` (${silent})` : ""}, ${output.orphan_spans.count} orphan spans (${pct(output.orphan_spans.share)}), ${output.metric_conflicts.points} conflicting metric points, ${output.semconv_gaps.length} semconv gaps${gaps ? ` (${gaps})` : ""}, unknown service share ${pct(output.unknown_service_share)}${lag}.`,
+    [], output, next);
 }
 
 function mcpStats(output: GetMcpStatsOutput): string {
@@ -258,13 +289,14 @@ function mcpStats(output: GetMcpStatsOutput): string {
   const rows = top(tools, (tool) => `${tool.name} ${tool.requests} requests, ${tool.errors} errors, p95 ${ms(tool.p95_ms)}`);
   const worst = tools[0];
   const next = worst === undefined ? "widen lookback_minutes" : `list_traces tool_name=${worst.name}${worst.errors > 0 ? " errors_only=true" : ""}`;
-  return `get_mcp_stats: ${output.totals.requests} requests, ${output.totals.errors} errors (${pct(output.totals.error_rate)}), p95 ${ms(output.totals.p95_ms)}.${rows ? ` Tools: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`get_mcp_stats: ${output.totals.requests} requests, ${output.totals.errors} errors (${pct(output.totals.error_rate)}), p95 ${ms(output.totals.p95_ms)}.`,
+    [section("Tools", rows)], output, next);
 }
 
 function listTraces(output: ListTracesOutput): string {
   const errors = output.traces.filter((trace) => trace.error_count > 0).length;
   const rows = top(output.traces, traceRow);
-  return `list_traces: ${output.traces.length} traces, ${errors} with errors.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traceNext(output.traces)}`;
+  return finish(`list_traces: ${output.traces.length} traces, ${errors} with errors.`, [section("Top", rows)], output, traceNext(output.traces));
 }
 
 function getTrace(output: GetTraceOutput): string {
@@ -273,7 +305,8 @@ function getTrace(output: GetTraceOutput): string {
   const root = trace.spans.find((item) => item.parent_span_id === undefined);
   const rows = top(errorSpans, (item) => `${item.service}/${short(item.name, 50)} (span ${item.span_id})${item.message ? `: ${short(item.message, 60)}` : ""}`);
   const next = trace.error_count > 0 ? `get_failure_context trace_id=${trace.trace_id}` : `search_logs trace_id=${trace.trace_id}`;
-  return `get_trace: ${trace.trace_id} ${trace.span_count} spans (${trace.spans.length} returned), ${trace.error_count} error spans${root === undefined ? "" : `; root ${root.service}/${short(root.name, 60)}`}, ${ms(trace.duration_ms)}.${rows ? ` Errors: ${rows}.` : ""}${output.logs?.length ? ` ${output.logs.length} correlated logs.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`get_trace: ${trace.trace_id} ${trace.span_count} spans (${trace.spans.length} returned), ${trace.error_count} error spans${root === undefined ? "" : `; root ${root.service}/${short(root.name, 60)}`}, ${ms(trace.duration_ms)}.`,
+    [section("Errors", rows), output.logs?.length ? ` ${output.logs.length} correlated logs.` : ""], output, next);
 }
 
 function listSessions(output: ListSessionsOutput): string {
@@ -282,21 +315,22 @@ function listSessions(output: ListSessionsOutput): string {
   const failing = output.sessions.find((session) => session.error_count > 0);
   const next = failing !== undefined ? `get_failure_context session_id=${failing.session_id}`
     : output.sessions[0] !== undefined ? `get_agent_run session_id=${output.sessions[0].session_id}` : "widen lookback_minutes";
-  return `list_sessions: ${output.sessions.length} sessions.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${next}`;
+  return finish(`list_sessions: ${output.sessions.length} sessions.`, [section("Top", rows)], output, next);
 }
 
 function searchLogs(output: SearchLogsOutput): string {
   if (output.patterns !== undefined) {
     const rows = top(output.patterns, (pattern) => `"${short(pattern.template, 70)}" ×${pattern.count}${pattern.example_trace_ids[0] ? ` (trace ${pattern.example_trace_ids[0]})` : ""}`);
     const example = output.patterns.find((pattern) => pattern.example_trace_ids.length > 0)?.example_trace_ids[0];
-    return `search_logs: ${output.patterns.length} patterns${typeof output.coverage.matched === "number" ? ` over ${output.coverage.matched} logs` : ""}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${example === undefined ? "search_logs with query to read the records" : `get_trace trace_id=${example}`}`;
+    return finish(`search_logs: ${output.patterns.length} patterns${typeof output.coverage.matched === "number" ? ` over ${output.coverage.matched} logs` : ""}.`, [section("Top", rows)], output,
+      example === undefined ? "search_logs with query to read the records" : `get_trace trace_id=${example}`);
   }
   const logs = output.logs ?? [];
   const rows = top(logs, logLine);
-  const traced = logs.find((log) => log.trace_id !== undefined)?.trace_id;
   const context = output.context_logs?.length ? `, ${output.context_logs.length} context records` : "";
   const matched = output.coverage.matched;
-  return `search_logs: ${logs.length} logs${typeof matched === "number" && matched > logs.length ? ` of ${matched}` : ""}${context}.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traced === undefined ? "widen lookback_minutes or relax the query" : `get_trace trace_id=${traced}`}`;
+  return finish(`search_logs: ${logs.length} logs${typeof matched === "number" && matched > logs.length ? ` of ${matched}` : ""}${context}.`, [section("Top", rows)], output,
+    tracedLog(logs, "widen lookback_minutes or relax the query"));
 }
 
 function ciLog(output: CiLogOutput): string {
@@ -306,28 +340,28 @@ function ciLog(output: CiLogOutput): string {
     const comparison = output.comparison === undefined ? ""
       : ` Versus ${output.comparison.baseline_ci_run_id ?? "the baseline"}: ${output.comparison.new_failures.length} new failures, ${output.comparison.fixed.length} fixed, ${output.comparison.duration_regressions.length} slower phases.`;
     const phasesMore = output.has_more && output.next_phase_cursor !== undefined ? " More phases: repeat with next_phase_cursor as phase_cursor." : "";
-    return `ci_log: run ${output.ci_run_id ?? "unknown"}: ${output.phases.length} phases, ${failed.length} failed.${rows ? ` Failed: ${rows}.` : ""}${comparison}${coverageNote(output.coverage)}${phasesMore} → ${failed.length > 0 && output.ci_run_id ? `get_failure_context ci_run_id=${output.ci_run_id}` : "ci_log without ci_run_id for other runs"}`;
+    return `ci_log: run ${output.ci_run_id ?? "unknown"}: ${output.phases.length} phases, ${failed.length} failed.${section("Failed", rows)}${comparison}${coverageNote(output.coverage)}${phasesMore} → ${failed.length > 0 && output.ci_run_id ? `get_failure_context ci_run_id=${output.ci_run_id}` : "ci_log without ci_run_id for other runs"}`;
   }
   const runs = output.runs ?? [];
   const rows = top(runs, (run) => `${run.ci_run_id} ${run.state}, ${run.error_count} errors, ${ms(run.duration_ms)}`);
   const target = runs.find((run) => run.error_count > 0) ?? runs[0];
-  return `ci_log: ${runs.length} runs.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${target === undefined ? "widen lookback_minutes" : `ci_log ci_run_id=${target.ci_run_id}`}`;
+  return finish(`ci_log: ${runs.length} runs.`, [section("Top", rows)], output, target === undefined ? "widen lookback_minutes" : `ci_log ci_run_id=${target.ci_run_id}`);
 }
 
 function listMetrics(output: ListMetricsOutput): string {
   const rows = top(output.items, (item) => `${item.name} (${item.kind}${item.unit ? `, ${item.unit}` : ""}, ${item.series_count} series${item.has_conflict ? ", conflicting descriptors" : ""}${item.suggested_group_by.length ? `, group by ${item.suggested_group_by.slice(0, TOP).join(", ")}` : ""})`);
   const first = output.items[0];
   const groupBy = first?.suggested_group_by.length ? ` group_by=${JSON.stringify(first.suggested_group_by.slice(0, TOP))}` : "";
-  return `list_metrics: ${output.items.length} instruments.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${first === undefined ? "widen lookback_minutes" : `query_metric metric_name=${first.name}${groupBy}`}`;
+  return finish(`list_metrics: ${output.items.length} instruments.`, [section("Top", rows)], output, first === undefined ? "widen lookback_minutes" : `query_metric metric_name=${first.name}${groupBy}`);
 }
 
 /** query_metric with raw: one series' original points. */
 function rawPoints(output: QueryMetricOutput & { points: NonNullable<QueryMetricOutput["points"]> }): string {
   const unknown = output.points.filter((point) => point.data === null).length;
-  const labels = (output.attributes ?? []).map((attribute) => `${attribute.key}=${attributeText(attribute.value)}`).join(", ") || "no attributes";
+  const attributes = labels(output.attributes, "no attributes");
   const pointsMore = output.has_more === true && output.next_cursor !== undefined ? " More points: repeat with next_cursor as cursor." : "";
   const exemplar = output.points.flatMap((point) => point.exemplars ?? []).find((item) => item.trace_id !== undefined)?.trace_id;
-  return `query_metric: ${output.points.length} original points of ${output.name} series ${short(output.series_id, 60)} (${short(labels, 60)})${unknown ? `, ${unknown} with an unknown original representation` : ""}.${pointsMore}${coverageNote(output.coverage)} → ${exemplar === undefined ? `query_metric metric_name=${output.name} to aggregate the series` : `get_trace trace_id=${exemplar}`}`;
+  return `query_metric: ${output.points.length} original points of ${output.name} series ${short(output.series_id, 60)} (${short(attributes, 60)})${unknown ? `, ${unknown} with an unknown original representation` : ""}.${pointsMore}${coverageNote(output.coverage)} → ${exemplar === undefined ? `query_metric metric_name=${output.name} to aggregate the series` : `get_trace trace_id=${exemplar}`}`;
 }
 
 function queryMetric(output: QueryMetricOutput): string {
@@ -335,10 +369,9 @@ function queryMetric(output: QueryMetricOutput): string {
   const unit = output.unit ? ` ${output.unit}` : "";
   const series = output.series ?? [];
   // A series lists only the buckets that hold points, and `value` aggregates the whole window.
-  const rows = top(series, (series) => {
-    const labels = series.attributes.map((attribute) => `${attribute.key}=${attributeText(attribute.value)}`).join(", ") || "all";
-    const last = series.buckets.at(-1);
-    return `${short(labels, 60)}: ${num(series.value)}${unit} over the window, ${series.buckets.length} buckets with points${last === undefined ? "" : `, last ${num(last.value)}${unit}`}`;
+  const rows = top(series, (row) => {
+    const last = row.buckets.at(-1);
+    return `${short(labels(row.attributes, "all"), 60)}: ${num(row.value)}${unit} over the window, ${row.buckets.length} buckets with points${last === undefined ? "" : `, last ${num(last.value)}${unit}`}`;
   });
   const buckets = Math.max(0, ...series.map((item) => item.buckets.length));
   const step = buckets > 60 ? ` ${buckets} buckets in one series: omit step_ms for at most 60.` : "";
@@ -350,19 +383,18 @@ function runSavedQuery(output: RunSavedQueryOutput): string {
   if (output.saved_queries !== undefined) {
     const rows = top(output.saved_queries, (query) => `${short(query.name, 60)} (${query.filter.signal}, id ${query.id}, etag ${query.etag})`);
     const first = output.saved_queries[0];
-    return `run_saved_query: ${output.saved_queries.length} saved queries.${rows ? ` ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${first === undefined ? "save_query to save one" : `run_saved_query id=${first.id}`}`;
+    return finish(`run_saved_query: ${output.saved_queries.length} saved queries.`, [rows ? ` ${rows}.` : ""], output, first === undefined ? "save_query to save one" : `run_saved_query id=${first.id}`);
   }
   const name = output.saved_query === undefined ? "run_saved_query" : `run_saved_query ${short(output.saved_query.name, 60)}`;
   if (output.metric !== undefined) {
     return `${name}: metric ${output.metric.name} ${output.metric.aggregation}, ${output.metric.series.length} series.${coverageNote(output.coverage)} → query_metric metric_name=${output.metric.name} for other windows`;
   }
   if (output.logs !== undefined) {
-    const traced = output.logs.find((log) => log.trace_id !== undefined)?.trace_id;
-    return `${name}: ${output.logs.length} logs.${output.logs.length ? ` Top: ${top(output.logs, logLine)}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traced === undefined ? "search_logs" : `get_trace trace_id=${traced}`}`;
+    return finish(`${name}: ${output.logs.length} logs.`, [section("Top", top(output.logs, logLine))], output, tracedLog(output.logs, "search_logs"));
   }
   const traces = output.traces ?? [];
   const rows = top(traces, traceRow);
-  return `${name}: ${traces.length} traces.${rows ? ` Top: ${rows}.` : ""}${coverageNote(output.coverage)}${more(output)} → ${traceNext(traces)}`;
+  return finish(`${name}: ${traces.length} traces.`, [section("Top", rows)], output, traceNext(traces));
 }
 
 /** The headline of one analysis result; `input` supplies what the output does not repeat. */
