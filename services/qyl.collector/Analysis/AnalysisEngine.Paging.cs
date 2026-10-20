@@ -8,7 +8,7 @@ internal sealed partial class AnalysisEngine
 {
     // ci_log pages a run's phases separately from its runs; the contract leaves that page size to the Collector.
     private const int CiPhasePageSize = 50;
-    private static readonly string[] s_identityKeys = ["failure_id", "session_id", "trace_id", "saved_query_id", "series_id", "ci_run_id", "name"];
+    private static readonly string[] s_identityKeys = ["failure_id", "session_id", "trace_id", "series_id", "ci_run_id", "name"];
     // aggregate_telemetry's record count per group, in the order of its groups.
     private int[]? _groupSizes;
 
