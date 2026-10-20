@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:83673ff6d3899a79",
+  "contract_revision": "sha256:826dfe30121cf171",
   "tools": [
     {
       "name": "aggregate_telemetry",

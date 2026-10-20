@@ -18220,10 +18220,10 @@
           "type": "object",
           "required": [
             "failure_id",
-            "etag",
-            "status",
             "service",
             "operation",
+            "etag",
+            "status",
             "change",
             "count",
             "baseline_count",
@@ -18238,6 +18238,21 @@
               "minLength": 1,
               "maxLength": 512,
               "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
+            },
+            "service": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string",
+              "description": "The failing spans' `http.route`, else their span name."
+            },
+            "exception_type": {
+              "type": "string",
+              "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
+            },
+            "normalized_message": {
+              "type": "string",
+              "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
             },
             "etag": {
               "type": "string",
@@ -18262,21 +18277,6 @@
               "type": "string",
               "format": "date-time",
               "description": "With `status: ignored`, when triage lists the failure again."
-            },
-            "service": {
-              "type": "string"
-            },
-            "operation": {
-              "type": "string",
-              "description": "The failing spans' `http.route`, else their span name."
-            },
-            "exception_type": {
-              "type": "string",
-              "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
-            },
-            "normalized_message": {
-              "type": "string",
-              "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
             },
             "change": {
               "type": "string",
@@ -18681,17 +18681,17 @@
         "type": "object",
         "required": [
           "failure_id",
-          "etag",
-          "operation",
           "service",
+          "operation",
+          "etag",
+          "status",
+          "updated_at",
           "first_seen",
           "last_seen",
           "count",
           "affected_traces",
           "affected_sessions",
           "releases_seen",
-          "status",
-          "updated_at",
           "annotation_count",
           "example_trace_ids"
         ],
@@ -18702,11 +18702,12 @@
             "maxLength": 512,
             "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
           },
-          "etag": {
+          "service": {
+            "type": "string"
+          },
+          "operation": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "description": "Opaque entity tag of one resource version. It changes on every successful\nupdate; send it back in `If-Match` to update or delete that version."
+            "description": "The failing spans' `http.route`, else their span name."
           },
           "exception_type": {
             "type": "string",
@@ -18716,12 +18717,34 @@
             "type": "string",
             "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
           },
-          "operation": {
+          "etag": {
             "type": "string",
-            "description": "The failing spans' `http.route`, else their span name."
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Current state version; pass it to update_failure_status."
           },
-          "service": {
-            "type": "string"
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved",
+              "ignored"
+            ],
+            "description": "The recorded status; update_failure_status sets it."
+          },
+          "assignee": {
+            "type": "string",
+            "description": "Who owns the failure, when update_failure_status named one."
+          },
+          "ignore_until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "With `status: ignored`, when triage lists the failure again."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the status was last recorded; the first occurrence while none was."
           },
           "first_seen": {
             "type": "string",
@@ -18745,26 +18768,6 @@
             "items": {
               "type": "string"
             }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "open",
-              "resolved",
-              "ignored"
-            ],
-            "description": "Persisted failure triage status."
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "ignore_until": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "assignee": {
-            "type": "string"
           },
           "annotation_count": {
             "type": "integer"
@@ -19386,10 +19389,10 @@
           "type": "object",
           "required": [
             "failure_id",
-            "etag",
-            "status",
             "service",
             "operation",
+            "etag",
+            "status",
             "change",
             "count",
             "baseline_count",
@@ -19404,6 +19407,21 @@
               "minLength": 1,
               "maxLength": 512,
               "description": "Opaque project-scoped failure fingerprint issued and verified by the collector."
+            },
+            "service": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string",
+              "description": "The failing spans' `http.route`, else their span name."
+            },
+            "exception_type": {
+              "type": "string",
+              "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
+            },
+            "normalized_message": {
+              "type": "string",
+              "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
             },
             "etag": {
               "type": "string",
@@ -19428,21 +19446,6 @@
               "type": "string",
               "format": "date-time",
               "description": "With `status: ignored`, when triage lists the failure again."
-            },
-            "service": {
-              "type": "string"
-            },
-            "operation": {
-              "type": "string",
-              "description": "The failing spans' `http.route`, else their span name."
-            },
-            "exception_type": {
-              "type": "string",
-              "description": "The failing spans' `exception.type`, else their `error.type`; absent when they carry neither."
-            },
-            "normalized_message": {
-              "type": "string",
-              "description": "The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none."
             },
             "change": {
               "type": "string",

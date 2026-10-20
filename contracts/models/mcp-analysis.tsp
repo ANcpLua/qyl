@@ -89,20 +89,42 @@ model AttributeAssociation {
   lift: float64 | null;
 }
 
-@doc("A failure with its recorded status over the whole retained history: one fingerprint of service, operation, exception or error type and normalized message.")
-model FailureSummary {
+// What makes failing spans one failure: their service, operation, exception or error type and normalized message, and
+// the id they hash to. Spread into a failure's summary and its triage row, like AnalysisInput into the tool inputs.
+alias FailureFingerprint = {
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
-  etag: ETag;
+  service: string;
+  @doc("The failing spans' `http.route`, else their span name.")
+  operation: string;
   @doc("The failing spans' `exception.type`, else their `error.type`; absent when they carry neither.")
   @encodedName("application/json", "exception_type")
   exceptionType?: string;
   @doc("The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none.")
   @encodedName("application/json", "normalized_message")
   normalizedMessage?: string;
-  @doc("The failing spans' `http.route`, else their span name.")
-  operation: string;
-  service: string;
+};
+
+// A failure's recorded triage decision, which update_failure_status sets; spread like FailureFingerprint.
+alias FailureState = {
+  @doc("Current state version; pass it to update_failure_status.")
+  etag: ETag;
+  @doc("The recorded status; update_failure_status sets it.")
+  status: FailureStatus;
+  @doc("Who owns the failure, when update_failure_status named one.")
+  assignee?: string;
+  @doc("With `status: ignored`, when triage lists the failure again.")
+  @encodedName("application/json", "ignore_until")
+  ignoreUntil?: utcDateTime;
+};
+
+@doc("A failure with its recorded status over the whole retained history: one fingerprint of service, operation, exception or error type and normalized message.")
+model FailureSummary {
+  ...FailureFingerprint;
+  ...FailureState;
+  @doc("When the status was last recorded; the first occurrence while none was.")
+  @encodedName("application/json", "updated_at")
+  updatedAt: utcDateTime;
   @encodedName("application/json", "first_seen")
   firstSeen: utcDateTime;
   @encodedName("application/json", "last_seen")
@@ -114,12 +136,6 @@ model FailureSummary {
   affectedSessions: int64;
   @encodedName("application/json", "releases_seen")
   releasesSeen: string[];
-  status: FailureStatus;
-  @encodedName("application/json", "updated_at")
-  updatedAt: utcDateTime;
-  @encodedName("application/json", "ignore_until")
-  ignoreUntil?: utcDateTime;
-  assignee?: string;
   @encodedName("application/json", "annotation_count")
   annotationCount: int64;
   @maxItems(3)
@@ -141,26 +157,8 @@ model TriageInput {
 
 @doc("One failure of the window: its fingerprint (service, operation, exception or error type and normalized message), recorded status and how it changed against the baseline.")
 model TriageFailure {
-  @encodedName("application/json", "failure_id")
-  failureId: FailureId;
-  @doc("Current state version; pass it to update_failure_status.")
-  etag: ETag;
-  @doc("The recorded status; update_failure_status sets it.")
-  status: FailureStatus;
-  @doc("Who owns the failure, when update_failure_status named one.")
-  assignee?: string;
-  @doc("With `status: ignored`, when triage lists the failure again.")
-  @encodedName("application/json", "ignore_until")
-  ignoreUntil?: utcDateTime;
-  service: string;
-  @doc("The failing spans' `http.route`, else their span name.")
-  operation: string;
-  @doc("The failing spans' `exception.type`, else their `error.type`; absent when they carry neither.")
-  @encodedName("application/json", "exception_type")
-  exceptionType?: string;
-  @doc("The status message with numbers, hex ids, UUIDs and quoted strings replaced by `#`; absent when the spans carry none.")
-  @encodedName("application/json", "normalized_message")
-  normalizedMessage?: string;
+  ...FailureFingerprint;
+  ...FailureState;
   change: FailureChange;
   @doc("Occurrences in the window.")
   count: int64;

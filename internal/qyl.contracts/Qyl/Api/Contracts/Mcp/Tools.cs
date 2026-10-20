@@ -1313,18 +1313,28 @@ public sealed class FailureSummary
 {
     [JsonPropertyName("failure_id")]
     public required string FailureId { get; init; }
-    [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
+    [JsonPropertyName("service")]
+    public required string Service { get; init; }
+    [JsonPropertyName("operation")]
+    public required string Operation { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("exception_type")]
     public string? ExceptionType { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("normalized_message")]
     public string? NormalizedMessage { get; init; }
-    [JsonPropertyName("operation")]
-    public required string Operation { get; init; }
-    [JsonPropertyName("service")]
-    public required string Service { get; init; }
+    [JsonPropertyName("etag")]
+    public required string Etag { get; init; }
+    [JsonPropertyName("status")]
+    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("assignee")]
+    public string? Assignee { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("ignore_until")]
+    public DateTimeOffset? IgnoreUntil { get; init; }
+    [JsonPropertyName("updated_at")]
+    public required DateTimeOffset UpdatedAt { get; init; }
     [JsonPropertyName("first_seen")]
     public required DateTimeOffset FirstSeen { get; init; }
     [JsonPropertyName("last_seen")]
@@ -1337,16 +1347,6 @@ public sealed class FailureSummary
     public required long AffectedSessions { get; init; }
     [JsonPropertyName("releases_seen")]
     public required IReadOnlyList<string> ReleasesSeen { get; init; }
-    [JsonPropertyName("status")]
-    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
-    [JsonPropertyName("updated_at")]
-    public required DateTimeOffset UpdatedAt { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("assignee")]
-    public string? Assignee { get; init; }
     [JsonPropertyName("annotation_count")]
     public required long AnnotationCount { get; init; }
     [JsonPropertyName("example_trace_ids")]
@@ -1396,16 +1396,6 @@ public sealed class TriageFailure
 {
     [JsonPropertyName("failure_id")]
     public required string FailureId { get; init; }
-    [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
-    [JsonPropertyName("status")]
-    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("assignee")]
-    public string? Assignee { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
     [JsonPropertyName("service")]
     public required string Service { get; init; }
     [JsonPropertyName("operation")]
@@ -1416,6 +1406,16 @@ public sealed class TriageFailure
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("normalized_message")]
     public string? NormalizedMessage { get; init; }
+    [JsonPropertyName("etag")]
+    public required string Etag { get; init; }
+    [JsonPropertyName("status")]
+    public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("assignee")]
+    public string? Assignee { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("ignore_until")]
+    public DateTimeOffset? IgnoreUntil { get; init; }
     [JsonPropertyName("change")]
     public required Qyl.Api.Contracts.Mcp.Tools.FailureChange Change { get; init; }
     [JsonPropertyName("count")]

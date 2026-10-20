@@ -1430,21 +1430,21 @@ export interface AttributeAssociation {
 
 export interface FailureSummary {
   "failure_id": string;
-  "etag": string;
+  "service": string;
+  "operation": string;
   "exception_type"?: string;
   "normalized_message"?: string;
-  "operation": string;
-  "service": string;
+  "etag": string;
+  "status": FailureStatus;
+  "assignee"?: string;
+  "ignore_until"?: string;
+  "updated_at": string;
   "first_seen": string;
   "last_seen": string;
   "count": number;
   "affected_traces": number;
   "affected_sessions": number;
   "releases_seen": string[];
-  "status": FailureStatus;
-  "updated_at": string;
-  "ignore_until"?: string;
-  "assignee"?: string;
   "annotation_count": number;
   "example_trace_ids": TraceId[];
 }
@@ -1464,14 +1464,14 @@ export interface TriageInput {
 
 export interface TriageFailure {
   "failure_id": string;
-  "etag": string;
-  "status": FailureStatus;
-  "assignee"?: string;
-  "ignore_until"?: string;
   "service": string;
   "operation": string;
   "exception_type"?: string;
   "normalized_message"?: string;
+  "etag": string;
+  "status": FailureStatus;
+  "assignee"?: string;
+  "ignore_until"?: string;
   "change": FailureChange;
   "count": number;
   "baseline_count": number;
@@ -2300,4 +2300,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:83673ff6d3899a79";
+export const CONTRACT_REVISION: string = "sha256:826dfe30121cf171";
