@@ -38,7 +38,7 @@
               "description": "Trace discovery followed by one detail lookup, using the reviewer project's sample telemetry with at least one trace. An empty project must be reported as empty, without an invented trace ID.",
               "prompt": "List up to ten checkout traces from the last 24 hours, then inspect the newest one. Summarize its recorded services, duration and error status.",
               "tools_triggered": "list_traces, get_trace",
-              "expected_behavior": "Calls list_traces with service_name checkout, lookback_minutes 1440 and limit 10, then get_trace with the exact trace_id of the newest returned checkout trace and start_time/end_time copied from the list_traces response window. Preserve that window so older sample traces remain available to the detail lookup. Reports only returned services, duration and error status. If no trace is returned, states that and does not invent an identifier."
+              "expected_behavior": "Calls list_traces with service_name checkout, lookback_minutes 1440 and limit 10, then get_trace with the exact trace_id of the newest returned checkout trace; get_trace reads the whole trace by that identifier whatever the window. Reports only returned services, duration and error status. If no trace is returned, states that and does not invent an identifier."
             },
             {
               "description": "A bounded search over the seeded reviewer service and 24-hour window. The response must match recorded error logs.",
@@ -83,7 +83,7 @@
         "demo_recording_url": "https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-reviewer-demo-17.0.1.mp4"
       },
       "publication": {
-        "release_notes": "qyl 17.0.2 preserves exact analysis-window boundaries and reports saved-query coverage. The plugin retains its focused .NET and native MSTest skills, verified reviewer cases and published workflow recording."
+        "release_notes": "qyl 17.0.x publishes 24 tools without aliases. triage ranks what changed and, with its status filter, lists failures by their recorded status; annotate and save_query create a note or a saved filter without an id and change one with its id and current etag, and run_saved_query answers a saved query or lists them; query_metric with raw returns one series' recorded points. Every result opens with a one-line headline naming the top rows, their ids and the next tool to call; a rejected argument names its field, the accepted values and a hint; verify_fix resolves a release within the failure's own service and reports the change anchor it used. The plugin retains its focused .NET and native MSTest skills, verified reviewer cases and published workflow recording."
       }
     }
   },

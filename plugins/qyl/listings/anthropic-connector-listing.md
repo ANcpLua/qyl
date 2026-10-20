@@ -1,7 +1,7 @@
 # Anthropic connector listing draft
 
-Draft for the separate MCP connector record, describing the tool surface of
-`qyl-mcp-server` 17.0.0. This is draft text, not a portal record, attestation or
+Draft for the separate MCP connector record, describing the 24-tool surface of
+`qyl-mcp-server` 17.0.x. This is draft text, not a portal record, attestation or
 published listing. The sections follow the portal steps in the
 [official submission guide](https://claude.com/docs/connectors/building/submission).
 
@@ -10,7 +10,7 @@ published listing. The sections follow the portal steps in the
 | Step | Draft value |
 | --- | --- |
 | Server URL | https://mcp.qyl.at/mcp |
-| Tools | The committed manifest `services/qyl.mcp/tool-manifest.snapshot.json` lists every tool with a `title`: read tools with `readOnlyHint: true`, and write tools for annotations, saved queries and failure status with `readOnlyHint: false` and `destructiveHint: true`. The server also serves the bundled skill through the MCP skills extension; Claude reads it from the plugin bundle. |
+| Tools | The committed manifest `services/qyl.mcp/tool-manifest.snapshot.json` lists all 24 tools with a `title`: 20 read tools with `readOnlyHint: true`, and the four write tools for annotations, saved queries and failure status with `readOnlyHint: false` and `destructiveHint: true`. The server also serves the bundled skill through the MCP skills extension; Claude reads it from the plugin bundle. |
 
 ## Listing
 
@@ -26,7 +26,7 @@ published listing. The sections follow the portal steps in the
 | Slug | qyl — spelling confirmed in the owner-supplied WIP; OWNER FIELD: confirm portal availability before publication. The slug is permanent once published. |
 
 Character counts of this revision: name 3/100, one-liner 128/200,
-description 1,861/2,000.
+description 1,796/2,000.
 
 Support contact, slug and documentation URL are owner-supplied values; this
 does not establish a portal record.
@@ -35,19 +35,19 @@ does not establish a portal record.
 
 Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.
 
-qyl gives Claude access to the telemetry your services send to a qyl Collector, so you can investigate a running system from the conversation. Ask what changed and qyl ranks new or worsening failures, regressions and releases; it groups recurring errors, reconstructs a failure's path with its logs, compares two groups or two executions, and measures whether a fix held. List recent traces and sessions, open one trace's error path or critical path, find the error logs that belong to it, discover recorded metric instruments and their attribute streams, and compare a metric over time or across groups. CI pipelines that follow qyl's CI telemetry convention can be inspected run by run, phase by phase in the order they started, and MCP statistics report request, error and latency figures for each MCP tool and server. When you ask, Claude can leave a note on a trace, span or session, save a named filter to run again later, or mark a failure resolved or ignored.
+qyl gives Claude access to the telemetry your services send to a qyl Collector, so you can investigate a running system from the conversation. Ask what changed and qyl ranks new or worsening failures, regressions and releases; it groups recurring errors, reconstructs a failure's path with its logs, compares two groups or two executions, and measures whether a fix held. List recent traces and sessions, open one trace's error path or critical path, find the error logs that belong to it, discover recorded metric instruments and their attribute streams, and compare a metric over time or across groups. CI pipelines that follow qyl's CI telemetry convention can be inspected run by run, phase by phase in the order they started, and MCP statistics report request, error and latency figures for each MCP tool and server. When you ask, Claude can leave a note on a trace, span, session or failure, save a named filter to run again later, or mark a failure resolved or ignored.
 
 qyl reports what the Collector returned, including empty results and errors from the Collector; an empty result means nothing matching was recorded, not that the system is healthy. qyl changes only the notes, saved queries and failure status in your project, and deletes only notes and saved queries. qyl cannot delete or change telemetry, deploy or roll back services, or search the public web. qyl measures and correlates; the agent reasons and acts.
 
-Sign-in uses OAuth: qyl:read for reading, qyl:write to create and update notes and saved queries and to set failure status, and qyl:delete to delete notes and saved queries. The qyl server decides which Collector project your account can use. Optional trace-error notifications through MCP Events need a client and deployment that support them and an explicit subscription.
+Sign-in uses OAuth: qyl:read for reading, qyl:write to create and update notes and saved queries and to set failure status, and qyl:delete to delete notes and saved queries. The qyl server decides which Collector project your account can use.
 
 ## Use cases
 
 | Portal question | Draft answer |
 | --- | --- |
-| Primary use cases | Triage what changed, read a failure's context and verify a fix; find failing or slow traces and sessions and read the error logs that belong to one trace; discover recorded metrics and compare one over time or across groups; read CI runs that follow qyl's CI telemetry convention phase by phase; review MCP tool latency and errors; record findings as notes on traces, spans or sessions, save queries to rerun and set a failure's status. |
+| Primary use cases | Triage what changed, read a failure's context and verify a fix; find failing or slow traces and sessions and read the error logs that belong to one trace; discover recorded metrics and compare one over time or across groups; read CI runs that follow qyl's CI telemetry convention phase by phase; review MCP tool latency and errors; record findings as notes on traces, spans, sessions or failures, save queries to rerun and set a failure's status. |
 | What users need first | An OAuth account allowed to read a qyl Collector project that holds recorded telemetry. |
-| Reads or writes data | Both. The read tools are annotated `readOnlyHint: true`. The write tools create, update or delete only annotations, saved queries and failure status in the user's own Collector project, behind the `qyl:write` and `qyl:delete` scopes; none changes or deletes telemetry. An optional MCP Events subscription stores only its own subscription state and changes no telemetry. |
+| Reads or writes data | Both. The read tools are annotated `readOnlyHint: true`. The write tools create, update or delete only annotations, saved queries and failure status in the user's own Collector project, behind the `qyl:write` and `qyl:delete` scopes; none changes or deletes telemetry. |
 
 The description follows the committed tool manifest and the shared
 investigation skill. It stays at the tool level and does not list the

@@ -45,15 +45,9 @@ The server exposes `qyl-investigate` through `io.modelcontextprotocol/skills`. T
 
 The skill starts a fresh connection with `triage` and a `lookback_minutes` that covers the incident (1440 for today), because without it triage reads only the last 60 minutes. If sign-in is requested, it lets the host sign in once and retries that call once before stopping on another authentication request. It then explains how to select and sequence the telemetry tools, preserve identifiers from returned records, and report missing evidence. The plugin bundle carries the same canonical investigation skill.
 
-## Events
-
-The hosted endpoint exposes `events/list`, `events/subscribe` and `events/unsubscribe` for `trace.error`.
-
-The `trace.error` event reports a newly observed trace containing an error span. Delivery uses signed webhooks to the subscribing client's public HTTPS callback. A subscription can filter by `service_name`. The user explicitly chooses whether to subscribe and what ChatGPT should do when a matching event arrives. Event data identifies the trace so ChatGPT can use `get_trace` for the recorded detail. Unsubscribing stops that subscription. New subscriptions establish a baseline rather than replaying old traces; events are not replayed after downtime. Local stdio does not advertise Events.
-
 ## How to test
 
-Use the dedicated reviewer account and seeded `review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. For list-to-detail operations, preserve the returned window as well as the identifier.
+Use the dedicated reviewer account and seeded `review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. The tools that filter by window, such as `list_traces`, `search_logs`, `list_sessions` and `aggregate_telemetry`, take a result's `window` as `start_time` and `end_time`, so one investigation keeps one window; `get_trace` reads the whole trace by its identifier whatever the window.
 
 The project is reseeded every day at 00:00 UTC, and each reseed names its checkout releases by that date: `YYYY.MM.DD.1` introduces the checkout failure and `YYYY.MM.DD.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending` until a hundred checkouts ran it, then `passed`.
 
@@ -71,7 +65,7 @@ A missing record, unsupported aggregation or insufficient evidence must be repor
 
 ## Data handling
 
-Read operations access the telemetry already stored in the connected account's Collector project. Tool responses return the requested records, aggregates and evidence to ChatGPT. Write operations change annotations, saved queries or failure status; event subscriptions maintain the subscription's own state and deliver matching event data to the subscribing client.
+Read operations access the telemetry already stored in the connected account's Collector project. Tool responses return the requested records, aggregates and evidence to ChatGPT. Write operations change annotations, saved queries or failure status.
 
 Telemetry retention and attribute handling follow the Collector's configured policy.
 
@@ -80,4 +74,4 @@ Documentation: https://qyl.at/docs/mcp/
 
 ## Reviewer access — private fields only
 
-Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, the latest checkout release rather than a fixed version (the daily reseed names it `YYYY.MM.DD.2` by its UTC date), a representative metric, and the procedure for producing the test event. Reviewer access must remain available throughout review.
+Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, the latest checkout release rather than a fixed version (the daily reseed names it `YYYY.MM.DD.2` by its UTC date) and a representative metric. Reviewer access must remain available throughout review.
