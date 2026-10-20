@@ -122,6 +122,29 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// The changes in a failure's context are the regressions of its root cause's service. An execution without an
+    /// error span has no root cause, so its context names no changes, whatever other services did meanwhile.
+    /// </summary>
+    [TestMethod]
+    public async Task Failure_context_without_a_root_cause_names_no_changes()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        // billing served 40 charges in the baseline hour and 20 in the window: a throughput regression of billing.
+        SpanStorageRow Charge(int id, ulong start) => Span(TraceId(id), SpanId(id), start, start + 1_000_000, service: "billing", status: 1) with { Name = "charge" };
+        var rows = Enumerable.Range(1, 40).Select(i => Charge(i, FixtureUnixNano - 90 * Minute + (ulong)i * Second))
+            .Concat(Enumerable.Range(41, 20).Select(i => Charge(i, FixtureUnixNano - 30 * Minute + (ulong)i * Second)))
+            .Append(Span(TraceId(100), SpanId(100), FixtureUnixNano - 20 * Minute, FixtureUnixNano - 20 * Minute + 1_000_000, status: 1) with { Name = "checkout" });
+        await host.Store.EnqueueAsync(new SpanBatch([.. rows]), testContext.CancellationToken);
+        Assert.AreEqual("billing", Assert.ContainsSingle((await Read(host, "triage", "{}")).GetProperty("regressions").EnumerateArray()).GetProperty("service").GetString());
+
+        var context = await Read(host, "get_failure_context", $$"""{"trace_id":"{{TraceId(100)}}"}""");
+
+        Assert.IsFalse(context.GetProperty("observed").TryGetProperty("root_cause_span", out var root) && root.ValueKind != JsonValueKind.Null, "a successful execution has no root cause");
+        var changes = context.GetProperty("context").TryGetProperty("changes", out var listed) ? listed.EnumerateArray().ToArray() : [];
+        Assert.IsEmpty(changes, "without a root cause no service's regressions apply");
+    }
+
+    /// <summary>
     /// A failure-id cohort holds the failure's occurrences inside its window: the request's window, its
     /// own window, or for group_b previous_window the equally long window that precedes group_a's.
     /// </summary>
