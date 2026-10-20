@@ -1,12 +1,13 @@
 /**
  * Collector calls for the objects users create in qyl: annotations (notes on
- * a trace, span or session) and saved queries (named filters).
+ * a trace, span, session or failure) and saved queries (named filters).
  *
  * They live in the caller's Collector project like telemetry does, and every
  * call reaches it with the options `runTool` resolved from the verified
  * subject; no argument names a project or a credential. Nothing here changes
- * telemetry: an annotation points at a trace, span or session and leaves it
- * as recorded, and the one delete operation removes only these objects.
+ * telemetry: an annotation points at a trace, span, session or failure and
+ * leaves it as recorded, and the one delete operation removes only these
+ * objects.
  */
 
 import type {
