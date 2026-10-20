@@ -620,10 +620,8 @@ model QueryMetricInput {
   limit?: int32 = 50;
 }
 
-@doc("Structured output for query_metric: the aggregated series, or with `raw` one series' original points.")
-model QueryMetricOutput {
-  ...ToolReadContext;
-
+@doc("One metric instrument's series aggregated over a window: query_metric's answer without `raw`, and a saved metrics query's.")
+model MetricAnswer {
   @doc("The instrument queried.")
   name: string;
 
@@ -632,22 +630,22 @@ model QueryMetricOutput {
   @doc("Unit of the values: the instrument's, `1` for a count or a ratio, with `/s` appended for a rate.")
   unit?: string;
 
-  @doc("The reducer applied to each bucket and to the whole window; absent with `raw`.")
-  aggregation?: MetricAggregation;
+  @doc("The reducer applied to each bucket and to the whole window.")
+  aggregation: MetricAggregation;
 
-  @doc("Bucket width in milliseconds; absent with `raw`.")
+  @doc("Bucket width in milliseconds.")
   @encodedName("application/json", "step_ms")
-  stepMs?: int64;
+  stepMs: int64;
 
-  @doc("One stream per `group_by` combination: its value for the whole window and the buckets that hold points; absent with `raw`.")
-  series?: MetricSeriesResult[];
+  @doc("One stream per `group_by` combination: its value for the whole window and the buckets that hold points.")
+  series: MetricSeriesResult[];
 
   @doc("Aggregates are float64 projections; `raw` reads the exact original values.")
   @encodedName("application/json", "numeric_representation")
-  numericRepresentation?: "float64";
+  numericRepresentation: "float64";
 
   @doc("Whether the reducer estimates or interpolates, as histogram percentiles do.")
-  approximate?: boolean;
+  approximate: boolean;
 
   @doc("How the values were computed from the points.")
   method?: string;
@@ -655,6 +653,13 @@ model QueryMetricOutput {
   @doc("Traces of exemplars recorded in the window, at most three.")
   @encodedName("application/json", "exemplar_trace_ids")
   exemplarTraceIds?: TraceId[];
+}
+
+@doc("Structured output for query_metric: the aggregated series, or with `raw` one series' original points, which keep `name`, `kind` and `unit` and leave the aggregate's other members out.")
+model QueryMetricOutput {
+  ...ToolReadContext;
+  ...PickProperties<MetricAnswer, "name" | "kind" | "unit">;
+  ...OptionalProperties<OmitProperties<MetricAnswer, "name" | "kind" | "unit">>;
 
   comparison?: MetricComparisonResult;
 
@@ -773,25 +778,6 @@ model RunSavedQueryInput {
   limit?: PageLimit = 100;
 }
 
-@doc("A saved metrics query's answer over the run's window: the aggregated series of one instrument, as query_metric returns them.")
-model SavedMetricAnswer {
-  @doc("The instrument queried.")
-  name: string;
-  kind: MetricKind;
-  @doc("Unit of the values: the instrument's, `1` for a count, with `/s` appended for a rate.")
-  unit?: string;
-  aggregation: MetricAggregation;
-  @encodedName("application/json", "step_ms")
-  stepMs: int64;
-  series: MetricSeriesResult[];
-  @encodedName("application/json", "numeric_representation")
-  numericRepresentation: "float64";
-  approximate: boolean;
-  method?: string;
-  @encodedName("application/json", "exemplar_trace_ids")
-  exemplarTraceIds?: TraceId[];
-}
-
 @doc("Structured output for run_saved_query: the saved queries, or one saved query's answer.")
 model RunSavedQueryOutput {
   ...ToolReadContext;
@@ -810,8 +796,8 @@ model RunSavedQueryOutput {
   @doc("A logs query's records, as search_logs returns them.")
   logs?: ToolLogRow[];
 
-  @doc("A metrics query's answer, as query_metric returns it.")
-  metric?: SavedMetricAnswer;
+  @doc("A metrics query's answer over the run's window, as query_metric returns it.")
+  metric?: MetricAnswer;
 
   @doc("Whether more saved queries, trace rows or log records follow; `next_cursor` continues them. Absent for a metrics query.")
   @encodedName("application/json", "has_more")

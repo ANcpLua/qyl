@@ -1250,6 +1250,19 @@ export interface MetricRatio {
   "matchers"?: TelemetryMatcher[];
 }
 
+export interface MetricAnswer {
+  "name": string;
+  "kind": MetricKind;
+  "unit"?: string;
+  "aggregation": MetricAggregation;
+  "step_ms": number;
+  "series": MetricSeriesResult[];
+  "numeric_representation": "float64";
+  "approximate": boolean;
+  "method"?: string;
+  "exemplar_trace_ids"?: TraceId[];
+}
+
 export interface QueryMetricOutput {
   "window": ToolWindow;
   "coverage": ToolCoverage;
@@ -1369,19 +1382,6 @@ export interface RunSavedQueryInput {
   "limit"?: number;
 }
 
-export interface SavedMetricAnswer {
-  "name": string;
-  "kind": MetricKind;
-  "unit"?: string;
-  "aggregation": MetricAggregation;
-  "step_ms": number;
-  "series": MetricSeriesResult[];
-  "numeric_representation": "float64";
-  "approximate": boolean;
-  "method"?: string;
-  "exemplar_trace_ids"?: TraceId[];
-}
-
 export interface RunSavedQueryOutput {
   "window": ToolWindow;
   "coverage": ToolCoverage;
@@ -1390,7 +1390,7 @@ export interface RunSavedQueryOutput {
   "saved_query"?: SavedQuery;
   "traces"?: ToolTraceRow[];
   "logs"?: ToolLogRow[];
-  "metric"?: SavedMetricAnswer;
+  "metric"?: MetricAnswer;
   "has_more"?: boolean;
   "next_cursor"?: string;
   "error"?: ToolError;
@@ -2300,4 +2300,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:b632bd72a9cf220e";
+export const CONTRACT_REVISION: string = "sha256:75a859582c986454";

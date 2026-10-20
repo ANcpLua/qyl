@@ -11344,6 +11344,73 @@
         },
         "description": "McpTrafficTotals contract."
       },
+      "Mcp.Tools.MetricAnswer": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "aggregation",
+          "step_ms",
+          "series",
+          "numeric_representation",
+          "approximate"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The instrument queried."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricKind"
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit of the values: the instrument's, `1` for a count or a ratio, with `/s` appended for a rate."
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricAggregation",
+            "description": "The reducer applied to each bucket and to the whole window."
+          },
+          "step_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bucket width in milliseconds."
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Metrics.MetricSeriesResult"
+            },
+            "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points."
+          },
+          "numeric_representation": {
+            "type": "string",
+            "enum": [
+              "float64"
+            ],
+            "description": "Aggregates are float64 projections; `raw` reads the exact original values."
+          },
+          "approximate": {
+            "type": "boolean",
+            "description": "Whether the reducer estimates or interpolates, as histogram percentiles do."
+          },
+          "method": {
+            "type": "string",
+            "description": "How the values were computed from the points."
+          },
+          "exemplar_trace_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common.TraceId"
+            },
+            "description": "Traces of exemplars recorded in the window, at most three."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One metric instrument's series aggregated over a window: query_metric's answer without `raw`, and a saved metrics query's."
+      },
       "Mcp.Tools.MetricCatalogRow": {
         "type": "object",
         "required": [
@@ -11808,19 +11875,19 @@
           },
           "aggregation": {
             "$ref": "#/components/schemas/OTel.Metrics.MetricAggregation",
-            "description": "The reducer applied to each bucket and to the whole window; absent with `raw`."
+            "description": "The reducer applied to each bucket and to the whole window."
           },
           "step_ms": {
             "type": "integer",
             "format": "int64",
-            "description": "Bucket width in milliseconds; absent with `raw`."
+            "description": "Bucket width in milliseconds."
           },
           "series": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OTel.Metrics.MetricSeriesResult"
             },
-            "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points; absent with `raw`."
+            "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points."
           },
           "numeric_representation": {
             "type": "string",
@@ -11881,7 +11948,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points."
+        "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points, which keep `name`, `kind` and `unit` and leave the aggregate's other members out."
       },
       "Mcp.Tools.ReleasePerformance": {
         "type": "object",
@@ -12122,8 +12189,8 @@
             "description": "A logs query's records, as search_logs returns them."
           },
           "metric": {
-            "$ref": "#/components/schemas/Mcp.Tools.SavedMetricAnswer",
-            "description": "A metrics query's answer, as query_metric returns it."
+            "$ref": "#/components/schemas/Mcp.Tools.MetricAnswer",
+            "description": "A metrics query's answer over the run's window, as query_metric returns it."
           },
           "has_more": {
             "type": "boolean",
@@ -12180,66 +12247,6 @@
           "not": {}
         },
         "description": "Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results, and run_saved_query answers it or lists the saved queries. Without `id` it creates a saved query from `name` and `filter`; with `id` and its current `etag` it changes the fields sent, a new `filter` replacing the old one whole, and refuses a stale etag. Names are unique per project; needs the qyl:write scope."
-      },
-      "Mcp.Tools.SavedMetricAnswer": {
-        "type": "object",
-        "required": [
-          "name",
-          "kind",
-          "aggregation",
-          "step_ms",
-          "series",
-          "numeric_representation",
-          "approximate"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The instrument queried."
-          },
-          "kind": {
-            "$ref": "#/components/schemas/OTel.Metrics.MetricKind"
-          },
-          "unit": {
-            "type": "string",
-            "description": "Unit of the values: the instrument's, `1` for a count, with `/s` appended for a rate."
-          },
-          "aggregation": {
-            "$ref": "#/components/schemas/OTel.Metrics.MetricAggregation"
-          },
-          "step_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "series": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OTel.Metrics.MetricSeriesResult"
-            }
-          },
-          "numeric_representation": {
-            "type": "string",
-            "enum": [
-              "float64"
-            ]
-          },
-          "approximate": {
-            "type": "boolean"
-          },
-          "method": {
-            "type": "string"
-          },
-          "exemplar_trace_ids": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Common.TraceId"
-            }
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "A saved metrics query's answer over the run's window: the aggregated series of one instrument, as query_metric returns them."
       },
       "Mcp.Tools.SavedQueryOutput": {
         "type": "object",

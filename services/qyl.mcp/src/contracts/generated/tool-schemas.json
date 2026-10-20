@@ -12934,11 +12934,11 @@
           "p95",
           "p99"
         ],
-        "description": "The reducer applied to each bucket and to the whole window; absent with `raw`."
+        "description": "The reducer applied to each bucket and to the whole window."
       },
       "step_ms": {
         "type": "integer",
-        "description": "Bucket width in milliseconds; absent with `raw`."
+        "description": "Bucket width in milliseconds."
       },
       "series": {
         "type": "array",
@@ -13025,7 +13025,7 @@
           "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
           "additionalProperties": false
         },
-        "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points; absent with `raw`."
+        "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points."
       },
       "numeric_representation": {
         "type": "string",
@@ -13945,7 +13945,7 @@
         "additionalProperties": false
       }
     },
-    "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points.",
+    "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points, which keep `name`, `kind` and `unit` and leave the aggregate's other members out.",
     "additionalProperties": false,
     "$defs": {
       "Common.AttributeKeyValueListValue": {
@@ -15403,7 +15403,7 @@
           },
           "unit": {
             "type": "string",
-            "description": "Unit of the values: the instrument's, `1` for a count, with `/s` appended for a rate."
+            "description": "Unit of the values: the instrument's, `1` for a count or a ratio, with `/s` appended for a rate."
           },
           "aggregation": {
             "type": "string",
@@ -15419,10 +15419,11 @@
               "p95",
               "p99"
             ],
-            "description": "Server-side reducer applied to the points falling in one time bucket."
+            "description": "The reducer applied to each bucket and to the whole window."
           },
           "step_ms": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Bucket width in milliseconds."
           },
           "series": {
             "type": "array",
@@ -15508,19 +15509,23 @@
               },
               "description": "One result stream of a metric range query. With no `group_by` the whole\nresult is a single stream whose `attributes` are empty; with `group_by` there\nis one stream per distinct combination of the requested attribute values.",
               "additionalProperties": false
-            }
+            },
+            "description": "One stream per `group_by` combination: its value for the whole window and the buckets that hold points."
           },
           "numeric_representation": {
             "type": "string",
             "enum": [
               "float64"
-            ]
+            ],
+            "description": "Aggregates are float64 projections; `raw` reads the exact original values."
           },
           "approximate": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the reducer estimates or interpolates, as histogram percentiles do."
           },
           "method": {
-            "type": "string"
+            "type": "string",
+            "description": "How the values were computed from the points."
           },
           "exemplar_trace_ids": {
             "type": "array",
@@ -15533,10 +15538,11 @@
               "examples": [
                 "0af7651916cd43dd8448eb211c80319c"
               ]
-            }
+            },
+            "description": "Traces of exemplars recorded in the window, at most three."
           }
         },
-        "description": "A metrics query's answer, as query_metric returns it.",
+        "description": "A metrics query's answer over the run's window, as query_metric returns it.",
         "additionalProperties": false
       },
       "has_more": {
