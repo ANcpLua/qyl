@@ -26,9 +26,13 @@ internal static class AnalysisReadPlan
             && J.Date(cohort, "start_time") is { } from && J.Date(cohort, "end_time") is { } to && from - (to - from) < start) start = from - (to - from);
         // A verification's before window is the lookback ahead of its change.
         if (J.Date(input, "since") is { } since && since - (window.End - window.Start) < start) start = since - (window.End - window.Start);
-        // A verification's after window runs until now, and a release's first span may be anywhere in retention.
+        // A verification's after window runs until now. A repeat verifies the request its verify_id recorded, and a
+        // release without a since time is the change the store anchors, the first span of that version per service
+        // over every retained span; the before window ahead of it may begin anywhere in retention.
         if (operation == "verify_fix" && now > end) end = now;
-        if (operation == "verify_fix" && J.Date(input, "since") is null && J.String(input, "release") is not null) start = DateTimeOffset.UnixEpoch;
+        var verification = operation == "verify_fix" && J.String(input, "verify_id") is { } repeat ? handles.Read(repeat, project, "verify_id") : input;
+        var release = operation == "verify_fix" && J.Date(verification, "since") is null ? J.String(verification, "release") : null;
+        if (release is not null) start = DateTimeOffset.UnixEpoch;
         var traces = new HashSet<string>(StringComparer.Ordinal); var sessions = new HashSet<string>(StringComparer.Ordinal);
         void Target(JsonNode? target)
         {
@@ -51,7 +55,8 @@ internal static class AnalysisReadPlan
             TraceIds = [.. traces], SessionIds = [.. sessions],
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
             IncludeLinkTargets = operation == "get_trace",
-            IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query"
+            IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query",
+            Release = release
         };
     }
 

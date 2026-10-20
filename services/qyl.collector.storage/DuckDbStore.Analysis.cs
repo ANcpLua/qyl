@@ -32,6 +32,11 @@ internal sealed record AnalysisReadQuery
     public bool IncludeLinkTargets { get; init; }
     /// <summary>Also load each metric series' last recorded point before <see cref="Start"/>, the predecessor its first change is measured from.</summary>
     public bool IncludeMetricPredecessors { get; init; }
+    /// <summary>
+    /// A <c>service.version</c> whose first span per service the read looks up over every retained span of the
+    /// project, the anchor of a release verification; the row cap never cuts it.
+    /// </summary>
+    public string? Release { get; init; }
     public const int MaximumRows = 25000;
 }
 internal sealed record AnalysisSnapshot(
@@ -58,6 +63,12 @@ internal sealed record AnalysisSnapshot(
     /// read looked them up (<see cref="AnalysisReadQuery.IncludeLinkTargets"/>).
     /// </summary>
     public IReadOnlySet<(string TraceId, string SpanId)> RetainedLinkTargets { get; init; } = new HashSet<(string TraceId, string SpanId)>();
+
+    /// <summary>
+    /// Each service's first span start of the release the read looked up (<see cref="AnalysisReadQuery.Release"/>),
+    /// over every retained span of the project; empty when the read looked none up.
+    /// </summary>
+    public IReadOnlyDictionary<string, ulong> ReleaseStarts { get; init; } = new Dictionary<string, ulong>(StringComparer.Ordinal);
 }
 
 /// <summary>Every span of the project that starts in [<see cref="FromUnixNano"/>, <see cref="ToUnixNano"/>) is loaded.</summary>
@@ -191,6 +202,25 @@ internal sealed partial class DuckDbStore
                 }
                 return retained;
             }
+            // A release's first span may be older than any loaded row: its start per service comes from every
+            // retained span of the project, in the same transaction, one row per service.
+            Dictionary<string, ulong> ReleaseStarts(string? version)
+            {
+                var starts = new Dictionary<string, ulong>(StringComparer.Ordinal);
+                if (version is null) return starts;
+                using var cmd = con.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 50;
+                // CA2100: the statement is constants, the quoted attribute key and $n placeholders; the version is a bound parameter.
+                cmd.CommandText = "SELECT service_name, min(start_time_unix_nano) FROM spans WHERE project_id = $1 AND json_extract_string(resource_json, '"
+                    + JsonPathLiteral(CollectorSemanticAttributeCatalog.ServiceVersion) + "') = $2 GROUP BY service_name";
+                AddParameters(cmd, projectId, version);
+                ct.ThrowIfCancellationRequested();
+                using var cancellation = ct.Register(cmd.Cancel);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read()) starts[reader.IsDBNull(0) ? "unknown_service" : reader.GetString(0)] = DuckDbValueReader.ReadUInt64(reader, 1, 0);
+                return starts;
+            }
             var spans = Read("spans", SpanStorageRow.SelectColumnList, SpanStorageRow.MapFromReader);
             var linkTargets = query.IncludeLinkTargets ? RetainedLinkTargets(spans) : new HashSet<(string TraceId, string SpanId)>();
             // Rows are read newest first, so the cap cuts the oldest spans; spans sharing the oldest loaded
@@ -205,7 +235,7 @@ internal sealed partial class DuckDbStore
                 Read("annotations", AnnotationRow.SelectColumnList, AnnotationRow.MapFromReader),
                 Read("analysis_state", AnalysisStateRow.SelectColumnList, AnalysisStateRow.MapFromReader),
                 Read("saved_queries", SavedQueryRow.SelectColumnList, SavedQueryRow.MapFromReader))
-            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage, RetainedLinkTargets = linkTargets };
+            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage, RetainedLinkTargets = linkTargets, ReleaseStarts = ReleaseStarts(query.Release) };
             tx.Commit();
             return result with { ScanComplete = complete };
         }, ct);

@@ -196,14 +196,16 @@ internal sealed partial class AnalysisEngine
 
     // The first span of a release of the requests' own service, the failure's or the matched ones'. A service that
     // runs no such version, such as a database below its caller, takes it from the other services of its executions;
-    // a service elsewhere in the project that ran a version of the same name is no change of these requests.
-    private AnalysisRecord ReleaseStart(List<AnalysisRecord> requests, string release, bool failure)
+    // a service elsewhere in the project that ran a version of the same name is no change of these requests. The
+    // store looked each service's first span of the release up over every retained span, so the anchor is exact
+    // whatever the row cap cut.
+    private (string Service, ulong Start) ReleaseStart(List<AnalysisRecord> requests, string release, bool failure)
     {
         var own = requests.Select(static s => s.Service).ToHashSet(StringComparer.Ordinal);
         var traces = requests.Select(static s => s.TraceId).ToHashSet(StringComparer.Ordinal);
         var executions = _spans.Where(s => traces.Contains(s.TraceId) && !own.Contains(s.Service)).Select(static s => s.Service).ToHashSet(StringComparer.Ordinal);
-        // _spans is in start order, so the first match is the release's first span.
-        AnalysisRecord? First(HashSet<string> services) => _spans.FirstOrDefault(s => services.Contains(s.Service) && ReleaseOf(s) == release);
+        (string Service, ulong Start)? First(HashSet<string> services) => snapshot.ReleaseStarts.Where(p => services.Contains(p.Key))
+            .OrderBy(static p => p.Value).ThenBy(static p => p.Key, StringComparer.Ordinal).Select(static p => ((string, ulong)?)(p.Key, p.Value)).FirstOrDefault();
         if ((First(own) ?? First(executions)) is { } first) return first;
         var services = string.Join(", ", own.Order(StringComparer.Ordinal));
         throw new AnalysisInputException("release", own.Count is 0
@@ -236,7 +238,7 @@ internal sealed partial class AnalysisEngine
             requests = [.. _spans.Where(s => AnalysisMatchers.Match(s, matchers))];
             failures = [.. requests.Where(static s => s.Error)];
         }
-        ulong sinceNs; var sinceKnown = true; JsonObject change;
+        ulong sinceNs; JsonObject change;
         if (J.Date(input, "since") is { } changed)
         {
             sinceNs = QylTimeConversions.ToUnixNanoUnsigned(changed);
@@ -244,10 +246,9 @@ internal sealed partial class AnalysisEngine
         }
         else if (J.String(input, "release") is { } release)
         {
-            var first = ReleaseStart(requests, release, fid is not null);
-            // A release starts at its first span only when no earlier span can be missing from the snapshot.
-            sinceNs = first.Start; sinceKnown = SpansComplete(0, first.Start);
-            change = J.O(("kind", "release"), ("time", J.Time(first.Start)), ("service", first.Service), ("version", release));
+            var (service, start) = ReleaseStart(requests, release, fid is not null);
+            sinceNs = start;
+            change = J.O(("kind", "release"), ("time", J.Time(start)), ("service", service), ("version", release));
         }
         else throw new AnalysisInputException("since", "Provide since, the time the fix took effect, or the release that shipped it.") { Allowed = ["since", "release"] };
         var nowNs = QylTimeConversions.ToUnixNanoUnsigned(now);
@@ -260,7 +261,7 @@ internal sealed partial class AnalysisEngine
         var minRequests = J.Number(input, "min_requests", 100); var minMinutes = J.Number(input, "min_minutes", 30);
         var after = requests.Where(After).ToList(); var afterFailures = failures.Where(After).ToList();
         // Only an observed recurrence decides without the whole after window; any other verdict could hide one.
-        var afterComplete = sinceKnown && SpansComplete(sinceNs, nowNs);
+        var afterComplete = SpansComplete(sinceNs, nowNs);
         var verdict = afterFailures.Count > 0 ? "failed" : !afterComplete ? "inconclusive"
             : after.Count < minRequests || elapsed / 60_000_000_000d < minMinutes ? "pending" : after.Count is 0 ? "inconclusive" : "passed";
         JsonObject Segment(ulong start, ulong end, int occurrences, int count) => J.O(("window", new AnalysisWindow(J.Instant(start), J.Instant(end)).Json), ("occurrences", occurrences), ("requests", count), ("rate", count is 0 ? null : occurrences / (double)count), ("unit", "requests"));

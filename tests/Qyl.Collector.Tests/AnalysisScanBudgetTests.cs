@@ -106,6 +106,35 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         }
     }
 
+    /// <summary>
+    /// A release anchors the change at its first span, which the store finds over every retained span. A cap that
+    /// cut only spans older than the change leaves the anchor known and the after window complete, so the verdict
+    /// is decided.
+    /// </summary>
+    [TestMethod]
+    public async Task A_release_anchor_stays_known_when_the_cap_cut_spans_older_than_the_change()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        const string Introduced = """{"service.version":"1.4.1"}""", Fixed = """{"service.version":"1.4.2"}""";
+        SpanStorageRow Checkout(int id, ulong start, string resource, bool failed = false) =>
+            Request(id, start, failed) with { Name = "checkout", ResourceJson = resource, StatusMessage = failed ? "timeout" : null };
+        var old = FixtureUnixNano - 240 * Minute; var shipped = FixtureUnixNano - 60 * Minute;
+        var rows = Enumerable.Range(1, AnalysisReadQuery.MaximumRows + 1).Select(i => Checkout(i, old + (ulong)i * 1_000, Introduced)).ToList();
+        rows.Add(Checkout(0, FixtureUnixNano - 120 * Minute, Introduced, failed: true));
+        rows.AddRange(Enumerable.Range(0, 120).Select(i => Checkout(100_000 + i, shipped + (ulong)i * Minute / 4, Fixed)));
+        await host.Store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
+        var failure = Assert.ContainsSingle((await ReadAsync(host, "triage", """{"lookback_minutes":240}""")).GetProperty("failures").EnumerateArray()).GetProperty("failure_id").GetString();
+
+        var verification = await VerifyAsync(host, $$"""{"failure_id":"{{failure}}","release":"1.4.2"}""");
+
+        Assert.IsFalse(verification.GetProperty("coverage").GetProperty("scan_complete").GetBoolean(), "the cap cut the oldest 1.4.1 spans");
+        var change = verification.GetProperty("change");
+        Assert.AreEqual(("release", "checkout", "1.4.2"), (change.GetProperty("kind").GetString(), change.GetProperty("service").GetString(), change.GetProperty("version").GetString()));
+        Assert.AreEqual(FixtureUtcNow.AddMinutes(-60), change.GetProperty("time").GetDateTimeOffset());
+        Assert.AreEqual((0, 120), (verification.GetProperty("after").GetProperty("occurrences").GetInt32(), verification.GetProperty("after").GetProperty("requests").GetInt32()));
+        Assert.AreEqual("passed", verification.GetProperty("verdict").GetString());
+    }
+
     private static SpanStorageRow Request(int id, ulong start, bool failed = false) =>
         Span(TraceId(id), SpanId(id), start, start + 500, status: failed ? (byte)2 : (byte)1);
 
