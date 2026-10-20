@@ -223,9 +223,9 @@ function structured<T>(result: CallToolResult): T {
   return result.structuredContent as T;
 }
 
-function errorOf(result: CallToolResult): { code: string; message: string; retryable: boolean } {
+function errorOf(result: CallToolResult): { code: string; message: string; retryable: boolean; field?: string } {
   assert.equal(result.isError, true, JSON.stringify(result));
-  return structured<{ error: { code: string; message: string; retryable: boolean } }>(result).error;
+  return structured<{ error: { code: string; message: string; retryable: boolean; field?: string } }>(result).error;
 }
 
 test("the write tools carry the contract's annotations and scopes; every other tool stays read-only", async (context) => {
@@ -455,6 +455,8 @@ test("saved queries: create, conflict, change, list with paging, run and delete"
     arguments: { id: "sq-1", etag: "\"1\"\r\nX-Injected: 1", name: "renamed" },
   }) as CallToolResult;
   assert.equal(errorOf(badTag).code, "invalid_argument");
+  assert.equal(errorOf(badTag).field, "etag", "the rejection names the argument to fix, as every other invalid_argument does");
+  assert.match(errorOf(badTag).message, /^etag: is not a valid HTTP field value/u);
   assert.equal(calls.length, before, "an etag that is no HTTP field value never reaches the Collector");
 
   const renamed = await client.callTool({ name: "save_query", arguments: { id: "sq-1", etag: "\"1\"", name: "renamed" } }) as CallToolResult;

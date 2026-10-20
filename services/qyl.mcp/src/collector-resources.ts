@@ -40,12 +40,13 @@ const DELETE_PATHS: Readonly<Record<DeletableKind, string>> = {
 
 /**
  * The If-Match value for a change. An etag is opaque, but it travels as an
- * HTTP field value, so one that could not be sent is refused here instead of
- * failing inside fetch as if the Collector were unreachable.
+ * HTTP field value, so one that could not be sent is refused here, naming the
+ * argument like every other rejected one, instead of failing inside fetch as
+ * if the Collector were unreachable.
  */
 export function ifMatch(etag: string): Readonly<Record<string, string>> {
   if (!/^[\x21-\x7e](?:[\x20-\x7e]*[\x21-\x7e])?$/u.test(etag)) {
-    throw new CollectorError("etag is not a valid HTTP field value; pass the etag a qyl tool returned");
+    throw invalid([{ field: "etag", message: "is not a valid HTTP field value; pass the etag a qyl tool returned", code: "etag.invalid" }]);
   }
   return { [IF_MATCH_HEADER]: etag };
 }
