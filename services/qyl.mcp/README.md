@@ -200,8 +200,12 @@ cannot be written before the tool runs refuses the call. OTLP exports carry oper
 status and trace correlation, without argument or result bodies. The server span names the
 negotiated `mcp.protocol.version`, the `jsonrpc.request.id` and the caller (`user_agent.name` and
 `user_agent.version` from the client's `clientInfo`, `user_agent.original` from the HTTP
-`User-Agent`). A stdio server flushes its exports when the connection closes, so short sessions
-are recorded too.
+`User-Agent`). A call the caller has to change — arguments the schema or the Collector rejects,
+an id that does not exist, missing access, a stale etag, an unknown tool — leaves the span's
+status unset and carries no `error.type`, as the MCP conventions count such a request no failure of
+the server; an unreachable or timed-out Collector, a Collector 5xx or a contract mismatch is an
+`ERROR` span with `error.type=tool_error`. A stdio server flushes its exports when the connection
+closes, so short sessions are recorded too.
 
 ## Checks
 

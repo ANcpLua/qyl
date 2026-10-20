@@ -13,6 +13,7 @@ import type {
 } from "./mcp-semconv.js";
 import { SecretRedactor } from "./secret-redactor.js";
 import { readCollectorProjects, type CollectorAccess } from "./collector-access.js";
+import type { ToolErrorCode } from "./contracts/generated/api.js";
 import { argumentIssues } from "./contracts/tool-schemas.js";
 import { InvalidArgumentsError, toolError } from "./request-scope.js";
 import { logWarning } from "./stderr-log.js";
@@ -29,6 +30,26 @@ const DEFAULT_MAX_EXECUTIONS = 1_000;
 const NATIVE_SERVER_ID = "qyl.mcp/native";
 /** `error.type` on the operation span when its execution record could not be written. */
 const EVIDENCE_PERSISTENCE_FAILED = "evidence_persistence_failed";
+
+/**
+ * The MCP conventions' server span counts a request the caller has to change as no failure of the
+ * server: the JSON-RPC codes for a request the receiver could not serve "SHOULD NOT be considered
+ * errors" (`rpc.response.status_code`), and `error.type` is set "if and only if the operation fails".
+ * These are those codes, and the tool errors that say the same of the arguments, the ids named, the
+ * caller's access, the record's state or the caller's own cancellation. Everything else a tool call
+ * ends with, such as an unreachable or timed-out Collector, a 5xx or a contract mismatch, is this
+ * server's failure.
+ */
+const CALLER_RPC_ERRORS: ReadonlySet<number> = new Set([-32700, -32600, -32601, -32602, -32002]);
+const CALLER_TOOL_ERRORS: ReadonlySet<string> = new Set<ToolErrorCode>([
+  "invalid_argument", "collector_rejected", "not_found", "no_project_access", "insufficient_scope",
+  "conflict", "precondition_failed", "precondition_required", "cancelled", "response_too_large",
+]);
+
+function callerToolError(result: CallToolResult): boolean {
+  const error = isRecord(result.structuredContent) ? result.structuredContent.error : undefined;
+  return isRecord(error) && typeof error.code === "string" && CALLER_TOOL_ERRORS.has(error.code);
+}
 
 const IdentifierSchema = z.string().min(1).max(256);
 const IsoDateSchema = z.iso.datetime({ offset: true });
@@ -316,7 +337,9 @@ export class NativeExecutionRuntime {
       }));
       operation?.end({
         endTimeMs: completedMs,
-        errorType: recorded ? errorType(error) : EVIDENCE_PERSISTENCE_FAILED,
+        ...(!recorded
+          ? { errorType: EVIDENCE_PERSISTENCE_FAILED }
+          : error instanceof ProtocolError && CALLER_RPC_ERRORS.has(error.code) ? {} : { errorType: errorType(error) }),
         ...(error instanceof ProtocolError
           ? { rpcResponseStatusCode: String(error.code) }
           : {}),
@@ -337,7 +360,7 @@ export class NativeExecutionRuntime {
       endTimeMs: completedMs,
       ...(!recorded
         ? { errorType: EVIDENCE_PERSISTENCE_FAILED }
-        : toolFailed ? { errorType: "tool_error" } : {}),
+        : toolFailed && !callerToolError(result) ? { errorType: "tool_error" } : {}),
     });
     return result;
   }
@@ -610,7 +633,8 @@ function nativeStatePath(environment: Readonly<Record<string, string | undefined
 }
 
 function errorType(error: unknown): string {
-  if (error instanceof ProtocolError) return `mcp_${error.code}`;
+  // The conventions' error.type of a JSON-RPC error is its code as a string.
+  if (error instanceof ProtocolError) return String(error.code);
   if (error instanceof Error && /^[A-Za-z][A-Za-z0-9]*$/u.test(error.name)) {
     return error.name.slice(0, 128);
   }

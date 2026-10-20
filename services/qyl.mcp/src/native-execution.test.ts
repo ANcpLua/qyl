@@ -6,6 +6,9 @@ import test from "node:test";
 import { CallToolResultSchema } from "@modelcontextprotocol/core";
 import type { CallToolResult } from "@modelcontextprotocol/client";
 import { McpServer } from "@modelcontextprotocol/server";
+import { SpanStatusCode } from "@opentelemetry/api";
+import type { LogRecord } from "@opentelemetry/api-logs";
+import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import * as z from "zod/v4";
 import {
   assertToolCallFrameArmed,
@@ -18,6 +21,7 @@ import {
   type NativeExecutionTelemetry,
 } from "./native-execution.js";
 import { SecretRedactor } from "./secret-redactor.js";
+import { McpTelemetry } from "./telemetry.js";
 import { connectModernTestClient } from "./modern-test-client.test-helper.js";
 import { createServer } from "./server.js";
 
@@ -539,4 +543,60 @@ test("a state file this build cannot read is archived, not fatal", async () => {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+/**
+ * The MCP conventions' server span: a request the caller has to change is not the server's failure
+ * (rpc.response.status_code: -32602 and its kin "SHOULD NOT be considered errors"), and error.type is
+ * set "if and only if the operation fails". A rejection of the caller's arguments, ids or rights leaves
+ * the span status unset, without error.type, and logs at INFO; a failure on this server's side, such as
+ * an unreachable Collector, is an ERROR span with error.type tool_error.
+ */
+test("a call rejected as the caller's mistake leaves its server span unset; a server-side failure is an error", async (context) => {
+  const exporter = new InMemorySpanExporter();
+  const provider = new BasicTracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] });
+  context.after(() => provider.shutdown());
+  const logs: LogRecord[] = [];
+  const telemetry = new McpTelemetry({ QYL_MCP_TELEMETRY: "0" }, new SecretRedactor(), {
+    tracer: provider.getTracer("native-execution-test"),
+    logger: { emit: (record) => void logs.push(record), enabled: () => true },
+  });
+  const runtime = new NativeExecutionRuntime(undefined, { telemetry, redactor: new SecretRedactor() });
+  context.mock.method(globalThis, "fetch", async (input: string | Request | URL, init?: RequestInit) => {
+    if (new URL(new Request(input, init).url).pathname.endsWith("/get_trace")) {
+      return Response.json({ type: "https://qyl.at/problems/not-found", title: "Not Found", status: 404, code: "not_found",
+        detail: "Trace 00000000000000000000000000000001 was not found in this project." },
+      { status: 404, headers: { "content-type": "application/problem+json" } });
+    }
+    throw new TypeError("fetch failed");
+  });
+  const connection = await connectModernTestClient(
+    { name: "native-span-status-test", version: "1.0.0" },
+    () => createServer({ nativeExecution: runtime, transport: "inproc" }),
+  );
+  const code = (result: unknown): unknown => ((result as CallToolResult).structuredContent as { error?: { code?: string } }).error?.code;
+  try {
+    assert.equal(code(await connection.client.callTool({ name: "compare_groups",
+      arguments: { signal: "spans", group_a: { failure_id: "fail_1" }, group_b: "others" } })), "invalid_argument");
+    assert.equal(code(await connection.client.callTool({ name: "get_trace",
+      arguments: { trace_id: "00000000000000000000000000000001" } })), "not_found");
+    assert.equal(code(await connection.client.callTool({ name: "list_traces", arguments: {} })), "collector_unreachable");
+    await assert.rejects(connection.client.callTool({ name: "no_such_tool", arguments: {} }), /no_such_tool/u);
+  } finally {
+    await connection.close();
+  }
+
+  const span = (name: string): ReadableSpan => {
+    const found = exporter.getFinishedSpans().find((item) => item.name === `tools/call ${name}`);
+    assert(found, `span of ${name}`);
+    return found;
+  };
+  for (const name of ["compare_groups", "get_trace", "no_such_tool"]) {
+    assert.equal(span(name).status.code, SpanStatusCode.UNSET, name);
+    assert.equal(span(name).attributes["error.type"], undefined, name);
+  }
+  assert.equal(span("no_such_tool").attributes["rpc.response.status_code"], "-32602", "the JSON-RPC error code is still recorded");
+  assert.equal(span("list_traces").status.code, SpanStatusCode.ERROR);
+  assert.equal(span("list_traces").attributes["error.type"], "tool_error");
+  assert.deepEqual(logs.map((record) => record.severityText), ["INFO", "INFO", "ERROR", "INFO"]);
 });
