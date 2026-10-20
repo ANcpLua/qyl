@@ -160,6 +160,28 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         Assert.IsFalse(run.GetProperty("has_more").GetBoolean());
     }
 
+    /// <summary>
+    /// list_traces with a failure_id keeps the window's traces in which the failure occurred, so it reads the window:
+    /// more spans than one read holds, all older than the window, leave its coverage complete.
+    /// </summary>
+    [TestMethod]
+    public async Task List_traces_with_a_failure_id_reads_its_window_and_reports_it_complete()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var old = FixtureUnixNano - 180 * Minute;
+        var rows = Enumerable.Range(1, AnalysisReadQuery.MaximumRows + 1).Select(i => Request(i, old + (ulong)i * 1_000)).ToList();
+        rows.Add(Request(0, FixtureUnixNano - 30 * Minute, failed: true));
+        await host.Store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
+        var failure = Assert.ContainsSingle((await ReadAsync(host, "triage", "{}")).GetProperty("failures").EnumerateArray()).GetProperty("failure_id").GetString();
+
+        var traces = await ReadAsync(host, "list_traces", $$"""{"failure_id":"{{failure}}"}""");
+
+        Assert.AreEqual(TraceId(0), Assert.ContainsSingle(traces.GetProperty("traces").EnumerateArray()).GetProperty("trace_id").GetString());
+        var coverage = traces.GetProperty("coverage");
+        Assert.IsTrue(coverage.GetProperty("scan_complete").GetBoolean(), "the window holds every span the answer could come from");
+        Assert.AreEqual(1, coverage.GetProperty("matched").GetInt32());
+    }
+
     private static SpanStorageRow Request(int id, ulong start, bool failed = false) =>
         Span(TraceId(id), SpanId(id), start, start + 500, status: failed ? (byte)2 : (byte)1);
 

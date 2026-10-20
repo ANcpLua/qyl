@@ -42,10 +42,13 @@ internal static class AnalysisReadPlan
         }
         Target(input); Target(input["a"]); Target(input["b"]);
         if (operation == "ci_log" && J.String(input["baseline"], "ci_run_id") is { } priorRun) sessions.Add(priorRun);
-        // Failure identity is independent of time. These focused queries may span retention,
-        // but still have the storage cap and report incomplete coverage instead of false totals.
-        // get_failure_context reads a failure as the trace of its latest occurrence, which the request then names.
-        if (J.String(input, "failure_id") is not null && J.String(input, "trace_id") is null || operation == "verify_fix" && J.String(input, "verify_id") is not null)
+        // Failure identity is independent of time: a verification's before window runs from the failure's first
+        // retained occurrence, and get_failure_context reads a failure as the trace of its latest occurrence, which
+        // the request then names. These reads may span retention, but still have the storage cap and report
+        // incomplete coverage instead of false totals. list_traces keeps its window: there failure_id filters the
+        // window's traces.
+        if (operation == "verify_fix" && (J.String(input, "failure_id") ?? J.String(input, "verify_id")) is not null
+            || operation == "get_failure_context" && J.String(input, "failure_id") is not null && J.String(input, "trace_id") is null)
             start = DateTimeOffset.UnixEpoch;
         if (start < DateTimeOffset.UnixEpoch) start = DateTimeOffset.UnixEpoch;
         return new AnalysisReadQuery
