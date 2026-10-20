@@ -17,6 +17,8 @@ delete process.env.QYL_API_KEY;
 delete process.env.MCP_COLLECTOR_PROJECTS;
 const w=fixture.window, key=fixture.keys;
 const scoped=(service)=>({ ...w, matchers:[{key:'service.name',op:'eq',value:service,scope:'resource'}] });
+// The seed writes instants in microseconds and the Collector in 100 ns: one is within a millisecond of the other.
+const sameInstant=(actual,expected)=>assert(Math.abs(Date.parse(actual)-Date.parse(expected))<=1,`${actual} is not ${expected}`);
 async function withClient(run, project = fixture.project) {
  const previousProject=process.env.QYL_PROJECT;
  process.env.QYL_PROJECT=project;
@@ -93,10 +95,28 @@ verify('05 db executions first diverge at db status',async call=>{
 verify('06 four requests after fix need another96',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);
  const data=await call('verify_fix',{...w,failure_id:F.failure_id,since:fixture.T2});assert.equal(data.verdict,'pending');assert.equal(data.needs.requests,96);
+ assert.equal(data.change.kind,'since');sameInstant(data.change.time,fixture.T2);
 });
-verify('07a checkout span p95 is1840ms',async call=>{
- const data=await call('aggregate_telemetry',{...scoped('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95']});
- assert(Math.abs(data.groups.find(g=>g.key['http.route']==='/checkout').measures.duration_p95-1840)<1);
+verify('06b the fix release 1.4.2 of checkout anchors F and its orders-db root cause at T2; 1.4.1 anchors at T and failed',async call=>{
+ const all=(await call('triage',{...w,status:'all',matchers:[{key:'service.name',op:'in',values:['checkout','orders-db'],scope:'resource'}]})).failures;
+ const F=all.find(f=>f.service==='checkout'&&f.operation==='checkout'),D=all.find(f=>f.service==='orders-db');assert(F&&D,JSON.stringify(all));
+ for (const failure of [F,D]) {
+  const fix=await call('verify_fix',{...w,failure_id:failure.failure_id,release:'1.4.2'});
+  assert.deepEqual([fix.change.kind,fix.change.service,fix.change.version],['release','checkout','1.4.2'],failure.service);
+  sameInstant(fix.change.time,fixture.T2);sameInstant(fix.after.window.start_time,fixture.T2);
+  assert.equal(fix.verdict,'pending',failure.service);assert.equal(fix.after.occurrences,0,failure.service);
+ }
+ assert.equal((await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.2'})).needs.requests,96);
+ const introduced=await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.1'});
+ sameInstant(introduced.change.time,fixture.T);assert.equal(introduced.verdict,'failed');
+});
+verify('07a checkout span p95 is1840ms and cart 210ms, each with its own p50, p95 and p99',async call=>{
+ const data=await call('aggregate_telemetry',{...scoped('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95','duration_p50','duration_p99']});
+ for (const [route,p95] of [['/checkout',1840],['/cart',210]]) {
+  const measures=data.groups.find(g=>g.key['http.route']===route).measures;
+  assert(Math.abs(measures.duration_p95-p95)<1,`${route}: ${JSON.stringify(measures)}`);
+  assert(measures.duration_p50<measures.duration_p95&&measures.duration_p95<measures.duration_p99,`${route}: ${JSON.stringify(measures)}`);
+ }
 });
 verify('07b MCP aggregate error rate is8/40',async call=>{
  const data=await call('aggregate_telemetry',{...w,signal:'spans',matchers:[{key:'mcp.method.name',op:'eq',value:'tools/call'}],group_by:['gen_ai.tool.name'],measures:['count','error_count','error_rate']});
@@ -108,9 +128,10 @@ verify('08 region cardinality2 includes semantic definition',async call=>{
 verify('09 identical agent call and argument hashes repeated3times',async call=>{
  const data=await call('get_agent_run',{...w,session_id:'agent_run'});assert.equal(data.findings.repeated_calls[0].count,3);
 });
-verify('10 release1.4.1 first observed atT with F',async call=>{
+verify('10 release1.4.1 first observed atT with F, the fix 1.4.2 atT2 without failures',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);
  const data=await call('list_releases',{...w,service_name:'checkout'});const release=data.releases.find(r=>r.version==='1.4.1');assert.equal(Date.parse(release.first_seen),Date.parse(fixture.T));assert(release.new_failure_ids.includes(F.failure_id));
+ const fix=data.releases.find(r=>r.version==='1.4.2');assert(fix,JSON.stringify(data.releases));sameInstant(fix.first_seen,fixture.T2);assert.deepEqual(fix.new_failure_ids,[]);
 });
 verify('11 checkout calls orders-db with errors',async call=>{
  const data=await call('get_service_map',w);const edge=data.edges.find(e=>e.from==='checkout'&&e.to==='orders-db');assert(edge);assert(edge.error_rate>0);
@@ -121,7 +142,9 @@ verify('12 silent billing last seen2hours beforeseed',async call=>{
 verify('13 MCP stats preserve denominator, failure class, exampleids, buckets and breakdowns',async call=>{
  assert.equal((await call('get_mcp_stats',{...w,tool_name:'search_logs'})).buckets,undefined,'buckets come only on request');
  const data=await call('get_mcp_stats',{...w,tool_name:'search_logs',buckets:true});const group=data.groups.find(g=>g.name==='search_logs');assert.equal(group.requests,40);assert.equal(group.errors,8);assert.equal(group.error_rate,.2);assert.equal(data.failure_classes.timeout,8);assert(group.example_trace_ids.length>0);
- const tool=data.tools.find(t=>t.name==='search_logs');assert.equal(tool.requests,40);assert.equal(tool.errors,8);assert.equal(tool.error_rate,.2);assert.equal(tool.avg_ms,20);assert.equal(tool.p95_ms,20);
+ const tool=data.tools.find(t=>t.name==='search_logs');assert.equal(tool.requests,40);assert.equal(tool.errors,8);assert.equal(tool.error_rate,.2);
+ // Seeded durations vary around 20 ms, by at most 8%.
+ assert(Math.abs(tool.avg_ms-20)<=1.6&&Math.abs(tool.p95_ms-20)<=1.6&&tool.avg_ms!==tool.p95_ms,JSON.stringify(tool));
  assert.equal(data.totals.requests,40);assert.equal(data.coverage.scan_complete,true);assert.equal(data.coverage.truncated,false);
  assert(data.buckets.length>0&&data.buckets.every(b=>b.requests>0),'only buckets that saw requests');
  assert.equal(data.buckets.reduce((sum,b)=>sum+b.requests,0),40);assert.equal(data.buckets.reduce((sum,b)=>sum+b.errors,0),8);
@@ -198,6 +221,8 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   const F=(await call('triage',{...day,service_name:'checkout',status:'all'})).failures.find(f=>f.operation==='checkout');assert(F);
   const fix=await call('verify_fix',{...day,failure_id:F.failure_id,since:seeded.T2});
   assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,76,'the four fix requests and two checkouts per batch count');
+  const release=await call('verify_fix',{...day,failure_id:F.failure_id,release:'1.4.2'});
+  sameInstant(release.change.time,seeded.T2);assert.equal(release.needs.requests,76,'every later checkout runs the fix release');
   assert.equal((await call('get_agent_run',{...day,session_id:'agent_run'})).findings.repeated_calls[0].count,3);
   const ci=(await call('ci_log',{...day,ci_run_id:'ci_current',baseline:'last_success'})).comparison;
   assert(ci.new_failures.some(p=>p.leg==='test'));assert(ci.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));
@@ -207,10 +232,38 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   assert.deepEqual((await call('check_telemetry_health',day)).semconv_gaps,[]);
  },project);
 });
+registrations.push('26 the fix in 1.4.2 is pending, then passes once a hundred checkouts ran it');
+void test('26 the fix in 1.4.2 is pending, then passes once a hundred checkouts ran it',{concurrency:false},async()=>{
+ const project='answer-key-'+randomBytes(8).toString('hex');
+ const repo=fileURLToPath(new URL('../..',import.meta.url));
+ // The seed ran eight hours ago; the 10-minute traffic cron ran 48 times since, two checkouts each.
+ const seedNow=Math.floor(Date.now()/1000)-48*600-60;
+ async function send(mode,now){
+  const output=join(dirname(process.env.QYL_ANSWER_KEY_FILE),`${project}-${now}.json`);
+  await promisify(execFile)('python3',[join(repo,'tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py'),process.env.QYL_ANSWER_KEY_OTLP,output,project],{env:{...process.env,QYL_ANSWER_KEY_MODE:mode,QYL_ANSWER_KEY_NOW:String(now)}});
+  return JSON.parse(await readFile(output,'utf8'));
+ }
+ const seeded=await send('seed',seedNow);
+ // Each batch is independent of the others; eight run at a time.
+ async function batches(from,to){for (let run=from;run<=to;run+=8) await Promise.all(Array.from({length:Math.min(8,to-run+1)},(_,index)=>send('traffic',seedNow+(run+index)*600)));}
+ await withClient(async call=>{
+  const F=(await call('triage',{lookback_minutes:1440,service_name:'checkout',status:'all'})).failures.find(f=>f.operation==='checkout');assert(F);
+  const verify=()=>call('verify_fix',{lookback_minutes:1440,failure_id:F.failure_id,release:'1.4.2'});
+  await batches(1,47);
+  const pending=await verify();
+  assert.equal(pending.verdict,'pending');assert.deepEqual(pending.needs,{requests:2,minutes:0});sameInstant(pending.change.time,seeded.T2);
+  await batches(48,48);
+  const passed=await verify();
+  assert.equal(passed.verdict,'passed',JSON.stringify(passed));assert.deepEqual([passed.after.occurrences,passed.after.requests],[0,100]);
+ },project);
+});
 verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('annotate',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);const context=await call('get_failure_context',{...w,failure_id:F.failure_id});assert(context.context.annotations.some(a=>a.text==='Answer-key finding'));});
 verifyIsolated('32a ignored F suppressed fromtriage',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const saved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'ignored'});assert.equal(saved.failure.status,'ignored');try { assert(!(await call('triage',w)).failures.some(f=>f.failure_id===F.failure_id)); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:saved.failure.etag,status:'open'}); }});
 verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const resolved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'resolved'});
+ // The recurrence starts a millisecond before now and must still follow the resolution, which the Collector stamped
+ // to 100 ns just before it answered; waiting a few milliseconds keeps a fast answer from racing it.
+ await new Promise(resolve=>setTimeout(resolve,5));
  const now=BigInt(Date.now())*1_000_000n;
  const response=await fetch((process.env.QYL_ANSWER_KEY_OTLP??'http://127.0.0.1:5518')+'/v1/traces',{method:'POST',headers:{'content-type':'application/json','x-qyl-project':process.env.QYL_PROJECT},body:JSON.stringify({resourceSpans:[{resource:{attributes:[{key:'qyl.project.id',value:{stringValue:process.env.QYL_PROJECT}},{key:'service.name',value:{stringValue:'checkout'}},{key:'service.version',value:{stringValue:'1.4.1'}}]},scopeSpans:[{spans:[{traceId:randomBytes(16).toString('hex'),spanId:randomBytes(8).toString('hex'),name:'checkout',kind:2,startTimeUnixNano:String(now-1_000_000n),endTimeUnixNano:String(now),status:{code:2,message:'dependency failed'},attributes:[{key:'error.type',value:{stringValue:'downstream'}}]}]}]}]})});assert.equal(response.status,200);
  try { const data=await call('triage',{lookback_minutes:60});assert.equal(data.failures.find(f=>f.failure_id===F.failure_id).change,'regressed'); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:resolved.failure.etag,status:'open'}); }
