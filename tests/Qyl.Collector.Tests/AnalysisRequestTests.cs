@@ -69,6 +69,28 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// A run's limit is the contract's 1 to 1000 whatever the saved signal; a metrics run answers at most the 500
+    /// series query_metric returns.
+    /// </summary>
+    [TestMethod]
+    public async Task A_metric_run_takes_the_runs_limit_up_to_the_contracts_1000()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        var series = new MetricSeriesRow { ProjectId = "alpha", SeriesId = "active", MetricName = "test.active", MetricKind = 1, Temporality = 0, IsMonotonic = 0, Unit = "{session}", FirstSeenUnixNano = time, LastSeenUnixNano = time };
+        var point = new MetricPointRow { ProjectId = "alpha", SeriesId = "active", TimeUnixNano = time, Value = 3 };
+        await host.Store.InsertMetricsAsync([series], [MetricFixtures.Observation(series, point)], ct: testContext.CancellationToken);
+        using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer",
+            """{"name":"active sessions","filter":{"signal":"metrics","metric_name":"test.active"}}""");
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString();
+
+        var run = await Read(host, "run_saved_query", $$"""{"id":"{{id}}","limit":1000}""");
+
+        Assert.AreEqual(3d, Assert.ContainsSingle(run.GetProperty("metric").GetProperty("series").EnumerateArray()).GetProperty("value").GetDouble());
+    }
+
+    /// <summary>
     /// Every comparison names its baseline the way triage does, and every error filter is errors_only: get_mcp_stats
     /// shifts its window back by offset_minutes or takes an explicit one, ci_log compares a run with another by its
     /// ci_run_id, and errors_only keeps the failed runs and sessions.

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Analysis;
@@ -33,6 +34,8 @@ internal sealed partial class AnalysisEngine
         var output = J.O(("saved_query", SavedQueryJson(row)));
         if (row.Signal == "metrics")
         {
+            // A run's limit is the contract's 1 to 1000; a metric answer holds at most query_metric's series.
+            if (J.Number(filter, "limit") > QueryMetricInput.LimitMaximum) filter["limit"] = QueryMetricInput.LimitMaximum;
             var metric = QueryMetric(filter);
             output["coverage"] = metric["coverage"]?.DeepClone();
             output["metric"] = metric;
