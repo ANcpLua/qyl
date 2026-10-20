@@ -502,6 +502,16 @@ verify('33 an unknown argument, a value of another type and one outside its set 
   await refuse(tool,{matchers:[{key:'service.name',op:'exists',bogus_member:1}]},'matchers[0].bogus_member',['key','op','value','values','scope']);
   await refuse(tool,{matchers:[{key:'service.name',op:'eq',value:{}}]},'matchers[0].value');
  }
+ // An object a union takes is read as the model of the form it is meant for.
+ for (const [tool,args,field,accepted] of [
+  ['triage',{baseline:{offset_minutes:'5'}},'baseline.offset_minutes'],
+  ['triage',{baseline:{start_time:w.start_time}},'baseline.end_time'],
+  ['triage',{baseline:{foo:1}},'baseline'],
+  ['compare_groups',{...analysisArguments.compare_groups,group_b:{bogus:1}},'group_b.bogus',['matchers','window','failure_id']],
+  ['compare_groups',{...analysisArguments.compare_groups,group_b:{matchers:[{op:'exists'}]}},'group_b.matchers[0].key'],
+  ['ci_log',{baseline:{ci_run_id:5}},'baseline.ci_run_id'],
+  ['get_mcp_stats',{baseline:{server_version:5}},'baseline.server_version']])
+  await refuse(tool,args,field,accepted);
  assert(refused>=3*Object.keys(analysisArguments).length,`every tool's unknown argument and its mistyped and closed arguments: ${refused}`);
 });
 

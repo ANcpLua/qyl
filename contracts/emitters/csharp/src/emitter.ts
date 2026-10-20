@@ -283,7 +283,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
   if (requestBody) {
     const members = bodyMembers(program, model);
     constants.push(renderRanges(rangeEntries(program, model, members)), renderLengths(lengthEntries(program, model, members)),
-      renderChoices(choiceEntries(program, members)));
+      renderChoices(choiceEntries(program, model, members)));
   }
   const members = [...constants, ...props];
   const body = members.length ? `\n${members.join("\n")}\n` : "\n";
@@ -430,53 +430,63 @@ function renderLengths(entries: string[]): string {
 /**
  * Each member of a request body whose value takes one of a set of forms: a union of string literals, enums, models and
  * JSON types, or an array of them by its elements' path. C# reads the union as a string or an object, so a server
- * refuses a value outside the set from this list. A union's models share one path, and so do their sets.
+ * refuses a value outside the set from this list and reads an object as the model of one of its object forms. A
+ * union's models share one path, and so do their sets.
  */
-function choiceEntries(program: Program, members: BodyMember[]): string[] {
-  const entries = new Map<string, string[]>();
+function choiceEntries(program: Program, body: Model, members: BodyMember[]): string[] {
+  const entries = new Map<string, Forms>();
   for (const { path, property, typed } of members) {
     const elements = property.type.kind === "Model" && isArrayModelType(property.type);
     const type = elements ? (property.type as Model).indexer!.value : property.type;
     if (typed || type.kind !== "Union" && type.kind !== "String" || !opaque(program, type)) continue;
-    const values = closedValues(program, type);
-    if (values === undefined) continue;
+    const forms = closedForms(program, type);
+    if (forms === undefined) continue;
     const at = elements ? `${path}[]` : path;
-    entries.set(at, [...new Set([...(entries.get(at) ?? []), ...values])]);
+    const earlier = entries.get(at);
+    entries.set(at, { values: [...new Set([...(earlier?.values ?? []), ...forms.values])], models: [...new Set([...(earlier?.models ?? []), ...forms.models])] });
   }
-  return [...entries].map(([path, values]) => `        ("${path}", [${values.map((value) => `"${escapeCsharpString(value)}"`).join(", ")}]),`);
+  return [...entries].map(([path, { values, models }]) => `        ("${path}", [${values.map((value) => `"${escapeCsharpString(value)}"`).join(", ")}], [${
+    models.map((model) => `typeof(${localOrQualifiedType(program, body, model)})`).join(", ")}]),`);
 }
+
+type Forms = { values: string[]; models: Model[] };
 
 /**
  * The forms a type takes: its string literals and string enum values first, then each model as the object form
- * `{a, b}` of its members, as the MCP names it, then each scalar as its JSON type `<string>`, `<number>`, `<integer>` or
- * `<boolean>`. Any other member leaves the type without a set.
+ * `{a, b}` of its members, as the MCP names it, with the model itself, then each scalar as its JSON type `<string>`,
+ * `<number>`, `<integer>` or `<boolean>`. Any other member leaves the type without a set.
  */
-function closedValues(program: Program, type: Type): string[] | undefined {
+function closedForms(program: Program, type: Type): Forms | undefined {
   switch (type.kind) {
     case "String":
-      return [type.value];
+      return { values: [type.value], models: [] };
     case "Scalar": {
       for (let scalar: Scalar | undefined = type; scalar; scalar = scalar.baseScalar) {
         const json = scalar.name === "string" || scalar.name === "boolean" ? scalar.name
           : /^(?:u?int\d+|integer|safeint)$/.test(scalar.name) ? "integer" : /^(?:float\d*|decimal\d*|numeric)$/.test(scalar.name) ? "number" : undefined;
-        if (json !== undefined) return [`<${json}>`];
+        if (json !== undefined) return { values: [`<${json}>`], models: [] };
       }
       return undefined;
     }
     case "Enum": {
       const members = [...type.members.values()];
       return members.some((member) => typeof member.value === "number") ? undefined
-        : members.map((member) => typeof member.value === "string" ? member.value : member.name);
+        : { values: members.map((member) => typeof member.value === "string" ? member.value : member.name), models: [] };
     }
     case "Model":
-      return isArrayModelType(type) || isRecordModelType(type) ? undefined
-        : [`{${inheritedProperties(type).filter((property) => !isHttpMetadata(program, property)).map((property) => resolveEncodedName(program, property, "application/json")).join(", ")}}`];
+      return isArrayModelType(type) || isRecordModelType(type) ? undefined : {
+        values: [`{${inheritedProperties(type).filter((property) => !isHttpMetadata(program, property)).map((property) => resolveEncodedName(program, property, "application/json")).join(", ")}}`],
+        models: [type],
+      };
     case "Union": {
-      const variants = [...type.variants.values()].map((variant) => closedValues(program, variant.type));
-      if (variants.some((values) => values === undefined)) return undefined;
-      const values = variants.flat() as string[];
+      const variants = [...type.variants.values()].map((variant) => closedForms(program, variant.type));
+      if (variants.some((forms) => forms === undefined)) return undefined;
+      const values = variants.flatMap((forms) => forms!.values);
       const order = (value: string) => value.startsWith("{") ? 1 : value.startsWith("<") ? 2 : 0;
-      return values.map((value, index) => ({ value, index })).sort((a, b) => order(a.value) - order(b.value) || a.index - b.index).map(({ value }) => value);
+      return {
+        values: values.map((value, index) => ({ value, index })).sort((a, b) => order(a.value) - order(b.value) || a.index - b.index).map(({ value }) => value),
+        models: variants.flatMap((forms) => forms!.models),
+      };
     }
     default:
       return undefined;
@@ -484,8 +494,8 @@ function closedValues(program: Program, type: Type): string[] | undefined {
 }
 
 function renderChoices(entries: string[]): string {
-  return "    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>\n"
-    + "    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =\n"
+  return "    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>\n"
+    + "    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =\n"
     + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
 }
 

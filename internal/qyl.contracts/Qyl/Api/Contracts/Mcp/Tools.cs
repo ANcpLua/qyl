@@ -99,12 +99,12 @@ public sealed class ListTracesInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("order_by", ["start_time", "duration", "errors"]),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("order_by", ["start_time", "duration", "errors"], []),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("failure_class")]
@@ -242,10 +242,10 @@ public sealed class GetTraceInput
     [
         ("trace_id", 32, 32),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("selection", ["all", "errors", "errors_with_ancestors", "critical_path"]),
+        ("selection", ["all", "errors", "errors_with_ancestors", "critical_path"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
@@ -433,12 +433,12 @@ public sealed class ListSessionsInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("order_by", ["last_activity", "errors", "duration", "tokens"]),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("order_by", ["last_activity", "errors", "duration", "tokens"], []),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("errors_only")]
@@ -608,12 +608,12 @@ public sealed class SearchLogsInput
         ("trace_id", 32, 32),
         ("session_id", 1, 128),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("group_by[]", ["pattern"]),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("group_by[]", ["pattern"], []),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("span_id")]
@@ -727,12 +727,12 @@ public sealed class CiLogInput
         ("ci_run_id", 1, 128),
         ("service_prefix", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("baseline", ["last_success", "{ci_run_id}"]),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("baseline", ["last_success", "{ci_run_id}"], [typeof(CiRunReference)]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
@@ -959,11 +959,11 @@ public sealed class ListMetricsInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("query")]
@@ -1087,15 +1087,15 @@ public sealed class QueryMetricInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("function", ["none", "rate", "increase", "delta"]),
-        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"]),
-        ("ratio_of.matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("ratio_of.matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("function", ["none", "rate", "increase", "delta"], []),
+        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"], [typeof(Qyl.Api.Contracts.Common.ToolWindow), typeof(BaselineOffset)]),
+        ("ratio_of.matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("ratio_of.matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("function")]
@@ -1377,8 +1377,8 @@ public sealed class RunSavedQueryInput
     [
         ("id", 1, 128),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("id")]
@@ -1560,13 +1560,13 @@ public sealed class TriageInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"]),
-        ("status", ["open", "resolved", "ignored", "all"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"], [typeof(Qyl.Api.Contracts.Common.ToolWindow), typeof(BaselineOffset)]),
+        ("status", ["open", "resolved", "ignored", "all"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -1739,11 +1739,11 @@ public sealed class GetFailureContextInput
         ("failure_id", 1, 512),
         ("ci_run_id", 1, 128),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2007,18 +2007,18 @@ public sealed class CompareGroupsInput
         ("group_b.matchers[].values", 1, 256),
         ("group_b.failure_id", 1, 512),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("signal", ["spans", "logs"]),
-        ("group_a.matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("group_a.matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("group_b", ["rest", "previous_window", "{matchers, window, failure_id}"]),
-        ("group_b.matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("group_b.matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("attribute_scope", ["span", "resource", "both"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("signal", ["spans", "logs"], []),
+        ("group_a.matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("group_a.matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("group_b", ["rest", "previous_window", "{matchers, window, failure_id}"], [typeof(CompareGroup)]),
+        ("group_b.matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("group_b.matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("attribute_scope", ["span", "resource", "both"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2159,11 +2159,11 @@ public sealed class CompareTracesInput
         ("b.trace_id", 32, 32),
         ("b.session_id", 1, 128),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2262,11 +2262,11 @@ public sealed class VerifyFixInput
         ("failure_id", 1, 512),
         ("verify_id", 1, 8192),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2401,12 +2401,12 @@ public sealed class AggregateTelemetryInput
         ("matchers[].values", 1, 256),
         ("group_by", null, 4),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("signal", ["spans", "logs"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("signal", ["spans", "logs"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2513,12 +2513,12 @@ public sealed class DiscoverAttributesInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("signal", ["spans", "logs", "resources"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("signal", ["spans", "logs", "resources"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2631,11 +2631,11 @@ public sealed class GetAgentRunInput
         ("session_id", 1, 128),
         ("trace_id", 32, 32),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2794,11 +2794,11 @@ public sealed class ListReleasesInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2910,11 +2910,11 @@ public sealed class GetServiceMapInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -3029,11 +3029,11 @@ public sealed class CheckTelemetryHealthInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -3181,13 +3181,13 @@ public sealed class GetMcpStatsInput
         ("matchers[].values", 1, 256),
         ("group_by", null, 1),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
-        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"]),
-        ("group_by[]", ["server", "tool", "method", "transport", "failure_class"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
+        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"], [typeof(Qyl.Api.Contracts.Common.ToolWindow), typeof(BaselineOffset), typeof(McpComparisonVersion)]),
+        ("group_by[]", ["server", "tool", "method", "transport", "failure_class"], []),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]

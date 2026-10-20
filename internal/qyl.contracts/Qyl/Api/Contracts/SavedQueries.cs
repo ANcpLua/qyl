@@ -150,8 +150,8 @@ public sealed class SavedQueryCreateRequest
         ("filter.metric_name", 1, 256),
         ("filter.group_by", null, 16),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
     [JsonPropertyName("name")]
     public required string Name { get; init; }
@@ -186,8 +186,8 @@ public sealed class SavedQueryUpdateRequest
         ("filter.metric_name", 1, 256),
         ("filter.group_by", null, 16),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
@@ -213,8 +213,8 @@ public sealed class SavedQueryRunRequest
     /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
     public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
     [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]

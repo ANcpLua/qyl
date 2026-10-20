@@ -52,7 +52,7 @@ public sealed partial class AnalysisApiTests
     [DataRow("search_logs", """{"group_by":["patterns"]}""", "group_by[0]", "group_by[].invalid", "must be one of: pattern")]
     [DataRow("triage", """{"status":"opened"}""", "status", "status.invalid", "must be one of: open, resolved, ignored, all")]
     [DataRow("triage", """{"baseline":"last_week"}""", "baseline", "baseline.invalid", "must be one of: previous_window, {start_time, end_time}, {offset_minutes}")]
-    [DataRow("query_metric", """{"metric_name":"queue.depth","baseline":{"offset_minutes":"60"}}""", "baseline.offset_minutes", "baseline.offset_minutes.type", "must be number")]
+    [DataRow("query_metric", """{"metric_name":"queue.depth","baseline":{"offset_minutes":"60"}}""", "baseline.offset_minutes", "baseline.offset_minutes.type", "must be integer")]
     public async Task An_argument_outside_its_contract_type_is_refused_naming_the_field(string operation, string input, string field, string code, string message)
     {
         await using var host = await StartAsync(testContext.CancellationToken);
@@ -105,6 +105,31 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual("group_a.matchers", group.GetProperty("field").GetString());
         Assert.AreEqual("matchers[0].key", key.GetProperty("field").GetString());
         await Read(host, "triage", $$"""{"matchers":[{"key":"{{string.Concat(Enumerable.Repeat("\U0001F600", 256))}}","op":"exists"}]}""");
+    }
+
+    /// <summary>
+    /// An object a union takes is read as the model of the form it is meant for, as the MCP resolves the union: group_b's
+    /// one object form names its unknown member and its matchers' key and op, a baseline window its missing end, and an
+    /// object no form declares the union's forms.
+    /// </summary>
+    [TestMethod]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{},"group_b":{"matchers":[{"op":"exists"}]}}""", "group_b.matchers[0].key", "group_b.matchers[].key.required", "is required")]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{},"group_b":{"matchers":[{"key":"service.name","op":"like","value":1}]}}""", "group_b.matchers[0].op", "group_b.matchers[].op.invalid", "must be one of: eq, neq, in, prefix, contains, exists, gt, gte, lt, lte")]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{},"group_b":{"bogus":1}}""", "group_b.bogus", "group_b.bogus.unknown", "is not accepted here; accepted: matchers, window, failure_id")]
+    [DataRow("triage", """{"baseline":{"start_time":"2026-10-17T10:00:00Z"}}""", "baseline.end_time", "baseline.end_time.required", "is required")]
+    [DataRow("triage", """{"baseline":{"foo":1}}""", "baseline", "baseline.invalid", "must be one of: previous_window, {start_time, end_time}, {offset_minutes}")]
+    [DataRow("ci_log", """{"baseline":{"ci_run_id":5}}""", "baseline.ci_run_id", "baseline.ci_run_id.type", "must be string")]
+    [DataRow("get_mcp_stats", """{"baseline":{"server_version":5}}""", "baseline.server_version", "baseline.server_version.type", "must be string")]
+    public async Task An_object_a_union_takes_is_read_as_its_forms_model(string operation, string input, string field, string code, string message)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var error = await RejectedAsync(host, operation, input);
+
+        Assert.AreEqual((field, code, message), (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString()));
+        await Read(host, "triage", """{"baseline":{"start_time":"2026-10-17T09:00:00Z","end_time":"2026-10-17T10:00:00Z"}}""");
+        await Read(host, "get_mcp_stats", """{"baseline":{"server_version":"1.0"}}""");
+        await Read(host, "ci_log", """{"baseline":{"ci_run_id":"run-1"}}""");
     }
 
     /// <summary>An unknown argument is answered with the names the tool accepts, and an enumeration with its values.</summary>

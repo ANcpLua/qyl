@@ -18,8 +18,8 @@ public sealed class UpdateFailureStatusRequest
     [
         ("assignee", null, 256),
     ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
     [JsonPropertyName("status")]
     public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }

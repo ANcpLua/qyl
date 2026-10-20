@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
-using ContractChoices = System.Collections.Generic.IReadOnlyList<(string Name, System.Collections.Generic.IReadOnlyList<string> Values)>;
+using ContractChoices = System.Collections.Generic.IReadOnlyList<(string Name, System.Collections.Generic.IReadOnlyList<string> Values, System.Collections.Generic.IReadOnlyList<System.Type> Models)>;
 using ContractLengths = System.Collections.Generic.IReadOnlyList<(string Name, int? Minimum, int? Maximum)>;
 using ContractRanges = System.Collections.Generic.IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)>;
 
@@ -115,7 +115,7 @@ internal static partial class CollectorEndpointExtensions
     // schema does, then the body's type, its ranges and its lengths.
     private static void CheckContract(JsonObject input, JsonTypeInfo type, ContractRanges ranges, ContractLengths lengths, ContractChoices choices)
     {
-        CheckChoices(input, choices);
+        CheckChoices(input, choices, type.Options);
         ReadAsContract(input, type);
         CheckRanges(input, ranges);
         CheckLengths(input, lengths);
@@ -147,7 +147,7 @@ internal static partial class CollectorEndpointExtensions
     // A request read as its contract type, the way the MCP's input schema reads the same arguments: a member the type
     // does not declare, a required one it leaves out and a value of another JSON type, null included, are refused naming
     // the field by its path, with the members the object accepts, the values an enumeration takes or the type the field
-    // expects. A union C# reads as an object is taken as sent; Choices holds its closed set and Ranges its bounds.
+    // expects. A union C# reads as a bare object is left to CheckChoices, which reads an object as its form's model.
     private static void ReadAsContract(JsonNode? node, JsonTypeInfo type, string field = "")
     {
         var clr = Nullable.GetUnderlyingType(type.Type) ?? type.Type;
@@ -255,13 +255,23 @@ internal static partial class CollectorEndpointExtensions
 
     // A value of a member C# reads as a bare string or object, such as a baseline or a matcher's value, is refused when it
     // takes none of the forms the contract gives the member, with the values it accepts when they form a closed set: its
-    // strings, an object for its object forms, written {a, b}, and a value of its JSON types, written <string>.
-    private static void CheckChoices(JsonObject input, ContractChoices choices)
+    // strings, its object forms, written {a, b}, and its JSON types, written <string>. An object is read as the model of
+    // the form it is meant for, as the MCP's input schema resolves the union: the one form that declares every member it
+    // sends, else the only object form there is, else the one of several such forms it satisfies.
+    private static void CheckChoices(JsonObject input, ContractChoices choices, JsonSerializerOptions options)
     {
-        foreach (var (path, forms) in choices)
+        foreach (var (path, forms, models) in choices)
         foreach (var (field, sent) in Sent(input, path))
         {
-            if (Takes(forms, sent)) continue;
+            if (sent is JsonObject members && models.Count > 0)
+            {
+                JsonTypeInfo[] objects = [.. models.Select(options.GetTypeInfo)];
+                JsonTypeInfo[] meant = [.. objects.Where(model => members.All(member => model.Properties.Any(p => p.Name == member.Key)))];
+                if (meant.Length == 0 && objects.Length == 1) meant = objects;
+                if (meant.Length == 1) { ReadAsContract(members, meant[0], field); continue; }
+                if (meant.Any(model => Reads(members, model, field))) continue;
+            }
+            else if (Takes(forms, sent)) continue;
             string[] types = [.. forms.Where(static form => form.StartsWith('<')).Select(static form => form.Trim('<', '>'))];
             throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", forms.Select(static form => form.Trim('<', '>')))}", path + ".invalid")
             {
@@ -269,6 +279,12 @@ internal static partial class CollectorEndpointExtensions
                 Hint = types.Length == 0 ? "Send one of the allowed values." : $"Send {field} as {string.Join(" or ", types.Select(static type => (type is "integer" ? "an " : "a ") + type))}."
             };
         }
+    }
+
+    private static bool Reads(JsonObject members, JsonTypeInfo model, string field)
+    {
+        try { ReadAsContract(members, model, field); return true; }
+        catch (AnalysisInputException) { return false; }
     }
 
     private static bool Takes(IReadOnlyList<string> forms, JsonNode? sent) => sent switch
