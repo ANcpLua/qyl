@@ -123,10 +123,18 @@ test("arguments the input schema rejects answer invalid_argument with the field,
     for (const name of expected.allowedIncludes ?? []) assert(error.allowed?.includes(name), `${expected.tool} accepts ${name}`);
     assert.equal(error.fields?.[0]?.field, expected.field);
     assert.equal(error.fields?.[0]?.code, expected.keyword);
-    assert.match(error.hint ?? "", new RegExp(`^Correct ${expected.field.replace(".", "\\.")}.* and call ${expected.tool} again\\.$`, "u"));
+    const field = expected.field.replaceAll(".", "\\.");
+    // An unknown argument is replaced by an accepted name or dropped; a rejected value is corrected,
+    // to one of the accepted values where the schema enumerates them.
+    if (expected.keyword === "additionalProperties") {
+      assert.match(error.hint ?? "", new RegExp(`^Replace ${field} with one of the accepted arguments \\([a-z_]+(?:, [a-z_]+)*\\) or drop it, and call ${expected.tool} again\\.$`, "u"), expected.tool);
+      for (const name of expected.allowedIncludes ?? []) assert.match(error.hint ?? "", new RegExp(`[(, ]${name}[,)]`, "u"), `${expected.tool} hint names ${name}`);
+    } else {
+      assert.match(error.hint ?? "", new RegExp(`^Correct ${field}(?: to one of the accepted values)?(?:, for example "[a-z_]+": .+,)? and call ${expected.tool} again\\.$`, "u"), expected.tool);
+    }
     if (expected.hint !== undefined) assert.match(error.hint ?? "", expected.hint, expected.tool);
     const headline = (result.content as Array<{ text: string }>)[0]!.text;
-    assert.match(headline, new RegExp(`^${expected.tool} failed: invalid_argument — ${expected.field.replace(".", "\\.")}: `, "u"));
+    assert.match(headline, new RegExp(`^${expected.tool} failed: invalid_argument — ${field}: `, "u"));
     assert.doesNotMatch(headline, /\n/u);
   }
   assert.equal(fetch.mock.callCount(), 0);

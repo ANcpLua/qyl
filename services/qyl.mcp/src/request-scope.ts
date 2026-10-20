@@ -65,15 +65,24 @@ const ID_SOURCES: Readonly<Record<string, string>> = {
   ci_log: "ci_log without ci_run_id lists the recent runs",
 };
 
-/** `example` is a valid value of `detail.field` as JSON, which the hint shows as that argument. */
-function hintFor(tool: string, detail: ToolError, example?: string): string | undefined {
+/**
+ * `issue` is the rule this server's validator found broken first, when it was this server that
+ * rejected the call: its `example` is a valid value of `detail.field` as JSON, which the hint
+ * shows as that argument.
+ */
+function hintFor(tool: string, detail: ToolError, issue?: ArgumentIssue): string | undefined {
   switch (detail.code) {
     case "invalid_argument":
     case "collector_rejected": {
       if (detail.field === undefined) return `Correct the arguments as the message says and call ${tool} again.`;
+      // An unknown argument: `allowed` holds the names the object accepts, not values of the argument.
+      if (issue?.keyword === "additionalProperties") {
+        return `Replace ${detail.field} with one of the accepted arguments${
+          detail.allowed === undefined ? "" : ` (${detail.allowed.join(", ")})`} or drop it, and call ${tool} again.`;
+      }
       const member = detail.field.split(".").at(-1)!.replace(/\[\d+\]$/u, "");
       return `Correct ${detail.field}${detail.allowed === undefined ? "" : " to one of the accepted values"}${
-        example === undefined ? "" : `, for example ${JSON.stringify(member)}: ${example},`} and call ${tool} again.`;
+        issue?.example === undefined ? "" : `, for example ${JSON.stringify(member)}: ${issue.example},`} and call ${tool} again.`;
     }
     case "not_found":
       return `Take ids only from earlier results: ${ID_SOURCES[tool] ?? "an earlier result of this project and window names them"}.`;
@@ -163,7 +172,7 @@ function detailOf(err: unknown): ToolError {
  */
 export function describeToolError(tool: string, err: unknown): ToolError {
   const detail = detailOf(err);
-  const hint = detail.hint ?? hintFor(tool, detail, err instanceof InvalidArgumentsError ? err.issues[0]?.example : undefined);
+  const hint = detail.hint ?? hintFor(tool, detail, err instanceof InvalidArgumentsError ? err.issues[0] : undefined);
   return hint === undefined ? detail : { ...detail, hint };
 }
 
