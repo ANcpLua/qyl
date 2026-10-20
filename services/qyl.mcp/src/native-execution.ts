@@ -235,7 +235,7 @@ export interface NativeExecutionRuntimeOptions {
  * the `initialize`-scoped values on a 2025-era connection, and on stateless 2025-era
  * HTTP, where no `initialize` reaches the instance, the `MCP-Protocol-Version` header.
  */
-export interface McpCaller {
+interface McpCaller {
   protocolVersion?: string;
   sessionId?: string;
   clientName?: string;
@@ -247,7 +247,7 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-export function describeCaller(server: McpServer, ctx: ServerContext): McpCaller {
+function describeCaller(server: McpServer, ctx: ServerContext): McpCaller {
   const envelope = (ctx.mcpReq.envelope ?? {}) as Record<string, unknown>;
   const declared = envelope[CLIENT_INFO_META_KEY];
   const client = isRecord(declared) ? declared : server.server.getClientVersion();

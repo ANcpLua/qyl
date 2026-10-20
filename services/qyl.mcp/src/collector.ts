@@ -69,7 +69,7 @@ function codeForUnexpectedBody(response: Response): ToolErrorCode {
 }
 
 /** What a Collector 404 names as missing: the kind of record and its identifier. */
-export interface MissingResource {
+interface MissingResource {
   readonly resource_type?: string;
   readonly resource_id?: string;
 }

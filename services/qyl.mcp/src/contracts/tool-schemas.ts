@@ -35,7 +35,7 @@ const ajv = new Ajv({ strict: true, allErrors: true, verbose: true });
 addFormats(ajv);
 
 /** A value the contract's `ToolError.allowed` names: one a schema enumerates for an argument. */
-export type ArgumentValue = NonNullable<ToolError["allowed"]>[number];
+type ArgumentValue = NonNullable<ToolError["allowed"]>[number];
 
 /** One rule a value broke, named by its path. Never carries the rejected value itself. */
 export interface ArgumentIssue {
