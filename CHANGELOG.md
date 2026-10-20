@@ -1,5 +1,22 @@
 # Changelog
 
+## 17.0.6
+
+- A rejected value of an argument with alternatives (`compare_groups` `group_b`, every `baseline`)
+  lists the accepted values and object form in `allowed`, with a valid example in `hint`; a
+  JSON-quoted allowed string such as `"\"rest\""` is accepted as `rest`.
+- `verify_fix` resolves `release` within the failure's own service (a dependency's failure takes
+  the release of the service calling it) and reports the anchor it used as `change`.
+- The MCP server records a call it rejects as the caller's mistake (invalid arguments, unknown ids
+  or tools, missing access, a stale etag) without error status, so such calls no longer rank as
+  failures in the caller's triage; Collector outages, timeouts, 5xx and contract mismatches stay
+  errors. A JSON-RPC error's `error.type` is its code.
+- Answer-key seed: checkout ships its fix as release 1.4.2 after the last orders-db timeout and
+  later checkouts run it, and seeded durations vary around their values (the routes' p95 stay
+  1.84 s and 0.21 s). With `QYL_ANSWER_KEY_FRESH_IDS=1` a reseed names its releases by its UTC
+  date (`YYYY.MM.DD.n`), so each day's incident and fix are their own releases, and
+  `QYL_ANSWER_KEY_MODE=traffic` sends healthy traffic on the latest fix release.
+
 ## 17.0.5
 
 - 24 tools instead of 29, without aliases. `triage` takes over `list_failures` with a `status`
