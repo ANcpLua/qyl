@@ -11,15 +11,6 @@ namespace Qyl.Collector.Hosting;
 internal static partial class CollectorEndpointExtensions
 {
     private const string SavedQueryOperation = "saved-queries";
-    private const int SavedQueryMaxNameLength = 200;
-    private const int SavedQueryMaxDescriptionLength = 2000;
-    private const int SavedQueryMaxLookbackMinutes = 43_200;
-    private const int SavedQueryMaxServiceNameLength = 256;
-    private const int SavedQueryMaxSearchLength = 1024;
-    private const int SavedQueryMaxMetricNameLength = 256;
-    private const int SavedQueryMaxGroupBy = 16;
-    private const int SavedQueryMaxMatchers = 32;
-    private const int SavedQueryMaxMatcherKeyLength = 256;
     private const int SavedQueryMaxMatcherValueLength = 1024;
 
     private static async Task<IResult> CreateSavedQueryAsync(
@@ -31,16 +22,12 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIdempotencyKey(httpContext.Request, out var idempotencyKey) is { } keyError)
             return keyError;
 
-        var (request, bodyError) = await ResourceHttp.ReadJsonBodyAsync(
-            httpContext.Request, QylSerializerContext.Default.SavedQueryCreateRequest, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryCreateRequest,
+            SavedQueryCreateRequest.Ranges, SavedQueryCreateRequest.Lengths, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
-        if (ValidateSavedQueryName(request!.Name) is { } nameError)
-            return nameError;
-        if (ValidateSavedQueryDescription(request.Description) is { } descriptionError)
-            return descriptionError;
-        if (ValidateSavedQueryFilter(request.Filter) is { } filterError)
+        if (ValidateSavedQueryFilter(request!.Filter) is { } filterError)
             return filterError;
 
         var projectId = ResolveProjectScope(httpContext);
@@ -144,16 +131,12 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIfMatch(httpContext.Request, out var ifMatch) is { } preconditionError)
             return preconditionError;
 
-        var (request, bodyError) = await ResourceHttp.ReadJsonBodyAsync(
-            httpContext.Request, QylSerializerContext.Default.SavedQueryUpdateRequest, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryUpdateRequest,
+            SavedQueryUpdateRequest.Ranges, SavedQueryUpdateRequest.Lengths, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
-        if (request!.Name is { } name && ValidateSavedQueryName(name) is { } nameError)
-            return nameError;
-        if (ValidateSavedQueryDescription(request.Description) is { } descriptionError)
-            return descriptionError;
-        if (request.Filter is { } filter && ValidateSavedQueryFilter(filter) is { } filterError)
+        if (request!.Filter is { } filter && ValidateSavedQueryFilter(filter) is { } filterError)
             return filterError;
 
         var now = ResourceHttp.NowUnixNano(timeProvider);
@@ -224,7 +207,7 @@ internal static partial class CollectorEndpointExtensions
             if ((httpContext.Request.ContentLength is > 0
                 ? await System.Text.Json.Nodes.JsonNode.ParseAsync(httpContext.Request.Body, cancellationToken: ct).ConfigureAwait(false) as System.Text.Json.Nodes.JsonObject
                 : new System.Text.Json.Nodes.JsonObject()) is not { } body) return ResourceHttp.InvalidBody("Provide an object with the run options.");
-            CheckContract(body, QylSerializerContext.Default.SavedQueryRunRequest, SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Choices);
+            CheckContract(body, QylSerializerContext.Default.SavedQueryRunRequest, SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Choices);
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
             if (await store.GetSavedQueryAsync(project, savedQueryId, ct).ConfigureAwait(false) is not { } saved)
@@ -255,54 +238,24 @@ internal static partial class CollectorEndpointExtensions
         return metric;
     }
 
-    private static int? LookbackMinutes(SavedQueryFilter filter) => filter switch
-    {
-        SavedTraceQueryFilter traces => traces.LookbackMinutes,
-        SavedLogQueryFilter logs => logs.LookbackMinutes,
-        SavedMetricQueryFilter metrics => metrics.LookbackMinutes,
-        _ => null
-    };
-
     private static string SavedQueryLocation(string savedQueryId) =>
         "/api/v1/saved-queries/" + Uri.EscapeDataString(savedQueryId);
 
     private static IResult SavedQueryNameConflict(string name) =>
         ContractErrorResults.Conflict(name, "A saved query with this name already exists in the project.");
 
-    private static IResult? ValidateSavedQueryName(string name) =>
-        LengthBetween(name, 1, SavedQueryMaxNameLength)
-            ? null
-            : ContractErrorResults.Validation("name", $"Name must be 1 to {SavedQueryMaxNameLength} characters.",
-                "name.length");
-
-    private static IResult? ValidateSavedQueryDescription(string? description) =>
-        description is null || LengthBetween(description, 0, SavedQueryMaxDescriptionLength)
-            ? null
-            : ContractErrorResults.Validation("description",
-                $"Description must be at most {SavedQueryMaxDescriptionLength} characters.", "description.length");
-
+    // The filter's lengths and ranges were checked with its body; what the contract states beside them is checked here.
     private static IResult? ValidateSavedQueryFilter(SavedQueryFilter filter)
     {
         try { Analysis.AnalysisMatchers.Validate(System.Text.Json.Nodes.JsonNode.Parse(SavedQueryMapper.WriteFilter(filter))?["matchers"]); }
         catch (Analysis.AnalysisInputException invalid) { return ContractErrorResults.Validation("filter.matchers", invalid.Description, invalid.Code); }
 
-        if (LookbackMinutes(filter) is { } lookback and (< 1 or > SavedQueryMaxLookbackMinutes))
-        {
-            return ContractErrorResults.Validation("filter.lookback_minutes",
-                $"Look-back must be between 1 and {SavedQueryMaxLookbackMinutes} minutes.", "lookback.out_of_range",
-                lookback.ToString(CultureInfo.InvariantCulture));
-        }
-
         switch (filter)
         {
-            case SavedTraceQueryFilter traces:
-                return OptionalLength("filter.service_name", traces.ServiceName, SavedQueryMaxServiceNameLength);
+            case SavedTraceQueryFilter:
+                return null;
 
             case SavedLogQueryFilter logs:
-                if (OptionalLength("filter.service_name", logs.ServiceName, SavedQueryMaxServiceNameLength) is { } service)
-                    return service;
-                if (OptionalLength("filter.query", logs.Query, SavedQueryMaxSearchLength) is { } search)
-                    return search;
                 if (logs.SeverityMin is { } severity && !Enum.IsDefined(severity))
                     return ContractErrorResults.Validation("filter.severity_min",
                         "Severity must be an OpenTelemetry severity number from 0 to 24.", "severity.out_of_range",
@@ -316,45 +269,21 @@ internal static partial class CollectorEndpointExtensions
                 return null;
 
             case SavedMetricQueryFilter metrics:
-                if (!LengthBetween(metrics.MetricName, 1, SavedQueryMaxMetricNameLength))
-                    return ContractErrorResults.Validation("filter.metric_name",
-                        $"Metric name must be 1 to {SavedQueryMaxMetricNameLength} characters.", "metric_name.length");
                 if (metrics.Aggregation is { } aggregation && !Enum.IsDefined(aggregation))
                     return ContractErrorResults.Validation("filter.aggregation", "Unknown aggregation.",
                         "aggregation.invalid");
-                if (metrics.StepMs is { } step and (< 1 or > ContractLimits.MetricMaxStepMs))
-                    return ContractErrorResults.Validation("filter.step_ms",
-                        $"Step must be between 1 and {ContractLimits.MetricMaxStepMs} milliseconds.",
-                        "step.out_of_range", step.ToString(CultureInfo.InvariantCulture));
-                if (metrics.GroupBy is { } groupBy &&
-                    (groupBy.Count > SavedQueryMaxGroupBy || groupBy.Any(static key => string.IsNullOrEmpty(key))))
-                    return ContractErrorResults.Validation("filter.group_by",
-                        $"Group-by takes at most {SavedQueryMaxGroupBy} non-empty attribute keys.", "group_by.invalid");
-                if (metrics.Matchers is { } matchers &&
-                    (matchers.Count > SavedQueryMaxMatchers || matchers.Any(static matcher =>
-                        !LengthBetween(matcher.Key, 1, SavedQueryMaxMatcherKeyLength) ||
-                        !LengthBetween(Convert.ToString(matcher.Value, CultureInfo.InvariantCulture) ?? "", 0, SavedQueryMaxMatcherValueLength) ||
-                        !Enum.IsDefined(matcher.Op))))
+                if (metrics.GroupBy is { } groupBy && groupBy.Any(static key => string.IsNullOrEmpty(key)))
+                    return ContractErrorResults.Validation("filter.group_by", "Group by non-empty attribute keys.", "group_by.invalid");
+                if (metrics.Matchers is { } matchers && matchers.Any(static matcher =>
+                        (Convert.ToString(matcher.Value, CultureInfo.InvariantCulture) ?? "").EnumerateRunes().Count() > SavedQueryMaxMatcherValueLength ||
+                        !Enum.IsDefined(matcher.Op)))
                     return ContractErrorResults.Validation("filter.matchers",
-                        $"At most {SavedQueryMaxMatchers} matchers, each a key of 1 to {SavedQueryMaxMatcherKeyLength} " +
-                        $"characters, an op of eq or prefix, and a value of at most {SavedQueryMaxMatcherValueLength}.",
+                        $"Each matcher takes one of the matcher ops and a value of at most {SavedQueryMaxMatcherValueLength} characters.",
                         "matchers.invalid");
                 return null;
 
             default:
                 return ResourceHttp.InvalidBody("filter.signal must be traces, logs or metrics.");
         }
-    }
-
-    private static IResult? OptionalLength(string field, string? value, int maximum) =>
-        value is null || LengthBetween(value, 1, maximum)
-            ? null
-            : ContractErrorResults.Validation(field, $"Value must be 1 to {maximum} characters.", "value.length");
-
-    // JSON Schema lengths count Unicode code points.
-    private static bool LengthBetween(string value, int minimum, int maximum)
-    {
-        var length = value.EnumerateRunes().Count();
-        return length >= minimum && length <= maximum;
     }
 }

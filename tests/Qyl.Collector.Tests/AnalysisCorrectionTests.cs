@@ -110,6 +110,10 @@ public sealed partial class AnalysisApiTests
             using var rejected = await host.SendAsync(HttpMethod.Patch, route, "writer", body, headers);
             Assert.AreEqual(HttpStatusCode.BadRequest, rejected.StatusCode);
         }
+        using var longAssignee = await host.SendAsync(HttpMethod.Patch, route, "writer", $$"""{"status":"open","assignee":"{{new string('a', 257)}}"}""", headers);
+        var assignee = (await host.JsonAsync(longAssignee)).GetProperty("errors")[0];
+        Assert.AreEqual(("assignee", "assignee.length", "Use assignee of at most 256 characters."),
+            (assignee.GetProperty("field").GetString(), assignee.GetProperty("code").GetString(), assignee.GetProperty("message").GetString()));
         using var missing = await host.SendAsync(HttpMethod.Patch, route, "writer", "{\"status\":\"resolved\"}");
         Assert.AreEqual((HttpStatusCode)428, missing.StatusCode);
         using var changed = await host.SendAsync(HttpMethod.Patch, route, "writer", "{\"status\":\"resolved\"}", headers);

@@ -3,8 +3,12 @@ import {
   emitFile,
   getDiscriminatedUnion,
   getEncode,
+  getMaxItems,
+  getMaxLength,
   getMaxValue,
   getMediaTypeHint,
+  getMinItems,
+  getMinLength,
   getMinValue,
   isArrayModelType,
   isRecordModelType,
@@ -278,7 +282,8 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
   }
   if (requestBody) {
     const members = bodyMembers(program, model);
-    constants.push(renderRanges(rangeEntries(program, model, members)), renderChoices(choiceEntries(program, members)));
+    constants.push(renderRanges(rangeEntries(program, model, members)), renderLengths(lengthEntries(program, model, members)),
+      renderChoices(choiceEntries(program, members)));
   }
   const members = [...constants, ...props];
   const body = members.length ? `\n${members.join("\n")}\n` : "\n";
@@ -375,6 +380,50 @@ function rangeEntries(program: Program, body: Model, members: BodyMember[]): str
 function renderRanges(entries: string[]): string {
   return "    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>\n"
     + "    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =\n"
+    + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
+}
+
+/**
+ * Each string and array member of a request body whose length the contract bounds: a string by its own bound or its
+ * scalar's, an array by its items and its elements' scalar under `[]`. Members of a union's models that share a path
+ * share one entry and must share its bounds.
+ */
+function lengthEntries(program: Program, body: Model, members: BodyMember[]): string[] {
+  const entries = new Map<string, string>();
+  const add = (path: string, minimum: number | undefined, maximum: number | undefined): void => {
+    if (minimum === undefined && maximum === undefined) return;
+    const entry = `        ("${path}", ${minimum ?? "null"}, ${maximum ?? "null"}),`;
+    if (entries.has(path) && entries.get(path) !== entry) throw new Error(`Request body '${body.name}' bounds the length of '${path}' differently in two of its union's models.`);
+    entries.set(path, entry);
+  };
+  for (const { path, property } of members) {
+    const type = property.type;
+    if (type.kind === "Model" && isArrayModelType(type)) {
+      add(path, getMinItems(program, property), getMaxItems(program, property));
+      const element = type.indexer!.value;
+      if (element.kind === "Scalar" && isStringScalar(element)) add(`${path}[]`, scalarBound(program, element, getMinLength), scalarBound(program, element, getMaxLength));
+    } else if (type.kind === "Scalar" && isStringScalar(type)) {
+      add(path, numericBound(program, property, getMinLength, true), numericBound(program, property, getMaxLength, true));
+    }
+  }
+  return [...entries.values()];
+}
+
+function scalarBound(program: Program, scalar: Scalar, read: (program: Program, target: Type) => number | undefined): number | undefined {
+  for (let current: Scalar | undefined = scalar; current; current = current.baseScalar) {
+    const bound = read(program, current);
+    if (bound !== undefined) return bound;
+  }
+  return undefined;
+}
+
+/**
+ * A request body's bounded strings and arrays in one list, so a server rejects a sent value of another length from
+ * the contract, whichever operation takes the body.
+ */
+function renderLengths(entries: string[]): string {
+  return "    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>\n"
+    + "    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =\n"
     + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
 }
 

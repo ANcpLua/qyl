@@ -9,7 +9,6 @@ internal sealed partial class AnalysisEngine
     {
         var signal = J.String(input, "signal") ?? "spans"; var rows = Select(input, signal);
         var keys = (input["group_by"] as JsonArray)?.Select(J.Text).ToArray() ?? [];
-        if (keys.Length > 4) throw new AnalysisInputException("group_by", "Group by at most four keys.");
         var measures = (input["measures"] as JsonArray)?.Select(J.Text).ToArray() ?? ["count"];
         var valid = new[] { "count", "error_count", "error_rate", "duration_avg", "duration_p50", "duration_p90", "duration_p95", "duration_p99", "duration_max" };
         if (measures.Any(m => !valid.Contains(m) && !m.StartsWith("sum:", StringComparison.Ordinal))) throw new AnalysisInputException("measures", "Choose documented count, error, duration or sum:<attribute> measures.") { Allowed = [.. valid, "sum:<attribute>"] };

@@ -206,7 +206,12 @@ public sealed class SavedQueryApiTests(TestContext testContext)
     [DataRow("""{"name":"x","filter":{"signal":"logs","trace_id":"nope"}}""", "filter.trace_id")]
     [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":""}}""", "filter.metric_name")]
     [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","step_ms":0}}""", "filter.step_ms")]
-    [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","matchers":[{"key":"","op":"eq","value":"v"}]}}""", "filter.matchers")]
+    [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","matchers":[{"key":"","op":"eq","value":"v"}]}}""", "filter.matchers[0].key")]
+    [DataRow("""{"name":"x","filter":{"signal":"traces","service_name":""}}""", "filter.service_name")]
+    [DataRow("""{"name":"x","filter":{"signal":"logs","query":""}}""", "filter.query")]
+    [DataRow("""{"name":"x","filter":{"signal":"logs","trace_id":"0af7651916cd43dd8448eb211c80319"}}""", "filter.trace_id")]
+    [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","group_by":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q"]}}""", "filter.group_by")]
+    [DataRow("""{"name":"x","filter":{"signal":"traces","matchers":[{"key":"k","op":"in","values":[]}]}}""", "filter.matchers[0].values")]
     [DataRow("""{"name":"x","filter":{"signal":"alerts"}}""", "body")]
     [DataRow("""{"name":"x"}""", "body")]
     public async Task Invalid_saved_queries_are_400_with_the_offending_field(string json, string field)

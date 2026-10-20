@@ -6,35 +6,36 @@ using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
 using ContractChoices = System.Collections.Generic.IReadOnlyList<(string Name, System.Collections.Generic.IReadOnlyList<string> Values)>;
+using ContractLengths = System.Collections.Generic.IReadOnlyList<(string Name, int? Minimum, int? Maximum)>;
 using ContractRanges = System.Collections.Generic.IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)>;
 
 namespace Qyl.Collector.Hosting;
 
 internal static partial class CollectorEndpointExtensions
 {
-    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractChoices Choices)> s_readAnalysisContracts =
-        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractChoices Choices)>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractLengths Lengths, ContractChoices Choices)> s_readAnalysisContracts =
+        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractLengths Lengths, ContractChoices Choices)>(StringComparer.Ordinal)
         {
-            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, TriageInput.Ranges, TriageInput.Choices),
-            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, GetFailureContextInput.Ranges, GetFailureContextInput.Choices),
-            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, CompareGroupsInput.Ranges, CompareGroupsInput.Choices),
-            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, CompareTracesInput.Ranges, CompareTracesInput.Choices),
-            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, VerifyFixInput.Ranges, VerifyFixInput.Choices),
-            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, AggregateTelemetryInput.Ranges, AggregateTelemetryInput.Choices),
-            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, DiscoverAttributesInput.Ranges, DiscoverAttributesInput.Choices),
-            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, GetAgentRunInput.Ranges, GetAgentRunInput.Choices),
-            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, ListReleasesInput.Ranges, ListReleasesInput.Choices),
-            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, GetServiceMapInput.Ranges, GetServiceMapInput.Choices),
-            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, CheckTelemetryHealthInput.Ranges, CheckTelemetryHealthInput.Choices),
-            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, GetMcpStatsInput.Ranges, GetMcpStatsInput.Choices),
-            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, ListSessionsInput.Ranges, ListSessionsInput.Choices),
-            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, ListTracesInput.Ranges, ListTracesInput.Choices),
-            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, GetTraceInput.Ranges, GetTraceInput.Choices),
-            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, SearchLogsInput.Ranges, SearchLogsInput.Choices),
-            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, ListMetricsInput.Ranges, ListMetricsInput.Choices),
-            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, QueryMetricInput.Ranges, QueryMetricInput.Choices),
-            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, CiLogInput.Ranges, CiLogInput.Choices),
-            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, RunSavedQueryInput.Ranges, RunSavedQueryInput.Choices),
+            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, TriageInput.Ranges, TriageInput.Lengths, TriageInput.Choices),
+            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, GetFailureContextInput.Ranges, GetFailureContextInput.Lengths, GetFailureContextInput.Choices),
+            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, CompareGroupsInput.Ranges, CompareGroupsInput.Lengths, CompareGroupsInput.Choices),
+            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, CompareTracesInput.Ranges, CompareTracesInput.Lengths, CompareTracesInput.Choices),
+            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, VerifyFixInput.Ranges, VerifyFixInput.Lengths, VerifyFixInput.Choices),
+            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, AggregateTelemetryInput.Ranges, AggregateTelemetryInput.Lengths, AggregateTelemetryInput.Choices),
+            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, DiscoverAttributesInput.Ranges, DiscoverAttributesInput.Lengths, DiscoverAttributesInput.Choices),
+            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, GetAgentRunInput.Ranges, GetAgentRunInput.Lengths, GetAgentRunInput.Choices),
+            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, ListReleasesInput.Ranges, ListReleasesInput.Lengths, ListReleasesInput.Choices),
+            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, GetServiceMapInput.Ranges, GetServiceMapInput.Lengths, GetServiceMapInput.Choices),
+            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, CheckTelemetryHealthInput.Ranges, CheckTelemetryHealthInput.Lengths, CheckTelemetryHealthInput.Choices),
+            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, GetMcpStatsInput.Ranges, GetMcpStatsInput.Lengths, GetMcpStatsInput.Choices),
+            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, ListSessionsInput.Ranges, ListSessionsInput.Lengths, ListSessionsInput.Choices),
+            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, ListTracesInput.Ranges, ListTracesInput.Lengths, ListTracesInput.Choices),
+            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, GetTraceInput.Ranges, GetTraceInput.Lengths, GetTraceInput.Choices),
+            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, SearchLogsInput.Ranges, SearchLogsInput.Lengths, SearchLogsInput.Choices),
+            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, ListMetricsInput.Ranges, ListMetricsInput.Lengths, ListMetricsInput.Choices),
+            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, QueryMetricInput.Ranges, QueryMetricInput.Lengths, QueryMetricInput.Choices),
+            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, CiLogInput.Ranges, CiLogInput.Lengths, CiLogInput.Choices),
+            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, RunSavedQueryInput.Ranges, RunSavedQueryInput.Lengths, RunSavedQueryInput.Choices),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     private static Task<IResult> AnalyzeReadEndpointAsync(HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
@@ -95,10 +96,10 @@ internal static partial class CollectorEndpointExtensions
         ? ContractErrorResults.NotFound(invalid.Code[..^".not_found".Length], invalid.Missing, invalid.Description)
         : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code, invalid.RejectedValue, invalid.Allowed, invalid.Hint);
 
-    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractChoices Choices) AnalysisContract(string operation)
+    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractLengths Lengths, ContractChoices Choices) AnalysisContract(string operation)
     {
         if (operation == "update_failure_status")
-            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, [], []);
+            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, [], [], []);
         return s_readAnalysisContracts.TryGetValue(operation, out var contract)
             ? contract
             : throw new InvalidOperationException("Unknown analysis contract.");
@@ -107,16 +108,40 @@ internal static partial class CollectorEndpointExtensions
     private static void ValidateAnalysisInput(string operation, JsonObject input)
     {
         var contract = AnalysisContract(operation);
-        CheckContract(input, contract.Input, contract.Ranges, contract.Choices);
+        CheckContract(input, contract.Input, contract.Ranges, contract.Lengths, contract.Choices);
     }
 
     // A request body held to its contract: a member with a closed set answers with its values first, as the MCP's input
-    // schema does, then the body's type and its ranges.
-    private static void CheckContract(JsonObject input, JsonTypeInfo type, ContractRanges ranges, ContractChoices choices)
+    // schema does, then the body's type, its ranges and its lengths.
+    private static void CheckContract(JsonObject input, JsonTypeInfo type, ContractRanges ranges, ContractLengths lengths, ContractChoices choices)
     {
         CheckChoices(input, choices);
         ReadAsContract(input, type);
         CheckRanges(input, ranges);
+        CheckLengths(input, lengths);
+    }
+
+    // A saved query's or an annotation's body read as its contract model once the ranges and lengths its contract declares
+    // hold, checked as an analysis request's are and refused naming the field by its path.
+    private static async Task<(T? Value, IResult? Error)> ReadResourceBodyAsync<T>(HttpRequest request, JsonTypeInfo<T> type,
+        ContractRanges ranges, ContractLengths lengths, CancellationToken ct) where T : class
+    {
+        try
+        {
+            if (await JsonNode.ParseAsync(request.Body, cancellationToken: ct).ConfigureAwait(false) is not JsonObject body)
+                return (null, ResourceHttp.InvalidBody("The request body must be a JSON object."));
+            CheckRanges(body, ranges);
+            CheckLengths(body, lengths);
+            return (body.Deserialize(type), null);
+        }
+        catch (AnalysisInputException invalid) { return (null, AnalysisError(invalid)); }
+        // A missing discriminator or an unknown kind or signal surfaces as NotSupportedException. The serializer's own
+        // message names internal types, so the response carries a fixed one.
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            return (null, ResourceHttp.InvalidBody(
+                "The request body is not valid JSON for this operation's contract model, or a required member or discriminator is missing or unknown."));
+        }
     }
 
     // A request read as its contract type, the way the MCP's input schema reads the same arguments: a member the type
@@ -286,6 +311,33 @@ internal static partial class CollectorEndpointExtensions
         }
     }
 
+    // A string or an array the request sends outside the length the contract bounds its member to is refused naming that
+    // length: a string counts its code points, as JSON Schema does, and an array its items. This is the one place a length
+    // or an item count of a request body applies.
+    private static void CheckLengths(JsonObject input, ContractLengths lengths)
+    {
+        static string Count(int count, string unit) => $"{count} {unit}{(count == 1 ? "" : "s")}";
+        foreach (var (path, minimum, maximum) in lengths)
+        foreach (var (field, sent) in Sent(input, path))
+        {
+            var (length, unit) = sent switch
+            {
+                JsonArray items => (items.Count, "item"),
+                JsonValue value when value.GetValueKind() == JsonValueKind.String => (value.GetValue<string>().EnumerateRunes().Count(), "character"),
+                _ => (-1, "")
+            };
+            if (length < 0 || length >= (minimum ?? 0) && length <= (maximum ?? int.MaxValue)) continue;
+            var range = (minimum, maximum) switch
+            {
+                ({ } low, { } high) when low == high => $"exactly {Count(high, unit)}",
+                ({ } low, { } high) => $"{low} to {Count(high, unit)}",
+                ({ } low, null) => $"at least {Count(low, unit)}",
+                _ => $"at most {Count(maximum!.Value, unit)}"
+            };
+            throw new AnalysisInputException(field, unit == "item" ? $"Use {field} with {range}." : $"Use {field} of {range}.", path + ".length") { Hint = $"Correct {field}." };
+        }
+    }
+
     // The values a request sends at a contract path, null included, each named as the MCP names it: baseline.offset_minutes,
     // and an array's elements, written [] in the path, by their index, as matchers[0].key.
     private static IEnumerable<(string Field, JsonNode? Value)> Sent(JsonNode? node, string path, string field = "")
@@ -322,7 +374,7 @@ internal static partial class CollectorEndpointExtensions
             if (status is not ("open" or "resolved" or "ignored")) return ContractErrorResults.Validation("status", "Choose open, resolved or ignored.", "status.invalid");
             if (body["ignore_until"] is not null && status != "ignored") return ContractErrorResults.Validation("ignore_until", "ignore_until is valid only with status=ignored.", "ignore_until.invalid");
             if (body["assignee"] is not null && body["assignee"]!.GetValueKind() != JsonValueKind.String) return ContractErrorResults.Validation("assignee", "assignee must be a string.", "assignee.type");
-            if (J.String(body, "assignee")?.EnumerateRunes().Count() > 256) return ContractErrorResults.Validation("assignee", "Use at most 256 characters.", "assignee.length");
+            CheckLengths(body, Api.Contracts.UpdateFailureStatusRequest.Lengths);
             var ignoreUntil = J.Date(body, "ignore_until");
             body = J.O(("status", status), ("assignee", J.String(body, "assignee")), ("ignore_until", ignoreUntil?.ToString("O")));
             var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, new AnalysisReadQuery { ErrorsOnly = true, Tables = AnalysisTables.Spans }, ct).ConfigureAwait(false);

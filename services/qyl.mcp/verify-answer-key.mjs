@@ -505,6 +505,35 @@ verify('33 an unknown argument, a value of another type and one outside its set 
  assert(refused>=3*Object.keys(analysisArguments).length,`every tool's unknown argument and its mistyped and closed arguments: ${refused}`);
 });
 
+verify('34 a string or an array outside its length is refused by the MCP and by the Collector\'s HTTP route, naming the same field',async(_call,client)=>{
+ const pascal=tool=>tool.split('_').map(part=>part[0].toUpperCase()+part.slice(1)).join('');
+ // An item the array takes: its first enumerated value, a string, or a matcher.
+ const item=schema=>schema.enum?.[0]??(schema.type==='string'?'a':schema.properties?.op!==undefined?{key:'k',op:'exists'}:undefined);
+ // A value one past each length bound the schema declares: a string of characters it takes, or an array of items it takes.
+ const past=schema=>[
+  ...(schema.maxLength===undefined?[]:['a'.repeat(schema.maxLength+1)]),
+  ...(schema.minLength>0?['a'.repeat(schema.minLength-1)]:[]),
+  ...(schema.maxItems===undefined||item(schema.items)===undefined?[]:[Array(schema.maxItems+1).fill(item(schema.items))]),
+  ...(schema.minItems>0&&item(schema.items)!==undefined?[Array(schema.minItems-1).fill(item(schema.items))]:[])];
+ let refused=0;
+ const refuse=async(tool,args,field)=>{
+  const at=`${tool} ${field}=${JSON.stringify(args).slice(0,80)}`;
+  const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
+  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}/api/v1/analysis/${tool}`,{method:'POST',headers:{'content-type':'application/json',...collectorHeaders()},body:JSON.stringify(args)});
+  const [http]=(await response.json()).errors??[];
+  assert.equal(response.status,400,`${at}: ${JSON.stringify(http)}`);
+  assert.deepEqual([mcp?.code,mcp?.field,http?.field],['invalid_argument',field,field],at);
+  refused++;
+ };
+ for (const [tool,required] of Object.entries(analysisArguments))
+  for (const [field,schema] of Object.entries(documents[`Mcp.Tools.${pascal(tool)}Input`].properties))
+   for (const value of past(schema)) await refuse(tool,{...required,[field]:value},field);
+ for (const tool of ['triage','list_traces','search_logs'])
+  for (const [matcher,field] of [[{key:'',op:'exists'},'matchers[0].key'],[{key:'k'.repeat(257),op:'exists'},'matchers[0].key'],[{key:'k',op:'in',values:[]},'matchers[0].values']])
+   await refuse(tool,{matchers:[matcher]},field);
+ assert(refused>=2*Object.keys(analysisArguments).length,`every tool's bounded strings and arrays, both ends: ${refused}`);
+});
+
 // Existing projection and paging semantics stay exercised against real storage.
 verify('regression get_trace removes all attribute collections without changing totals', async call=>{
  const args={...w,trace_id:key['db-root'].trace_id};

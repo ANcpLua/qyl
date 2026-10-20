@@ -145,15 +145,13 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
 
 internal static class AnalysisMatchers
 {
-    // The request's contract holds each matcher's op and scope to their values; the operands an op needs are checked here.
+    // The request's contract holds the matchers, their count, keys, ops and scopes; the operands an op needs are checked here.
     public static void Validate(JsonNode? node)
     {
-        if (node is null) return;
-        if (node is not JsonArray list || list.Count > 32) throw new AnalysisInputException("matchers", "Use an array with at most 32 matchers.");
+        if (node is not JsonArray list) return;
         foreach (var m in list)
         {
             var op = J.String(m, "op");
-            if (string.IsNullOrEmpty(J.String(m, "key"))) throw new AnalysisInputException("matchers.key", "A non-empty attribute key is required.");
             if (op == "in" && m?["values"] is not JsonArray) throw new AnalysisInputException("matchers.values", "The in operator requires values.");
             if (op != "exists" && op != "in" && m?["value"] is null) throw new AnalysisInputException("matchers.value", "This operator requires a value.");
         }

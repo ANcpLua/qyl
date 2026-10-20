@@ -66,6 +66,8 @@ public sealed class AnnotationApiTests(TestContext testContext)
     [DataRow("""{"target":{"kind":"trace","trace_id":"NOT-A-TRACE"},"text":"x"}""", "target.trace_id")]
     [DataRow("""{"target":{"kind":"span","trace_id":"00000000000000000000000000000001","span_id":"zz"},"text":"x"}""", "target.span_id")]
     [DataRow("""{"target":{"kind":"session","session_id":".."},"text":"x"}""", "target.session_id")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","labels":["a","b","c","d","e","f","g","h","i","j","k"]}""", "labels")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","labels":[""]}""", "labels[0]")]
     [DataRow("""{"target":{"kind":"metric","name":"x"},"text":"x"}""", "body")]
     [DataRow("""{"text":"x"}""", "body")]
     [DataRow("""not json""", "body")]

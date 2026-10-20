@@ -134,6 +134,22 @@ public sealed class SavedQueryCreateRequest
         ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
         ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("name", 1, 200),
+        ("description", null, 2000),
+        ("filter.matchers", null, 32),
+        ("filter.matchers[].key", 1, 256),
+        ("filter.matchers[].values", 1, 256),
+        ("filter.service_name", 1, 256),
+        ("filter.session_id", 1, 128),
+        ("filter.trace_id", 32, 32),
+        ("filter.query", 1, 1024),
+        ("filter.series_id", 1, null),
+        ("filter.metric_name", 1, 256),
+        ("filter.group_by", null, 16),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [];
@@ -153,6 +169,22 @@ public sealed class SavedQueryUpdateRequest
     [
         ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
         ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("name", 1, 200),
+        ("description", null, 2000),
+        ("filter.matchers", null, 32),
+        ("filter.matchers[].key", 1, 256),
+        ("filter.matchers[].values", 1, 256),
+        ("filter.service_name", 1, 256),
+        ("filter.session_id", 1, 128),
+        ("filter.trace_id", 32, 32),
+        ("filter.query", 1, 1024),
+        ("filter.series_id", 1, null),
+        ("filter.metric_name", 1, 256),
+        ("filter.group_by", null, 16),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -178,6 +210,9 @@ public sealed class SavedQueryRunRequest
     [
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [];

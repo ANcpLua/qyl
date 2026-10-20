@@ -63,6 +63,50 @@ public sealed partial class AnalysisApiTests
         Assert.IsFalse(string.IsNullOrEmpty(error.GetProperty("hint").GetString()));
     }
 
+    /// <summary>
+    /// A string or an array outside the length the contract bounds it to is refused naming the field by its path and
+    /// the length it keeps: a matcher's key and values, an aggregate's group_by, search_logs' one pattern group,
+    /// ci_log's service_prefix, a trace id's exact length, a metric name that may not be empty and a group's failure id.
+    /// </summary>
+    [TestMethod]
+    [DataRow("list_traces", """{"matchers":[{"key":"","op":"exists"}]}""", "matchers[0].key", "matchers[].key.length", "Use matchers[0].key of 1 to 256 characters.")]
+    [DataRow("list_traces", """{"matchers":[{"key":"service.name","op":"in","values":[]}]}""", "matchers[0].values", "matchers[].values.length", "Use matchers[0].values with 1 to 256 items.")]
+    [DataRow("aggregate_telemetry", """{"signal":"spans","measures":["count"],"group_by":["a","b","c","d","e"]}""", "group_by", "group_by.length", "Use group_by with at most 4 items.")]
+    [DataRow("search_logs", """{"group_by":["pattern","pattern"]}""", "group_by", "group_by.length", "Use group_by with at most 1 item.")]
+    [DataRow("ci_log", """{"service_prefix":""}""", "service_prefix", "service_prefix.length", "Use service_prefix of 1 to 256 characters.")]
+    [DataRow("get_trace", """{"trace_id":"0af7651916cd43dd8448eb211c80319"}""", "trace_id", "trace_id.length", "Use trace_id of exactly 32 characters.")]
+    [DataRow("query_metric", """{"metric_name":""}""", "metric_name", "metric_name.length", "Use metric_name of at least 1 character.")]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{"failure_id":""},"group_b":"rest"}""", "group_a.failure_id", "group_a.failure_id.length", "Use group_a.failure_id of 1 to 512 characters.")]
+    public async Task A_string_or_an_array_outside_its_contract_length_is_refused_with_the_length(string operation, string input, string field, string code, string message)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var error = await RejectedAsync(host, operation, input);
+
+        Assert.AreEqual((field, code, message, $"Correct {field}."),
+            (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString(), error.GetProperty("hint").GetString()));
+    }
+
+    /// <summary>
+    /// A list of matchers keeps 32 at every depth, and a key counts its characters as code points: 256 emoji are 512
+    /// UTF-16 units and a key, 257 characters are not.
+    /// </summary>
+    [TestMethod]
+    public async Task Matchers_keep_32_and_a_key_256_characters_counted_as_code_points()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var matchers = string.Join(",", Enumerable.Repeat("""{"key":"service.name","op":"exists"}""", 33));
+
+        var top = await RejectedAsync(host, "list_traces", $$"""{"matchers":[{{matchers}}]}""");
+        var group = await RejectedAsync(host, "compare_groups", $$"""{"signal":"spans","group_a":{"matchers":[{{matchers}}]},"group_b":"rest"}""");
+        var key = await RejectedAsync(host, "triage", $$"""{"matchers":[{"key":"{{new string('k', 257)}}","op":"exists"}]}""");
+
+        Assert.AreEqual(("matchers", "Use matchers with at most 32 items."), (top.GetProperty("field").GetString(), top.GetProperty("message").GetString()));
+        Assert.AreEqual("group_a.matchers", group.GetProperty("field").GetString());
+        Assert.AreEqual("matchers[0].key", key.GetProperty("field").GetString());
+        await Read(host, "triage", $$"""{"matchers":[{"key":"{{string.Concat(Enumerable.Repeat("\U0001F600", 256))}}","op":"exists"}]}""");
+    }
+
     /// <summary>An unknown argument is answered with the names the tool accepts, and an enumeration with its values.</summary>
     [TestMethod]
     public async Task A_refusal_lists_the_arguments_or_values_the_field_accepts()

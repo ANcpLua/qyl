@@ -70,6 +70,17 @@ public sealed class AnnotationCreateRequest
     /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("labels", null, 10),
+        ("labels[]", 1, 64),
+        ("target.trace_id", 32, 32),
+        ("target.span_id", 16, 16),
+        ("target.session_id", 1, 128),
+        ("target.failure_id", 1, 512),
+        ("text", 1, 2000),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [];
@@ -90,6 +101,13 @@ public sealed class AnnotationUpdateRequest
     /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("labels", null, 10),
+        ("labels[]", 1, 64),
+        ("text", 1, 2000),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [];

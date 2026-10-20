@@ -4,9 +4,10 @@ using Qyl.Collector.Storage;
 namespace Qyl.Collector.Hosting;
 
 /// <summary>
-/// The shared write base (SCH-26) every user-resource route uses: JSON request bodies read into
-/// generated contract models, <c>Idempotency-Key</c> on creating POSTs, <c>If-Match</c> on PATCH
-/// and DELETE (428 when missing, 412 when stale), and the <c>ETag</c>/<c>Location</c> headers.
+/// The shared write base (SCH-26) every user-resource route uses: <c>Idempotency-Key</c> on
+/// creating POSTs, <c>If-Match</c> on PATCH and DELETE (428 when missing, 412 when stale), and the
+/// <c>ETag</c>/<c>Location</c> headers. A body is read with its contract's bounds by
+/// <c>CollectorEndpointExtensions.ReadResourceBodyAsync</c>.
 /// </summary>
 internal static class ResourceHttp
 {
@@ -15,29 +16,6 @@ internal static class ResourceHttp
 
     /// <summary>A key older than this reads as absent and may be reused.</summary>
     internal static readonly TimeSpan s_idempotencyKeyLifetime = TimeSpan.FromHours(24);
-
-    internal static async Task<(T? Value, IResult? Error)> ReadJsonBodyAsync<T>(
-        HttpRequest request,
-        JsonTypeInfo<T> typeInfo,
-        CancellationToken ct)
-        where T : class
-    {
-        try
-        {
-            var value = await JsonSerializer.DeserializeAsync(request.Body, typeInfo, ct).ConfigureAwait(false);
-            return value is null
-                ? (null, InvalidBody("The request body must be a JSON object."))
-                : (value, null);
-        }
-        // A missing discriminator or an unknown `kind`/`signal` surfaces as NotSupportedException.
-        // The serializer's own message names internal types, so the response carries a fixed one.
-        catch (Exception ex) when (ex is JsonException or NotSupportedException)
-        {
-            return (null, InvalidBody(
-                "The request body is not valid JSON for this operation's contract model, " +
-                "or a required member or discriminator is missing or unknown."));
-        }
-    }
 
     internal static IResult InvalidBody(string message) =>
         ContractErrorResults.Validation("body", message, "body.invalid");

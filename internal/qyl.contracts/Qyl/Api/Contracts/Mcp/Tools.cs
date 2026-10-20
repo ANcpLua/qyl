@@ -90,6 +90,15 @@ public sealed class ListTracesInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("session_id", 1, 128),
+        ("failure_id", 1, 512),
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -227,6 +236,11 @@ public sealed class GetTraceInput
         ("max_logs", MaxLogsMinimum, MaxLogsMaximum, null),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("max_spans", MaxSpansMinimum, MaxSpansMaximum, MaxSpansDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("trace_id", 32, 32),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -412,6 +426,13 @@ public sealed class ListSessionsInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -576,6 +597,17 @@ public sealed class SearchLogsInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("span_id", 16, 16),
+        ("group_by", null, 1),
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("trace_id", 32, 32),
+        ("session_id", 1, 128),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -684,6 +716,16 @@ public sealed class CiLogInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("baseline.ci_run_id", 1, 128),
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("ci_run_id", 1, 128),
+        ("service_prefix", 1, 256),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -910,6 +952,13 @@ public sealed class ListMetricsInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -1024,6 +1073,19 @@ public sealed class QueryMetricInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("step_ms", StepMsMinimum, StepMsMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("ratio_of.matchers", null, 32),
+        ("ratio_of.matchers[].key", 1, 256),
+        ("ratio_of.matchers[].values", 1, 256),
+        ("metric_name", 1, null),
+        ("series_id", 1, null),
+        ("group_by", null, 16),
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -1310,6 +1372,11 @@ public sealed class RunSavedQueryInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("id", 1, 128),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [];
@@ -1486,6 +1553,13 @@ public sealed class TriageInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -1653,6 +1727,17 @@ public sealed class GetFailureContextInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("max_spans", MaxSpansMinimum, MaxSpansMaximum, MaxSpansDefault),
         ("max_logs", MaxLogsMinimum, MaxLogsMaximum, MaxLogsDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("trace_id", 32, 32),
+        ("session_id", 1, 128),
+        ("failure_id", 1, 512),
+        ("ci_run_id", 1, 128),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -1907,6 +1992,21 @@ public sealed class CompareGroupsInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("group_a.matchers", null, 32),
+        ("group_a.matchers[].key", 1, 256),
+        ("group_a.matchers[].values", 1, 256),
+        ("group_a.failure_id", 1, 512),
+        ("group_b.matchers", null, 32),
+        ("group_b.matchers[].key", 1, 256),
+        ("group_b.matchers[].values", 1, 256),
+        ("group_b.failure_id", 1, 512),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -2048,6 +2148,17 @@ public sealed class CompareTracesInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("a.trace_id", 32, 32),
+        ("a.session_id", 1, 128),
+        ("b.trace_id", 32, 32),
+        ("b.session_id", 1, 128),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -2141,6 +2252,15 @@ public sealed class VerifyFixInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("min_requests", MinRequestsMinimum, null, MinRequestsDefault),
         ("min_minutes", MinMinutesMinimum, null, MinMinutesDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("failure_id", 1, 512),
+        ("verify_id", 1, 8192),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -2273,6 +2393,14 @@ public sealed class AggregateTelemetryInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("step_ms", StepMsMinimum, StepMsMaximum, null),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("group_by", null, 4),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -2377,6 +2505,13 @@ public sealed class DiscoverAttributesInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -2486,6 +2621,15 @@ public sealed class GetAgentRunInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("session_id", 1, 128),
+        ("trace_id", 32, 32),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -2643,6 +2787,13 @@ public sealed class ListReleasesInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
     [
@@ -2751,6 +2902,13 @@ public sealed class GetServiceMapInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("depth", DepthMinimum, DepthMaximum, null),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -2863,6 +3021,13 @@ public sealed class CheckTelemetryHealthInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
@@ -3007,6 +3172,14 @@ public sealed class GetMcpStatsInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
+    ];
+    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
+    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
+    [
+        ("matchers", null, 32),
+        ("matchers[].key", 1, 256),
+        ("matchers[].values", 1, 256),
+        ("group_by", null, 1),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =

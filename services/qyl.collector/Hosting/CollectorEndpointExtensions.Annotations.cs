@@ -10,7 +10,6 @@ namespace Qyl.Collector.Hosting;
 // project. A note never changes the telemetry it points at.
 internal static partial class CollectorEndpointExtensions
 {
-    private const int AnnotationMaxTextLength = 2000;
     private const string AnnotationOperation = "annotations";
 
     private static async Task<IResult> CreateAnnotationAsync(
@@ -22,15 +21,12 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIdempotencyKey(httpContext.Request, out var idempotencyKey) is { } keyError)
             return keyError;
 
-        var (request, bodyError) = await ResourceHttp.ReadJsonBodyAsync(
-            httpContext.Request, QylSerializerContext.Default.AnnotationCreateRequest, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationCreateRequest,
+            AnnotationCreateRequest.Ranges, AnnotationCreateRequest.Lengths, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
         if (request!.Text is null) return ContractErrorResults.Validation("text", "Annotation text is required.", "text.required");
-        if (ValidateAnnotationText(request.Text) is { } textError)
-            return textError;
-        if (ValidateAnnotationLabels(request.Labels) is { } labelsError) return labelsError;
         if (ValidateAnnotationTarget(request.Target) is { } targetError)
             return targetError;
 
@@ -174,19 +170,16 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIfMatch(httpContext.Request, out var ifMatch) is { } preconditionError)
             return preconditionError;
 
-        var (request, bodyError) = await ResourceHttp.ReadJsonBodyAsync(
-            httpContext.Request, QylSerializerContext.Default.AnnotationUpdateRequest, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationUpdateRequest,
+            AnnotationUpdateRequest.Ranges, AnnotationUpdateRequest.Lengths, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
-        if (request!.Text is not null && ValidateAnnotationText(request.Text) is { } textError)
-            return textError;
 
-        if (ValidateAnnotationLabels(request.Labels) is { } labelsError) return labelsError;
         if (await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false) is not { } existing) return ContractErrorResults.NotFound("annotation", annotationId);
         var prior = (await AnnotationContractsAsync(store, [existing], ct).ConfigureAwait(false))[0];
         var now = ResourceHttp.NowUnixNano(timeProvider);
         var etag = ResourceHttp.NewEtag();
-        var updatedRow = existing with { Text = request.Text ?? existing.Text, UpdatedAtUnixNano = now, Etag = etag };
+        var updatedRow = existing with { Text = request!.Text ?? existing.Text, UpdatedAtUnixNano = now, Etag = etag };
         var updatedContract = AnnotationMapper.ToContract(updatedRow, (prior.Target as FailureAnnotationTarget)?.FailureId,
             request.Labels ?? prior.Labels, request.Classification ?? prior.Classification);
         var metadata = AnnotationMetadata(updatedRow, updatedContract);
@@ -241,19 +234,6 @@ internal static partial class CollectorEndpointExtensions
             QylSerializerContext.Default.Annotation);
     }
 
-    // The contract counts characters as JSON Schema does: Unicode code points, not UTF-16 units.
-    private static IResult? ValidateAnnotationText(string text)
-    {
-        var length = text.EnumerateRunes().Count();
-        return length is >= 1 and <= AnnotationMaxTextLength
-            ? null
-            : ContractErrorResults.Validation(
-                "text",
-                $"Text must be 1 to {AnnotationMaxTextLength} characters.",
-                "text.length",
-                length.ToString(CultureInfo.InvariantCulture));
-    }
-
     private static IResult? ValidateAnnotationTarget(AnnotationTarget target) => target switch
     {
         TraceAnnotationTarget trace when !ContractIdentifiers.IsTraceId(trace.TraceId) =>
@@ -300,8 +280,6 @@ internal static partial class CollectorEndpointExtensions
         if (snapshot.Spans.Any(s => AnalysisEngine.FailureIdentity(projectId, s) == failureId)) return null;
         return snapshot.ScanComplete ? ContractErrorResults.NotFound("failure", failureId) : Results.Problem(statusCode: 503, title: "Failure lookup exceeded its scan budget.");
     }
-    private static IResult? ValidateAnnotationLabels(IReadOnlyList<string>? labels) => labels is not null && (labels.Count > 10 || labels.Any(static label => label.EnumerateRunes().Count() > 64))
-        ? ContractErrorResults.Validation("labels", "Use at most ten labels of at most 64 characters each.", "labels.invalid") : null;
     private static AnalysisStateRow AnnotationMetadata(AnnotationRow row, Annotation annotation) => new()
     {
         ProjectId = row.ProjectId, StateKey = "annotation:" + row.AnnotationId, Etag = row.Etag, UpdatedAtUnixNano = row.UpdatedAtUnixNano,
