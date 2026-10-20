@@ -29,6 +29,11 @@ hosted=os.environ.get('QYL_ANSWER_KEY_FRESH_IDS','') not in ('','0')
 id_salt=os.urandom(16).hex() if mode=='traffic' or hosted else ''
 schema='https://opentelemetry.io/schemas/1.44.0'
 scope={'name':'qyl-answer-key','version':'1.0.0'}
+# The tools traffic mode samples for the qyl-mcp server's and the agent's spans: read tools the server has, never
+# search_logs, so get_mcp_stats, list_traces with tool_name and get_agent_run show traffic only to tools that exist
+# (services/qyl.mcp/eval/test_seed_traffic_tools.py checks them against the tool manifest).
+TRAFFIC_MCP_TOOLS=['triage','list_releases','get_failure_context','list_traces','get_trace']
+TRAFFIC_AGENT_TOOLS=['list_sessions','list_traces','get_trace']
 metric_run_labels={'test.run.id':run_id} if run_id else {}
 def scoped(value):return f'{value}-{run_id}' if run_id else value
 # Whole milliseconds, so the RFC 3339 instants the fixture records name T and the fix point T2 exactly.
@@ -120,10 +125,10 @@ if mode=='traffic':
  for (region,version),ms in zip([('us','2.3'),('eu','2.2'),('us','2.2')],random.sample(draw(20,13,3),3)):
   span(f'regional-{region}-{version}','regional','request',start(ms),ms,r={'cloud.region':region,'service.version':release(version)})
  for i,ms in enumerate(draw(20,8,2)):span(f'session-{i}','sessions','request',start(ms),ms,session='sess_ok-'+tag)
- for i,(tool,ms) in enumerate(zip(random.sample(['triage','list_failures','get_failure_context','list_traces','get_trace'],2),draw(60,15,2))):
+ for i,(tool,ms) in enumerate(zip(random.sample(TRAFFIC_MCP_TOOLS,2),draw(60,15,2))):
   at=start(ms); tr,sid=span(f'mcp-{i}','qyl-mcp','tools/call '+tool,at,ms,a={'mcp.method.name':'tools/call','gen_ai.tool.name':tool,'mcp.server.name':scoped('qyl'),'mcp.transport':'http'})
   if i==0:log('qyl-mcp',at+int(ms*1e6),9,f'{tool} answered in {round(ms)} ms',tr,sid)
- for i,(tool,ms) in enumerate(zip(random.sample(['list_failures','list_traces','get_trace'],2),draw(20,8,2))):
+ for i,(tool,ms) in enumerate(zip(random.sample(TRAFFIC_AGENT_TOOLS,2),draw(20,8,2))):
   span(f'agent-{i}','agent','execute_tool '+tool,start(ms),ms,session='agent_ok-'+tag,kind=1,a={'gen_ai.operation.name':'execute_tool','gen_ai.tool.name':tool,'qyl.gen_ai.tool.call.arguments_hash':ident(f'arguments-{i}',16),'gen_ai.agent.name':'researcher','gen_ai.usage.input_tokens':random.randint(80,140),'gen_ai.usage.output_tokens':random.randint(10,40)})
  ci('ok-'+tag,start(1020),BUILD_MS,False)
  post('/v1/traces',{'resourceSpans':spans});post('/v1/logs',{'resourceLogs':logs})
