@@ -3,6 +3,7 @@ import test from "node:test";
 import { Client, StreamableHTTPClientTransport, type CallToolResult } from "@modelcontextprotocol/client";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import documents from "./contracts/generated/tool-schemas.json" with { type: "json" };
+import { readContext } from "./analysis-context.test-helper.js";
 import { connectModernTestClient } from "./modern-test-client.test-helper.js";
 import { createServer, MAX_TOOL_INPUT_ELEMENTS } from "./server.js";
 
@@ -18,7 +19,10 @@ interface ErrorBody {
   };
 }
 
-const cases = [
+const cases: Array<{
+  tool: string; arguments: Record<string, unknown> | undefined; field: string; keyword: string; message: RegExp;
+  allowed?: unknown[]; allowedIncludes?: string[]; hint?: RegExp;
+}> = [
   {
     tool: "triage", arguments: { since: "2026-10-19T00:00:00Z" } as Record<string, unknown> | undefined,
     field: "since", keyword: "additionalProperties", allowedIncludes: ["lookback_minutes", "start_time", "baseline"],
@@ -44,6 +48,46 @@ const cases = [
   {
     tool: "get_trace", arguments: undefined,
     field: "trace_id", keyword: "required", message: /^trace_id: is required$/u,
+  },
+  {
+    // A string no branch of a string-or-object union accepts: every alternative, the object form included.
+    tool: "compare_groups", arguments: { signal: "spans", group_a: { failure_id: "fail_1" }, group_b: "others" },
+    field: "group_b", keyword: "anyOf", allowed: ["rest", "previous_window", "{matchers, window, failure_id}"],
+    message: /^group_b: must be one of: rest, previous_window, \{matchers, window, failure_id\}$/u,
+    hint: /^Correct group_b to one of the accepted values, for example "group_b": "rest", and call compare_groups again\.$/u,
+  },
+  {
+    tool: "triage", arguments: { baseline: "yesterday" },
+    field: "baseline", keyword: "anyOf", allowed: ["previous_window", "{start_time, end_time}", "{offset_minutes}"],
+    message: /^baseline: must be one of: previous_window, \{start_time, end_time\}, \{offset_minutes\}$/u,
+    hint: /for example "baseline": "previous_window",/u,
+  },
+  {
+    tool: "query_metric", arguments: { metric_name: "http.server.request.duration", baseline: 1440 },
+    field: "baseline", keyword: "anyOf", allowed: ["previous_window", "{start_time, end_time}", "{offset_minutes}"],
+    message: /^baseline: must be one of: previous_window, \{start_time, end_time\}, \{offset_minutes\}$/u,
+  },
+  {
+    tool: "get_mcp_stats", arguments: { baseline: "last_week" },
+    field: "baseline", keyword: "anyOf", allowed: ["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"],
+    message: /^baseline: must be one of: previous_window, \{start_time, end_time\}, \{offset_minutes\}, \{server_version\}$/u,
+  },
+  {
+    tool: "ci_log", arguments: { ci_run_id: "run-1", baseline: "previous" },
+    field: "baseline", keyword: "anyOf", allowed: ["last_success", "{ci_run_id}"],
+    message: /^baseline: must be one of: last_success, \{ci_run_id\}$/u,
+    hint: /for example "baseline": "last_success",/u,
+  },
+  {
+    // An object is the object form: its own rule is reported, not the union.
+    tool: "compare_groups", arguments: { signal: "spans", group_a: { failure_id: "fail_1" }, group_b: { failure: "fail_2" } },
+    field: "group_b.failure", keyword: "additionalProperties", allowedIncludes: ["matchers", "window", "failure_id"],
+    message: /^group_b\.failure: is not accepted here; accepted: matchers, window, failure_id/u,
+  },
+  {
+    // Of two object forms, the one that knows every member sent is the one meant.
+    tool: "triage", arguments: { baseline: { start_time: "2026-10-19T00:00:00Z" } },
+    field: "baseline.end_time", keyword: "required", message: /^baseline\.end_time: is required$/u,
   },
 ];
 
@@ -80,11 +124,53 @@ test("arguments the input schema rejects answer invalid_argument with the field,
     assert.equal(error.fields?.[0]?.field, expected.field);
     assert.equal(error.fields?.[0]?.code, expected.keyword);
     assert.match(error.hint ?? "", new RegExp(`^Correct ${expected.field.replace(".", "\\.")}.* and call ${expected.tool} again\\.$`, "u"));
+    if (expected.hint !== undefined) assert.match(error.hint ?? "", expected.hint, expected.tool);
     const headline = (result.content as Array<{ text: string }>)[0]!.text;
     assert.match(headline, new RegExp(`^${expected.tool} failed: invalid_argument — ${expected.field.replace(".", "\\.")}: `, "u"));
     assert.doesNotMatch(headline, /\n/u);
   }
   assert.equal(fetch.mock.callCount(), 0);
+});
+
+test("a JSON-quoted accepted string is that string; a free-text value keeps its quotes", async (context) => {
+  const forwarded = new Map<string, Record<string, unknown>>();
+  context.mock.method(globalThis, "fetch", async (input: string | Request | URL, init?: RequestInit) => {
+    const request = new Request(input, init);
+    const operation = new URL(request.url).pathname.split("/").at(-1)!;
+    forwarded.set(operation, await request.json() as Record<string, unknown>);
+    if (operation !== "compare_groups") return Response.json({ title: "fixture outage" }, { status: 503 });
+    return Response.json({ ...readContext(20), discriminators: [{ key: "cloud.region", value: "eu", share_a: 1, share_b: 0, count_a: 10, count_b: 0, lift: null }],
+      structural: [], durations: { a: { p50_ms: 20, p95_ms: 20, p99_ms: 20 }, b: { p50_ms: 20, p95_ms: 20, p99_ms: 20 } },
+      composition: { changed: true, traffic_mix_changed: false, same_traffic_changed: true, summary: "These are associations, not causes." },
+      size_a: 10, size_b: 30, excluded_keys: [] });
+  });
+  const connection = await connectModernTestClient(
+    { name: "quoted-arguments", version: "1.0.0" },
+    () => createServer({ nativeExecution: false }),
+  );
+  context.after(() => connection.close());
+  const call = async (name: string, args: Record<string, unknown>): Promise<CallToolResult> =>
+    await connection.client.callTool({ name, arguments: args }) as CallToolResult;
+
+  // The reviewer's call: two models sent group_b with the quotes inside the string.
+  const groups = await call("compare_groups", { signal: "spans", group_a: { failure_id: "fail_1" }, group_b: "\"rest\"",
+    matchers: [{ key: "service.name", op: "\"eq\"", value: "\"regional\"" }] });
+  assert.equal(groups.isError, undefined, JSON.stringify(groups));
+  assert.equal(forwarded.get("compare_groups")?.group_b, "rest");
+  assert.deepEqual(forwarded.get("compare_groups")?.matchers, [{ key: "service.name", op: "eq", value: "\"regional\"" }],
+    "an enumerated op is unquoted; a free-text value is the caller's own text");
+
+  for (const [tool, args, field, value] of [
+    ["triage", { baseline: "\"previous_window\"" }, "baseline", "previous_window"],
+    ["query_metric", { metric_name: "requests.total", baseline: "\"previous_window\"" }, "baseline", "previous_window"],
+    ["get_mcp_stats", { baseline: "\"previous_window\"" }, "baseline", "previous_window"],
+    ["ci_log", { ci_run_id: "run-1", baseline: "\"last_success\"" }, "baseline", "last_success"],
+    ["triage", { status: "\"all\"" }, "status", "all"],
+  ] as const) {
+    const result = await call(tool, args);
+    assert.notEqual((result.structuredContent as unknown as ErrorBody | undefined)?.error.code, "invalid_argument", `${tool}: ${JSON.stringify(result)}`);
+    assert.equal(forwarded.get(tool)?.[field], value, tool);
+  }
 });
 
 test("a 2025-era client gets the same structured invalid_argument", async (context) => {

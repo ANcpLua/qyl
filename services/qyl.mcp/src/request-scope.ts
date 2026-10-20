@@ -65,13 +65,16 @@ const ID_SOURCES: Readonly<Record<string, string>> = {
   ci_log: "ci_log without ci_run_id lists the recent runs",
 };
 
-function hintFor(tool: string, detail: ToolError): string | undefined {
+/** `example` is a valid value of `detail.field` as JSON, which the hint shows as that argument. */
+function hintFor(tool: string, detail: ToolError, example?: string): string | undefined {
   switch (detail.code) {
     case "invalid_argument":
-    case "collector_rejected":
-      return detail.field === undefined
-        ? `Correct the arguments as the message says and call ${tool} again.`
-        : `Correct ${detail.field}${detail.allowed === undefined ? "" : " to one of the accepted values"} and call ${tool} again.`;
+    case "collector_rejected": {
+      if (detail.field === undefined) return `Correct the arguments as the message says and call ${tool} again.`;
+      const member = detail.field.split(".").at(-1)!.replace(/\[\d+\]$/u, "");
+      return `Correct ${detail.field}${detail.allowed === undefined ? "" : " to one of the accepted values"}${
+        example === undefined ? "" : `, for example ${JSON.stringify(member)}: ${example},`} and call ${tool} again.`;
+    }
     case "not_found":
       return `Take ids only from earlier results: ${ID_SOURCES[tool] ?? "an earlier result of this project and window names them"}.`;
     case "conflict":
@@ -152,7 +155,7 @@ function detailOf(err: unknown): ToolError {
  */
 export function describeToolError(tool: string, err: unknown): ToolError {
   const detail = detailOf(err);
-  const hint = detail.hint ?? hintFor(tool, detail);
+  const hint = detail.hint ?? hintFor(tool, detail, err instanceof InvalidArgumentsError ? err.issues[0]?.example : undefined);
   return hint === undefined ? detail : { ...detail, hint };
 }
 

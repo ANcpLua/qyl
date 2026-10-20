@@ -12,6 +12,10 @@
  * schema enumerates them, the values or names it accepts, so the SDK's input-validation error
  * (tools.md, "Send arguments the schema rejects") tells the model what to change. The tool-call
  * frame reads the same issues back through `argumentIssues` for the structured error.
+ *
+ * A tool's arguments are read as the model meant them where that is unambiguous: an enumerated
+ * string sent with its JSON quotes inside the value (`"\"rest\""`) is that string. A free-text
+ * value keeps its quotes, and the Collector bodies the same validator checks are taken as sent.
  */
 import {
   fromJsonSchema,
@@ -38,10 +42,15 @@ export interface ArgumentIssue {
   /** Path as the Collector spells it: `status`, `filter.signal`, `matchers[0].op`; empty for the value itself. */
   readonly field: string;
   readonly message: string;
-  /** The JSON Schema keyword that failed: `enum`, `required`, `additionalProperties`, … */
+  /** The JSON Schema keyword that failed: `enum`, `required`, `additionalProperties`, `anyOf`, … */
   readonly keyword: string;
-  /** The values, or for an unknown name the names, the schema accepts at `field`. */
+  /**
+   * The values, or for an unknown name the names, the schema accepts at `field`. A union's
+   * object form is written with its members, `{matchers, window, failure_id}`.
+   */
   readonly allowed?: readonly ArgumentValue[];
+  /** A valid value of `field` as JSON, such as `"rest"`, when the rule is a union's. */
+  readonly example?: string;
 }
 
 interface AjvError {
@@ -50,8 +59,18 @@ interface AjvError {
   readonly schemaPath: string;
   readonly params: Record<string, unknown>;
   readonly message?: string;
+  /** With `verbose`: the failing keyword's value (a union's branches), its schema and the rejected value. */
+  readonly schema?: unknown;
   readonly parentSchema?: unknown;
+  readonly data?: unknown;
 }
+
+type JsonSchemaNode = Readonly<Record<string, unknown>>;
+
+const isObject = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const nodes = (value: unknown): JsonSchemaNode[] => Array.isArray(value) ? value.filter(isObject) : [];
+const branchesOf = (schema: JsonSchemaNode): JsonSchemaNode[] => [...nodes(schema.anyOf), ...nodes(schema.oneOf)];
 
 const rejected = new WeakMap<object, readonly ArgumentIssue[]>();
 
@@ -82,8 +101,54 @@ function path(instancePath: string, child?: unknown): string {
     /^\d+$/u.test(segment) ? `${joined}[${segment}]` : joined === "" ? segment : `${joined}.${segment}`, "");
 }
 
+/**
+ * What one branch of a union accepts, as a rejection names it: its enumerated values, or its object
+ * form with its members. `closed` is false for a branch that accepts any value of its type.
+ */
+function alternatives(branch: JsonSchemaNode): { readonly accepted: ArgumentValue[]; readonly closed: boolean } {
+  if (Array.isArray(branch.enum)) return { accepted: scalars(branch.enum), closed: true };
+  if (branch.const !== undefined) return { accepted: scalars([branch.const]), closed: true };
+  if (branch.type === "object" || isObject(branch.properties)) {
+    return { accepted: [`{${Object.keys(isObject(branch.properties) ? branch.properties : {}).join(", ")}}`], closed: true };
+  }
+  return { accepted: typeof branch.type === "string" ? [branch.type] : [], closed: false };
+}
+
+/** A valid value of a union as JSON: its first enumerated value, else its first object form's required members. */
+function unionExample(branches: readonly JsonSchemaNode[]): string | undefined {
+  for (const branch of branches) {
+    const [value] = Array.isArray(branch.enum) ? scalars(branch.enum) : branch.const !== undefined ? scalars([branch.const]) : [];
+    if (value !== undefined) return JSON.stringify(value);
+  }
+  const object = branches.find((branch) => isObject(branch.properties));
+  if (object === undefined || !isObject(object.properties)) return undefined;
+  const members = object.properties;
+  const required = Array.isArray(object.required) ? object.required.filter((name): name is string => typeof name === "string") : [];
+  const member = (name: string): string => {
+    const schema = isObject(members[name]) ? members[name] : {};
+    const [value] = Array.isArray(schema.enum) ? scalars(schema.enum) : schema.const !== undefined ? scalars([schema.const]) : [];
+    return `${JSON.stringify(name)}: ${value === undefined ? "…" : JSON.stringify(value)}`;
+  };
+  return `{${(required.length > 0 ? required : Object.keys(members).slice(0, 1)).map(member).join(", ")}}`;
+}
+
 function describe(error: AjvError): ArgumentIssue {
   switch (error.keyword) {
+    case "anyOf":
+    case "oneOf": {
+      // No branch was singled out (resolveUnions): name every alternative and a valid example.
+      // The values first: a string is what a model most often means to send.
+      const branches = nodes(error.schema).sort((left, right) => Number(isObject(left.properties)) - Number(isObject(right.properties)));
+      const described = branches.map(alternatives);
+      const accepted = described.flatMap((alternative) => alternative.accepted);
+      const example = unionExample(branches);
+      return {
+        field: path(error.instancePath), keyword: error.keyword,
+        message: accepted.length === 0 ? error.message ?? `fails ${error.keyword}` : `must be one of: ${list(accepted)}`,
+        ...(accepted.length > 0 && described.every((alternative) => alternative.closed) ? { allowed: accepted } : {}),
+        ...(example === undefined ? {} : { example }),
+      };
+    }
     case "required":
       return { field: path(error.instancePath, error.params.missingProperty), keyword: "required", message: "is required" };
     case "additionalProperties": {
@@ -112,7 +177,9 @@ const issueKey = (issue: Pick<ArgumentIssue, "field" | "keyword">): string => `$
  * Keep the branch errors of every `oneOf`/`anyOf` that explain the rejection. TypeSpec unions are
  * discriminated, so the useful answer is one of three: the rule every branch breaks the same way
  * (a missing or unknown discriminator, a value of none of the allowed types), else the errors of
- * the one branch whose discriminator matched, else the union's own error.
+ * the one branch the value was meant for, else the union's own error, which names every
+ * alternative. An object is meant for an object form: of several, the one whose discriminator
+ * matched, or the one that knows every member it carries.
  */
 function resolveUnions(errors: readonly AjvError[]): AjvError[] {
   let remaining = [...errors];
@@ -138,8 +205,18 @@ function resolveUnions(errors: readonly AjvError[]): AjvError[] {
       (error.keyword === "const" || (error.keyword === "enum" && (error.params.allowedValues as unknown[]).length === 1))
       && error.instancePath.startsWith(`${union.instancePath}/`)
       && !error.instancePath.slice(union.instancePath.length + 1).includes("/"));
-    const matching = perBranch.filter((errorsOfBranch) => !discriminatorMiss(errorsOfBranch));
-    const keep = shared.length > 0
+    const atUnion = (error: AjvError): boolean => error.instancePath === union.instancePath;
+    let matching = perBranch.filter((errorsOfBranch) => !discriminatorMiss(errorsOfBranch));
+    if (isObject(union.data)) {
+      matching = matching.filter((errorsOfBranch) => !errorsOfBranch.some((error) => error.keyword === "type" && atUnion(error)));
+      const knowing = matching.filter((errorsOfBranch) =>
+        !errorsOfBranch.some((error) => error.keyword === "additionalProperties" && atUnion(error)));
+      if (knowing.length > 0) matching = knowing;
+    }
+    // A value of none of the union's types: "must be string or object" says less than the values
+    // and object forms of a union that enumerates them.
+    const enumerated = nodes(union.schema).some((branch) => Array.isArray(branch.enum) || branch.const !== undefined);
+    const keep = shared.length > 0 && !(enumerated && shared.every((error) => error.keyword === "type" && atUnion(error)))
       ? perBranch.flat().filter((error) => shared.some((sharedError) => issueKey(describe(sharedError)) === issueKey(describe(error))))
       : matching.length === 1 ? matching[0]! : [union];
     remaining = remaining.filter((error) => error !== union && !error.schemaPath.startsWith(prefix)).concat(keep);
@@ -173,12 +250,68 @@ function describeAjvErrors(errors: readonly AjvError[]): ArgumentIssue[] {
   return [...issues.values()].sort((left, right) => priority(left) - priority(right));
 }
 
-/** The one JSON Schema validator every generated document is compiled with. */
+/** The content of a JSON string literal sent as a string: `"\"rest\""` is `rest`. */
+function quotedContent(value: string): string | undefined {
+  if (value.length < 2 || !value.startsWith("\"") || !value.endsWith("\"")) return undefined;
+  try {
+    const content: unknown = JSON.parse(value);
+    return typeof content === "string" ? content : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A schema and every branch nested in its unions. */
+const forms = (schema: JsonSchemaNode): JsonSchemaNode[] => [schema, ...branchesOf(schema).flatMap(forms)];
+
+/** The strings a schema accepts when they form a closed set; undefined when it accepts free text. */
+function closedStrings(schema: JsonSchemaNode): string[] | undefined {
+  if (Array.isArray(schema.enum)) return schema.enum.filter((value): value is string => typeof value === "string");
+  if (schema.const !== undefined) return typeof schema.const === "string" ? [schema.const] : [];
+  const branches = branchesOf(schema);
+  if (branches.length > 0) {
+    const sets = branches.map(closedStrings);
+    return sets.some((set) => set === undefined) ? undefined : sets.flatMap((set) => set ?? []);
+  }
+  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+  return types.includes("string") || (schema.type === undefined && !isObject(schema.properties)) ? undefined : [];
+}
+
+/** `value` with each enumerated string it carries in JSON quotes unquoted, copied only where that changed it. */
+function unquoteClosedStrings(schema: JsonSchemaNode, value: unknown): unknown {
+  if (typeof value === "string") {
+    const content = quotedContent(value);
+    const accepted = content === undefined ? undefined : closedStrings(schema);
+    return content !== undefined && accepted?.includes(content) === true && !accepted.includes(value) ? content : value;
+  }
+  const candidates = forms(schema);
+  if (Array.isArray(value)) {
+    const items = candidates.map((node) => node.items).filter(isObject);
+    const next = value.map((item) => items.reduce<unknown>((current, itemSchema) => unquoteClosedStrings(itemSchema, current), item));
+    return next.some((item, index) => item !== value[index]) ? next : value;
+  }
+  if (!isObject(value)) return value;
+  let next: Record<string, unknown> | undefined;
+  for (const [name, member] of Object.entries(value)) {
+    const unquoted = candidates
+      .map((node) => isObject(node.properties) && Object.hasOwn(node.properties, name) ? node.properties[name] : undefined)
+      .filter(isObject)
+      .reduce<unknown>((current, memberSchema) => unquoteClosedStrings(memberSchema, current), member);
+    if (unquoted !== member) (next ??= { ...value })[name] = unquoted;
+  }
+  return next ?? value;
+}
+
+/** The JSON Schema validator the generated documents are compiled with. */
 class ContractValidator implements jsonSchemaValidator {
+  /** `toolArguments`: a tool's arguments, whose enumerated strings may arrive in JSON quotes. */
+  constructor(private readonly toolArguments: boolean) {}
+
   getValidator<T>(schema: JsonSchemaType): JsonSchemaValidator<T> {
     const validate = ajv.compile(schema);
     return (input) => {
-      if (validate(input)) return { valid: true, data: input as T, errorMessage: undefined };
+      const data = this.toolArguments ? unquoteClosedStrings(schema as JsonSchemaNode, input) : input;
+      if (validate(data)) return { valid: true, data: data as T, errorMessage: undefined };
       const issues = describeAjvErrors((validate.errors ?? []) as readonly AjvError[]);
       if (typeof input === "object" && input !== null) rejected.set(input, issues);
       return { valid: false, data: undefined, errorMessage: issues.map(formatArgumentIssue).join("; ") };
@@ -186,7 +319,8 @@ class ContractValidator implements jsonSchemaValidator {
   }
 }
 
-export const contractValidator = new ContractValidator();
+const contractValidator = new ContractValidator(false);
+const argumentValidator = new ContractValidator(true);
 
 /** A generated document's name: its OpenAPI component name, e.g. `Mcp.Tools.TriageInput`. */
 export type ContractSchemaName = keyof typeof documents & keyof ContractDefinitions;
@@ -205,7 +339,8 @@ export function contractSchema<Name extends ContractSchemaName>(name: Name): Con
   if (schema === undefined) {
     // `in` would also find Object.prototype keys; only the generated names are documents.
     if (!Object.hasOwn(documents, name)) throw new Error(`The generated contract has no '${name}' document.`);
-    schema = fromJsonSchema<ContractDefinitions[Name]>(documents[name] as JsonSchemaType, contractValidator);
+    schema = fromJsonSchema<ContractDefinitions[Name]>(documents[name] as JsonSchemaType,
+      name.startsWith("Mcp.Tools.") && name.endsWith("Input") ? argumentValidator : contractValidator);
     compiled.set(name, schema);
   }
   return schema as ContractSchema<Name>;
