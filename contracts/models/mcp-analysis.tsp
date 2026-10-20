@@ -393,7 +393,7 @@ model CompareGroup {
   failureId?: FailureId;
 }
 
-@doc("Explains what differs between two populations of spans or logs: the attribute values most over-represented in group A, the operation mix, duration percentiles and whether the traffic mix or the same traffic changed. For example, group A holds a `failure_id` from triage and group B is `rest`; aggregate_telemetry computes numbers per group and list_traces finds single executions. Discriminators leave out the groups' matcher keys, a failure group's own error type, route and service, per-request ids, nearly unique keys and values no more common in A than in B; an empty group is rejected, and the results are associations, not causes.")
+@doc("Explains what differs between two populations of spans or logs: the attribute values most over-represented in group A, the operation mix, duration percentiles and whether the traffic mix or the same traffic changed. For example, group A holds a `failure_id` from triage and group B is `rest`; aggregate_telemetry computes numbers per group and list_traces finds single executions. Discriminators leave out the groups' matcher keys, a failure group's own error type, route and service, per-request ids, nearly unique keys, values no more common in A than in B and values fewer than five of group A's records carry, so a group under five records gets none; an empty group is rejected, and the results are associations, not causes.")
 model CompareGroupsInput {
   ...AnalysisInput;
   @doc("The records both groups hold: `spans` or `logs`.")
