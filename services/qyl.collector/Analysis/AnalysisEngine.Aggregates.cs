@@ -216,9 +216,7 @@ internal sealed partial class AnalysisEngine
                                         && (J.String(input, "server_name") is not { } server ||
                                             J.Text(s.Value("mcp.server.name")) == server || s.Service == server)
                                         && (J.String(input, "server_version") is not { } version ||
-                                            J.Text(s.Value("mcp.server.version")) == version ||
-                                            J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion,
-                                                "resource")) == version)
+                                            J.Text(s.Value("mcp.server.version")) == version || ReleaseOf(s) == version)
                                         && (J.String(input, "tool_name") is not { } tool ||
                                             J.Text(s.Value(CollectorSemanticAttributeCatalog.GenAiToolName)) == tool)
                                         && (J.String(input, "transport") is not { } transport ||

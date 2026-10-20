@@ -75,7 +75,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         && (J.String(input, "environment") is not { } environment
             || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource")) == environment
             || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironment, "resource")) == environment)
-        && (J.String(input, "release") is not { } version || J.Text(r.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == version)
+        && (J.String(input, "release") is not { } version || ReleaseOf(r) == version)
         && AnalysisMatchers.Match(r, input["matchers"]);
     private bool Checked(AnalysisRecord _) { ct.ThrowIfCancellationRequested(); return true; }
     private AnalysisWindow Baseline(JsonObject input)

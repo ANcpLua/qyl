@@ -102,7 +102,7 @@ internal sealed partial class AnalysisEngine
                 && duration >= J.Number(input, "min_duration_ms") && duration <= J.Number(input, "max_duration_ms", double.MaxValue)
                 && (J.String(input, "failure_id") is not { } fid || g.Any(s => s.Error && FailureId(Signature(s)) == fid))
                 && (J.String(input, "annotation_label") is not { } label || AnnotationLabels(TraceAnnotations(g.Key)).Contains(label, StringComparer.Ordinal))
-                && g.Any(s => AnalysisMatchers.Match(s, input["matchers"]) && (J.String(input, "service_name") is not { } service || s.Service == service) && (J.String(input, "release") is not { } release || J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == release));
+                && g.Any(s => AnalysisMatchers.Match(s, input["matchers"]) && (J.String(input, "service_name") is not { } service || s.Service == service) && (J.String(input, "release") is not { } release || ReleaseOf(s) == release));
         }).Select(g =>
         {
             var items = g.ToList(); var root = items.OrderBy(s => Depth(s, items)).ThenBy(s => s.Start).First();
@@ -138,7 +138,7 @@ internal sealed partial class AnalysisEngine
         var spans = selected.OrderBy(s => s.Start).ThenBy(s => s.Id, StringComparer.Ordinal).Select(s =>
         {
             var row = J.O(("span_id", s.Id), ("parent_span_id", s.Span?.ParentSpanId is { Length: > 0 } parent ? parent : null), ("service", s.Service), ("name", s.Name),
-                ("start_time", J.Time(s.Start)), ("duration_ms", s.Duration), ("status", s.Error ? "error" : s.Span?.StatusCode == 1 ? "ok" : "unset"),
+                ("start_time", J.Time(s.Start)), ("duration_ms", s.Duration), ("status", Status(s)),
                 ("message", s.Span?.StatusMessage is { Length: > 0 } message ? message : null));
             if (withAttributes) row["attributes"] = ContractAttributes(keep is null ? s.Attributes : new JsonObject(s.Attributes.Where(p => keep.Contains(p.Key)).Select(static p => KeyValuePair.Create(p.Key, p.Value?.DeepClone()))));
             if (selection == "critical_path")
