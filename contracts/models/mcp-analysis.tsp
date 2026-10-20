@@ -196,7 +196,7 @@ model TriageRegression {
   unit: string;
 }
 
-@doc("A service whose last span in the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer.")
+@doc("A service that stopped sending spans, silent by the rule TriageInput states.")
 model SilentService {
   service: string;
   @encodedName("application/json", "last_seen")
