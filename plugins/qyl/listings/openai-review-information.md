@@ -53,7 +53,7 @@ The `trace.error` event reports a newly observed trace containing an error span.
 
 ## How to test
 
-Use the dedicated reviewer account and seeded `openai-review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. For list-to-detail operations, preserve the returned window as well as the identifier.
+Use the dedicated reviewer account and seeded `review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. For list-to-detail operations, preserve the returned window as well as the identifier.
 
 The project is reseeded every day at 00:00 UTC, and each reseed names its checkout releases by that date: `YYYY.MM.DD.1` introduces the checkout failure and `YYYY.MM.DD.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending` until a hundred checkouts ran it, then `passed`.
 
