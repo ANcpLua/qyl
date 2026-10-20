@@ -2305,4 +2305,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:e81b56664d62afb3";
+export const CONTRACT_REVISION: string = "sha256:a170236db17b1fa7";

@@ -298,7 +298,7 @@ model ListSessionsInput {
   `model`?: string;
   @doc("Keep sessions with at least this many input plus output tokens.")
   @encodedName("application/json", "min_tokens")
-  minTokens?: int64;
+  minTokens?: TokenCount;
   @doc("Keep sessions lasting at least this many milliseconds, from the first span start to the last span end.")
   @encodedName("application/json", "min_duration_ms")
   minDurationMs?: DurationMs;

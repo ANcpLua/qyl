@@ -29,7 +29,7 @@ internal sealed partial class AnalysisEngine
             }
             return result;
         }
-        var step = (long)J.Number(input, "step_ms"); if (step < 0) throw new AnalysisInputException("step_ms", "step_ms must be positive.");
+        var step = (long)J.Number(input, "step_ms");
         // A key no record carries is a typo, not one group of everything.
         if (rows.Count > 0 && keys.FirstOrDefault(k => rows.All(r => r.Value(k) is null)) is { } unrecorded)
             throw new AnalysisInputException("group_by", $"No record in this window carries {unrecorded}.", "group_by.unrecorded") { Hint = "discover_attributes lists the keys the records carry." };
@@ -235,7 +235,7 @@ internal sealed partial class AnalysisEngine
         {
             var bucketMs = Math.Max(1000L, (long)(_window.End - _window.Start).TotalMilliseconds / 60);
             var bucketNs = (ulong)bucketMs * 1_000_000;
-            var buckets = new (int Requests, int Errors)[(int)((QylTimeConversions.ToUnixNanoUnsigned(_window.End) - _window.StartNs + bucketNs - 1) / bucketNs)];
+            var buckets = new (int Requests, int Errors)[(int)((_window.EndNs - _window.StartNs + bucketNs - 1) / bucketNs)];
             foreach (var span in rows)
             {
                 ref var bucket = ref buckets[(span.Start - _window.StartNs) / bucketNs];

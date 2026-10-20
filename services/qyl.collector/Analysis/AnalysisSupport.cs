@@ -21,8 +21,9 @@ internal sealed class AnalysisInputException(string field, string message, strin
 
 internal readonly record struct AnalysisWindow(DateTimeOffset Start, DateTimeOffset End)
 {
-    public ulong StartNs => QylTimeConversions.ToUnixNanoUnsigned(Start);
-    private ulong EndNs => QylTimeConversions.ToUnixNanoUnsigned(End);
+    // No telemetry precedes the Unix epoch, so a baseline that reaches before it holds what follows it.
+    public ulong StartNs => Start <= DateTimeOffset.UnixEpoch ? 0 : QylTimeConversions.ToUnixNanoUnsigned(Start);
+    public ulong EndNs => End <= DateTimeOffset.UnixEpoch ? 0 : QylTimeConversions.ToUnixNanoUnsigned(End);
     public JsonObject Json => J.O(("start_time", Start.ToString("O")), ("end_time", End.ToString("O")));
     public bool Contains(ulong time) => time >= StartNs && time < EndNs;
     public static AnalysisWindow Resolve(JsonObject input, DateTimeOffset now, double defaultMinutes = 60)

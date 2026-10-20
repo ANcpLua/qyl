@@ -132,12 +132,14 @@ internal static partial class CollectorEndpointExtensions
 
     // A number the request sends outside the range the contract bounds its member to is refused naming that range; an
     // omitted member takes its default. The engine reads the members unchecked, so this is the one place a bound applies.
+    // A nested member, such as baseline.offset_minutes, belongs to an object the request may omit as a whole.
     private static void CheckRanges(JsonObject input, ContractRanges ranges)
     {
         static string Text(double value) => value.ToString(CultureInfo.InvariantCulture);
-        foreach (var (name, minimum, maximum, fallback) in ranges)
+        foreach (var (path, minimum, maximum, fallback) in ranges)
+        foreach (var (field, sent) in Sent(input, path))
         {
-            if (input[name] is not JsonValue sent || !double.TryParse(J.Text(sent), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            if (sent is not JsonValue || !double.TryParse(J.Text(sent), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
                 || value >= (minimum ?? double.NegativeInfinity) && value <= (maximum ?? double.PositiveInfinity)) continue;
             var range = (minimum, maximum) switch
             {
@@ -145,11 +147,30 @@ internal static partial class CollectorEndpointExtensions
                 ({ } low, null) => $"of at least {Text(low)}",
                 _ => $"of at most {Text(maximum!.Value)}"
             };
-            throw new AnalysisInputException(name, $"Use {name} {range}.", name + ".out_of_range")
+            throw new AnalysisInputException(field, $"Use {field} {range}.", path + ".out_of_range")
             {
-                Hint = fallback is { } omitted ? $"Omit {name} for {Text(omitted)}." : $"Omit {name} for the tool's default.",
+                Hint = path.Contains('.') ? $"Correct {field}." : fallback is { } omitted ? $"Omit {field} for {Text(omitted)}." : $"Omit {field} for the tool's default.",
                 RejectedValue = J.Text(sent)
             };
+        }
+    }
+
+    // The values a request sends at a contract path, each named as the MCP names it: baseline.offset_minutes, and an
+    // array's elements, written [] in the path, by their index, as matchers[0].key.
+    private static IEnumerable<(string Field, JsonNode Value)> Sent(JsonNode? node, string path, string field = "")
+    {
+        var dot = path.IndexOf('.');
+        var segment = dot < 0 ? path : path[..dot];
+        var elements = segment.EndsWith("[]", StringComparison.Ordinal);
+        var name = elements ? segment[..^2] : segment;
+        if ((node as JsonObject)?[name] is not { } member) yield break;
+        var at = field.Length == 0 ? name : field + "." + name;
+        var values = !elements ? [(at, member)] : member is JsonArray items ? items.Select((item, i) => ($"{at}[{i}]", item)) : [];
+        foreach (var (named, value) in values)
+        {
+            if (value is null) continue;
+            if (dot < 0) yield return (named, value);
+            else foreach (var nested in Sent(value, path[(dot + 1)..], named)) yield return nested;
         }
     }
 

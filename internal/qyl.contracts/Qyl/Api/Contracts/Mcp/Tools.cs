@@ -82,7 +82,7 @@ public sealed class ListTracesInput
     public const int LimitMaximum = 100;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("min_duration_ms", MinDurationMsMinimum, null, null),
@@ -214,7 +214,7 @@ public sealed class GetTraceInput
     public const int MaxSpansMinimum = 1;
     public const int MaxSpansMaximum = 1000;
     public const bool IncludeAttributesDefault = true;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("max_logs", MaxLogsMinimum, MaxLogsMaximum, null),
@@ -385,15 +385,17 @@ public sealed class TraceResource
 
 public sealed class ListSessionsInput
 {
+    public const long MinTokensMinimum = 0;
     public const double MinDurationMsMinimum = 0;
     public const int LimitDefault = 20;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 100;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
+        ("min_tokens", MinTokensMinimum, null, null),
         ("min_duration_ms", MinDurationMsMinimum, null, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -547,7 +549,7 @@ public sealed class SearchLogsInput
     public const int LimitMaximum = 200;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("context", ContextMinimum, ContextMaximum, null),
@@ -651,7 +653,7 @@ public sealed class CiLogInput
     public const int LimitDefault = 10;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 50;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -869,7 +871,7 @@ public sealed class ListMetricsInput
     public const int LimitDefault = 50;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -976,9 +978,10 @@ public sealed class QueryMetricInput
     public const int LimitDefault = 50;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 500;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
+        ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("step_ms", StepMsMinimum, StepMsMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
@@ -1031,6 +1034,8 @@ public sealed class QueryMetricInput
 
 public sealed class BaselineOffset
 {
+    public const int OffsetMinutesMinimum = 1;
+    public const int OffsetMinutesMaximum = 43200;
     [JsonPropertyName("offset_minutes")]
     public required int OffsetMinutes { get; init; }
 }
@@ -1250,7 +1255,7 @@ public sealed class RunSavedQueryInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -1422,11 +1427,12 @@ public sealed class TriageInput
     public const int LimitDefault = 10;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 50;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+        ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -1580,7 +1586,7 @@ public sealed class GetFailureContextInput
     public const int MaxLogsDefault = 100;
     public const int MaxLogsMinimum = 1;
     public const int MaxLogsMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -1829,7 +1835,7 @@ public sealed class CompareGroupsInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -1957,7 +1963,7 @@ public sealed class CompareTracesInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -2039,11 +2045,17 @@ public sealed class VerifyFixInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    public const int MinRequestsDefault = 100;
+    public const int MinRequestsMinimum = 0;
+    public const int MinMinutesDefault = 30;
+    public const int MinMinutesMinimum = 0;
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+        ("min_requests", MinRequestsMinimum, null, MinRequestsDefault),
+        ("min_minutes", MinMinutesMinimum, null, MinMinutesDefault),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2161,11 +2173,14 @@ public sealed class AggregateTelemetryInput
     public const int LimitDefault = 20;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    public const long StepMsMinimum = 1;
+    public const long StepMsMaximum = 86400000;
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+        ("step_ms", StepMsMinimum, StepMsMaximum, null),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2259,7 +2274,7 @@ public sealed class DiscoverAttributesInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -2361,7 +2376,7 @@ public sealed class GetAgentRunInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -2511,7 +2526,7 @@ public sealed class ListReleasesInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -2613,7 +2628,7 @@ public sealed class GetServiceMapInput
     public const int LimitMaximum = 200;
     public const int DepthMinimum = 1;
     public const int DepthMaximum = 3;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -2720,7 +2735,7 @@ public sealed class CheckTelemetryHealthInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
@@ -2857,11 +2872,12 @@ public sealed class GetMcpStatsInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+        ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]

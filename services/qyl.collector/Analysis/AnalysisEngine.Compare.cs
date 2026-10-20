@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Qyl.Api.Contracts.Mcp.Tools;
 
 namespace Qyl.Collector.Analysis;
 
@@ -253,11 +254,11 @@ internal sealed partial class AnalysisEngine
         var nowNs = QylTimeConversions.ToUnixNanoUnsigned(now);
         var elapsed = nowNs > sinceNs ? nowNs - sinceNs : 0;
         // Before the change is the failure's known history from its first occurrence, or the request's lookback.
-        var lookback = QylTimeConversions.ToUnixNanoUnsigned(_window.End) - _window.StartNs;
+        var lookback = _window.EndNs - _window.StartNs;
         var beforeNs = fid is not null && failures.Min(static s => s.Start) is var firstSeen && firstSeen < sinceNs ? firstSeen : sinceNs > lookback ? sinceNs - lookback : 0;
         bool After(AnalysisRecord s) => s.Start >= sinceNs && s.Start < nowNs;
         bool Before(AnalysisRecord s) => s.Start >= beforeNs && s.Start < sinceNs;
-        var minRequests = J.Number(input, "min_requests", 100); var minMinutes = J.Number(input, "min_minutes", 30);
+        var minRequests = J.Number(input, "min_requests", VerifyFixInput.MinRequestsDefault); var minMinutes = J.Number(input, "min_minutes", VerifyFixInput.MinMinutesDefault);
         var after = requests.Where(After).ToList(); var afterFailures = failures.Where(After).ToList();
         // Only an observed recurrence decides without the whole after window; any other verdict could hide one.
         var afterComplete = SpansComplete(sinceNs, nowNs);

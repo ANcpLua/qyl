@@ -128,6 +128,12 @@ public sealed class SavedQueryWindow
 
 public sealed class SavedQueryCreateRequest
 {
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
+    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
+    [
+        ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
+        ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
+    ];
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -139,6 +145,12 @@ public sealed class SavedQueryCreateRequest
 
 public sealed class SavedQueryUpdateRequest
 {
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
+    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
+    [
+        ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
+        ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
     public string? Name { get; init; }
@@ -155,7 +167,7 @@ public sealed class SavedQueryRunRequest
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),

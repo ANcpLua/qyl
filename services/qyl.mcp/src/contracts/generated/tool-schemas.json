@@ -532,7 +532,9 @@
       },
       "step_ms": {
         "type": "integer",
-        "description": "Bucket width in milliseconds for a per-group time series in `buckets`; omit for group totals only. Equal to the window length, it yields one bucket per group."
+        "minimum": 1,
+        "maximum": 86400000,
+        "description": "Bucket width in integer milliseconds for a per-group time series in `buckets`, 1 to 86400000 (one day) like query_metric's; omit for group totals only. A step at least as long as the window yields one bucket per group."
       },
       "order_by": {
         "type": "string",
@@ -7651,9 +7653,9 @@
             "properties": {
               "offset_minutes": {
                 "type": "integer",
-                "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
-                "minimum": -2147483648,
-                "maximum": 2147483647
+                "minimum": 1,
+                "maximum": 43200,
+                "description": "Minutes to shift the selected window back, 1 to 43200 (30 days), e.g. 10080 for the same time a week earlier."
               }
             },
             "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
@@ -11066,6 +11068,7 @@
       },
       "min_tokens": {
         "type": "integer",
+        "minimum": 0,
         "description": "Keep sessions with at least this many input plus output tokens."
       },
       "min_duration_ms": {
@@ -12518,9 +12521,9 @@
             "properties": {
               "offset_minutes": {
                 "type": "integer",
-                "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
-                "minimum": -2147483648,
-                "maximum": 2147483647
+                "minimum": 1,
+                "maximum": 43200,
+                "description": "Minutes to shift the selected window back, 1 to 43200 (30 days), e.g. 10080 for the same time a week earlier."
               }
             },
             "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
@@ -18070,9 +18073,9 @@
             "properties": {
               "offset_minutes": {
                 "type": "integer",
-                "description": "Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.",
-                "minimum": -2147483648,
-                "maximum": 2147483647
+                "minimum": 1,
+                "maximum": 43200,
+                "description": "Minutes to shift the selected window back, 1 to 43200 (30 days), e.g. 10080 for the same time a week earlier."
               }
             },
             "description": "A baseline: the selected window shifted back by `offset_minutes`, with the same length.",
@@ -19085,14 +19088,16 @@
       },
       "min_requests": {
         "type": "integer",
-        "description": "Requests the after window needs before the verdict can be `passed`; default 100.",
-        "minimum": -2147483648,
+        "minimum": 0,
+        "description": "Requests the after window needs before the verdict can be `passed`, 0 or more; default 100.",
+        "default": 100,
         "maximum": 2147483647
       },
       "min_minutes": {
         "type": "integer",
-        "description": "Minutes after the change before the verdict can be `passed`; default 30.",
-        "minimum": -2147483648,
+        "minimum": 0,
+        "description": "Minutes after the change before the verdict can be `passed`, 0 or more; default 30.",
+        "default": 30,
         "maximum": 2147483647
       },
       "verify_id": {

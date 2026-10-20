@@ -30,8 +30,8 @@ public sealed partial class AnalysisApiTests
     /// <summary>
     /// A number outside the range the contract bounds its argument to is refused with the argument, its range and what
     /// to send instead, whichever kind of bound it breaks: the shared window's lookback, a tool's page size, a
-    /// collection's own size, a small closed range, a 64-bit step, a raw read's page and a lower bound only the
-    /// argument's scalar type declares.
+    /// collection's own size, a small closed range, a 64-bit step, a raw read's page, a lower bound only the
+    /// argument's scalar type declares, a lower bound of 0 with a default and a member of an object the argument holds.
     /// </summary>
     [TestMethod]
     [DataRow("triage", """{"lookback_minutes":0}""", "lookback_minutes", "Use lookback_minutes from 1 to 43200.", "Omit lookback_minutes for the tool's default.")]
@@ -42,6 +42,14 @@ public sealed partial class AnalysisApiTests
     [DataRow("query_metric", """{"metric_name":"queue.depth","step_ms":86400001}""", "step_ms", "Use step_ms from 1 to 86400000.", "Omit step_ms for the tool's default.")]
     [DataRow("query_metric", """{"metric_name":"queue.depth","raw":true,"limit":501}""", "limit", "Use limit from 1 to 500.", "Omit limit for 50.")]
     [DataRow("list_traces", """{"min_duration_ms":-0.5}""", "min_duration_ms", "Use min_duration_ms of at least 0.", "Omit min_duration_ms for the tool's default.")]
+    [DataRow("aggregate_telemetry", """{"signal":"spans","measures":["count"],"step_ms":0}""", "step_ms", "Use step_ms from 1 to 86400000.", "Omit step_ms for the tool's default.")]
+    [DataRow("aggregate_telemetry", """{"signal":"spans","measures":["count"],"step_ms":9223372036854775807}""", "step_ms", "Use step_ms from 1 to 86400000.", "Omit step_ms for the tool's default.")]
+    [DataRow("verify_fix", """{"min_requests":-1}""", "min_requests", "Use min_requests of at least 0.", "Omit min_requests for 100.")]
+    [DataRow("verify_fix", """{"min_minutes":-1}""", "min_minutes", "Use min_minutes of at least 0.", "Omit min_minutes for 30.")]
+    [DataRow("list_sessions", """{"min_tokens":-1}""", "min_tokens", "Use min_tokens of at least 0.", "Omit min_tokens for the tool's default.")]
+    [DataRow("triage", """{"baseline":{"offset_minutes":0}}""", "baseline.offset_minutes", "Use baseline.offset_minutes from 1 to 43200.", "Correct baseline.offset_minutes.")]
+    [DataRow("query_metric", """{"metric_name":"queue.depth","baseline":{"offset_minutes":1000000000}}""", "baseline.offset_minutes", "Use baseline.offset_minutes from 1 to 43200.", "Correct baseline.offset_minutes.")]
+    [DataRow("get_mcp_stats", """{"baseline":{"offset_minutes":43201}}""", "baseline.offset_minutes", "Use baseline.offset_minutes from 1 to 43200.", "Correct baseline.offset_minutes.")]
     public async Task A_number_outside_its_contract_range_is_refused_with_the_range(string operation, string input, string field, string message, string hint)
     {
         await using var host = await StartAsync(testContext.CancellationToken);
@@ -51,7 +59,8 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual((field, field + ".out_of_range", message, hint),
             (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString(), error.GetProperty("hint").GetString()));
         using var sent = JsonDocument.Parse(input);
-        Assert.AreEqual(sent.RootElement.GetProperty(field).GetRawText(), error.GetProperty("rejected_value").GetString());
+        var value = field.Split('.').Aggregate(sent.RootElement, static (member, name) => member.GetProperty(name));
+        Assert.AreEqual(value.GetRawText(), error.GetProperty("rejected_value").GetString());
     }
 
     /// <summary>A range includes both its ends.</summary>
@@ -64,6 +73,36 @@ public sealed partial class AnalysisApiTests
         await Read(host, "search_logs", """{"lookback_minutes":1,"limit":1,"context":10,"severity_min":24}""");
         await Read(host, "list_traces", """{"min_duration_ms":0,"max_duration_ms":0,"limit":100}""");
         await Read(host, "get_service_map", """{"service_name":"checkout","depth":3}""");
+        await Read(host, "triage", """{"baseline":{"offset_minutes":1}}""");
+        await Read(host, "get_mcp_stats", """{"baseline":{"offset_minutes":43200}}""");
+        await Read(host, "aggregate_telemetry", """{"signal":"spans","measures":["count"],"step_ms":1}""");
+        await Read(host, "aggregate_telemetry", """{"signal":"logs","measures":["count"],"step_ms":86400000}""");
+        await Read(host, "list_sessions", """{"min_tokens":0}""");
+        await Read(host, "verify_fix", """{"matchers":[{"key":"service.name","op":"eq","value":"checkout"}],"since":"2026-10-17T11:00:00Z","min_requests":0,"min_minutes":0}""");
+    }
+
+    /// <summary>
+    /// No telemetry precedes the Unix epoch: a window that starts there compares with a baseline reaching before it,
+    /// the window just before or one 30 days back, and that baseline holds nothing, so the window's failure is new and
+    /// a group B over the window before is empty.
+    /// </summary>
+    [TestMethod]
+    public async Task A_baseline_reaching_back_before_the_unix_epoch_holds_nothing()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), Minute, 2 * Minute, status: 2)]), testContext.CancellationToken);
+
+        foreach (var input in new[] {
+            """{"start_time":"1970-01-01T00:00:00Z","end_time":"1970-01-01T01:00:00Z"}""",
+            """{"start_time":"1970-01-01T00:00:00Z","end_time":"1970-01-01T01:00:00Z","baseline":{"offset_minutes":43200}}""" })
+        {
+            var failure = Assert.ContainsSingle((await Read(host, "triage", input)).GetProperty("failures").EnumerateArray());
+            Assert.AreEqual(("new", 0), (failure.GetProperty("change").GetString(), failure.GetProperty("baseline_count").GetInt32()));
+        }
+        await Read(host, "check_telemetry_health", """{"start_time":"1970-01-01T00:00:00Z","end_time":"1970-01-01T01:00:00Z"}""");
+        await Read(host, "get_mcp_stats", """{"start_time":"1970-01-01T00:00:00Z","end_time":"1970-01-01T01:00:00Z","baseline":{"offset_minutes":120}}""");
+        var empty = await RejectedAsync(host, "compare_groups", """{"start_time":"1970-01-01T00:00:00Z","end_time":"1970-01-01T01:00:00Z","signal":"spans","group_a":{"window":{"start_time":"1970-01-01T00:00:00Z","end_time":"1970-01-01T01:00:00Z"}},"group_b":"previous_window"}""");
+        Assert.AreEqual(("group_b", "group.empty"), (empty.GetProperty("field").GetString(), empty.GetProperty("code").GetString()));
     }
 
     [TestMethod]

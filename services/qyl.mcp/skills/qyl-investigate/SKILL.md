@@ -51,10 +51,11 @@ saved queries and failure status in that project, never the telemetry.
   so one investigation keeps one window.
 - **Baseline.** Every comparison is a `baseline`: `previous_window`, the
   window of the same length immediately before (triage's default),
-  `{start_time, end_time}` or `{offset_minutes}` for `triage`,
-  `query_metric` and `get_mcp_stats` (which also takes `{server_version}`),
-  and `last_success` or `{ci_run_id}` for `ci_log`. Give explicit bounds
-  only when the user names a time, such as "before yesterday's deploy".
+  `{start_time, end_time}` or `{offset_minutes}` (up to 43200, 30 days
+  back) for `triage`, `query_metric` and `get_mcp_stats` (which also takes
+  `{server_version}`), and `last_success` or `{ci_run_id}` for `ci_log`.
+  Give explicit bounds only when the user names a time, such as "before
+  yesterday's deploy".
 - **Pages.** Results are bounded: `triage` 10 failures, context tools 100
   spans and 100 logs, `aggregate_telemetry` 20 groups, `get_trace` 100
   spans. `has_more` and `next_cursor` continue the same query; `coverage`

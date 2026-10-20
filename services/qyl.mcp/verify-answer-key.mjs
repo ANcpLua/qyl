@@ -443,13 +443,18 @@ const analysisArguments={triage:{},get_failure_context:{},compare_groups:{signal
  compare_traces:{a:{trace_id:'a'.repeat(32)},b:{trace_id:'b'.repeat(32)}},verify_fix:{},aggregate_telemetry:{signal:'spans',measures:['count']},
  discover_attributes:{signal:'spans'},get_agent_run:{},list_releases:{},get_service_map:{},check_telemetry_health:{},get_mcp_stats:{},list_sessions:{},
  list_traces:{},get_trace:{trace_id:'a'.repeat(32)},search_logs:{},list_metrics:{},query_metric:{metric_name:'requests.total'},ci_log:{},run_saved_query:{}};
+// Each bounded number of a tool's input by its path, a member of an object form that one of its arguments takes too.
+const boundedNumbers=(properties,path=[])=>Object.entries(properties).flatMap(([name,schema])=>[
+ ...(schema.minimum===undefined&&schema.maximum===undefined?[]:[[[...path,name],schema]]),
+ ...[schema,...(schema.anyOf??[])].filter(form=>form.properties).flatMap(form=>boundedNumbers(form.properties,[...path,name]))]);
 verify('31 a number outside its range is refused by the MCP and by the Collector\'s HTTP route, naming the same field',async(_call,client)=>{
  const pascal=tool=>tool.split('_').map(part=>part[0].toUpperCase()+part.slice(1)).join('');
- let refused=0;
+ let refused=0, nested=0;
  for (const [tool,required] of Object.entries(analysisArguments))
-  for (const [field,schema] of Object.entries(documents[`Mcp.Tools.${pascal(tool)}Input`].properties))
+  for (const [path,schema] of boundedNumbers(documents[`Mcp.Tools.${pascal(tool)}Input`].properties))
    for (const value of [schema.minimum===undefined?[]:[schema.minimum-1],schema.maximum===undefined?[]:[schema.maximum+1]].flat()) {
-    const args={...required,[field]:value}, at=`${tool} ${field}=${value}`;
+    const field=path.join('.'), args={...required,...path.reduceRight((inner,name)=>({[name]:inner}),value)}, at=`${tool} ${field}=${value}`;
+    if (path.length>1) nested++;
     const mcp=await client.callTool({name:tool,arguments:args});
     assert.equal(mcp.isError,true,`${at}: ${JSON.stringify(mcp)}`);
     const response=await fetch(`${process.env.QYL_COLLECTOR_URL}/api/v1/analysis/${tool}`,{method:'POST',headers:{'content-type':'application/json',...collectorHeaders()},body:JSON.stringify(args)});
@@ -459,6 +464,7 @@ verify('31 a number outside its range is refused by the MCP and by the Collector
     refused++;
    }
  assert(refused>=4*Object.keys(analysisArguments).length,`every tool's lookback_minutes and limit, both ends: ${refused}`);
+ assert.equal(nested,6,'baseline.offset_minutes of triage, query_metric and get_mcp_stats, both ends');
 });
 
 // Existing projection and paging semantics stay exercised against real storage.

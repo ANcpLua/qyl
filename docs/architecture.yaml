@@ -64,7 +64,8 @@ contracts:
 analysis_boundaries:
   - The Collector computes every analysis result behind POST /api/v1/analysis/<tool_name>.
   - The Collector refuses an analysis argument of the wrong type or outside its numeric range, as the MCP's input
-    schema does: the generated C# lists each request body's ranges, and a refusal names the field, the range and a hint.
+    schema does: the generated C# lists each request body's ranges, those of the objects it holds included, and a
+    refusal names the field by its path, the range and a hint.
   - The MCP server validates input, scopes the call, pages and compacts the response to its byte
     budget, redacts secrets and renders a text summary; it adds no analysis of its own.
   - Every read and write is scoped to one project, resolved from the Collector key or the verified

@@ -60,7 +60,8 @@ alias ServiceAnalysisInput = {
 
 @doc("A baseline: the selected window shifted back by `offset_minutes`, with the same length.")
 model BaselineOffset {
-  @doc("Minutes to shift the selected window back, e.g. 10080 for the same time a week earlier.")
+  @doc("Minutes to shift the selected window back, 1 to 43200 (30 days), e.g. 10080 for the same time a week earlier.")
+  @minValue(1) @maxValue(43200)
   @encodedName("application/json", "offset_minutes")
   offsetMinutes: int32;
 }
@@ -517,12 +518,14 @@ model VerifyFixInput {
   since?: utcDateTime;
   @doc("A `service.version` of the failure's service (with `matchers`, of the matched requests' services) whose first recorded span marks the change, when `since` is omitted. A service that records no such version, such as a database, takes it from the services its executions run through. list_releases lists each service's versions.")
   release?: string;
-  @doc("Requests the after window needs before the verdict can be `passed`; default 100.")
+  @doc("Requests the after window needs before the verdict can be `passed`, 0 or more; default 100.")
+  @minValue(0)
   @encodedName("application/json", "min_requests")
-  minRequests?: int32;
-  @doc("Minutes after the change before the verdict can be `passed`; default 30.")
+  minRequests?: int32 = 100;
+  @doc("Minutes after the change before the verdict can be `passed`, 0 or more; default 30.")
+  @minValue(0)
   @encodedName("application/json", "min_minutes")
-  minMinutes?: int32;
+  minMinutes?: int32 = 30;
   @doc("`verify_id` of an earlier verify_fix result: repeats that verification with its original arguments, which replace any others sent.")
   @encodedName("application/json", "verify_id")
   verifyId?: VerifyId;
@@ -591,7 +594,8 @@ model AggregateTelemetryInput {
   groupBy?: string[];
   @doc("Measures to compute per group; at least one. Accepted values: `count`, `error_count`, `error_rate` (share from 0 to 1), `duration_avg`, `duration_p50`, `duration_p90`, `duration_p95`, `duration_p99`, `duration_max` (milliseconds, spans only) and `sum:<attribute key>` for a numeric attribute. The result's `units` names the unit of each measure. Example: [\"count\", \"error_rate\", \"duration_p95\"].")
   measures: string[];
-  @doc("Bucket width in milliseconds for a per-group time series in `buckets`; omit for group totals only. Equal to the window length, it yields one bucket per group.")
+  @doc("Bucket width in integer milliseconds for a per-group time series in `buckets`, 1 to 86400000 (one day) like query_metric's; omit for group totals only. A step at least as long as the window yields one bucket per group.")
+  @minValue(1) @maxValue(86400000)
   @encodedName("application/json", "step_ms")
   stepMs?: int64;
   @doc("One of the requested measures, optionally followed by ` asc` or ` desc`. Default: the first measure, descending. Examples: `error_rate`, `duration_p95 desc`, `count asc`.")
