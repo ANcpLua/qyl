@@ -124,7 +124,7 @@ internal sealed partial class AnalysisEngine
         // A count is of points or observations, not of the metric's unit; a rate is per second.
         var unit = aggregation == "count" ? "1" : rows[0].Unit;
         if (function == "rate" && (histogram || aggregation != "count")) unit += "/s";
-        var result = J.O(("name", name), ("kind", MetricKind(rows[0].MetricKind)), ("unit", unit), ("aggregation", aggregation), ("step_ms", step), ("start_time", _window.Start.ToString("O")), ("end_time", _window.End.ToString("O")), ("series", J.A(output.Take(limit))), ("truncated", output.Count > limit),
+        var result = J.O(("name", name), ("kind", MetricKind(rows[0].MetricKind)), ("unit", unit), ("aggregation", aggregation), ("step_ms", step), ("series", J.A(output.Take(limit))), ("truncated", output.Count > limit),
             ("method", histogram ? function == "rate" ? "per-series histogram deltas over the intervals they recorded, summed across series; an unknown interval leaves its bucket unknown" : "per-series histogram deltas merged, linear interpolation; unknown intervals omitted" : function == "none" ? "recorded scalar points aggregated" : "per-series counter differences across resets"), ("numeric_representation", "float64"), ("approximate", histogram && aggregation.StartsWith('p')), ("exemplar_trace_ids", snapshot.Exemplars.Where(e => _window.Contains(e.TimeUnixNano) && rows.Any(r => r.SeriesId == e.SeriesId)).Select(e => e.TraceId).Distinct(StringComparer.Ordinal).Take(3)), ("coverage", Coverage(snapshot.Points.Count, rows.Sum(s => PointsBySeries[s.SeriesId].Count(p => _window.Contains(p.TimeUnixNano))), Math.Min(output.Count, limit), output.Count > limit)));
         if (input["baseline"] is not null)
         {

@@ -228,16 +228,25 @@ internal static partial class CollectorEndpointExtensions
             var query = Analysis.AnalysisReadPlan.Resolve("run_saved_query", Analysis.AnalysisEngine.SavedQueryInput(saved, body), now, handles, project);
             var snapshot = await store.ReadAnalysisSnapshotAsync(project, query, ct).ConfigureAwait(false);
             var result = new Analysis.AnalysisEngine(snapshot, project, handles, now).Run("run_saved_query", body);
-            // The analysis answer names its rows by signal; the HTTP route answers with the run result of the contract.
+            // The analysis answer names its rows by signal and reports the run's window beside them; the HTTP route answers
+            // with the run result of the contract, whose metric result states its window itself.
             var signal = Analysis.J.String(result["saved_query"]?["filter"], "signal")!;
             var run = signal == "metrics"
-                ? Analysis.J.O(("signal", signal), ("result", result["metric"]))
+                ? Analysis.J.O(("signal", signal), ("result", MetricRunResult(result)))
                 : Analysis.J.O(("signal", signal), ("items", result[signal]), ("has_more", result["has_more"]), ("next_cursor", result["next_cursor"]));
             var typed = JsonSerializer.Deserialize(run.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
             return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);
         }
         catch (Analysis.AnalysisInputException invalid) { return AnalysisError(invalid); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide valid run options."); }
+    }
+
+    private static System.Text.Json.Nodes.JsonObject MetricRunResult(System.Text.Json.Nodes.JsonObject result)
+    {
+        var metric = result["metric"]!.DeepClone().AsObject();
+        metric["start_time"] = result["window"]!["start_time"]!.DeepClone();
+        metric["end_time"] = result["window"]!["end_time"]!.DeepClone();
+        return metric;
     }
 
     private static int? LookbackMinutes(SavedQueryFilter filter) => filter switch
