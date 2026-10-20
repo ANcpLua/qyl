@@ -129,8 +129,11 @@ verify('09 identical agent call and argument hashes repeated3times',async call=>
  const data=await call('get_agent_run',{...w,session_id:'agent_run'});assert.equal(data.findings.repeated_calls[0].count,3);
 });
 verify('10 release1.4.1 first observed atT with F, the fix 1.4.2 atT2 without failures',async call=>{
+ // Without QYL_ANSWER_KEY_FRESH_IDS the releases keep their fixed names.
+ assert.deepEqual(fixture.releases,{checkout:{previous:'1.4.0',failing:'1.4.1',fix:'1.4.2'},regional:{previous:'2.2',failing:'2.3'}});
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);
- const data=await call('list_releases',{...w,service_name:'checkout'});const release=data.releases.find(r=>r.version==='1.4.1');assert.equal(Date.parse(release.first_seen),Date.parse(fixture.T));assert(release.new_failure_ids.includes(F.failure_id));
+ const data=await call('list_releases',{...w,service_name:'checkout'});assert.deepEqual(data.releases.map(r=>r.version),['1.4.2','1.4.1','1.4.0']);
+ const release=data.releases.find(r=>r.version==='1.4.1');assert.equal(Date.parse(release.first_seen),Date.parse(fixture.T));assert(release.new_failure_ids.includes(F.failure_id));
  const fix=data.releases.find(r=>r.version==='1.4.2');assert(fix,JSON.stringify(data.releases));sameInstant(fix.first_seen,fixture.T2);assert.deepEqual(fix.new_failure_ids,[]);
 });
 verify('11 checkout calls orders-db with errors',async call=>{
@@ -223,6 +226,7 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,76,'the four fix requests and two checkouts per batch count');
   const release=await call('verify_fix',{...day,failure_id:F.failure_id,release:'1.4.2'});
   sameInstant(release.change.time,seeded.T2);assert.equal(release.needs.requests,76,'every later checkout runs the fix release');
+  assert.deepEqual((await call('list_releases',{...day,service_name:'checkout'})).releases.map(r=>r.version),['1.4.2','1.4.1','1.4.0'],'traffic runs 1.4.2 and no release of its own');
   assert.equal((await call('get_agent_run',{...day,session_id:'agent_run'})).findings.repeated_calls[0].count,3);
   const ci=(await call('ci_log',{...day,ci_run_id:'ci_current',baseline:'last_success'})).comparison;
   assert(ci.new_failures.some(p=>p.leg==='test'));assert(ci.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));
@@ -255,6 +259,52 @@ void test('26 the fix in 1.4.2 is pending, then passes once a hundred checkouts 
   await batches(48,48);
   const passed=await verify();
   assert.equal(passed.verdict,'passed',JSON.stringify(passed));assert.deepEqual([passed.after.occurrences,passed.after.requests],[0,100]);
+ },project);
+});
+registrations.push('28 hosted reseeds a day apart name their releases by date: the latest fix is pending and leads list_releases');
+void test('28 hosted reseeds a day apart name their releases by date: the latest fix is pending and leads list_releases',{concurrency:false},async()=>{
+ const project='answer-key-'+randomBytes(8).toString('hex');
+ const repo=fileURLToPath(new URL('../..',import.meta.url));
+ // The hosted reseed runs at 00:00 UTC; the second of two a day apart ran at a midnight at least an hour ago.
+ const day=86_400, second=Math.floor((Date.now()/1000-3600)/day)*day, first=second-day;
+ const named=(at,build)=>`${new Date(at*1000).toISOString().slice(0,10).replaceAll('-','.')}.${build}`;
+ const hosted=at=>({checkout:{previous:named(at,0),failing:named(at,1),fix:named(at,2)},regional:{previous:named(at,2),failing:named(at,3)}});
+ async function send(mode,now){
+  const output=join(dirname(process.env.QYL_ANSWER_KEY_FILE),`${project}-${mode}-${now}.json`);
+  await promisify(execFile)('python3',[join(repo,'tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py'),process.env.QYL_ANSWER_KEY_OTLP,output,project],{env:{...process.env,QYL_ANSWER_KEY_FRESH_IDS:'1',QYL_ANSWER_KEY_MODE:mode,QYL_ANSWER_KEY_NOW:String(now)}});
+  return JSON.parse(await readFile(output,'utf8'));
+ }
+ const dayOne=await send('seed',first);
+ // The first day's traffic runs its reseed's releases, still at the second midnight, before the second reseed planted its own.
+ const traffic=[];for (const now of [first+600,first+day/2,second]) traffic.push(await send('traffic',now));
+ const dayTwo=await send('seed',second);
+ const later=[];for (let run=1;run<=3;run++) later.push(await send('traffic',second+run*600));
+ assert.deepEqual([dayOne.releases,dayTwo.releases],[hosted(first),hosted(second)]);
+ for (const batch of traffic) assert.deepEqual(batch.releases,dayOne.releases,batch.now);
+ for (const batch of later) assert.deepEqual(batch.releases,dayTwo.releases,batch.now);
+ const {checkout,regional}=dayTwo.releases;
+ await withClient(async call=>{
+  // A reviewer's 24 hours up to the last traffic run hold the second reseed and the first day's later traffic.
+  const end=second+3*600, reviewer={start_time:new Date((end-day)*1000).toISOString(),end_time:new Date(end*1000).toISOString()};
+  const all=(await call('triage',{...reviewer,status:'all',matchers:[{key:'service.name',op:'in',values:['checkout','regional'],scope:'resource'}]})).failures;
+  const F=all.find(f=>f.service==='checkout'&&f.operation==='checkout'),R=all.find(f=>f.service==='regional');assert(F&&R,JSON.stringify(all));
+  assert.deepEqual([F.coinciding_release?.version,R.coinciding_release?.version],[checkout.failing,regional.failing]);
+  const latest=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:checkout.fix});
+  sameInstant(latest.change.time,dayTwo.T2);assert.equal(latest.after.occurrences,0);
+  // The four fix requests, the two midnight checkouts and two per later run.
+  assert.equal(latest.verdict,'pending',JSON.stringify(latest));assert.deepEqual(latest.needs,{requests:88,minutes:0});
+  // The first day's fix is the one the second reseed's failures followed.
+  const previous=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:dayOne.releases.checkout.fix});
+  sameInstant(previous.change.time,dayOne.T2);assert.equal(previous.verdict,'failed');
+  const releases=(await call('list_releases',{...reviewer,service_name:'checkout'})).releases;
+  assert.deepEqual(releases.map(r=>r.version),[checkout.fix,checkout.failing,checkout.previous,dayOne.releases.checkout.fix]);
+  sameInstant(releases[0].first_seen,dayTwo.T2);sameInstant(releases[1].first_seen,dayTwo.T);
+  assert.deepEqual([releases[0].new_failure_ids,releases[1].new_failure_ids],[[],[F.failure_id]]);
+  // Over the default week the two days' releases stay apart, the latest pair first.
+  const week=(await call('list_releases',{service_name:'checkout'})).releases.map(r=>r.version);
+  assert.deepEqual(week,[checkout,dayOne.releases.checkout].flatMap(c=>[c.fix,c.failing,c.previous]));
+  const groups=await call('compare_groups',{...reviewer,matchers:[{key:'service.name',op:'eq',value:'regional',scope:'resource'}],signal:'spans',group_a:{matchers:[{key:'error.type',op:'exists'}]},group_b:'rest',attribute_scope:'both'});
+  assert.deepEqual(new Set(groups.discriminators.slice(0,2).map(x=>`${x.key}=${x.value}`)),new Set(['cloud.region=eu',`service.version=${regional.failing}`]));
  },project);
 });
 verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('annotate',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);const context=await call('get_failure_context',{...w,failure_id:F.failure_id});assert(context.context.annotations.some(a=>a.text==='Answer-key finding'));});

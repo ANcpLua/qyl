@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-"""Seed the shared 32-tool answer key through real OTLP; no direct database writes.
+"""Seed the MCP answer key through real OTLP; no direct database writes.
 Usage: python3 seed-answer-key.py http://127.0.0.1:5518 /tmp/qyl-answer-key.json [project]
-The JSON records absolute windows, ids and Verify requests for both C# and MCP tests.
+The JSON records the absolute windows, ids, release names and expected values the answer key checks.
 Every span carries the attributes its OpenTelemetry semantic convention requires and every resource and
 scope its schema URL, so check_telemetry_health finds only the planted incidents.
-Set QYL_ANSWER_KEY_RUN_ID for isolated ids, services and sessions in a shared project;
-set QYL_ANSWER_KEY_FRESH_IDS=1 for new trace and span ids under the same services and sessions, to reseed
-a project such as the hosted reviewer's every day.
+Set QYL_ANSWER_KEY_RUN_ID for isolated ids, services and sessions in a shared project.
+Set QYL_ANSWER_KEY_FRESH_IDS=1, the hosted mode, to reseed a project every day at 00:00 UTC, as the hosted reviewer's
+is: new trace and span ids under the same services and sessions, and releases named by the run's UTC date, so
+verify_fix and list_releases never weigh one day's releases against another's. A version keeps its last number and the
+date replaces the rest: checkout runs YYYY.MM.DD.0, fails from YYYY.MM.DD.1 and is fixed in YYYY.MM.DD.2, and regional
+fails in eu on YYYY.MM.DD.3 beside YYYY.MM.DD.2. Without it they are 1.4.0, 1.4.1, 1.4.2, 2.2 and 2.3.
 Set QYL_ANSWER_KEY_MODE=traffic to send, instead of the seed, one small batch of healthy requests at now, with fresh
 ids, for every seeded service except billing; run every 10 minutes, it keeps those services live between reseeds
-while every planted answer holds, and its checkouts run the fix release 1.4.2, so verify_fix of the checkout failure
-with that release is pending until a hundred of them ran it, then passed. QYL_ANSWER_KEY_NOW (Unix seconds) replaces
-the current time in either mode. Seeded durations vary around their planned values, so no two percentiles agree.
+while every planted answer holds. Its checkouts run the fix release, so verify_fix of the checkout failure with that
+release is pending until a hundred of them ran it, then passed. Hosted traffic sets QYL_ANSWER_KEY_FRESH_IDS=1 as well
+and runs the releases of the reseed ten minutes before now, the latest 00:00 one, never one no reseed has planted.
+QYL_ANSWER_KEY_NOW (Unix seconds) replaces the current time in either mode. Seeded durations vary around their planned
+values, so no two percentiles agree.
 QYL_API_KEY supplies an existing ingest credential without placing it on the command line.
 """
 import datetime, hashlib, json, os, random, sys, time, urllib.request
@@ -20,13 +25,22 @@ project=sys.argv[3] if len(sys.argv)>3 else 'answer-key'
 run_id=os.environ.get('QYL_ANSWER_KEY_RUN_ID','')
 mode=os.environ.get('QYL_ANSWER_KEY_MODE') or 'seed'
 if mode not in ('seed','traffic'):sys.exit(f'QYL_ANSWER_KEY_MODE is seed or traffic, not {mode}.')
-id_salt=os.urandom(16).hex() if mode=='traffic' or os.environ.get('QYL_ANSWER_KEY_FRESH_IDS','') not in ('','0') else ''
+hosted=os.environ.get('QYL_ANSWER_KEY_FRESH_IDS','') not in ('','0')
+id_salt=os.urandom(16).hex() if mode=='traffic' or hosted else ''
 schema='https://opentelemetry.io/schemas/1.44.0'
 scope={'name':'qyl-answer-key','version':'1.0.0'}
 metric_run_labels={'test.run.id':run_id} if run_id else {}
 def scoped(value):return f'{value}-{run_id}' if run_id else value
 # Whole milliseconds, so the RFC 3339 instants the fixture records name T and the fix point T2 exactly.
 now=int(float(os.environ.get('QYL_ANSWER_KEY_NOW') or time.time())*1e3)*1_000_000; minute=60_000_000_000; T=now-20*minute; T2=now-5*minute
+# A hosted run names each release by the UTC date of the reseed it belongs to, keeping the version's last number. The
+# reseed runs at 00:00 UTC and traffic belongs to the one ten minutes back: the traffic at midnight still runs the day
+# before's releases, which that day's reseed planted, and later traffic those of the day's own reseed.
+def release(version):
+ if not hosted:return version
+ day=datetime.datetime.fromtimestamp((now-(10*minute if mode=='traffic' else 0))/1e9,datetime.timezone.utc)
+ return f"{day:%Y.%m.%d}.{version.rsplit('.',1)[1]}"
+releases={'checkout':{'previous':release('1.4.0'),'failing':release('1.4.1'),'fix':release('1.4.2')},'regional':{'previous':release('2.2'),'failing':release('2.3')}}
 spans=[]; logs=[]; keys={}
 def ident(text,n):return hashlib.sha256((id_salt+(f'{project}|{run_id}|{text}' if run_id else text)).encode()).hexdigest()[:n]
 def attr(k,v):
@@ -93,7 +107,7 @@ if mode=='traffic':
  def draw(p95,low,n):return [p95]+[random.uniform(low,p95) for _ in range(n-1)]
  def start(ms):return now-int(random.uniform(1,30)*1e9)-int(ms*1e6)
  for i,(ms,db_ms) in enumerate(zip(draw(20,13,2),draw(10,3,2))):
-  at=start(ms); tr,root=span(f'checkout-{i}','checkout','checkout',at,ms,r={'service.version':'1.4.2'})
+  at=start(ms); tr,root=span(f'checkout-{i}','checkout','checkout',at,ms,r={'service.version':release('1.4.2')})
   span(f'orders-db-{i}','orders-db','db',at+1_000_000,db_ms,parent=root,trace=tr,a={'db.system.name':'postgresql'})
   if i==0:log('checkout',at+int(ms*1e6),9,f'order {ident("order",8)} placed',tr,root)
  for i,ms in enumerate(draw(120,40,2)):
@@ -102,7 +116,7 @@ if mode=='traffic':
  for route,p95,low in [('/checkout',1840,1100),('/cart',210,120)]:
   for i,ms in enumerate(draw(p95,low,2)):span(f'latency-{route}-{i}','http','GET '+route,start(ms),ms,a=http('GET',route,200))
  for (region,version),ms in zip([('us','2.3'),('eu','2.2'),('us','2.2')],random.sample(draw(20,13,3),3)):
-  span(f'regional-{region}-{version}','regional','request',start(ms),ms,r={'cloud.region':region,'service.version':version})
+  span(f'regional-{region}-{version}','regional','request',start(ms),ms,r={'cloud.region':region,'service.version':release(version)})
  for i,ms in enumerate(draw(20,8,2)):span(f'session-{i}','sessions','request',start(ms),ms,session='sess_ok-'+tag)
  for i,(tool,ms) in enumerate(zip(random.sample(['triage','list_failures','get_failure_context','list_traces','get_trace'],2),draw(60,15,2))):
   at=start(ms); tr,sid=span(f'mcp-{i}','qyl-mcp','tools/call '+tool,at,ms,a={'mcp.method.name':'tools/call','gen_ai.tool.name':tool,'mcp.server.name':scoped('qyl'),'mcp.transport':'http'})
@@ -111,23 +125,23 @@ if mode=='traffic':
   span(f'agent-{i}','agent','execute_tool '+tool,start(ms),ms,session='agent_ok-'+tag,kind=1,a={'gen_ai.operation.name':'execute_tool','gen_ai.tool.name':tool,'qyl.gen_ai.tool.call.arguments_hash':ident(f'arguments-{i}',16),'gen_ai.agent.name':'researcher','gen_ai.usage.input_tokens':random.randint(80,140),'gen_ai.usage.output_tokens':random.randint(10,40)})
  ci('ok-'+tag,start(1020),BUILD_MS,False)
  post('/v1/traces',{'resourceSpans':spans});post('/v1/logs',{'resourceLogs':logs})
- open(out,'w').write(json.dumps({'project':project,'run_id':run_id,'mode':mode,'now':iso(now),'spans':len(spans),'logs':len(logs),'sessions':[scoped(name+tag) for name in ['sess_ok-','agent_ok-','ci_ok-']],'keys':keys},indent=2)+'\n');print(out)
+ open(out,'w').write(json.dumps({'project':project,'run_id':run_id,'mode':mode,'now':iso(now),'spans':len(spans),'logs':len(logs),'sessions':[scoped(name+tag) for name in ['sess_ok-','agent_ok-','ci_ok-']],'releases':releases,'keys':keys},indent=2)+'\n');print(out)
  sys.exit()
 for sess,count,errs in [('sess_ok',12,0),('sess_bad',9,3)]:
  for i in range(count):span(f'{sess}-{i}','sessions','request',now-minute+i*1_000_000,error=i<errs,session=sess,a={'error.type':'test'} if i<errs else {})
 # Five checkout symptoms and the timed-out db child share the one failing execution.
-tr,root=span('db-root','checkout','checkout',T+minute,200,error=False,r={'service.version':'1.4.1'})
+tr,root=span('db-root','checkout','checkout',T+minute,200,error=False,r={'service.version':release('1.4.1')})
 _,db=span('db-timeout','orders-db','db',T+minute+1_000_000,100,error=True,parent=root,trace=tr,a={'error.type':'timeout','db.system.name':'postgresql'},message='database timeout')
-for i in range(5):span(f'checkout-child-{i}','checkout','checkout',T+minute+110_000_000+i*1_000_000,5,error=True,parent=root,trace=tr,a={'error.type':'downstream'},r={'service.version':'1.4.1'},message='dependency failed')
-success,sroot=span('db-success-root','checkout','checkout',T-minute,180,r={'service.version':'1.4.0'})
+for i in range(5):span(f'checkout-child-{i}','checkout','checkout',T+minute+110_000_000+i*1_000_000,5,error=True,parent=root,trace=tr,a={'error.type':'downstream'},r={'service.version':release('1.4.1')},message='dependency failed')
+success,sroot=span('db-success-root','checkout','checkout',T-minute,180,r={'service.version':release('1.4.0')})
 span('db-success','orders-db','db',T-minute+1_000_000,90,parent=sroot,trace=success,a={'db.system.name':'postgresql'})
-for i in range(30):span(f'baseline-{i}','checkout','checkout',now-80*minute+i*1_000_000,r={'service.version':'1.4.0'})
-span('release-first','checkout','checkout',T,error=True,a={'error.type':'downstream'},r={'service.version':'1.4.1'},message='dependency failed')
+for i in range(30):span(f'baseline-{i}','checkout','checkout',now-80*minute+i*1_000_000,r={'service.version':release('1.4.0')})
+span('release-first','checkout','checkout',T,error=True,a={'error.type':'downstream'},r={'service.version':release('1.4.1')},message='dependency failed')
 # After the last orders-db timeout checkout ships the fix, 1.4.2, at T2; every later checkout runs it.
-for i in range(4):span(f'fix-request-{i}','checkout','checkout',T2+i*1_000_000,r={'service.version':'1.4.2'})
+for i in range(4):span(f'fix-request-{i}','checkout','checkout',T2+i*1_000_000,r={'service.version':release('1.4.2')})
 for i in range(2):span(f'rare-{i}','payments','POST /pay',T+i*1_000_000,error=True,a={**http('POST','/pay',500),'error.type':'payment'},message='payment error')
 for region,version,error in [('eu','2.3',True),('us','2.3',False),('eu','2.2',False),('us','2.2',False)]:
- for i in range(10):span(f'discrim-{region}-{version}-{i}','regional','request',T+i*1_000_000,error=error,a={'error.type':'regional'} if error else {},r={'cloud.region':region,'service.version':version})
+ for i in range(10):span(f'discrim-{region}-{version}-{i}','regional','request',T+i*1_000_000,error=error,a={'error.type':'regional'} if error else {},r={'cloud.region':region,'service.version':release(version)})
 for route,ms in [('/checkout',1840),('/cart',210)]:
  durations=spread([f'latency-{route}-{i}' for i in range(20)],ms)
  for i in range(20):span(f'latency-{route}-{i}','http','GET '+route,T+i*1_000_000,duration=durations[f'latency-{route}-{i}'],exact=True,a=http('GET',route,200))
@@ -148,5 +162,5 @@ for route,value in [('/checkout',1.84),('/cart',.21)]:
 # The counter starts one minute before its first point, inside the window: all 190 requests are the window's increase.
 metrics.append({'resource':resource('counter'),'schemaUrl':schema,'scopeMetrics':[{'scope':scope,'schemaUrl':schema,'metrics':[{'name':'requests.total','unit':'{request}','sum':{'aggregationTemporality':2,'isMonotonic':True,'dataPoints':[{'attributes':attrs(metric_run_labels),'startTimeUnixNano':str(T-minute),'timeUnixNano':str(T+i*minute),'asInt':str(v)} for i,v in enumerate([100,150,190])]}}]}]})
 post('/v1/traces',{'resourceSpans':spans});post('/v1/logs',{'resourceLogs':logs});post('/v1/metrics',{'resourceMetrics':metrics})
-metadata={'project':project,'run_id':run_id,'mcp_server_name':scoped('qyl'),'services':{name:scoped(name) for name in ['checkout','orders-db','payments','regional','http','counter','qyl-mcp','agent','qyl-ci-test','billing','sessions']},'sessions':{name:scoped(name) for name in ['agent_run','ci_current','ci_baseline','sess_ok','sess_bad']},'now':iso(now),'T':iso(T),'T2':iso(T2),'window':{'start_time':iso(now-60*minute),'end_time':iso(now+minute)},'keys':keys,'expected':{'mcp_requests':40,'mcp_errors':8,'error_rate':.2,'increase':190,'checkout_p95_ms':1840,'fix_requests_needed':96},'baseline_window':{'start_time':iso(now-120*minute),'end_time':iso(now-60*minute)}}
+metadata={'project':project,'run_id':run_id,'mcp_server_name':scoped('qyl'),'services':{name:scoped(name) for name in ['checkout','orders-db','payments','regional','http','counter','qyl-mcp','agent','qyl-ci-test','billing','sessions']},'sessions':{name:scoped(name) for name in ['agent_run','ci_current','ci_baseline','sess_ok','sess_bad']},'now':iso(now),'T':iso(T),'T2':iso(T2),'releases':releases,'window':{'start_time':iso(now-60*minute),'end_time':iso(now+minute)},'keys':keys,'expected':{'mcp_requests':40,'mcp_errors':8,'error_rate':.2,'increase':190,'checkout_p95_ms':1840,'fix_requests_needed':96},'baseline_window':{'start_time':iso(now-120*minute),'end_time':iso(now-60*minute)}}
 open(out,'w').write(json.dumps(metadata,indent=2)+'\n');print(out)

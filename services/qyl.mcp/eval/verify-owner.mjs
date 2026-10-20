@@ -119,7 +119,7 @@ try {
   const agent = await call(owner, "get_agent_run", { ...w, session_id: sessions.agent_run });
   check(agent.findings.repeated_calls.some(item => item.count === 3), "Agent analysis identifies the three actual repeated calls");
   const releases = await call(owner, "list_releases", { ...w, service_name: services.checkout });
-  check(releases.releases.some(item => item.version === "1.4.1" && Date.parse(item.first_seen) === Date.parse(fixture.T)), "Release timeline retains the seeded first observation");
+  check(releases.releases.some(item => item.version === fixture.releases.checkout.failing && Date.parse(item.first_seen) === Date.parse(fixture.T)), "Release timeline retains the seeded first observation");
   const map = await call(owner, "get_service_map", all);
   check(map.edges.some(edge => edge.from === services.checkout && edge.to === services["orders-db"] && edge.error_rate > 0), "Service map contains the real failing dependency edge");
   const health = await call(owner, "check_telemetry_health", all);

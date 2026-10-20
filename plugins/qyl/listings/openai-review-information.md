@@ -55,6 +55,8 @@ The `trace.error` event reports a newly observed trace containing an error span.
 
 Use the dedicated reviewer account and seeded `openai-review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. For list-to-detail operations, preserve the returned window as well as the identifier.
 
+The project is reseeded every day at 00:00 UTC, and each reseed names its checkout releases by that date: `YYYY.MM.DD.1` introduces the checkout failure and `YYYY.MM.DD.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending` until a hundred checkouts ran it, then `passed`.
+
 The ZIP's five positive cases cover checkout trace discovery and detail, `qyl-mcp` error logs, metric instrument discovery, the five most recent sessions, and telemetry health. The three negative cases check that qyl cannot delete raw telemetry, roll back a deployment, or search the public web. A read-only capability question checks the raw-telemetry deletion boundary.
 
 The demo also creates an annotation on the inspected checkout trace, reads it back, and removes only that new annotation using its current `etag`. The underlying trace remains unchanged.
@@ -78,4 +80,4 @@ Documentation: https://qyl.at/docs/mcp/
 
 ## Reviewer access — private fields only
 
-Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, recorded release identifiers, a representative metric, and the procedure for producing the test event. Reviewer access must remain available throughout review.
+Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, the latest checkout release rather than a fixed version (the daily reseed names it `YYYY.MM.DD.2` by its UTC date), a representative metric, and the procedure for producing the test event. Reviewer access must remain available throughout review.
