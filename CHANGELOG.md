@@ -1,5 +1,37 @@
 # Changelog
 
+## 17.0.10
+
+- The Collector's HTTP analysis routes now refuse the same input the MCP refuses, with the same
+  typed `invalid_argument` naming the field. That covers:
+  - a value outside the contract's range or length
+  - an argument the contract does not declare
+  - a value of another type, or outside its closed set
+  - an object that no form of a union declares (`group_b`, a `baseline` window)
+
+  Ranges, lengths and defaults are generated from the contract (`Ranges` and `Lengths` per request
+  body), so the engine keeps no bounds of its own. A refusal names the accepted range and the
+  default that applies when the argument is omitted.
+- New contract bounds:
+  - `baseline.offset_minutes` 1–43200
+  - `aggregate_telemetry` `step_ms` 1–86400000, like `query_metric`'s
+  - `verify_fix` `min_requests` and `min_minutes` at least 0, with their defaults 100 and 30
+    declared
+  - `list_sessions` `min_tokens` at least 0
+
+  Values that used to answer a 500, or were accepted silently, are refused.
+- `POST /api/v1/saved-queries/{id}:run` refuses `lookback_minutes`, which its contract does not
+  declare.
+- A repeated create answers with its record as it is now, including the current etag, and creates
+  the record again if it was deleted. Deleting a record removes its idempotency keys. This covers
+  `save_query`, `annotate` and an HTTP create with the same `Idempotency-Key`. Before, saving a
+  query within 24 hours of deleting the same query returned the deleted record.
+- `check_telemetry_health`'s `data_span` follows the report's service scope, which excludes `qyl.mcp`
+  by default.
+- `ci_log` pages a run's phases 50 at a time, as documented, whatever `limit` pages the runs.
+- A window that starts at the Unix epoch no longer answers a 500 in `triage`,
+  `check_telemetry_health`, `get_mcp_stats` or `compare_groups`.
+
 ## 17.0.9
 
 - `triage` and `check_telemetry_health` leave out the qyl MCP server's own telemetry (service
