@@ -1,5 +1,24 @@
 # Changelog
 
+## 17.0.9
+
+- `triage` and `check_telemetry_health` leave out the qyl MCP server's own telemetry (service
+  `qyl.mcp`) unless `service_name` is `qyl.mcp`, so a caller's own tool errors and idle periods
+  no longer show up as failures or a silent service; `get_mcp_stats` and the reads still show it.
+- `query_metric` and `run_saved_query` bound `lookback_minutes` to 1–43200 like every other tool.
+  `query_metric` no longer writes `start_time` and `end_time` outside its contract; the HTTP
+  saved-query run takes a metric answer's bounds from the run's window.
+- Contracts: triage rows and failure summaries share one fingerprint and state, `query_metric`
+  and a saved metric run share one metric answer, and the silent-service rule is stated once.
+  The shared analysis arguments are TypeSpec aliases, so `AnalysisInput` and
+  `ServiceAnalysisInput` are no longer tool documents, C# classes or TS types; every string enum
+  has a `<Enum>Values` constants class in C#, as in TypeScript.
+- The hosted reviewer project is reseeded every 12 hours, at 00:00 and 12:00 UTC, and its releases
+  are named by the slot, `YYYY.MM.DD.HH.N`, so a 1440-minute window always holds the latest
+  reseed.
+- The answer key covers saved queries, `delete_record`, repeated `verify_id` calls and baselines,
+  checks the seed's expected values and probes the reviewer answers across a whole reseed slot.
+
 ## 17.0.8
 
 - `verify_fix` with `release` anchors the change on the first recorded span of that version in
