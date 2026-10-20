@@ -895,7 +895,7 @@ model SemconvGap {
   missingShare: float64;
 }
 
-@doc("How far back the read's data reaches: its oldest span or log record and the days from it to now. This is not the configured retention.")
+@doc("How far back the read's data reaches in the report's scope: the oldest span or log record of the services, environment and matchers the rest of the report covers, without `qyl.mcp` unless `service_name` names it, and the days from it to now. This is not the configured retention.")
 model TelemetryDataSpan {
   oldest: utcDateTime | null;
   days: float64 | null;

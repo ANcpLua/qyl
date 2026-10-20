@@ -157,7 +157,8 @@ internal sealed partial class AnalysisEngine
             throw new AnalysisInputException("service_name", $"Service {service} sent no telemetry in this window or its baseline; get_service_map lists the services that did.", "service.not_found") { Missing = service };
         var rows = Select(input);
         var orphans = rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p)) && !HasRemoteParent(s)).ToList();
-        var oldest = _spans.Select(s => s.Start).Concat(_logs.Select(s => s.Start)).DefaultIfEmpty().Min();
+        // How far back the read reaches for the services, environment and matchers the rest of the report covers.
+        var oldest = _spans.Concat(_logs).Where(r => InScope(input, r)).Select(static r => r.Start).DefaultIfEmpty().Min();
         // Ingestion lag runs from a producer's observation to the Collector's receipt. A record whose producer set
         // no observed time carries its receipt there, so it says nothing about lag.
         var lag = Select(input, "logs").Select(static l => l.Log!)

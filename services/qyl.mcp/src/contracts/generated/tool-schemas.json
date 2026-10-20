@@ -1886,7 +1886,7 @@
             ]
           }
         },
-        "description": "How far back the read's data reaches: its oldest span or log record and the days from it to now. This is not the configured retention.",
+        "description": "How far back the read's data reaches in the report's scope: the oldest span or log record of the services, environment and matchers the rest of the report covers, without `qyl.mcp` unless `service_name` names it, and the days from it to now. This is not the configured retention.",
         "additionalProperties": false
       },
       "ingestion_lag_ms": {

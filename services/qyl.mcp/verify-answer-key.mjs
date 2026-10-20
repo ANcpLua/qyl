@@ -406,7 +406,10 @@ verifyIsolated('29 saved queries are created, changed, listed, run and deleted',
  const named=await call('triage',{lookback_minutes:60,service_name:own});
  assert.deepEqual([services(named.failures),services(named.silent_services)],[[own],[own]]);
  assert(!services((await call('check_telemetry_health',{lookback_minutes:60})).silent_services).includes(own));
- assert.deepEqual(services((await call('check_telemetry_health',{lookback_minutes:60,service_name:own})).silent_services),[own]);
+ const health=await call('check_telemetry_health',{lookback_minutes:60,service_name:own});
+ assert.deepEqual(services(health.silent_services),[own]);
+ // How far back the data reaches follows the same scope: named, the server's one call.
+ sameInstant(health.data_span.oldest,new Date(Number(start/1_000_000n)).toISOString());
  assert.equal((await call('get_mcp_stats',{lookback_minutes:60,server_name:own})).totals.requests,1,'get_mcp_stats keeps it');
 });
 // Each analysis tool's required arguments, so that one bounded argument at a time is the only one out of its range.

@@ -152,4 +152,30 @@ public sealed partial class AnalysisApiTests
         using var known = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/check_telemetry_health", ReaderApiKey, """{"service_name":"checkout"}""");
         Assert.AreEqual(System.Net.HttpStatusCode.OK, known.StatusCode);
     }
+
+    /// <summary>
+    /// data_span reaches back over what the rest of the report covers: without service_name every service but qyl's own
+    /// MCP server, which exports into the project it reads, and with service_name that service alone, its logs included.
+    /// </summary>
+    [TestMethod]
+    public async Task Data_span_reaches_back_over_the_services_the_report_covers()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var mcp = Api.Contracts.Mcp.Tools.QylServiceValues.Mcp;
+        await host.Store.EnqueueAsync(new Storage.SpanBatch([
+            Span(TraceId(1), SpanId(1), FixtureUnixNano - 50 * Minute, FixtureUnixNano - 50 * Minute + 1000, service: mcp),
+            Span(TraceId(2), SpanId(2), FixtureUnixNano - 45 * Minute, FixtureUnixNano - 45 * Minute + 1000, service: "worker"),
+            Span(TraceId(3), SpanId(3), FixtureUnixNano - 30 * Minute, FixtureUnixNano - 30 * Minute + 1000)
+        ]), testContext.CancellationToken);
+        await host.Store.InsertLogsAsync([new Storage.LogStorageRow
+        {
+            ProjectId = AlphaProjectId, LogId = "checkout-entry", TimeUnixNano = FixtureUnixNano - 40 * Minute, SeverityNumber = 9, ServiceName = "checkout", Body = "entry"
+        }], testContext.CancellationToken);
+        async Task<DateTimeOffset> OldestAsync(string input) =>
+            (await Read(host, "check_telemetry_health", input)).GetProperty("data_span").GetProperty("oldest").GetDateTimeOffset();
+
+        Assert.AreEqual(FixtureUtcNow.AddMinutes(-45), await OldestAsync("{}"));
+        Assert.AreEqual(FixtureUtcNow.AddMinutes(-50), await OldestAsync($$"""{"service_name":"{{mcp}}"}"""));
+        Assert.AreEqual(FixtureUtcNow.AddMinutes(-40), await OldestAsync("""{"service_name":"checkout"}"""));
+    }
 }
