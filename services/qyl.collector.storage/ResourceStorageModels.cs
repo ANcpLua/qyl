@@ -84,9 +84,10 @@ internal sealed partial record SavedQueryRow
 }
 
 /// <summary>
-/// The first result of a creating POST that carried <c>Idempotency-Key</c>. A repeat with the
-/// same key and request fingerprint replays it; another fingerprint is a conflict. Keys expire
-/// after 24 hours, swept by retention.
+/// The record a creating POST that carried <c>Idempotency-Key</c> created. A repeat with the same
+/// key and request fingerprint answers that record as it is now, or creates it again once it was
+/// deleted; another fingerprint is a conflict. Deleting the record deletes its keys; the others
+/// expire after 24 hours, swept by retention.
 /// </summary>
 [DuckDbTable(
     "idempotency_keys",
@@ -117,7 +118,10 @@ internal sealed partial record IdempotencyKeyRow
     [DuckDbColumn(SqlType = "VARCHAR(128)")]
     public required string ResourceId { get; init; }
 
-    /// <summary>The created resource exactly as the first response returned it.</summary>
+    /// <summary>
+    /// The created resource as the first response returned it. A repeat answers the record as it is now, so nothing
+    /// reads this; the column stays because the schema check refuses a database whose table lost one.
+    /// </summary>
     [DuckDbColumn(SqlType = "JSON")]
     public required string ResponseJson { get; init; }
 

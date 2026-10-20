@@ -96,7 +96,7 @@ public sealed class AnnotationApiTests(TestContext testContext)
     }
 
     [TestMethod]
-    public async Task Idempotency_key_replays_the_first_result_and_refuses_a_different_body()
+    public async Task Idempotency_key_answers_the_created_annotation_and_refuses_a_different_body()
     {
         await using var host = await StartWithTraceAsync();
         var key = new Dictionary<string, string> { ["Idempotency-Key"] = "retry-1" };
@@ -123,6 +123,76 @@ public sealed class AnnotationApiTests(TestContext testContext)
 
         using var list = await host.SendAsync(HttpMethod.Get, $"/api/v1/annotations?trace_id={TraceId(1)}", "reader");
         Assert.AreEqual(2, (await host.JsonAsync(list)).GetProperty("items").GetArrayLength());
+    }
+
+    /// <summary>
+    /// A create repeated under its retry key answers the annotation that key created as it is now, with its current
+    /// text, labels and etag. Deleting the annotation takes its key with it, so the same create makes a new one, which a
+    /// read and a delete find.
+    /// </summary>
+    [TestMethod]
+    public async Task A_repeated_create_answers_the_annotation_as_it_is_now_and_after_a_delete_creates_it_again()
+    {
+        await using var host = await StartWithTraceAsync();
+        var key = new Dictionary<string, string> { ["Idempotency-Key"] = "note-repeat" };
+        using var first = await host.SendAsync(HttpMethod.Post, "/api/v1/annotations", "writer", TraceNote("v1"), key);
+        var id = (await host.JsonAsync(first)).GetProperty("id").GetString()!;
+        using var changed = await host.SendAsync(HttpMethod.Patch, $"/api/v1/annotations/{id}", "writer",
+            """{"text":"v2","labels":["kept"]}""", IfMatch(first.Headers.ETag!.ToString()));
+
+        using var repeated = await host.SendAsync(HttpMethod.Post, "/api/v1/annotations", "writer", TraceNote("v1"), key);
+
+        Assert.AreEqual(HttpStatusCode.Created, repeated.StatusCode);
+        var current = await host.JsonAsync(repeated);
+        Assert.AreEqual((id, "v2", "kept", changed.Headers.ETag!.ToString()), (current.GetProperty("id").GetString(),
+            current.GetProperty("text").GetString(), current.GetProperty("labels")[0].GetString(), current.GetProperty("etag").GetString()));
+        Assert.AreEqual(changed.Headers.ETag, repeated.Headers.ETag);
+
+        using var deleted = await host.SendAsync(HttpMethod.Delete, $"/api/v1/annotations/{id}", "deleter",
+            headers: IfMatch(changed.Headers.ETag!.ToString()));
+        Assert.AreEqual(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.IsNull(await host.Store.GetIdempotencyKeyAsync(AlphaProjectId, "annotations", "note-repeat", 0, testContext.CancellationToken));
+
+        using var recreated = await host.SendAsync(HttpMethod.Post, "/api/v1/annotations", "writer", TraceNote("v1"), key);
+
+        Assert.AreEqual(HttpStatusCode.Created, recreated.StatusCode);
+        var created = await host.JsonAsync(recreated);
+        var newId = created.GetProperty("id").GetString()!;
+        Assert.AreEqual("v1", created.GetProperty("text").GetString());
+        Assert.AreNotEqual(id, newId);
+        using var read = await host.SendAsync(HttpMethod.Get, $"/api/v1/annotations/{newId}", "reader");
+        Assert.AreEqual(HttpStatusCode.OK, read.StatusCode);
+        using var deletedAgain = await host.SendAsync(HttpMethod.Delete, $"/api/v1/annotations/{newId}", "deleter",
+            headers: IfMatch(recreated.Headers.ETag!.ToString()));
+        Assert.AreEqual(HttpStatusCode.NoContent, deletedAgain.StatusCode);
+    }
+
+    /// <summary>
+    /// A key whose annotation is gone, as a delete before keys went with their records left it, creates the annotation
+    /// again and takes the key over.
+    /// </summary>
+    [TestMethod]
+    public async Task A_key_whose_annotation_is_gone_creates_it_again()
+    {
+        await using var host = await StartWithTraceAsync();
+        AnnotationRow Row(string id) => new()
+        {
+            ProjectId = AlphaProjectId, AnnotationId = id, TargetKind = "trace", TraceId = TraceId(1), Text = id,
+            CreatedAtUnixNano = FixtureUnixNano, UpdatedAtUnixNano = FixtureUnixNano, Etag = "\"" + id + "\""
+        };
+        IdempotencyKeyRow Key(string resourceId) => new()
+        {
+            ProjectId = AlphaProjectId, Operation = "annotations", IdempotencyKey = "stale", RequestHash = "body",
+            ResourceId = resourceId, ResponseJson = "{}", CreatedAtUnixNano = FixtureUnixNano
+        };
+        await host.Store.CreateAnnotationAsync(Row("ann_kept"), Key("ann_gone"), 0, ct: testContext.CancellationToken);
+
+        var outcome = await host.Store.CreateAnnotationAsync(Row("ann_new"), Key("ann_new"), 0, ct: testContext.CancellationToken);
+
+        Assert.AreEqual(ResourceWriteStatus.Created, outcome.Status);
+        Assert.AreEqual("ann_new", (await host.Store.GetIdempotencyKeyAsync(AlphaProjectId, "annotations", "stale", 0, testContext.CancellationToken))?.ResourceId);
+        var repeat = await host.Store.CreateAnnotationAsync(Row("ann_third"), Key("ann_third"), 0, ct: testContext.CancellationToken);
+        Assert.AreEqual((ResourceWriteStatus.Replayed, "ann_new"), (repeat.Status, repeat.Row?.AnnotationId));
     }
 
     [TestMethod]

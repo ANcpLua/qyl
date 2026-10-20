@@ -81,9 +81,10 @@ session or failure, with optional labels; a bookmark is a note labelled `bookmar
 without an `id` and change the one an `id` names; `delete_record` removes one annotation or saved
 query (`kind` is `annotation` or `saved_query`). Changes and deletes send the current `etag` as
 `If-Match`: a stale etag is refused with `precondition_failed`, a duplicate saved-query name with
-`conflict`. Creates reuse the stored result for 24 hours; without an explicit
-`idempotency_key` the server derives one from the project, operation and request body. No tool
-edits or deletes recorded telemetry; retention alone removes it.
+`conflict`. A create repeated within 24 hours answers the record the first one created, as it is
+now, and creates it again once that was deleted; without an explicit `idempotency_key` the server
+derives one from the project, operation and request body. No tool edits or deletes recorded
+telemetry; retention alone removes it.
 
 `qyl:read` covers reads, `qyl:write` adds creation and updates, and `qyl:delete` permits
 `delete_record`. A missing scope returns the OAuth step-up challenge `403`

@@ -5567,7 +5567,7 @@
         "name": "Idempotency-Key",
         "in": "header",
         "required": false,
-        "description": "Client-chosen retry key, unique per intended create. A repeat with the same\nkey and body returns the first result; the same key with a different body\nis refused with 409. Keys expire after 24 hours.",
+        "description": "Client-chosen retry key, unique per intended create. A repeat with the same\nkey and body answers the resource the first one created, in its current\nversion, or creates it again once it was deleted; the same key with a\ndifferent body is refused with 409 while that resource exists. Deleting the\nresource releases its key; keys expire after 24 hours.",
         "schema": {
           "type": "string",
           "minLength": 1,
@@ -7957,7 +7957,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255,
-            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused."
+            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the annotation the first one created, as it is now, or a new one once that was deleted; send a new key to create another identical one. A key reused with a different body is refused while its annotation exists."
           }
         },
         "unevaluatedProperties": {
@@ -12247,7 +12247,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255,
-            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused."
+            "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the saved query the first one created, as it is now, or a new one once that was deleted. A key reused with a different body is refused while its saved query exists."
           }
         },
         "unevaluatedProperties": {

@@ -180,7 +180,7 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<bool> SpanExistsAsync(string projectId, string traceId, string spanId, CancellationToken ct = default);
 
-    /// <summary>The unexpired first result of a creating POST under this key, if any.</summary>
+    /// <summary>The unexpired retry key of a creating POST, naming the record it created, if any.</summary>
     Task<IdempotencyKeyRow?> GetIdempotencyKeyAsync(
         string projectId,
         string operation,

@@ -1090,7 +1090,7 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 255,
-        "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused."
+        "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the annotation the first one created, as it is now, or a new one once that was deleted; send a new key to create another identical one. A key reused with a different body is refused while its annotation exists."
       }
     },
     "description": "Attaches a note to a trace, span, session or failure, or with `id` and its current `etag` changes a note's text, labels or classification; the telemetry is not changed. get_trace and list_sessions return the notes on traces, spans and sessions, get_failure_context the notes on a failure and its traces, triage counts them per failure, and `annotation_label` filters list_traces and list_sessions by label. Needs the qyl:write scope; a stale etag is refused, so re-read the note and retry.",
@@ -16308,7 +16308,7 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 255,
-        "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused."
+        "description": "Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the saved query the first one created, as it is now, or a new one once that was deleted. A key reused with a different body is refused while its saved query exists."
       }
     },
     "description": "Saves a named filter over traces, logs or metrics so a question can be asked again; it stores the filter, never results, and run_saved_query answers it or lists the saved queries. Without `id` it creates a saved query from `name` and `filter`; with `id` and its current `etag` it changes the fields sent, a new `filter` replacing the old one whole, and refuses a stale etag. Names are unique per project; needs the qyl:write scope.",

@@ -24,11 +24,10 @@ internal enum ResourceWriteStatus
     NameConflict
 }
 
-/// <summary>The result of one serialized resource write.</summary>
+/// <summary>The result of one serialized resource write; a repeated create's <see cref="Row"/> is the record as it is now.</summary>
 internal sealed record ResourceWriteOutcome<TRow>(
     ResourceWriteStatus Status,
     TRow? Row = null,
-    IdempotencyKeyRow? Replay = null,
     string? CurrentEtag = null)
     where TRow : class;
 
@@ -124,11 +123,10 @@ internal sealed partial class DuckDbStore
         ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            if (idempotency is not null &&
-                ReadIdempotencyKey(con, tx, idempotency.ProjectId, idempotency.Operation, idempotency.IdempotencyKey,
-                    idempotencyNotBeforeUnixNano) is { } previous)
+            if (idempotency is not null && Repeat(con, tx, idempotency, idempotencyNotBeforeUnixNano,
+                    id => ReadAnnotation(con, tx, idempotency.ProjectId, id)) is { } repeat)
             {
-                return ReplayOrConflict<AnnotationRow>(previous, idempotency);
+                return repeat;
             }
 
             await InsertRowsBatchedAsync(con, tx, [row], AnnotationRow.AddParameters,
@@ -192,6 +190,7 @@ internal sealed partial class DuckDbStore
             cmd.CommandText = "DELETE FROM analysis_state WHERE project_id = $1 AND state_key = $2";
             AddParameters(cmd, projectId, "annotation:" + annotationId);
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            await DeleteIdempotencyKeysAsync(cmd, projectId, annotationId, token).ConfigureAwait(false);
             await tx.CommitAsync(token).ConfigureAwait(false);
             return new ResourceWriteOutcome<AnnotationRow>(ResourceWriteStatus.Deleted, current);
         }, ct);
@@ -242,11 +241,10 @@ internal sealed partial class DuckDbStore
         ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            if (idempotency is not null &&
-                ReadIdempotencyKey(con, tx, idempotency.ProjectId, idempotency.Operation, idempotency.IdempotencyKey,
-                    idempotencyNotBeforeUnixNano) is { } previous)
+            if (idempotency is not null && Repeat(con, tx, idempotency, idempotencyNotBeforeUnixNano,
+                    id => ReadSavedQuery(con, tx, idempotency.ProjectId, id)) is { } repeat)
             {
-                return ReplayOrConflict<SavedQueryRow>(previous, idempotency);
+                return repeat;
             }
 
             if (SavedQueryNameTaken(con, tx, row.ProjectId, row.Name, exceptSavedQueryId: null))
@@ -311,15 +309,38 @@ internal sealed partial class DuckDbStore
             cmd.CommandText = "DELETE FROM saved_queries WHERE project_id = $1 AND saved_query_id = $2";
             AddParameters(cmd, projectId, savedQueryId);
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            await DeleteIdempotencyKeysAsync(cmd, projectId, savedQueryId, token).ConfigureAwait(false);
             await tx.CommitAsync(token).ConfigureAwait(false);
             return new ResourceWriteOutcome<SavedQueryRow>(ResourceWriteStatus.Deleted, current);
         }, ct);
 
-    private static ResourceWriteOutcome<TRow> ReplayOrConflict<TRow>(IdempotencyKeyRow previous, IdempotencyKeyRow attempt)
-        where TRow : class =>
-        string.Equals(previous.RequestHash, attempt.RequestHash, StringComparison.Ordinal)
-            ? new ResourceWriteOutcome<TRow>(ResourceWriteStatus.Replayed, Replay: previous)
-            : new ResourceWriteOutcome<TRow>(ResourceWriteStatus.IdempotencyConflict, Replay: previous);
+    /// <summary>
+    /// A create repeated under its retry key answers the record that key created, as it is now; the same key with another
+    /// body is a conflict. Null when the key is new or its record was deleted: the create runs again and takes the key over.
+    /// </summary>
+    private static ResourceWriteOutcome<TRow>? Repeat<TRow>(
+        DuckDBConnection con,
+        DbTransaction tx,
+        IdempotencyKeyRow attempt,
+        ulong notBeforeUnixNano,
+        Func<string, TRow?> read)
+        where TRow : class
+    {
+        if (ReadIdempotencyKey(con, tx, attempt.ProjectId, attempt.Operation, attempt.IdempotencyKey, notBeforeUnixNano) is not { } previous)
+            return null;
+        if (!string.Equals(previous.RequestHash, attempt.RequestHash, StringComparison.Ordinal))
+            return new ResourceWriteOutcome<TRow>(ResourceWriteStatus.IdempotencyConflict);
+        return read(previous.ResourceId) is { } current ? new ResourceWriteOutcome<TRow>(ResourceWriteStatus.Replayed, current) : null;
+    }
+
+    // A deleted record's retry keys go with it, so a repeat of its create makes a new one.
+    private static async Task DeleteIdempotencyKeysAsync(DuckDBCommand cmd, string projectId, string resourceId, CancellationToken token)
+    {
+        cmd.Parameters.Clear();
+        cmd.CommandText = "DELETE FROM idempotency_keys WHERE project_id = $1 AND resource_id = $2";
+        AddParameters(cmd, projectId, resourceId);
+        await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+    }
 
     private static IdempotencyKeyRow? ReadIdempotencyKey(
         DuckDBConnection con,

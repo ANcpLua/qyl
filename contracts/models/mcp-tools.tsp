@@ -722,7 +722,7 @@ model AnnotateInput {
   @doc("What the note records: `note` (the default on a create), `hypothesis`, `finding` or `rejected`.")
   classification?: AnnotationClassification;
 
-  @doc("Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first annotation; send a new key to create another identical one. A key reused with a different body is refused.")
+  @doc("Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the annotation the first one created, as it is now, or a new one once that was deleted; send a new key to create another identical one. A key reused with a different body is refused while its annotation exists.")
   @minLength(1) @maxLength(255)
   @encodedName("application/json", "idempotency_key")
   idempotencyKey?: string;
@@ -756,7 +756,7 @@ model SaveQueryInput {
   @doc("The stored filter, required to create; its `signal` (`traces`, `logs` or `metrics`) selects which fields apply.")
   filter?: SavedQueryFilter;
 
-  @doc("Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the first saved query. A key reused with a different body is refused.")
+  @doc("Without `id`: a retry key, 1 to 255 characters. Omitted, an identical create within 24 hours returns the saved query the first one created, as it is now, or a new one once that was deleted. A key reused with a different body is refused while its saved query exists.")
   @minLength(1) @maxLength(255)
   @encodedName("application/json", "idempotency_key")
   idempotencyKey?: string;

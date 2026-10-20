@@ -130,6 +130,75 @@ public sealed class SavedQueryApiTests(TestContext testContext)
         Assert.AreEqual(HttpStatusCode.Conflict, conflict.StatusCode);
     }
 
+    /// <summary>
+    /// A create repeated under its retry key answers the saved query that key created as it is now, with its current
+    /// etag. Deleting the saved query takes its key with it, so the same create makes a new one, which a run and a
+    /// delete find.
+    /// </summary>
+    [TestMethod]
+    public async Task A_repeated_create_answers_the_saved_query_as_it_is_now_and_after_a_delete_creates_it_again()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var key = new Dictionary<string, string> { ["Idempotency-Key"] = "sq-repeat" };
+        var body = $$"""{"name":"q","filter":{{ErrorsFilter}}}""";
+        using var first = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer", body, key);
+        var id = (await host.JsonAsync(first)).GetProperty("id").GetString()!;
+        using var changed = await host.SendAsync(HttpMethod.Patch, $"/api/v1/saved-queries/{id}", "writer",
+            """{"description":"changed"}""", IfMatch(first.Headers.ETag!.ToString()));
+
+        using var repeated = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer", body, key);
+
+        Assert.AreEqual(HttpStatusCode.Created, repeated.StatusCode);
+        var current = await host.JsonAsync(repeated);
+        Assert.AreEqual((id, "changed", changed.Headers.ETag!.ToString()),
+            (current.GetProperty("id").GetString(), current.GetProperty("description").GetString(), current.GetProperty("etag").GetString()));
+        Assert.AreEqual(changed.Headers.ETag, repeated.Headers.ETag);
+
+        using var deleted = await host.SendAsync(HttpMethod.Delete, $"/api/v1/saved-queries/{id}", "deleter",
+            headers: IfMatch(changed.Headers.ETag!.ToString()));
+        Assert.AreEqual(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.IsNull(await host.Store.GetIdempotencyKeyAsync(AlphaProjectId, "saved-queries", "sq-repeat", 0, testContext.CancellationToken));
+
+        using var recreated = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer", body, key);
+
+        Assert.AreEqual(HttpStatusCode.Created, recreated.StatusCode);
+        var newId = (await host.JsonAsync(recreated)).GetProperty("id").GetString()!;
+        Assert.AreNotEqual(id, newId);
+        using var run = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/run_saved_query", "reader", $$"""{"id":"{{newId}}"}""");
+        Assert.AreEqual(HttpStatusCode.OK, run.StatusCode);
+        using var deletedAgain = await host.SendAsync(HttpMethod.Delete, $"/api/v1/saved-queries/{newId}", "deleter",
+            headers: IfMatch(recreated.Headers.ETag!.ToString()));
+        Assert.AreEqual(HttpStatusCode.NoContent, deletedAgain.StatusCode);
+    }
+
+    /// <summary>
+    /// A key whose saved query is gone, as a delete before keys went with their records left it, creates the saved
+    /// query again and takes the key over.
+    /// </summary>
+    [TestMethod]
+    public async Task A_key_whose_saved_query_is_gone_creates_it_again()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        SavedQueryRow Row(string id) => new()
+        {
+            ProjectId = AlphaProjectId, SavedQueryId = id, Name = id, Signal = "traces", FilterJson = """{"signal":"traces"}""",
+            CreatedAtUnixNano = FixtureUnixNano, UpdatedAtUnixNano = FixtureUnixNano, Etag = "\"" + id + "\""
+        };
+        IdempotencyKeyRow Key(string resourceId) => new()
+        {
+            ProjectId = AlphaProjectId, Operation = "saved-queries", IdempotencyKey = "stale", RequestHash = "body",
+            ResourceId = resourceId, ResponseJson = "{}", CreatedAtUnixNano = FixtureUnixNano
+        };
+        await host.Store.CreateSavedQueryAsync(Row("sq_kept"), Key("sq_gone"), 0, testContext.CancellationToken);
+
+        var outcome = await host.Store.CreateSavedQueryAsync(Row("sq_new"), Key("sq_new"), 0, testContext.CancellationToken);
+
+        Assert.AreEqual(ResourceWriteStatus.Created, outcome.Status);
+        Assert.AreEqual("sq_new", (await host.Store.GetIdempotencyKeyAsync(AlphaProjectId, "saved-queries", "stale", 0, testContext.CancellationToken))?.ResourceId);
+        var repeat = await host.Store.CreateSavedQueryAsync(Row("sq_third"), Key("sq_third"), 0, testContext.CancellationToken);
+        Assert.AreEqual((ResourceWriteStatus.Replayed, "sq_new"), (repeat.Status, repeat.Row?.SavedQueryId));
+    }
+
     [TestMethod]
     [DataRow("""{"name":"","filter":{"signal":"traces"}}""", "name")]
     [DataRow("""{"name":"x","filter":{"signal":"traces","lookback_minutes":0}}""", "filter.lookback_minutes")]

@@ -372,7 +372,22 @@ void test('28 reseeds every 12 hours name their releases by the slot: any day-lo
   assert.deepEqual(new Set(groups.discriminators.slice(0,2).map(x=>`${x.key}=${x.value}`)),new Set(['cloud.region=eu',`service.version=${regional.failing}`]));
  },project);
 });
-verifyIsolated('27 annotation on F read back as count1',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);await call('annotate',{target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key'],idempotency_key:'answer-key-finding'});assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);const context=await call('get_failure_context',{...w,failure_id:F.failure_id});assert(context.context.annotations.some(a=>a.text==='Answer-key finding'));});
+verifyIsolated('27 annotation on F read back as count1; repeated, its create answers it as it is now and after a delete makes a new one',async call=>{
+ const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);
+ // No idempotency_key: the server derives one from the body, so every repeat below is the same create.
+ const create={target:{kind:'failure',failure_id:F.failure_id},text:'Answer-key finding',classification:'finding',labels:['answer-key']};
+ const first=(await call('annotate',create)).annotation;
+ assert.equal((await failures(call)).find(f=>f.failure_id===F.failure_id).annotation_count,1);
+ assert((await call('get_failure_context',{...w,failure_id:F.failure_id})).context.annotations.some(a=>a.text==='Answer-key finding'));
+ const changed=(await call('annotate',{id:first.id,etag:first.etag,text:'Answer-key finding, confirmed'})).annotation;
+ const repeated=(await call('annotate',create)).annotation;
+ assert.deepEqual([repeated.id,repeated.etag,repeated.text],[first.id,changed.etag,'Answer-key finding, confirmed']);
+ assert.equal((await call('delete_record',{kind:'annotation',id:first.id,etag:changed.etag})).deleted,true);
+ const again=(await call('annotate',create)).annotation;
+ assert.notEqual(again.id,first.id);
+ assert((await call('get_failure_context',{...w,failure_id:F.failure_id})).context.annotations.some(a=>a.id===again.id));
+ assert.equal((await call('delete_record',{kind:'annotation',id:again.id,etag:again.etag})).deleted,true);
+});
 verifyIsolated('32a ignored F suppressed fromtriage',async call=>{const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const saved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'ignored'});assert.equal(saved.failure.status,'ignored');try { assert(!(await call('triage',w)).failures.some(f=>f.failure_id===F.failure_id)); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:saved.failure.etag,status:'open'}); }});
 verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);const resolved=await call('update_failure_status',{failure_id:F.failure_id,etag:F.etag,status:'resolved'});
@@ -383,11 +398,15 @@ verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
  const response=await fetch((process.env.QYL_ANSWER_KEY_OTLP??'http://127.0.0.1:5518')+'/v1/traces',{method:'POST',headers:{'content-type':'application/json','x-qyl-project':process.env.QYL_PROJECT},body:JSON.stringify({resourceSpans:[{resource:{attributes:[{key:'qyl.project.id',value:{stringValue:process.env.QYL_PROJECT}},{key:'service.name',value:{stringValue:'checkout'}},{key:'service.version',value:{stringValue:'1.4.1'}}]},scopeSpans:[{spans:[{traceId:randomBytes(16).toString('hex'),spanId:randomBytes(8).toString('hex'),name:'checkout',kind:2,startTimeUnixNano:String(now-1_000_000n),endTimeUnixNano:String(now),status:{code:2,message:'dependency failed'},attributes:[{key:'error.type',value:{stringValue:'downstream'}}]}]}]}]})});assert.equal(response.status,200);
  try { const data=await call('triage',{lookback_minutes:60});assert.equal(data.failures.find(f=>f.failure_id===F.failure_id).change,'regressed'); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:resolved.failure.etag,status:'open'}); }
 });
-verifyIsolated('29 saved queries are created, changed, listed, run and deleted',async call=>{
- const traces=await call('save_query',{name:'checkout traces',filter:{signal:'traces',service_name:'checkout',lookback_minutes:60},idempotency_key:'answer-key-traces'});
- const metrics=await call('save_query',{name:'requests per window',filter:{signal:'metrics',metric_name:'requests.total',lookback_minutes:60}});
+verifyIsolated('29 saved queries are created, changed, listed, run and deleted; a repeated create answers one as it is now and after a delete makes a new one',async call=>{
+ const tracesQuery={name:'checkout traces',filter:{signal:'traces',service_name:'checkout',lookback_minutes:60},idempotency_key:'answer-key-traces'};
+ const metricsQuery={name:'requests per window',filter:{signal:'metrics',metric_name:'requests.total',lookback_minutes:60}};
+ const traces=await call('save_query',tracesQuery);
+ const metrics=await call('save_query',metricsQuery);
  const changed=await call('save_query',{id:traces.saved_query.id,etag:traces.saved_query.etag,description:'The planted checkout incident'});
  assert.equal(changed.saved_query.description,'The planted checkout incident');assert.notEqual(changed.saved_query.etag,traces.saved_query.etag);
+ const repeated=(await call('save_query',tracesQuery)).saved_query;
+ assert.deepEqual([repeated.id,repeated.etag,repeated.description],[traces.saved_query.id,changed.saved_query.etag,'The planted checkout incident']);
  const listed=await call('run_saved_query',{});
  assert.deepEqual(listed.saved_queries.map(q=>[q.name,q.etag]),[['checkout traces',changed.saved_query.etag],['requests per window',metrics.saved_query.etag]]);
  assert((await call('run_saved_query',{id:changed.saved_query.id})).traces.some(t=>t.trace_id===key['db-root'].trace_id));
@@ -395,7 +414,14 @@ verifyIsolated('29 saved queries are created, changed, listed, run and deleted',
  assert.deepEqual([answer.name,answer.aggregation,answer.series.length],['requests.total','avg',1]);
  for (const {saved_query:query} of [changed,metrics]) assert.equal((await call('delete_record',{kind:'saved_query',id:query.id,etag:query.etag})).deleted,true);
  assert.deepEqual((await call('run_saved_query',{})).saved_queries,[]);
-});verifyIsolated('30 triage and health leave the qyl MCP server\'s own telemetry out unless service_name names it',async call=>{
+ // The metrics query's create took the key the server derives from its body; deleted, the same create makes a new one.
+ const again=(await call('save_query',metricsQuery)).saved_query;
+ assert.notEqual(again.id,metrics.saved_query.id);
+ assert.equal((await call('run_saved_query',{id:again.id})).metric.name,'requests.total');
+ assert.deepEqual((await call('run_saved_query',{})).saved_queries.map(q=>q.id),[again.id]);
+ assert.equal((await call('delete_record',{kind:'saved_query',id:again.id,etag:again.etag})).deleted,true);
+});
+verifyIsolated('30 triage and health leave the qyl MCP server\'s own telemetry out unless service_name names it',async call=>{
  // The server exports its own spans into the project it reads: one call failed 20 minutes ago.
  const own=QylServiceValues.mcp, start=BigInt(Date.now()-20*60_000)*1_000_000n;
  const response=await fetch((process.env.QYL_ANSWER_KEY_OTLP??'http://127.0.0.1:5518')+'/v1/traces',{method:'POST',headers:{'content-type':'application/json','x-qyl-project':process.env.QYL_PROJECT},body:JSON.stringify({resourceSpans:[{resource:{attributes:[{key:'qyl.project.id',value:{stringValue:process.env.QYL_PROJECT}},{key:'service.name',value:{stringValue:own}}]},scopeSpans:[{spans:[{traceId:randomBytes(16).toString('hex'),spanId:randomBytes(8).toString('hex'),name:'tools/call triage',kind:2,startTimeUnixNano:String(start),endTimeUnixNano:String(start+1_000_000n),status:{code:2,message:'tool failed'},attributes:[{key:'mcp.method.name',value:{stringValue:'tools/call'}},{key:'error.type',value:{stringValue:'tool_error'}}]}]}]}]})});assert.equal(response.status,200);

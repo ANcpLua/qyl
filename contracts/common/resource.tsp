@@ -9,7 +9,8 @@
 // Concurrency: a read returns `etag`; PATCH and DELETE send it back in
 // `If-Match`. A missing `If-Match` is refused with 428, a stale one with 412.
 // Retries: a POST that creates a resource takes `Idempotency-Key`; a repeat
-// with the same key and body returns the first result instead of a duplicate.
+// with the same key and body answers the resource it created, as it is now,
+// instead of a duplicate, and creates it again once it was deleted.
 // =============================================================================
 
 import "@typespec/http";
@@ -78,8 +79,10 @@ model ResourceBase {
 model IdempotencyKeyHeader {
   @doc("""
     Client-chosen retry key, unique per intended create. A repeat with the same
-    key and body returns the first result; the same key with a different body
-    is refused with 409. Keys expire after 24 hours.
+    key and body answers the resource the first one created, in its current
+    version, or creates it again once it was deleted; the same key with a
+    different body is refused with 409 while that resource exists. Deleting the
+    resource releases its key; keys expire after 24 hours.
     """)
   @header("Idempotency-Key")
   @minLength(1)

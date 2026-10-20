@@ -11,8 +11,9 @@
  * each create a record without an `id` and change the one an `id` names with
  * its current etag, and deleting is `delete_record` alone.
  *
- * Identical creates are deduplicated for 24 hours; a new explicit retry key
- * requests another object. A change or a delete replaces or removes the
+ * An identical create within 24 hours answers the object the first one created,
+ * as it is now, and creates it again once it was deleted; a new explicit retry
+ * key requests another object. A change or a delete replaces or removes the
  * version an etag names, so the write tools are destructive and idempotent:
  * repeating one changes nothing more. `annotate` and `save_query` need
  * `qyl:write`, `delete_record` needs `qyl:delete`, and `run_saved_query` keeps

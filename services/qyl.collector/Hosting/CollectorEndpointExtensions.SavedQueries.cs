@@ -79,8 +79,12 @@ internal static partial class CollectorEndpointExtensions
             ResourceWriteStatus.Created => ResourceHttp.Created(
                 httpContext, SavedQueryLocation(row.SavedQueryId), row.Etag, savedQuery,
                 QylSerializerContext.Default.SavedQuery),
+            // A repeat answers the saved query its key created as it is now, with its current etag.
+            ResourceWriteStatus.Replayed => ResourceHttp.Created(
+                httpContext, SavedQueryLocation(outcome.Row!.SavedQueryId), outcome.Row.Etag, SavedQueryMapper.ToContract(outcome.Row),
+                QylSerializerContext.Default.SavedQuery),
             ResourceWriteStatus.NameConflict => SavedQueryNameConflict(request.Name),
-            _ => ReplaySavedQuery(httpContext, outcome.Replay!, fingerprint, idempotencyKey!)
+            _ => ResourceHttp.IdempotencyConflict(idempotencyKey!)
         };
     }
 
@@ -263,21 +267,6 @@ internal static partial class CollectorEndpointExtensions
 
     private static IResult SavedQueryNameConflict(string name) =>
         ContractErrorResults.Conflict(name, "A saved query with this name already exists in the project.");
-
-    private static IResult ReplaySavedQuery(
-        HttpContext httpContext,
-        IdempotencyKeyRow previous,
-        string fingerprint,
-        string idempotencyKey)
-    {
-        if (!string.Equals(previous.RequestHash, fingerprint, StringComparison.Ordinal))
-            return ResourceHttp.IdempotencyConflict(idempotencyKey);
-
-        var savedQuery = JsonSerializer.Deserialize(previous.ResponseJson, QylSerializerContext.Default.SavedQuery)
-                         ?? throw new InvalidDataException("A stored idempotent response is empty.");
-        return ResourceHttp.Created(httpContext, SavedQueryLocation(previous.ResourceId), savedQuery.Etag, savedQuery,
-            QylSerializerContext.Default.SavedQuery);
-    }
 
     private static IResult? ValidateSavedQueryName(string name) =>
         LengthBetween(name, 1, SavedQueryMaxNameLength)

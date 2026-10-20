@@ -38,13 +38,17 @@ internal static partial class CollectorEndpointExtensions
         var fingerprint = ResourceHttp.Fingerprint(request, QylSerializerContext.Default.AnnotationCreateRequest);
         var notBefore = ResourceHttp.IdempotencyNotBefore(timeProvider);
 
-        // A retry replays its first result even if the target has since expired, so the key is
-        // consulted before the target is.
+        // A retry answers the annotation its key created, as it is now, even if the target has since
+        // expired, so the key is consulted before the target is; once that annotation was deleted, the
+        // retry creates it again.
         if (idempotencyKey is not null &&
             await store.GetIdempotencyKeyAsync(projectId, AnnotationOperation, idempotencyKey, notBefore, ct)
                 .ConfigureAwait(false) is { } previous)
         {
-            return ReplayAnnotation(httpContext, previous, fingerprint, idempotencyKey);
+            if (!string.Equals(previous.RequestHash, fingerprint, StringComparison.Ordinal))
+                return ResourceHttp.IdempotencyConflict(idempotencyKey);
+            if (await store.GetAnnotationAsync(projectId, previous.ResourceId, ct).ConfigureAwait(false) is { } current)
+                return await RepeatedAnnotationAsync(httpContext, store, current, ct).ConfigureAwait(false);
         }
 
         if (await FindMissingTargetAsync(store, projectId, request.Target, ct).ConfigureAwait(false) is { } missing)
@@ -96,7 +100,8 @@ internal static partial class CollectorEndpointExtensions
             ResourceWriteStatus.Created => ResourceHttp.Created(
                 httpContext, AnnotationLocation(row.AnnotationId), row.Etag, annotation,
                 QylSerializerContext.Default.Annotation),
-            _ => ReplayAnnotation(httpContext, outcome.Replay!, fingerprint, idempotencyKey!)
+            ResourceWriteStatus.Replayed => await RepeatedAnnotationAsync(httpContext, store, outcome.Row!, ct).ConfigureAwait(false),
+            _ => ResourceHttp.IdempotencyConflict(idempotencyKey!)
         };
     }
 
@@ -223,18 +228,16 @@ internal static partial class CollectorEndpointExtensions
     private static string AnnotationLocation(string annotationId) =>
         "/api/v1/annotations/" + Uri.EscapeDataString(annotationId);
 
-    private static IResult ReplayAnnotation(
+    // A repeated create answers the annotation its key created as it is now: its current text, labels,
+    // classification and etag.
+    private static async Task<IResult> RepeatedAnnotationAsync(
         HttpContext httpContext,
-        IdempotencyKeyRow previous,
-        string fingerprint,
-        string idempotencyKey)
+        IQylStore store,
+        AnnotationRow current,
+        CancellationToken ct)
     {
-        if (!string.Equals(previous.RequestHash, fingerprint, StringComparison.Ordinal))
-            return ResourceHttp.IdempotencyConflict(idempotencyKey);
-
-        var annotation = JsonSerializer.Deserialize(previous.ResponseJson, QylSerializerContext.Default.Annotation)
-                         ?? throw new InvalidDataException("A stored idempotent response is empty.");
-        return ResourceHttp.Created(httpContext, AnnotationLocation(previous.ResourceId), annotation.Etag, annotation,
+        var annotation = (await AnnotationContractsAsync(store, [current], ct).ConfigureAwait(false))[0];
+        return ResourceHttp.Created(httpContext, AnnotationLocation(current.AnnotationId), current.Etag, annotation,
             QylSerializerContext.Default.Annotation);
     }
 
