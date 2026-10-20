@@ -309,48 +309,62 @@ void test('26 the fix in 1.4.2 is pending, then passes once a hundred checkouts 
   assert.equal(passed.verdict,'passed',JSON.stringify(passed));assert.deepEqual([passed.after.occurrences,passed.after.requests],[0,100]);
  },project);
 });
-registrations.push('28 hosted reseeds a day apart name their releases by date: the latest fix is pending and leads list_releases');
-void test('28 hosted reseeds a day apart name their releases by date: the latest fix is pending and leads list_releases',{concurrency:false},async()=>{
+registrations.push('28 reseeds every 12 hours name their releases by the slot: any day-long window holds the latest reseed\'s failure, baseline, silent billing and fix');
+void test('28 reseeds every 12 hours name their releases by the slot: any day-long window holds the latest reseed\'s failure, baseline, silent billing and fix',{concurrency:false},async()=>{
  const project='answer-key-'+randomBytes(8).toString('hex');
  const repo=fileURLToPath(new URL('../..',import.meta.url));
- // The hosted reseed runs at 00:00 UTC; the second of two a day apart ran at a midnight at least an hour ago.
- const day=86_400, second=Math.floor((Date.now()/1000-3600)/day)*day, first=second-day;
- const named=(at,build)=>`${new Date(at*1000).toISOString().slice(0,10).replaceAll('-','.')}.${build}`;
+ // The hosted reseed runs every 12 hours, at 00:00 and 12:00 UTC. Four ran in a row, the latest a whole slot before the
+ // current one, so its window ending 11 h 50 min later has passed too; four put billing's four reseeded hours into the
+ // 48 hours a day-long triage weighs.
+ const slot=43_200, latest=Math.floor(Date.now()/1000/slot)*slot-slot, reseeds=[3,2,1,0].map(back=>latest-back*slot);
+ const named=(at,build)=>{const time=new Date(at*1000).toISOString();return `${time.slice(0,10).replaceAll('-','.')}.${time.slice(11,13)}.${build}`;};
  const hosted=at=>({checkout:{previous:named(at,0),failing:named(at,1),fix:named(at,2)},regional:{previous:named(at,2),failing:named(at,3)}});
  async function send(mode,now){
   const output=join(dirname(process.env.QYL_ANSWER_KEY_FILE),`${project}-${mode}-${now}.json`);
   await promisify(execFile)('python3',[join(repo,'tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py'),process.env.QYL_ANSWER_KEY_OTLP,output,project],{env:{...process.env,QYL_ANSWER_KEY_FRESH_IDS:'1',QYL_ANSWER_KEY_MODE:mode,QYL_ANSWER_KEY_NOW:String(now)}});
   return JSON.parse(await readFile(output,'utf8'));
  }
- const dayOne=await send('seed',first);
- // The first day's traffic runs its reseed's releases, still at the second midnight, before the second reseed planted its own.
- const traffic=[];for (const now of [first+600,first+day/2,second]) traffic.push(await send('traffic',now));
- const dayTwo=await send('seed',second);
- const later=[];for (let run=1;run<=3;run++) later.push(await send('traffic',second+run*600));
- assert.deepEqual([dayOne.releases,dayTwo.releases],[hosted(first),hosted(second)]);
- for (const batch of traffic) assert.deepEqual(batch.releases,dayOne.releases,batch.now);
- for (const batch of later) assert.deepEqual(batch.releases,dayTwo.releases,batch.now);
- const {checkout,regional}=dayTwo.releases;
+ // Traffic runs the releases of the slot ten minutes back: at 12:00 and 12:05 still the 00:00 reseed's, from 12:10 the
+ // 12:00 one's. After the latest reseed it runs at its start, 5, 10 and 15 minutes in, 6 hours and 11 h 50 min in.
+ const seeded=[], after=[0,300,600,900,21_600,42_600];
+ for (const at of reseeds) {
+  seeded.push(await send('seed',at));
+  for (const offset of at===latest?after:[600,21_600]) {
+   const batch=await send('traffic',at+offset);
+   assert.deepEqual(batch.releases,hosted(Math.floor((at+offset-600)/slot)*slot),batch.now);
+  }
+ }
+ assert.deepEqual(seeded.map(s=>s.releases),reseeds.map(hosted));
+ const [previous,newest]=seeded.slice(-2), {checkout,regional}=newest.releases;
  await withClient(async call=>{
-  // A reviewer's 24 hours up to the last traffic run hold the second reseed and the first day's later traffic.
-  const end=second+3*600, reviewer={start_time:new Date((end-day)*1000).toISOString(),end_time:new Date(end*1000).toISOString()};
-  const all=(await call('triage',{...reviewer,status:'all',matchers:[{key:'service.name',op:'in',values:['checkout','regional'],scope:'resource'}]})).failures;
-  const F=all.find(f=>f.service==='checkout'&&f.operation==='checkout'),R=all.find(f=>f.service==='regional');assert(F&&R,JSON.stringify(all));
-  assert.deepEqual([F.coinciding_release?.version,R.coinciding_release?.version],[checkout.failing,regional.failing]);
-  const latest=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:checkout.fix});
-  sameInstant(latest.change.time,dayTwo.T2);assert.equal(latest.after.occurrences,0);
-  // The four fix requests, the two midnight checkouts and two per later run.
-  assert.equal(latest.verdict,'pending',JSON.stringify(latest));assert.deepEqual(latest.needs,{requests:dayTwo.expected.fix_requests_needed-2-2*3,minutes:0});
-  // The first day's fix is the one the second reseed's failures followed.
-  const previous=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:dayOne.releases.checkout.fix});
-  sameInstant(previous.change.time,dayOne.T2);assert.equal(previous.verdict,'failed');
-  const releases=(await call('list_releases',{...reviewer,service_name:'checkout'})).releases;
-  assert.deepEqual(releases.map(r=>r.version),[checkout.fix,checkout.failing,checkout.previous,dayOne.releases.checkout.fix]);
-  sameInstant(releases[0].first_seen,dayTwo.T2);sameInstant(releases[1].first_seen,dayTwo.T);
-  assert.deepEqual([releases[0].new_failure_ids,releases[1].new_failure_ids],[[],[F.failure_id]]);
-  // Over the default week the two days' releases stay apart, the latest pair first.
+  // A reviewer's 1440 minutes ending 30 minutes, 6 hours or 11 h 50 min after the latest reseed hold it whole: the
+  // checkout failure on its failing release, the baseline release the failure followed, billing silent, and the fix as
+  // the latest checkout release, which verify_fix anchors on.
+  for (const end of [latest+1800,latest+21_600,latest+42_600]) {
+   const day={lookback_minutes:1440,end_time:new Date(end*1000).toISOString()};
+   const triage=await call('triage',{...day,limit:50});
+   const F=triage.failures.find(f=>f.service==='checkout'&&f.operation==='checkout');assert(F,day.end_time);
+   assert.equal(F.coinciding_release?.version,checkout.failing,day.end_time);
+   const baseline=triage.releases.find(r=>r.service==='checkout'&&r.version===checkout.previous);assert(baseline,day.end_time);
+   sameInstant(baseline.first_seen,new Date((latest-80*60)*1000).toISOString());
+   assert(triage.silent_services.some(s=>s.service==='billing'),day.end_time);
+   const releases=(await call('list_releases',{...day,service_name:'checkout'})).releases;
+   assert.equal(releases[0].version,checkout.fix,day.end_time);
+   const fix=await call('verify_fix',{...day,failure_id:F.failure_id,release:releases[0].version});
+   assert.deepEqual([fix.change.kind,fix.change.service,fix.change.version,fix.after.occurrences],['release','checkout',checkout.fix,0],day.end_time);
+   sameInstant(fix.change.time,newest.T2);
+  }
+  const reviewer={lookback_minutes:1440,end_time:new Date((latest+42_600)*1000).toISOString()};
+  const F=(await call('triage',{...reviewer,service_name:'checkout'})).failures.find(f=>f.operation==='checkout');assert(F);
+  // The four fix requests and two checkouts per later traffic run count, the two runs still on the previous releases too.
+  const latestFix=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:checkout.fix});
+  assert.equal(latestFix.verdict,'pending',JSON.stringify(latestFix));assert.deepEqual(latestFix.needs,{requests:newest.expected.fix_requests_needed-2*after.length,minutes:0});
+  // The previous slot's fix is the one the latest reseed's failures followed.
+  const previousFix=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:previous.releases.checkout.fix});
+  sameInstant(previousFix.change.time,previous.T2);assert.equal(previousFix.verdict,'failed');
+  // Over the default week the four slots' releases stay apart, the latest first.
   const week=(await call('list_releases',{service_name:'checkout'})).releases.map(r=>r.version);
-  assert.deepEqual(week,[checkout,dayOne.releases.checkout].flatMap(c=>[c.fix,c.failing,c.previous]));
+  assert.deepEqual(week,seeded.toReversed().flatMap(s=>[s.releases.checkout.fix,s.releases.checkout.failing,s.releases.checkout.previous]));
   const groups=await call('compare_groups',{...reviewer,matchers:[{key:'service.name',op:'eq',value:'regional',scope:'resource'}],signal:'spans',group_a:{matchers:[{key:'error.type',op:'exists'}]},group_b:'rest',attribute_scope:'both'});
   assert.deepEqual(new Set(groups.discriminators.slice(0,2).map(x=>`${x.key}=${x.value}`)),new Set(['cloud.region=eu',`service.version=${regional.failing}`]));
  },project);

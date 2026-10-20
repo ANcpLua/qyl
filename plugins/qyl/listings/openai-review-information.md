@@ -49,7 +49,7 @@ The skill starts a fresh connection with `triage` and a `lookback_minutes` that 
 
 Use the dedicated reviewer account and seeded `review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. The tools that filter by window, such as `list_traces`, `search_logs`, `list_sessions` and `aggregate_telemetry`, take a result's `window` as `start_time` and `end_time`, so one investigation keeps one window; `get_trace` reads the whole trace by its identifier whatever the window.
 
-The project is reseeded every day at 00:00 UTC, and each reseed names its checkout releases by that date: `YYYY.MM.DD.1` introduces the checkout failure and `YYYY.MM.DD.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending` until a hundred checkouts ran it, then `passed`.
+The project is reseeded every 12 hours, at 00:00 and 12:00 UTC, so a 1440-minute window always holds the latest reseed whole. Each reseed names its checkout releases by its UTC date and hour, 00 or 12: `YYYY.MM.DD.HH.1` introduces the checkout failure and `YYYY.MM.DD.HH.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending` until a hundred checkouts ran it, then `passed`.
 
 The ZIP's five positive cases cover checkout trace discovery and detail, `qyl-mcp` error logs, metric instrument discovery, the five most recent sessions, and telemetry health. The three negative cases check that qyl cannot delete raw telemetry, roll back a deployment, or search the public web. A read-only capability question checks the raw-telemetry deletion boundary.
 
@@ -74,4 +74,4 @@ Documentation: https://qyl.at/docs/mcp/
 
 ## Reviewer access — private fields only
 
-Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, the latest checkout release rather than a fixed version (the daily reseed names it `YYYY.MM.DD.2` by its UTC date) and a representative metric. Reviewer access must remain available throughout review.
+Provide a dedicated account and an isolated, populated project. Put the login URL, credentials or access mechanism, and exact sign-in steps in the portal's private fields, never in this document. Include the sample service, the latest checkout release rather than a fixed version (each reseed names it `YYYY.MM.DD.HH.2` by its UTC date and hour, 00 or 12) and a representative metric. Reviewer access must remain available throughout review.

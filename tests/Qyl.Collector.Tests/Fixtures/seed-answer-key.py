@@ -5,16 +5,17 @@ The JSON records the absolute windows, ids, release names and expected values th
 Every span carries the attributes its OpenTelemetry semantic convention requires and every resource and
 scope its schema URL, so check_telemetry_health finds only the planted incidents.
 Set QYL_ANSWER_KEY_RUN_ID for isolated ids, services and sessions in a shared project.
-Set QYL_ANSWER_KEY_FRESH_IDS=1, the hosted mode, to reseed a project every day at 00:00 UTC, as the hosted reviewer's
-is: new trace and span ids under the same services and sessions, and releases named by the run's UTC date, so
-verify_fix and list_releases never weigh one day's releases against another's. A version keeps its last number and the
-date replaces the rest: checkout runs YYYY.MM.DD.0, fails from YYYY.MM.DD.1 and is fixed in YYYY.MM.DD.2, and regional
-fails in eu on YYYY.MM.DD.3 beside YYYY.MM.DD.2. Without it they are 1.4.0, 1.4.1, 1.4.2, 2.2 and 2.3.
+Set QYL_ANSWER_KEY_FRESH_IDS=1, the hosted mode, to reseed a project every 12 hours, at 00:00 and 12:00 UTC, as the
+hosted reviewer's is: new trace and span ids under the same services and sessions, and releases named by the run's
+12-hour slot, so verify_fix and list_releases never weigh one reseed's releases against another's, and a 1440-minute
+window always holds the latest reseed whole. A version keeps its last number and the slot's UTC date and hour, 00 or
+12, replace the rest: checkout runs YYYY.MM.DD.HH.0, fails from YYYY.MM.DD.HH.1 and is fixed in YYYY.MM.DD.HH.2, and
+regional fails in eu on YYYY.MM.DD.HH.3 beside YYYY.MM.DD.HH.2. Without it they are 1.4.0, 1.4.1, 1.4.2, 2.2 and 2.3.
 Set QYL_ANSWER_KEY_MODE=traffic to send, instead of the seed, one small batch of healthy requests at now, with fresh
 ids, for every seeded service except billing; run every 10 minutes, it keeps those services live between reseeds
 while every planted answer holds. Its checkouts run the fix release, so verify_fix of the checkout failure with that
 release is pending until a hundred of them ran it, then passed. Hosted traffic sets QYL_ANSWER_KEY_FRESH_IDS=1 as well
-and runs the releases of the reseed ten minutes before now, the latest 00:00 one, never one no reseed has planted.
+and runs the releases of the slot ten minutes before now, the latest reseed's, never one no reseed has planted.
 QYL_ANSWER_KEY_NOW (Unix seconds) replaces the current time in either mode. Seeded durations vary around their planned
 values, so no two percentiles agree.
 QYL_API_KEY supplies an existing ingest credential without placing it on the command line.
@@ -38,13 +39,15 @@ metric_run_labels={'test.run.id':run_id} if run_id else {}
 def scoped(value):return f'{value}-{run_id}' if run_id else value
 # Whole milliseconds, so the RFC 3339 instants the fixture records name T and the fix point T2 exactly.
 now=int(float(os.environ.get('QYL_ANSWER_KEY_NOW') or time.time())*1e3)*1_000_000; minute=60_000_000_000; T=now-20*minute; T2=now-5*minute
-# A hosted run names each release by the UTC date of the reseed it belongs to, keeping the version's last number. The
-# reseed runs at 00:00 UTC and traffic belongs to the one ten minutes back: the traffic at midnight still runs the day
-# before's releases, which that day's reseed planted, and later traffic those of the day's own reseed.
+# A hosted run names each release by the 12-hour slot of the reseed it belongs to, keeping the version's last number.
+# The reseed runs as its slot starts, at 00:00 or 12:00 UTC, and traffic belongs to the slot ten minutes back: the
+# traffic at 12:00 still runs the releases of the 00:00 reseed, which that slot planted, and from 12:10 those of the
+# 12:00 one.
+SLOT=12*60*minute
 def release(version):
  if not hosted:return version
- day=datetime.datetime.fromtimestamp((now-(10*minute if mode=='traffic' else 0))/1e9,datetime.timezone.utc)
- return f"{day:%Y.%m.%d}.{version.rsplit('.',1)[1]}"
+ at=now-(10*minute if mode=='traffic' else 0)
+ return f"{datetime.datetime.fromtimestamp((at-at%SLOT)/1e9,datetime.timezone.utc):%Y.%m.%d.%H}.{version.rsplit('.',1)[1]}"
 releases={'checkout':{'previous':release('1.4.0'),'failing':release('1.4.1'),'fix':release('1.4.2')},'regional':{'previous':release('2.2'),'failing':release('2.3')}}
 spans=[]; logs=[]; keys={}
 def ident(text,n):return hashlib.sha256((id_salt+(f'{project}|{run_id}|{text}' if run_id else text)).encode()).hexdigest()[:n]
@@ -160,8 +163,9 @@ for i in range(40):
 for i in range(3):span(f'agent-{i}','agent','execute_tool search_logs',T+i*1_000_000,session='agent_run',kind=1,a={'gen_ai.operation.name':'execute_tool','gen_ai.tool.name':'search_logs','qyl.gen_ai.tool.call.arguments_hash':'same-arguments-hash','gen_ai.agent.name':'researcher','gen_ai.usage.input_tokens':100,'gen_ai.usage.output_tokens':20})
 # The current CI run's build takes three times the baseline run's and its test task fails.
 for label,at,build,error in [('baseline',now-40*minute,BUILD_MS,False),('current',now-10*minute,3*BUILD_MS,True)]:ci(label,at,build,error)
-# Billing reported every minute for an hour and stopped two hours ago. A daily reseed adds another such hour, so its
-# usual interval stays near a minute; one span a day would make billing a daily reporter that is never silent.
+# Billing reported every minute for an hour and stopped two hours ago. Each 12-hourly reseed adds another such hour, up
+# to four of them in a triage's window and baseline, so its usual interval stays under ten minutes and five of them
+# under the two hours it has been quiet; one span per reseed would make billing a 12-hourly reporter never silent.
 for i in range(61):span(f'silent-{i}','billing','charge',now-180*minute+i*minute)
 metrics=[]
 # The routes' durations as a histogram spread like their spans: 95 of 100 requests from 80% of the p95 up to it, five
