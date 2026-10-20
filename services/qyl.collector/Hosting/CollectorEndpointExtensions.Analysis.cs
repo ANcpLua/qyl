@@ -1,38 +1,40 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
+using ContractChoices = System.Collections.Generic.IReadOnlyList<(string Name, System.Collections.Generic.IReadOnlyList<string> Values)>;
 using ContractRanges = System.Collections.Generic.IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)>;
 
 namespace Qyl.Collector.Hosting;
 
 internal static partial class CollectorEndpointExtensions
 {
-    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges)> s_readAnalysisContracts =
-        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges)>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractChoices Choices)> s_readAnalysisContracts =
+        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractChoices Choices)>(StringComparer.Ordinal)
         {
-            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, TriageInput.Ranges),
-            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, GetFailureContextInput.Ranges),
-            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, CompareGroupsInput.Ranges),
-            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, CompareTracesInput.Ranges),
-            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, VerifyFixInput.Ranges),
-            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, AggregateTelemetryInput.Ranges),
-            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, DiscoverAttributesInput.Ranges),
-            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, GetAgentRunInput.Ranges),
-            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, ListReleasesInput.Ranges),
-            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, GetServiceMapInput.Ranges),
-            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, CheckTelemetryHealthInput.Ranges),
-            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, GetMcpStatsInput.Ranges),
-            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, ListSessionsInput.Ranges),
-            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, ListTracesInput.Ranges),
-            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, GetTraceInput.Ranges),
-            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, SearchLogsInput.Ranges),
-            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, ListMetricsInput.Ranges),
-            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, QueryMetricInput.Ranges),
-            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, CiLogInput.Ranges),
-            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, RunSavedQueryInput.Ranges),
+            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, TriageInput.Ranges, TriageInput.Choices),
+            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, GetFailureContextInput.Ranges, GetFailureContextInput.Choices),
+            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, CompareGroupsInput.Ranges, CompareGroupsInput.Choices),
+            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, CompareTracesInput.Ranges, CompareTracesInput.Choices),
+            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, VerifyFixInput.Ranges, VerifyFixInput.Choices),
+            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, AggregateTelemetryInput.Ranges, AggregateTelemetryInput.Choices),
+            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, DiscoverAttributesInput.Ranges, DiscoverAttributesInput.Choices),
+            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, GetAgentRunInput.Ranges, GetAgentRunInput.Choices),
+            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, ListReleasesInput.Ranges, ListReleasesInput.Choices),
+            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, GetServiceMapInput.Ranges, GetServiceMapInput.Choices),
+            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, CheckTelemetryHealthInput.Ranges, CheckTelemetryHealthInput.Choices),
+            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, GetMcpStatsInput.Ranges, GetMcpStatsInput.Choices),
+            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, ListSessionsInput.Ranges, ListSessionsInput.Choices),
+            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, ListTracesInput.Ranges, ListTracesInput.Choices),
+            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, GetTraceInput.Ranges, GetTraceInput.Choices),
+            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, SearchLogsInput.Ranges, SearchLogsInput.Choices),
+            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, ListMetricsInput.Ranges, ListMetricsInput.Choices),
+            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, QueryMetricInput.Ranges, QueryMetricInput.Choices),
+            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, CiLogInput.Ranges, CiLogInput.Choices),
+            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, RunSavedQueryInput.Ranges, RunSavedQueryInput.Choices),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     private static Task<IResult> AnalyzeReadEndpointAsync(HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
@@ -84,40 +86,19 @@ internal static partial class CollectorEndpointExtensions
         catch (MetricQueryConflictException conflict) { return ContractErrorResults.Conflict("metric", conflict.Message); }
         catch (AnalysisInputException invalid) { return AnalysisError(invalid); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return ContractErrorResults.AnalysisDeadlineExceeded(); }
-        catch (JsonException invalid)
-        {
-            var allowed = AllowedAt(AnalysisContract(operation).Input, invalid.Path);
-            return ContractErrorResults.Validation(invalid.Path is { Length: > 2 } path ? path[2..] : "body", "The analysis input does not match the generated contract.", "analysis.contract_invalid",
-                allowed: allowed, hint: allowed is null ? "Compare the field with the tool's input schema." : "Send one of the allowed values.");
-        }
+        catch (JsonException) { return ResourceHttp.InvalidBody("The request body is not valid JSON."); }
     }
 
-    // The wire names a contract enum accepts at the JSON path of a rejected input, when the property there is one.
-    private static string[]? AllowedAt(JsonTypeInfo input, string? path)
-    {
-        if (path is null) return null;
-        var type = input;
-        foreach (var segment in path.TrimStart('$').Split(['.', '['], StringSplitOptions.RemoveEmptyEntries).Select(static s => s.Trim(']', '\'')).Where(static s => !s.All(char.IsAsciiDigit)))
-        {
-            if (type.Properties.FirstOrDefault(p => p.Name == segment) is not { } property) return null;
-            var next = type.Options.GetTypeInfo(property.PropertyType);
-            type = next.ElementType is { } element ? type.Options.GetTypeInfo(element) : next;
-        }
-        var enumType = Nullable.GetUnderlyingType(type.Type) ?? type.Type;
-        if (!enumType.IsEnum) return null;
-        var names = type.Options.GetTypeInfo(enumType);
-        return [.. Enum.GetValuesAsUnderlyingType(enumType).Cast<object>().Select(value => JsonSerializer.Serialize(Enum.ToObject(enumType, value), names).Trim('"'))];
-    }
     // A *.not_found code answers 404 naming the missing resource; any other rejected argument 400 with its
     // field, the values it accepts and a hint.
     internal static IResult AnalysisError(AnalysisInputException invalid) => invalid.Code.EndsWith(".not_found", StringComparison.Ordinal)
         ? ContractErrorResults.NotFound(invalid.Code[..^".not_found".Length], invalid.Missing, invalid.Description)
         : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code, invalid.RejectedValue, invalid.Allowed, invalid.Hint);
 
-    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges) AnalysisContract(string operation)
+    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractChoices Choices) AnalysisContract(string operation)
     {
         if (operation == "update_failure_status")
-            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, []);
+            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, [], []);
         return s_readAnalysisContracts.TryGetValue(operation, out var contract)
             ? contract
             : throw new InvalidOperationException("Unknown analysis contract.");
@@ -125,10 +106,152 @@ internal static partial class CollectorEndpointExtensions
 
     private static void ValidateAnalysisInput(string operation, JsonObject input)
     {
+        // A member with a closed set answers with its values first, as the MCP's input schema does.
         var contract = AnalysisContract(operation);
-        _ = JsonSerializer.Deserialize(input.ToJsonString(), contract.Input);
+        CheckChoices(input, contract.Choices);
+        ReadAsContract(input, contract.Input);
         CheckRanges(input, contract.Ranges);
     }
+
+    // A request read as its contract type, the way the MCP's input schema reads the same arguments: a member the type
+    // does not declare, a required one it leaves out and a value of another JSON type, null included, are refused naming
+    // the field by its path, with the members the object accepts, the values an enumeration takes or the type the field
+    // expects. A union C# reads as an object is taken as sent; Choices holds its closed set and Ranges its bounds.
+    private static void ReadAsContract(JsonNode? node, JsonTypeInfo type, string field = "")
+    {
+        var clr = Nullable.GetUnderlyingType(type.Type) ?? type.Type;
+        if (clr == typeof(object) || type.PolymorphismOptions is not null) return;
+        switch (type.Kind)
+        {
+            case JsonTypeInfoKind.Object when node is JsonObject members:
+                foreach (var (name, value) in members)
+                {
+                    var at = field.Length == 0 ? name : $"{field}.{name}";
+                    var property = type.Properties.FirstOrDefault(p => p.Name == name);
+                    if (property is null)
+                    {
+                        var accepted = type.Properties.Select(static p => p.Name).ToArray();
+                        throw new AnalysisInputException(at, $"is not accepted here; accepted: {string.Join(", ", accepted)}", Rule(at) + ".unknown")
+                            { Allowed = accepted, Hint = $"Replace {at} with one of the accepted arguments or drop it." };
+                    }
+                    ReadAsContract(value, type.Options.GetTypeInfo(property.PropertyType), at);
+                }
+                if (type.Properties.FirstOrDefault(p => p.IsRequired && !members.ContainsKey(p.Name)) is { } missing)
+                {
+                    var at = field.Length == 0 ? missing.Name : $"{field}.{missing.Name}";
+                    throw new AnalysisInputException(at, "is required", Rule(at) + ".required") { Hint = $"Send {at}." };
+                }
+                return;
+            case JsonTypeInfoKind.Enumerable when node is JsonArray items:
+                var element = type.Options.GetTypeInfo(type.ElementType!);
+                for (var i = 0; i < items.Count; i++) ReadAsContract(items[i], element, $"{field}[{i}]");
+                return;
+            case JsonTypeInfoKind.None when node is JsonValue value:
+                ReadValue(value, type, clr, field);
+                return;
+        }
+        // An object where the contract takes another type, a scalar where it takes an object or an array, or null.
+        throw new AnalysisInputException(field, $"must be {JsonType(type, clr)}", Rule(field) + ".type") { Hint = $"Send {field} as {JsonTypeArticle(type, clr)}." };
+    }
+
+    // A JSON value of a member C# reads as a string, a number, a boolean, a time or an enumeration.
+    private static void ReadValue(JsonValue value, JsonTypeInfo type, Type clr, string field)
+    {
+        var kind = value.GetValueKind();
+        if (clr.IsEnum)
+        {
+            var names = type.Options.GetTypeInfo(clr);
+            string[] allowed = [.. Enum.GetValuesAsUnderlyingType(clr).Cast<object>().Select(member => JsonSerializer.Serialize(Enum.ToObject(clr, member), names).Trim('"'))];
+            if (kind == JsonValueKind.String && allowed.Contains(value.GetValue<string>(), StringComparer.Ordinal)) return;
+            throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", allowed)}", Rule(field) + ".invalid") { Allowed = allowed, Hint = "Send one of the allowed values." };
+        }
+        if (clr == typeof(DateTimeOffset) && kind == JsonValueKind.String)
+        {
+            if (J.IsTimestamp(value.GetValue<string>())) return;
+            throw new AnalysisInputException(field, "must match format \"date-time\"", Rule(field) + ".format") { Hint = "Send a time such as 2026-10-19T12:00:00Z." };
+        }
+        if (s_integers.TryGetValue(clr, out var range) && kind == JsonValueKind.Number)
+        {
+            var number = double.Parse(value.ToJsonString(), CultureInfo.InvariantCulture);
+            if (number != Math.Floor(number)) throw new AnalysisInputException(field, "must be integer", Rule(field) + ".type") { Hint = $"Send {field} as an integer." };
+            if (number < range.Minimum || number > range.Maximum)
+                throw new AnalysisInputException(field, number > range.Maximum ? $"must be <= {range.Maximum.ToString(CultureInfo.InvariantCulture)}" : $"must be >= {range.Minimum.ToString(CultureInfo.InvariantCulture)}", Rule(field) + ".out_of_range")
+                    { Hint = $"Correct {field}." };
+            return;
+        }
+        var fits = JsonType(type, clr) switch
+        {
+            "string" => kind == JsonValueKind.String,
+            "number" => kind == JsonValueKind.Number,
+            "boolean" => kind is JsonValueKind.True or JsonValueKind.False,
+            "integer" => false,
+            _ => true
+        };
+        if (!fits) throw new AnalysisInputException(field, $"must be {JsonType(type, clr)}", Rule(field) + ".type") { Hint = $"Send {field} as {JsonTypeArticle(type, clr)}." };
+    }
+
+    // The integer types a contract member maps to, with the range each holds.
+    private static readonly FrozenDictionary<Type, (double Minimum, double Maximum)> s_integers = new Dictionary<Type, (double Minimum, double Maximum)>
+    {
+        [typeof(int)] = (int.MinValue, int.MaxValue), [typeof(long)] = (long.MinValue, long.MaxValue), [typeof(short)] = (short.MinValue, short.MaxValue),
+        [typeof(uint)] = (uint.MinValue, uint.MaxValue), [typeof(ulong)] = (ulong.MinValue, ulong.MaxValue), [typeof(ushort)] = (ushort.MinValue, ushort.MaxValue),
+        [typeof(byte)] = (byte.MinValue, byte.MaxValue), [typeof(sbyte)] = (sbyte.MinValue, sbyte.MaxValue)
+    }.ToFrozenDictionary();
+
+    // The JSON Schema type a member's C# type stands for, as the MCP's input schema names it.
+    private static string JsonType(JsonTypeInfo type, Type clr) => type.Kind switch
+    {
+        JsonTypeInfoKind.Object or JsonTypeInfoKind.Dictionary => "object",
+        JsonTypeInfoKind.Enumerable => "array",
+        _ when clr == typeof(bool) => "boolean",
+        _ when s_integers.ContainsKey(clr) => "integer",
+        _ when clr == typeof(double) || clr == typeof(float) || clr == typeof(decimal) => "number",
+        _ when clr == typeof(string) || clr == typeof(DateTimeOffset) || clr.IsEnum => "string",
+        _ => "value"
+    };
+
+    private static string JsonTypeArticle(JsonTypeInfo type, Type clr) => JsonType(type, clr) switch
+    {
+        "integer" or "object" or "array" => "an " + JsonType(type, clr),
+        var name => "a " + name
+    };
+
+    // The rule a refusal names: the field's path with an array's indexes written [], as Ranges and Choices write it.
+    private static string Rule(string field) => ArrayIndex().Replace(field, "[]");
+
+    [GeneratedRegex(@"\[\d+\]")]
+    private static partial Regex ArrayIndex();
+
+    // A value of a member C# reads as a bare string or object, such as a baseline or a matcher's value, is refused when it
+    // takes none of the forms the contract gives the member, with the values it accepts when they form a closed set: its
+    // strings, an object for its object forms, written {a, b}, and a value of its JSON types, written <string>.
+    private static void CheckChoices(JsonObject input, ContractChoices choices)
+    {
+        foreach (var (path, forms) in choices)
+        foreach (var (field, sent) in Sent(input, path))
+        {
+            if (Takes(forms, sent)) continue;
+            string[] types = [.. forms.Where(static form => form.StartsWith('<')).Select(static form => form.Trim('<', '>'))];
+            throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", forms.Select(static form => form.Trim('<', '>')))}", path + ".invalid")
+            {
+                Allowed = types.Length == 0 ? forms : null,
+                Hint = types.Length == 0 ? "Send one of the allowed values." : $"Send {field} as {string.Join(" or ", types.Select(static type => (type is "integer" ? "an " : "a ") + type))}."
+            };
+        }
+    }
+
+    private static bool Takes(IReadOnlyList<string> forms, JsonNode? sent) => sent switch
+    {
+        JsonObject => forms.Any(static form => form.StartsWith('{')),
+        JsonValue value => value.GetValueKind() switch
+        {
+            JsonValueKind.String => forms.Contains("<string>") || forms.Any(form => form[0] is not ('{' or '<') && form == value.GetValue<string>()),
+            JsonValueKind.Number => forms.Contains("<number>") || forms.Contains("<integer>") && double.Parse(value.ToJsonString(), CultureInfo.InvariantCulture) % 1 == 0,
+            JsonValueKind.True or JsonValueKind.False => forms.Contains("<boolean>"),
+            _ => false
+        },
+        _ => false
+    };
 
     // A number the request sends outside the range the contract bounds its member to is refused naming that range; an
     // omitted member takes its default. The engine reads the members unchecked, so this is the one place a bound applies.
@@ -139,8 +262,10 @@ internal static partial class CollectorEndpointExtensions
         foreach (var (path, minimum, maximum, fallback) in ranges)
         foreach (var (field, sent) in Sent(input, path))
         {
-            if (sent is not JsonValue || !double.TryParse(J.Text(sent), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-                || value >= (minimum ?? double.NegativeInfinity) && value <= (maximum ?? double.PositiveInfinity)) continue;
+            if (sent is not JsonValue number || number.GetValueKind() != JsonValueKind.Number)
+                throw new AnalysisInputException(field, "must be number", path + ".type") { Hint = $"Send {field} as a number." };
+            var value = double.Parse(sent.ToJsonString(), CultureInfo.InvariantCulture);
+            if (value >= (minimum ?? double.NegativeInfinity) && value <= (maximum ?? double.PositiveInfinity)) continue;
             var range = (minimum, maximum) switch
             {
                 ({ } low, { } high) => $"from {Text(low)} to {Text(high)}",
@@ -155,20 +280,19 @@ internal static partial class CollectorEndpointExtensions
         }
     }
 
-    // The values a request sends at a contract path, each named as the MCP names it: baseline.offset_minutes, and an
-    // array's elements, written [] in the path, by their index, as matchers[0].key.
-    private static IEnumerable<(string Field, JsonNode Value)> Sent(JsonNode? node, string path, string field = "")
+    // The values a request sends at a contract path, null included, each named as the MCP names it: baseline.offset_minutes,
+    // and an array's elements, written [] in the path, by their index, as matchers[0].key.
+    private static IEnumerable<(string Field, JsonNode? Value)> Sent(JsonNode? node, string path, string field = "")
     {
         var dot = path.IndexOf('.');
         var segment = dot < 0 ? path : path[..dot];
         var elements = segment.EndsWith("[]", StringComparison.Ordinal);
         var name = elements ? segment[..^2] : segment;
-        if ((node as JsonObject)?[name] is not { } member) yield break;
+        if (node is not JsonObject members || !members.TryGetPropertyValue(name, out var member)) yield break;
         var at = field.Length == 0 ? name : field + "." + name;
-        var values = !elements ? [(at, member)] : member is JsonArray items ? items.Select((item, i) => ($"{at}[{i}]", item)) : [];
+        IEnumerable<(string, JsonNode?)> values = !elements ? [(at, member)] : member is JsonArray items ? items.Select((item, i) => ($"{at}[{i}]", item)) : [];
         foreach (var (named, value) in values)
         {
-            if (value is null) continue;
             if (dot < 0) yield return (named, value);
             else foreach (var nested in Sent(value, path[(dot + 1)..], named)) yield return nested;
         }

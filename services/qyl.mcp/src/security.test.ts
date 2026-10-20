@@ -156,28 +156,27 @@ test("a Collector 404 reaches the model with what is missing and where valid ids
 });
 
 test("a Collector validation error reaches the model with the field, the values it accepts and its hint", async () => {
-  const aggregations = ["avg", "min", "max", "sum", "count", "last", "p50", "p90", "p95", "p99"];
+  const series = ["series-a", "series-b"];
   const operators = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
+  const ambiguous = "2 series of queue.depth match; raw reads one: pass one of their series_id values, or matchers that select one series.";
   const result = await refusedWith("query_metric", 400, {
     type: "https://qyl.at/problems/validation-failed", title: "Validation Failed", status: 400, code: "validation_failed",
     errors: [
-      { field: "aggregation", message: "The analysis input does not match the generated contract.", code: "analysis.contract_invalid",
-        allowed: aggregations, hint: "Send one of the allowed values." },
-      { field: "matchers[0].op", message: "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.", code: "invalid", allowed: operators },
+      { field: "series_id", message: ambiguous, code: "series_id.ambiguous", allowed: series, hint: "query_metric with group_by shows how the series differ." },
+      { field: "matchers[0].op", message: `must be one of: ${operators.join(", ")}`, code: "matchers[].op.invalid", allowed: operators,
+        hint: "Send one of the allowed values." },
     ],
   });
   const { error } = result.structuredContent as { error: Record<string, unknown> };
   assert.equal(error.code, "collector_rejected");
-  assert.equal(error.field, "aggregation");
-  assert.deepEqual(error.allowed, aggregations);
-  assert.equal(error.hint, "Send one of the allowed values.", "the Collector's hint is the one to follow");
+  assert.equal(error.field, "series_id");
+  assert.deepEqual(error.allowed, series);
+  assert.equal(error.hint, "query_metric with group_by shows how the series differ.", "the Collector's hint is the one to follow");
   assert.equal((error.fields as unknown[]).length, 2, "every rejected field stays available");
   // A rule that does not name the accepted values gets them appended; one that does is left alone.
-  assert.equal(error.message,
-    `aggregation: The analysis input does not match the generated contract. Accepted: ${aggregations.join(", ")}; ` +
-    "matchers[0].op: Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.");
+  assert.equal(error.message, `series_id: ${ambiguous} Accepted: ${series.join(", ")}; matchers[0].op: must be one of: ${operators.join(", ")}`);
   const [headline] = result.content as Array<{ text: string }>;
-  assert.match(headline!.text, /^query_metric failed: collector_rejected — aggregation: .* → Send one of the allowed values\.$/u);
+  assert.match(headline!.text, /^query_metric failed: collector_rejected — series_id: .* → query_metric with group_by shows how the series differ\.$/u);
 });
 
 function restoreEnvironment(name: string, value: string | undefined): void {

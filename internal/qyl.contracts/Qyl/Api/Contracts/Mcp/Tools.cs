@@ -90,6 +90,13 @@ public sealed class ListTracesInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("order_by", ["start_time", "duration", "errors"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("failure_class")]
     public Qyl.Api.Contracts.Mcp.Tools.McpFailureClass? FailureClass { get; init; }
@@ -220,6 +227,11 @@ public sealed class GetTraceInput
         ("max_logs", MaxLogsMinimum, MaxLogsMaximum, null),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("max_spans", MaxSpansMinimum, MaxSpansMaximum, MaxSpansDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("selection", ["all", "errors", "errors_with_ancestors", "critical_path"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
@@ -400,6 +412,13 @@ public sealed class ListSessionsInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("order_by", ["last_activity", "errors", "duration", "tokens"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("errors_only")]
     public bool? ErrorsOnly { get; init; }
@@ -557,6 +576,13 @@ public sealed class SearchLogsInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("group_by[]", ["pattern"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("span_id")]
     public string? SpanId { get; init; }
@@ -658,6 +684,13 @@ public sealed class CiLogInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("baseline", ["last_success", "{ci_run_id}"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
@@ -877,6 +910,12 @@ public sealed class ListMetricsInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("query")]
     public string? Query { get; init; }
@@ -985,6 +1024,16 @@ public sealed class QueryMetricInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("step_ms", StepMsMinimum, StepMsMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("function", ["none", "rate", "increase", "delta"]),
+        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"]),
+        ("ratio_of.matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("ratio_of.matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("function")]
@@ -1261,6 +1310,9 @@ public sealed class RunSavedQueryInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("id")]
     public string? Id { get; init; }
@@ -1434,6 +1486,14 @@ public sealed class TriageInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"]),
+        ("status", ["open", "resolved", "ignored", "all"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1593,6 +1653,12 @@ public sealed class GetFailureContextInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("max_spans", MaxSpansMinimum, MaxSpansMaximum, MaxSpansDefault),
         ("max_logs", MaxLogsMinimum, MaxLogsMaximum, MaxLogsDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -1841,6 +1907,19 @@ public sealed class CompareGroupsInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("signal", ["spans", "logs"]),
+        ("group_a.matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("group_a.matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("group_b", ["rest", "previous_window", "{matchers, window, failure_id}"]),
+        ("group_b.matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("group_b.matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("attribute_scope", ["span", "resource", "both"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -1969,6 +2048,12 @@ public sealed class CompareTracesInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2056,6 +2141,12 @@ public sealed class VerifyFixInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("min_requests", MinRequestsMinimum, null, MinRequestsDefault),
         ("min_minutes", MinMinutesMinimum, null, MinMinutesDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2182,6 +2273,13 @@ public sealed class AggregateTelemetryInput
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("step_ms", StepMsMinimum, StepMsMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("signal", ["spans", "logs"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2279,6 +2377,13 @@ public sealed class DiscoverAttributesInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("signal", ["spans", "logs", "resources"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2381,6 +2486,12 @@ public sealed class GetAgentRunInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2532,6 +2643,12 @@ public sealed class ListReleasesInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
@@ -2634,6 +2751,12 @@ public sealed class GetServiceMapInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("depth", DepthMinimum, DepthMaximum, null),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2740,6 +2863,12 @@ public sealed class CheckTelemetryHealthInput
     [
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
@@ -2878,6 +3007,14 @@ public sealed class GetMcpStatsInput
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
         ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
+    ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [
+        ("matchers[].value", ["<string>", "<number>", "<boolean>"]),
+        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"]),
+        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"]),
+        ("group_by[]", ["server", "tool", "method", "transport", "failure_class"]),
     ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]

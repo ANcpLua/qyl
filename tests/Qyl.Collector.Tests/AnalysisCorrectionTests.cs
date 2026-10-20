@@ -80,7 +80,8 @@ public sealed partial class AnalysisApiTests
         var seen = new HashSet<string>(); string? cursor = null;
         for (var page = 0; page < 3; page++)
         {
-            var input = new JsonObject { ["limit"] = 2, ["cursor"] = cursor };
+            var input = new JsonObject { ["limit"] = 2 };
+            if (cursor is not null) input["cursor"] = cursor;
             var result = await Read(host, "search_logs", input.ToJsonString());
             Assert.AreEqual(5, result.GetProperty("coverage").GetProperty("matched").GetInt32());
             foreach (var log in result.GetProperty("logs").EnumerateArray())

@@ -28,6 +28,58 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// An argument the tool's contract does not declare, one it requires and leaves out, and a value of another JSON type
+    /// or outside the closed set the argument takes are refused naming the field by its path, as the MCP's input schema
+    /// names it, never read as the default: a number sent as a string, null, a nested member, an array's element, a
+    /// time, an enumeration and a union C# reads as a bare string or object.
+    /// </summary>
+    [TestMethod]
+    [DataRow("triage", """{"lookback":1440}""", "lookback", "lookback.unknown", "is not accepted here; accepted: lookback_minutes, start_time, end_time, matchers, cursor, service_name, environment, limit, baseline, status")]
+    [DataRow("triage", """{"lookback_minutes":"1440"}""", "lookback_minutes", "lookback_minutes.type", "must be integer")]
+    [DataRow("list_traces", """{"limit":1.5}""", "limit", "limit.type", "must be integer")]
+    [DataRow("search_logs", """{"limit":null}""", "limit", "limit.type", "must be integer")]
+    [DataRow("list_traces", """{"errors_only":"true"}""", "errors_only", "errors_only.type", "must be boolean")]
+    [DataRow("list_traces", """{"service_name":5}""", "service_name", "service_name.type", "must be string")]
+    [DataRow("list_traces", """{"matchers":{"key":"service.name"}}""", "matchers", "matchers.type", "must be array")]
+    [DataRow("list_traces", """{"matchers":[{"key":"service.name","op":"exists","extra":1}]}""", "matchers[0].extra", "matchers[].extra.unknown", "is not accepted here; accepted: key, op, value, values, scope")]
+    [DataRow("list_traces", """{"matchers":[{"key":"service.name","op":"like","value":"x"}]}""", "matchers[0].op", "matchers[].op.invalid", "must be one of: eq, neq, in, prefix, contains, exists, gt, gte, lt, lte")]
+    [DataRow("list_traces", """{"matchers":[{"key":"service.name","op":"eq","value":{}}]}""", "matchers[0].value", "matchers[].value.invalid", "must be one of: string, number, boolean")]
+    [DataRow("list_traces", """{"start_time":"yesterday"}""", "start_time", "start_time.format", "must match format \"date-time\"")]
+    [DataRow("aggregate_telemetry", """{"measures":["count"]}""", "signal", "signal.required", "is required")]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{"window":{"start_time":"2026-10-17T11:00:00Z"}},"group_b":"rest"}""", "group_a.window.end_time", "group_a.window.end_time.required", "is required")]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{},"group_b":"others"}""", "group_b", "group_b.invalid", "must be one of: rest, previous_window, {matchers, window, failure_id}")]
+    [DataRow("get_trace", """{"trace_id":"0af7651916cd43dd8448eb211c80319c","selection":"error"}""", "selection", "selection.invalid", "must be one of: all, errors, errors_with_ancestors, critical_path")]
+    [DataRow("search_logs", """{"group_by":["patterns"]}""", "group_by[0]", "group_by[].invalid", "must be one of: pattern")]
+    [DataRow("triage", """{"status":"opened"}""", "status", "status.invalid", "must be one of: open, resolved, ignored, all")]
+    [DataRow("triage", """{"baseline":"last_week"}""", "baseline", "baseline.invalid", "must be one of: previous_window, {start_time, end_time}, {offset_minutes}")]
+    [DataRow("query_metric", """{"metric_name":"queue.depth","baseline":{"offset_minutes":"60"}}""", "baseline.offset_minutes", "baseline.offset_minutes.type", "must be number")]
+    public async Task An_argument_outside_its_contract_type_is_refused_naming_the_field(string operation, string input, string field, string code, string message)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var error = await RejectedAsync(host, operation, input);
+
+        Assert.AreEqual((field, code, message), (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString()));
+        Assert.IsFalse(string.IsNullOrEmpty(error.GetProperty("hint").GetString()));
+    }
+
+    /// <summary>An unknown argument is answered with the names the tool accepts, and an enumeration with its values.</summary>
+    [TestMethod]
+    public async Task A_refusal_lists_the_arguments_or_values_the_field_accepts()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var unknown = await RejectedAsync(host, "list_metrics", """{"metric_name":"requests"}""");
+        var choice = await RejectedAsync(host, "get_mcp_stats", """{"baseline":7}""");
+
+        Assert.AreSequenceEqual(["query", "service_name", "kind", "unit", "matchers", "lookback_minutes", "start_time", "end_time", "name_prefix", "limit", "cursor"],
+            unknown.GetProperty("allowed").EnumerateArray().Select(static name => name.GetString()));
+        Assert.AreEqual("Replace metric_name with one of the accepted arguments or drop it.", unknown.GetProperty("hint").GetString());
+        Assert.AreSequenceEqual(["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"],
+            choice.GetProperty("allowed").EnumerateArray().Select(static value => value.GetString()));
+    }
+
+    /// <summary>
     /// A number outside the range the contract bounds its argument to is refused with the argument, its range and what
     /// to send instead, whichever kind of bound it breaks: the shared window's lookback, a tool's page size, a
     /// collection's own size, a small closed range, a 64-bit step, a raw read's page, a lower bound only the

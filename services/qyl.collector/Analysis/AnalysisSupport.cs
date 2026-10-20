@@ -60,6 +60,9 @@ internal static partial class J
         input is JsonObject obj && obj[name] is { } value && value.GetValueKind() is JsonValueKind.True or JsonValueKind.False
             ? value.GetValue<bool>() : fallback;
     public static string Text(JsonNode? value) => value is null ? "" : value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>() : value.ToJsonString();
+    // An RFC 3339 timestamp, the date-time format of the contract's times.
+    public static bool IsTimestamp(string text) =>
+        Rfc3339().IsMatch(text) && DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _);
     public static DateTimeOffset? Date(JsonNode? input, string name)
     {
         if ((input as JsonObject)?[name] is null) return null;
@@ -142,8 +145,7 @@ internal sealed record AnalysisRecord(string Id, string? TraceId, string? SpanId
 
 internal static class AnalysisMatchers
 {
-    private static readonly string[] s_ops = ["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"];
-    private static readonly string[] s_scopes = ["span", "resource", "log"];
+    // The request's contract holds each matcher's op and scope to their values; the operands an op needs are checked here.
     public static void Validate(JsonNode? node)
     {
         if (node is null) return;
@@ -152,8 +154,6 @@ internal static class AnalysisMatchers
         {
             var op = J.String(m, "op");
             if (string.IsNullOrEmpty(J.String(m, "key"))) throw new AnalysisInputException("matchers.key", "A non-empty attribute key is required.");
-            if (op is null || !s_ops.Contains(op)) throw new AnalysisInputException("matchers.op", "Choose eq, neq, in, prefix, contains, exists, gt, gte, lt or lte.") { Allowed = s_ops, Hint = "eq, neq and in compare typed values; prefix and contains match text; gt to lte compare numbers." };
-            if (J.String(m, "scope") is { } and not ("span" or "resource" or "log")) throw new AnalysisInputException("matchers.scope", "Choose span, resource or log.") { Allowed = s_scopes };
             if (op == "in" && m?["values"] is not JsonArray) throw new AnalysisInputException("matchers.values", "The in operator requires values.");
             if (op != "exists" && op != "in" && m?["value"] is null) throw new AnalysisInputException("matchers.value", "This operator requires a value.");
         }

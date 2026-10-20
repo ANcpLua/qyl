@@ -466,6 +466,38 @@ verify('31 a number outside its range is refused by the MCP and by the Collector
  assert(refused>=4*Object.keys(analysisArguments).length,`every tool's lookback_minutes and limit, both ends: ${refused}`);
  assert.equal(nested,6,'baseline.offset_minutes of triage, query_metric and get_mcp_stats, both ends');
 });
+verify('33 an unknown argument, a value of another type and one outside its set are refused by the MCP and by the Collector\'s HTTP route, naming the same field and what it accepts',async(_call,client)=>{
+ const pascal=tool=>tool.split('_').map(part=>part[0].toUpperCase()+part.slice(1)).join('');
+ // A value of another JSON type than the schema's; a union, which names none, takes no number.
+ const mistyped=schema=>['integer','number'].includes(schema.type)?'1':schema.type==='boolean'?'true':['array','object'].includes(schema.type)?'x':1;
+ const closed=schema=>schema.enum!==undefined||schema.anyOf?.every(form=>form.enum!==undefined||form.const!==undefined||form.properties!==undefined);
+ let refused=0;
+ const refuse=async(tool,args,field,accepted)=>{
+  const at=`${tool} ${JSON.stringify(args)}`;
+  const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
+  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}/api/v1/analysis/${tool}`,{method:'POST',headers:{'content-type':'application/json',...collectorHeaders()},body:JSON.stringify(args)});
+  const [http]=(await response.json()).errors??[];
+  assert.equal(response.status,400,`${at}: ${JSON.stringify(http)}`);
+  assert.deepEqual([mcp?.code,mcp?.field,http?.field],['invalid_argument',field,field],at);
+  assert.deepEqual(http.allowed?.toSorted(),mcp.allowed?.toSorted(),`${at}: ${JSON.stringify([mcp,http])}`);
+  if (accepted!==undefined) assert.deepEqual(mcp.allowed?.toSorted(),accepted.toSorted(),at);
+  assert(typeof mcp.hint==='string'&&typeof http.hint==='string',at);
+  refused++;
+ };
+ for (const [tool,required] of Object.entries(analysisArguments)) {
+  const {properties}=documents[`Mcp.Tools.${pascal(tool)}Input`];
+  await refuse(tool,{...required,bogus_argument:1},'bogus_argument',Object.keys(properties));
+  for (const [field,schema] of Object.entries(properties)) {
+   await refuse(tool,{...required,[field]:mistyped(schema)},field);
+   if (closed(schema)) await refuse(tool,{...required,[field]:'bogus_value'},field);
+  }
+ }
+ for (const tool of ['triage','list_traces','search_logs']) {
+  await refuse(tool,{matchers:[{key:'service.name',op:'exists',bogus_member:1}]},'matchers[0].bogus_member',['key','op','value','values','scope']);
+  await refuse(tool,{matchers:[{key:'service.name',op:'eq',value:{}}]},'matchers[0].value');
+ }
+ assert(refused>=3*Object.keys(analysisArguments).length,`every tool's unknown argument and its mistyped and closed arguments: ${refused}`);
+});
 
 // Existing projection and paging semantics stay exercised against real storage.
 verify('regression get_trace removes all attribute collections without changing totals', async call=>{

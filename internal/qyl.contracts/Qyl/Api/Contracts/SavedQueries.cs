@@ -134,6 +134,9 @@ public sealed class SavedQueryCreateRequest
         ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
         ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [];
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -151,6 +154,9 @@ public sealed class SavedQueryUpdateRequest
         ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
         ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
     public string? Name { get; init; }
@@ -172,6 +178,9 @@ public sealed class SavedQueryRunRequest
     [
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
+    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>
+    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =
+    [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
     public DateTimeOffset? StartTime { get; init; }

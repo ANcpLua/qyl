@@ -58,7 +58,7 @@ internal sealed partial class AnalysisEngine
     }
     private JsonObject QueryMetric(JsonObject input)
     {
-        var rows = SeriesRows(input); var name = J.String(input, "metric_name") ?? throw new AnalysisInputException("metric_name", "metric_name is required.");
+        var rows = SeriesRows(input); var name = J.String(input, "metric_name")!;
         if (rows.Count is 0) throw new AnalysisInputException("metric_name", $"Metric {name} was not found in this project; list_metrics lists the recorded metrics.", "metric.not_found") { Missing = name };
         var aggregation = J.String(input, "aggregation") ?? "avg"; var function = J.String(input, "function") ?? "none";
         if (rows.Select(static row => (row.MetricKind, row.Unit, row.Temporality, row.IsMonotonic)).Distinct().Skip(1).Any())

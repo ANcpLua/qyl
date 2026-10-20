@@ -276,8 +276,10 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
       props.push(`${numberHandling}${alwaysWrite}    [JsonPropertyName("${jsonName}")]\n    public required ${type} ${name} { get; init; }`);
     }
   }
-  const ranges = requestBody ? rangeEntries(program, model, model, "", new Set()) : [];
-  if (ranges.length > 0) constants.push(renderRanges(ranges));
+  if (requestBody) {
+    const members = bodyMembers(program, model);
+    constants.push(renderRanges(rangeEntries(program, model, members)), renderChoices(choiceEntries(program, members)));
+  }
   const members = [...constants, ...props];
   const body = members.length ? `\n${members.join("\n")}\n` : "\n";
   return `${keyword} ${emittedName}${implementsUnion}\n{${body}}\n`;
@@ -309,42 +311,60 @@ function numericRange(program: Program, property: ModelProperty, type: string, s
   return minimum === undefined && maximum === undefined ? undefined : { minimum, maximum };
 }
 
+type BodyMember = { path: string; property: ModelProperty; owner: string; typed: boolean };
+
 /**
- * Each bounded numeric member of a request body at every depth, by wire path: `limit`, a nested model's
- * `baseline.offset_minutes`, an array's elements as `matchers[]`. An entry names the constants the member's model
- * declares beside it; members of a union's models that share a path share one entry and must share its range.
+ * Every member of a request body at any depth, by wire path: `limit`, a nested model's `baseline.offset_minutes`, an
+ * array's elements as `matchers[]`, each with the prefix that names its model's constants from the body. `typed`
+ * marks a member of a union C# reads as its own type, not as a string or an object.
  */
-function rangeEntries(program: Program, body: Model, type: Type, path: string, seen: ReadonlySet<Model>): string[] {
-  const entries = new Map<string, { entry: string; range: string }>();
-  const visit = (current: Type, at: string, visited: ReadonlySet<Model>): void => {
+function bodyMembers(program: Program, body: Model): BodyMember[] {
+  const members: BodyMember[] = [];
+  const visit = (current: Type, at: string, visited: ReadonlySet<Model>, typed: boolean): void => {
     if (current.kind === "Union") {
-      for (const variant of current.variants.values()) visit(variant.type, at, visited);
+      for (const variant of current.variants.values()) visit(variant.type, at, visited, typed || !opaque(program, current));
       return;
     }
     if (current.kind !== "Model" || isRecordModelType(current) || visited.has(current)) return;
-    if (isArrayModelType(current)) return visit(current.indexer!.value, `${at}[]`, visited);
+    if (isArrayModelType(current)) return visit(current.indexer!.value, `${at}[]`, visited, typed);
     const inner = new Set(visited).add(current);
     const owner = current === body ? "" : `${localOrQualifiedType(program, body, current)}.`;
     for (const property of inheritedProperties(current)) {
       if (isHttpMetadata(program, property)) continue;
-      const member = `${at === "" ? "" : `${at}.`}${escapeCsharpString(resolveEncodedName(program, property, "application/json"))}`;
-      const csType = mapType(program, property.type).replace(/\?$/, "");
-      const range = numericRange(program, property, csType, true);
-      if (range !== undefined) {
-        if (csType === "decimal") throw new Error(`Request body member '${member}' bounds a decimal; Ranges holds doubles.`);
-        const name = pascal(property.name);
-        const fallback = defaultLiteral(property, csType);
-        const constant = (suffix: string, declared: unknown) => declared === undefined ? "null" : `${owner}${name}${suffix}`;
-        const entry = `        ("${member}", ${constant("Minimum", range.minimum)}, ${constant("Maximum", range.maximum)}, ${constant("Default", fallback)}),`;
-        const same = JSON.stringify([range.minimum, range.maximum, fallback]);
-        const earlier = entries.get(member);
-        if (earlier !== undefined && earlier.range !== same) throw new Error(`Request body '${body.name}' bounds '${member}' differently in two of its union's models.`);
-        if (earlier === undefined) entries.set(member, { entry, range: same });
-      }
-      visit(property.type, member, inner);
+      const path = `${at === "" ? "" : `${at}.`}${escapeCsharpString(resolveEncodedName(program, property, "application/json"))}`;
+      members.push({ path, property, owner, typed });
+      visit(property.type, path, inner, typed);
     }
   };
-  visit(type, path, seen);
+  visit(body, "", new Set(), false);
+  return members;
+}
+
+/** Whether C# reads a type as a bare string or object, which its JSON reader cannot hold to the contract's forms. */
+function opaque(program: Program, type: Type): boolean {
+  return ["object", "string"].includes(mapType(program, type).replace(/\?$/, ""));
+}
+
+/**
+ * Each bounded numeric member of a request body, naming the constants its model declares beside it. Members of a
+ * union's models that share a path share one entry and must share its range.
+ */
+function rangeEntries(program: Program, body: Model, members: BodyMember[]): string[] {
+  const entries = new Map<string, { entry: string; range: string }>();
+  for (const { path, property, owner } of members) {
+    const csType = mapType(program, property.type).replace(/\?$/, "");
+    const range = numericRange(program, property, csType, true);
+    if (range === undefined) continue;
+    if (csType === "decimal") throw new Error(`Request body member '${path}' bounds a decimal; Ranges holds doubles.`);
+    const name = pascal(property.name);
+    const fallback = defaultLiteral(property, csType);
+    const constant = (suffix: string, declared: unknown) => declared === undefined ? "null" : `${owner}${name}${suffix}`;
+    const entry = `        ("${path}", ${constant("Minimum", range.minimum)}, ${constant("Maximum", range.maximum)}, ${constant("Default", fallback)}),`;
+    const same = JSON.stringify([range.minimum, range.maximum, fallback]);
+    const earlier = entries.get(path);
+    if (earlier !== undefined && earlier.range !== same) throw new Error(`Request body '${body.name}' bounds '${path}' differently in two of its union's models.`);
+    if (earlier === undefined) entries.set(path, { entry, range: same });
+  }
   return [...entries.values()].map(({ entry }) => entry);
 }
 
@@ -355,7 +375,69 @@ function rangeEntries(program: Program, body: Model, type: Type, path: string, s
 function renderRanges(entries: string[]): string {
   return "    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>\n"
     + "    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =\n"
-    + `    [\n${entries.join("\n")}\n    ];`;
+    + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
+}
+
+/**
+ * Each member of a request body whose value takes one of a set of forms: a union of string literals, enums, models and
+ * JSON types, or an array of them by its elements' path. C# reads the union as a string or an object, so a server
+ * refuses a value outside the set from this list. A union's models share one path, and so do their sets.
+ */
+function choiceEntries(program: Program, members: BodyMember[]): string[] {
+  const entries = new Map<string, string[]>();
+  for (const { path, property, typed } of members) {
+    const elements = property.type.kind === "Model" && isArrayModelType(property.type);
+    const type = elements ? (property.type as Model).indexer!.value : property.type;
+    if (typed || type.kind !== "Union" && type.kind !== "String" || !opaque(program, type)) continue;
+    const values = closedValues(program, type);
+    if (values === undefined) continue;
+    const at = elements ? `${path}[]` : path;
+    entries.set(at, [...new Set([...(entries.get(at) ?? []), ...values])]);
+  }
+  return [...entries].map(([path, values]) => `        ("${path}", [${values.map((value) => `"${escapeCsharpString(value)}"`).join(", ")}]),`);
+}
+
+/**
+ * The forms a type takes: its string literals and string enum values first, then each model as the object form
+ * `{a, b}` of its members, as the MCP names it, then each scalar as its JSON type `<string>`, `<number>`, `<integer>` or
+ * `<boolean>`. Any other member leaves the type without a set.
+ */
+function closedValues(program: Program, type: Type): string[] | undefined {
+  switch (type.kind) {
+    case "String":
+      return [type.value];
+    case "Scalar": {
+      for (let scalar: Scalar | undefined = type; scalar; scalar = scalar.baseScalar) {
+        const json = scalar.name === "string" || scalar.name === "boolean" ? scalar.name
+          : /^(?:u?int\d+|integer|safeint)$/.test(scalar.name) ? "integer" : /^(?:float\d*|decimal\d*|numeric)$/.test(scalar.name) ? "number" : undefined;
+        if (json !== undefined) return [`<${json}>`];
+      }
+      return undefined;
+    }
+    case "Enum": {
+      const members = [...type.members.values()];
+      return members.some((member) => typeof member.value === "number") ? undefined
+        : members.map((member) => typeof member.value === "string" ? member.value : member.name);
+    }
+    case "Model":
+      return isArrayModelType(type) || isRecordModelType(type) ? undefined
+        : [`{${inheritedProperties(type).filter((property) => !isHttpMetadata(program, property)).map((property) => resolveEncodedName(program, property, "application/json")).join(", ")}}`];
+    case "Union": {
+      const variants = [...type.variants.values()].map((variant) => closedValues(program, variant.type));
+      if (variants.some((values) => values === undefined)) return undefined;
+      const values = variants.flat() as string[];
+      const order = (value: string) => value.startsWith("{") ? 1 : value.startsWith("<") ? 2 : 0;
+      return values.map((value, index) => ({ value, index })).sort((a, b) => order(a.value) - order(b.value) || a.index - b.index).map(({ value }) => value);
+    }
+    default:
+      return undefined;
+  }
+}
+
+function renderChoices(entries: string[]): string {
+  return "    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} and the JSON types written &lt;string&gt;.</summary>\n"
+    + "    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Choices =\n"
+    + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
 }
 
 function defaultLiteral(property: ModelProperty, type: string): string | undefined {

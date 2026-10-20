@@ -474,7 +474,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         var writes = MetricStorageMapper.ToStorageRows(new([first, second], 0, null), "alpha");
         await host.Store.InsertMetricsAsync(writes.Series, writes.Observations, testContext.CancellationToken);
         Assert.HasCount(2, await host.Store.ListMetricsAsync("alpha", ct: testContext.CancellationToken));
-        using var analysis = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/list_metrics", "reader", "{\"metric_name\":\"requests\"}");
+        using var analysis = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/list_metrics", "reader", "{\"name_prefix\":\"requests\"}");
         Assert.AreEqual(System.Net.HttpStatusCode.OK, analysis.StatusCode);
         Assert.AreEqual(2, (await host.JsonAsync(analysis)).GetProperty("items").GetArrayLength());
         using var firstPage = await host.SendAsync(HttpMethod.Get, "/api/v1/metrics?name_prefix=requests&limit=1", "reader");
