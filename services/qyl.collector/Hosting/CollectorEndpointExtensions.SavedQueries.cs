@@ -221,8 +221,13 @@ internal static partial class CollectorEndpointExtensions
                 : new System.Text.Json.Nodes.JsonObject()) is not { } body) return ResourceHttp.InvalidBody("Provide an object with the run options.");
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
-            var snapshot = await store.ReadAnalysisSnapshotAsync(project, ct: ct).ConfigureAwait(false);
-            var result = new Analysis.AnalysisEngine(snapshot, project, CreateAnalysisHandles(httpContext, project), timeProvider.GetUtcNow()).Run("run_saved_query", body);
+            if (await store.GetSavedQueryAsync(project, savedQueryId, ct).ConfigureAwait(false) is not { } saved)
+                return AnalysisError(Analysis.AnalysisEngine.NoSavedQuery(savedQueryId));
+            // The run reads its saved filter's signal over its own window, as the analysis route does.
+            var now = timeProvider.GetUtcNow(); var handles = CreateAnalysisHandles(httpContext, project);
+            var query = Analysis.AnalysisReadPlan.Resolve("run_saved_query", Analysis.AnalysisEngine.SavedQueryInput(saved, body), now, handles, project);
+            var snapshot = await store.ReadAnalysisSnapshotAsync(project, query, ct).ConfigureAwait(false);
+            var result = new Analysis.AnalysisEngine(snapshot, project, handles, now).Run("run_saved_query", body);
             // The analysis answer names its rows by signal; the HTTP route answers with the run result of the contract.
             var signal = Analysis.J.String(result["saved_query"]?["filter"], "signal")!;
             var run = signal == "metrics"

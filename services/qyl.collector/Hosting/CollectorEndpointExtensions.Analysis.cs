@@ -58,10 +58,8 @@ internal static partial class CollectorEndpointExtensions
             if (operation == "run_saved_query" && J.String(input, "id") is { } savedId)
             {
                 if (await store.GetSavedQueryAsync(project, savedId, deadline.Token).ConfigureAwait(false) is not { } saved)
-                return ContractErrorResults.NotFound("saved_query", savedId, $"Saved query {savedId} was not found in this project; run_saved_query without id lists the saved queries.");
-                readInput = JsonNode.Parse(saved.FilterJson)!.AsObject();
-                readInput["id"] = savedId;
-                foreach (var name in AnalysisEngine.RunOverrides) if (input[name] is { } value) readInput[name] = value.DeepClone();
+                    return AnalysisError(AnalysisEngine.NoSavedQuery(savedId));
+                readInput = AnalysisEngine.SavedQueryInput(saved, input);
             }
             if (operation == "get_failure_context" && J.String(input, "failure_id") is { } failureId)
             {

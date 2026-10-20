@@ -135,6 +135,31 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         Assert.AreEqual("passed", verification.GetProperty("verdict").GetString());
     }
 
+    /// <summary>
+    /// A saved query run over HTTP reads its saved signal over its own window, as the analysis route does: a window
+    /// older than more spans than one read holds still lists its traces.
+    /// </summary>
+    [TestMethod]
+    public async Task A_saved_query_run_over_http_reads_its_window_not_the_projects_newest_rows()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var recent = FixtureUnixNano - 30 * Minute;
+        var rows = Enumerable.Range(1, AnalysisReadQuery.MaximumRows + 1).Select(i => Request(i, recent + (ulong)i * 1_000)).ToList();
+        rows.AddRange([Request(100_001, FixtureUnixNano - 180 * Minute), Request(100_002, FixtureUnixNano - 170 * Minute)]);
+        await host.Store.EnqueueAsync(new SpanBatch(rows), testContext.CancellationToken);
+        using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer", """{"name":"checkout","filter":{"signal":"traces","service_name":"checkout"}}""");
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString();
+
+        using var response = await host.SendAsync(HttpMethod.Post, $"/api/v1/saved-queries/{id}:run", ReaderApiKey,
+            $$"""{"start_time":"{{FixtureUtcNow.AddMinutes(-200):O}}","end_time":"{{FixtureUtcNow.AddMinutes(-160):O}}"}""");
+        var run = await host.JsonAsync(response);
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, run.GetRawText());
+        Assert.AreSequenceEqual([TraceId(100_002), TraceId(100_001)], run.GetProperty("items").EnumerateArray().Select(static t => t.GetProperty("trace_id").GetString()));
+        Assert.IsFalse(run.GetProperty("has_more").GetBoolean());
+    }
+
     private static SpanStorageRow Request(int id, ulong start, bool failed = false) =>
         Span(TraceId(id), SpanId(id), start, start + 500, status: failed ? (byte)2 : (byte)1);
 
