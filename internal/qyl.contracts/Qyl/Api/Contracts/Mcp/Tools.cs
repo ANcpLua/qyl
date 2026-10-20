@@ -2060,6 +2060,20 @@ public sealed class VerificationPeriod
     public required string Unit { get; init; }
 }
 
+public sealed class VerificationChange
+{
+    [JsonPropertyName("kind")]
+    public required string Kind { get; init; }
+    [JsonPropertyName("time")]
+    public required DateTimeOffset Time { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("service")]
+    public string? Service { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("version")]
+    public string? Version { get; init; }
+}
+
 public sealed class VerificationNeeds
 {
     [JsonPropertyName("requests")]
@@ -2082,6 +2096,8 @@ public sealed class VerifyFixOutput
     public string? NextCursor { get; init; }
     [JsonPropertyName("verdict")]
     public required string Verdict { get; init; }
+    [JsonPropertyName("change")]
+    public required Qyl.Api.Contracts.Mcp.Tools.VerificationChange Change { get; init; }
     [JsonPropertyName("before")]
     public required Qyl.Api.Contracts.Mcp.Tools.VerificationPeriod Before { get; init; }
     [JsonPropertyName("after")]

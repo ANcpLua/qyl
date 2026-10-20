@@ -144,7 +144,7 @@ function failureContext(input: Args, output: GetFailureContextOutput): string {
   const unknowns = output.unknowns.length === 0 ? "" : ` Unknowns: ${short(output.unknowns.join("; "), 160)}.`;
   const nearest = output.comparison.nearest_success_trace_id;
   const trace = reference?.trace_id ?? observed.error_spans[0]?.trace_id;
-  const next = typeof input.failure_id === "string" ? `verify_fix failure_id=${input.failure_id} since=<when the fix shipped>`
+  const next = typeof input.failure_id === "string" ? `verify_fix failure_id=${input.failure_id} release=<the version that shipped the fix> or since=<when it shipped>`
     : nearest !== undefined && trace !== undefined ? `compare_traces a={trace_id:${trace}} b={trace_id:${nearest}}`
       : trace !== undefined ? `get_trace trace_id=${trace} selection=errors_with_ancestors`
         : "triage over a wider lookback_minutes";
@@ -185,7 +185,9 @@ function verifyFix(output: VerifyFixOutput): string {
     : output.verdict === "failed" && output.recurrences[0] !== undefined ? `get_trace trace_id=${output.recurrences[0]}`
       : output.verdict === "passed" ? "update_failure_status status=resolved with the failure's etag"
         : "wait for traffic after the change, or widen the window";
-  return `verify_fix: ${output.verdict} — before ${output.before.occurrences} occurrences in ${output.before.requests} requests, after ${output.after.occurrences} in ${output.after.requests}${needs}${recurrences}${guardrails}; verify_id ${output.verify_id}.${coverageNote(output.coverage)} → ${next}`;
+  const { change } = output;
+  const anchor = change.kind === "release" ? `release ${change.version} of ${change.service} (first span ${change.time})` : `the change at ${change.time}`;
+  return `verify_fix: ${output.verdict} after ${anchor} — before ${output.before.occurrences} occurrences in ${output.before.requests} requests, after ${output.after.occurrences} in ${output.after.requests}${needs}${recurrences}${guardrails}; verify_id ${output.verify_id}.${coverageNote(output.coverage)} → ${next}`;
 }
 
 function aggregate(output: AggregateTelemetryOutput): string {

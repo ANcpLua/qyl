@@ -507,7 +507,7 @@ model CompareTracesOutput {
   error?: ToolError;
 }
 
-@doc("Checks whether a fix held: counts the failure's occurrences and its operation's requests before and after the change and answers `passed`, `failed` (it recurred), `pending` (fewer than `min_requests` requests or `min_minutes` minutes since the change) or `inconclusive`. Give exactly one of `failure_id` or `matchers` (the matched spans are the requests and their errors the failures), and a `since` time or a `release` whose first span marks the change. The before window runs from the failure's first retained occurrence (with `matchers`: from `since` minus the lookback) to the change, the after window from the change to now. Repeat the check later with the returned `verify_id`.")
+@doc("Checks whether a fix held: counts the failure's occurrences and its operation's requests before and after the change and answers `passed`, `failed` (it recurred), `pending` (fewer than `min_requests` requests or `min_minutes` minutes since the change) or `inconclusive`. Give exactly one of `failure_id` or `matchers` (the matched spans are the requests and their errors the failures), and a `since` time or a `release` of the failure's service whose first span marks the change; `change` names the anchor used. The before window runs from the failure's first retained occurrence (with `matchers`: from the change minus the lookback) to the change, the after window from the change to now. Repeat the check later with the returned `verify_id`.")
 model VerifyFixInput {
   ...AnalysisInput;
   @doc("The failure to verify; its requests are the spans of its service and operation. Give exactly one of `failure_id` or `matchers`.")
@@ -515,7 +515,7 @@ model VerifyFixInput {
   failureId?: FailureId;
   @doc("When the fix took effect, RFC 3339; the after window runs from here to now. Takes precedence over `release`.")
   since?: utcDateTime;
-  @doc("A `service.version` whose first recorded span marks the change, when `since` is omitted.")
+  @doc("A `service.version` of the failure's service (with `matchers`, of the matched requests' services) whose first recorded span marks the change, when `since` is omitted. A service that records no such version, such as a database, takes it from the services its executions run through. list_releases lists each service's versions.")
   release?: string;
   @doc("Requests the after window needs before the verdict can be `passed`; default 100.")
   @encodedName("application/json", "min_requests")
@@ -537,6 +537,18 @@ model VerificationPeriod {
   unit: "requests";
 }
 
+@doc("The change a verification is anchored on: the `since` it was given, or the first recorded span of a release.")
+model VerificationChange {
+  @doc("`since` for a time the request gave, `release` for the first span of a release.")
+  kind: "since" | "release";
+  @doc("When the change took effect; the after window starts here.")
+  time: utcDateTime;
+  @doc("With `release`: the service whose first span of `version` marks the change.")
+  service?: string;
+  @doc("With `release`: the release, a `service.version`.")
+  version?: string;
+}
+
 @doc("What a pending verification still needs before it can pass.")
 model VerificationNeeds {
   @doc("Requests still to observe after the change.")
@@ -553,6 +565,7 @@ model VerifyFixOutput {
   pageTotals?: Record<int64>;
   ...ToolPage;
   verdict: "passed" | "failed" | "pending" | "inconclusive";
+  change: VerificationChange;
   before: VerificationPeriod;
   after: VerificationPeriod;
   needs?: VerificationNeeds;

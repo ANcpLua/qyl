@@ -1763,6 +1763,13 @@ export interface VerificationPeriod {
   "unit": "requests";
 }
 
+export interface VerificationChange {
+  "kind": "since" | "release";
+  "time": string;
+  "service"?: string;
+  "version"?: string;
+}
+
 export interface VerificationNeeds {
   "requests": number;
   "minutes": number;
@@ -1774,6 +1781,7 @@ export interface VerifyFixOutput {
   "has_more": boolean;
   "next_cursor"?: string;
   "verdict": "passed" | "failed" | "pending" | "inconclusive";
+  "change": VerificationChange;
   "before": VerificationPeriod;
   "after": VerificationPeriod;
   "needs"?: VerificationNeeds;
@@ -2311,4 +2319,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:3d9ca69ff65c018a";
+export const CONTRACT_REVISION: string = "sha256:3b1a215b1cb04be3";

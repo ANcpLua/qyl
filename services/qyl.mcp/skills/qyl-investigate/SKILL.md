@@ -32,7 +32,7 @@ saved queries and failure status in that project, never the telemetry.
 | Why this request, trace or session failed | `get_failure_context` with exactly one of `trace_id`, `session_id`, `failure_id` or `ci_run_id` | `compare_traces` against a passing execution, `get_trace` for the span tree |
 | Which errors recur and their status | `triage` with `status` `all`, `resolved` or `ignored` | `update_failure_status` when the user records a decision |
 | Why something is slow | `aggregate_telemetry` grouped by operation with `duration_p95` | `get_trace` with `selection: critical_path` on a slow `trace_id` |
-| Whether a fix held | `verify_fix` with the `failure_id` and `since` (when the fix shipped) or `release` | repeat with the returned `verify_id` once `needs` is met |
+| Whether a fix held | `verify_fix` with the `failure_id` and the `release` that shipped the fix (`list_releases` names the versions) or `since` (when it shipped) | repeat with the returned `verify_id` once `needs` is met |
 | How two populations differ | `compare_groups` | `discover_attributes` to choose the discriminating keys |
 | How services call each other | `get_service_map` | `aggregate_telemetry` grouped by `service.name` |
 | Whether telemetry itself is complete | `check_telemetry_health` | `discover_attributes` for the missing keys |
@@ -89,7 +89,9 @@ saved queries and failure status in that project, never the telemetry.
   `pending` means the `needs` (requests and minutes) are not met yet: say
   so and offer to check again later with the `verify_id`. `inconclusive`
   means the evidence cannot decide: no requests after the change, or a scan
-  that did not hold the whole window after it.
+  that did not hold the whole window after it. `change` names the anchor:
+  the first span of the release in the failure's service, or the `since`
+  given; report it with the verdict.
 - `triage` ranks failures by `change`: `new`, `worsening`, `ongoing`,
   `recovering`, `regressed`. A `coinciding_release` is a lead, not a cause.
   It lists the open failures, those that need attention, unless `status`

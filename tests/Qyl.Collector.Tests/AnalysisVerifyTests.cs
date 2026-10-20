@@ -36,4 +36,54 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(FixtureUtcNow.AddMinutes(-130.5), before.GetProperty("window").GetProperty("start_time").GetDateTimeOffset());
         Assert.AreEqual((1, 2), (before.GetProperty("occurrences").GetInt32(), before.GetProperty("requests").GetInt32()));
     }
+
+    /// <summary>
+    /// A release is a version of the failure's own service: another service that ran a version of the same name
+    /// long before is not the change. A database that records no version of its own resolves it within the services
+    /// of its executions, here the checkout that calls it. The result names the change it was anchored on.
+    /// </summary>
+    [TestMethod]
+    public async Task Verify_fix_resolves_a_release_within_the_failures_service_and_names_the_change()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        const string Introduced = """{"service.version":"1.4.1"}""", Fixed = """{"service.version":"1.4.2"}""";
+        SpanStorageRow Row(int id, string service, string name, ulong minutesAgo, string? resource = null, bool failed = false, int? parent = null) =>
+            Span(TraceId(parent ?? id), SpanId(id), FixtureUnixNano - minutesAgo * Minute, FixtureUnixNano - minutesAgo * Minute + 1_000_000,
+                    parentSpanId: parent is { } caller ? SpanId(caller) : null, service: service, status: failed ? (byte)2 : (byte)1)
+                with { Name = name, ResourceJson = resource, StatusMessage = failed ? $"{name} failed" : null };
+        await host.Store.EnqueueAsync(new SpanBatch([
+            Row(1, "billing-reviewer-old", "charge", 600, Fixed),
+            Row(2, "checkout", "checkout", 120, Introduced, failed: true), Row(3, "orders-db", "db", 120, failed: true, parent: 2),
+            Row(4, "checkout", "checkout", 30, Fixed), Row(5, "orders-db", "db", 30, parent: 4)
+        ]), testContext.CancellationToken);
+        var failures = (await Read(host, "triage", """{"lookback_minutes":240}""")).GetProperty("failures").EnumerateArray()
+            .ToDictionary(static f => f.GetProperty("service").GetString()!, static f => f.GetProperty("failure_id").GetString()!);
+        var fixedAt = FixtureUtcNow.AddMinutes(-30);
+
+        foreach (var service in new[] { "checkout", "orders-db" })
+        {
+            var verification = await Read(host, "verify_fix", $$"""{"failure_id":"{{failures[service]}}","release":"1.4.2"}""");
+            var change = verification.GetProperty("change");
+            Assert.AreEqual(("release", "checkout", "1.4.2"), (change.GetProperty("kind").GetString(), change.GetProperty("service").GetString(), change.GetProperty("version").GetString()), service);
+            Assert.AreEqual(fixedAt, change.GetProperty("time").GetDateTimeOffset(), service);
+            Assert.AreEqual(fixedAt, verification.GetProperty("after").GetProperty("window").GetProperty("start_time").GetDateTimeOffset(), service);
+            Assert.AreEqual((0, 1), (verification.GetProperty("after").GetProperty("occurrences").GetInt32(), verification.GetProperty("after").GetProperty("requests").GetInt32()), service);
+            Assert.AreEqual("pending", verification.GetProperty("verdict").GetString(), service);
+        }
+
+        var matched = await Read(host, "verify_fix", """{"matchers":[{"key":"service.name","op":"eq","value":"checkout"}],"release":"1.4.2"}""");
+        Assert.AreEqual("checkout", matched.GetProperty("change").GetProperty("service").GetString());
+        Assert.AreEqual(fixedAt, matched.GetProperty("change").GetProperty("time").GetDateTimeOffset());
+
+        var since = await Read(host, "verify_fix", $$"""{"failure_id":"{{failures["checkout"]}}","since":"{{fixedAt.AddMinutes(5):O}}"}""");
+        var sinceChange = since.GetProperty("change");
+        Assert.AreEqual("since", sinceChange.GetProperty("kind").GetString());
+        Assert.AreEqual(fixedAt.AddMinutes(5), sinceChange.GetProperty("time").GetDateTimeOffset());
+        Assert.IsFalse(sinceChange.TryGetProperty("service", out _));
+        Assert.IsFalse(sinceChange.TryGetProperty("version", out _));
+
+        var unknown = await RejectedAsync(host, "verify_fix", $$"""{"failure_id":"{{failures["checkout"]}}","release":"9.9.9"}""");
+        Assert.AreEqual("release", unknown.GetProperty("field").GetString());
+        Assert.AreSequenceEqual(["1.4.2", "1.4.1"], unknown.GetProperty("allowed").EnumerateArray().Select(static v => v.GetString()));
+    }
 }

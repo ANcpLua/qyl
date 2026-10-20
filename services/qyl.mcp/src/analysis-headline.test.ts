@@ -49,7 +49,7 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
       context: { similar_failures: [], changes: [regression], annotations: [] }, settled: true, unknowns: ["whether the pool was saturated"] },
     expect: [/^get_failure_context: root cause checkout\/SELECT orders \(span b7ad6b7169203331, trace 0af7651916cd43dd8448eb211c80319c\) TimeoutError: orders-db timed out after 5s\./u,
       /1 error spans, 0 logs, 0 similar failures; settled\. Changed: checkout\/POST \/cart p95_ms 1840 vs 210 ms\./u,
-      /Unknowns: whether the pool was saturated\./u, /→ verify_fix failure_id=fail_1 since=<when the fix shipped>$/u],
+      /Unknowns: whether the pool was saturated\./u, /→ verify_fix failure_id=fail_1 release=<the version that shipped the fix> or since=<when it shipped>$/u],
   },
   {
     // Without a failure_id the nearest success is the comparison to make.
@@ -89,11 +89,21 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
   {
     operation: "verify_fix", schema: "Mcp.Tools.VerifyFixOutput",
     output: { coverage: context.coverage, has_more: false, verdict: "pending",
+      change: { kind: "release", time: NOW, service: "checkout", version: "1.4.2" },
       before: { window, occurrences: 10, requests: 100, rate: 0.1, unit: "requests" },
       after: { window, occurrences: 0, requests: 4, rate: 0, unit: "requests" },
       needs: { requests: 96, minutes: 24 }, recurrences: [], guardrails: [], verify_id: "vf_1" },
-    expect: [/^verify_fix: pending — before 10 occurrences in 100 requests, after 0 in 4; needs 96 requests and 24 minutes; verify_id vf_1\./u,
+    expect: [/^verify_fix: pending after release 1\.4\.2 of checkout \(first span 2026-10-19T12:00:00Z\) — before 10 occurrences in 100 requests, after 0 in 4; needs 96 requests and 24 minutes; verify_id vf_1\./u,
       /→ verify_fix verify_id=vf_1 once the needs are met$/u],
+  },
+  {
+    operation: "verify_fix", schema: "Mcp.Tools.VerifyFixOutput",
+    output: { coverage: context.coverage, has_more: false, verdict: "failed", change: { kind: "since", time: NOW },
+      before: { window, occurrences: 10, requests: 100, rate: 0.1, unit: "requests" },
+      after: { window, occurrences: 2, requests: 16, rate: 0.125, unit: "requests" },
+      recurrences: [TRACE], guardrails: [], verify_id: "vf_2" },
+    expect: [/^verify_fix: failed after the change at 2026-10-19T12:00:00Z — before 10 occurrences in 100 requests, after 2 in 16; recurrences in 0af7651916cd43dd8448eb211c80319c;/u,
+      /→ get_trace trace_id=0af7651916cd43dd8448eb211c80319c$/u],
   },
   {
     operation: "aggregate_telemetry", schema: "Mcp.Tools.AggregateTelemetryOutput",

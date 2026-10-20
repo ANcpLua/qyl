@@ -13720,6 +13720,40 @@
         },
         "description": "UpdateFailureStatusOutput contract."
       },
+      "Mcp.Tools.VerificationChange": {
+        "type": "object",
+        "required": [
+          "kind",
+          "time"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "since",
+              "release"
+            ],
+            "description": "`since` for a time the request gave, `release` for the first span of a release."
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the change took effect; the after window starts here."
+          },
+          "service": {
+            "type": "string",
+            "description": "With `release`: the service whose first span of `version` marks the change."
+          },
+          "version": {
+            "type": "string",
+            "description": "With `release`: the release, a `service.version`."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "The change a verification is anchored on: the `since` it was given, or the first recorded span of a release."
+      },
       "Mcp.Tools.VerificationNeeds": {
         "type": "object",
         "required": [
@@ -13838,7 +13872,7 @@
           },
           "release": {
             "type": "string",
-            "description": "A `service.version` whose first recorded span marks the change, when `since` is omitted."
+            "description": "A `service.version` of the failure's service (with `matchers`, of the matched requests' services) whose first recorded span marks the change, when `since` is omitted. A service that records no such version, such as a database, takes it from the services its executions run through. list_releases lists each service's versions."
           },
           "min_requests": {
             "type": "integer",
@@ -13858,7 +13892,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Checks whether a fix held: counts the failure's occurrences and its operation's requests before and after the change and answers `passed`, `failed` (it recurred), `pending` (fewer than `min_requests` requests or `min_minutes` minutes since the change) or `inconclusive`. Give exactly one of `failure_id` or `matchers` (the matched spans are the requests and their errors the failures), and a `since` time or a `release` whose first span marks the change. The before window runs from the failure's first retained occurrence (with `matchers`: from `since` minus the lookback) to the change, the after window from the change to now. Repeat the check later with the returned `verify_id`."
+        "description": "Checks whether a fix held: counts the failure's occurrences and its operation's requests before and after the change and answers `passed`, `failed` (it recurred), `pending` (fewer than `min_requests` requests or `min_minutes` minutes since the change) or `inconclusive`. Give exactly one of `failure_id` or `matchers` (the matched spans are the requests and their errors the failures), and a `since` time or a `release` of the failure's service whose first span marks the change; `change` names the anchor used. The before window runs from the failure's first retained occurrence (with `matchers`: from the change minus the lookback) to the change, the after window from the change to now. Repeat the check later with the returned `verify_id`."
       },
       "Mcp.Tools.VerifyFixOutput": {
         "type": "object",
@@ -13866,6 +13900,7 @@
           "coverage",
           "has_more",
           "verdict",
+          "change",
           "before",
           "after",
           "recurrences",
@@ -13900,6 +13935,9 @@
               "pending",
               "inconclusive"
             ]
+          },
+          "change": {
+            "$ref": "#/components/schemas/Mcp.Tools.VerificationChange"
           },
           "before": {
             "$ref": "#/components/schemas/Mcp.Tools.VerificationPeriod"

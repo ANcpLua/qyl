@@ -194,6 +194,28 @@ internal sealed partial class AnalysisEngine
             ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, a.Count + b.Count, false)));
     }
 
+    // The first span of a release of the requests' own service, the failure's or the matched ones'. A service that
+    // runs no such version, such as a database below its caller, takes it from the other services of its executions;
+    // a service elsewhere in the project that ran a version of the same name is no change of these requests.
+    private AnalysisRecord ReleaseStart(List<AnalysisRecord> requests, string release, bool failure)
+    {
+        var own = requests.Select(static s => s.Service).ToHashSet(StringComparer.Ordinal);
+        var traces = requests.Select(static s => s.TraceId).ToHashSet(StringComparer.Ordinal);
+        var executions = _spans.Where(s => traces.Contains(s.TraceId) && !own.Contains(s.Service)).Select(static s => s.Service).ToHashSet(StringComparer.Ordinal);
+        // _spans is in start order, so the first match is the release's first span.
+        AnalysisRecord? First(HashSet<string> services) => _spans.FirstOrDefault(s => services.Contains(s.Service) && ReleaseOf(s) == release);
+        if ((First(own) ?? First(executions)) is { } first) return first;
+        var services = string.Join(", ", own.Order(StringComparer.Ordinal));
+        throw new AnalysisInputException("release", own.Count is 0
+            ? $"The matchers select no requests, so no service resolves release {release}."
+            : $"No span of {(failure ? "the failure's service" : "the matched requests' services")} {services}, or of the services {(failure ? "its" : "their")} executions run through, carries service.version {release}.")
+        {
+            Allowed = [.. _spans.Where(s => own.Contains(s.Service) || executions.Contains(s.Service)).Select(ReleaseOf).Where(static v => v.Length > 0)
+                .Reverse().Distinct(StringComparer.Ordinal)],
+            Hint = "list_releases lists each service's versions; or give since, the time the fix took effect."
+        };
+    }
+
     private JsonObject VerifyFix(JsonObject input)
     {
         if (J.String(input, "verify_id") is { } token) { input = handles.Read(token, project, "verify_id"); _window = AnalysisWindow.Resolve(input, now); }
@@ -214,15 +236,20 @@ internal sealed partial class AnalysisEngine
             requests = [.. _spans.Where(s => AnalysisMatchers.Match(s, matchers))];
             failures = [.. requests.Where(static s => s.Error)];
         }
-        ulong sinceNs; var sinceKnown = true;
-        if (J.Date(input, "since") is { } changed) sinceNs = QylTimeConversions.ToUnixNanoUnsigned(changed);
-        else if (J.String(input, "release") is { } release && _spans.Where(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.ServiceVersion, "resource")) == release)
-                     .Select(static s => s.Start).DefaultIfEmpty().Min() is var first and > 0)
+        ulong sinceNs; var sinceKnown = true; JsonObject change;
+        if (J.Date(input, "since") is { } changed)
         {
-            // A release starts at its first span only when no earlier span can be missing from the snapshot.
-            sinceNs = first; sinceKnown = SpansComplete(0, first);
+            sinceNs = QylTimeConversions.ToUnixNanoUnsigned(changed);
+            change = J.O(("kind", "since"), ("time", J.Time(sinceNs)));
         }
-        else throw new AnalysisInputException("since", "Provide a change timestamp or an observed release.");
+        else if (J.String(input, "release") is { } release)
+        {
+            var first = ReleaseStart(requests, release, fid is not null);
+            // A release starts at its first span only when no earlier span can be missing from the snapshot.
+            sinceNs = first.Start; sinceKnown = SpansComplete(0, first.Start);
+            change = J.O(("kind", "release"), ("time", J.Time(first.Start)), ("service", first.Service), ("version", release));
+        }
+        else throw new AnalysisInputException("since", "Provide since, the time the fix took effect, or the release that shipped it.") { Allowed = ["since", "release"] };
         var nowNs = QylTimeConversions.ToUnixNanoUnsigned(now);
         var elapsed = nowNs > sinceNs ? nowNs - sinceNs : 0;
         // Before the change is the failure's known history from its first occurrence, or the request's lookback.
@@ -241,7 +268,7 @@ internal sealed partial class AnalysisEngine
         var knownFailures = _spans.Where(s => s.Error && Before(s)).Select(Signature).Concat(failures.Select(Signature)).ToHashSet(StringComparer.Ordinal);
         var guardrails = SpansComplete(beforeNs, sinceNs) ? _spans.Where(s => s.Error && After(s)).GroupBy(Signature).Where(g => !knownFailures.Contains(g.Key))
             .Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; return item; }) : [];
-        return J.O(("verdict", verdict), ("before", Segment(beforeNs, sinceNs, failures.Count(Before), requests.Count(Before))), ("after", Segment(sinceNs, nowNs, afterFailures.Count, after.Count)),
+        return J.O(("verdict", verdict), ("change", change), ("before", Segment(beforeNs, sinceNs, failures.Count(Before), requests.Count(Before))), ("after", Segment(sinceNs, nowNs, afterFailures.Count, after.Count)),
             ("needs", verdict == "pending" ? J.O(("requests", Math.Max(0, minRequests - after.Count)), ("minutes", (long)Math.Max(0, Math.Ceiling(minMinutes - elapsed / 60_000_000_000d)))) : null),
             ("recurrences", afterFailures.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)), ("guardrails", J.A(guardrails)), ("verify_id", handles.Issue(project, "verify_id", input)),
             // The requests read, and those of the before and after windows the verdict weighs.

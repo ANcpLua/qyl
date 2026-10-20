@@ -125,7 +125,7 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual("253", release.GetProperty("after").GetProperty("p95_ms").GetRawText());
     }
 
-    private static readonly string[] s_verificationFields = ["coverage", "page_totals", "has_more", "verdict", "before", "after", "needs", "recurrences", "guardrails", "verify_id"];
+    private static readonly string[] s_verificationFields = ["coverage", "page_totals", "has_more", "verdict", "change", "before", "after", "needs", "recurrences", "guardrails", "verify_id"];
     private static readonly string[] s_ciRunFields = ["ci_run_id", "state", "start_time", "duration_ms", "error_count", "services", "attempts"];
     private static readonly string[] s_plainSessionFields =
         ["session_id", "state", "start_time", "end_time", "duration_ms", "trace_count", "span_count", "error_count", "services", "failure_ids"];
