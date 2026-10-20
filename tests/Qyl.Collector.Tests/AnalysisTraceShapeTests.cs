@@ -42,6 +42,24 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual("s-12", newest.GetProperty("session_id").GetString());
     }
 
+    /// <summary>A trace's logs are its newest max_logs records, newest first; search_logs returns the rest.</summary>
+    [TestMethod]
+    public async Task Get_trace_returns_the_newest_max_logs_records_first()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        await host.Store.EnqueueAsync(new SpanBatch([Span(TraceId(1), SpanId(1), time, time + 4_000_000) with { Name = "request" }]), testContext.CancellationToken);
+        await host.Store.InsertLogsAsync([.. Enumerable.Range(1, 3).Select(i => new LogStorageRow
+        {
+            ProjectId = AlphaProjectId, LogId = "log-" + i, TraceId = TraceId(1), SpanId = SpanId(1), TimeUnixNano = time + (ulong)i * 1_000_000,
+            SeverityNumber = 9, ServiceName = "checkout", Body = $"\"step {i}\""
+        })], testContext.CancellationToken);
+
+        var result = await Read(host, "get_trace", $$"""{"trace_id":"{{TraceId(1)}}","max_logs":2}""");
+
+        Assert.AreSequenceEqual(["step 3", "step 2"], result.GetProperty("logs").EnumerateArray().Select(static l => l.GetProperty("body").GetString()));
+    }
+
     [TestMethod]
     public async Task Get_trace_returns_compact_spans_each_resource_once_and_its_own_range()
     {

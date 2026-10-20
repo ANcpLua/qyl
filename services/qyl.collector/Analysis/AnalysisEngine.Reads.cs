@@ -162,7 +162,7 @@ internal sealed partial class AnalysisEngine
         // The window is the trace's own range, which a follow-up read can pass on.
         return J.O(("trace", trace), ("window", new AnalysisWindow(J.Instant(start), J.Instant(end)).Json), ("annotations", J.A(TraceAnnotations(rows[0].TraceId!, rows.Select(static row => row.Id).ToHashSet(StringComparer.Ordinal)))),
             ("missing_parent_span_ids", rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).Select(s => s.Span!.ParentSpanId!).Distinct()), ("links", J.A(links)),
-            ("logs", J.A(_logs.Where(l => traceIds.Contains(l.TraceId)).Take((int)J.Number(input, "max_logs")).Select(LogJson))),
+            ("logs", J.A(_logs.Where(l => traceIds.Contains(l.TraceId)).OrderByDescending(static l => l.Start).ThenBy(static l => l.Id, StringComparer.Ordinal).Take((int)J.Number(input, "max_logs")).Select(LogJson))),
             ("settled", now.ToUnixTimeMilliseconds() - (long)(end / 1_000_000) >= 5000), ("coverage", Coverage(rows.Count, selected.Count, spans.Count, false)));
     }
     private JsonObject Logs(JsonObject input)
