@@ -88,9 +88,8 @@ internal sealed partial class AnalysisEngine
         List<AnalysisRecord> spans;
         if (J.String(input, "failure_id") is { } failure)
         {
-            var failures = FailureRecords(failure);
-            if (failures.Count is 0) throw NoFailure(failure);
-            spans = [.. _spans.Where(s => s.TraceId == failures.OrderByDescending(item => item.Start).First().TraceId)];
+            var trace = LatestOccurrenceTrace(failure) ?? throw NoFailure(failure);
+            spans = [.. _spans.Where(s => s.TraceId == trace)];
         }
         else if (J.String(input, "ci_run_id") is { } run)
             spans =
