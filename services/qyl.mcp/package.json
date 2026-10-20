@@ -1,6 +1,6 @@
 {
   "name": "qyl-mcp-server",
-  "version": "17.0.7",
+  "version": "17.0.8",
   "type": "module",
   "description": "qyl telemetry MCP server: analysis tools for a live collector; Bun 1.4 runtime",
   "repository": {

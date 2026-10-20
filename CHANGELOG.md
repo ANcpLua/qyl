@@ -1,5 +1,23 @@
 # Changelog
 
+## 17.0.8
+
+- `verify_fix` with `release` anchors the change on the first recorded span of that version in
+  the failure's service, found with a bounded query, so a release older than what a read loads
+  is still found; without a recurrence the verdict stays inconclusive while spans after the
+  change were not all read.
+- `get_trace` returns the newest `max_logs` log records, as documented. `list_traces` with
+  `failure_id` reads its own window instead of all retained data. `get_failure_context` without
+  a root cause no longer runs a whole triage for its changes.
+- A saved metric query runs with a limit up to 1000, and the HTTP saved-query run reads through
+  the same read plan as the tool.
+- Errors: an unknown argument's hint names the accepted argument names; a rejected etag names
+  the field `etag`; a verifier's OAuth failure keeps its own status (429, 503; an unknown code
+  is a 500) without a sign-in challenge.
+- The plugin listings no longer claim MCP Events, which mcp.qyl.at does not expose, describe the
+  24-tool 17.0.x surface and carry current release notes; annotation targets include a failure.
+- The answer-key traffic calls only tools that exist.
+
 ## 17.0.7
 
 - While the Collector does not answer `/health` (a deploy or an outage), tools answer
