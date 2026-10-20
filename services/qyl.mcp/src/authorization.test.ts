@@ -175,6 +175,32 @@ test("expectedResource accepts only tokens the verifier reports for this resourc
   }
 });
 
+test("a verifier's own OAuth failure keeps its status without a sign-in challenge; a foreign code is a 500", async () => {
+  const throwing = (code: OAuthErrorCode): OAuthTokenVerifier => ({
+    async verifyAccessToken() { throw new OAuthError(code, "verifier detail"); },
+  });
+  const gateFor = (code: OAuthErrorCode) =>
+    createResourceAuthorization({ ...gateOptions, verifier: throwing(code), requiredScopes: ["qyl:read"] });
+  // The verifier could not decide about the token, so nothing invites a new sign-in.
+  for (const [code, status] of [[OAuthErrorCode.TooManyRequests, 429], [OAuthErrorCode.TemporarilyUnavailable, 503]] as const) {
+    const response = await gateFor(code)(bearer("qyl:read"));
+    assert(response instanceof Response);
+    assert.equal(response.status, status, code);
+    assert.equal(response.headers.get("www-authenticate"), null, code);
+    assert.equal(response.headers.get("cache-control"), "no-store", code);
+    assert.deepEqual(await response.json(), { error: code, error_description: "verifier detail" }, code);
+  }
+  // Codes of the authorization server's own endpoints say nothing about a bearer token: the verifier's fault, not the caller's.
+  for (const code of [OAuthErrorCode.ServerError, OAuthErrorCode.InvalidGrant, OAuthErrorCode.AccessDenied]) {
+    const response = await gateFor(code)(bearer("qyl:read"));
+    assert(response instanceof Response);
+    assert.equal(response.status, 500, code);
+    assert.equal(response.headers.get("www-authenticate"), null, code);
+    assert.equal(response.headers.get("cache-control"), "no-store", code);
+    assert.deepEqual(await response.json(), { error: "server_error", error_description: "Internal Server Error" }, code);
+  }
+});
+
 test("a rejected or expiry-less token is a 401 challenge, never a 500", async () => {
   const rejecting: OAuthTokenVerifier = {
     async verifyAccessToken() { throw new OAuthError(OAuthErrorCode.InvalidToken, "Access token verification failed"); },

@@ -57,12 +57,22 @@ function quoted(value: string): string {
   return value.replaceAll(/[\\"]/gu, String.raw`\$&`).replaceAll(/[^\u0020-\u007E]/gu, " ");
 }
 
-/** RFC 6750 §3.1: the status each error answers with. */
-function statusOf(error: OAuthError): number {
-  switch (error.code) {
+/** RFC 6750 §3.1: the status each bearer error code answers with, under the challenge. */
+function challengedStatus(code: string): number | undefined {
+  switch (code) {
+    case OAuthErrorCode.InvalidRequest: return 400;
     case OAuthErrorCode.InvalidToken: return 401;
     case OAuthErrorCode.InsufficientScope: return 403;
-    default: return 400;
+    default: return undefined;
+  }
+}
+
+/** A verifier that could not decide about the token: its own status with the error body, and no challenge to sign in again. */
+function undecidedStatus(code: string): number | undefined {
+  switch (code) {
+    case OAuthErrorCode.TooManyRequests: return 429;
+    case OAuthErrorCode.TemporarilyUnavailable: return 503;
+    default: return undefined;
   }
 }
 
@@ -80,6 +90,10 @@ function statusOf(error: OAuthError): number {
  * credential that was rejected names its error: `invalid_request` (400) for a
  * token in the query string, `invalid_token` (401) for a malformed, invalid,
  * expired or foreign token, `insufficient_scope` (403) naming the missing scopes.
+ * A verifier that could not decide answers `too_many_requests` (429) or
+ * `temporarily_unavailable` (503) without a challenge; every other OAuth code
+ * belongs to an authorization server's own endpoints, so a verifier throwing one
+ * is a 500 like any other exception.
  */
 export function createResourceAuthorization(
   options: ResourceAuthorizationOptions,
@@ -116,9 +130,16 @@ export function createResourceAuthorization(
       ? new Response(null, { status, headers })
       : Response.json(error.toResponseObject(), { status, headers });
   };
-  const refuse = (error: unknown, scopes: readonly string[]): Response => (error instanceof OAuthError
-    ? challenge(statusOf(error), error, scopes)
-    : Response.json({ error: "server_error", error_description: "Internal Server Error" }, { status: 500, headers: { "cache-control": "no-store" } }));
+  const noStore = { "cache-control": "no-store" } as const;
+  const refuse = (error: unknown, scopes: readonly string[]): Response => {
+    if (error instanceof OAuthError) {
+      const challenged = challengedStatus(error.code);
+      if (challenged !== undefined) return challenge(challenged, error, scopes);
+      const undecided = undecidedStatus(error.code);
+      if (undecided !== undefined) return Response.json(error.toResponseObject(), { status: undecided, headers: noStore });
+    }
+    return Response.json({ error: "server_error", error_description: "Internal Server Error" }, { status: 500, headers: noStore });
+  };
   return async (request) => {
     if (new URL(request.url).searchParams.has("access_token")) {
       return refuse(new OAuthError(OAuthErrorCode.InvalidRequest, "Access tokens are accepted only in the Authorization header"), []);
