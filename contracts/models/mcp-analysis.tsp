@@ -34,8 +34,9 @@ model CiRunReference {
   ciRunId: SessionId;
 }
 
-@doc("Arguments every analysis tool shares: the time range, attribute matchers, page size and cursor.")
-model AnalysisInput {
+// Arguments every analysis tool shares: the time range, attribute matchers, page size and cursor. An alias, not a
+// model: the tools spread it, so it is no tool's input and has no schema of its own.
+alias AnalysisInput = {
   ...ToolTimeRange;
   @doc("Attribute predicates that every matched span, resource or log must satisfy; up to 32. Omit for no filtering. discover_attributes lists the keys and values that are recorded.")
   @maxItems(32)
@@ -45,17 +46,17 @@ model AnalysisInput {
   limit?: int32 = 100;
   @doc("`next_cursor` of a previous call of this tool with the same filters; the cursor keeps the first page's window.")
   cursor?: Cursor;
-}
+};
 
-@doc("The shared analysis arguments plus a service and an environment.")
-model ServiceAnalysisInput {
+// The shared analysis arguments plus a service and an environment, spread like AnalysisInput.
+alias ServiceAnalysisInput = {
   ...AnalysisInput;
   @doc("Restrict the analysis to this service (`service.name`, exact match).")
   @encodedName("application/json", "service_name")
   serviceName?: string;
   @doc("Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`.")
   environment?: string;
-}
+};
 
 @doc("A baseline: the selected window shifted back by `offset_minutes`, with the same length.")
 model BaselineOffset {

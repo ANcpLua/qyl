@@ -1411,26 +1411,6 @@ export interface McpComparisonVersion {
   "server_version": string;
 }
 
-export interface AnalysisInput {
-  "lookback_minutes"?: number;
-  "start_time"?: string;
-  "end_time"?: string;
-  "matchers"?: TelemetryMatcher[];
-  "limit"?: number;
-  "cursor"?: string;
-}
-
-export interface ServiceAnalysisInput {
-  "lookback_minutes"?: number;
-  "start_time"?: string;
-  "end_time"?: string;
-  "matchers"?: TelemetryMatcher[];
-  "limit"?: number;
-  "cursor"?: string;
-  "service_name"?: string;
-  "environment"?: string;
-}
-
 export interface FailureRelease {
   "service": string;
   "version": string;
@@ -2320,4 +2300,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:89ad6496b1341b2a";
+export const CONTRACT_REVISION: string = "sha256:83673ff6d3899a79";

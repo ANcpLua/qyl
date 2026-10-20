@@ -1277,66 +1277,6 @@ public sealed class McpComparisonVersion
     public required string ServerVersion { get; init; }
 }
 
-public sealed class AnalysisInput
-{
-    public const int LookbackMinutesMinimum = 1;
-    public const int LookbackMinutesMaximum = 43200;
-    public const int LimitDefault = 100;
-    public const int LimitMinimum = 1;
-    public const int LimitMaximum = 200;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("matchers")]
-    public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
-}
-
-public sealed class ServiceAnalysisInput
-{
-    public const int LookbackMinutesMinimum = 1;
-    public const int LookbackMinutesMaximum = 43200;
-    public const int LimitDefault = 100;
-    public const int LimitMinimum = 1;
-    public const int LimitMaximum = 200;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("matchers")]
-    public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("service_name")]
-    public string? ServiceName { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("environment")]
-    public string? Environment { get; init; }
-}
-
 public sealed class FailureRelease
 {
     [JsonPropertyName("service")]

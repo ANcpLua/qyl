@@ -67,7 +67,7 @@ test("generated documents are plain, inlined JSON Schema every host can read", (
   }
 });
 
-test("tools/list advertises the generated input documents unchanged", async () => {
+test("tools/list advertises the generated input documents unchanged, and every input document is a tool's", async () => {
   const connection = await connectModernTestClient(
     { name: "tool-schemas-test", version: "1.0.0" },
     () => createServer({ nativeExecution: false }),
@@ -78,6 +78,10 @@ test("tools/list advertises the generated input documents unchanged", async () =
     const published = Object.values(generated);
     for (const tool of tools) {
       assert(published.some((document) => isDeepStrictEqual(document, tool.inputSchema)), `${tool.name} input`);
+    }
+    // A group of arguments the tools spread is an alias in the contract, never a document of its own.
+    for (const [name, document] of Object.entries(generated).filter(([key]) => /^Mcp\.Tools\.\w+Input$/u.test(key))) {
+      assert(tools.some((tool) => isDeepStrictEqual(document, tool.inputSchema)), `${name} is no tool's input`);
     }
   } finally {
     await connection.close();
