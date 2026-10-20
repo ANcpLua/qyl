@@ -376,6 +376,7 @@ model GetFailureContextOutput {
   observed: FailureObserved;
   comparison: FailureComparison;
   context: FailureContext;
+  @doc("True once the execution's last span ended at least five seconds before the read, so late spans have arrived; false while it may still be receiving spans, so re-read it before concluding.")
   settled: boolean;
   unknowns: string[];
   error?: ToolError;

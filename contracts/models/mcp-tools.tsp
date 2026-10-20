@@ -259,6 +259,7 @@ model GetTraceOutput {
   links?: TraceLinkAvailability[];
   @doc("The trace's log records, at most `max_logs` of them, newest first.")
   logs?: ToolLogRow[];
+  @doc("True once the trace's last span ended at least five seconds before the read, so late spans have arrived; false while the trace may still be receiving spans, so re-read it before concluding.")
   settled?: boolean;
 
   ...ToolReadContext;

@@ -9940,7 +9940,8 @@
             "$ref": "#/components/schemas/Mcp.Tools.FailureContext"
           },
           "settled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True once the execution's last span ended at least five seconds before the read, so late spans have arrived; false while it may still be receiving spans, so re-read it before concluding."
           },
           "unknowns": {
             "type": "array",
@@ -10378,7 +10379,8 @@
             "description": "The trace's log records, at most `max_logs` of them, newest first."
           },
           "settled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True once the trace's last span ended at least five seconds before the read, so late spans have arrived; false while the trace may still be receiving spans, so re-read it before concluding."
           },
           "window": {
             "$ref": "#/components/schemas/Common.ToolWindow"
