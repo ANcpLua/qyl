@@ -17,6 +17,7 @@ import { checkContract, type ContractSchemaName } from "./contracts/tool-schemas
 import { redactTelemetryText } from "./telemetry-redaction.js";
 import { collectorHeaders, collectorUrl } from "./config.js";
 import { CollectorAccessError, readCollectorProjects, type CollectorAccess } from "./collector-access.js";
+import { collectorOutageSignal, collectorUnavailable } from "./contract-handshake.js";
 
 /**
  * The stable failure codes a tool result carries in `structuredContent.error`:
@@ -35,7 +36,9 @@ export function isRetryableToolError(code: ToolErrorCode): boolean {
     code === "collector_error" ||
     // Answered while the Collector serves another contract revision; the deploy that brings both
     // sides to one revision makes the same call succeed.
-    code === "collector_contract_mismatch"
+    code === "collector_contract_mismatch" ||
+    // Answered while the Collector does not answer its health check, as while it restarts.
+    code === "collector_unavailable"
   );
 }
 
@@ -201,11 +204,23 @@ async function collectorRequest(
   if (readCollectorProjects() !== undefined && options.access === undefined) {
     throw new CollectorAccessError();
   }
+  const outage = collectorOutageSignal();
+  if (outage.aborted) throw collectorUnavailable(false);
   const url = new URL(pathname, collectorUrl());
   const timeout = AbortSignal.timeout(options.timeoutMs ?? 10_000);
-  const signal = options.signal
-    ? AbortSignal.any([options.signal, timeout])
-    : timeout;
+  const signal = AbortSignal.any(options.signal ? [options.signal, outage, timeout] : [outage, timeout]);
+  // Whichever signal ended the request names the failure, whether the response had not begun or
+  // its body was still arriving: the caller's cancellation, the Collector's outage, the timeout.
+  const aborted = (): Error | undefined => {
+    if (options.signal?.aborted) {
+      return new CollectorError(`collector request cancelled for ${pathname}`, true, undefined, "cancelled");
+    }
+    if (outage.aborted) return collectorUnavailable(true);
+    if (timeout.aborted) {
+      return new CollectorError(`collector timed out for ${pathname}`, true, undefined, "collector_timeout");
+    }
+    return undefined;
+  };
   const headers = {
     accept: "application/json",
     ...options.headers,
@@ -222,23 +237,7 @@ async function collectorRequest(
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   } catch {
-    if (options.signal?.aborted) {
-      throw new CollectorError(
-        `collector request cancelled for ${pathname}`,
-        true,
-        undefined,
-        "cancelled",
-      );
-    }
-    if (timeout.aborted) {
-      throw new CollectorError(
-        `collector timed out for ${pathname}`,
-        true,
-        undefined,
-        "collector_timeout",
-      );
-    }
-    throw new CollectorError(
+    throw aborted() ?? new CollectorError(
       `collector unreachable at ${collectorUrl()} — start it with ` +
         "`qyl` or configure QYL_COLLECTOR_URL",
       true,
@@ -253,7 +252,7 @@ async function collectorRequest(
   try {
     responseBody = await response.json();
   } catch {
-    throw new CollectorError(
+    throw aborted() ?? new CollectorError(
       `collector returned invalid JSON (${response.status} ${response.statusText}) for ${pathname}`,
       false,
       response.status,

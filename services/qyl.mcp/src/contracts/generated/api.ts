@@ -313,7 +313,7 @@ export type RunnerResourceEvents = RunnerResourceState;
 
 export type RunnerLogEvents = RunnerLogLine;
 
-export type ToolErrorCode = "invalid_argument" | "not_found" | "no_project_access" | "collector_unreachable" | "collector_timeout" | "cancelled" | "collector_unauthorized" | "collector_rate_limited" | "collector_rejected" | "collector_error" | "contract_mismatch" | "collector_contract_mismatch" | "response_too_large" | "insufficient_scope" | "conflict" | "precondition_failed" | "precondition_required" | "internal";
+export type ToolErrorCode = "invalid_argument" | "not_found" | "no_project_access" | "collector_unreachable" | "collector_timeout" | "cancelled" | "collector_unauthorized" | "collector_rate_limited" | "collector_rejected" | "collector_error" | "contract_mismatch" | "collector_contract_mismatch" | "collector_unavailable" | "response_too_large" | "insufficient_scope" | "conflict" | "precondition_failed" | "precondition_required" | "internal";
 
 export type AnnotationTarget = TraceAnnotationTarget | SpanAnnotationTarget | SessionAnnotationTarget | FailureAnnotationTarget;
 
@@ -826,6 +826,7 @@ export interface ToolError {
   "resource_id"?: string;
   "collector_contract_revision"?: string | null;
   "server_contract_revision"?: string;
+  "retry_after_seconds"?: number;
 }
 
 export interface ToolPage {
@@ -2319,4 +2320,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:3b1a215b1cb04be3";
+export const CONTRACT_REVISION: string = "sha256:89ad6496b1341b2a";

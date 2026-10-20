@@ -52,6 +52,9 @@ union ToolErrorCode {
   @doc("The Collector serves another contract revision than this MCP server was generated from, as during a deploy of one of the two; `collector_contract_revision` and `server_contract_revision` name both. Retry once both serve one revision.")
   collectorContractMismatch: "collector_contract_mismatch",
 
+  @doc("The Collector does not answer its health check, as while it restarts during a deploy, so the call was answered at once instead of waiting out the request timeout. Repeat it after `retry_after_seconds`.")
+  collectorUnavailable: "collector_unavailable",
+
   @doc("One complete original record exceeds the MCP response budget. It remains available through the exact HTTP API; it was not truncated or rewritten.")
   responseTooLarge: "response_too_large",
 
@@ -109,6 +112,11 @@ model ToolError {
   @doc("With collector_contract_mismatch: the contract revision this MCP server was generated from.")
   @encodedName("application/json", "server_contract_revision")
   serverContractRevision?: string;
+
+  @doc("With collector_unavailable: the seconds to wait before repeating the same call, longer the longer the Collector has not answered.")
+  @minValue(1)
+  @encodedName("application/json", "retry_after_seconds")
+  retryAfterSeconds?: int32;
 }
 
 @doc("Pagination members of a paged tool output.")

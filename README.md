@@ -11,7 +11,7 @@ releases, service maps and telemetry health. Agents use it through the MCP serve
 
 | Endpoint | Serves |
 | --- | --- |
-| `https://mcp.qyl.at/mcp` | Hosted MCP server. OAuth 2.1 (Auth0 issuer `https://qyl-eu.eu.auth0.com/`), scopes `qyl:read`, `qyl:write`, `qyl:delete`; an unauthenticated request answers `401` with `resource_metadata`. `/healthz` is its health: `degraded` names both contract revisions while the Collector serves another, and tools answer `collector_contract_mismatch` until both match. |
+| `https://mcp.qyl.at/mcp` | Hosted MCP server. OAuth 2.1 (Auth0 issuer `https://qyl-eu.eu.auth0.com/`), scopes `qyl:read`, `qyl:write`, `qyl:delete`; an unauthenticated request answers `401` with `resource_metadata`. `/healthz` is its health: `degraded` names both contract revisions while the Collector serves another, and tools answer `collector_contract_mismatch` until both match; `degraded` without them while the Collector does not answer its `/health`, as while it restarts, and tools answer `collector_unavailable` at once, with `retry_after_seconds`, until it does. |
 | `https://api.qyl.at` | Hosted Collector: read API under `/api/v1/`, analysis under `POST /api/v1/analysis/<tool_name>`, OTLP under `/v1/traces`, `/v1/logs`, `/v1/metrics`. `/health` carries `contract_revision`. |
 | `bunx qyl-mcp-server --stdio` | Local MCP over stdio; `bunx qyl-mcp-server` serves HTTP on `127.0.0.1:3001`. Point it at a Collector with `QYL_COLLECTOR_URL` and, if secured, `QYL_API_KEY`. |
 | `dotnet tool install --global qyl && qyl up` | Local Collector API on `127.0.0.1:5100`, diagnostics on `:5200`, OTLP on `:4318` (HTTP) and `:4317` (gRPC), runner API on `:18889`; data under `~/.qyl/`. |

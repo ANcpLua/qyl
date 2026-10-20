@@ -12870,6 +12870,12 @@
           "server_contract_revision": {
             "type": "string",
             "description": "With collector_contract_mismatch: the contract revision this MCP server was generated from."
+          },
+          "retry_after_seconds": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "description": "With collector_unavailable: the seconds to wait before repeating the same call, longer the longer the Collector has not answered."
           }
         },
         "unevaluatedProperties": {
@@ -12892,6 +12898,7 @@
           "collector_error",
           "contract_mismatch",
           "collector_contract_mismatch",
+          "collector_unavailable",
           "response_too_large",
           "insufficient_scope",
           "conflict",

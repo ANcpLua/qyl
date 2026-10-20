@@ -151,15 +151,16 @@ function openaiAppsChallengeResponse(request: Request, token: string | undefined
 
 /**
  * The process is up either way, so /healthz answers 200: Railway's deploy check must not fail a
- * deploy that only waits for the Collector's. `degraded` names both revisions while they differ.
+ * deploy that only waits for the Collector's. `degraded` names both revisions while they differ,
+ * and stands alone while the Collector does not answer its health check.
  */
 function healthResponse(request: Request): Response {
   if (request.method !== "GET" && request.method !== "HEAD") return notFound();
   const collector = collectorContract();
   return Response.json({
-    status: collector.kind === "mismatch" ? "degraded" : "ok",
+    status: collector.kind === "mismatch" || collector.kind === "unreachable" ? "degraded" : "ok",
     contract_revision: CONTRACT_REVISION,
-    ...(collector.kind === "unknown" ? {} : { collector_contract_revision: collector.revision }),
+    ...(collector.kind === "match" || collector.kind === "mismatch" ? { collector_contract_revision: collector.revision } : {}),
   });
 }
 

@@ -29,7 +29,7 @@ import {
   isRetryableToolError,
 } from "./collector.js";
 import { CollectorAccessError, collectorAccessForSubject } from "./collector-access.js";
-import { assertCollectorContract, CollectorContractMismatchError } from "./contract-handshake.js";
+import { assertCollectorContract, CollectorContractMismatchError, CollectorUnavailableError } from "./contract-handshake.js";
 import { formatArgumentIssue, type ArgumentIssue } from "./contracts/tool-schemas.js";
 import { headlineText, redactTelemetry, redactTelemetryText } from "./telemetry-redaction.js";
 
@@ -91,6 +91,8 @@ function hintFor(tool: string, detail: ToolError, example?: string): string | un
       return "Retry the same call later.";
     case "collector_contract_mismatch":
       return "Retry once the Collector and this server serve one contract revision.";
+    case "collector_unavailable":
+      return `Retry the same call in ${detail.retry_after_seconds} seconds.`;
     case "collector_unauthorized":
       return "The Collector refused this server's credential; tell the qyl operator.";
     case "no_project_access":
@@ -142,6 +144,12 @@ function detailOf(err: unknown): ToolError {
     return {
       code: err.code, message: err.message, retryable: isRetryableToolError(err.code),
       collector_contract_revision: err.collectorRevision, server_contract_revision: err.serverRevision,
+    };
+  }
+  if (err instanceof CollectorUnavailableError) {
+    return {
+      code: err.code, message: err.message, retryable: isRetryableToolError(err.code),
+      retry_after_seconds: err.retryAfterSeconds,
     };
   }
   return { code: "internal", message: "Telemetry request failed.", retryable: false };

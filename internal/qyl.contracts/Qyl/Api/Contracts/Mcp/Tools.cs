@@ -10,6 +10,7 @@ namespace Qyl.Api.Contracts.Mcp.Tools;
 
 public sealed class ToolError
 {
+    public const int RetryAfterSecondsMinimum = 1;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("fields")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.Errors.ValidationErrorDetail>? Fields { get; init; }
@@ -43,6 +44,9 @@ public sealed class ToolError
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("server_contract_revision")]
     public string? ServerContractRevision { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("retry_after_seconds")]
+    public int? RetryAfterSeconds { get; init; }
 }
 
 public sealed class ToolPage
