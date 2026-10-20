@@ -5,7 +5,7 @@
  * Run after build; QYL_COLLECTOR_DLL selects a Collector build other than the Release one.
  */
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
@@ -14,6 +14,7 @@ import { createServer as createNetServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { createResourceAuthorization } from "./dist/authorization.js";
@@ -104,6 +105,16 @@ try {
   assert.equal((await fetch(`${baseUrl}/api/v1/traces`, {
     headers: { ...headers(fixtures[0]), [PROJECT_SCOPE_HEADER]: fixtures[1].project },
   })).status, 400, "a key cannot select the other project through a header");
+  // The hosted reseed seeds a project with that project's ingest key; with another project's key the
+  // Collector refuses its first export before ingest and logs nothing, so the seed names the refusal.
+  const seed = await promisify(execFile)("python3", [
+    resolve(here, "../../tests/Qyl.Collector.Tests/Fixtures/seed-answer-key.py"), baseUrl, join(temp, "seed.json"), fixtures[1].project,
+  ], { env: { ...process.env, QYL_API_KEY: fixtures[0].apiKey, QYL_ANSWER_KEY_FRESH_IDS: "1", QYL_ANSWER_KEY_MODE: "seed" } })
+    .then(() => undefined, (error) => error);
+  assert.equal(seed?.code, 1, "a seed refused by the Collector exits non-zero");
+  assert.equal(seed.stderr, 'POST /v1/traces answered 400: { "message": "Project does not match the API key." }\n');
+  assert(!existsSync(join(temp, "seed.json")), "a refused seed writes no answer key");
+  console.log("ok a seed with another project's key exits naming the refused export, its status and the Collector's reason");
 
   for (const f of fixtures) {
     await ingest(f, "traces", spans(f, f.traceId));

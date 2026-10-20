@@ -19,7 +19,7 @@ QYL_ANSWER_KEY_NOW (Unix seconds) replaces the current time in either mode. Seed
 values, so no two percentiles agree.
 QYL_API_KEY supplies an existing ingest credential without placing it on the command line.
 """
-import datetime, hashlib, json, os, random, sys, time, urllib.request
+import datetime, hashlib, json, os, random, sys, time, urllib.error, urllib.request
 base=sys.argv[1].rstrip('/'); out=sys.argv[2] if len(sys.argv)>2 else '/tmp/qyl-answer-key.json'
 project=sys.argv[3] if len(sys.argv)>3 else 'answer-key'
 run_id=os.environ.get('QYL_ANSWER_KEY_RUN_ID','')
@@ -92,11 +92,13 @@ def post(path,data):
  headers={'Content-Type':'application/json','X-Qyl-Project':project}
  if os.environ.get('QYL_API_KEY'):headers['X-Otlp-Api-Key']=os.environ['QYL_API_KEY']
  req=urllib.request.Request(base+path,json.dumps(data).encode(),headers,method='POST')
- with urllib.request.urlopen(req,timeout=60) as res:
-  assert res.status==200
-  response=json.load(res)
-  partial=response.get('partialSuccess',response.get('partial_success',{}))
-  assert not any(int(value) for key,value in partial.items() if key.startswith('rejected')), partial
+ # A refused or partly rejected export exits naming its path, status and the Collector's answer, which holds the reason.
+ try:
+  with urllib.request.urlopen(req,timeout=60) as res:status,body=res.status,res.read()
+ except urllib.error.HTTPError as error:status,body=error.code,error.read()
+ partial=json.loads(body).get('partialSuccess',{}) if status==200 else {}
+ if status!=200 or any(int(value) for key,value in partial.items() if key.startswith('rejected')):
+  sys.exit(f'POST {path} answered {status}: {body.decode("utf-8","replace")}')
 def iso(n):return datetime.datetime.fromtimestamp(n/1e9,datetime.timezone.utc).isoformat().replace('+00:00','Z')
 if mode=='traffic':
  # Healthy requests under new sessions. Each operation sends one request at a fixed p95, the seeded one where the seed
