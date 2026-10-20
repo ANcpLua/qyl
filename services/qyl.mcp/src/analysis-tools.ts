@@ -136,7 +136,7 @@ export function registerAnalysisTools(server: McpServer): void {
     "check_telemetry_health",
     {
       title: "Check Telemetry Health",
-      description: "Report silent services, orphan spans and missing convention attributes when checking telemetry coverage.",
+      description: "Report silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag when checking whether the telemetry can be trusted; a service_name that sent nothing in the window or its baseline is answered service.not_found, not an empty report.",
       inputSchema: contractSchema("Mcp.Tools.CheckTelemetryHealthInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
