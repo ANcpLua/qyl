@@ -52,11 +52,11 @@ export class InvalidArgumentsError extends Error {
 /** Where a call that named an unknown record gets a real one. */
 const ID_SOURCES: Readonly<Record<string, string>> = {
   get_trace: "list_traces returns the trace ids of this project and window",
-  compare_traces: "list_traces returns the trace ids of this project and window",
-  get_failure_context: "triage returns failure ids, list_traces trace ids and list_sessions session ids",
+  compare_traces: "list_traces returns the trace ids of this project and window, and list_sessions its session ids",
+  get_failure_context: "triage returns failure ids, list_traces trace ids, list_sessions session ids and ci_log ci_run_ids",
   verify_fix: "triage returns failure ids; a verify_id comes from an earlier verify_fix",
   update_failure_status: "triage with status all returns each failure's id and current etag",
-  get_agent_run: "list_sessions returns session ids",
+  get_agent_run: "list_sessions returns session ids and list_traces trace ids",
   query_metric: "list_metrics returns metric names; a raw query_metric that matches several series names their series ids",
   run_saved_query: "run_saved_query without id lists the saved query ids",
   save_query: "run_saved_query without id lists each saved query's id and current etag",
