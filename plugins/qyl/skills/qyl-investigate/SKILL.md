@@ -102,6 +102,9 @@ saved queries and failure status in that project, never the telemetry.
   is how the failing execution differs from a baseline, `context.changes`
   what changed around it, and `unknowns` what the telemetry could not
   establish. Report the unknowns with the findings.
+- `settled: false` on `get_failure_context` or `get_trace` means the
+  execution ended moments before the read and spans may still be arriving:
+  read it again before concluding.
 - `coverage.scan_complete: false` means the read stopped at its row limit
   and the answer rests on part of the data (`matched` is then null); say
   which part. `truncated: true` means matching results were left out of
