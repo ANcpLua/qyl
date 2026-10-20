@@ -57,7 +57,8 @@ for id in "${packages[@]}"; do
     continue
   fi
   # --skip-duplicate: a package pushed by an earlier run but not indexed yet is accepted as published.
-  NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$dir/$id.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate
+  # --timeout 1800: a 43 MB runtime package took 313 s on 2026-10-20, past the 300 s default.
+  NUGET_API_KEY="$(<"$NUGET_KEY_FILE")" dotnet nuget push "$dir/$id.$version.nupkg" --source "$NUGET_SOURCE" --skip-duplicate --timeout 1800
 done
 
 say "publish to npm"
