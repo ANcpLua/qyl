@@ -288,6 +288,29 @@ public sealed class SavedQueryApiTests(TestContext testContext)
         Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode);
     }
 
+    /// <summary>
+    /// A run takes the window and page its contract declares and nothing else: lookback_minutes, which only the analysis
+    /// route's run_saved_query takes, is refused naming the members a run accepts, a billion minutes as well, and a limit
+    /// sent as a string is refused, not read as 100.
+    /// </summary>
+    [TestMethod]
+    [DataRow("""{"lookback_minutes":1000000000}""", "lookback_minutes", "is not accepted here; accepted: start_time, end_time, limit, cursor")]
+    [DataRow("""{"lookback_minutes":60}""", "lookback_minutes", "is not accepted here; accepted: start_time, end_time, limit, cursor")]
+    [DataRow("""{"limit":"5"}""", "limit", "must be integer")]
+    [DataRow("""{"start_time":5}""", "start_time", "must be string")]
+    public async Task A_run_refuses_a_member_its_contract_does_not_declare_or_types_otherwise(string body, string field, string message)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        using var created = await Create(host, "errors");
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString()!;
+
+        using var refused = await host.SendAsync(HttpMethod.Post, $"/api/v1/saved-queries/{id}:run", "reader", body);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, refused.StatusCode);
+        var error = (await host.JsonAsync(refused)).GetProperty("errors")[0];
+        Assert.AreEqual((field, message), (error.GetProperty("field").GetString(), error.GetProperty("message").GetString()));
+    }
+
     [TestMethod]
     public async Task A_log_run_filters_by_severity_and_session_inside_the_window()
     {

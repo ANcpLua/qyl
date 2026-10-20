@@ -106,11 +106,17 @@ internal static partial class CollectorEndpointExtensions
 
     private static void ValidateAnalysisInput(string operation, JsonObject input)
     {
-        // A member with a closed set answers with its values first, as the MCP's input schema does.
         var contract = AnalysisContract(operation);
-        CheckChoices(input, contract.Choices);
-        ReadAsContract(input, contract.Input);
-        CheckRanges(input, contract.Ranges);
+        CheckContract(input, contract.Input, contract.Ranges, contract.Choices);
+    }
+
+    // A request body held to its contract: a member with a closed set answers with its values first, as the MCP's input
+    // schema does, then the body's type and its ranges.
+    private static void CheckContract(JsonObject input, JsonTypeInfo type, ContractRanges ranges, ContractChoices choices)
+    {
+        CheckChoices(input, choices);
+        ReadAsContract(input, type);
+        CheckRanges(input, ranges);
     }
 
     // A request read as its contract type, the way the MCP's input schema reads the same arguments: a member the type

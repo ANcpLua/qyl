@@ -207,8 +207,9 @@ internal static partial class CollectorEndpointExtensions
 
     /// <summary>
     /// Evaluates a saved query. The window is the request's <c>start_time</c>/<c>end_time</c>
-    /// where given, otherwise <c>lookback_minutes</c> (default 60) ending now. A trace or log
-    /// run's <c>next_cursor</c> carries the saved query's id and the window of its first page,
+    /// where given, otherwise the saved <c>lookback_minutes</c> (default 60) ending now; a member
+    /// <c>SavedQueryRunRequest</c> does not declare is refused like an analysis argument. A trace or
+    /// log run's <c>next_cursor</c> carries the saved query's id and the window of its first page,
     /// so every later page reads the same window and no other saved query accepts it.
     /// </summary>
     private static async Task<IResult> RunSavedQueryAsync(
@@ -223,7 +224,7 @@ internal static partial class CollectorEndpointExtensions
             if ((httpContext.Request.ContentLength is > 0
                 ? await System.Text.Json.Nodes.JsonNode.ParseAsync(httpContext.Request.Body, cancellationToken: ct).ConfigureAwait(false) as System.Text.Json.Nodes.JsonObject
                 : new System.Text.Json.Nodes.JsonObject()) is not { } body) return ResourceHttp.InvalidBody("Provide an object with the run options.");
-            CheckRanges(body, SavedQueryRunRequest.Ranges);
+            CheckContract(body, QylSerializerContext.Default.SavedQueryRunRequest, SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Choices);
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
             if (await store.GetSavedQueryAsync(project, savedQueryId, ct).ConfigureAwait(false) is not { } saved)
