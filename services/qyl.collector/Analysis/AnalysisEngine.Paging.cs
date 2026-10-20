@@ -12,53 +12,45 @@ internal sealed partial class AnalysisEngine
     // aggregate_telemetry's record count per group, in the order of its groups.
     private int[]? _groupSizes;
 
-    /// <summary>The contract's page size for the current operation: the default an omitted limit takes and the largest accepted.</summary>
-    private (int Default, int Maximum) Limits => _operation switch
+    /// <summary>
+    /// The contract's page size for the current operation, which an omitted limit takes. The HTTP boundary refused a
+    /// limit outside the contract's range before the engine ran.
+    /// </summary>
+    private int LimitDefault => _operation switch
     {
-        "triage" => (TriageInput.LimitDefault, TriageInput.LimitMaximum),
-        "get_failure_context" => (GetFailureContextInput.LimitDefault, GetFailureContextInput.LimitMaximum),
-        "compare_groups" => (CompareGroupsInput.LimitDefault, CompareGroupsInput.LimitMaximum),
-        "compare_traces" => (CompareTracesInput.LimitDefault, CompareTracesInput.LimitMaximum),
-        "verify_fix" => (VerifyFixInput.LimitDefault, VerifyFixInput.LimitMaximum),
-        "aggregate_telemetry" => (AggregateTelemetryInput.LimitDefault, AggregateTelemetryInput.LimitMaximum),
-        "discover_attributes" => (DiscoverAttributesInput.LimitDefault, DiscoverAttributesInput.LimitMaximum),
-        "get_agent_run" => (GetAgentRunInput.LimitDefault, GetAgentRunInput.LimitMaximum),
-        "list_releases" => (ListReleasesInput.LimitDefault, ListReleasesInput.LimitMaximum),
-        "get_service_map" => (GetServiceMapInput.LimitDefault, GetServiceMapInput.LimitMaximum),
-        "check_telemetry_health" => (CheckTelemetryHealthInput.LimitDefault, CheckTelemetryHealthInput.LimitMaximum),
-        "get_mcp_stats" => (GetMcpStatsInput.LimitDefault, GetMcpStatsInput.LimitMaximum),
-        "list_sessions" => (ListSessionsInput.LimitDefault, ListSessionsInput.LimitMaximum),
-        "list_traces" => (ListTracesInput.LimitDefault, ListTracesInput.LimitMaximum),
-        "get_trace" => (GetTraceInput.MaxSpansDefault, GetTraceInput.MaxSpansMaximum),
-        "search_logs" => (SearchLogsInput.LimitDefault, SearchLogsInput.LimitMaximum),
-        "list_metrics" => (ListMetricsInput.LimitDefault, ListMetricsInput.LimitMaximum),
-        "ci_log" => (CiLogInput.LimitDefault, CiLogInput.LimitMaximum),
-        "ci_log.phases" => (CiPhasePageSize, CiPhasePageSize),
-        "run_saved_query" => (RunSavedQueryInput.LimitDefault, RunSavedQueryInput.LimitMaximum),
+        "triage" => TriageInput.LimitDefault,
+        "get_failure_context" => GetFailureContextInput.LimitDefault,
+        "compare_groups" => CompareGroupsInput.LimitDefault,
+        "compare_traces" => CompareTracesInput.LimitDefault,
+        "verify_fix" => VerifyFixInput.LimitDefault,
+        "aggregate_telemetry" => AggregateTelemetryInput.LimitDefault,
+        "discover_attributes" => DiscoverAttributesInput.LimitDefault,
+        "get_agent_run" => GetAgentRunInput.LimitDefault,
+        "list_releases" => ListReleasesInput.LimitDefault,
+        "get_service_map" => GetServiceMapInput.LimitDefault,
+        "check_telemetry_health" => CheckTelemetryHealthInput.LimitDefault,
+        "get_mcp_stats" => GetMcpStatsInput.LimitDefault,
+        "list_sessions" => ListSessionsInput.LimitDefault,
+        "list_traces" => ListTracesInput.LimitDefault,
+        "search_logs" => SearchLogsInput.LimitDefault,
+        "list_metrics" => ListMetricsInput.LimitDefault,
+        "ci_log" => CiLogInput.LimitDefault,
+        "ci_log.phases" => CiPhasePageSize,
+        "run_saved_query" => RunSavedQueryInput.LimitDefault,
         _ => throw new InvalidOperationException($"'{_operation}' has no page size.")
     };
 
-    private int Limit(JsonObject input)
-    {
-        var (fallback, maximum) = Limits;
-        return Bounded(input, "limit", fallback, 1, maximum);
-    }
+    // get_trace takes no limit: its logs, annotations and links page by its spans' default page size.
+    private int Limit(JsonObject input) => _operation == "get_trace" ? GetTraceInput.MaxSpansDefault : (int)J.Number(input, "limit", LimitDefault);
 
     // A span, log or step collection pages by its own maximum, or by limit when lower.
     private int PageSize(JsonObject input, string path) => path switch
     {
-        "trace.spans" => Bounded(input, "max_spans", GetTraceInput.MaxSpansDefault, GetTraceInput.MaxSpansMinimum, GetTraceInput.MaxSpansMaximum),
-        "observed.spans" => Math.Min(Limit(input), Bounded(input, "max_spans", GetFailureContextInput.MaxSpansDefault, GetFailureContextInput.MaxSpansMinimum, GetFailureContextInput.MaxSpansMaximum)),
-        "observed.logs" => Math.Min(Limit(input), Bounded(input, "max_logs", GetFailureContextInput.MaxLogsDefault, GetFailureContextInput.MaxLogsMinimum, GetFailureContextInput.MaxLogsMaximum)),
+        "trace.spans" => (int)J.Number(input, "max_spans", GetTraceInput.MaxSpansDefault),
+        "observed.spans" => Math.Min(Limit(input), (int)J.Number(input, "max_spans", GetFailureContextInput.MaxSpansDefault)),
+        "observed.logs" => Math.Min(Limit(input), (int)J.Number(input, "max_logs", GetFailureContextInput.MaxLogsDefault)),
         _ => Limit(input)
     };
-
-    private static int Bounded(JsonObject input, string name, int fallback, int minimum, int maximum)
-    {
-        var value = J.Number(input, name, fallback);
-        if (value < minimum || value > maximum) throw new AnalysisInputException(name, $"Use {name} from {minimum} to {maximum}.", name + ".out_of_range") { Hint = $"Omit {name} for {fallback}." };
-        return (int)value;
-    }
 
     // One collection of a list operation; examined defaults to the window's spans and log records.
     private JsonObject Page(JsonObject input, string field, IEnumerable<JsonObject> source, int? examined = null)

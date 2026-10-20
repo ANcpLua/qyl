@@ -1,36 +1,38 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Mvc;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
+using ContractRanges = System.Collections.Generic.IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)>;
 
 namespace Qyl.Collector.Hosting;
 
 internal static partial class CollectorEndpointExtensions
 {
-    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output)> s_readAnalysisContracts =
-        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output)>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges)> s_readAnalysisContracts =
+        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges)>(StringComparer.Ordinal)
         {
-            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput),
-            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput),
-            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput),
-            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput),
-            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput),
-            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput),
-            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput),
-            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput),
-            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput),
-            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput),
-            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput),
-            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput),
-            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput),
-            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput),
-            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput),
-            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput),
-            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput),
-            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput),
-            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput),
-            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput),
+            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, TriageInput.Ranges),
+            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, GetFailureContextInput.Ranges),
+            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, CompareGroupsInput.Ranges),
+            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, CompareTracesInput.Ranges),
+            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, VerifyFixInput.Ranges),
+            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, AggregateTelemetryInput.Ranges),
+            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, DiscoverAttributesInput.Ranges),
+            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, GetAgentRunInput.Ranges),
+            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, ListReleasesInput.Ranges),
+            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, GetServiceMapInput.Ranges),
+            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, CheckTelemetryHealthInput.Ranges),
+            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, GetMcpStatsInput.Ranges),
+            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, ListSessionsInput.Ranges),
+            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, ListTracesInput.Ranges),
+            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, GetTraceInput.Ranges),
+            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, SearchLogsInput.Ranges),
+            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, ListMetricsInput.Ranges),
+            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, QueryMetricInput.Ranges),
+            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, CiLogInput.Ranges),
+            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, RunSavedQueryInput.Ranges),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     private static Task<IResult> AnalyzeReadEndpointAsync(HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
@@ -110,19 +112,46 @@ internal static partial class CollectorEndpointExtensions
     // field, the values it accepts and a hint.
     internal static IResult AnalysisError(AnalysisInputException invalid) => invalid.Code.EndsWith(".not_found", StringComparison.Ordinal)
         ? ContractErrorResults.NotFound(invalid.Code[..^".not_found".Length], invalid.Missing, invalid.Description)
-        : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code, allowed: invalid.Allowed, hint: invalid.Hint);
+        : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code, invalid.RejectedValue, invalid.Allowed, invalid.Hint);
 
-    private static (JsonTypeInfo Input, JsonTypeInfo Output) AnalysisContract(string operation)
+    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges) AnalysisContract(string operation)
     {
         if (operation == "update_failure_status")
-            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput);
+            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, []);
         return s_readAnalysisContracts.TryGetValue(operation, out var contract)
             ? contract
             : throw new InvalidOperationException("Unknown analysis contract.");
     }
 
-    private static void ValidateAnalysisInput(string operation, JsonObject input) =>
-        _ = JsonSerializer.Deserialize(input.ToJsonString(), AnalysisContract(operation).Input);
+    private static void ValidateAnalysisInput(string operation, JsonObject input)
+    {
+        var contract = AnalysisContract(operation);
+        _ = JsonSerializer.Deserialize(input.ToJsonString(), contract.Input);
+        CheckRanges(input, contract.Ranges);
+    }
+
+    // A number the request sends outside the range the contract bounds its member to is refused naming that range; an
+    // omitted member takes its default. The engine reads the members unchecked, so this is the one place a bound applies.
+    private static void CheckRanges(JsonObject input, ContractRanges ranges)
+    {
+        static string Text(double value) => value.ToString(CultureInfo.InvariantCulture);
+        foreach (var (name, minimum, maximum, fallback) in ranges)
+        {
+            if (input[name] is not JsonValue sent || !double.TryParse(J.Text(sent), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                || value >= (minimum ?? double.NegativeInfinity) && value <= (maximum ?? double.PositiveInfinity)) continue;
+            var range = (minimum, maximum) switch
+            {
+                ({ } low, { } high) => $"from {Text(low)} to {Text(high)}",
+                ({ } low, null) => $"of at least {Text(low)}",
+                _ => $"of at most {Text(maximum!.Value)}"
+            };
+            throw new AnalysisInputException(name, $"Use {name} {range}.", name + ".out_of_range")
+            {
+                Hint = fallback is { } omitted ? $"Omit {name} for {Text(omitted)}." : $"Omit {name} for the tool's default.",
+                RejectedValue = J.Text(sent)
+            };
+        }
+    }
 
     private static IResult AnalysisResult(string operation, JsonObject result)
     {

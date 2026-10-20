@@ -219,6 +219,7 @@ internal static partial class CollectorEndpointExtensions
             if ((httpContext.Request.ContentLength is > 0
                 ? await System.Text.Json.Nodes.JsonNode.ParseAsync(httpContext.Request.Body, cancellationToken: ct).ConfigureAwait(false) as System.Text.Json.Nodes.JsonObject
                 : new System.Text.Json.Nodes.JsonObject()) is not { } body) return ResourceHttp.InvalidBody("Provide an object with the run options.");
+            CheckRanges(body, SavedQueryRunRequest.Ranges);
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
             if (await store.GetSavedQueryAsync(project, savedQueryId, ct).ConfigureAwait(false) is not { } saved)

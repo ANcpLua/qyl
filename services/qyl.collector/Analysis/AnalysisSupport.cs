@@ -13,6 +13,8 @@ internal sealed class AnalysisInputException(string field, string message, strin
     public IReadOnlyList<string>? Allowed { get; init; }
     /// <summary>What to send instead.</summary>
     public string? Hint { get; init; }
+    /// <summary>The rejected value, when it is safe to repeat.</summary>
+    public string? RejectedValue { get; init; }
     /// <summary>For a <c>*.not_found</c> code, the identifier that was not found.</summary>
     public string? Missing { get; init; }
 }

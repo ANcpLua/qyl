@@ -82,7 +82,6 @@ internal sealed partial class AnalysisEngine
         var step = input["step_ms"] is null
             ? Math.Min(QueryMetricInput.StepMsMaximum, (long)Math.Ceiling((_window.End - _window.Start).TotalSeconds / 60) * 1000)
             : (long)J.Number(input, "step_ms");
-        if (step is < QueryMetricInput.StepMsMinimum or > QueryMetricInput.StepMsMaximum) throw new AnalysisInputException("step_ms", $"Use a step_ms from {QueryMetricInput.StepMsMinimum} to {QueryMetricInput.StepMsMaximum}.", "step_ms.out_of_range") { Hint = "Omit step_ms for at most 60 buckets over the window." };
         var streams = rows.GroupBy(s => string.Join('\0', groupBy.Select(key => J.Text(SeriesRecord(s).Value(key))))).ToList();
         var output = new List<JsonObject>();
         double? Reduce(List<(ulong Time, double? Value, MetricPointRow Point)> points)
@@ -120,7 +119,7 @@ internal sealed partial class AnalysisEngine
             var attributes = new JsonObject(); foreach (var key in groupBy) attributes[key] = SeriesRecord(stream.First()).Value(key)?.DeepClone() ?? JsonValue.Create("");
             output.Add(J.O(("attributes", ContractAttributes(attributes)), ("value", Reduce(values)), ("buckets", buckets)));
         }
-        var limit = Bounded(input, "limit", QueryMetricInput.LimitDefault, QueryMetricInput.LimitMinimum, QueryMetricInput.LimitMaximum);
+        var limit = (int)J.Number(input, "limit", QueryMetricInput.LimitDefault);
         // A count is of points or observations, not of the metric's unit; a rate is per second.
         var unit = aggregation == "count" ? "1" : rows[0].Unit;
         if (function == "rate" && (histogram || aggregation != "count")) unit += "/s";

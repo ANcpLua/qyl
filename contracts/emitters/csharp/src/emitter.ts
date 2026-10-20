@@ -10,7 +10,7 @@ import {
   navigateProgram,
   resolveEncodedName,
 } from "@typespec/compiler";
-import { isBody, isBodyRoot, isMetadata } from "@typespec/http";
+import { getAllHttpServices, isBody, isBodyRoot, isMetadata } from "@typespec/http";
 import {
   getCsharpNamespace,
   getCsharpPolymorphicDiscriminator,
@@ -80,10 +80,19 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   });
 
   const unions = [...buckets.values()].flatMap((bucket) => bucket.unions);
+  const requestBodies = requestBodyModels(program);
   for (const [ns, bucket] of buckets) {
     const path = `${context.emitterOutputDir}/${ns.replace(/\./g, "/")}.cs`;
-    await emitFile(program, { path, content: renderBucket(program, bucket, unions) });
+    await emitFile(program, { path, content: renderBucket(program, bucket, unions, requestBodies) });
   }
+}
+
+/** The models an HTTP operation takes as its request body. */
+function requestBodyModels(program: Program): Set<Model> {
+  const [services] = getAllHttpServices(program);
+  return new Set(services.flatMap((service) => service.operations)
+    .map((operation) => operation.parameters.body?.type)
+    .filter((type): type is Model => type?.kind === "Model"));
 }
 
 function instantiationName(model: Model): string {
@@ -127,7 +136,7 @@ function resolveNamespace(program: Program, type: Model | Enum | Scalar | Union)
   return undefined;
 }
 
-function renderBucket(program: Program, bucket: Bucket, unions: Union[]): string {
+function renderBucket(program: Program, bucket: Bucket, unions: Union[], requestBodies: Set<Model>): string {
   const out: string[] = [HEADER];
   out.push(`namespace ${bucket.namespace};\n`);
   for (const scalar of bucket.scalars) out.push(renderBrandedScalar(scalar));
@@ -138,7 +147,7 @@ function renderBucket(program: Program, bucket: Bucket, unions: Union[]): string
   }
   const internalBases = polymorphicBaseModels(bucket.unions);
   for (const [m, name] of bucket.models) {
-    if (!internalBases.has(m)) out.push(renderModel(program, m, name, unions));
+    if (!internalBases.has(m)) out.push(renderModel(program, m, name, unions, requestBodies.has(m)));
   }
   for (const e of bucket.enums) out.push(renderEnum(program, e));
   return out.join("\n");
@@ -220,7 +229,7 @@ function taggedUnionInfo(program: Program, union: Union): { property: string; ta
   };
 }
 
-function renderModel(program: Program, model: Model, emittedName: string, unions: Union[]): string {
+function renderModel(program: Program, model: Model, emittedName: string, unions: Union[], requestBody: boolean): string {
   const keyword = "public sealed class";
   const memberships = unions.filter((candidate) =>
     !mixedUnionShape(program, candidate) &&
@@ -230,6 +239,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
     ? ` : ${memberships.map((union) => localOrQualifiedType(program, model, union)).join(", ")}` : "";
   const discriminators = new Set(memberships.map((union) => taggedUnionInfo(program, union)?.property));
   const constants: string[] = [];
+  const ranges: string[] = [];
   const props: string[] = [];
   for (const prop of inheritedProperties(model)) {
     if (isHttpMetadata(program, prop)) continue;
@@ -237,7 +247,9 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
     if (discriminators.has(jsonName)) continue;
     const type = mapType(program, prop.type);
     const name = pascal(prop.name);
-    constants.push(...renderConstants(program, prop, type.replace(/\?$/, ""), name));
+    const rendered = renderConstants(program, prop, type.replace(/\?$/, ""), name, requestBody);
+    constants.push(...rendered.lines);
+    if (requestBody && rendered.range !== undefined) ranges.push(`        ("${jsonName}", ${rendered.range}),`);
     const numberHandling = renderNumberHandling(program, prop);
     if (prop.optional) {
       const optionalType = type.endsWith("?") ? type : `${type}?`;
@@ -250,6 +262,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
       props.push(`${numberHandling}${alwaysWrite}    [JsonPropertyName("${jsonName}")]\n    public required ${type} ${name} { get; init; }`);
     }
   }
+  if (ranges.length > 0) constants.push(renderRanges(ranges));
   const members = [...constants, ...props];
   const body = members.length ? `\n${members.join("\n")}\n` : "\n";
   return `${keyword} ${emittedName}${implementsUnion}\n{${body}}\n`;
@@ -260,18 +273,41 @@ const NUMERIC_CS_TYPES = new Set(["sbyte", "byte", "short", "ushort", "int", "ui
 /**
  * A property's declared default and its declared numeric range become constants beside it, so a
  * consumer applies the contract's defaults and bounds from these generated values instead of
- * restating them. A range is the property's own, or for a property with a default its scalar's.
+ * restating them. A range is the property's own, or for a property with a default or of a request
+ * body its scalar's. `range` names a bounded property's constants for its request body's `Ranges`.
  */
-function renderConstants(program: Program, property: ModelProperty, type: string, name: string): string[] {
+function renderConstants(
+  program: Program,
+  property: ModelProperty,
+  type: string,
+  name: string,
+  requestBody: boolean,
+): { lines: string[]; range?: string } {
   const lines: string[] = [];
   const fallback = defaultLiteral(property, type);
   if (fallback !== undefined) lines.push(`    public const ${type} ${name}Default = ${fallback};`);
-  if (!NUMERIC_CS_TYPES.has(type)) return lines;
-  const minimum = numericBound(program, property, getMinValue, fallback !== undefined);
-  const maximum = numericBound(program, property, getMaxValue, fallback !== undefined);
+  if (!NUMERIC_CS_TYPES.has(type)) return { lines };
+  const scalar = requestBody || fallback !== undefined;
+  const minimum = numericBound(program, property, getMinValue, scalar);
+  const maximum = numericBound(program, property, getMaxValue, scalar);
   if (minimum !== undefined) lines.push(`    public const ${type} ${name}Minimum = ${numericLiteral(String(minimum), type)};`);
   if (maximum !== undefined) lines.push(`    public const ${type} ${name}Maximum = ${numericLiteral(String(maximum), type)};`);
-  return lines;
+  if (minimum === undefined && maximum === undefined) return { lines };
+  if (requestBody && type === "decimal") {
+    throw new Error(`Request body property '${property.name}' bounds a decimal; Ranges holds doubles.`);
+  }
+  const constant = (suffix: string, declared: unknown) => declared === undefined ? "null" : `${name}${suffix}`;
+  return { lines, range: [constant("Minimum", minimum), constant("Maximum", maximum), constant("Default", fallback)].join(", ") };
+}
+
+/**
+ * A request body's bounded numeric members in one list, so a server rejects a sent value outside its
+ * range from the contract's own constants, whichever operation takes the body.
+ */
+function renderRanges(entries: string[]): string {
+  return "    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>\n"
+    + "    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =\n"
+    + `    [\n${entries.join("\n")}\n    ];`;
 }
 
 function defaultLiteral(property: ModelProperty, type: string): string | undefined {

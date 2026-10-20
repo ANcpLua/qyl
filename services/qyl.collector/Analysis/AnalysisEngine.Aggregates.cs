@@ -140,7 +140,6 @@ internal sealed partial class AnalysisEngine
         if (J.String(input, "service_name") is { } focus)
         {
             var names = new HashSet<string> { focus }; var depth = (int)J.Number(input, "depth", 1);
-            if (depth is < 1 or > 3) throw new AnalysisInputException("depth", "depth must be from 1 to 3.");
             for (var i = 0; i < depth; i++) { var next = edges.Where(e => names.Contains(e.From) || names.Contains(e.To)).SelectMany(e => new[] { e.From, e.To }).ToList(); names.UnionWith(next); }
             edges = [.. edges.Where(e => names.Contains(e.From) && names.Contains(e.To))]; kinds = kinds.Where(p => names.Contains(p.Key)).ToDictionary();
         }

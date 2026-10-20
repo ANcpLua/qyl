@@ -155,6 +155,11 @@ public sealed class SavedQueryRunRequest
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
+    /// <summary>Each numeric member the contract bounds, by wire name: the range a sent value keeps and the default an omitted one takes.</summary>
+    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
+    [
+        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
+    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
     public DateTimeOffset? StartTime { get; init; }

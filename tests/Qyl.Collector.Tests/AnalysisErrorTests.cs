@@ -27,6 +27,45 @@ public sealed partial class AnalysisApiTests
         Assert.AreSequenceEqual(["eq", "neq", "in", "prefix", "contains", "exists", "gt", "gte", "lt", "lte"], op.GetProperty("allowed").EnumerateArray().Select(static v => v.GetString()));
     }
 
+    /// <summary>
+    /// A number outside the range the contract bounds its argument to is refused with the argument, its range and what
+    /// to send instead, whichever kind of bound it breaks: the shared window's lookback, a tool's page size, a
+    /// collection's own size, a small closed range, a 64-bit step, a raw read's page and a lower bound only the
+    /// argument's scalar type declares.
+    /// </summary>
+    [TestMethod]
+    [DataRow("triage", """{"lookback_minutes":0}""", "lookback_minutes", "Use lookback_minutes from 1 to 43200.", "Omit lookback_minutes for the tool's default.")]
+    [DataRow("triage", """{"limit":51}""", "limit", "Use limit from 1 to 50.", "Omit limit for 10.")]
+    [DataRow("get_trace", """{"trace_id":"0af7651916cd43dd8448eb211c80319c","max_spans":1001}""", "max_spans", "Use max_spans from 1 to 1000.", "Omit max_spans for 100.")]
+    [DataRow("get_trace", """{"trace_id":"0af7651916cd43dd8448eb211c80319c","max_logs":-1}""", "max_logs", "Use max_logs from 0 to 50.", "Omit max_logs for the tool's default.")]
+    [DataRow("get_service_map", """{"depth":4}""", "depth", "Use depth from 1 to 3.", "Omit depth for the tool's default.")]
+    [DataRow("query_metric", """{"metric_name":"queue.depth","step_ms":86400001}""", "step_ms", "Use step_ms from 1 to 86400000.", "Omit step_ms for the tool's default.")]
+    [DataRow("query_metric", """{"metric_name":"queue.depth","raw":true,"limit":501}""", "limit", "Use limit from 1 to 500.", "Omit limit for 50.")]
+    [DataRow("list_traces", """{"min_duration_ms":-0.5}""", "min_duration_ms", "Use min_duration_ms of at least 0.", "Omit min_duration_ms for the tool's default.")]
+    public async Task A_number_outside_its_contract_range_is_refused_with_the_range(string operation, string input, string field, string message, string hint)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var error = await RejectedAsync(host, operation, input);
+
+        Assert.AreEqual((field, field + ".out_of_range", message, hint),
+            (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString(), error.GetProperty("hint").GetString()));
+        using var sent = JsonDocument.Parse(input);
+        Assert.AreEqual(sent.RootElement.GetProperty(field).GetRawText(), error.GetProperty("rejected_value").GetString());
+    }
+
+    /// <summary>A range includes both its ends.</summary>
+    [TestMethod]
+    public async Task A_number_at_either_end_of_its_range_is_accepted()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        await Read(host, "triage", """{"lookback_minutes":43200,"limit":50}""");
+        await Read(host, "search_logs", """{"lookback_minutes":1,"limit":1,"context":10,"severity_min":24}""");
+        await Read(host, "list_traces", """{"min_duration_ms":0,"max_duration_ms":0,"limit":100}""");
+        await Read(host, "get_service_map", """{"service_name":"checkout","depth":3}""");
+    }
+
     [TestMethod]
     [DataRow("query_metric", """{"metric_name":"absent.metric"}""", "metric", "absent.metric", "list_metrics")]
     [DataRow("get_trace", """{"trace_id":"0000000000000000000000000000abcd"}""", "trace", "0000000000000000000000000000abcd", "list_traces")]

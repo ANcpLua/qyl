@@ -166,7 +166,7 @@ internal sealed partial class AnalysisEngine
     {
         var rows = Select(input, "logs").Where(l => (J.String(input, "trace_id") is not { } trace || l.TraceId == trace) && (J.String(input, "span_id") is not { } span || l.SpanId == span) && (J.String(input, "session_id") is not { } session || l.SessionId == session)
             && (l.Log?.SeverityNumber ?? 0) >= J.Number(input, "severity_min") && (J.String(input, "query") is not { } query || LogBody(l).Contains(query, StringComparison.OrdinalIgnoreCase))).OrderByDescending(l => l.Start).ThenBy(l => l.Id, StringComparer.Ordinal).ToList();
-        var context = (int)J.Number(input, "context"); if (context is < 0 or > 10) throw new AnalysisInputException("context", "context must be 0 to 10.");
+        var context = (int)J.Number(input, "context");
         JsonObject result;
         // A grouped search answers with its patterns alone, the most frequent first.
         if ((input["group_by"] as JsonArray)?.Any(static key => J.Text(key) == "pattern") == true)

@@ -201,6 +201,24 @@ public sealed class SavedQueryApiTests(TestContext testContext)
         Assert.AreEqual(3, (await host.JsonAsync(widened)).GetProperty("items").GetArrayLength());
     }
 
+    /// <summary>A run's limit keeps the contract's range, as the analysis route's does: 1001 is refused naming it, 1000 runs.</summary>
+    [TestMethod]
+    public async Task A_run_refuses_a_limit_outside_the_contracts_range()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        using var created = await Create(host, "errors");
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString()!;
+
+        using var refused = await host.SendAsync(HttpMethod.Post, $"/api/v1/saved-queries/{id}:run", "reader", """{"limit":1001}""");
+        using var accepted = await host.SendAsync(HttpMethod.Post, $"/api/v1/saved-queries/{id}:run", "reader", """{"limit":1000}""");
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, refused.StatusCode);
+        var error = (await host.JsonAsync(refused)).GetProperty("errors")[0];
+        Assert.AreEqual(("limit", "Use limit from 1 to 1000.", "Omit limit for 100."),
+            (error.GetProperty("field").GetString(), error.GetProperty("message").GetString(), error.GetProperty("hint").GetString()));
+        Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode);
+    }
+
     [TestMethod]
     public async Task A_log_run_filters_by_severity_and_session_inside_the_window()
     {
