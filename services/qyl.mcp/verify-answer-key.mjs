@@ -29,8 +29,9 @@ async function withClient(run, project = fixture.project) {
    const result=await client.callTool({name,arguments:args});
    assert(!result.isError, `${name}: ${JSON.stringify(result)}`);
    assert(Buffer.byteLength(JSON.stringify(result), 'utf8') <= 24_000, name+' exceeds response budget');
-   if (!['annotate','update_failure_status'].includes(name)) {
-     // A verification's before and after windows are its bounds; every other read reports the window it applied.
+   // A write answers with the record it changed; a verification's before and after windows are its bounds, and every
+   // other read reports the window it applied.
+   if (!['annotate','save_query','update_failure_status','delete_record'].includes(name)) {
      if (name!=='verify_fix') assert(result.structuredContent.window, name+' omits absolute window');
      assert(result.structuredContent.coverage, name+' omits coverage');
    }
@@ -88,6 +89,12 @@ verify('04 error-group discriminators are eu and service version 2.3',async call
  const data=await call('compare_groups',{...scoped('regional'),signal:'spans',group_a:{matchers:[{key:'error.type',op:'exists'}]},group_b:'rest',attribute_scope:'both'});
  assert.deepEqual(new Set(data.discriminators.slice(0,2).map(x=>`${x.key}=${x.value}`)),new Set(['cloud.region=eu','service.version=2.3']));
 });
+verify('04b group_b previous_window is group A over the window before it: the failing release discriminates',async call=>{
+ // From T to T2 checkout runs the failing release; in the window of equal length before T it ran the previous one, once.
+ const data=await call('compare_groups',{...scoped('checkout'),signal:'spans',group_a:{window:{start_time:fixture.T,end_time:fixture.T2}},group_b:'previous_window'});
+ assert.deepEqual([data.discriminators[0].key,data.discriminators[0].value],['service.version',fixture.releases.checkout.failing],JSON.stringify(data.discriminators));
+ assert.equal(data.size_b,1);
+});
 verify('05 db executions first diverge at db status',async call=>{
  const data=await call('compare_traces',{...w,a:{trace_id:key['db-root'].trace_id},b:{trace_id:key['db-success-root'].trace_id}});
  assert.equal(data.first_divergence.kind,'status');assert.equal(data.first_divergence.a_span_id,key['db-timeout'].span_id);
@@ -109,6 +116,17 @@ verify('06b the fix release 1.4.2 of checkout anchors F and its orders-db root c
  assert.equal((await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.2'})).needs.requests,expected.fix_requests_needed);
  const introduced=await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.1'});
  sameInstant(introduced.change.time,fixture.T);assert.equal(introduced.verdict,'failed');
+});
+verify('06c a verify_id repeats the verification, min_minutes sets the wait, and an after window without requests is inconclusive',async call=>{
+ const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);
+ const first=await call('verify_fix',{...w,failure_id:F.failure_id,since:fixture.T2});
+ assert.equal(first.verdict,'pending');assert(first.needs.minutes>0,JSON.stringify(first.needs));
+ const repeat=await call('verify_fix',{verify_id:first.verify_id});
+ assert.deepEqual([repeat.verdict,repeat.change,repeat.before,repeat.after.requests,repeat.needs.requests],[first.verdict,first.change,first.before,first.after.requests,first.needs.requests]);
+ assert.deepEqual((await call('verify_fix',{...w,failure_id:F.failure_id,since:fixture.T2,min_minutes:1})).needs,{requests:expected.fix_requests_needed,minutes:0});
+ // No checkout ran after the seed: with no minimum to wait for, nothing decides.
+ const unanswered=await call('verify_fix',{...w,failure_id:F.failure_id,since:fixture.now,min_requests:0,min_minutes:0});
+ assert.deepEqual([unanswered.verdict,unanswered.after.requests],['inconclusive',0]);
 });
 verify('07a checkout span p95 is1840ms and cart 210ms, each with its own p50, p95 and p99',async call=>{
  const data=await call('aggregate_telemetry',{...scoped('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95','duration_p50','duration_p99']});
@@ -158,6 +176,15 @@ verify('13 MCP stats preserve denominator, failure class, exampleids, buckets an
    assert(trace.trace.spans.some(span => span.status === 'error'), 'example must contain an error');
  }
 });
+verify('13b a previous_window baseline holds the MCP calls before the window',async call=>{
+ // The search_logs calls start a millisecond apart from T, the first ones timing out: a window from T+20 ms to T+40 ms
+ // holds the last twenty, and the window before it the first twenty with every timeout.
+ const at=Date.parse(fixture.T), window={start_time:new Date(at+20).toISOString(),end_time:new Date(at+40).toISOString()};
+ const data=await call('get_mcp_stats',{...window,tool_name:'search_logs',baseline:'previous_window'});
+ sameInstant(data.comparison.window.start_time,fixture.T);sameInstant(data.comparison.window.end_time,window.start_time);
+ assert.deepEqual([data.totals.requests,data.totals.errors],[20,0]);
+ assert.deepEqual([data.comparison.totals.requests,data.comparison.totals.errors,data.comparison.failure_classes.timeout],[expected.mcp_requests-20,expected.mcp_errors,expected.mcp_errors]);
+});
 verify('14 active error filter returns only sess_bad',async call=>{
  const data=await call('list_sessions',{...w,active_only:true,errors_only:true});assert.deepEqual(data.sessions.map(s=>s.session_id),['sess_bad']);
 });
@@ -170,7 +197,28 @@ verify('19 metric route cardinality2 suggested for grouping',async call=>{const 
  const raw=await call('query_metric',{...w,metric_name:'http.server.request.duration',raw:true,matchers:[{key:'http.route',op:'eq',value:'/checkout'}]});assert.equal(raw.points.length,1);assert.equal(raw.points[0].data.count,'100');});
 verify('20a histogram p95 remains seconds and approximate',async call=>{const data=await call('query_metric',{...w,metric_name:'http.server.request.duration',aggregation:'p95',group_by:['http.route'],step_ms:3_600_000});assert.equal(data.unit,'s');assert.equal(data.approximate,true);const checkout=data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value==='/checkout'));assert(checkout);const values=checkout.buckets.map(b=>b.value).filter(v=>v!==null);assert(values.some(v=>Math.abs(v-expected.p95_ms['/checkout']/1000)<.1),JSON.stringify(values));});
 verify('20b cumulative100,150,190 started in the window increase190',async call=>{const data=await call('query_metric',{...w,metric_name:'requests.total',function:'increase',step_ms:3_600_000});assert.equal(data.series.flatMap(s=>s.buckets).reduce((sum,b)=>sum+(b.value??0),0),expected.increase);});
+verify('20c a previous_window baseline holds the counter increase before the window',async call=>{
+ // The counter recorded 100 at T, 150 and 190 one and two minutes later: a window from T+30 s to T+150 s holds the
+ // last two points, 90 of the increase, and the window of equal length before it the first, the other 100.
+ const at=Date.parse(fixture.T), window={start_time:new Date(at+30_000).toISOString(),end_time:new Date(at+150_000).toISOString()};
+ const data=await call('query_metric',{...window,metric_name:'requests.total',function:'increase',baseline:'previous_window'});
+ sameInstant(data.comparison.window.start_time,new Date(at-90_000).toISOString());sameInstant(data.comparison.window.end_time,window.start_time);
+ assert.deepEqual([data.series[0].value,data.comparison.series[0].value],[90,expected.increase-90]);
+});
+verify('20d ratio_of divides each route\'s histogram sum by its count, the mean request duration',async call=>{
+ const args={...w,metric_name:'http.server.request.duration',group_by:['http.route'],step_ms:3_600_000};
+ const value=(data,route)=>data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value===route)).value;
+ const sum=await call('query_metric',{...args,aggregation:'sum'}),count=await call('query_metric',{...args,aggregation:'count'});
+ const mean=await call('query_metric',{...args,aggregation:'sum',ratio_of:{metric_name:'http.server.request.duration',aggregation:'count'}});
+ assert.equal(mean.unit,'1');
+ for (const route of Object.keys(expected.p95_ms)) assert.equal(value(mean,route),value(sum,route)/value(count,route),route);
+});
 verify('21 CI new test failure and build3xregression',async call=>{const data=await call('ci_log',{...w,ci_run_id:'ci_current',baseline:'last_success'});assert.equal(data.ci_run_id,'ci_current');assert(data.comparison.baseline_ci_run_id);assert(data.comparison.new_failures.some(p=>p.leg==='test'));assert(data.comparison.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));});
+verify('21b a ci_run_id baseline compares with that run, even a later failed one',async call=>{
+ const data=await call('ci_log',{...w,ci_run_id:'ci_baseline',baseline:{ci_run_id:'ci_current'}});
+ assert.equal(data.comparison.baseline_ci_run_id,'ci_current');
+ assert(data.comparison.fixed.some(p=>p.leg==='test'),JSON.stringify(data.comparison));assert.deepEqual(data.comparison.duration_regressions,[]);
+});
 verify('24 span discovery keeps integer attribute values whole',async call=>{
  const data=await call('discover_attributes',{...scoped('payments'),signal:'spans',key:'http.response.status_code'});
  const status=data.attributes.find(a=>a.key==='http.response.status_code'&&a.scope==='span');assert(status,JSON.stringify(data.attributes));
@@ -318,7 +366,19 @@ verifyIsolated('32b resolved F recurrence markedregressed',async call=>{
  const response=await fetch((process.env.QYL_ANSWER_KEY_OTLP??'http://127.0.0.1:5518')+'/v1/traces',{method:'POST',headers:{'content-type':'application/json','x-qyl-project':process.env.QYL_PROJECT},body:JSON.stringify({resourceSpans:[{resource:{attributes:[{key:'qyl.project.id',value:{stringValue:process.env.QYL_PROJECT}},{key:'service.name',value:{stringValue:'checkout'}},{key:'service.version',value:{stringValue:'1.4.1'}}]},scopeSpans:[{spans:[{traceId:randomBytes(16).toString('hex'),spanId:randomBytes(8).toString('hex'),name:'checkout',kind:2,startTimeUnixNano:String(now-1_000_000n),endTimeUnixNano:String(now),status:{code:2,message:'dependency failed'},attributes:[{key:'error.type',value:{stringValue:'downstream'}}]}]}]}]})});assert.equal(response.status,200);
  try { const data=await call('triage',{lookback_minutes:60});assert.equal(data.failures.find(f=>f.failure_id===F.failure_id).change,'regressed'); } finally { await call('update_failure_status',{failure_id:F.failure_id,etag:resolved.failure.etag,status:'open'}); }
 });
-
+verifyIsolated('29 saved queries are created, changed, listed, run and deleted',async call=>{
+ const traces=await call('save_query',{name:'checkout traces',filter:{signal:'traces',service_name:'checkout',lookback_minutes:60},idempotency_key:'answer-key-traces'});
+ const metrics=await call('save_query',{name:'requests per window',filter:{signal:'metrics',metric_name:'requests.total',lookback_minutes:60}});
+ const changed=await call('save_query',{id:traces.saved_query.id,etag:traces.saved_query.etag,description:'The planted checkout incident'});
+ assert.equal(changed.saved_query.description,'The planted checkout incident');assert.notEqual(changed.saved_query.etag,traces.saved_query.etag);
+ const listed=await call('run_saved_query',{});
+ assert.deepEqual(listed.saved_queries.map(q=>[q.name,q.etag]),[['checkout traces',changed.saved_query.etag],['requests per window',metrics.saved_query.etag]]);
+ assert((await call('run_saved_query',{id:changed.saved_query.id})).traces.some(t=>t.trace_id===key['db-root'].trace_id));
+ const answer=(await call('run_saved_query',{id:metrics.saved_query.id})).metric;
+ assert.deepEqual([answer.name,answer.aggregation,answer.series.length],['requests.total','avg',1]);
+ for (const {saved_query:query} of [changed,metrics]) assert.equal((await call('delete_record',{kind:'saved_query',id:query.id,etag:query.etag})).deleted,true);
+ assert.deepEqual((await call('run_saved_query',{})).saved_queries,[]);
+});
 
 // Existing projection and paging semantics stay exercised against real storage.
 verify('regression get_trace removes all attribute collections without changing totals', async call=>{
