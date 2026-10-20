@@ -56,6 +56,8 @@ def resource(service,r=None):return {'attributes':attrs({'service.name':scoped(s
 # A seeded duration varies by up to 8% around its planned value, the same for the same key in every run, as measured
 # requests do; traffic draws its own, and a duration a planted answer is exact in is passed with exact=True.
 def vary(key,ms,spread=.08):return ms*(1+spread*(2*int(hashlib.sha256(('duration|'+key).encode()).hexdigest()[:8],16)/0xffffffff-1))
+# The p95 in ms of each route the http service serves.
+P95_MS={'/checkout':1840,'/cart':210}
 # One route's requests spread evenly from 80% of its p95 to just above it, in an order their keys scramble: the 95th
 # percentile, interpolated between neighbours as qyl computes it, is exactly the p95, and the median sits lower.
 LOW,TOP=.8,(1-.05*.8)/.95
@@ -120,8 +122,8 @@ if mode=='traffic':
  for i,ms in enumerate(draw(120,40,2)):
   at=start(ms); tr,sid=span(f'pay-{i}','payments','POST /pay',at,ms,a=http('POST','/pay',200))
   if i==0:log('payments',at+int(ms*1e6),9,'payment captured',tr,sid)
- for route,p95,low in [('/checkout',1840,1100),('/cart',210,120)]:
-  for i,ms in enumerate(draw(p95,low,2)):span(f'latency-{route}-{i}','http','GET '+route,start(ms),ms,a=http('GET',route,200))
+ for route,low in [('/checkout',1100),('/cart',120)]:
+  for i,ms in enumerate(draw(P95_MS[route],low,2)):span(f'latency-{route}-{i}','http','GET '+route,start(ms),ms,a=http('GET',route,200))
  for (region,version),ms in zip([('us','2.3'),('eu','2.2'),('us','2.2')],random.sample(draw(20,13,3),3)):
   span(f'regional-{region}-{version}','regional','request',start(ms),ms,r={'cloud.region':region,'service.version':release(version)})
  for i,ms in enumerate(draw(20,8,2)):span(f'session-{i}','sessions','request',start(ms),ms,session='sess_ok-'+tag)
@@ -149,7 +151,7 @@ for i in range(4):span(f'fix-request-{i}','checkout','checkout',T2+i*1_000_000,r
 for i in range(2):span(f'rare-{i}','payments','POST /pay',T+i*1_000_000,error=True,a={**http('POST','/pay',500),'error.type':'payment'},message='payment error')
 for region,version,error in [('eu','2.3',True),('us','2.3',False),('eu','2.2',False),('us','2.2',False)]:
  for i in range(10):span(f'discrim-{region}-{version}-{i}','regional','request',T+i*1_000_000,error=error,a={'error.type':'regional'} if error else {},r={'cloud.region':region,'service.version':release(version)})
-for route,ms in [('/checkout',1840),('/cart',210)]:
+for route,ms in P95_MS.items():
  durations=spread([f'latency-{route}-{i}' for i in range(20)],ms)
  for i in range(20):span(f'latency-{route}-{i}','http','GET '+route,T+i*1_000_000,duration=durations[f'latency-{route}-{i}'],exact=True,a=http('GET',route,200))
 for i in range(40):
@@ -164,10 +166,10 @@ for i in range(61):span(f'silent-{i}','billing','charge',now-180*minute+i*minute
 metrics=[]
 # The routes' durations as a histogram spread like their spans: 95 of 100 requests from 80% of the p95 up to it, five
 # just above, so the bucket estimate of the p95 is the route's p95.
-for route,value in [('/checkout',1.84),('/cart',.21)]:
+for route,value in [(route,ms/1e3) for route,ms in P95_MS.items()]:
  metrics.append({'resource':resource('http'),'schemaUrl':schema,'scopeMetrics':[{'scope':scope,'schemaUrl':schema,'metrics':[{'name':'http.server.request.duration','description':'HTTP duration','unit':'s','histogram':{'aggregationTemporality':1,'dataPoints':[{'attributes':attrs({'http.request.method':'GET','url.scheme':'https','http.route':route,**metric_run_labels}),'startTimeUnixNano':str(T-minute),'timeUnixNano':str(T),'count':'100','sum':value*100*(LOW+TOP)/2,'min':value*LOW,'max':value*TOP,'explicitBounds':[value/2,value,value*1.5],'bucketCounts':['0','95','5','0']}]}}]}]})
 # The counter starts one minute before its first point, inside the window: all 190 requests are the window's increase.
 metrics.append({'resource':resource('counter'),'schemaUrl':schema,'scopeMetrics':[{'scope':scope,'schemaUrl':schema,'metrics':[{'name':'requests.total','unit':'{request}','sum':{'aggregationTemporality':2,'isMonotonic':True,'dataPoints':[{'attributes':attrs(metric_run_labels),'startTimeUnixNano':str(T-minute),'timeUnixNano':str(T+i*minute),'asInt':str(v)} for i,v in enumerate([100,150,190])]}}]}]})
 post('/v1/traces',{'resourceSpans':spans});post('/v1/logs',{'resourceLogs':logs});post('/v1/metrics',{'resourceMetrics':metrics})
-metadata={'project':project,'run_id':run_id,'mcp_server_name':scoped('qyl'),'services':{name:scoped(name) for name in ['checkout','orders-db','payments','regional','http','counter','qyl-mcp','agent','qyl-ci-test','billing','sessions']},'sessions':{name:scoped(name) for name in ['agent_run','ci_current','ci_baseline','sess_ok','sess_bad']},'now':iso(now),'T':iso(T),'T2':iso(T2),'releases':releases,'window':{'start_time':iso(now-60*minute),'end_time':iso(now+minute)},'keys':keys,'expected':{'mcp_requests':40,'mcp_errors':8,'error_rate':.2,'increase':190,'checkout_p95_ms':1840,'fix_requests_needed':96},'baseline_window':{'start_time':iso(now-120*minute),'end_time':iso(now-60*minute)}}
+metadata={'project':project,'run_id':run_id,'mcp_server_name':scoped('qyl'),'services':{name:scoped(name) for name in ['checkout','orders-db','payments','regional','http','counter','qyl-mcp','agent','qyl-ci-test','billing','sessions']},'sessions':{name:scoped(name) for name in ['agent_run','ci_current','ci_baseline','sess_ok','sess_bad']},'now':iso(now),'T':iso(T),'T2':iso(T2),'releases':releases,'window':{'start_time':iso(now-60*minute),'end_time':iso(now+minute)},'keys':keys,'expected':{'mcp_requests':40,'mcp_errors':8,'error_rate':.2,'increase':190,'p95_ms':P95_MS,'fix_requests_needed':96}}
 open(out,'w').write(json.dumps(metadata,indent=2)+'\n');print(out)

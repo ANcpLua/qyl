@@ -15,7 +15,7 @@ process.env.QYL_COLLECTOR_URL = process.env.QYL_ANSWER_KEY_COLLECTOR ?? 'http://
 process.env.QYL_PROJECT = fixture.project;
 delete process.env.QYL_API_KEY;
 delete process.env.MCP_COLLECTOR_PROJECTS;
-const w=fixture.window, key=fixture.keys;
+const w=fixture.window, key=fixture.keys, expected=fixture.expected;
 const scoped=(service)=>({ ...w, matchers:[{key:'service.name',op:'eq',value:service,scope:'resource'}] });
 // The seed writes instants in microseconds and the Collector in 100 ns: one is within a millisecond of the other.
 const sameInstant=(actual,expected)=>assert(Math.abs(Date.parse(actual)-Date.parse(expected))<=1,`${actual} is not ${expected}`);
@@ -94,7 +94,7 @@ verify('05 db executions first diverge at db status',async call=>{
 });
 verify('06 four requests after fix need another96',async call=>{
  const F=(await failures(call)).find(f=>f.operation==='checkout');assert(F);
- const data=await call('verify_fix',{...w,failure_id:F.failure_id,since:fixture.T2});assert.equal(data.verdict,'pending');assert.equal(data.needs.requests,96);
+ const data=await call('verify_fix',{...w,failure_id:F.failure_id,since:fixture.T2});assert.equal(data.verdict,'pending');assert.equal(data.needs.requests,expected.fix_requests_needed);
  assert.equal(data.change.kind,'since');sameInstant(data.change.time,fixture.T2);
 });
 verify('06b the fix release 1.4.2 of checkout anchors F and its orders-db root cause at T2; 1.4.1 anchors at T and failed',async call=>{
@@ -106,13 +106,13 @@ verify('06b the fix release 1.4.2 of checkout anchors F and its orders-db root c
   sameInstant(fix.change.time,fixture.T2);sameInstant(fix.after.window.start_time,fixture.T2);
   assert.equal(fix.verdict,'pending',failure.service);assert.equal(fix.after.occurrences,0,failure.service);
  }
- assert.equal((await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.2'})).needs.requests,96);
+ assert.equal((await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.2'})).needs.requests,expected.fix_requests_needed);
  const introduced=await call('verify_fix',{...w,failure_id:F.failure_id,release:'1.4.1'});
  sameInstant(introduced.change.time,fixture.T);assert.equal(introduced.verdict,'failed');
 });
 verify('07a checkout span p95 is1840ms and cart 210ms, each with its own p50, p95 and p99',async call=>{
  const data=await call('aggregate_telemetry',{...scoped('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95','duration_p50','duration_p99']});
- for (const [route,p95] of [['/checkout',1840],['/cart',210]]) {
+ for (const [route,p95] of Object.entries(expected.p95_ms)) {
   const measures=data.groups.find(g=>g.key['http.route']===route).measures;
   assert(Math.abs(measures.duration_p95-p95)<1,`${route}: ${JSON.stringify(measures)}`);
   assert(measures.duration_p50<measures.duration_p95&&measures.duration_p95<measures.duration_p99,`${route}: ${JSON.stringify(measures)}`);
@@ -120,7 +120,7 @@ verify('07a checkout span p95 is1840ms and cart 210ms, each with its own p50, p9
 });
 verify('07b MCP aggregate error rate is8/40',async call=>{
  const data=await call('aggregate_telemetry',{...w,signal:'spans',matchers:[{key:'mcp.method.name',op:'eq',value:'tools/call'}],group_by:['gen_ai.tool.name'],measures:['count','error_count','error_rate']});
- const group=data.groups.find(g=>g.key['gen_ai.tool.name']==='search_logs');assert.equal(group.measures.count,40);assert.equal(group.measures.error_rate,.2);
+ const group=data.groups.find(g=>g.key['gen_ai.tool.name']==='search_logs');assert.equal(group.measures.count,expected.mcp_requests);assert.equal(group.measures.error_rate,expected.error_rate);
 });
 verify('08 region cardinality2 includes semantic definition',async call=>{
  const data=await call('discover_attributes',{...scoped('regional'),signal:'resources'});const region=data.attributes.find(a=>a.key==='cloud.region');assert.equal(region.cardinality,2);assert(region.semconv.brief.length>0);
@@ -144,15 +144,15 @@ verify('12 silent billing last seen2hours beforeseed',async call=>{
 });
 verify('13 MCP stats preserve denominator, failure class, exampleids, buckets and breakdowns',async call=>{
  assert.equal((await call('get_mcp_stats',{...w,tool_name:'search_logs'})).buckets,undefined,'buckets come only on request');
- const data=await call('get_mcp_stats',{...w,tool_name:'search_logs',buckets:true});const group=data.groups.find(g=>g.name==='search_logs');assert.equal(group.requests,40);assert.equal(group.errors,8);assert.equal(group.error_rate,.2);assert.equal(data.failure_classes.timeout,8);assert(group.example_trace_ids.length>0);
- const tool=data.tools.find(t=>t.name==='search_logs');assert.equal(tool.requests,40);assert.equal(tool.errors,8);assert.equal(tool.error_rate,.2);
+ const data=await call('get_mcp_stats',{...w,tool_name:'search_logs',buckets:true});const group=data.groups.find(g=>g.name==='search_logs');assert.equal(group.requests,expected.mcp_requests);assert.equal(group.errors,expected.mcp_errors);assert.equal(group.error_rate,expected.error_rate);assert.equal(data.failure_classes.timeout,expected.mcp_errors);assert(group.example_trace_ids.length>0);
+ const tool=data.tools.find(t=>t.name==='search_logs');assert.equal(tool.requests,expected.mcp_requests);assert.equal(tool.errors,expected.mcp_errors);assert.equal(tool.error_rate,expected.error_rate);
  // Seeded durations vary around 20 ms, by at most 8%.
  assert(Math.abs(tool.avg_ms-20)<=1.6&&Math.abs(tool.p95_ms-20)<=1.6&&tool.avg_ms!==tool.p95_ms,JSON.stringify(tool));
- assert.equal(data.totals.requests,40);assert.equal(data.coverage.scan_complete,true);assert.equal(data.coverage.truncated,false);
+ assert.equal(data.totals.requests,expected.mcp_requests);assert.equal(data.coverage.scan_complete,true);assert.equal(data.coverage.truncated,false);
  assert(data.buckets.length>0&&data.buckets.every(b=>b.requests>0),'only buckets that saw requests');
- assert.equal(data.buckets.reduce((sum,b)=>sum+b.requests,0),40);assert.equal(data.buckets.reduce((sum,b)=>sum+b.errors,0),8);
- assert.equal(data.by_method.find(m=>m.name==='tools/call').requests,40);assert.equal(data.by_transport.find(t=>t.name==='http').requests,40);
- assert.equal(data.by_server.find(s=>s.name===fixture.mcp_server_name).requests,40);
+ assert.equal(data.buckets.reduce((sum,b)=>sum+b.requests,0),expected.mcp_requests);assert.equal(data.buckets.reduce((sum,b)=>sum+b.errors,0),expected.mcp_errors);
+ assert.equal(data.by_method.find(m=>m.name==='tools/call').requests,expected.mcp_requests);assert.equal(data.by_transport.find(t=>t.name==='http').requests,expected.mcp_requests);
+ assert.equal(data.by_server.find(s=>s.name===fixture.mcp_server_name).requests,expected.mcp_requests);
  for (const id of group.example_trace_ids) {
    const trace = await call('get_trace', {...w, trace_id:id});
    assert(trace.trace.spans.some(span => span.status === 'error'), 'example must contain an error');
@@ -164,12 +164,12 @@ verify('14 active error filter returns only sess_bad',async call=>{
 verify('15 sess_bad errors returns3traces',async call=>{const data=await call('list_traces',{...w,session_id:'sess_bad',errors_only:true});assert.equal(data.traces.length,3);});
 verify('16a critical path is rooted under checkout',async call=>{const data=await call('get_trace',{...w,trace_id:key['latency-/checkout-0'].trace_id,selection:'critical_path'});assert(data.trace.spans.every(s=>s.name.includes('/checkout')));assert(data.trace.spans.length>0);});
 verify('16b error ancestors include the healthy root',async call=>{const data=await call('get_trace',{...w,trace_id:key['db-root'].trace_id,selection:'errors_with_ancestors'});assert.equal(data.trace.spans.find(s=>s.span_id===key['db-root'].span_id).status,'ok');});
-verify('17 grouped timeout log pattern count8',async call=>{const data=await call('search_logs',{...scoped('qyl-mcp'),group_by:['pattern']});assert(data.patterns.some(p=>p.count===8&&/timeout/.test(p.template)));});
+verify('17 grouped timeout log pattern count8',async call=>{const data=await call('search_logs',{...scoped('qyl-mcp'),group_by:['pattern']});assert(data.patterns.some(p=>p.count===expected.mcp_errors&&/timeout/.test(p.template)));});
 verify('18 duration histogram reports seconds and p95support',async call=>{const data=await call('list_metrics',{...w,query:'http.server.request.duration'});const metric=data.items.find(m=>m.name==='http.server.request.duration');assert.equal(metric.kind,'histogram');assert.equal(metric.unit,'s');assert(metric.supported_aggregations.includes('p95'));});
 verify('19 metric route cardinality2 suggested for grouping',async call=>{const data=await call('list_metrics',{...w,name_prefix:'http.server.request.duration'});const metric=data.items.find(m=>m.name==='http.server.request.duration');assert.equal(metric.keys.find(k=>k.key==='http.route').cardinality,2);assert(metric.suggested_group_by.includes('http.route'));
  const raw=await call('query_metric',{...w,metric_name:'http.server.request.duration',raw:true,matchers:[{key:'http.route',op:'eq',value:'/checkout'}]});assert.equal(raw.points.length,1);assert.equal(raw.points[0].data.count,'100');});
-verify('20a histogram p95 remains seconds and approximate',async call=>{const data=await call('query_metric',{...w,metric_name:'http.server.request.duration',aggregation:'p95',group_by:['http.route'],step_ms:3_600_000});assert.equal(data.unit,'s');assert.equal(data.approximate,true);const checkout=data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value==='/checkout'));assert(checkout);const values=checkout.buckets.map(b=>b.value).filter(v=>v!==null);assert(values.some(v=>Math.abs(v-1.84)<.1),JSON.stringify(values));});
-verify('20b cumulative100,150,190 started in the window increase190',async call=>{const data=await call('query_metric',{...w,metric_name:'requests.total',function:'increase',step_ms:3_600_000});assert.equal(data.series.flatMap(s=>s.buckets).reduce((sum,b)=>sum+(b.value??0),0),fixture.expected.increase);});
+verify('20a histogram p95 remains seconds and approximate',async call=>{const data=await call('query_metric',{...w,metric_name:'http.server.request.duration',aggregation:'p95',group_by:['http.route'],step_ms:3_600_000});assert.equal(data.unit,'s');assert.equal(data.approximate,true);const checkout=data.series.find(s=>s.attributes.some(a=>a.key==='http.route'&&a.value==='/checkout'));assert(checkout);const values=checkout.buckets.map(b=>b.value).filter(v=>v!==null);assert(values.some(v=>Math.abs(v-expected.p95_ms['/checkout']/1000)<.1),JSON.stringify(values));});
+verify('20b cumulative100,150,190 started in the window increase190',async call=>{const data=await call('query_metric',{...w,metric_name:'requests.total',function:'increase',step_ms:3_600_000});assert.equal(data.series.flatMap(s=>s.buckets).reduce((sum,b)=>sum+(b.value??0),0),expected.increase);});
 verify('21 CI new test failure and build3xregression',async call=>{const data=await call('ci_log',{...w,ci_run_id:'ci_current',baseline:'last_success'});assert.equal(data.ci_run_id,'ci_current');assert(data.comparison.baseline_ci_run_id);assert(data.comparison.new_failures.some(p=>p.leg==='test'));assert(data.comparison.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));});
 verify('24 span discovery keeps integer attribute values whole',async call=>{
  const data=await call('discover_attributes',{...scoped('payments'),signal:'spans',key:'http.response.status_code'});
@@ -219,19 +219,19 @@ void test('25 traffic keeps every seeded service but billing live and every plan
   const regional=await call('compare_groups',{...scope('regional'),signal:'spans',group_a:{matchers:[{key:'error.type',op:'exists'}]},group_b:'rest',attribute_scope:'both'});
   assert.deepEqual(new Set(regional.discriminators.slice(0,2).map(x=>`${x.key}=${x.value}`)),new Set(['cloud.region=eu','service.version=2.3']));
   const latency=await call('aggregate_telemetry',{...scope('http'),signal:'spans',group_by:['http.route'],measures:['duration_p95']});
-  assert.deepEqual(Object.fromEntries(latency.groups.map(g=>[g.key['http.route'],g.measures.duration_p95])),{'/checkout':1840,'/cart':210});
+  assert.deepEqual(Object.fromEntries(latency.groups.map(g=>[g.key['http.route'],g.measures.duration_p95])),seeded.expected.p95_ms);
   assert.equal((await call('get_failure_context',{...day,trace_id:seeded.keys['db-root'].trace_id})).observed.root_cause_span.span_id,seeded.keys['db-timeout'].span_id);
   const F=(await call('triage',{...day,service_name:'checkout',status:'all'})).failures.find(f=>f.operation==='checkout');assert(F);
   const fix=await call('verify_fix',{...day,failure_id:F.failure_id,since:seeded.T2});
-  assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,76,'the four fix requests and two checkouts per batch count');
+  assert.equal(fix.verdict,'pending');assert.equal(fix.needs.requests,seeded.expected.fix_requests_needed-2*10,'the four fix requests and two checkouts per batch count');
   const release=await call('verify_fix',{...day,failure_id:F.failure_id,release:'1.4.2'});
-  sameInstant(release.change.time,seeded.T2);assert.equal(release.needs.requests,76,'every later checkout runs the fix release');
+  sameInstant(release.change.time,seeded.T2);assert.equal(release.needs.requests,seeded.expected.fix_requests_needed-2*10,'every later checkout runs the fix release');
   assert.deepEqual((await call('list_releases',{...day,service_name:'checkout'})).releases.map(r=>r.version),['1.4.2','1.4.1','1.4.0'],'traffic runs 1.4.2 and no release of its own');
   assert.equal((await call('get_agent_run',{...day,session_id:'agent_run'})).findings.repeated_calls[0].count,3);
   const ci=(await call('ci_log',{...day,ci_run_id:'ci_current',baseline:'last_success'})).comparison;
   assert(ci.new_failures.some(p=>p.leg==='test'));assert(ci.duration_regressions.some(p=>p.leg==='build'&&p.ratio===3));
   const search=(await call('get_mcp_stats',{...day,tool_name:'search_logs'})).tools.find(t=>t.name==='search_logs');
-  assert.deepEqual([search.requests,search.errors],[40,8]);
+  assert.deepEqual([search.requests,search.errors],[seeded.expected.mcp_requests,seeded.expected.mcp_errors]);
   assert.deepEqual((await call('list_sessions',{...day,errors_only:true})).sessions.map(s=>s.session_id).sort(),['ci_current','sess_bad']);
   assert.deepEqual((await call('check_telemetry_health',day)).semconv_gaps,[]);
  },project);
@@ -255,7 +255,7 @@ void test('26 the fix in 1.4.2 is pending, then passes once a hundred checkouts 
   const verify=()=>call('verify_fix',{lookback_minutes:1440,failure_id:F.failure_id,release:'1.4.2'});
   await batches(1,47);
   const pending=await verify();
-  assert.equal(pending.verdict,'pending');assert.deepEqual(pending.needs,{requests:2,minutes:0});sameInstant(pending.change.time,seeded.T2);
+  assert.equal(pending.verdict,'pending');assert.deepEqual(pending.needs,{requests:seeded.expected.fix_requests_needed-2*47,minutes:0});sameInstant(pending.change.time,seeded.T2);
   await batches(48,48);
   const passed=await verify();
   assert.equal(passed.verdict,'passed',JSON.stringify(passed));assert.deepEqual([passed.after.occurrences,passed.after.requests],[0,100]);
@@ -292,7 +292,7 @@ void test('28 hosted reseeds a day apart name their releases by date: the latest
   const latest=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:checkout.fix});
   sameInstant(latest.change.time,dayTwo.T2);assert.equal(latest.after.occurrences,0);
   // The four fix requests, the two midnight checkouts and two per later run.
-  assert.equal(latest.verdict,'pending',JSON.stringify(latest));assert.deepEqual(latest.needs,{requests:88,minutes:0});
+  assert.equal(latest.verdict,'pending',JSON.stringify(latest));assert.deepEqual(latest.needs,{requests:dayTwo.expected.fix_requests_needed-2-2*3,minutes:0});
   // The first day's fix is the one the second reseed's failures followed.
   const previous=await call('verify_fix',{...reviewer,failure_id:F.failure_id,release:dayOne.releases.checkout.fix});
   sameInstant(previous.change.time,dayOne.T2);assert.equal(previous.verdict,'failed');

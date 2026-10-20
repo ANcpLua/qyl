@@ -23,7 +23,7 @@ const evidence = { started_at: new Date().toISOString(), endpoint: values.endpoi
   calls: [], assertions: [], cleanup_errors: [] };
 const succeeded = new Set();
 const owned = new Map();
-const w = fixture.window, key = fixture.keys, services = fixture.services, sessions = fixture.sessions;
+const w = fixture.window, key = fixture.keys, services = fixture.services, sessions = fixture.sessions, expected = fixture.expected;
 const scoped = (service) => ({ ...w, matchers: [{ key: "service.name", op: "eq", value: service, scope: "resource" }] });
 const all = { ...w, matchers: [{ key: "service.name", op: "in", values: Object.values(services), scope: "resource" }] };
 const metricMatchers = [{ key: "test.run.id", value: fixture.run_id, op: "eq" }];
@@ -110,10 +110,10 @@ try {
   const comparison = await call(owner, "compare_traces", { ...w, a: { trace_id: key["db-root"].trace_id }, b: { trace_id: key["db-success-root"].trace_id } });
   check(comparison.first_divergence.kind === "status", "Trace comparison finds the recorded status difference");
   const fix = await call(owner, "verify_fix", { ...w, failure_id: failure.failure_id, since: fixture.T2 });
-  check(fix.verdict === "pending" && fix.needs.requests === 96, "Fix verification retains the insufficient-sample verdict");
+  check(fix.verdict === "pending" && fix.needs.requests === expected.fix_requests_needed, "Fix verification retains the insufficient-sample verdict");
   const aggregate = await call(owner, "aggregate_telemetry", { ...scoped(services.http), signal: "spans", group_by: ["http.route"], measures: ["duration_p95"] });
-  check(Math.abs(aggregate.groups.find(item => item.key["http.route"] === "/checkout").measures.duration_p95 - 1840) < 1,
-    "Aggregation measures the seeded 1840 ms p95");
+  check(Math.abs(aggregate.groups.find(item => item.key["http.route"] === "/checkout").measures.duration_p95 - expected.p95_ms["/checkout"]) < 1,
+    "Aggregation measures the seeded checkout p95");
   const attributes = await call(owner, "discover_attributes", { ...scoped(services.regional), signal: "resources" });
   check(attributes.attributes.find(item => item.key === "cloud.region").cardinality === 2, "Attribute discovery sees both regions");
   const agent = await call(owner, "get_agent_run", { ...w, session_id: sessions.agent_run });
@@ -126,7 +126,7 @@ try {
   check(health.silent_services.some(item => item.service === services.billing), "Health identifies the isolated silent service");
   const stats = await call(owner, "get_mcp_stats", { ...w, server_name: fixture.mcp_server_name, tool_name: "search_logs" });
   const searches = stats.groups.find(item => item.name === "search_logs");
-  check(searches.requests === 40 && searches.errors === 8 && searches.error_rate === .2, "MCP statistics preserve all 40 requests and eight expected errors");
+  check(searches.requests === expected.mcp_requests && searches.errors === expected.mcp_errors && searches.error_rate === expected.error_rate, "MCP statistics preserve every seeded request and expected error");
 
   const sessionPage = await call(owner, "list_sessions", { ...w, service_name: services.sessions, errors_only: true });
   check(sessionPage.sessions.some(item => item.session_id === sessions.sess_bad), "Session query returns the failing invocation group");
@@ -135,7 +135,7 @@ try {
   const trace = await call(owner, "get_trace", { ...w, trace_id: key["db-root"].trace_id });
   check(trace.trace.spans.some(span => span.span_id === key["db-timeout"].span_id), "Trace retrieval returns the actual child span");
   const logs = await call(owner, "search_logs", { ...w, service_name: services["qyl-mcp"], severity_min: 17 });
-  check(logs.logs.length === 8, "Log query retains every seeded expected timeout error");
+  check(logs.logs.length === expected.mcp_errors, "Log query retains every seeded expected timeout error");
 
   const metrics = await call(owner, "list_metrics", { ...w, service_name: services.http, query: "http.server.request.duration" });
   check(metrics.items.some(item => item.kind === "histogram" && item.unit === "s"), "Metric catalog preserves histogram kind and seconds");
@@ -145,7 +145,7 @@ try {
     matchers: [...metricMatchers, { key: "http.route", op: "eq", value: "/checkout" }] });
   check(points.points.length > 0, "Original metric points are returned without substituting projections");
   const increase = await call(owner, "query_metric", { ...w, metric_name: "requests.total", function: "increase", step_ms: 3_600_000, matchers: metricMatchers });
-  check(increase.series.flatMap(stream => stream.buckets).reduce((sum, bucket) => sum + (bucket.value ?? 0), 0) === 190, "Counter query measures the increase of 190 since its recorded start");
+  check(increase.series.flatMap(stream => stream.buckets).reduce((sum, bucket) => sum + (bucket.value ?? 0), 0) === expected.increase, "Counter query measures the increase since its recorded start");
   const ci = await call(owner, "ci_log", { ...w, ci_run_id: sessions.ci_current, baseline: "last_success" });
   check(ci.comparison.new_failures.some(item => item.leg === "test"), "CI analysis retains the deliberately failed test leg");
 
