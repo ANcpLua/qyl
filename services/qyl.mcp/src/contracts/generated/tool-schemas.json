@@ -2812,7 +2812,7 @@
             },
             "leg": {
               "type": "string",
-              "description": "Value of the span's ci.leg attribute, falling back to its service name."
+              "description": "The leg that executed the phase: the span's `cicd.pipeline.task.name`, else its service name."
             },
             "phase": {
               "type": "string",

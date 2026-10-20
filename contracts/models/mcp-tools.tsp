@@ -485,7 +485,7 @@ model CiPhase {
   @encodedName("application/json", "error_logs")
   errorLogs?: CiErrorExcerpt[];
 
-  @doc("Value of the span's ci.leg attribute, falling back to its service name.")
+  @doc("The leg that executed the phase: the span's `cicd.pipeline.task.name`, else its service name.")
   leg: string;
 
   @doc("Span name, which the CI emitter convention sets to the phase name.")
