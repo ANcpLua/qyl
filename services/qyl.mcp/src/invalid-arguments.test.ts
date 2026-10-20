@@ -68,6 +68,15 @@ const cases: Array<{
     message: /^baseline: must be one of: previous_window, \{start_time, end_time\}, \{offset_minutes\}$/u,
   },
   {
+    // query_metric and run_saved_query take the one shared time range, so their lookback has its bounds too.
+    tool: "query_metric", arguments: { metric_name: "http.server.request.duration", lookback_minutes: 43_201 },
+    field: "lookback_minutes", keyword: "maximum", message: /^lookback_minutes: must be <= 43200$/u,
+  },
+  {
+    tool: "run_saved_query", arguments: { lookback_minutes: 0 },
+    field: "lookback_minutes", keyword: "minimum", message: /^lookback_minutes: must be >= 1$/u,
+  },
+  {
     tool: "get_mcp_stats", arguments: { baseline: "last_week" },
     field: "baseline", keyword: "anyOf", allowed: ["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"],
     message: /^baseline: must be one of: previous_window, \{start_time, end_time\}, \{offset_minutes\}, \{server_version\}$/u,

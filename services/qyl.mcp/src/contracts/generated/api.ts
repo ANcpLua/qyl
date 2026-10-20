@@ -1223,11 +1223,11 @@ export interface MetricKeySummary {
 }
 
 export interface QueryMetricInput {
-  "lookback_minutes"?: number;
   "function"?: "none" | "rate" | "increase" | "delta";
   "baseline"?: AnalysisBaseline;
   "ratio_of"?: MetricRatio;
   "metric_name": string;
+  "lookback_minutes"?: number;
   "start_time"?: string;
   "end_time"?: string;
   "step_ms"?: number;
@@ -1360,9 +1360,9 @@ export interface SavedQuery extends ResourceBase {
 }
 
 export interface RunSavedQueryInput {
-  "lookback_minutes"?: number;
   "id"?: string;
   "signal"?: SavedQuerySignal;
+  "lookback_minutes"?: number;
   "start_time"?: string;
   "end_time"?: string;
   "cursor"?: string;
@@ -2195,13 +2195,6 @@ export interface SavedQueryWindow {
   "lookback_minutes"?: number;
 }
 
-export interface SavedQueryRunRequest {
-  "start_time"?: string;
-  "end_time"?: string;
-  "limit"?: number;
-  "cursor"?: string;
-}
-
 export interface SavedQueryCreateRequest {
   "name": string;
   "description"?: string;
@@ -2212,6 +2205,13 @@ export interface SavedQueryUpdateRequest {
   "name"?: string;
   "description"?: string;
   "filter"?: SavedQueryFilter;
+}
+
+export interface SavedQueryRunRequest {
+  "start_time"?: string;
+  "end_time"?: string;
+  "limit"?: number;
+  "cursor"?: string;
 }
 
 export interface SavedTraceQueryRun {
@@ -2300,4 +2300,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:826dfe30121cf171";
+export const CONTRACT_REVISION: string = "sha256:b632bd72a9cf220e";

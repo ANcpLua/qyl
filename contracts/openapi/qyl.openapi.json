@@ -11677,11 +11677,6 @@
           "metric_name"
         ],
         "properties": {
-          "lookback_minutes": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Minutes before `end_time` (or now) when `start_time` is omitted; default 60."
-          },
           "function": {
             "type": "string",
             "enum": [
@@ -11704,6 +11699,13 @@
             "type": "string",
             "minLength": 1,
             "description": "The instrument to query, e.g. from list_metrics."
+          },
+          "lookback_minutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 43200,
+            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
             "type": "string",
@@ -12033,11 +12035,6 @@
       "Mcp.Tools.RunSavedQueryInput": {
         "type": "object",
         "properties": {
-          "lookback_minutes": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Minutes before `end_time` (or now) for this run, overriding the saved look-back window."
-          },
           "id": {
             "$ref": "#/components/schemas/Common.ResourceId",
             "description": "The saved query to run, from a list without `id`; omit to list the saved queries."
@@ -12046,19 +12043,26 @@
             "$ref": "#/components/schemas/SavedQueries.SavedQuerySignal",
             "description": "Without `id`, list only the saved queries of this signal."
           },
+          "lookback_minutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 43200,
+            "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
+          },
           "start_time": {
             "type": "string",
             "format": "date-time",
-            "description": "Start of this run's window (inclusive), RFC 3339; overrides the saved look-back window."
+            "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
             "format": "date-time",
-            "description": "End of this run's window (exclusive), RFC 3339; default the time of the run."
+            "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
             "$ref": "#/components/schemas/Common.Cursor",
-            "description": "`next_cursor` of a previous run of the same saved query."
+            "description": "`next_cursor` of a previous run_saved_query call with the same arguments."
           },
           "limit": {
             "$ref": "#/components/schemas/Common.Pagination.PageLimit",

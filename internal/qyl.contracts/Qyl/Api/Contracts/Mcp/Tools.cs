@@ -923,15 +923,14 @@ public sealed class MetricKeySummary
 
 public sealed class QueryMetricInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     public const long StepMsMinimum = 1;
     public const long StepMsMaximum = 86400000;
     public const Qyl.Api.Contracts.OTel.Metrics.MetricAggregation AggregationDefault = Qyl.Api.Contracts.OTel.Metrics.MetricAggregation.Avg;
     public const int LimitDefault = 50;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 500;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("function")]
     public string? Function { get; init; }
@@ -943,6 +942,9 @@ public sealed class QueryMetricInput
     public Qyl.Api.Contracts.Mcp.Tools.MetricRatio? RatioOf { get; init; }
     [JsonPropertyName("metric_name")]
     public required string MetricName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("lookback_minutes")]
+    public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
     public DateTimeOffset? StartTime { get; init; }
@@ -1164,18 +1166,20 @@ public sealed class SavedQueryOutput
 
 public sealed class RunSavedQueryInput
 {
+    public const int LookbackMinutesMinimum = 1;
+    public const int LookbackMinutesMaximum = 43200;
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("lookback_minutes")]
-    public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("id")]
     public string? Id { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("signal")]
     public Qyl.Api.Contracts.SavedQueries.SavedQuerySignal? Signal { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("lookback_minutes")]
+    public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
     public DateTimeOffset? StartTime { get; init; }

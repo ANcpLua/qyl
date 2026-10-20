@@ -570,9 +570,6 @@ model ListMetricsOutput {
 
 @doc("Aggregates one metric instrument over the window: per series, the buckets that hold points and one value for the whole window, split by `group_by`, transformed by `function`, compared with an earlier window by `baseline` or divided by another metric by `ratio_of`; with `raw` it returns one series' original points instead, with their exact values, histogram buckets and exemplars. Metric values are pre-aggregated in the instrument's unit, often seconds, and histogram percentiles are interpolated; aggregate_telemetry gives exact per-span durations in ms. Without `step_ms` the step is the whole seconds that split the window into at most 60 buckets; the default window is the last 60 minutes.")
 model QueryMetricInput {
-  @doc("Minutes before `end_time` (or now) when `start_time` is omitted; default 60.")
-  @encodedName("application/json", "lookback_minutes")
-  lookbackMinutes?: int32;
   @doc("Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`.")
   function?: "none" | "rate" | "increase" | "delta";
   @doc("Also aggregate an earlier window into `comparison`: `previous_window`, the window of equal length just before; a `{start_time, end_time}` window; or `{offset_minutes}`, the selected window shifted back.")
@@ -586,13 +583,7 @@ model QueryMetricInput {
   @minLength(1)
   metricName: string;
 
-  @doc("Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`.")
-  @encodedName("application/json", "start_time")
-  startTime?: utcDateTime;
-
-  @doc("End of the window (exclusive), RFC 3339; default now.")
-  @encodedName("application/json", "end_time")
-  endTime?: utcDateTime;
+  ...ToolTimeRange;
 
   @doc("Bucket width in integer milliseconds; the window may hold at most 10000 buckets. Omit for whole seconds that split the window into at most 60 buckets.")
   @encodedName("application/json", "step_ms")
@@ -767,17 +758,16 @@ model SavedQueryOutput {
 
 @doc("Runs a saved query against current telemetry, or without `id` lists the project's saved queries ordered by name with their ids, current etags and filters. A traces query answers like list_traces, a logs query like search_logs and a metrics query like query_metric, over the saved lookback ending now (60 minutes when none was saved) unless `lookback_minutes`, `start_time` or `end_time` override it. save_query stores and changes the saved queries; an unknown id is answered with not_found.")
 model RunSavedQueryInput {
-  @doc("Minutes before `end_time` (or now) for this run, overriding the saved look-back window.")
-  @encodedName("application/json", "lookback_minutes")
-  lookbackMinutes?: int32;
-
   @doc("The saved query to run, from a list without `id`; omit to list the saved queries.")
   id?: ResourceId;
 
   @doc("Without `id`, list only the saved queries of this signal.")
   signal?: SavedQuerySignal;
 
-  ...OmitProperties<SavedQueryRunRequest, "limit">;
+  ...ToolTimeRange;
+
+  @doc("`next_cursor` of a previous run_saved_query call with the same arguments.")
+  cursor?: Cursor;
 
   @doc("Saved queries per page without `id`, or trace rows or log records per page of a run; 1 to 1000, default 100.")
   limit?: PageLimit = 100;

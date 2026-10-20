@@ -126,25 +126,6 @@ public sealed class SavedQueryWindow
     public int? LookbackMinutes { get; init; }
 }
 
-public sealed class SavedQueryRunRequest
-{
-    public const int LimitDefault = 100;
-    public const int LimitMinimum = 1;
-    public const int LimitMaximum = 1000;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("limit")]
-    public int? Limit { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
-}
-
 public sealed class SavedQueryCreateRequest
 {
     [JsonPropertyName("name")]
@@ -167,6 +148,25 @@ public sealed class SavedQueryUpdateRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("filter")]
     public Qyl.Api.Contracts.SavedQueries.SavedQueryFilter? Filter { get; init; }
+}
+
+public sealed class SavedQueryRunRequest
+{
+    public const int LimitDefault = 100;
+    public const int LimitMinimum = 1;
+    public const int LimitMaximum = 1000;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("start_time")]
+    public DateTimeOffset? StartTime { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("end_time")]
+    public DateTimeOffset? EndTime { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("limit")]
+    public int? Limit { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
 }
 
 public sealed class SavedTraceQueryRun : SavedQueryRunResult
