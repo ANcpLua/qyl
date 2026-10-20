@@ -1,5 +1,6 @@
 /** Named analysis tools backed by the collector's generated query contracts. */
 import type { McpServer } from "@modelcontextprotocol/server";
+import { QylServiceValues } from "./contracts/generated/api.js";
 import { contractSchema } from "./contracts/tool-schemas.js";
 import { runTool } from "./request-scope.js";
 import { READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS, TELEMETRY_TOOL_AUTH_META } from "./tools.js";
@@ -16,7 +17,7 @@ export function registerAnalysisTools(server: McpServer): void {
     "triage",
     {
       title: "Triage",
-      description: "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status.",
+      description: `Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status; the qyl MCP server's own telemetry, service ${QylServiceValues.mcp}, is left out unless service_name names it.`,
       inputSchema: contractSchema("Mcp.Tools.TriageInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,
@@ -136,7 +137,7 @@ export function registerAnalysisTools(server: McpServer): void {
     "check_telemetry_health",
     {
       title: "Check Telemetry Health",
-      description: "Report silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag when checking whether the telemetry can be trusted; a service_name that sent nothing in the window or its baseline is answered service.not_found, not an empty report.",
+      description: `Report silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag when checking whether the telemetry can be trusted; the qyl MCP server's own telemetry, service ${QylServiceValues.mcp}, is left out unless service_name names it, and a service_name that sent nothing in the window or its baseline is answered service.not_found, not an empty report.`,
       inputSchema: contractSchema("Mcp.Tools.CheckTelemetryHealthInput"),
       annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS,
       _meta: TELEMETRY_TOOL_AUTH_META,

@@ -297,6 +297,11 @@ export const McpScopeValues = {
 } as const;
 export type McpScope = typeof McpScopeValues[keyof typeof McpScopeValues];
 
+export const QylServiceValues = {
+  "mcp": "qyl.mcp",
+} as const;
+export type QylService = typeof QylServiceValues[keyof typeof QylServiceValues];
+
 export type AttributeDouble = number | "NaN" | "Infinity" | "-Infinity";
 
 export type AttributeValue = null | string | boolean | AttributeValue[] | AttributeObjectValue;
@@ -2300,4 +2305,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:75a859582c986454";
+export const CONTRACT_REVISION: string = "sha256:e81b56664d62afb3";

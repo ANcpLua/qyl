@@ -258,6 +258,19 @@ public enum ProblemType
     ServiceUnavailable
 }
 
+public static class ProblemTypeValues
+{
+    public const string ValidationFailed = "https://qyl.at/problems/validation-failed";
+    public const string Unauthorized = "https://qyl.at/problems/unauthorized";
+    public const string Forbidden = "https://qyl.at/problems/forbidden";
+    public const string NotFound = "https://qyl.at/problems/not-found";
+    public const string Conflict = "https://qyl.at/problems/conflict";
+    public const string PreconditionFailed = "https://qyl.at/problems/precondition-failed";
+    public const string PreconditionRequired = "https://qyl.at/problems/precondition-required";
+    public const string InternalError = "https://qyl.at/problems/internal-error";
+    public const string ServiceUnavailable = "https://qyl.at/problems/service-unavailable";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<ProblemCode>))]
 public enum ProblemCode
 {
@@ -279,4 +292,17 @@ public enum ProblemCode
     InternalError,
     [JsonStringEnumMemberName("service_unavailable")]
     ServiceUnavailable
+}
+
+public static class ProblemCodeValues
+{
+    public const string ValidationFailed = "validation_failed";
+    public const string Unauthorized = "unauthorized";
+    public const string Forbidden = "forbidden";
+    public const string NotFound = "not_found";
+    public const string Conflict = "conflict";
+    public const string PreconditionFailed = "precondition_failed";
+    public const string PreconditionRequired = "precondition_required";
+    public const string InternalError = "internal_error";
+    public const string ServiceUnavailable = "service_unavailable";
 }

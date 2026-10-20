@@ -41,3 +41,10 @@ public enum HealthStatus
     [JsonStringEnumMemberName("unhealthy")]
     Unhealthy
 }
+
+public static class HealthStatusValues
+{
+    public const string Healthy = "healthy";
+    public const string Degraded = "degraded";
+    public const string Unhealthy = "unhealthy";
+}

@@ -1,4 +1,4 @@
-import type { EmitContext, Enum, Model, ModelProperty, Program, Scalar, Type, Union } from "@typespec/compiler";
+import type { EmitContext, Enum, EnumMember, Model, ModelProperty, Program, Scalar, Type, Union } from "@typespec/compiler";
 import {
   emitFile,
   getDiscriminatedUnion,
@@ -658,7 +658,17 @@ function renderEnum(_program: Program, enm: Enum): string {
     const valueSuffix = typeof m.value === "number" ? ` = ${m.value}` : "";
     return `${nameAttribute}    ${pascal(m.name)}${valueSuffix}`;
   }).join(",\n");
-  return `${converter}public enum ${enm.name}\n{\n${members}\n}\n`;
+  return `${converter}public enum ${enm.name}\n{\n${members}\n}\n${usesStringValues ? renderEnumValues(enumMembers, enm.name) : ""}`;
+}
+
+/**
+ * A string enum's wire values as constants, the members of the TypeScript emitter's `<Enum>Values`, so a consumer
+ * compares with the contract's value instead of a literal typed beside it.
+ */
+function renderEnumValues(members: EnumMember[], name: string): string {
+  const constants = members.map((m) =>
+    `    public const string ${pascal(m.name)} = "${escapeCsharpString(typeof m.value === "string" ? m.value : m.name)}";`);
+  return `\npublic static class ${name}Values\n{\n${constants.join("\n")}\n}\n`;
 }
 
 function pascal(s: string): string {

@@ -207,3 +207,10 @@ public enum SavedQuerySignal
     [JsonStringEnumMemberName("metrics")]
     Metrics
 }
+
+public static class SavedQuerySignalValues
+{
+    public const string Traces = "traces";
+    public const string Logs = "logs";
+    public const string Metrics = "metrics";
+}

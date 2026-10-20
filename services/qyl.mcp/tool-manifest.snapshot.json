@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:75a859582c986454",
+  "contract_revision": "sha256:e81b56664d62afb3",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -370,7 +370,7 @@
     {
       "name": "check_telemetry_health",
       "title": "Check Telemetry Health",
-      "description": "Report silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag when checking whether the telemetry can be trusted; a service_name that sent nothing in the window or its baseline is answered service.not_found, not an empty report.",
+      "description": "Report silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag when checking whether the telemetry can be trusted; the qyl MCP server's own telemetry, service qyl.mcp, is left out unless service_name names it, and a service_name that sent nothing in the window or its baseline is answered service.not_found, not an empty report.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -507,7 +507,7 @@
             "description": "Restrict the analysis to this environment: resource `deployment.environment.name`, or the older `deployment.environment`."
           }
         },
-        "description": "Checks whether the telemetry can be trusted: silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag. Run it when answers look incomplete or before trusting an empty one; silent services follow the triage rule. A `service_name` that sent no telemetry in the window or its baseline is answered with service.not_found, not with an empty report.",
+        "description": "Checks whether the telemetry can be trusted: silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag. Run it when answers look incomplete or before trusting an empty one; silent services follow the triage rule, and like triage it leaves out the qyl MCP server's own telemetry, service `qyl.mcp`, unless `service_name` names it. A `service_name` that sent no telemetry in the window or its baseline is answered with service.not_found, not with an empty report.",
         "additionalProperties": false
       }
     },
@@ -4133,7 +4133,7 @@
     {
       "name": "triage",
       "title": "Triage",
-      "description": "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status.",
+      "description": "Rank new or worsening failures, performance regressions, releases and silent services when investigating what changed, or list failures by their recorded status; the qyl MCP server's own telemetry, service qyl.mcp, is left out unless service_name names it.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4338,7 +4338,7 @@
             "description": "Which failures to list by their recorded status. `open` (default) lists the failures that need attention: recorded `open`, `resolved` ones that recurred after they were resolved (`change: regressed`) and `ignored` ones whose `ignore_until` has passed. `resolved` or `ignored` list the failures recorded with that status, `all` every failure of the window."
           }
         },
-        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status.",
+        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. The qyl MCP server's own telemetry, service `qyl.mcp`, is left out unless `service_name` names it. Explain a failure with get_failure_context and record a decision on it with update_failure_status.",
         "additionalProperties": false
       }
     },

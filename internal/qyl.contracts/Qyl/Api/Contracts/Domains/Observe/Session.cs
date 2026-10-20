@@ -137,6 +137,15 @@ public enum SessionState
     Invalidated
 }
 
+public static class SessionStateValues
+{
+    public const string Active = "active";
+    public const string Idle = "idle";
+    public const string Ended = "ended";
+    public const string TimedOut = "timed_out";
+    public const string Invalidated = "invalidated";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<DeviceType>))]
 public enum DeviceType
 {
@@ -158,4 +167,17 @@ public enum DeviceType
     Bot,
     [JsonStringEnumMemberName("unknown")]
     Unknown
+}
+
+public static class DeviceTypeValues
+{
+    public const string Desktop = "desktop";
+    public const string Mobile = "mobile";
+    public const string Tablet = "tablet";
+    public const string Tv = "tv";
+    public const string Console = "console";
+    public const string Wearable = "wearable";
+    public const string Iot = "iot";
+    public const string Bot = "bot";
+    public const string Unknown = "unknown";
 }

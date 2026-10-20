@@ -104,3 +104,11 @@ public enum AnnotationClassification
     [JsonStringEnumMemberName("rejected")]
     Rejected
 }
+
+public static class AnnotationClassificationValues
+{
+    public const string Note = "note";
+    public const string Hypothesis = "hypothesis";
+    public const string Finding = "finding";
+    public const string Rejected = "rejected";
+}

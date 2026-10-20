@@ -59,6 +59,16 @@ public enum RunnerResourceLifecycle
     Failed
 }
 
+public static class RunnerResourceLifecycleValues
+{
+    public const string Pending = "pending";
+    public const string Starting = "starting";
+    public const string Ready = "ready";
+    public const string Stopping = "stopping";
+    public const string Stopped = "stopped";
+    public const string Failed = "failed";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<RunnerResourceKind>))]
 public enum RunnerResourceKind
 {
@@ -70,6 +80,13 @@ public enum RunnerResourceKind
     Command
 }
 
+public static class RunnerResourceKindValues
+{
+    public const string Collector = "collector";
+    public const string Project = "project";
+    public const string Command = "command";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<RunnerLogStream>))]
 public enum RunnerLogStream
 {
@@ -77,4 +94,10 @@ public enum RunnerLogStream
     Stdout,
     [JsonStringEnumMemberName("err")]
     Stderr
+}
+
+public static class RunnerLogStreamValues
+{
+    public const string Stdout = "out";
+    public const string Stderr = "err";
 }

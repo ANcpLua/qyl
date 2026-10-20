@@ -35,6 +35,16 @@ enum McpScope {
   delete: "qyl:delete",
 }
 
+@doc("""
+  The `service.name` qyl's own components report their telemetry under. The
+  qyl MCP server exports its spans, metrics and logs as `mcp` into the project
+  it reads, beside the caller's telemetry; triage and check_telemetry_health
+  leave that service out unless `service_name` names it.
+  """)
+enum QylService {
+  mcp: "qyl.mcp",
+}
+
 @doc("Stable failure code of a qyl MCP tool result. A model branches on the code, never on the message.")
 union ToolErrorCode {
   invalidArgument: "invalid_argument",

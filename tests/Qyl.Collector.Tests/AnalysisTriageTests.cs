@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Time.Testing;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Storage;
 using static Qyl.Collector.Tests.CollectorApiTestHost;
 
@@ -52,6 +53,33 @@ public sealed partial class AnalysisApiTests
                 .Select(static s => s.GetProperty("service").GetString()).ToArray();
             Assert.AreSequenceEqual(["baseline-only", "every-minute"], silent, operation);
         }
+    }
+
+    /// <summary>
+    /// qyl's own MCP server exports its spans into the project it reads as service qyl.mcp. Its failures, releases and
+    /// silence are not the caller's, so triage and check_telemetry_health leave it out unless service_name names it; an
+    /// MCP server the caller runs, here qyl-mcp, is a service like any other.
+    /// </summary>
+    [TestMethod]
+    public async Task Triage_and_health_leave_the_qyl_mcp_server_out_unless_service_name_names_it()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = FixtureUnixNano - 30 * Minute;
+        await host.Store.EnqueueAsync(new SpanBatch([.. new[] { QylServiceValues.Mcp, "qyl-mcp" }.Select((service, i) =>
+            Span(TraceId(i + 1), SpanId(i + 1), time, time + 1000, service: service, status: 2)
+                with { Name = "tools/call search_logs", StatusMessage = "tool timeout", ResourceJson = """{"service.version":"1.0.0"}""" })]),
+            testContext.CancellationToken);
+        async Task<string[]> ServicesAsync(string operation, string list, string input) => [.. (await Read(host, operation, input)).GetProperty(list)
+            .EnumerateArray().Select(static item => item.GetProperty("service").GetString()!).Order(StringComparer.Ordinal)];
+        var named = $$"""{"service_name":"{{QylServiceValues.Mcp}}"}""";
+
+        foreach (var list in new[] { "failures", "releases", "silent_services" })
+        {
+            Assert.AreSequenceEqual(["qyl-mcp"], await ServicesAsync("triage", list, "{}"), list);
+            Assert.AreSequenceEqual([QylServiceValues.Mcp], await ServicesAsync("triage", list, named), list);
+        }
+        Assert.AreSequenceEqual(["qyl-mcp"], await ServicesAsync("check_telemetry_health", "silent_services", "{}"));
+        Assert.AreSequenceEqual([QylServiceValues.Mcp], await ServicesAsync("check_telemetry_health", "silent_services", named));
     }
 
     /// <summary>

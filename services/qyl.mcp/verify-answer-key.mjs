@@ -10,6 +10,7 @@ import test from 'node:test';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { createMcpHandler } from '@modelcontextprotocol/server';
 import { createServer } from './dist/server.js';
+import { QylServiceValues } from './dist/contracts/generated/api.js';
 const fixture = JSON.parse(await readFile(process.env.QYL_ANSWER_KEY_FILE ?? new URL('missing-answer-key-use-run-answer-key', import.meta.url),'utf8'));
 process.env.QYL_COLLECTOR_URL = process.env.QYL_ANSWER_KEY_COLLECTOR ?? 'http://127.0.0.1:5510';
 process.env.QYL_PROJECT = fixture.project;
@@ -392,6 +393,19 @@ verifyIsolated('29 saved queries are created, changed, listed, run and deleted',
  assert.deepEqual([answer.name,answer.aggregation,answer.series.length],['requests.total','avg',1]);
  for (const {saved_query:query} of [changed,metrics]) assert.equal((await call('delete_record',{kind:'saved_query',id:query.id,etag:query.etag})).deleted,true);
  assert.deepEqual((await call('run_saved_query',{})).saved_queries,[]);
+});verifyIsolated('30 triage and health leave the qyl MCP server\'s own telemetry out unless service_name names it',async call=>{
+ // The server exports its own spans into the project it reads: one call failed 20 minutes ago.
+ const own=QylServiceValues.mcp, start=BigInt(Date.now()-20*60_000)*1_000_000n;
+ const response=await fetch((process.env.QYL_ANSWER_KEY_OTLP??'http://127.0.0.1:5518')+'/v1/traces',{method:'POST',headers:{'content-type':'application/json','x-qyl-project':process.env.QYL_PROJECT},body:JSON.stringify({resourceSpans:[{resource:{attributes:[{key:'qyl.project.id',value:{stringValue:process.env.QYL_PROJECT}},{key:'service.name',value:{stringValue:own}}]},scopeSpans:[{spans:[{traceId:randomBytes(16).toString('hex'),spanId:randomBytes(8).toString('hex'),name:'tools/call triage',kind:2,startTimeUnixNano:String(start),endTimeUnixNano:String(start+1_000_000n),status:{code:2,message:'tool failed'},attributes:[{key:'mcp.method.name',value:{stringValue:'tools/call'}},{key:'error.type',value:{stringValue:'tool_error'}}]}]}]}]})});assert.equal(response.status,200);
+ const services=items=>items.map(item=>item.service);
+ const triage=await call('triage',{lookback_minutes:60});
+ assert(!services(triage.failures).includes(own)&&!services(triage.silent_services).includes(own),JSON.stringify(triage));
+ assert(services(triage.failures).includes('qyl-mcp'),'the seeded MCP server is a service like any other');
+ const named=await call('triage',{lookback_minutes:60,service_name:own});
+ assert.deepEqual([services(named.failures),services(named.silent_services)],[[own],[own]]);
+ assert(!services((await call('check_telemetry_health',{lookback_minutes:60})).silent_services).includes(own));
+ assert.deepEqual(services((await call('check_telemetry_health',{lookback_minutes:60,service_name:own})).silent_services),[own]);
+ assert.equal((await call('get_mcp_stats',{lookback_minutes:60,server_name:own})).totals.requests,1,'get_mcp_stats keeps it');
 });
 
 // Existing projection and paging semantics stay exercised against real storage.

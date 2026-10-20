@@ -8150,7 +8150,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Checks whether the telemetry can be trusted: silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag. Run it when answers look incomplete or before trusting an empty one; silent services follow the triage rule. A `service_name` that sent no telemetry in the window or its baseline is answered with service.not_found, not with an empty report."
+        "description": "Checks whether the telemetry can be trusted: silent services, orphan spans whose parent is missing, metric points recorded twice with different values, missing required semantic-convention attributes, the share of unknown services, schema URLs, how far back the data reaches and the logs' ingestion lag. Run it when answers look incomplete or before trusting an empty one; silent services follow the triage rule, and like triage it leaves out the qyl MCP server's own telemetry, service `qyl.mcp`, unless `service_name` names it. A `service_name` that sent no telemetry in the window or its baseline is answered with service.not_found, not with an empty report."
       },
       "Mcp.Tools.CheckTelemetryHealthOutput": {
         "type": "object",
@@ -11950,6 +11950,13 @@
         },
         "description": "Structured output for query_metric: the aggregated series, or with `raw` one series' original points, which keep `name`, `kind` and `unit` and leave the aggregate's other members out."
       },
+      "Mcp.Tools.QylService": {
+        "type": "string",
+        "enum": [
+          "qyl.mcp"
+        ],
+        "description": "The `service.name` qyl's own components report their telemetry under. The\nqyl MCP server exports its spans, metrics and logs as `mcp` into the project\nit reads, beside the caller's telemetry; triage and check_telemetry_health\nleave that service out unless `service_name` names it."
+      },
       "Mcp.Tools.ReleasePerformance": {
         "type": "object",
         "required": [
@@ -13475,7 +13482,7 @@
         "unevaluatedProperties": {
           "not": {}
         },
-        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. Explain a failure with get_failure_context and record a decision on it with update_failure_status."
+        "description": "Start of an investigation and the list of failures: the window's failures with their recorded status, new ones first and then by count, each labeled by how it changed against a baseline (new, worsening, ongoing, recovering, or regressed after being resolved), plus the operations whose error rate, p95 latency or throughput regressed, the releases first seen in the window and the silent services. The default window is the last 60 minutes, so pass a `lookback_minutes` or `start_time` that covers the incident; the baseline defaults to the window of equal length just before, and `status` defaults to `open`, the failures that need attention. A service is silent when its last span over the baseline and the window is older than the window's end minus 15 minutes or five of its usual intervals between spans, whichever is longer. The qyl MCP server's own telemetry, service `qyl.mcp`, is left out unless `service_name` names it. Explain a failure with get_failure_context and record a decision on it with update_failure_status."
       },
       "Mcp.Tools.TriageOutput": {
         "type": "object",

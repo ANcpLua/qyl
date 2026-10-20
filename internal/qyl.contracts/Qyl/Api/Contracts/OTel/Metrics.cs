@@ -397,6 +397,20 @@ public enum MetricAggregation
     P99
 }
 
+public static class MetricAggregationValues
+{
+    public const string Avg = "avg";
+    public const string Min = "min";
+    public const string Max = "max";
+    public const string Sum = "sum";
+    public const string Count = "count";
+    public const string Last = "last";
+    public const string P50 = "p50";
+    public const string P90 = "p90";
+    public const string P95 = "p95";
+    public const string P99 = "p99";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<MetricKind>))]
 public enum MetricKind
 {
@@ -412,6 +426,15 @@ public enum MetricKind
     Summary
 }
 
+public static class MetricKindValues
+{
+    public const string Gauge = "gauge";
+    public const string Sum = "sum";
+    public const string Histogram = "histogram";
+    public const string Exponential_histogram = "exponential_histogram";
+    public const string Summary = "summary";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<MetricTemporality>))]
 public enum MetricTemporality
 {
@@ -421,6 +444,13 @@ public enum MetricTemporality
     Delta,
     [JsonStringEnumMemberName("cumulative")]
     Cumulative
+}
+
+public static class MetricTemporalityValues
+{
+    public const string Unspecified = "unspecified";
+    public const string Delta = "delta";
+    public const string Cumulative = "cumulative";
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<MetricMatcherOp>))]
@@ -446,4 +476,18 @@ public enum MetricMatcherOp
     Lt,
     [JsonStringEnumMemberName("lte")]
     Lte
+}
+
+public static class MetricMatcherOpValues
+{
+    public const string Eq = "eq";
+    public const string Neq = "neq";
+    public const string In = "in";
+    public const string Prefix = "prefix";
+    public const string Contains = "contains";
+    public const string Exists = "exists";
+    public const string Gt = "gt";
+    public const string Gte = "gte";
+    public const string Lt = "lt";
+    public const string Lte = "lte";
 }

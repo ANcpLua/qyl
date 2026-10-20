@@ -163,7 +163,7 @@ grants the read tools only, and Auth0-backed Events cannot be enabled in it.
 | `MCP_EVENTS_POLL_MS` | Collector polling interval for Events, at least 5000 ms; default 30000 ms. |
 | `OPENAI_APPS_CHALLENGE` | Text served at `/.well-known/openai-apps-challenge`; `404` while blank. |
 | `QYL_OTLP_ENDPOINT` | Optional OTLP base for self-telemetry; signal-specific `OTEL_*` endpoints take precedence. |
-| `QYL_MCP_TELEMETRY=0` | Disable MCP spans, metrics and operation logs. |
+| `QYL_MCP_TELEMETRY=0` | Disable MCP spans, metrics and operation logs. The server exports them as service `qyl.mcp`, which triage and check_telemetry_health leave out unless `service_name` names it. |
 | `QYL_MCP_NATIVE_STATE_PATH` | Location of the local execution record; default `~/.qyl/mcp-native-executions.json`. |
 
 With `MCP_COLLECTOR_PROJECTS` set, only the verified SDK `AuthInfo.extra.subject` selects the

@@ -399,6 +399,20 @@ public enum MatcherOp
     Lte
 }
 
+public static class MatcherOpValues
+{
+    public const string Eq = "eq";
+    public const string Neq = "neq";
+    public const string In = "in";
+    public const string Prefix = "prefix";
+    public const string Contains = "contains";
+    public const string Exists = "exists";
+    public const string Gt = "gt";
+    public const string Gte = "gte";
+    public const string Lt = "lt";
+    public const string Lte = "lte";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<MatcherScope>))]
 public enum MatcherScope
 {
@@ -408,6 +422,13 @@ public enum MatcherScope
     Resource,
     [JsonStringEnumMemberName("log")]
     Log
+}
+
+public static class MatcherScopeValues
+{
+    public const string Span = "span";
+    public const string Resource = "resource";
+    public const string Log = "log";
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<CollectorKeyRole>))]
@@ -421,4 +442,12 @@ public enum CollectorKeyRole
     Write,
     [JsonStringEnumMemberName("delete")]
     Delete
+}
+
+public static class CollectorKeyRoleValues
+{
+    public const string Ingest = "ingest";
+    public const string Read = "read";
+    public const string Write = "write";
+    public const string Delete = "delete";
 }

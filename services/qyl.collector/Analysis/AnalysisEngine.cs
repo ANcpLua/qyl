@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Analysis;
@@ -69,9 +70,11 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         var w = window ?? _window;
         return [.. (signal == "logs" ? _logs : _spans).Where(r => Checked(r) && w.Contains(r.Start) && InScope(input, r))];
     }
-    // The request's service, environment, release and matcher filters.
-    private static bool InScope(JsonObject input, AnalysisRecord r) =>
-        (J.String(input, "service_name") is not { } service || r.Service == service)
+    // The request's service, environment, release and matcher filters. qyl's own MCP server exports its spans into the
+    // project it reads as service qyl.mcp: its failures, releases and pauses are not the caller's, so triage and
+    // check_telemetry_health leave that service out unless service_name names it.
+    private bool InScope(JsonObject input, AnalysisRecord r) =>
+        (J.String(input, "service_name") is { } service ? r.Service == service : r.Service != QylServiceValues.Mcp || _operation is not ("triage" or "check_telemetry_health"))
         && (J.String(input, "environment") is not { } environment
             || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironmentName, "resource")) == environment
             || J.Text(r.Value(CollectorSemanticAttributeCatalog.DeploymentEnvironment, "resource")) == environment)

@@ -2961,6 +2961,13 @@ public enum FailureStatus
     Ignored
 }
 
+public static class FailureStatusValues
+{
+    public const string Open = "open";
+    public const string Resolved = "resolved";
+    public const string Ignored = "ignored";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<McpFailureClass>))]
 public enum McpFailureClass
 {
@@ -2978,6 +2985,16 @@ public enum McpFailureClass
     Timeout
 }
 
+public static class McpFailureClassValues
+{
+    public const string Transport = "transport";
+    public const string Protocol = "protocol";
+    public const string Tool_result = "tool_result";
+    public const string Authentication = "authentication";
+    public const string Cancellation = "cancellation";
+    public const string Timeout = "timeout";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<CiPhaseStatus>))]
 public enum CiPhaseStatus
 {
@@ -2989,6 +3006,13 @@ public enum CiPhaseStatus
     Unset
 }
 
+public static class CiPhaseStatusValues
+{
+    public const string Ok = "ok";
+    public const string Error = "error";
+    public const string Unset = "unset";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<DeletableKind>))]
 public enum DeletableKind
 {
@@ -2996,6 +3020,12 @@ public enum DeletableKind
     Annotation,
     [JsonStringEnumMemberName("saved_query")]
     SavedQuery
+}
+
+public static class DeletableKindValues
+{
+    public const string Annotation = "annotation";
+    public const string SavedQuery = "saved_query";
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<FailureChange>))]
@@ -3013,6 +3043,15 @@ public enum FailureChange
     Regressed
 }
 
+public static class FailureChangeValues
+{
+    public const string New = "new";
+    public const string Worsening = "worsening";
+    public const string Ongoing = "ongoing";
+    public const string Recovering = "recovering";
+    public const string Regressed = "regressed";
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<McpScope>))]
 public enum McpScope
 {
@@ -3022,4 +3061,23 @@ public enum McpScope
     Write,
     [JsonStringEnumMemberName("qyl:delete")]
     Delete
+}
+
+public static class McpScopeValues
+{
+    public const string Read = "qyl:read";
+    public const string Write = "qyl:write";
+    public const string Delete = "qyl:delete";
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter<QylService>))]
+public enum QylService
+{
+    [JsonStringEnumMemberName("qyl.mcp")]
+    Mcp
+}
+
+public static class QylServiceValues
+{
+    public const string Mcp = "qyl.mcp";
 }

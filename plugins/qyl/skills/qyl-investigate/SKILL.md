@@ -82,6 +82,10 @@ saved queries and failure status in that project, never the telemetry.
   `discover_attributes` lists which keys and values exist before you filter.
   `eq`, `neq` and `in` compare typed values: the number 1 does not match the
   string "1", so pass a value in the type `discover_attributes` reports.
+- **qyl's own calls.** The qyl MCP server records its own tool calls as
+  service `qyl.mcp` in the project it reads. `triage` and
+  `check_telemetry_health` leave that service out unless `service_name` is
+  `qyl.mcp`; `get_mcp_stats`, `list_traces` and the other reads include it.
 
 ## Reading a verdict
 

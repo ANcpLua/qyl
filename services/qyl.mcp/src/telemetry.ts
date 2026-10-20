@@ -45,6 +45,7 @@ import {
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import packageMetadata from "../package.json" with { type: "json" };
+import { QylServiceValues } from "./contracts/generated/api.js";
 import { API_KEY_AUTH_HEADER, PROJECT_SCOPE_HEADER } from "./contracts/generated/headers.js";
 import {
     describeMcpOperationLog,
@@ -56,7 +57,7 @@ import {
 import { SecretRedactor } from "./secret-redactor.js";
 
 const Product = {
-    name: "qyl.mcp",
+    name: QylServiceValues.mcp,
     version: packageMetadata.version,
 } as const;
 
