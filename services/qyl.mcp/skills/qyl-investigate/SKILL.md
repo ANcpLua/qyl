@@ -58,8 +58,10 @@ saved queries and failure status in that project, never the telemetry.
   yesterday's deploy".
 - **Pages.** Results are bounded: `triage` 10 failures, context tools 100
   spans and 100 logs, `aggregate_telemetry` 20 groups, `get_trace` 100
-  spans. `has_more` and `next_cursor` continue the same query; `coverage`
-  says how much was examined, so report truncation instead of guessing.
+  spans, `ci_log` 10 runs and 50 of a run's phases, whatever `limit` is.
+  `has_more` and `next_cursor` continue the same query, `next_phase_cursor`
+  as `phase_cursor` a run's phases; `coverage` says how much was examined,
+  so report truncation instead of guessing.
   A `cursor.stale` error means results ahead of the cursor changed after it
   was issued: run the query again without the cursor.
 - **Trace detail.** For a failure, call `get_trace` with

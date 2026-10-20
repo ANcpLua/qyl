@@ -450,7 +450,7 @@ model CiLogInput {
   @maxLength(256)
   servicePrefix?: string = "qyl-ci";
 
-  @doc("Runs per page, 1 to 50; default 10.")
+  @doc("Runs per page, 1 to 50; default 10. The broken-down run's phases page apart from them, 50 per page.")
   @minValue(1)
   @maxValue(50)
   limit?: int32 = 10;

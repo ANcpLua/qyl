@@ -42,6 +42,21 @@ test("budget re-query preserves filters and accepts Collector's smaller page and
   assert.deepEqual(JSON.parse(json!.text), result.structuredContent, "content[1] is the structured result as JSON");
 });
 
+test("a ci_log budget re-query asks for fewer runs and leaves a run's phases at their 50", async context => {
+  environment(context);
+  const limits: unknown[] = [];
+  context.mock.method(globalThis, "fetch", async (_: unknown, init?: RequestInit) => {
+    const input = JSON.parse(init?.body as string) as Record<string, unknown>; limits.push(input.limit);
+    const runs = Number(input.limit ?? 10);
+    return Response.json({ ...readContext(runs), has_more: true, next_cursor: "signed-next-runs", ci_run_id: "run-0", next_phase_cursor: "signed-next-phases",
+      runs: Array.from({ length: runs }, (_, i) => ({ ci_run_id: `run-${i}`, state: "ended", start_time: "2026-10-12T09:30:00Z", error_count: 1, services: ["qyl-ci"] })),
+      phases: Array.from({ length: 50 }, (_, i) => ({ leg: "test", phase: `phase-${i}`, status: "error", duration_ms: 1, message: "x".repeat(400) })) });
+  });
+  const result = await queryAnalysis("ci_log", { ci_run_id: "run-0" }, "Mcp.Tools.CiLogOutput", { collector: {}, step: async () => {} });
+  assert(limits.length > 1 && limits.slice(1).every((limit) => Number(limit) < 10), JSON.stringify(limits));
+  assert(responseBytes(result) <= ANALYSIS_RESPONSE_BYTES);
+});
+
 test("one oversized trace is compacted with explicit omissions and a valid contract", () => {
   const trace = toolTrace(getTelemetryFixture().traces[0]!);
   trace.spans = Array.from({length:300}, (_, index) => ({...trace.spans[0]!,span_id:index.toString(16).padStart(16,"0") as SpanId, name:"large span "+index,

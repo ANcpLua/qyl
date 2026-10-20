@@ -190,12 +190,33 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(2, triage.GetProperty("failures").GetArrayLength());
         Assert.IsTrue(triage.GetProperty("has_more").GetBoolean());
         var ci = await Read(host, "ci_log", "{\"ci_run_id\":\"ci\",\"limit\":1}");
-        Assert.ContainsSingle(ci.GetProperty("phases").EnumerateArray());
-        var next = new JsonObject { ["ci_run_id"] = "ci", ["limit"] = 1, ["phase_cursor"] = ci.GetProperty("next_phase_cursor").GetString() };
-        var second = await Read(host, "ci_log", next.ToJsonString());
-        Assert.ContainsSingle(second.GetProperty("phases").EnumerateArray());
-        Assert.AreNotEqual(ci.GetProperty("phases")[0].GetProperty("span_id").GetString(), second.GetProperty("phases")[0].GetProperty("span_id").GetString());
-        Assert.IsFalse(second.TryGetProperty("next_phase_cursor", out var cursor) && cursor.ValueKind == JsonValueKind.String);
+        Assert.AreSequenceEqual([SpanId(10), SpanId(11)], ci.GetProperty("phases").EnumerateArray().Select(static phase => phase.GetProperty("span_id").GetString()));
+        Assert.IsFalse(ci.TryGetProperty("next_phase_cursor", out _));
+    }
+
+    /// <summary>
+    /// A run's phases come 50 a page, as phase_cursor's contract says, whatever limit pages the runs: limit 1 lists one
+    /// run and the first 50 of its 51 phases, and phase_cursor continues with the 51st.
+    /// </summary>
+    [TestMethod]
+    public async Task Ci_log_pages_a_runs_phases_fifty_at_a_time_whatever_its_limit()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = Timestamp;
+        await host.Store.EnqueueAsync(new SpanBatch([
+            .. Enumerable.Range(1, 51).Select(i => Span(TraceId(1), SpanId(i), time + (ulong)i, time + (ulong)i + 1000, service: "qyl-ci-tests", sessionId: "ci-new")
+                with { AttributesJson = """{"cicd.pipeline.task.name":"build"}""" }),
+            Span(TraceId(2), SpanId(100), time - 1000, time, service: "qyl-ci-tests", sessionId: "ci-old") with { AttributesJson = """{"cicd.pipeline.task.name":"build"}""" }
+        ]), testContext.CancellationToken);
+
+        var first = await Read(host, "ci_log", """{"ci_run_id":"ci-new","limit":1}""");
+        var second = await Read(host, "ci_log", $$"""{"ci_run_id":"ci-new","limit":1,"phase_cursor":"{{first.GetProperty("next_phase_cursor").GetString()}}"}""");
+
+        Assert.ContainsSingle(first.GetProperty("runs").EnumerateArray());
+        Assert.AreSequenceEqual(Enumerable.Range(1, 50).Select(SpanId), first.GetProperty("phases").EnumerateArray().Select(static phase => phase.GetProperty("span_id").GetString()));
+        Assert.AreEqual(51, first.GetProperty("page_totals").GetProperty("phases").GetInt32());
+        Assert.AreEqual(SpanId(51), Assert.ContainsSingle(second.GetProperty("phases").EnumerateArray()).GetProperty("span_id").GetString());
+        Assert.IsFalse(second.TryGetProperty("next_phase_cursor", out _));
     }
 
     /// <summary>

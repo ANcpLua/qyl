@@ -707,7 +707,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 50,
-            "description": "Runs per page, 1 to 50; default 10.",
+            "description": "Runs per page, 1 to 50; default 10. The broken-down run's phases page apart from them, 50 per page.",
             "default": 10
           }
         },

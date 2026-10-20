@@ -269,7 +269,8 @@ internal sealed partial class AnalysisEngine
             var phases = taskSpans.OrderBy(s => s.Start).ThenBy(s => s.Id, StringComparer.Ordinal).Where(s => (J.String(input, "leg") is not { } leg || Leg(s) == leg) && (J.String(input, "phase") is not { } phase || s.Name == phase)).Select(s =>
             { var logs = errorLogs[s.TraceId].Where(l => l.SpanId == s.Id || l.SpanId is null).ToList(); return J.O(("leg", Leg(s)), ("phase", s.Name), ("status", Status(s)), ("duration_ms", s.Duration), ("message", s.Span?.StatusMessage), ("span_id", s.Id), ("trace_ids", new[] { s.TraceId! }), ("error_log_count", logs.Count), ("error_logs", J.A(logs.Take(3).Select(l => J.O(("id", l.Id), ("body", l.Log?.Body), ("trace_id", l.TraceId), ("span_id", l.SpanId)))))); }).ToList();
             result["ci_run_id"] = selected.Key;
-            var phaseInput = input.DeepClone().AsObject(); phaseInput.Remove("cursor"); phaseInput.Remove("phase_cursor"); phaseInput["ci_run_id"] = selected.Key;
+            // The run's phases page by their own size, whatever limit pages the runs.
+            var phaseInput = input.DeepClone().AsObject(); phaseInput.Remove("cursor"); phaseInput.Remove("phase_cursor"); phaseInput.Remove("limit"); phaseInput["ci_run_id"] = selected.Key;
             if (input["phase_cursor"] is { } phaseCursor) phaseInput["cursor"] = phaseCursor.DeepClone();
             _operation = "ci_log.phases";
             JsonObject phasePage;

@@ -37,8 +37,10 @@ export async function queryAnalysis<Input extends object>(
     const sizeKey = operation === "get_trace" ? "max_spans" : "limit";
     const trace = page.trace as { spans?: unknown[] } | undefined;
     const observed = page.observed as { spans?: unknown[]; logs?: unknown[] } | undefined;
+    // ci_log pages a run's phases 50 at a time whatever its limit, so only its runs shrink with a smaller one.
     const sizes = [trace?.spans?.length, observed?.spans?.length, observed?.logs?.length,
-      ...Object.values(page).filter(Array.isArray).map((items) => items.length)].filter((size): size is number => size !== undefined);
+      ...Object.entries(page).filter(([key, items]) => Array.isArray(items) && !(operation === "ci_log" && key === "phases"))
+        .map(([, items]) => (items as unknown[]).length)].filter((size): size is number => size !== undefined);
     const pageSize = originalPoints ? (page.points as unknown[] | undefined)?.length ?? 0 : Math.max(0, ...sizes);
     if (pageSize > 1 && pageSize < previousPageSize) {
       previousPageSize = pageSize;

@@ -6,7 +6,7 @@ namespace Qyl.Collector.Analysis;
 
 internal sealed partial class AnalysisEngine
 {
-    // ci_log pages a run's phases separately from its runs; the contract leaves that page size to the Collector.
+    // ci_log pages a run's phases apart from its runs, 50 per page as its phase_cursor's contract doc says.
     private const int CiPhasePageSize = 50;
     private static readonly string[] s_identityKeys = ["failure_id", "session_id", "trace_id", "series_id", "ci_run_id", "name"];
     // aggregate_telemetry's record count per group, in the order of its groups.

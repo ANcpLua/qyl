@@ -222,6 +222,12 @@ verify('21b a ci_run_id baseline compares with that run, even a later failed one
  assert.equal(data.comparison.baseline_ci_run_id,'ci_current');
  assert(data.comparison.fixed.some(p=>p.leg==='test'),JSON.stringify(data.comparison));assert.deepEqual(data.comparison.duration_regressions,[]);
 });
+verify('21c a run\'s phases page 50 at a time, whatever limit pages the runs',async call=>{
+ const data=await call('ci_log',{...w,ci_run_id:'ci_current',limit:1});
+ assert.equal(data.runs.length,1);
+ assert.deepEqual(data.phases.map(p=>p.leg).toSorted(),['build','test']);
+ assert.equal(data.next_phase_cursor,undefined);
+});
 verify('24 span discovery keeps integer attribute values whole',async call=>{
  const data=await call('discover_attributes',{...scoped('payments'),signal:'spans',key:'http.response.status_code'});
  const status=data.attributes.find(a=>a.key==='http.response.status_code'&&a.scope==='span');assert(status,JSON.stringify(data.attributes));
