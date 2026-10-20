@@ -1,16 +1,18 @@
 /** Small deterministic trace, log and session fixtures for tests; never shipped. */
 const collectorUrl = () => "http://127.0.0.1:5343";
-import type { QylLogRecord, QylSession, QylSpan, QylTrace } from "./wire.js";
 import type {
   Attribute,
   AttributeValue,
+  LogRecord,
   Resource,
+  SessionEntity,
   SessionState,
   SeverityNumber,
+  Span,
+  Trace,
   UserId,
 } from "./contracts/generated/api.js";
 import { parseSessionId, parseSpanId, parseTraceId } from "./contracts/generated/api.js";
-import { epochMsToUnixNanos } from "./contracts/unix-nanos.js";
 
 /** Deterministic, valid lowercase-hex trace or span id. */
 function hexId(seed: number, length: number): string {
@@ -26,7 +28,9 @@ function hexId(seed: number, length: number): string {
 /** The "now" every fixture timestamp offsets from. */
 const fixtureAnchorMs = Date.now();
 const minutesAgoMs = (minutes: number) => fixtureAnchorMs - minutes * 60_000;
-// Absolute nanosecond timestamps are decimal strings on the wire: an epoch-ns value
+// Absolute nanosecond timestamps are decimal strings on the wire: an epoch-ns value exceeds
+// Number.MAX_SAFE_INTEGER, so the millisecond offset goes through BigInt.
+const epochMsToUnixNanos = (epochMs: number): string => (BigInt(Math.round(epochMs)) * 1_000_000n).toString();
 const intAttribute = (value: number): AttributeValue => ({
   type: "int",
   value: String(value),
@@ -62,12 +66,12 @@ const FIXTURE_RESOURCES: Record<string, Resource> = {
 interface FixtureSpanSpec {
   parent?: number; // index into the spec array
   name: string;
-  kind: QylSpan["kind"];
+  kind: Span["kind"];
   service: keyof typeof FIXTURE_RESOURCES;
   start: number;
   end: number;
   attrs?: Record<string, AttributeValue>;
-  status?: QylSpan["status"];
+  status?: Span["status"];
   events?: Array<{ name: string; atMs: number; attributes?: Attribute[] }>;
 }
 
@@ -75,11 +79,11 @@ function buildFixtureTrace(
   seq: number,
   startMs: number,
   specs: FixtureSpanSpec[],
-): QylTrace {
+): Trace {
   const traceId = parseTraceId(hexId(seq * 7919 + 17, 32));
 
-  const spans: QylSpan[] = specs.map((spec, index) => {
-    const span: QylSpan = {
+  const spans: Span[] = specs.map((spec, index) => {
+    const span: Span = {
       span_id: parseSpanId(hexId(seq * 104_729 + index * 31 + 5, 16)),
       trace_id: traceId,
       name: spec.name,
@@ -136,10 +140,10 @@ function buildFixtureTrace(
 }
 
 interface TelemetryFixture {
-  traces: QylTrace[]; // newest first
-  logs: QylLogRecord[]; // oldest first
-  sessions: QylSession[];
-  sessionTraces: Record<string, QylTrace[]>;
+  traces: Trace[]; // newest first
+  logs: LogRecord[]; // oldest first
+  sessions: SessionEntity[];
+  sessionTraces: Record<string, Trace[]>;
 }
 
 function buildTelemetryFixture(): TelemetryFixture {
@@ -642,7 +646,7 @@ function buildTelemetryFixture(): TelemetryFixture {
   // --- ~30 logs correlated to the traces above. Severity numbers follow
   // OTel: TRACE=1, DEBUG=5, INFO=9, WARN=13, ERROR=17.
   const log = (
-    trace: QylTrace,
+    trace: Trace,
     spanIndex: number,
     offsetMs: number,
     severity: SeverityNumber,
@@ -671,10 +675,10 @@ function buildTelemetryFixture(): TelemetryFixture {
             })),
           }
         : {}),
-    } satisfies QylLogRecord;
+    } satisfies LogRecord;
   };
 
-  const logs: QylLogRecord[] = [
+  const logs: LogRecord[] = [
     // otlpIngest (15 min ago)
     log(otlpIngest, 1, 1, 5, "DEBUG", "parsed OTLP batch: 142 spans, 3 resources"),
     log(otlpIngest, 2, 2, 1, "TRACE", "duckdb appender flushed 142 rows into spans"),
@@ -732,10 +736,10 @@ function buildTelemetryFixture(): TelemetryFixture {
   const makeSession = (
     id: string,
     userId: string | undefined,
-    sessionTraceList: QylTrace[],
+    sessionTraceList: Trace[],
     state: SessionState,
-    genaiUsage?: QylSession["genai_usage"],
-  ): QylSession => {
+    genaiUsage?: SessionEntity["genai_usage"],
+  ): SessionEntity => {
     const startMs = Math.min(
       ...sessionTraceList.map((t) => Date.parse(t.start_time)),
     );
@@ -760,13 +764,13 @@ function buildTelemetryFixture(): TelemetryFixture {
     };
   };
 
-  const sessionTraces: Record<string, QylTrace[]> = {
+  const sessionTraces: Record<string, Trace[]> = {
     "sess-demo-genai-01": [quickChat, agentRun, agentSummarize],
     "sess-demo-pipeline-02": [pipeline, otlpIngest],
     "sess-demo-checkout-03": [checkoutError, orderLookup, orderShipped],
   };
 
-  const sessions: QylSession[] = [
+  const sessions: SessionEntity[] = [
     makeSession(
       "sess-demo-genai-01",
       "user-42",

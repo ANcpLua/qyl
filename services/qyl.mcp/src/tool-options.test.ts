@@ -5,15 +5,15 @@ import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
 import { connectModernTestClient, type ModernTestClient } from "./modern-test-client.test-helper.js";
 import { createServer } from "./server.js";
 import { readContext, toolTrace } from "./analysis-context.test-helper.js";
-import type { QylSpan, QylTrace } from "./wire.js";
+import type { Span, Trace } from "./contracts/generated/api.js";
 
-function fixtureTrace(): QylTrace {
+function fixtureTrace(): Trace {
   const trace = structuredClone(getTelemetryFixture().traces[0]!);
   const base = trace.spans[0]!;
   const services = ["qyl-ci-build", "custom-ci-build", "custom-ci-test", "web"];
-  trace.spans = ([1, 2, 2, 0] as const).map((code, index): QylSpan => ({
+  trace.spans = ([1, 2, 2, 0] as const).map((code, index): Span => ({
     ...structuredClone(base),
-    span_id: (index + 1).toString(16).padStart(16, "0") as QylSpan["span_id"],
+    span_id: (index + 1).toString(16).padStart(16, "0") as Span["span_id"],
     name: `phase-${index}`,
     status: { code },
     attributes: [{ key: "payload", value: "span-payload" }, { key: "cicd.pipeline.task.name", value: `leg-${index}` }],
@@ -39,7 +39,7 @@ function fixtureTrace(): QylTrace {
 
 async function connectCollector(
   context: TestContext,
-  trace: QylTrace,
+  trace: Trace,
   failureStatus?: number,
 ): Promise<ModernTestClient> {
   const env = {

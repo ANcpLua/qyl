@@ -1,5 +1,4 @@
-import type { ToolCoverage, ToolLogRow, ToolTrace, ToolTraceRow } from "./contracts/generated/api.js";
-import type { QylLogRecord, QylTrace } from "./wire.js";
+import type { LogRecord, ToolCoverage, ToolLogRow, ToolTrace, ToolTraceRow, Trace } from "./contracts/generated/api.js";
 
 /** Fixed metadata for transport/schema tests; query semantics use the OTLP answer-key suite. */
 export function readContext(count = 0, paged = true) {
@@ -11,9 +10,9 @@ export function readContext(count = 0, paged = true) {
 }
 const instant = (nanos: string) => new Date(Number(BigInt(nanos) / 1_000_000n)).toISOString();
 const milliseconds = (start: string, end: string) => Number(BigInt(end) - BigInt(start)) / 1e6;
-const errors = (trace: QylTrace) => trace.spans.filter((span) => span.status.code === 2).length;
+const errors = (trace: Trace) => trace.spans.filter((span) => span.status.code === 2).length;
 /** The get_trace shape of a fixture trace. */
-export function toolTrace(trace: QylTrace): ToolTrace {
+export function toolTrace(trace: Trace): ToolTrace {
   return {
     trace_id: trace.trace_id, start_time: trace.start_time, end_time: trace.end_time, duration_ms: Number(trace.duration_ns) / 1e6,
     span_count: trace.span_count, error_count: errors(trace), services: trace.services,
@@ -29,7 +28,7 @@ export function toolTrace(trace: QylTrace): ToolTrace {
 }
 const SEVERITIES = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"] as const;
 /** The search_logs row of a fixture log record. */
-export function toolLog(log: QylLogRecord): ToolLogRow {
+export function toolLog(log: LogRecord): ToolLogRow {
   const severity = log.severity_text ?? (log.severity_number >= 1 && log.severity_number <= 24 ? SEVERITIES[Math.floor((log.severity_number - 1) / 4)] : undefined);
   return {
     time: instant(log.time_unix_nano ?? log.observed_time_unix_nano ?? "0"),
@@ -43,7 +42,7 @@ export function toolLog(log: QylLogRecord): ToolLogRow {
   };
 }
 /** The list_traces row of a fixture trace. */
-export function toolSummary(trace: QylTrace): ToolTraceRow {
+export function toolSummary(trace: Trace): ToolTraceRow {
   const root = trace.spans.find((span) => !span.parent_span_id) ?? trace.spans[0]!;
   return {
     trace_id: trace.trace_id, root: { service: root.resource?.service_name ?? "unknown_service", name: root.name },
