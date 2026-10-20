@@ -27,7 +27,9 @@ import {
   parseCollectorBody,
 } from "./collector.js";
 import { createHash } from "node:crypto";
+import type { ContractDefinitions } from "./contracts/generated/definitions.js";
 import { IDEMPOTENCY_KEY_HEADER, IF_MATCH_HEADER } from "./contracts/generated/headers.js";
+import type { ContractSchemaName } from "./contracts/tool-schemas.js";
 import { redactTelemetry } from "./telemetry-redaction.js";
 
 const ANNOTATIONS_PATH = "/api/v1/annotations";
@@ -90,10 +92,15 @@ export async function refusals<T>(
   }
 }
 
+/** The Collector's answer to a key without the role a write or delete needs. */
+function roleRefusal(role: "write" | "delete"): string {
+  return `the Collector refused the change: the server's Collector key needs the ${role} role`;
+}
+
 /** The refusals every change to an existing object shares. */
 export function changeRefusals(kind: string, id: string, role: "write" | "delete"): Partial<Record<number, string>> {
   return {
-    403: `the Collector refused the change: the server's Collector key needs the ${role} role`,
+    403: roleRefusal(role),
     404: `${kind} not found: ${id}`,
     412: `${kind} ${id} changed since that etag was read; read it again for its current etag`,
   };
@@ -122,6 +129,47 @@ function checkUpsert(record: string, input: { id?: string; etag?: string; idempo
   }
 }
 
+/**
+ * What a create-or-change tool adds to its checked input: where its records live,
+ * the document a Collector answer is checked against, and the body and refusals of
+ * each of its two calls. `create` and `change` run only on their own path, once
+ * `checkUpsert` has settled which one the input takes.
+ */
+interface Upsert<Name extends ContractSchemaName> {
+  readonly path: string;
+  readonly document: Name;
+  /** The record as refusals name it: `annotation`, `saved query`. */
+  readonly kind: string;
+  /** A call without `id`: the create body and its refusals beyond the write role. */
+  readonly create: () => { body: object; refusals?: Partial<Record<number, string>> };
+  /** A call with `id`: the change body, its refusals beyond changeRefusals, and the detail refused when the body names nothing. */
+  readonly change: () => { body: Readonly<Record<string, unknown>>; refusals?: Partial<Record<number, string>>; unchanged: ValidationErrorDetail };
+}
+
+/** The one create-or-change skeleton: POST a create with its retry key, PATCH a change with its etag, read the answer back. */
+async function upsert<Name extends ContractSchemaName>(
+  spec: Upsert<Name>,
+  input: { id?: string; etag?: string; idempotency_key?: string },
+  options: CollectorRequestOptions,
+): Promise<{ record: ContractDefinitions[Name]; created: boolean }> {
+  if (input.id === undefined) {
+    const { body, refusals: extra } = spec.create();
+    const answer = await refusals({ 403: roleRefusal("write"), ...extra }, () => collectorPost(spec.path, body, {
+      ...options,
+      headers: { ...options.headers, ...idempotencyKey(options, spec.path, body, input.idempotency_key) },
+    }));
+    return { record: redactTelemetry(parseCollectorBody(answer, `POST ${spec.path}`, spec.document)), created: true };
+  }
+  const { body, refusals: extra, unchanged } = spec.change();
+  if (Object.keys(body).length === 0) throw invalid([unchanged]);
+  // The etag is checked before any Collector call, outside the mapping of the Collector's answers.
+  const headers = ifMatch(input.etag!);
+  const path = resourcePath(spec.path, input.id);
+  const answer = await refusals({ ...changeRefusals(spec.kind, input.id, "write"), ...extra }, () =>
+    collectorPatch(path, body, { ...options, headers }));
+  return { record: redactTelemetry(parseCollectorBody(answer, `PATCH ${path}`, spec.document)), created: false };
+}
+
 /** annotate: a new note without `id`, a change of the note `id` names with its current `etag`. */
 export async function annotate(
   input: AnnotateInput,
@@ -130,32 +178,26 @@ export async function annotate(
   checkUpsert("an annotation", input, { target: input.target, text: input.text });
   const labels = input.labels === undefined ? {} : { labels: input.labels };
   const classification = input.classification === undefined ? {} : { classification: input.classification };
-  if (input.id === undefined) {
-    // The create's 404 is its target: nothing by that id is recorded in this
-    // project, so there is nothing to attach the note to.
-    const target = input.target!;
-    const create = { target, text: input.text!, ...labels, ...classification };
-    const body = await refusals(
-      {
-        403: "the Collector refused the change: the server's Collector key needs the write role",
-        404: `${describeTarget(target)} is not recorded in this project`,
-      },
-      () => collectorPost(ANNOTATIONS_PATH, create, {
-        ...options,
-        headers: { ...options.headers, ...idempotencyKey(options, ANNOTATIONS_PATH, create, input.idempotency_key) },
-      }),
-    );
-    return { annotation: redactTelemetry(parseCollectorBody(body, `POST ${ANNOTATIONS_PATH}`, "Annotations.Annotation")), created: true };
-  }
-  if (input.target !== undefined) throw invalid([{ field: "target", message: "is fixed at creation; create another annotation for another target", code: "target.immutable" }]);
-  const changes = { ...(input.text === undefined ? {} : { text: input.text }), ...labels, ...classification };
-  if (Object.keys(changes).length === 0) {
-    throw invalid([{ field: "text", message: "the change names nothing to change: pass text, labels or classification", code: "annotation.unchanged" }]);
-  }
-  const path = resourcePath(ANNOTATIONS_PATH, input.id);
-  const body = await refusals(changeRefusals("annotation", input.id, "write"), () =>
-    collectorPatch(path, changes, { ...options, headers: ifMatch(input.etag!) }));
-  return { annotation: redactTelemetry(parseCollectorBody(body, `PATCH ${path}`, "Annotations.Annotation")), created: false };
+  const { record, created } = await upsert({
+    path: ANNOTATIONS_PATH, document: "Annotations.Annotation", kind: "annotation",
+    create: () => {
+      // The create's 404 is its target: nothing by that id is recorded in this
+      // project, so there is nothing to attach the note to.
+      const target = input.target!;
+      return {
+        body: { target, text: input.text!, ...labels, ...classification },
+        refusals: { 404: `${describeTarget(target)} is not recorded in this project` },
+      };
+    },
+    change: () => {
+      if (input.target !== undefined) throw invalid([{ field: "target", message: "is fixed at creation; create another annotation for another target", code: "target.immutable" }]);
+      return {
+        body: { ...(input.text === undefined ? {} : { text: input.text }), ...labels, ...classification },
+        unchanged: { field: "text", message: "the change names nothing to change: pass text, labels or classification", code: "annotation.unchanged" },
+      };
+    },
+  }, input, options);
+  return { annotation: record, created };
 }
 
 /** save_query: a new saved query without `id`, a change of the one `id` names with its current `etag`. */
@@ -165,33 +207,17 @@ export async function saveQuery(
 ): Promise<{ savedQuery: SavedQuery; created: boolean }> {
   checkUpsert("a saved query", input, { name: input.name, filter: input.filter });
   const description = input.description === undefined ? {} : { description: input.description };
-  if (input.id === undefined) {
-    const create = { name: input.name!, ...description, filter: input.filter! };
-    const body = await refusals(
-      {
-        403: "the Collector refused the change: the server's Collector key needs the write role",
-        409: `a saved query named "${create.name}" already exists in this project`,
-      },
-      () => collectorPost(SAVED_QUERIES_PATH, create, {
-        ...options,
-        headers: { ...options.headers, ...idempotencyKey(options, SAVED_QUERIES_PATH, create, input.idempotency_key) },
-      }),
-    );
-    return { savedQuery: redactTelemetry(parseCollectorBody(body, `POST ${SAVED_QUERIES_PATH}`, "SavedQueries.SavedQuery")), created: true };
-  }
-  const changes = { ...(input.name === undefined ? {} : { name: input.name }), ...description, ...(input.filter === undefined ? {} : { filter: input.filter }) };
-  if (Object.keys(changes).length === 0) {
-    throw invalid([{ field: "name", message: "the change names nothing to change: pass a name, description or filter", code: "saved_query.unchanged" }]);
-  }
-  const path = resourcePath(SAVED_QUERIES_PATH, input.id);
-  const body = await refusals(
-    {
-      ...changeRefusals("saved query", input.id, "write"),
-      409: `a saved query named "${changes.name ?? ""}" already exists in this project`,
-    },
-    () => collectorPatch(path, changes, { ...options, headers: ifMatch(input.etag!) }),
-  );
-  return { savedQuery: redactTelemetry(parseCollectorBody(body, `PATCH ${path}`, "SavedQueries.SavedQuery")), created: false };
+  const taken = { 409: `a saved query named "${input.name ?? ""}" already exists in this project` };
+  const { record, created } = await upsert({
+    path: SAVED_QUERIES_PATH, document: "SavedQueries.SavedQuery", kind: "saved query",
+    create: () => ({ body: { name: input.name!, ...description, filter: input.filter! }, refusals: taken }),
+    change: () => ({
+      body: { ...(input.name === undefined ? {} : { name: input.name }), ...description, ...(input.filter === undefined ? {} : { filter: input.filter }) },
+      refusals: taken,
+      unchanged: { field: "name", message: "the change names nothing to change: pass a name, description or filter", code: "saved_query.unchanged" },
+    }),
+  }, input, options);
+  return { savedQuery: record, created };
 }
 
 export async function deleteResource(
