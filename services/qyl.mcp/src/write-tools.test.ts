@@ -25,7 +25,7 @@ import {
 } from "./oauth.js";
 import { createServer } from "./server.js";
 import { READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS } from "./tools.js";
-import { DELETE_TOOL_ANNOTATIONS, UPDATE_TOOL_ANNOTATIONS } from "./write-tools.js";
+import { MUTATING_TOOL_ANNOTATIONS } from "./write-tools.js";
 
 const RESOURCE = new URL(QYL_MCP_RESOURCE);
 const METADATA_URL = getOAuthProtectedResourceMetadataUrl(RESOURCE);
@@ -40,10 +40,10 @@ const SPAN_ID = TRACE.spans[0]!.span_id;
 const SESSION_ID = getTelemetryFixture().sessions[0]!.session_id;
 
 const WRITE_TOOLS = {
-  annotate: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
-  save_query: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
-  update_failure_status: { annotations: UPDATE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
-  delete_record: { annotations: DELETE_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_DELETE_SCOPE] },
+  annotate: { annotations: MUTATING_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
+  save_query: { annotations: MUTATING_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
+  update_failure_status: { annotations: MUTATING_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE] },
+  delete_record: { annotations: MUTATING_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE, QYL_MCP_DELETE_SCOPE] },
   run_saved_query: { annotations: READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS, scopes: [QYL_MCP_SCOPE] },
 } as const;
 

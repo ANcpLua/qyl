@@ -7,7 +7,7 @@ import { queryAnalysis } from "./analysis-client.js";
 import { collectorPatch, parseCollectorBody } from "./collector.js";
 import { ifMatch, refusals, changeRefusals } from "./collector-resources.js";
 import { toolScopeChallenge } from "./tool-scopes.js";
-import { WRITE_SCOPES, UPDATE_TOOL_ANNOTATIONS, securityMeta } from "./write-tools.js";
+import { WRITE_SCOPES, MUTATING_TOOL_ANNOTATIONS, securityMeta } from "./write-tools.js";
 import { CollectorError } from "./collector.js";
 import { telemetryToolResult } from "./telemetry-redaction.js";
 
@@ -162,7 +162,7 @@ export function registerAnalysisTools(server: McpServer): void {
       title: "Update Failure Status",
       description: "Set a failure's status or assignee when recording triage decisions, returning the stored failure that triage then lists by status.",
       inputSchema: contractSchema("Mcp.Tools.UpdateFailureStatusInput"),
-      annotations: UPDATE_TOOL_ANNOTATIONS,
+      annotations: MUTATING_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("update_failure_status", WRITE_SCOPES),
       _meta: securityMeta(WRITE_SCOPES),
     },

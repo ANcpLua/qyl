@@ -48,16 +48,12 @@ import { telemetryToolResult } from "./telemetry-redaction.js";
 import { toolScopeChallenge } from "./tool-scopes.js";
 import { READ_ONLY_TELEMETRY_TOOL_ANNOTATIONS, TELEMETRY_TOOL_AUTH_META } from "./tools.js";
 
-/** Creates an object, identical retries replaying for 24 hours, or replaces the version an etag names; repeating it changes nothing more. */
-export const UPDATE_TOOL_ANNOTATIONS = {
-  readOnlyHint: false,
-  destructiveHint: true,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const satisfies ToolAnnotations;
-
-/** Removes the version an etag names; repeating it removes nothing more. */
-export const DELETE_TOOL_ANNOTATIONS = {
+/**
+ * The one set of annotations every mutating tool carries: a create replays identical
+ * retries for 24 hours, a change replaces and a delete removes the version an etag
+ * names, so repeating any of them changes nothing more.
+ */
+export const MUTATING_TOOL_ANNOTATIONS = {
   readOnlyHint: false,
   destructiveHint: true,
   idempotentHint: true,
@@ -80,7 +76,7 @@ export function registerWriteTools(server: McpServer): void {
       title: "Annotate",
       description: "Create a labeled note on a trace, span, session or failure when recording a finding, or change a note with its id and current etag; get_trace, list_sessions or get_failure_context returns it.",
       inputSchema: contractSchema("Mcp.Tools.AnnotateInput"),
-      annotations: UPDATE_TOOL_ANNOTATIONS,
+      annotations: MUTATING_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("annotate", WRITE_SCOPES),
       _meta: securityMeta(WRITE_SCOPES),
     },
@@ -102,7 +98,7 @@ export function registerWriteTools(server: McpServer): void {
       title: "Save Query",
       description: "Store a named telemetry filter when saving a reusable question, or change a saved query with its id and current etag; run_saved_query answers it.",
       inputSchema: contractSchema("Mcp.Tools.SaveQueryInput"),
-      annotations: UPDATE_TOOL_ANNOTATIONS,
+      annotations: MUTATING_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("save_query", WRITE_SCOPES),
       _meta: securityMeta(WRITE_SCOPES),
     },
@@ -137,7 +133,7 @@ export function registerWriteTools(server: McpServer): void {
       title: "Delete Annotation or Saved Query",
       description: "Delete an annotation or saved query with its current etag when removing a stored note or question, never traces, logs or metrics.",
       inputSchema: contractSchema("Mcp.Tools.DeleteInput"),
-      annotations: DELETE_TOOL_ANNOTATIONS,
+      annotations: MUTATING_TOOL_ANNOTATIONS,
       scopeChallenge: toolScopeChallenge("delete_record", DELETE_SCOPES),
       _meta: securityMeta(DELETE_SCOPES),
     },
