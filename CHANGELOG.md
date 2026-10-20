@@ -1,5 +1,14 @@
 # Changelog
 
+## 17.0.7
+
+- While the Collector does not answer `/health` (a deploy or an outage), tools answer
+  `collector_unavailable` at once with `retry_after_seconds` instead of waiting out the request
+  timeout, and calls already waiting are released.
+- The answer-key seed names the failing path, the status and the Collector's answer when an
+  export is refused.
+- `release.sh` gives each NuGet push 30 minutes, so a slow upload no longer stops a release.
+
 ## 17.0.6
 
 - A rejected value of an argument with alternatives (`compare_groups` `group_b`, every `baseline`)

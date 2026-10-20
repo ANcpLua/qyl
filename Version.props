@@ -4,7 +4,7 @@
          Qyl.Api.Sdk, Qyl.Orchestration, Qyl.Api.Contracts and qyl-mcp-server
          (services/qyl.mcp/package.json carries the same number). release.sh releases exactly
          this version. -->
-    <QylVersion>17.0.6</QylVersion>
+    <QylVersion>17.0.7</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>
 
