@@ -85,15 +85,12 @@ internal sealed partial class AnalysisEngine
     private static long TotalOutput(IEnumerable<AnalysisRecord> rows) => rows.Sum(static s => s.Span?.GenAiOutputTokens ?? 0);
     private JsonObject Traces(JsonObject input)
     {
-        if (J.String(input, "trace_id") is { } requestedTrace && _spans.All(s => s.TraceId != requestedTrace))
-            throw new AnalysisInputException("trace_id", $"Trace {requestedTrace} was not found in this project; list_traces lists the traces.", "trace.not_found") { Missing = requestedTrace };
         var rows = _spans.GroupBy(s => s.TraceId!).Where(g =>
         {
             var groupRows = g.ToList();
             var root = groupRows.OrderBy(s => Depth(s, groupRows)).ThenBy(s => s.Start).First(); var duration = (g.Max(s => s.End) - g.Min(s => s.Start)) / 1_000_000d;
             return _window.Contains(g.Min(s => s.Start)) && (!J.Bool(input, "errors_only") || g.Any(s => s.Error))
                 && (J.String(input, "session_id") is not { } session || g.Any(s => s.SessionId == session))
-                && (J.String(input, "trace_id") is not { } trace || g.Key == trace)
                 && (J.String(input, "root_span_name") is not { } name || root.Name == name)
                 && (J.String(input, "server_name") is not { } mcpServer || g.Any(s => J.Text(s.Value("mcp.server.name")) == mcpServer || s.Service == mcpServer))
                 && (J.String(input, "tool_name") is not { } toolName || g.Any(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.GenAiToolName)) == toolName))
