@@ -1,68 +1,83 @@
 # Attribute persistence
 
-The Collector applies the generated SemanticConventions persistence policy before storing incoming OTLP attributes.
-Exact-key and prefix denials take precedence over token exemptions. Credential keys, private resource fields,
-and baggage remain denied outside the explicit captured-field families described below.
-Outside those families, a key containing `message` remains denied except the exact key `exception.message`. `exception.stacktrace` is also eligible. Neither key is permission to store its value raw.
-Case variants and dotted descendants remain denied; only the two canonical spellings receive this eligibility.
+The Collector decides for every incoming OTLP attribute whether to store it, by the policy in its
+generated semantic catalog (`services/qyl.collector.ingestion/Generated/CollectorSemanticAttributeCatalog.g.cs`,
+regenerated with `./eng/build.sh GenerateCollectorSemanticAttributeCatalog`). The policy runs in the
+shared OTLP decoder, for HTTP and gRPC exports alike, on every attribute map: resources,
+instrumentation scopes, spans, span events and links, logs, metric points, exemplars, instrument
+metadata, and maps nested in attributes or in structured log bodies.
 
-Both exception fields pass through the same .NET sanitizer in the shared OTLP decoder, before constructing storage rows,
-series identities or the original metric-point journal. It covers HTTP and gRPC exports, span attributes, events and
-links, log attributes, resources, instrumentation scopes, metric points, exemplars, instrument metadata and nested maps
-inside attributes or structured log bodies. Scope and instrument metadata follow the same key denials as other attributes.
+## Which keys are stored
 
-Harmless exception text retains line breaks, indentation and stack frames. The sanitizer redacts:
+A key is checked in this order:
 
-- Connection-string credentials, including quoted and ODBC-braced passwords and user IDs.
-- Labeled API keys, passwords, secrets and access, refresh or session tokens; bearer and Basic authorization values.
-  Unquoted header-style values extend to the line end, including semicolons; connection-string assignments use the
-  semicolon separator, with quoted and braced values parsed before that separator.
-- JWTs identified by a JSON JOSE header and recognizable OpenAI, GitHub, npm and Slack token prefixes.
-- URL user information, query strings and fragments. It conservatively removes the entire query and fragment, including
-  unnamed secrets, while retaining the scheme, destination and path.
+1. **Denied keys and prefixes** are dropped, together with their dotted children: credentials such
+   as `authorization`, raw content such as `db.query.text`, `url.full`, `url.query` and
+   `gen_ai.input.messages`, private resource fields such as `host.name`, `host.ip` and
+   `service.instance.id`, and every key under `user.` or `enduser.`.
+2. **`baggage.*`** is dropped.
+3. **`exception.message` and `exception.stacktrace`** are stored after sanitization (below), under
+   exactly these spellings; their case variants and dotted children are dropped.
+4. **Captured HTTP headers and RPC metadata** are stored (below).
+5. **Denied tokens:** any other key containing `message`, `token`, `secret`, `password`, `query`,
+   `prompt`, `body`, `cookie`, `jwt` or another denied token is dropped, unless the catalog exempts
+   it by exact name, such as `messaging.message.id` or `gen_ai.usage.input_tokens`, or it is a
+   pass-through tag of a known instrumentation library.
 
-For each exception field, input processing is capped at 131,072 UTF-16 code units. Regular expressions use the linear-time
-engine and a 100 ms timeout. After sanitization, the retained value is capped at 32,768 UTF-8 bytes, including an ellipsis
-when truncated; truncation never splits a Unicode scalar. Redaction precedes truncation, so an oversized credential
-cannot displace useful text that follows it. The existing 64 KiB aggregate log-body retention limit and independent
-request/message size limits remain in effect. The log-body budget counts decoded UTF-8 strings and structural bytes;
-JSON escaping may expand the stored representation, but cannot alone change a structured body into a string.
+`session.id`, `mcp.session.id` and `gen_ai.conversation.id` set the record's session and are not
+stored as attributes. The decoder counts every key it drops on `qyl.collector.attributes.dropped`,
+by namespace.
 
-A non-string value, input over the processing cap, malformed URL or sanitizer failure replaces only the affected field
-with `[SANITIZATION_FAILED]`. The record and its other attributes remain. The counter
-`qyl.collector.attributes.sanitization.failed` reports only the canonical attribute key and a fixed `error.type` category.
-It never includes the value, captured credentials or an exception message from the sanitizer.
+## Exception text
 
-This is a key-specific credential sanitizer, not general PII detection. It cannot recognize an unlabeled secret with an
-unknown format, credentials hidden in encoded or encrypted data, or sensitive text in unrelated attribute names, plain
-log bodies or span status descriptions. Renamed keys do not inherit the exception exemption. Historical records are not
-rewritten; the policy applies when the Collector decodes new exports.
+`exception.message` and `exception.stacktrace` pass one sanitizer before any storage row, series
+identity or original metric-point record is built. Harmless text keeps its line breaks, indentation
+and stack frames. The sanitizer redacts:
+
+- connection-string credentials, including quoted and ODBC-braced passwords and user IDs;
+- labeled credentials (API keys, passwords, secrets, access, refresh and session tokens) and
+  `Bearer` and `Basic` authorization values;
+- JWTs, recognized by a JSON JOSE header, and tokens with the prefixes `sk-`, `sk_live_`,
+  `sk_test_`, `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`, `npm_`, `xoxa-`, `xoxb-`,
+  `xoxp-`, `xoxr-` and `xoxs-`;
+- URL user information, query strings and fragments: the whole query and fragment go, named or
+  not, while the scheme, host and path stay.
+
+Input longer than 131,072 UTF-16 code units is not processed. Every pattern runs on .NET's
+non-backtracking regular expression engine, in time linear in that bounded input and without a
+timeout. After redaction the value is cut to 32,768 UTF-8 bytes, including a trailing `…`, and never
+inside a Unicode scalar; redaction comes first, so an oversized credential cannot push useful text
+out. Log bodies keep their own 64 KiB limit.
+
+A non-string value, an input over the limit, invalid text, a malformed URL or a sanitizer error
+replaces only that field with `[SANITIZATION_FAILED]`; the record and its other attributes stay. The
+counter `qyl.collector.attributes.sanitization.failed` records the canonical key
+(`qyl.attribute.key`) and a fixed `error.type` category, never the value, a captured credential or a
+sanitizer exception message.
+
+This is a credential sanitizer for two keys, not PII detection. It cannot recognize an unlabeled
+secret of an unknown format, credentials inside encoded or encrypted data, or sensitive text in other
+attributes, plain log bodies or span status descriptions; a renamed key does not get the exception
+treatment.
 
 ## Metric identity
 
-Resource, scope and point attributes participate in metric identity before persistence
-filtering. The Collector hashes canonical typed attributes, sorting map keys and preserving
-array order. Only the resulting instrument and series identifiers are stored for withheld
-values. A denied `service.instance.id`, for example, remains absent from returned attributes
-while two service instances remain separate streams. These identifiers are not anonymization
-guarantees; they express identity, not the underlying value.
-
-Existing series retain their identifiers. Values removed by an earlier Collector cannot be
-recovered, so new complete identities stay separate from historical incomplete identities.
+Resource, scope and point attributes form a metric's identity before the policy drops any of them:
+the Collector hashes the canonical typed attributes, with map keys sorted and array order kept, and
+stores only the resulting instrument and series identifiers for dropped values. A denied
+`service.instance.id`, for example, is absent from returned attributes, while two service instances
+stay separate series. The identifiers express identity; they are no anonymization.
 
 ## Captured HTTP headers and RPC metadata
 
-Capture is opt-in at instrumentation; retention does not infer selection or require a second Collector allowlist.
-The four case-insensitive dotted families are `http.request.header`, `http.response.header`,
-`rpc.request.metadata` and `rpc.response.metadata`. A bare root, empty suffix or invalid field name is denied.
-HTTP suffixes follow RFC 9110 field-name tokens; textual RPC suffixes allow ASCII letters, digits, `_`, `-` and `.`.
-Names retain their original punctuation; instrumentation emits lowercase. Values retain their native string arrays.
+Instrumentation chooses which headers and metadata to capture; the Collector needs no second
+allowlist. The four case-insensitive families are `http.request.header.<name>`,
+`http.response.header.<name>`, `rpc.request.metadata.<name>` and `rpc.response.metadata.<name>`. A
+bare family key, an empty name or an invalid name is dropped: HTTP names follow RFC 9110 field-name
+tokens, and RPC names allow ASCII letters, digits, `_`, `-` and `.`.
 
-After existing explicit key/prefix denials, every valid captured suffix is retained, including
+After the denials of step 1, every valid name is stored with its string-array value, including
 `authorization`, `cookie`, `x-api-key`, `x-token-count`, `mcp-param-*` and `-bin` metadata names.
-Instrumentation preserves binary gRPC values in the HTTP transport's base64 representation.
-Other families, generic token denials, baggage and exception sanitization are unchanged.
-
-The producer's explicit selection controls captured content. MCP preserves valid captured string arrays
-without name-based or value-based redaction; unrelated fields and malformed capture shapes still use
-its normal redactor. Values rejected by older Collector versions cannot be recovered by this change.
+The capturing producer decides what is kept. The MCP server returns these captured arrays without
+name- or value-based redaction; every other field, and a malformed capture shape, keeps its normal
+redaction.

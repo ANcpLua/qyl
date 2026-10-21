@@ -1,38 +1,45 @@
-# qyl configuration
+# Configuration
 
-The `QYL_*` environment variables of the Collector, the qyl tool and the .NET build and smoke
-tools. Standard `OTEL_*` and `PORT` settings keep their upstream semantics. The MCP server's
+The environment variables of the Collector and of the build and test tools. The MCP server's
 variables are in [services/qyl.mcp/README.md](../services/qyl.mcp/README.md#configuration).
+`OTEL_*` variables keep their OpenTelemetry meaning.
 
-| Variable | Scope | Default and behavior |
+## Collector
+
+| Variable | Default and behavior |
+| --- | --- |
+| `QYL_BIND_ADDRESS` | IP address literal every listener binds to; defaults to `127.0.0.1`. |
+| `QYL_PORT` | API listener; falls back to `PORT`, then `5100`. |
+| `QYL_OTLP_PORT` | OTLP/HTTP listener; defaults to `4318`, and `0` disables it. The API listener also accepts OTLP/HTTP. |
+| `QYL_GRPC_PORT` | OTLP/gRPC listener; defaults to `4317`, and `0` disables it. |
+| `QYL_DATA_PATH` | DuckDB file; defaults to `qyl.duckdb` in the working directory. `qyl up` gives each Collector its own file under `~/.qyl/`. |
+| `QYL_DB_MEMORY_LIMIT` | DuckDB `memory_limit`; unset keeps DuckDB's default. |
+| `QYL_DB_TEMP_DIR` | DuckDB `temp_directory`; unset keeps DuckDB's default. |
+| `QYL_DB_THREADS` | DuckDB worker threads, when positive; unset keeps DuckDB's default. |
+| `QYL_OTLP_AUTH_MODE` | `Unsecured` or `ApiKey`; defaults to `Unsecured` in the `Development` environment and to `ApiKey` everywhere else. |
+| `QYL_OTLP_PROJECT_KEYS` | Required in `ApiKey` mode. A JSON object mapping each project ID to its credentials, for example `{"acme":[{"key":"ingest-key","roles":["ingest"]},{"key":"operator-key","roles":["read","write","delete"]}]}`. Each credential has exactly `key` and a nonempty `roles` array of distinct roles: `ingest` (OTLP export), `read` (every query route and running a saved query), `write` (creating and changing annotations, saved queries and failure status) and `delete` (deleting annotations and saved queries; no route deletes telemetry). A key is unique across all projects; rotate by adding a second key to the project. Malformed entries stop the Collector at startup. A request carries its key in `x-otlp-api-key` and reads and writes that key's project: a key without the route's role gets `403`, and an `x-qyl-project` header or `qyl.project.id` resource attribute naming another project is refused. |
+| `QYL_OTLP_CORS_ALLOWED_ORIGINS` | Comma-separated browser origins for OTLP/HTTP, `*` for any; unset disables OTLP CORS. |
+| `QYL_OTLP_CORS_ALLOWED_HEADERS` | Comma-separated request headers allowed in addition to `content-type` and `x-otlp-api-key`. |
+| `QYL_ANALYSIS_SIGNING_KEY` | Secret of at least 32 bytes that signs the project-bound pagination, refresh and verification tokens of the analysis routes, independent of the API keys. Unset, the Collector creates a random key beside the database file, owner-only on Unix (a process-lifetime key for `:memory:`). Keep it stable across replicas and restarts; changing it invalidates issued tokens. |
+| `QYL_RETENTION_DAYS` | Age in days after which spans, logs, metric points and annotations are deleted; a metric series goes with its last point, and an annotation counts from its last change. Saved queries never expire. Defaults to `30`; `0` disables retention. |
+| `QYL_RETENTION_INTERVAL_MINUTES` | Minutes between retention runs; defaults to `60`. |
+| `QYL_STORAGE_MIN_FREE_MB` | Free disk space below which `/health` reports `degraded`; defaults to `2048`, and `0` disables the check. |
+
+`Unsecured` mode accepts any caller and the project IDs it names, so it isolates no one; `qyl up`
+uses it with every listener on loopback. Serve shared or customer data in `ApiKey` mode with
+project keys.
+
+## Build and test tools
+
+| Variable | Used by | Behavior |
 | --- | --- | --- |
-| `QYL_BIND_ADDRESS` | Collector | IP address literal for every listener; defaults to `127.0.0.1`. |
-| `QYL_CI_API_KEY` | NuGet consumer smoke | Optional `x-otlp-api-key` header on the smoke's phase-span export; read only when `QYL_CI_OTLP_ENDPOINT` is set. |
-| `QYL_CI_LEG` | NuGet consumer smoke | Leg name on the exported phase spans (`cicd.pipeline.task.name`, service `qyl-ci-smoke-<leg>`); defaults to the current runtime identifier. |
-| `QYL_CI_OTLP_ENDPOINT` | NuGet consumer smoke | OTLP/HTTP base URL the smoke exports one span per phase to (`/v1/traces`); unset makes the emitter inert, and a failed export never fails the smoke. |
-| `QYL_CI_RUN_ID` | NuGet consumer smoke | `session.id` on the exported phase spans, grouping one smoke run; defaults to `local-<machine>`. |
-| `QYL_DATA_PATH` | Collector | DuckDB path; defaults to `qyl.duckdb` (`qyl up` assigns per-collector files under `~/.qyl`). |
-| `QYL_DB_MEMORY_LIMIT` | Collector | Optional DuckDB `memory_limit` value; unset leaves the engine default. |
-| `QYL_DB_TEMP_DIR` | Collector | Optional DuckDB `temp_directory`; unset leaves the engine default. |
-| `QYL_DB_THREADS` | Collector | Optional positive DuckDB worker count; unset leaves the engine default. |
-| `QYL_GRPC_PORT` | Collector | OTLP/gRPC listener; defaults to `4317`, and `0` disables it. |
-| `QYL_OTLP_AUTH_MODE` | Collector | `Unsecured` or `ApiKey`; defaults to `Unsecured` only in Development and to `ApiKey` otherwise. |
-| `QYL_OTLP_CORS_ALLOWED_HEADERS` | Collector | Optional comma-separated additions to `content-type` and `x-otlp-api-key`. |
-| `QYL_OTLP_CORS_ALLOWED_ORIGINS` | Collector | Comma-separated OTLP/HTTP browser origins (`*` allowed); unset disables OTLP CORS. |
-| `QYL_OTLP_PORT` | Collector | OTLP/HTTP listener; defaults to `4318`, and `0` disables it. |
-| `QYL_OTLP_PROJECT_KEYS` | Collector | JSON object mapping each project ID to an array of explicitly scoped `x-otlp-api-key` credentials, for example `{"acme":[{"key":"ingest-key","roles":["ingest"]},{"key":"operator-key","roles":["read","write","delete"]}]}`. Required in `ApiKey` mode. Every credential must be an object with exactly `key` and a nonempty `roles` array. The closed role set is `ingest` (OTLP export), `read` (every query route and running a saved query), `write` (creating and updating annotations and saved queries) and `delete` (deleting them; telemetry is never deleted through the API). Roles are independent. String-only keys, missing or empty roles, duplicate or unknown roles, and duplicate object fields fail collector startup. A key without a route's role gets `403`. Keys must be unique across projects; rotate by adding a second key to the same project. In this mode, reads and writes use the authenticated project, and conflicting project headers or resource attributes are rejected. |
-| `QYL_ANALYSIS_SIGNING_KEY` | Collector | Optional secret signing material for project-bound analysis pagination, refresh and verification tokens. At least 32 bytes; independent of API credentials. If unset locally, a random key is persisted beside the database with owner-only permissions (in-memory databases use a process-lifetime key). Keep this value stable across replicas and restarts when tokens must remain valid; changing it invalidates existing tokens. |
-| `QYL_PORT` | Collector | Product API listener; falls back to `PORT`, then `5100`. |
-| `QYL_RETENTION_DAYS` | Collector | Age bound in days for spans, logs, metric points (a series goes with its last point) and annotations (counted from their last change); saved queries never expire. Defaults to `30`, and `0` disables retention. |
-| `QYL_RETENTION_INTERVAL_MINUTES` | Collector | Retention and disk-pressure check interval; defaults to `60`. |
-| `QYL_SMOKE_API_PORT` | NativeAOT smoke | Host product-API port; defaults to `5199`. |
-| `QYL_SMOKE_GRPC_PORT` | NativeAOT smoke | Host OTLP/gRPC port; defaults to `4317`. |
-| `QYL_SMOKE_OTLP_HTTP_PORT` | NativeAOT smoke | Host OTLP/HTTP port; defaults to `4318`. |
-| `QYL_SMOKE_PLATFORM` | NativeAOT smoke | Docker build/run platform; defaults to `linux/amd64`. |
-| `QYL_STORAGE_MIN_FREE_MB` | Collector | Free-space threshold for degraded `/health`; defaults to `2048`, and `0` disables the threshold. |
-| `QYL_VERBOSE` | Build scripts | `1` makes `./eng/build.sh` (and `mise run check`, `check-full`) print the whole Fallout output, like `--verbose`; unset prints one line per target, the failed target's last lines and the log path under `artifacts/logs/`. |
-| `QYL_WORKLOAD_ONESHOT` | Synthetic workload | `1` emits one acceptance turn and exits; unset runs continuously. |
-
-`Unsecured` mode is intended for local development. It continues to accept caller-provided
-project IDs and does not isolate customers. Use `ApiKey` mode with project-bound keys for
-customer data.
+| `QYL_VERBOSE` | `./eng/build.sh` | `1` prints the whole Fallout output, like `--verbose`. Unset, it prints one line per target, the failed target's last lines and the log path under `artifacts/logs/`. |
+| `QYL_SMOKE_API_PORT`, `QYL_SMOKE_OTLP_HTTP_PORT`, `QYL_SMOKE_GRPC_PORT` | NativeAOT container smoke | Host ports for the API, OTLP/HTTP and OTLP/gRPC; default `5199`, `4318` and `4317`. |
+| `QYL_SMOKE_PLATFORM` | NativeAOT container smoke | Docker build and run platform; defaults to `linux/amd64`. |
+| `QYL_CI_OTLP_ENDPOINT` | Packed-tool smoke (`eng/tools/QylToolSmoke`) | OTLP/HTTP base URL; the smoke exports one span per phase to its `/v1/traces`, which `ci_log` reads. Unset, it exports nothing, and a failed export never fails the smoke. |
+| `QYL_CI_API_KEY` | Packed-tool smoke | `x-otlp-api-key` for that export. |
+| `QYL_CI_RUN_ID` | Packed-tool smoke | `session.id` of the phase spans, one per smoke run; defaults to `local-<machine>`. |
+| `QYL_CI_LEG` | Packed-tool smoke | Leg name, as `cicd.pipeline.task.name` and in the service name `qyl-ci-smoke-<leg>`; defaults to the runtime identifier. |
+| `QYL_COLLECTOR_DLL` | MCP answer key and project smoke | Collector build to start; defaults to the Release build under `artifacts/bin/qyl.collector/release/`. |
+| `QYL_UPDATE_SNAPSHOTS` | XML generator tests | `1` rewrites the generated-source snapshots instead of comparing them. |
+| `QYL_WORKLOAD_ONESHOT` | `Qyl.Run.Workload` | `1` emits one acceptance turn and exits; unset, it runs continuously. |

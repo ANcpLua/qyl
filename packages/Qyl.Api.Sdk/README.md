@@ -2,8 +2,8 @@
 
 An MSBuild SDK for a NativeAOT ASP.NET Core API that is validated, documented and instrumented
 from the first line. It carries the Native AOT template, compile-time validation, problem
-details, the committed OpenAPI document, `[GenerateXml]` XML output, and qyl telemetry, behind one
-call.
+details, the committed OpenAPI document, `[GenerateXml]` XML output, and telemetry for
+[qyl](https://qyl.at), the analytical engine built for AI agents, behind one call.
 
 It is an SDK, not a package reference:
 
@@ -38,13 +38,13 @@ build-time document tool takes it as its own argument. Any other value fails the
 
 ## What the build does
 
-- The OpenAPI document is written at build time and committed. On the very first build of a new
+- The OpenAPI document is written at build time and committed. On the first build of a new
   project the document is written and the build fails with `QYLSDK0001` asking for a commit; the
-  second build succeeds, and from then on a gate fails if the served and committed documents ever
-  differ.
-- Every span the API emits carries the revision of the contract it was built from, on the
-  resource. A `baggage: session.id=<id>` request header becomes `session.id` on the server span
-  and every descendant in the process.
+  second build succeeds. Any later contract change fails the build the same way until the
+  rewritten document is committed, so a binary always serves the contract it names.
+- Every span the API emits carries that contract's revision as the resource attribute
+  `qyl.api.contract.revision` (`sha256:<hex>`). A `baggage: session.id=<id>` request header
+  becomes `session.id` on the server span and every descendant in the process.
 - `[GenerateXml]` generates an `XmlWriter` implementation for a type, with no `XmlSerializer` and
   no runtime reflection, and `QylResults.Xml(todo)` puts the XML shape into the contract.
 
@@ -77,5 +77,11 @@ never change once they ship, because a consumer's `NoWarn` names them.
 
 - The worked example: [`samples/qyl.sample`](https://github.com/ANcpLua/qyl/tree/main/samples/qyl.sample)
 - Documentation: [qyl.at/docs/api-sdk](https://qyl.at/docs/api-sdk/)
-- The collector the telemetry lands in: [`qyl`](https://www.nuget.org/packages/qyl)
+- A local Collector for that telemetry: the [`qyl`](https://www.nuget.org/packages/qyl) tool
+- Source: https://github.com/ANcpLua/qyl
 - Changes per version: [CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
+
+## License
+
+qyl is free, under the MIT license
+([LICENSE](https://github.com/ANcpLua/qyl/blob/main/LICENSE)).

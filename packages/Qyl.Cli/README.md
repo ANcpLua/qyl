@@ -1,56 +1,50 @@
 # qyl
 
-A local OpenTelemetry investigation stack for .NET. Run the collector on your own machine,
-instrument an application with one line, and read the traces, logs and metrics back through the
-collector API or MCP.
+The qyl tool runs the qyl Collector on your machine, so an AI agent can investigate your local
+services' telemetry through MCP. qyl is an analytical engine built for AI agents; it ships no
+dashboard or other product UI.
 
 ```bash
 dotnet tool install --global qyl
 qyl up
 ```
 
-`qyl up` starts the collector API on `127.0.0.1:5100`, diagnostics on
-`:5200`, OTLP ingestion on `:4318` and `:4317`, and the runner API on `:18889`. Telemetry is
-stored under `~/.qyl/`, never in the working directory. All five ports are checked up front, so a
-conflict fails the command instead of leaving a half-bound stack.
+`qyl up` starts the Collector API on `127.0.0.1:5100`, with OTLP on `127.0.0.1:4318` (HTTP) and
+`127.0.0.1:4317` (gRPC), a diagnostics Collector on `:5200` for qyl's own telemetry, and the runner
+API on `:18889`. It checks all five ports first and stops if one is taken. Every listener binds to
+loopback and accepts requests without a key. Telemetry is stored under `~/.qyl/`, never in the
+working directory.
 
-The runner observes itself the way every qyl process does: its own telemetry (service `qyl-runner`:
-health probes, orchestration logs, meters) goes to the diagnostics collector on `:5200`, next to the
-product collector's self-telemetry, and never into the product collector on `:5100`.
+The tool and the Collector it starts are framework-dependent .NET 10 applications: the `qyl`
+package selects the `qyl.<rid>` package for Linux, macOS or Windows on x64 or arm64.
 
-The tool and the collector it starts are framework-dependent .NET 10 applications: the `qyl`
-package selects the matching `qyl.<rid>` package for linux, macOS and Windows on x64 and arm64.
-Only the hosted collector container is NativeAOT.
+## Send telemetry
 
-## Send telemetry to it
+Point any OpenTelemetry SDK's OTLP exporter at the Collector, for example
+`OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318` for OTLP over HTTP or `http://127.0.0.1:4317`
+for gRPC. The runner (service `qyl-runner`) and the Collector send their own telemetry to the
+diagnostics Collector on `:5200`, never to the one on `:5100`.
+
+## Investigate
+
+An agent reaches the Collector through the qyl MCP server, npm
+[`qyl-mcp-server`](https://www.npmjs.com/package/qyl-mcp-server):
 
 ```bash
-dotnet add package Qyl.Telemetry.Hosting
+bunx qyl-mcp-server --stdio
 ```
 
-```csharp
-using Qyl;
-
-builder.AddQyl();
-```
-
-`AddQyl()` activates the automatic instrumentation and exports traces, metrics and logs over OTLP,
-discovering the running collector on localhost. Environment variables alone export nothing;
-without the call there is no exporter to configure.
-
-## Read it back
-
-- The collector API under `/api/v1/`: traces, logs, and metrics aggregated server-side into
-  buckets by name, attribute matchers, time range and step.
-- MCP, for an agent: [`qyl-mcp-server`](https://www.npmjs.com/package/qyl-mcp-server) over
-  stdio locally, or the hosted endpoint at `https://mcp.qyl.at/mcp`.
+Its default `QYL_COLLECTOR_URL` is this Collector. The Collector's own API is under `/api/v1/`;
+`POST /api/v1/analysis/<tool_name>` answers the same analysis questions the MCP tools ask.
 
 ## More
 
-- Site and documentation: [qyl.at](https://qyl.at/)
-- Building an API that is instrumented from the first line:
-  [`Qyl.Api.Sdk`](https://www.nuget.org/packages/Qyl.Api.Sdk)
-- Source, samples and the release lines:
-  [github.com/ANcpLua/qyl](https://github.com/ANcpLua/qyl)
-- Changes per version:
-  [CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
+- Website: https://qyl.at
+- Source: https://github.com/ANcpLua/qyl
+- Hosted MCP server: https://mcp.qyl.at/mcp
+- Changes per version: [CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
+
+## License
+
+qyl is free, under the MIT license
+([LICENSE](https://github.com/ANcpLua/qyl/blob/main/LICENSE)).
