@@ -1,7 +1,7 @@
 {
   "name": "qyl",
   "displayName": "qyl",
-  "version": "17.0.10",
+  "version": "17.0.11",
   "description": "Agent-focused telemetry investigation, .NET development and native MSTest verification.",
   "author": {
     "name": "Alexander Nachtmann",

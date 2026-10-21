@@ -1,5 +1,21 @@
 # Changelog
 
+## 17.0.11
+
+- `query_metric` and a saved metric query's run read only the series and points of the instruments
+  they measure: the metric and a ratio's denominator. Before, they read the project's newest 25,000
+  metric points across all instruments. A busy instrument could push the measured one out of the
+  read. The answer then came back with empty buckets and `scan_complete: false`.
+- `check_telemetry_health` reads only the metric points with a conflicting measurement, the ones it
+  reports. A project's metric volume no longer makes the report partial or hides an older conflict.
+- When `query_metric` finds no series, it says why:
+  - the metric was never recorded in the project
+  - it has no points in the window, with the time of its last point
+  - no series in the window matches `series_id` and `matchers`
+- The qyl MCP server exports its `mcp.server.operation.duration` histogram with delta temporality,
+  once a minute. Before, it resent every attribute set every 5 seconds, hundreds of thousands of
+  points a day in the caller's project. An idle server now exports nothing.
+
 ## 17.0.10
 
 - The Collector's HTTP analysis routes now refuse the same input the MCP refuses, with the same
