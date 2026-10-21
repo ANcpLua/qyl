@@ -1,22 +1,36 @@
-# qyl Auth0 tenant configuration
+# qyl Auth0 tenant
 
-`tenant.json` records the existing qyl API, seven named user clients, Events
-management client, and denied-by-default third-party grant in `qyl-eu`. It
-contains no credentials or user/client identifiers. The mapped owner and reviewer
-subjects come from the deployment's `MCP_COLLECTOR_PROJECTS` environment value;
-keep that value in Vitals/Railway and inject it into this command without logging it.
+`tenant.json` records what the hosted MCP server needs from the Auth0 tenant `qyl-eu`
+(`qyl-eu.eu.auth0.com`). It holds no credentials and no user or client identifiers.
 
-With an authenticated Auth0 CLI, run `python3 eng/auth0/reconcile.py` to check,
-or add `--apply` to reconcile and recheck. Exit 0 means the configuration matches,
-1 means drift, and 2 means a missing/ambiguous identity, invalid mapping or API error.
-Use the same environment for both commands. No deployment is triggered.
+- The API `https://mcp.qyl.at/mcp`, with RBAC and the scopes `qyl:read`, `qyl:write` and
+  `qyl:delete`, each with the description the consent screen shows. The server accepts only RS256
+  access tokens for it.
+- Grants of all three scopes for seven named user clients.
+- The three permissions for every user that the deployment's `MCP_COLLECTOR_PROJECTS` maps to a
+  project.
+- The API's third-party default grant, kept empty: Dynamic Client Registration is open to anyone.
+- The tenant flag `use_scope_descriptions_for_consent`, so consent shows the scope descriptions.
+- A non-interactive Management API client with the read-only scopes `read:users`, `read:clients`,
+  `read:client_grants` and `read:grants`.
 
-The reconciler requires every named client and mapped user to already exist.
-It adds missing managed API scopes and restores their descriptions, enables RBAC,
-adds missing client/user permissions, keeps the qyl third-party default grant empty
-and turns on `use_scope_descriptions_for_consent`, so the consent screen shows the
-scope descriptions instead of "qyl your read". It preserves all other scopes,
-grants, users, application settings and tenant settings. Changing
-which user owns a project remains a separate deployment mapping operation.
-API responses, subject identifiers and secrets are never printed. The Events
-client credential remains in Vitals/Railway; checking this policy never rotates it.
+## Check and apply
+
+With an authenticated Auth0 CLI, and `MCP_COLLECTOR_PROJECTS` in the environment from Vitals or
+Railway, never logged:
+
+```bash
+python3 eng/auth0/reconcile.py           # check
+python3 eng/auth0/reconcile.py --apply   # reconcile, then check again
+```
+
+Exit code `0` means the tenant matches (or was reconciled), `1` drift, and `2` a missing or
+ambiguous identity, an invalid mapping or an API error.
+
+The reconciler creates no applications or users; every named client and mapped user must exist. It
+adds missing scopes and restores their descriptions, turns on RBAC, adds missing client and user
+permissions, empties the third-party default grant and sets the consent flag. It keeps every other
+scope, grant, user, application setting and tenant setting, prints no API response, subject
+identifier or secret, and triggers no deployment. The Management API client's credential stays in
+Vitals and Railway; the reconciler never rotates it. Which user owns a project is set in
+`MCP_COLLECTOR_PROJECTS`, not here.
