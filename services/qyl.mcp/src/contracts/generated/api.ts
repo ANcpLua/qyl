@@ -1100,6 +1100,7 @@ export interface CiLogInput {
   "leg"?: string;
   "phase"?: string;
   "phase_cursor"?: string;
+  "phase_limit"?: number;
   "errors_only"?: boolean;
   "baseline"?: CiBaseline;
   "matchers"?: TelemetryMatcher[];
@@ -2306,4 +2307,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:525f31279d147968";
+export const CONTRACT_REVISION: string = "sha256:b194b79e8e74e8d4";

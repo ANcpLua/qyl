@@ -58,7 +58,8 @@ saved queries and failure status in that project, never the telemetry.
   yesterday's deploy".
 - **Pages.** Results are bounded: `triage` 10 failures, context tools 100
   spans and 100 logs, `aggregate_telemetry` 20 groups, `get_trace` 100
-  spans, `ci_log` 10 runs and 50 of a run's phases, whatever `limit` is.
+  spans, `ci_log` 10 runs and 50 of a run's phases (`phase_limit`), whatever
+  `limit` is.
   `has_more` and `next_cursor` continue the same query, `next_phase_cursor`
   as `phase_cursor` a run's phases; `coverage` says how much was examined,
   so report truncation instead of guessing.

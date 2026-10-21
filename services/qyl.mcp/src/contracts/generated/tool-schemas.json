@@ -2081,7 +2081,14 @@
       },
       "phase_cursor": {
         "type": "string",
-        "description": "`next_phase_cursor` of a previous call for the same run; continues its phases, 50 per page."
+        "description": "`next_phase_cursor` of a previous call for the same run; continues its phases, `phase_limit` per page."
+      },
+      "phase_limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Phases of the broken-down run per page, 1 to 50; default 50. A smaller page's `next_phase_cursor` resumes at the first phase it did not return.",
+        "default": 50
       },
       "errors_only": {
         "type": "boolean",
@@ -2230,7 +2237,7 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 50,
-        "description": "Runs per page, 1 to 50; default 10. The broken-down run's phases page apart from them, 50 per page.",
+        "description": "Runs per page, 1 to 50; default 10. The broken-down run's phases page apart from them, by `phase_limit`.",
         "default": 10
       }
     },

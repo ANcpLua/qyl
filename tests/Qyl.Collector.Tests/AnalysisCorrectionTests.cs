@@ -236,6 +236,33 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// phase_limit sizes a run's phase pages, 50 when omitted, so a client whose response budget holds fewer asks for
+    /// fewer and the page's next_phase_cursor resumes at the first phase it did not return; a cursor continues under
+    /// another phase_limit, as a smaller retry of the same page asks.
+    /// </summary>
+    [TestMethod]
+    public async Task Ci_log_pages_a_runs_phases_by_phase_limit_and_a_cursor_continues_under_another()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var time = Timestamp;
+        await host.Store.EnqueueAsync(new SpanBatch([
+            .. Enumerable.Range(1, 51).Select(i => Span(TraceId(1), SpanId(i), time + (ulong)i, time + (ulong)i + 1000, service: "qyl-ci-tests", sessionId: "ci-new")
+                with { AttributesJson = """{"cicd.pipeline.task.name":"build"}""" })
+        ]), testContext.CancellationToken);
+
+        var first = await Read(host, "ci_log", """{"ci_run_id":"ci-new","phase_limit":20}""");
+        var second = await Read(host, "ci_log", $$"""{"ci_run_id":"ci-new","phase_limit":20,"phase_cursor":"{{first.GetProperty("next_phase_cursor").GetString()}}"}""");
+        var third = await Read(host, "ci_log", $$"""{"ci_run_id":"ci-new","phase_cursor":"{{second.GetProperty("next_phase_cursor").GetString()}}"}""");
+
+        string?[] Phases(JsonElement page) => [.. page.GetProperty("phases").EnumerateArray().Select(static phase => phase.GetProperty("span_id").GetString())];
+        Assert.AreSequenceEqual(Enumerable.Range(1, 20).Select(SpanId), Phases(first));
+        Assert.AreSequenceEqual(Enumerable.Range(21, 20).Select(SpanId), Phases(second));
+        Assert.AreSequenceEqual(Enumerable.Range(41, 11).Select(SpanId), Phases(third));
+        Assert.IsFalse(third.TryGetProperty("next_phase_cursor", out _));
+        Assert.AreEqual(51, first.GetProperty("page_totals").GetProperty("phases").GetInt32());
+    }
+
+    /// <summary>
     /// get_mcp_stats carries the window's buckets, the server, transport and method breakdowns and the
     /// per-tool statistics computed from the same MCP spans as its totals.
     /// </summary>

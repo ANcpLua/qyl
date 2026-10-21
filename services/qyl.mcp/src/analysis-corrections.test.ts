@@ -42,19 +42,51 @@ test("budget re-query preserves filters and accepts Collector's smaller page and
   assert.deepEqual(JSON.parse(json!.text), result.structuredContent, "content[1] is the structured result as JSON");
 });
 
-test("a ci_log budget re-query asks for fewer runs and leaves a run's phases at their 50", async context => {
+test("a ci_log budget re-query asks for fewer runs and fewer of a run's phases, each by its own size", async context => {
   environment(context);
-  const limits: unknown[] = [];
+  const sizes: Array<[unknown, unknown]> = [];
   context.mock.method(globalThis, "fetch", async (_: unknown, init?: RequestInit) => {
-    const input = JSON.parse(init?.body as string) as Record<string, unknown>; limits.push(input.limit);
-    const runs = Number(input.limit ?? 10);
+    const input = JSON.parse(init?.body as string) as Record<string, unknown>; sizes.push([input.limit, input.phase_limit]);
+    const runs = Number(input.limit ?? 10), phases = Number(input.phase_limit ?? 50);
     return Response.json({ ...readContext(runs), has_more: true, next_cursor: "signed-next-runs", ci_run_id: "run-0", next_phase_cursor: "signed-next-phases",
-      runs: Array.from({ length: runs }, (_, i) => ({ ci_run_id: `run-${i}`, state: "ended", start_time: "2026-10-12T09:30:00Z", error_count: 1, services: ["qyl-ci"] })),
-      phases: Array.from({ length: 50 }, (_, i) => ({ leg: "test", phase: `phase-${i}`, status: "error", duration_ms: 1, message: "x".repeat(400) })) });
+      runs: Array.from({ length: runs }, (_, i) => ({ ci_run_id: `run-${i}`, state: "ended", start_time: "2026-10-12T09:30:00Z", error_count: 1, services: ["qyl-ci"], provider_run_url: `https://ci.example/${"r".repeat(900)}/${i}` })),
+      phases: Array.from({ length: phases }, (_, i) => ({ leg: "test", phase: `phase-${i}`, status: "error", duration_ms: 1, message: "x".repeat(400) })) });
   });
   const result = await queryAnalysis("ci_log", { ci_run_id: "run-0" }, "Mcp.Tools.CiLogOutput", { collector: {}, step: async () => {} });
-  assert(limits.length > 1 && limits.slice(1).every((limit) => Number(limit) < 10), JSON.stringify(limits));
+  assert(sizes.length > 1 && sizes.slice(1).every(([limit, phases]) => Number(limit) < 10 && Number(phases) < 50), JSON.stringify(sizes));
   assert(responseBytes(result) <= ANALYSIS_RESPONSE_BYTES);
+  assert.equal((result.structuredContent as { next_phase_cursor?: string }).next_phase_cursor, "signed-next-phases");
+});
+
+test("a run of 50 large phases pages through the response budget, each page's cursor at the first phase it did not return", async context => {
+  environment(context);
+  // Each phase is about 2 KB with its error logs, so 50 exceed the budget and a page holds fewer.
+  const phases = Array.from({ length: 50 }, (_, i) => ({ leg: "test", phase: `phase-${i}`, status: "error", duration_ms: i, message: "m".repeat(400),
+    error_log_count: 3, error_logs: Array.from({ length: 3 }, (_, j) => ({ id: `log-${i}-${j}`, body: "b".repeat(400) })) }));
+  const asked: unknown[] = [];
+  context.mock.method(globalThis, "fetch", async (_: unknown, init?: RequestInit) => {
+    const input = JSON.parse(init?.body as string) as Record<string, unknown>; asked.push(input.phase_limit);
+    const start = typeof input.phase_cursor === "string" ? Number(input.phase_cursor.slice("after-".length)) : 0;
+    const page = phases.slice(start, start + Number(input.phase_limit ?? 50)), end = start + page.length;
+    return Response.json({ ...readContext(1), has_more: end < phases.length, ci_run_id: "run-0", page_totals: { phases: phases.length },
+      runs: [{ ci_run_id: "run-0", state: "ended", start_time: "2026-10-12T09:30:00Z", error_count: 50, services: ["qyl-ci"] }],
+      phases: page, ...(end < phases.length ? { next_phase_cursor: `after-${end}` } : {}) });
+  });
+  const seen: string[] = [];
+  let cursor: string | undefined;
+  for (let pages = 0; pages === 0 || cursor !== undefined; pages++) {
+    assert(pages < 50, "the pages end");
+    const result = await queryAnalysis("ci_log", { ci_run_id: "run-0", ...(cursor === undefined ? {} : { phase_cursor: cursor }) }, "Mcp.Tools.CiLogOutput",
+      { collector: {}, step: async () => {} });
+    assert(responseBytes(result) <= ANALYSIS_RESPONSE_BYTES);
+    const output = result.structuredContent as { phases: Array<{ phase: string }>; next_phase_cursor?: string };
+    seen.push(...output.phases.map((phase) => phase.phase));
+    // A compacted page hands back the cursor of the first phase it left out, never one past them.
+    if (output.next_phase_cursor !== undefined) assert.equal(output.next_phase_cursor, `after-${seen.length}`);
+    cursor = output.next_phase_cursor;
+  }
+  assert.deepEqual(seen, phases.map((phase) => phase.phase), "every phase once, in order");
+  assert(asked.some((limit) => Number(limit) < 50), JSON.stringify(asked));
 });
 
 test("one oversized trace is compacted with explicit omissions and a valid contract", () => {

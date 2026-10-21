@@ -425,9 +425,14 @@ model CiLogInput {
   leg?: string;
   @doc("Keep only the phases with this span name.")
   phase?: string;
-  @doc("`next_phase_cursor` of a previous call for the same run; continues its phases, 50 per page.")
+  @doc("`next_phase_cursor` of a previous call for the same run; continues its phases, `phase_limit` per page.")
   @encodedName("application/json", "phase_cursor")
   phaseCursor?: Cursor;
+  @doc("Phases of the broken-down run per page, 1 to 50; default 50. A smaller page's `next_phase_cursor` resumes at the first phase it did not return.")
+  @encodedName("application/json", "phase_limit")
+  @minValue(1)
+  @maxValue(50)
+  phaseLimit?: int32 = 50;
   @doc("Keep only runs with an error span.")
   @encodedName("application/json", "errors_only")
   errorsOnly?: boolean;
@@ -450,7 +455,7 @@ model CiLogInput {
   @maxLength(256)
   servicePrefix?: string = "qyl-ci";
 
-  @doc("Runs per page, 1 to 50; default 10. The broken-down run's phases page apart from them, 50 per page.")
+  @doc("Runs per page, 1 to 50; default 10. The broken-down run's phases page apart from them, by `phase_limit`.")
   @minValue(1)
   @maxValue(50)
   limit?: int32 = 10;

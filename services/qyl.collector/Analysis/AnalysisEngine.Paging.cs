@@ -6,8 +6,6 @@ namespace Qyl.Collector.Analysis;
 
 internal sealed partial class AnalysisEngine
 {
-    // ci_log pages a run's phases apart from its runs, 50 per page as its phase_cursor's contract doc says.
-    private const int CiPhasePageSize = 50;
     private static readonly string[] s_identityKeys = ["failure_id", "session_id", "trace_id", "series_id", "ci_run_id", "name"];
     // aggregate_telemetry's record count per group, in the order of its groups.
     private int[]? _groupSizes;
@@ -35,7 +33,7 @@ internal sealed partial class AnalysisEngine
         "search_logs" => SearchLogsInput.LimitDefault,
         "list_metrics" => ListMetricsInput.LimitDefault,
         "ci_log" => CiLogInput.LimitDefault,
-        "ci_log.phases" => CiPhasePageSize,
+        "ci_log.phases" => CiLogInput.PhaseLimitDefault,
         "run_saved_query" => RunSavedQueryInput.LimitDefault,
         _ => throw new InvalidOperationException($"'{_operation}' has no page size.")
     };
@@ -113,7 +111,7 @@ internal sealed partial class AnalysisEngine
     private static string Fingerprint(JsonObject input)
     {
         var scope = input.DeepClone().AsObject();
-        foreach (var field in new[] { "cursor", "limit", "max_spans", "max_logs", "start_time", "end_time", "lookback_minutes" }) scope.Remove(field);
+        foreach (var field in new[] { "cursor", "limit", "phase_limit", "max_spans", "max_logs", "start_time", "end_time", "lookback_minutes" }) scope.Remove(field);
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(scope.ToJsonString())));
     }
 

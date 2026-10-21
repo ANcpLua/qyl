@@ -13,6 +13,9 @@ export const responseBytes = (result: CallToolResult): number => Buffer.byteLeng
 /** Final compaction for a single large record, after the Collector has paged it.
  * Stable identities, counts and signed continuations are preserved. Bulk text and
  * nested evidence can be omitted; totals and the text response explain the loss.
+ * A run's phases, which ci_log pages apart from its runs, stay whole: their
+ * next_phase_cursor resumes after the last one returned, so a phase left out here
+ * would never be shown. Only the evidence inside a phase is omitted.
  */
 export function compactAnalysisResult(operation: string, input: object, original: object): CallToolResult {
   const output = structuredClone(original) as Record<string, unknown>;
@@ -41,7 +44,7 @@ export function compactAnalysisResult(operation: string, input: object, original
     const arrays: Array<{ values: unknown[]; path: string; bytes: number }> = [];
     function collect(value: unknown, path: string): void {
       if (Array.isArray(value)) {
-        if (value.length > 0) arrays.push({ values: value, path, bytes: Buffer.byteLength(JSON.stringify(value), "utf8") });
+        if (value.length > 0 && !(operation === "ci_log" && path === "phases")) arrays.push({ values: value, path, bytes: Buffer.byteLength(JSON.stringify(value), "utf8") });
         value.forEach((item, index) => collect(item, `${path}.${index}`));
       } else if (value !== null && typeof value === "object") {
         for (const [key, item] of Object.entries(value)) {

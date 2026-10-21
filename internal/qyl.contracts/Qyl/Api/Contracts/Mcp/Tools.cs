@@ -725,6 +725,9 @@ public sealed class LogPattern
 
 public sealed class CiLogInput
 {
+    public const int PhaseLimitDefault = 50;
+    public const int PhaseLimitMinimum = 1;
+    public const int PhaseLimitMaximum = 50;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
     public const string ServicePrefixDefault = "qyl-ci";
@@ -734,6 +737,7 @@ public sealed class CiLogInput
     /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
     public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
     [
+        ("phase_limit", PhaseLimitMinimum, PhaseLimitMaximum, PhaseLimitDefault),
         ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
         ("limit", LimitMinimum, LimitMaximum, LimitDefault),
     ];
@@ -778,6 +782,9 @@ public sealed class CiLogInput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("phase_cursor")]
     public string? PhaseCursor { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("phase_limit")]
+    public int? PhaseLimit { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("errors_only")]
     public bool? ErrorsOnly { get; init; }
