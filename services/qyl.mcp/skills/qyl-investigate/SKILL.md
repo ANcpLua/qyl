@@ -79,7 +79,10 @@ saved queries and failure status in that project, never the telemetry.
   window into at most 60 buckets, lists only the buckets that hold points
   and gives each series one `value` for the whole window. `list_metrics`
   shows each instrument's attribute keys and the ones to group by;
-  `query_metric` with `raw` reads one series' original points.
+  `query_metric` with `raw` reads one series' original points. A metric's
+  series may differ in temporality, as a delta series beside an older
+  cumulative one: `query_metric` reads each by its own, and a counter then
+  takes `function: increase`, `delta` or `rate`.
 - **Filters.** `matchers` take `key`, `op` (`eq`, `neq`, `in`, `prefix`,
   `contains`, `exists`, `gt`, `gte`, `lt`, `lte`) and `value` or `values`;
   `discover_attributes` lists which keys and values exist before you filter.

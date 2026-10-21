@@ -226,6 +226,58 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// A metric whose series differ in temporality, as the MCP server's own operation histogram does while its
+    /// cumulative series from before 17.0.11 ages out beside the delta one, is read per series: a cumulative series by
+    /// the changes between its points, a delta series by its points, merged after. Its p95 and count and a counter's
+    /// increase cover both series, over HTTP's metric query as over query_metric. A counter's recorded values are
+    /// totals in one series and changes in the other, so they need a function that reads changes, and series of
+    /// another kind, unit or monotonicity still need one series_id.
+    /// </summary>
+    [TestMethod]
+    public async Task Series_that_differ_in_temporality_are_read_per_series_and_merged()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        static MetricPointRow Latency(string seriesId, ulong start, ulong time, ulong count, double sum) => new()
+        {
+            ProjectId = "alpha", SeriesId = seriesId, TimeUnixNano = time, StartTimeUnixNano = start, HistogramCount = count, HistogramSum = sum,
+            BucketBoundsJson = "[0.1,0.2,0.4]", BucketCountsJson = "[0," + count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",0,0]"
+        };
+        var origin = FixtureUnixNano - 240 * Minute;
+        await InsertHistogramAsync(host, "mcp.server.operation.duration", 2, "s",
+            Latency("h_cumulative", origin, FixtureUnixNano - 50 * Minute, 100, 15), Latency("h_cumulative", origin, FixtureUnixNano - 20 * Minute, 160, 24));
+        await InsertHistogramAsync(host, "mcp.server.operation.duration", 1, "s", Latency("h_delta", FixtureUnixNano - 11 * Minute, FixtureUnixNano - 10 * Minute, 40, 6));
+        await InsertAsync(host, Counter("requests.total", "c_cumulative"), (FixtureUnixNano - 50 * Minute, (ulong?)(FixtureUnixNano - 120 * Minute), 100d),
+            (FixtureUnixNano - 20 * Minute, FixtureUnixNano - 120 * Minute, 150d));
+        await InsertAsync(host, Counter("requests.total", "c_delta") with { Temporality = 1 }, (FixtureUnixNano - 10 * Minute, (ulong?)(FixtureUnixNano - 11 * Minute), 30d));
+        await InsertAsync(host, Counter("queue.items", "q_monotonic"), (FixtureUnixNano - 10 * Minute, (ulong?)(FixtureUnixNano - 11 * Minute), 1d));
+        await InsertAsync(host, Counter("queue.items", "q_up_down") with { IsMonotonic = 0 }, (FixtureUnixNano - 10 * Minute, (ulong?)(FixtureUnixNano - 11 * Minute), 1d));
+
+        Assert.AreEqual(100d, Bucket(await Read(host, "query_metric", """{"metric_name":"mcp.server.operation.duration","aggregation":"count","step_ms":3600000}""")).GetDouble());
+        Assert.AreEqual(0.195, Bucket(await Read(host, "query_metric", """{"metric_name":"mcp.server.operation.duration","aggregation":"p95","step_ms":3600000}""")).GetDouble(), 1e-9);
+        Assert.AreEqual(80d, Bucket(await Read(host, "query_metric", """{"metric_name":"requests.total","function":"increase","aggregation":"sum","step_ms":3600000}""")).GetDouble());
+
+        var start = FixtureUtcNow.AddHours(-1).ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+        var end = FixtureUtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+        using var histogram = await host.SendAsync(HttpMethod.Get,
+            $"/api/v1/metrics/mcp.server.operation.duration/query?aggregation=count&step_ms=3600000&start_time={Uri.EscapeDataString(start)}&end_time={Uri.EscapeDataString(end)}", ReaderApiKey);
+        var counted = await host.JsonAsync(histogram);
+        Assert.AreEqual(System.Net.HttpStatusCode.OK, histogram.StatusCode, counted.GetRawText());
+        Assert.AreEqual(100d, Assert.ContainsSingle(Assert.ContainsSingle(counted.GetProperty("series").EnumerateArray()).GetProperty("buckets").EnumerateArray()).GetProperty("value").GetDouble());
+
+        var recorded = await RejectedAsync(host, "query_metric", """{"metric_name":"requests.total","aggregation":"sum","step_ms":3600000}""");
+        Assert.AreEqual(("function", "function.mixed_temporality"), (recorded.GetProperty("field").GetString(), recorded.GetProperty("code").GetString()));
+        Assert.AreSequenceEqual(["delta", "increase", "rate"], recorded.GetProperty("allowed").EnumerateArray().Select(static value => value.GetString()));
+        using var raw = await host.SendAsync(HttpMethod.Get,
+            $"/api/v1/metrics/requests.total/query?aggregation=sum&step_ms=3600000&start_time={Uri.EscapeDataString(start)}&end_time={Uri.EscapeDataString(end)}", ReaderApiKey);
+        Assert.AreEqual(System.Net.HttpStatusCode.Conflict, raw.StatusCode);
+        using var conflict = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/query_metric", ReaderApiKey,
+            """{"metric_name":"queue.items","function":"increase","aggregation":"sum","step_ms":3600000}""");
+        var detail = (await host.JsonAsync(conflict)).GetProperty("detail").GetString();
+        Assert.AreEqual(System.Net.HttpStatusCode.Conflict, conflict.StatusCode, detail);
+        Assert.AreEqual("Selected metric series have incompatible kind, unit or monotonicity; select one series_id.", detail);
+    }
+
+    /// <summary>
     /// The previous window's first cumulative point is measured against the point before it, which
     /// precedes both windows: the read fetches each series' last recorded point before its start.
     /// </summary>

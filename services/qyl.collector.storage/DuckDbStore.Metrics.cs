@@ -32,7 +32,7 @@ internal sealed record MetricRangeQuery
 }
 
 internal sealed class MetricQueryConflictException(string? message = null) : InvalidOperationException(message ??
-    "Selected metric series have incompatible kind, unit, temporality or monotonicity; select one series_id.");
+    "Selected metric series have incompatible kind, unit or monotonicity; select one series_id.");
 
 internal sealed class MetricProjectionUnavailableException(string message) : InvalidOperationException(message);
 
@@ -468,12 +468,20 @@ internal sealed partial class DuckDbStore
         if (request.SeriesId is not null) qb.Add("series_id = $N", request.SeriesId);
         AppendMatchers(ref qb, request.Matchers);
         using var cmd = con.CreateCommand();
-        cmd.CommandText = "SELECT DISTINCT metric_kind, unit, temporality, is_monotonic FROM metric_series " + qb.WhereClause;
+        cmd.CommandText = "SELECT DISTINCT metric_kind, unit, is_monotonic, temporality FROM metric_series " + qb.WhereClause;
         qb.ApplyTo(cmd);
         using var reader = cmd.ExecuteReader();
-        if (!reader.Read()) return (byte)MetricKind.Gauge;
-        var kind = DuckDbValueReader.ReadByte(reader, 0, 0);
-        if (reader.Read()) throw new MetricQueryConflictException();
+        var descriptors = new List<(byte Kind, string? Unit, byte Monotonic, byte Temporality)>();
+        while (reader.Read())
+            descriptors.Add((DuckDbValueReader.ReadByte(reader, 0, 0), DuckDbValueReader.ReadString(reader, 1),
+                DuckDbValueReader.ReadByte(reader, 2, 0), DuckDbValueReader.ReadByte(reader, 3, 0)));
+        if (descriptors.Count is 0) return (byte)MetricKind.Gauge;
+        if (descriptors.Select(static d => (d.Kind, d.Unit, d.Monotonic)).Distinct().Skip(1).Any()) throw new MetricQueryConflictException();
+        // A histogram is read by each series' changes; a scalar aggregates its recorded values, which are totals in a
+        // cumulative series and changes in a delta one.
+        var kind = descriptors[0].Kind;
+        if (kind < (byte)MetricKind.Histogram && descriptors.Select(static d => d.Temporality).Distinct().Skip(1).Any())
+            throw new MetricQueryConflictException("Selected metric series differ in temporality: a cumulative series records totals and a delta series changes, so their recorded values do not aggregate together; select one series_id.");
         return kind;
     }
 

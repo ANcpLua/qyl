@@ -11755,7 +11755,7 @@
               "increase",
               "delta"
             ],
-            "description": "Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. A count is in unit `1`; a rate appends `/s`."
+            "description": "Transform of each series' points before the buckets aggregate them: `none` (default) the recorded values, `delta` the change from the previous point, `increase` the changes summed per bucket, `rate` the change per second of the interval each point recorded. A histogram's points already are the changes of their intervals, so a histogram takes a function only with aggregation `count` or `sum`, and its rate is what each series recorded over the time it recorded it, summed across series. Each series is read by its own temporality, so a delta series beside a cumulative one merges; a sum's recorded values are then totals beside changes, so it takes `delta`, `increase` or `rate`. A count is in unit `1`; a rate appends `/s`."
           },
           "baseline": {
             "$ref": "#/components/schemas/Mcp.Tools.AnalysisBaseline",

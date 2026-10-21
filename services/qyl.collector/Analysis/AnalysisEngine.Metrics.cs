@@ -69,7 +69,8 @@ internal sealed partial class AnalysisEngine
         var rows = SeriesRows(input); var name = J.String(input, "metric_name")!;
         if (rows.Count is 0) throw NoMetricSeries(name);
         var aggregation = J.String(input, "aggregation") ?? "avg"; var function = J.String(input, "function") ?? "none";
-        if (rows.Select(static row => (row.MetricKind, row.Unit, row.Temporality, row.IsMonotonic)).Distinct().Skip(1).Any())
+        // Each series is read by its own temporality below, so series may differ in it, but not in what they measure.
+        if (rows.Select(static row => (row.MetricKind, row.Unit, row.IsMonotonic)).Distinct().Skip(1).Any())
             throw new MetricQueryConflictException();
         if (rows.SelectMany(row => PointsBySeries[row.SeriesId]).Any(point => _window.Contains(point.TimeUnixNano) && point.HasConflict != 0))
             throw new MetricQueryConflictException("Different measurements exist at one series timestamp; inspect the original observations before aggregating this window.");
@@ -85,6 +86,11 @@ internal sealed partial class AnalysisEngine
         var histogram = rows[0].MetricKind >= 3;
         if (histogram && function != "none" && aggregation is not ("count" or "sum"))
             throw new AnalysisInputException("function", $"function={function} applies to a histogram's count or sum; use aggregation count or sum, or function none.", "function.unsupported") { Allowed = ["none"], Hint = "With aggregation count or sum a histogram also takes delta, increase or rate." };
+        // A scalar's recorded values are totals in a cumulative series and changes in a delta one: only a function that
+        // reads each series' changes puts them on one footing.
+        if (!histogram && function == "none" && rows.Select(static row => row.Temporality).Distinct().Skip(1).Any())
+            throw new AnalysisInputException("function", "This metric's series differ in temporality: a cumulative series records totals and a delta series changes, so their recorded values do not aggregate together; use function delta, increase or rate, or select one series_id.", "function.mixed_temporality")
+                { Allowed = ["delta", "increase", "rate"], Hint = "Pass function increase for each bucket's change, or a series_id of one temporality." };
         var groupBy = (input["group_by"] as JsonArray)?.Select(J.Text).ToArray() ?? [];
         // Without a step, whole seconds split the window into at most 60 buckets.
         var step = input["step_ms"] is null
