@@ -64,6 +64,27 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// With several fields wrong, the one named is the one the contract declares first, as the MCP names it: a member an
+    /// object does not declare before its declared ones, a required member left out where it is declared, and depth
+    /// first, so a member's own rule comes before those of what it holds and a union's object before a later member.
+    /// The MCP's invalid-argument test and the answer key send the same requests.
+    /// </summary>
+    [TestMethod]
+    [DataRow("triage", """{"status":"opened","lookback_minutes":0}""", "lookback_minutes")]
+    [DataRow("triage", """{"limit":"x","bogus":1}""", "bogus")]
+    [DataRow("triage", """{"service_name":5,"matchers":[{"key":"","op":"exists"}]}""", "matchers[0].key")]
+    [DataRow("triage", """{"matchers":[{"op":"like","key":""}]}""", "matchers[0].key")]
+    [DataRow("aggregate_telemetry", """{"order_by":5,"measures":"count"}""", "signal")]
+    [DataRow("compare_groups", """{"signal":"spans","group_a":{"failure_id":""},"group_b":{"bogus":1},"limit":0}""", "limit")]
+    [DataRow("compare_groups", """{"signal":"spans","group_b":{"bogus":1},"group_a":{"failure_id":""}}""", "group_a.failure_id")]
+    public async Task With_several_fields_wrong_the_first_the_contract_declares_is_named(string operation, string input, string field)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        Assert.AreEqual(field, (await RejectedAsync(host, operation, input)).GetProperty("field").GetString());
+    }
+
+    /// <summary>
     /// Every contract time is read by one rule, the MCP's input schema's as the Collector's: RFC 3339 date-time with T and
     /// Z in either case and a numeric offset with its colon. A space for T, an offset without its colon or its minutes, a
     /// leap second, a day the month lacks and an offset hour past 23 are refused naming the field, by the analysis routes

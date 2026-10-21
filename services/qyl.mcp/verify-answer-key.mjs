@@ -565,6 +565,44 @@ verify('36 a time is read by one rule, RFC 3339 date-time with T and Z in either
  }
 });
 
+verify('37 with several arguments wrong, the MCP and the Collector\'s HTTP route name the same first field, the one the contract declares first',async(_call,client)=>{
+ const pascal=tool=>tool.split('_').map(part=>part[0].toUpperCase()+part.slice(1)).join('');
+ // A value of another JSON type than the schema's; a union, which names none, takes no number.
+ const mistyped=schema=>['integer','number'].includes(schema.type)?'1':schema.type==='boolean'?'true':['array','object'].includes(schema.type)?'x':1;
+ let compared=0;
+ const first=async(tool,args,field)=>{
+  const at=`${tool} ${JSON.stringify(args).slice(0,120)}`;
+  const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
+  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}/api/v1/analysis/${tool}`,{method:'POST',headers:{'content-type':'application/json',...collectorHeaders()},body:JSON.stringify(args)});
+  const [http]=(await response.json()).errors??[];
+  assert.equal(response.status,400,`${at}: ${JSON.stringify(http)}`);
+  assert.deepEqual([mcp?.code,mcp?.field,http?.field],['invalid_argument',field,field],at);
+  assert(mcp.fields.length>1,`${at} breaks several rules: ${JSON.stringify(mcp.fields)}`);
+  compared++;
+ };
+ // An argument a tool does not take first, then depth first: a required one left out where it is declared, a member's
+ // own rule before those of what it holds, a union's object before a later argument. The Collector's AnalysisErrorTests
+ // and the MCP's invalid-argument test send these too.
+ for (const [tool,args,field] of [
+  ['triage',{status:'opened',lookback_minutes:0},'lookback_minutes'],
+  ['triage',{limit:'x',bogus:1},'bogus'],
+  ['triage',{service_name:5,matchers:[{key:'',op:'exists'}]},'matchers[0].key'],
+  ['triage',{matchers:[{op:'like',key:''}]},'matchers[0].key'],
+  ['aggregate_telemetry',{order_by:5,measures:'count'},'signal'],
+  ['compare_groups',{signal:'spans',group_a:{failure_id:''},group_b:{bogus:1},limit:0},'limit'],
+  ['compare_groups',{signal:'spans',group_b:{bogus:1},group_a:{failure_id:''}},'group_a.failure_id']])
+  await first(tool,args,field);
+ // Every argument of every tool wrong at once, sent last declared first: the first declared is named, and an argument the
+ // tool does not take before it.
+ for (const tool of Object.keys(analysisArguments)) {
+  const {properties}=documents[`Mcp.Tools.${pascal(tool)}Input`], names=Object.keys(properties);
+  const wrong=Object.fromEntries(names.toReversed().map(name=>[name,mistyped(properties[name])]));
+  await first(tool,wrong,names[0]);
+  await first(tool,{...wrong,zz_unknown:1},'zz_unknown');
+ }
+ assert(compared>=2*Object.keys(analysisArguments).length+7,`${compared}`);
+});
+
 // Existing projection and paging semantics stay exercised against real storage.
 verify('regression get_trace removes all attribute collections without changing totals', async call=>{
  const args={...w,trace_id:key['db-root'].trace_id};

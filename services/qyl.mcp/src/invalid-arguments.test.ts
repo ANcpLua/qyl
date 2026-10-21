@@ -149,6 +149,33 @@ test("arguments the input schema rejects answer invalid_argument with the field,
   assert.equal(fetch.mock.callCount(), 0);
 });
 
+/** Several arguments wrong at once; the Collector's AnalysisErrorTests send the same requests and name the same field. */
+const severalWrong: ReadonlyArray<readonly [string, Record<string, unknown>, string]> = [
+  ["triage", { status: "opened", lookback_minutes: 0 }, "lookback_minutes"],
+  ["triage", { limit: "x", bogus: 1 }, "bogus"],
+  ["triage", { service_name: 5, matchers: [{ key: "", op: "exists" }] }, "matchers[0].key"],
+  ["triage", { matchers: [{ op: "like", key: "" }] }, "matchers[0].key"],
+  ["aggregate_telemetry", { order_by: 5, measures: "count" }, "signal"],
+  ["compare_groups", { signal: "spans", group_a: { failure_id: "" }, group_b: { bogus: 1 }, limit: 0 }, "limit"],
+  ["compare_groups", { signal: "spans", group_b: { bogus: 1 }, group_a: { failure_id: "" } }, "group_a.failure_id"],
+];
+
+test("with several arguments wrong, the first the contract declares is named: an undeclared one first, then depth first", async (context) => {
+  context.mock.method(globalThis, "fetch", async () => {
+    throw new Error("a rejected call must not reach the Collector");
+  });
+  const connection = await connectModernTestClient(
+    { name: "invalid-arguments-order", version: "1.0.0" },
+    () => createServer({ nativeExecution: false }),
+  );
+  context.after(() => connection.close());
+  for (const [tool, args, field] of severalWrong) {
+    const error = errorOf(await connection.client.callTool({ name: tool, arguments: args }) as CallToolResult);
+    assert.deepEqual([error.code, error.field, error.fields?.[0]?.field], ["invalid_argument", field, field], `${tool} ${JSON.stringify(args)}`);
+    assert(error.fields !== undefined && error.fields.length > 1, `${tool} names every rule broken: ${JSON.stringify(error.fields)}`);
+  }
+});
+
 test("a JSON-quoted accepted string is that string; a free-text value keeps its quotes", async (context) => {
   const forwarded = new Map<string, Record<string, unknown>>();
   context.mock.method(globalThis, "fetch", async (input: string | Request | URL, init?: RequestInit) => {

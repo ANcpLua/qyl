@@ -1,11 +1,9 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
-using ContractChoices = System.Collections.Generic.IReadOnlyList<(string Name, System.Collections.Generic.IReadOnlyList<string> Values, System.Collections.Generic.IReadOnlyList<System.Type> Models)>;
 using ContractLengths = System.Collections.Generic.IReadOnlyList<(string Name, int? Minimum, int? Maximum)>;
 using ContractRanges = System.Collections.Generic.IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)>;
 
@@ -13,29 +11,29 @@ namespace Qyl.Collector.Hosting;
 
 internal static partial class CollectorEndpointExtensions
 {
-    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractLengths Lengths, ContractChoices Choices)> s_readAnalysisContracts =
-        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractLengths Lengths, ContractChoices Choices)>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRules Rules)> s_readAnalysisContracts =
+        new Dictionary<string, (JsonTypeInfo Input, JsonTypeInfo Output, ContractRules Rules)>(StringComparer.Ordinal)
         {
-            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, TriageInput.Ranges, TriageInput.Lengths, TriageInput.Choices),
-            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, GetFailureContextInput.Ranges, GetFailureContextInput.Lengths, GetFailureContextInput.Choices),
-            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, CompareGroupsInput.Ranges, CompareGroupsInput.Lengths, CompareGroupsInput.Choices),
-            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, CompareTracesInput.Ranges, CompareTracesInput.Lengths, CompareTracesInput.Choices),
-            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, VerifyFixInput.Ranges, VerifyFixInput.Lengths, VerifyFixInput.Choices),
-            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, AggregateTelemetryInput.Ranges, AggregateTelemetryInput.Lengths, AggregateTelemetryInput.Choices),
-            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, DiscoverAttributesInput.Ranges, DiscoverAttributesInput.Lengths, DiscoverAttributesInput.Choices),
-            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, GetAgentRunInput.Ranges, GetAgentRunInput.Lengths, GetAgentRunInput.Choices),
-            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, ListReleasesInput.Ranges, ListReleasesInput.Lengths, ListReleasesInput.Choices),
-            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, GetServiceMapInput.Ranges, GetServiceMapInput.Lengths, GetServiceMapInput.Choices),
-            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, CheckTelemetryHealthInput.Ranges, CheckTelemetryHealthInput.Lengths, CheckTelemetryHealthInput.Choices),
-            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, GetMcpStatsInput.Ranges, GetMcpStatsInput.Lengths, GetMcpStatsInput.Choices),
-            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, ListSessionsInput.Ranges, ListSessionsInput.Lengths, ListSessionsInput.Choices),
-            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, ListTracesInput.Ranges, ListTracesInput.Lengths, ListTracesInput.Choices),
-            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, GetTraceInput.Ranges, GetTraceInput.Lengths, GetTraceInput.Choices),
-            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, SearchLogsInput.Ranges, SearchLogsInput.Lengths, SearchLogsInput.Choices),
-            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, ListMetricsInput.Ranges, ListMetricsInput.Lengths, ListMetricsInput.Choices),
-            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, QueryMetricInput.Ranges, QueryMetricInput.Lengths, QueryMetricInput.Choices),
-            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, CiLogInput.Ranges, CiLogInput.Lengths, CiLogInput.Choices),
-            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, RunSavedQueryInput.Ranges, RunSavedQueryInput.Lengths, RunSavedQueryInput.Choices),
+            ["triage"] = (AnalysisContractJsonContext.Default.TriageInput, AnalysisContractJsonContext.Default.TriageOutput, new(TriageInput.Ranges, TriageInput.Lengths, TriageInput.Choices)),
+            ["get_failure_context"] = (AnalysisContractJsonContext.Default.GetFailureContextInput, AnalysisContractJsonContext.Default.GetFailureContextOutput, new(GetFailureContextInput.Ranges, GetFailureContextInput.Lengths, GetFailureContextInput.Choices)),
+            ["compare_groups"] = (AnalysisContractJsonContext.Default.CompareGroupsInput, AnalysisContractJsonContext.Default.CompareGroupsOutput, new(CompareGroupsInput.Ranges, CompareGroupsInput.Lengths, CompareGroupsInput.Choices)),
+            ["compare_traces"] = (AnalysisContractJsonContext.Default.CompareTracesInput, AnalysisContractJsonContext.Default.CompareTracesOutput, new(CompareTracesInput.Ranges, CompareTracesInput.Lengths, CompareTracesInput.Choices)),
+            ["verify_fix"] = (AnalysisContractJsonContext.Default.VerifyFixInput, AnalysisContractJsonContext.Default.VerifyFixOutput, new(VerifyFixInput.Ranges, VerifyFixInput.Lengths, VerifyFixInput.Choices)),
+            ["aggregate_telemetry"] = (AnalysisContractJsonContext.Default.AggregateTelemetryInput, AnalysisContractJsonContext.Default.AggregateTelemetryOutput, new(AggregateTelemetryInput.Ranges, AggregateTelemetryInput.Lengths, AggregateTelemetryInput.Choices)),
+            ["discover_attributes"] = (AnalysisContractJsonContext.Default.DiscoverAttributesInput, AnalysisContractJsonContext.Default.DiscoverAttributesOutput, new(DiscoverAttributesInput.Ranges, DiscoverAttributesInput.Lengths, DiscoverAttributesInput.Choices)),
+            ["get_agent_run"] = (AnalysisContractJsonContext.Default.GetAgentRunInput, AnalysisContractJsonContext.Default.GetAgentRunOutput, new(GetAgentRunInput.Ranges, GetAgentRunInput.Lengths, GetAgentRunInput.Choices)),
+            ["list_releases"] = (AnalysisContractJsonContext.Default.ListReleasesInput, AnalysisContractJsonContext.Default.ListReleasesOutput, new(ListReleasesInput.Ranges, ListReleasesInput.Lengths, ListReleasesInput.Choices)),
+            ["get_service_map"] = (AnalysisContractJsonContext.Default.GetServiceMapInput, AnalysisContractJsonContext.Default.GetServiceMapOutput, new(GetServiceMapInput.Ranges, GetServiceMapInput.Lengths, GetServiceMapInput.Choices)),
+            ["check_telemetry_health"] = (AnalysisContractJsonContext.Default.CheckTelemetryHealthInput, AnalysisContractJsonContext.Default.CheckTelemetryHealthOutput, new(CheckTelemetryHealthInput.Ranges, CheckTelemetryHealthInput.Lengths, CheckTelemetryHealthInput.Choices)),
+            ["get_mcp_stats"] = (AnalysisContractJsonContext.Default.GetMcpStatsInput, AnalysisContractJsonContext.Default.GetMcpStatsOutput, new(GetMcpStatsInput.Ranges, GetMcpStatsInput.Lengths, GetMcpStatsInput.Choices)),
+            ["list_sessions"] = (AnalysisContractJsonContext.Default.ListSessionsInput, AnalysisContractJsonContext.Default.ListSessionsOutput, new(ListSessionsInput.Ranges, ListSessionsInput.Lengths, ListSessionsInput.Choices)),
+            ["list_traces"] = (AnalysisContractJsonContext.Default.ListTracesInput, AnalysisContractJsonContext.Default.ListTracesOutput, new(ListTracesInput.Ranges, ListTracesInput.Lengths, ListTracesInput.Choices)),
+            ["get_trace"] = (AnalysisContractJsonContext.Default.GetTraceInput, AnalysisContractJsonContext.Default.GetTraceOutput, new(GetTraceInput.Ranges, GetTraceInput.Lengths, GetTraceInput.Choices)),
+            ["search_logs"] = (AnalysisContractJsonContext.Default.SearchLogsInput, AnalysisContractJsonContext.Default.SearchLogsOutput, new(SearchLogsInput.Ranges, SearchLogsInput.Lengths, SearchLogsInput.Choices)),
+            ["list_metrics"] = (AnalysisContractJsonContext.Default.ListMetricsInput, AnalysisContractJsonContext.Default.ListMetricsOutput, new(ListMetricsInput.Ranges, ListMetricsInput.Lengths, ListMetricsInput.Choices)),
+            ["query_metric"] = (AnalysisContractJsonContext.Default.QueryMetricInput, AnalysisContractJsonContext.Default.QueryMetricOutput, new(QueryMetricInput.Ranges, QueryMetricInput.Lengths, QueryMetricInput.Choices)),
+            ["ci_log"] = (AnalysisContractJsonContext.Default.CiLogInput, AnalysisContractJsonContext.Default.CiLogOutput, new(CiLogInput.Ranges, CiLogInput.Lengths, CiLogInput.Choices)),
+            ["run_saved_query"] = (AnalysisContractJsonContext.Default.RunSavedQueryInput, AnalysisContractJsonContext.Default.RunSavedQueryOutput, new(RunSavedQueryInput.Ranges, RunSavedQueryInput.Lengths, RunSavedQueryInput.Choices)),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     private static Task<IResult> AnalyzeReadEndpointAsync(HttpContext context, IQylStore store, TimeProvider time, CancellationToken ct)
@@ -96,10 +94,10 @@ internal static partial class CollectorEndpointExtensions
         ? ContractErrorResults.NotFound(invalid.Code[..^".not_found".Length], invalid.Missing, invalid.Description)
         : ContractErrorResults.Validation(invalid.Field, invalid.Description, invalid.Code, invalid.RejectedValue, invalid.Allowed, invalid.Hint);
 
-    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRanges Ranges, ContractLengths Lengths, ContractChoices Choices) AnalysisContract(string operation)
+    private static (JsonTypeInfo Input, JsonTypeInfo Output, ContractRules Rules) AnalysisContract(string operation)
     {
         if (operation == "update_failure_status")
-            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, [], [], []);
+            return (AnalysisContractJsonContext.Default.UpdateFailureStatusInput, AnalysisContractJsonContext.Default.UpdateFailureStatusOutput, ContractRules.None);
         return s_readAnalysisContracts.TryGetValue(operation, out var contract)
             ? contract
             : throw new InvalidOperationException("Unknown analysis contract.");
@@ -108,18 +106,61 @@ internal static partial class CollectorEndpointExtensions
     private static void ValidateAnalysisInput(string operation, JsonObject input)
     {
         var contract = AnalysisContract(operation);
-        CheckContract(input, contract.Input, contract.Ranges, contract.Lengths, contract.Choices);
+        CheckContract(input, contract.Input, contract.Rules);
     }
 
-    // A request body held to its contract: a member with a closed set answers with its values first, as the MCP's input
-    // schema does, then the body's type, its ranges and its lengths.
-    private static void CheckContract(JsonObject input, JsonTypeInfo type, ContractRanges ranges, ContractLengths lengths, ContractChoices choices)
+    // A request body read against its contract the way the MCP's input schema reads the same arguments, one member at a
+    // time in the contract's order, so that both name the same first field: at each object a member it does not declare
+    // first, in the order sent, then each declared member in the contract's order, a required one left out where it is
+    // declared; at each member its closed set of forms or its type, its range and its length, then the members or items
+    // it holds. An object a union takes is read as the model of its form.
+    private static void CheckContract(JsonObject input, JsonTypeInfo type, ContractRules rules) => CheckObject(input, type, "", "", rules);
+
+    private static void CheckObject(JsonObject members, JsonTypeInfo type, string field, string path, ContractRules rules)
     {
-        CheckChoices(input, choices, type.Options);
-        ReadAsContract(input, type);
-        CheckRanges(input, ranges);
-        CheckLengths(input, lengths);
+        string[] accepted = [.. type.Properties.Select(static p => p.Name)];
+        foreach (var (name, _) in members)
+        {
+            if (accepted.Contains(name, StringComparer.Ordinal)) continue;
+            var at = Join(field, name);
+            throw new AnalysisInputException(at, $"is not accepted here; accepted: {string.Join(", ", accepted)}", Join(path, name) + ".unknown")
+                { Allowed = accepted, Hint = $"Replace {at} with one of the accepted arguments or drop it." };
+        }
+        foreach (var property in type.Properties)
+        {
+            var at = Join(field, property.Name);
+            if (members.TryGetPropertyValue(property.Name, out var value))
+                CheckValue(value, type.Options.GetTypeInfo(property.PropertyType), at, Join(path, property.Name), rules);
+            else if (property.IsRequired)
+                throw new AnalysisInputException(at, "is required", Join(path, property.Name) + ".required") { Hint = $"Send {at}." };
+        }
     }
+
+    // One member's value: the forms its closed set takes or its type, the range and the length the contract bounds it to,
+    // then what it holds, an object's members or an array's items, whose paths write the item's index as [].
+    private static void CheckValue(JsonNode? value, JsonTypeInfo type, string field, string path, ContractRules rules)
+    {
+        if (rules.Choices.TryGetValue(path, out var choice))
+        {
+            if (value is JsonObject form && choice.Models.Count > 0) { CheckForm(form, choice, field, path, rules, type.Options); return; }
+            if (!Takes(choice.Values, value)) throw NotAForm(field, path, choice.Values);
+        }
+        else CheckType(value, type, field, path);
+        if (rules.Ranges.TryGetValue(path, out var range)) CheckRange(value, field, path, range);
+        if (rules.Lengths.TryGetValue(path, out var length)) CheckLength(value, field, path, length);
+        if (value is JsonObject members && type.Kind == JsonTypeInfoKind.Object && !Opaque(type))
+            CheckObject(members, type, field, path, rules);
+        else if (value is JsonArray items && type.Kind == JsonTypeInfoKind.Enumerable)
+        {
+            var element = type.Options.GetTypeInfo(type.ElementType!);
+            for (var i = 0; i < items.Count; i++) CheckValue(items[i], element, $"{field}[{i}]", path + "[]", rules);
+        }
+    }
+
+    private static string Join(string parent, string name) => parent.Length == 0 ? name : $"{parent}.{name}";
+
+    // C# reads a union as a bare object or a polymorphic interface: CheckForm reads it as its form's model.
+    private static bool Opaque(JsonTypeInfo type) => (Nullable.GetUnderlyingType(type.Type) ?? type.Type) == typeof(object) || type.PolymorphismOptions is not null;
 
     // A saved query's or an annotation's body read as its contract model once the ranges and lengths its contract declares
     // hold, checked as an analysis request's are and refused naming the field by its path.
@@ -144,49 +185,27 @@ internal static partial class CollectorEndpointExtensions
         }
     }
 
-    // A request read as its contract type, the way the MCP's input schema reads the same arguments: a member the type
-    // does not declare, a required one it leaves out and a value of another JSON type, null included, are refused naming
-    // the field by its path, with the members the object accepts, the values an enumeration takes or the type the field
-    // expects. A union C# reads as a bare object is left to CheckChoices, which reads an object as its form's model.
-    private static void ReadAsContract(JsonNode? node, JsonTypeInfo type, string field = "")
+    // A value of the JSON type the member's C# type stands for, as the MCP's input schema names it: an object, an array,
+    // a string, a number, a boolean, a time or one of an enumeration's values; null is none of them.
+    private static void CheckType(JsonNode? value, JsonTypeInfo type, string field, string path)
     {
         var clr = Nullable.GetUnderlyingType(type.Type) ?? type.Type;
-        if (clr == typeof(object) || type.PolymorphismOptions is not null) return;
+        if (Opaque(type)) return;
         switch (type.Kind)
         {
-            case JsonTypeInfoKind.Object when node is JsonObject members:
-                foreach (var (name, value) in members)
-                {
-                    var at = field.Length == 0 ? name : $"{field}.{name}";
-                    var property = type.Properties.FirstOrDefault(p => p.Name == name);
-                    if (property is null)
-                    {
-                        var accepted = type.Properties.Select(static p => p.Name).ToArray();
-                        throw new AnalysisInputException(at, $"is not accepted here; accepted: {string.Join(", ", accepted)}", Rule(at) + ".unknown")
-                            { Allowed = accepted, Hint = $"Replace {at} with one of the accepted arguments or drop it." };
-                    }
-                    ReadAsContract(value, type.Options.GetTypeInfo(property.PropertyType), at);
-                }
-                if (type.Properties.FirstOrDefault(p => p.IsRequired && !members.ContainsKey(p.Name)) is { } missing)
-                {
-                    var at = field.Length == 0 ? missing.Name : $"{field}.{missing.Name}";
-                    throw new AnalysisInputException(at, "is required", Rule(at) + ".required") { Hint = $"Send {at}." };
-                }
+            case JsonTypeInfoKind.Object when value is JsonObject:
+            case JsonTypeInfoKind.Enumerable when value is JsonArray:
                 return;
-            case JsonTypeInfoKind.Enumerable when node is JsonArray items:
-                var element = type.Options.GetTypeInfo(type.ElementType!);
-                for (var i = 0; i < items.Count; i++) ReadAsContract(items[i], element, $"{field}[{i}]");
-                return;
-            case JsonTypeInfoKind.None when node is JsonValue value:
-                ReadValue(value, type, clr, field);
+            case JsonTypeInfoKind.None when value is JsonValue scalar:
+                ReadValue(scalar, type, clr, field, path);
                 return;
         }
         // An object where the contract takes another type, a scalar where it takes an object or an array, or null.
-        throw new AnalysisInputException(field, $"must be {JsonType(type, clr)}", Rule(field) + ".type") { Hint = $"Send {field} as {JsonTypeArticle(type, clr)}." };
+        throw new AnalysisInputException(field, $"must be {JsonType(type, clr)}", path + ".type") { Hint = $"Send {field} as {JsonTypeArticle(type, clr)}." };
     }
 
     // A JSON value of a member C# reads as a string, a number, a boolean, a time or an enumeration.
-    private static void ReadValue(JsonValue value, JsonTypeInfo type, Type clr, string field)
+    private static void ReadValue(JsonValue value, JsonTypeInfo type, Type clr, string field, string path)
     {
         var kind = value.GetValueKind();
         if (clr.IsEnum)
@@ -194,19 +213,19 @@ internal static partial class CollectorEndpointExtensions
             var names = type.Options.GetTypeInfo(clr);
             string[] allowed = [.. Enum.GetValuesAsUnderlyingType(clr).Cast<object>().Select(member => JsonSerializer.Serialize(Enum.ToObject(clr, member), names).Trim('"'))];
             if (kind == JsonValueKind.String && allowed.Contains(value.GetValue<string>(), StringComparer.Ordinal)) return;
-            throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", allowed)}", Rule(field) + ".invalid") { Allowed = allowed, Hint = "Send one of the allowed values." };
+            throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", allowed)}", path + ".invalid") { Allowed = allowed, Hint = "Send one of the allowed values." };
         }
         if (clr == typeof(DateTimeOffset) && kind == JsonValueKind.String)
         {
             if (ContractDateTime.IsValid(value.GetValue<string>())) return;
-            throw new AnalysisInputException(field, "must match format \"date-time\"", Rule(field) + ".format") { Hint = "Send a time such as 2026-10-19T12:00:00Z." };
+            throw new AnalysisInputException(field, "must match format \"date-time\"", path + ".format") { Hint = "Send a time such as 2026-10-19T12:00:00Z." };
         }
         if (s_integers.TryGetValue(clr, out var range) && kind == JsonValueKind.Number)
         {
             var number = double.Parse(value.ToJsonString(), CultureInfo.InvariantCulture);
-            if (number != Math.Floor(number)) throw new AnalysisInputException(field, "must be integer", Rule(field) + ".type") { Hint = $"Send {field} as an integer." };
+            if (number != Math.Floor(number)) throw new AnalysisInputException(field, "must be integer", path + ".type") { Hint = $"Send {field} as an integer." };
             if (number < range.Minimum || number > range.Maximum)
-                throw new AnalysisInputException(field, number > range.Maximum ? $"must be <= {range.Maximum.ToString(CultureInfo.InvariantCulture)}" : $"must be >= {range.Minimum.ToString(CultureInfo.InvariantCulture)}", Rule(field) + ".out_of_range")
+                throw new AnalysisInputException(field, number > range.Maximum ? $"must be <= {range.Maximum.ToString(CultureInfo.InvariantCulture)}" : $"must be >= {range.Minimum.ToString(CultureInfo.InvariantCulture)}", path + ".out_of_range")
                     { Hint = $"Correct {field}." };
             return;
         }
@@ -218,7 +237,7 @@ internal static partial class CollectorEndpointExtensions
             "integer" => false,
             _ => true
         };
-        if (!fits) throw new AnalysisInputException(field, $"must be {JsonType(type, clr)}", Rule(field) + ".type") { Hint = $"Send {field} as {JsonTypeArticle(type, clr)}." };
+        if (!fits) throw new AnalysisInputException(field, $"must be {JsonType(type, clr)}", path + ".type") { Hint = $"Send {field} as {JsonTypeArticle(type, clr)}." };
     }
 
     // The integer types a contract member maps to, with the range each holds.
@@ -247,43 +266,33 @@ internal static partial class CollectorEndpointExtensions
         var name => "a " + name
     };
 
-    // The rule a refusal names: the field's path with an array's indexes written [], as Ranges and Choices write it.
-    private static string Rule(string field) => ArrayIndex().Replace(field, "[]");
-
-    [GeneratedRegex(@"\[\d+\]")]
-    private static partial Regex ArrayIndex();
-
     // A value of a member C# reads as a bare string or object, such as a baseline or a matcher's value, is refused when it
     // takes none of the forms the contract gives the member, with the values it accepts when they form a closed set: its
     // strings, its object forms, written {a, b}, and its JSON types, written <string>. An object is read as the model of
     // the form it is meant for, as the MCP's input schema resolves the union: the one form that declares every member it
     // sends, else the only object form there is, else the one of several such forms it satisfies.
-    private static void CheckChoices(JsonObject input, ContractChoices choices, JsonSerializerOptions options)
+    private static void CheckForm(JsonObject members, ContractChoice choice, string field, string path, ContractRules rules, JsonSerializerOptions options)
     {
-        foreach (var (path, forms, models) in choices)
-        foreach (var (field, sent) in Sent(input, path))
-        {
-            if (sent is JsonObject members && models.Count > 0)
-            {
-                JsonTypeInfo[] objects = [.. models.Select(options.GetTypeInfo)];
-                JsonTypeInfo[] meant = [.. objects.Where(model => members.All(member => model.Properties.Any(p => p.Name == member.Key)))];
-                if (meant.Length == 0 && objects.Length == 1) meant = objects;
-                if (meant.Length == 1) { ReadAsContract(members, meant[0], field); continue; }
-                if (meant.Any(model => Reads(members, model, field))) continue;
-            }
-            else if (Takes(forms, sent)) continue;
-            string[] types = [.. forms.Where(static form => form.StartsWith('<')).Select(static form => form.Trim('<', '>'))];
-            throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", forms.Select(static form => form.Trim('<', '>')))}", path + ".invalid")
-            {
-                Allowed = types.Length == 0 ? forms : null,
-                Hint = types.Length == 0 ? "Send one of the allowed values." : $"Send {field} as {string.Join(" or ", types.Select(static type => (type is "integer" ? "an " : "a ") + type))}."
-            };
-        }
+        JsonTypeInfo[] objects = [.. choice.Models.Select(options.GetTypeInfo)];
+        JsonTypeInfo[] meant = [.. objects.Where(model => members.All(member => model.Properties.Any(p => p.Name == member.Key)))];
+        if (meant.Length == 0 && objects.Length == 1) meant = objects;
+        if (meant.Length == 1) { CheckObject(members, meant[0], field, path, rules); return; }
+        if (!meant.Any(model => Reads(members, model, field, path, rules))) throw NotAForm(field, path, choice.Values);
     }
 
-    private static bool Reads(JsonObject members, JsonTypeInfo model, string field)
+    private static AnalysisInputException NotAForm(string field, string path, IReadOnlyList<string> forms)
     {
-        try { ReadAsContract(members, model, field); return true; }
+        string[] types = [.. forms.Where(static form => form.StartsWith('<')).Select(static form => form.Trim('<', '>'))];
+        return new AnalysisInputException(field, $"must be one of: {string.Join(", ", forms.Select(static form => form.Trim('<', '>')))}", path + ".invalid")
+        {
+            Allowed = types.Length == 0 ? forms : null,
+            Hint = types.Length == 0 ? "Send one of the allowed values." : $"Send {field} as {string.Join(" or ", types.Select(static type => (type is "integer" ? "an " : "a ") + type))}."
+        };
+    }
+
+    private static bool Reads(JsonObject members, JsonTypeInfo model, string field, string path, ContractRules rules)
+    {
+        try { CheckObject(members, model, field, path, rules); return true; }
         catch (AnalysisInputException) { return false; }
     }
 
@@ -300,58 +309,66 @@ internal static partial class CollectorEndpointExtensions
         _ => false
     };
 
-    // A number the request sends outside the range the contract bounds its member to is refused naming that range; an
-    // omitted member takes its default. The engine reads the members unchecked, so this is the one place a bound applies.
-    // A nested member, such as baseline.offset_minutes, belongs to an object the request may omit as a whole.
-    private static void CheckRanges(JsonObject input, ContractRanges ranges)
+    // A number outside the range the contract bounds its member to is refused naming that range; an omitted member takes
+    // its default. The engine reads the members unchecked, so this is the one place a bound applies. A nested member,
+    // such as baseline.offset_minutes, belongs to an object the request may omit as a whole.
+    private static void CheckRange(JsonNode? sent, string field, string path, (double? Minimum, double? Maximum, double? Default) range)
     {
         static string Text(double value) => value.ToString(CultureInfo.InvariantCulture);
-        foreach (var (path, minimum, maximum, fallback) in ranges)
-        foreach (var (field, sent) in Sent(input, path))
+        if (sent is not JsonValue number || number.GetValueKind() != JsonValueKind.Number)
+            throw new AnalysisInputException(field, "must be number", path + ".type") { Hint = $"Send {field} as a number." };
+        var value = double.Parse(sent.ToJsonString(), CultureInfo.InvariantCulture);
+        if (value >= (range.Minimum ?? double.NegativeInfinity) && value <= (range.Maximum ?? double.PositiveInfinity)) return;
+        var bounds = (range.Minimum, range.Maximum) switch
         {
-            if (sent is not JsonValue number || number.GetValueKind() != JsonValueKind.Number)
-                throw new AnalysisInputException(field, "must be number", path + ".type") { Hint = $"Send {field} as a number." };
-            var value = double.Parse(sent.ToJsonString(), CultureInfo.InvariantCulture);
-            if (value >= (minimum ?? double.NegativeInfinity) && value <= (maximum ?? double.PositiveInfinity)) continue;
-            var range = (minimum, maximum) switch
-            {
-                ({ } low, { } high) => $"from {Text(low)} to {Text(high)}",
-                ({ } low, null) => $"of at least {Text(low)}",
-                _ => $"of at most {Text(maximum!.Value)}"
-            };
-            throw new AnalysisInputException(field, $"Use {field} {range}.", path + ".out_of_range")
-            {
-                Hint = path.Contains('.') ? $"Correct {field}." : fallback is { } omitted ? $"Omit {field} for {Text(omitted)}." : $"Omit {field} for the tool's default.",
-                RejectedValue = J.Text(sent)
-            };
-        }
+            ({ } low, { } high) => $"from {Text(low)} to {Text(high)}",
+            ({ } low, null) => $"of at least {Text(low)}",
+            _ => $"of at most {Text(range.Maximum!.Value)}"
+        };
+        throw new AnalysisInputException(field, $"Use {field} {bounds}.", path + ".out_of_range")
+        {
+            Hint = path.Contains('.') ? $"Correct {field}." : range.Default is { } omitted ? $"Omit {field} for {Text(omitted)}." : $"Omit {field} for the tool's default.",
+            RejectedValue = J.Text(sent)
+        };
     }
 
-    // A string or an array the request sends outside the length the contract bounds its member to is refused naming that
-    // length: a string counts its code points, as JSON Schema does, and an array its items. This is the one place a length
-    // or an item count of a request body applies.
-    private static void CheckLengths(JsonObject input, ContractLengths lengths)
+    // A string or an array outside the length the contract bounds its member to is refused naming that length: a string
+    // counts its code points, as JSON Schema does, and an array its items. This is the one place a length or an item
+    // count of a request body applies.
+    private static void CheckLength(JsonNode? sent, string field, string path, (int? Minimum, int? Maximum) bounds)
     {
         static string Count(int count, string unit) => $"{count} {unit}{(count == 1 ? "" : "s")}";
+        var (length, unit) = sent switch
+        {
+            JsonArray items => (items.Count, "item"),
+            JsonValue value when value.GetValueKind() == JsonValueKind.String => (value.GetValue<string>().EnumerateRunes().Count(), "character"),
+            _ => (-1, "")
+        };
+        if (length < 0 || length >= (bounds.Minimum ?? 0) && length <= (bounds.Maximum ?? int.MaxValue)) return;
+        var range = (bounds.Minimum, bounds.Maximum) switch
+        {
+            ({ } low, { } high) when low == high => $"exactly {Count(high, unit)}",
+            ({ } low, { } high) => $"{low} to {Count(high, unit)}",
+            ({ } low, null) => $"at least {Count(low, unit)}",
+            _ => $"at most {Count(bounds.Maximum!.Value, unit)}"
+        };
+        throw new AnalysisInputException(field, unit == "item" ? $"Use {field} with {range}." : $"Use {field} of {range}.", path + ".length") { Hint = $"Correct {field}." };
+    }
+
+    // A saved query's, an annotation's and a failure's body keeps the ranges and lengths its contract declares, each
+    // value at its path checked as an analysis member's is.
+    private static void CheckRanges(JsonObject input, ContractRanges ranges)
+    {
+        foreach (var (path, minimum, maximum, fallback) in ranges)
+        foreach (var (field, sent) in Sent(input, path))
+            CheckRange(sent, field, path, (minimum, maximum, fallback));
+    }
+
+    private static void CheckLengths(JsonObject input, ContractLengths lengths)
+    {
         foreach (var (path, minimum, maximum) in lengths)
         foreach (var (field, sent) in Sent(input, path))
-        {
-            var (length, unit) = sent switch
-            {
-                JsonArray items => (items.Count, "item"),
-                JsonValue value when value.GetValueKind() == JsonValueKind.String => (value.GetValue<string>().EnumerateRunes().Count(), "character"),
-                _ => (-1, "")
-            };
-            if (length < 0 || length >= (minimum ?? 0) && length <= (maximum ?? int.MaxValue)) continue;
-            var range = (minimum, maximum) switch
-            {
-                ({ } low, { } high) when low == high => $"exactly {Count(high, unit)}",
-                ({ } low, { } high) => $"{low} to {Count(high, unit)}",
-                ({ } low, null) => $"at least {Count(low, unit)}",
-                _ => $"at most {Count(maximum!.Value, unit)}"
-            };
-            throw new AnalysisInputException(field, unit == "item" ? $"Use {field} with {range}." : $"Use {field} of {range}.", path + ".length") { Hint = $"Correct {field}." };
-        }
+            CheckLength(sent, field, path, (minimum, maximum));
     }
 
     // The values a request sends at a contract path, null included, each named as the MCP names it: baseline.offset_minutes,

@@ -11,6 +11,7 @@ namespace Qyl.Collector.Hosting;
 internal static partial class CollectorEndpointExtensions
 {
     private const string SavedQueryOperation = "saved-queries";
+    private static readonly ContractRules s_savedQueryRunRules = new(SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Choices);
     private const int SavedQueryMaxMatcherValueLength = 1024;
 
     private static async Task<IResult> CreateSavedQueryAsync(
@@ -206,7 +207,7 @@ internal static partial class CollectorEndpointExtensions
             if ((httpContext.Request.ContentLength is > 0
                 ? await System.Text.Json.Nodes.JsonNode.ParseAsync(httpContext.Request.Body, cancellationToken: ct).ConfigureAwait(false) as System.Text.Json.Nodes.JsonObject
                 : new System.Text.Json.Nodes.JsonObject()) is not { } body) return ResourceHttp.InvalidBody("Provide an object with the run options.");
-            CheckContract(body, QylSerializerContext.Default.SavedQueryRunRequest, SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Choices);
+            CheckContract(body, QylSerializerContext.Default.SavedQueryRunRequest, s_savedQueryRunRules);
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
             if (await store.GetSavedQueryAsync(project, savedQueryId, ct).ConfigureAwait(false) is not { } saved)

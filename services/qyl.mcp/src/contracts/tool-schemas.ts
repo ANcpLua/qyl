@@ -227,30 +227,79 @@ function resolveUnions(errors: readonly AjvError[]): AjvError[] {
   return remaining;
 }
 
+/** The JSON Pointer of the value a rule rejected, as segments, and the member a missing or unknown rule names. */
+function segmentsOf(error: AjvError): string[] {
+  const segments = error.instancePath.split("/").slice(1).map((segment) => segment.replaceAll("~1", "/").replaceAll("~0", "~"));
+  const child = error.keyword === "required" ? error.params.missingProperty
+    : error.keyword === "additionalProperties" ? error.params.additionalProperty : undefined;
+  return typeof child === "string" ? [...segments, child] : segments;
+}
+
+/**
+ * Where a rejected value sits in its contract: at each step the index of the member among those its object declares,
+ * -1 for a member the object does not declare, or an item's index in its array. Issues sort by it, so the first one
+ * names the field the contract declares first, depth first: a member an object does not declare before its declared
+ * ones, a required one left out where it is declared, and a member's own rule before those of what it holds. The
+ * Collector's routes read a request in the same order, so both name the same first field.
+ */
+function contractOrder(schema: JsonSchemaNode, segments: readonly string[]): number[] {
+  const order: number[] = [];
+  let current: JsonSchemaNode | undefined = schema;
+  for (const segment of segments) {
+    const items: JsonSchemaNode | undefined = current === undefined ? undefined : forms(current).map((form) => form.items).find(isObject);
+    if (items !== undefined && /^\d+$/u.test(segment)) {
+      order.push(Number(segment));
+      current = items;
+      continue;
+    }
+    const owner: JsonSchemaNode | undefined = current === undefined ? undefined
+      : forms(current).find((form) => isObject(form.properties) && Object.hasOwn(form.properties, segment));
+    const members: unknown = owner?.properties;
+    if (!isObject(members)) {
+      order.push(-1);
+      current = undefined;
+      continue;
+    }
+    order.push(Object.keys(members).indexOf(segment));
+    current = isObject(members[segment]) ? members[segment] : undefined;
+  }
+  return order;
+}
+
+/** Of several rules one value breaks, the one that names what it accepts comes first: the values of a closed set before its type. */
 const PRIORITY = ["additionalProperties", "enum", "required", "type"];
 const priority = (issue: ArgumentIssue): number => {
   const rank = PRIORITY.indexOf(issue.keyword);
   return rank < 0 ? PRIORITY.length : rank;
 };
 
-/** One issue per path and rule; enum values and alternative types from several branches merge. */
-function describeAjvErrors(errors: readonly AjvError[]): ArgumentIssue[] {
-  const issues = new Map<string, ArgumentIssue>();
+function compareOrder(left: readonly number[], right: readonly number[]): number {
+  for (let index = 0; index < Math.min(left.length, right.length); index++) {
+    if (left[index] !== right[index]) return left[index]! - right[index]!;
+  }
+  return left.length - right.length;
+}
+
+/** One issue per path and rule, in the contract's order; enum values and alternative types from several branches merge. */
+function describeAjvErrors(errors: readonly AjvError[], schema: JsonSchemaNode): ArgumentIssue[] {
+  const issues = new Map<string, { issue: ArgumentIssue; order: number[] }>();
   for (const error of resolveUnions(errors)) {
     const issue = describe(error);
     const key = issueKey(issue);
-    const existing = issues.get(key);
+    const existing = issues.get(key)?.issue;
     if (existing === undefined) {
-      issues.set(key, issue);
+      issues.set(key, { issue, order: contractOrder(schema, segmentsOf(error)) });
     } else if (issue.keyword === "enum") {
       const allowed = [...new Set([...(existing.allowed ?? []), ...(issue.allowed ?? [])])];
-      issues.set(key, { ...existing, allowed, message: `must be one of: ${list(allowed)}` });
+      issues.set(key, { ...issues.get(key)!, issue: { ...existing, allowed, message: `must be one of: ${list(allowed)}` } });
     } else if (issue.keyword === "type" && typeof error.params.type === "string") {
       const types = [...new Set([...existing.message.replace(/^must be /u, "").split(" or "), error.params.type])];
-      issues.set(key, { ...existing, message: `must be ${types.join(" or ")}` });
+      issues.set(key, { ...issues.get(key)!, issue: { ...existing, message: `must be ${types.join(" or ")}` } });
     }
   }
-  return [...issues.values()].sort((left, right) => priority(left) - priority(right));
+  return [...issues.values()]
+    .sort((left, right) => compareOrder(left.order, right.order) || priority(left.issue) - priority(right.issue))
+    .map(({ issue }) => issue);
 }
 
 /** The content of a JSON string literal sent as a string: `"\"rest\""` is `rest`. */
@@ -315,7 +364,7 @@ class ContractValidator implements jsonSchemaValidator {
     return (input) => {
       const data = this.toolArguments ? unquoteClosedStrings(schema as JsonSchemaNode, input) : input;
       if (validate(data)) return { valid: true, data: data as T, errorMessage: undefined };
-      const issues = describeAjvErrors((validate.errors ?? []) as readonly AjvError[]);
+      const issues = describeAjvErrors((validate.errors ?? []) as readonly AjvError[], schema as JsonSchemaNode);
       if (typeof input === "object" && input !== null) rejected.set(input, issues);
       return { valid: false, data: undefined, errorMessage: issues.map(formatArgumentIssue).join("; ") };
     };
