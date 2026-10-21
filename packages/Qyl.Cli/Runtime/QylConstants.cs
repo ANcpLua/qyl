@@ -68,7 +68,6 @@ internal static class QylConstants
         public const char Stop = 'S';
         public const char Restart = 'R';
         public const char Help = 'H';
-        public const char Browser = 'B';
     }
 
     public static class Orchestrator

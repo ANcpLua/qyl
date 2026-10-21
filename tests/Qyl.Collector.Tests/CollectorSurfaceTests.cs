@@ -6,7 +6,8 @@ using RpcStatus = Google.Rpc.Status;
 
 namespace Qyl.Collector.Tests;
 
-// Backend contracts previously exercised by the dashboard's browser smoke.
+// The Collector's HTTP answers outside the analysis routes: unmapped paths, a removed operation,
+// malformed queries and an unsupported OTLP encoding.
 [TestClass]
 public sealed class CollectorSurfaceTests(TestContext testContext)
 {
