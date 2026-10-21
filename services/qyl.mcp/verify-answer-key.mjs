@@ -565,11 +565,11 @@ verify('35 a value of its length outside its pattern is refused by the MCP and b
   }
  assert(refused>=15,`trace, span, session and CI run ids of every tool, nested ones included: ${refused}`);
  // A path parameter is refused naming it, as the MCP names the argument it reads the same id from.
- for (const [route,tool,args] of [
-  [`/api/v1/traces/${'A'.repeat(32)}`,'get_trace',{trace_id:'A'.repeat(32)}],
-  [`/api/v1/traces/${'A'.repeat(32)}/spans`,'get_trace',{trace_id:'A'.repeat(32)}],
-  ['/api/v1/sessions/a%20b','list_traces',{session_id:'a b'}],
-  ['/api/v1/sessions/a%20b/traces','list_traces',{session_id:'a b'}]]) {
+ for (const {route,tool,args} of [
+  {route:`/api/v1/traces/${'A'.repeat(32)}`,tool:'get_trace',args:{trace_id:'A'.repeat(32)}},
+  {route:`/api/v1/traces/${'A'.repeat(32)}/spans`,tool:'get_trace',args:{trace_id:'A'.repeat(32)}},
+  {route:'/api/v1/sessions/a%20b',tool:'list_traces',args:{session_id:'a b'}},
+  {route:'/api/v1/sessions/a%20b/traces',tool:'list_traces',args:{session_id:'a b'}}]) {
   const [field]=Object.keys(args);
   const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
   const response=await fetch(`${process.env.QYL_COLLECTOR_URL}${route}`,{headers:collectorHeaders()});
@@ -639,26 +639,31 @@ verify('37 with several arguments wrong, the MCP and the Collector\'s HTTP route
 
 verify('38 a write\'s body is read by its contract: an unknown member, another type, a value outside its set or its pattern is refused by the MCP and by the Collector\'s write route, naming the same field',async(_call,client)=>{
  const trace='a'.repeat(32), target={kind:'trace',trace_id:trace};
- const http=async(method,path,body)=>{
-  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}${path}`,{method,headers:{'content-type':'application/json','if-match':'*',...collectorHeaders()},body:JSON.stringify(body)});
+ const headers={'content-type':'application/json','if-match':'*',...collectorHeaders()};
+ // A create posts its body; a failure's status is a change of the failure the path names.
+ const http=async(path,body)=>{
+  const url=`${process.env.QYL_COLLECTOR_URL}${path}`;
+  const response=path.startsWith('/api/v1/failures/')
+   ? await fetch(url,{method:'PATCH',headers,body:JSON.stringify(body)})
+   : await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
   return [response.status,((await response.json()).errors??[])[0]?.field];
  };
- for (const [tool,args,method,path,field,body=args] of [
-  ['annotate',{target:{kind:'trace',trace_id:'A'.repeat(32)},text:'x'},'POST','/api/v1/annotations','target.trace_id'],
-  ['annotate',{target:{...target,bogus:1},text:'x'},'POST','/api/v1/annotations','target.bogus'],
-  ['annotate',{target:{kind:'metric'},text:'x'},'POST','/api/v1/annotations','target.kind'],
-  ['annotate',{target,text:5},'POST','/api/v1/annotations','text'],
-  ['annotate',{target,text:'x',labels:'a'},'POST','/api/v1/annotations','labels'],
-  ['annotate',{target,text:'x',classification:'idea'},'POST','/api/v1/annotations','classification'],
-  ['save_query',{name:'x',filter:{signal:'logs',trace_id:'A'.repeat(32)}},'POST','/api/v1/saved-queries','filter.trace_id'],
-  ['save_query',{name:'x',filter:{signal:'alerts'}},'POST','/api/v1/saved-queries','filter.signal'],
-  ['save_query',{name:'x',filter:{signal:'traces',bogus:1}},'POST','/api/v1/saved-queries','filter.bogus'],
-  ['save_query',{name:5,filter:{signal:'traces'}},'POST','/api/v1/saved-queries','name'],
-  ['save_query',{name:'x',filter:{signal:'logs',severity_min:99}},'POST','/api/v1/saved-queries','filter.severity_min'],
-  ['update_failure_status',{failure_id:'fail_answer_key',etag:'"e"',status:'closed'},'PATCH','/api/v1/failures/fail_answer_key','status',{status:'closed'}],
-  ['update_failure_status',{failure_id:'fail_answer_key',etag:'"e"',status:'resolved',assignee:5},'PATCH','/api/v1/failures/fail_answer_key','assignee',{status:'resolved',assignee:5}]]) {
+ for (const {tool,args,path,field,body=args} of [
+  {tool:'annotate',args:{target:{kind:'trace',trace_id:'A'.repeat(32)},text:'x'},path:'/api/v1/annotations',field:'target.trace_id'},
+  {tool:'annotate',args:{target:{...target,bogus:1},text:'x'},path:'/api/v1/annotations',field:'target.bogus'},
+  {tool:'annotate',args:{target:{kind:'metric'},text:'x'},path:'/api/v1/annotations',field:'target.kind'},
+  {tool:'annotate',args:{target,text:5},path:'/api/v1/annotations',field:'text'},
+  {tool:'annotate',args:{target,text:'x',labels:'a'},path:'/api/v1/annotations',field:'labels'},
+  {tool:'annotate',args:{target,text:'x',classification:'idea'},path:'/api/v1/annotations',field:'classification'},
+  {tool:'save_query',args:{name:'x',filter:{signal:'logs',trace_id:'A'.repeat(32)}},path:'/api/v1/saved-queries',field:'filter.trace_id'},
+  {tool:'save_query',args:{name:'x',filter:{signal:'alerts'}},path:'/api/v1/saved-queries',field:'filter.signal'},
+  {tool:'save_query',args:{name:'x',filter:{signal:'traces',bogus:1}},path:'/api/v1/saved-queries',field:'filter.bogus'},
+  {tool:'save_query',args:{name:5,filter:{signal:'traces'}},path:'/api/v1/saved-queries',field:'name'},
+  {tool:'save_query',args:{name:'x',filter:{signal:'logs',severity_min:99}},path:'/api/v1/saved-queries',field:'filter.severity_min'},
+  {tool:'update_failure_status',args:{failure_id:'fail_answer_key',etag:'"e"',status:'closed'},path:'/api/v1/failures/fail_answer_key',field:'status',body:{status:'closed'}},
+  {tool:'update_failure_status',args:{failure_id:'fail_answer_key',etag:'"e"',status:'resolved',assignee:5},path:'/api/v1/failures/fail_answer_key',field:'assignee',body:{status:'resolved',assignee:5}}]) {
   const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
-  assert.deepEqual([mcp?.code,mcp?.field,...await http(method,path,body)],['invalid_argument',field,400,field],`${tool} ${JSON.stringify(args)}`);
+  assert.deepEqual([mcp?.code,mcp?.field,...await http(path,body)],['invalid_argument',field,400,field],`${tool} ${JSON.stringify(args)}`);
  }
 });
 
