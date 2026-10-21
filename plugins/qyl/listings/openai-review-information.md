@@ -4,7 +4,7 @@ Use these sections for the corresponding review fields. Supply reviewer credenti
 
 ## What the plugin does
 
-Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.
+Built over ten months by one developer, using AI models to the fullest.
 
 qyl is built for AI agents. Its MCP tools return structured telemetry, analysis and typed errors; its skills guide investigations and local .NET work. qyl ships no dashboard, Workbench, embedded viewer or other product UI. Review the agent's tool calls and recorded evidence in the host client.
 

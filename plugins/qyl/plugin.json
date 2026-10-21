@@ -11,7 +11,7 @@
         "displayName": "qyl",
         "category": "Developer Tools",
         "shortDescription": "Investigate, improve, verify",
-        "longDescription": "Investigate recorded telemetry through qyl and work on .NET source with focused skills for MSBuild, NuGet, analyzers, C# refactoring, runtime performance and native MSTest. The hosted MCP server accesses the connected account's Collector project. Source edits, builds, tests and bundled scripts use the agent's workspace tools. Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.",
+        "longDescription": "Investigate recorded telemetry through qyl and work on .NET source with focused skills for MSBuild, NuGet, analyzers, C# refactoring, runtime performance and native MSTest. The hosted MCP server accesses the connected account's Collector project. Source edits, builds, tests and bundled scripts use the agent's workspace tools. Built over ten months by one developer, using AI models to the fullest.",
         "developerName": "Alexander Nachtmann",
         "capabilities": [
           "Read",
