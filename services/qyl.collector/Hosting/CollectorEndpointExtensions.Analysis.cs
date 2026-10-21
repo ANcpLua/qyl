@@ -198,7 +198,7 @@ internal static partial class CollectorEndpointExtensions
         }
         if (clr == typeof(DateTimeOffset) && kind == JsonValueKind.String)
         {
-            if (J.IsTimestamp(value.GetValue<string>())) return;
+            if (ContractDateTime.IsValid(value.GetValue<string>())) return;
             throw new AnalysisInputException(field, "must match format \"date-time\"", Rule(field) + ".format") { Hint = "Send a time such as 2026-10-19T12:00:00Z." };
         }
         if (s_integers.TryGetValue(clr, out var range) && kind == JsonValueKind.Number)

@@ -189,6 +189,27 @@ test("contract date-time fields accept RFC 3339 and reject missing seconds or of
   }
 });
 
+test("a contract time is RFC 3339 date-time with T and Z in either case and an offset with its colon, as the Collector reads it", () => {
+  // The Collector's AnalysisErrorTests send the same times to its routes.
+  for (const [value, accepted] of [
+    ["2026-10-17T11:00:00Z", true],
+    ["2026-10-17t11:00:00z", true],
+    ["2026-10-17T11:00:00.0000000000Z", true],
+    ["2026-10-17T13:00:00+02:00", true],
+    ["2026-10-18T10:59:00+23:59", true],
+    ["2026-10-16T11:01:00-23:59", true],
+    ["2026-10-17 11:00:00Z", false],
+    ["2026-10-17T11:00:00+0200", false],
+    ["2026-10-17T11:00:00+02", false],
+    ["2016-12-31T23:59:60Z", false],
+    ["2026-02-29T11:00:00Z", false],
+    ["2026-10-17T11:00:00+24:00", false],
+  ] as const) {
+    assert.equal(valid("Mcp.Tools.TriageInput", { start_time: value }), accepted, `start_time ${value}`);
+    assert.equal(valid("Mcp.Tools.ListTracesOutput", { ...readContext(0), traces: [], window: { start_time: value, end_time: value } }), accepted, `window ${value}`);
+  }
+});
+
 test("only generated names resolve to documents", () => {
   // `in` answers true for every Object.prototype key; none of them is a document.
   for (const inherited of ["toString", "constructor", "__proto__", "hasOwnProperty"]) {

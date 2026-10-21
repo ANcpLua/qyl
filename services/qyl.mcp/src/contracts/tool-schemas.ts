@@ -25,6 +25,7 @@ import {
   type StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
 import { addFormats, Ajv } from "@modelcontextprotocol/server/validators/ajv";
+import { isContractDateTime } from "./date-time.js";
 import type { ToolError } from "./generated/api.js";
 import type { ContractDefinitions } from "./generated/definitions.js";
 import documents from "./generated/tool-schemas.json" with { type: "json" };
@@ -33,6 +34,8 @@ import documents from "./generated/tool-schemas.json" with { type: "json" };
 // what the rejection lists as accepted.
 const ajv = new Ajv({ strict: true, allErrors: true, verbose: true });
 addFormats(ajv);
+// A contract time is read by the Collector's rule, stricter than Ajv's own date-time.
+ajv.addFormat("date-time", { type: "string", validate: isContractDateTime });
 
 /** A value the contract's `ToolError.allowed` names: one a schema enumerates for an argument. */
 type ArgumentValue = NonNullable<ToolError["allowed"]>[number];

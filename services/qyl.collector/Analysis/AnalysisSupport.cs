@@ -60,20 +60,16 @@ internal static partial class J
         input is JsonObject obj && obj[name] is { } value && value.GetValueKind() is JsonValueKind.True or JsonValueKind.False
             ? value.GetValue<bool>() : fallback;
     public static string Text(JsonNode? value) => value is null ? "" : value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>() : value.ToJsonString();
-    // An RFC 3339 timestamp, the date-time format of the contract's times.
-    public static bool IsTimestamp(string text) =>
-        Rfc3339().IsMatch(text) && DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _);
     public static DateTimeOffset? Date(JsonNode? input, string name)
     {
         if ((input as JsonObject)?[name] is null) return null;
-        var text = String(input, name) ?? "";
-        if (Rfc3339().Match(text) is not { Success: true } match || !DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
+        if (ContractDateTime.Read(String(input, name) ?? "") is not { } time)
             throw new AnalysisInputException(name, name + " must be an RFC 3339 timestamp.") { Hint = "Send a time such as 2026-10-19T12:00:00Z." };
         // An instant holds 100 ns. A finer boundary cannot be applied exactly, and moving it would
         // include or exclude records the request did not select.
-        if (match.Groups["fraction"].Value is { Length: > 7 } fraction && fraction.AsSpan(7).ContainsAnyExcept('0'))
+        if (ContractDateTime.FinerThanTicks(time.Fraction))
             throw new AnalysisInputException(name, name + " is finer than 100 nanoseconds; use at most seven fractional digits.", "time.precision_unsupported");
-        if (!QylTimeConversions.TryToUnixNanoUnsigned(value, out _))
+        if (time.Instant is not { } value || !QylTimeConversions.TryToUnixNanoUnsigned(value, out _))
             throw new AnalysisInputException(name, name + " must be within the unsigned OTLP Unix-nanosecond range.");
         return value;
     }
@@ -97,7 +93,6 @@ internal static partial class J
         return obj.DeepClone();
     }
     public static string Normalize(string message) => Numbers().Replace(Quoted().Replace(Hex().Replace(Uuid().Replace(message, "#"), "#"), "#"), "#");
-    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(?<fraction>\d{1,9}))?(?:Z|[+-]\d{2}:\d{2})$")] private static partial Regex Rfc3339();
     [GeneratedRegex(@"\b\d+(?:\.\d+)?\b")] private static partial Regex Numbers();
     [GeneratedRegex("[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}")] private static partial Regex Uuid();
     [GeneratedRegex(@"\b(?:0x)?[0-9a-fA-F]{8,}\b")] private static partial Regex Hex();

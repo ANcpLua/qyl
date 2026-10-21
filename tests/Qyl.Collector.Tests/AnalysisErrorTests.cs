@@ -64,6 +64,52 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// Every contract time is read by one rule, the MCP's input schema's as the Collector's: RFC 3339 date-time with T and
+    /// Z in either case and a numeric offset with its colon. A space for T, an offset without its colon or its minutes, a
+    /// leap second, a day the month lacks and an offset hour past 23 are refused naming the field, by the analysis routes
+    /// and the read API's query alike.
+    /// </summary>
+    [TestMethod]
+    [DataRow("2026-10-17 11:00:00Z")]
+    [DataRow("2026-10-17T11:00:00+0200")]
+    [DataRow("2026-10-17T11:00:00+02")]
+    [DataRow("2016-12-31T23:59:60Z")]
+    [DataRow("2026-02-29T11:00:00Z")]
+    [DataRow("2026-10-17T11:00:00+24:00")]
+    public async Task A_time_outside_the_contract_date_time_rule_is_refused_naming_the_field(string time)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var analysis = await RejectedAsync(host, "triage", $$"""{"start_time":"{{time}}"}""");
+        using var read = await host.SendAsync(HttpMethod.Get, "/api/v1/traces?start_time=" + Uri.EscapeDataString(time), ReaderApiKey);
+        var query = Assert.ContainsSingle((await host.JsonAsync(read)).GetProperty("errors").EnumerateArray());
+
+        Assert.AreEqual(("start_time", "start_time.format"), (analysis.GetProperty("field").GetString(), analysis.GetProperty("code").GetString()));
+        Assert.AreEqual((HttpStatusCode.BadRequest, "start_time"), (read.StatusCode, query.GetProperty("field").GetString()));
+    }
+
+    /// <summary>
+    /// The rule takes T and Z in either case, a fraction of any length that a tick holds and an offset up to the 23:59
+    /// RFC 3339 allows, beyond the 14 hours a .NET offset keeps: each of these is 11:00 UTC on the fixture's day.
+    /// </summary>
+    [TestMethod]
+    [DataRow("2026-10-17t11:00:00z")]
+    [DataRow("2026-10-17T11:00:00.0000000000Z")]
+    [DataRow("2026-10-17T13:00:00+02:00")]
+    [DataRow("2026-10-18T10:59:00+23:59")]
+    [DataRow("2026-10-16T11:01:00-23:59")]
+    public async Task A_time_the_contract_date_time_rule_takes_is_read_at_its_instant(string time)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var triage = await Read(host, "triage", $$"""{"start_time":"{{time}}","end_time":"2026-10-17T12:00:00Z"}""");
+        using var read = await host.SendAsync(HttpMethod.Get, "/api/v1/traces?start_time=" + Uri.EscapeDataString(time), ReaderApiKey);
+
+        Assert.AreEqual(new DateTimeOffset(2026, 10, 17, 11, 0, 0, TimeSpan.Zero), triage.GetProperty("window").GetProperty("start_time").GetDateTimeOffset());
+        Assert.AreEqual(HttpStatusCode.OK, read.StatusCode, await read.Content.ReadAsStringAsync(testContext.CancellationToken));
+    }
+
+    /// <summary>
     /// A string or an array outside the length the contract bounds it to is refused naming the field by its path and
     /// the length it keeps: a matcher's key and values, an aggregate's group_by, search_logs' one pattern group,
     /// ci_log's service_prefix, a trace id's exact length, a metric name that may not be empty and a group's failure id.

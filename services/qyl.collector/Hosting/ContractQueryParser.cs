@@ -408,13 +408,16 @@ internal static class ContractQueryParser
         {
             value = null;
             if (!TryReadSingle(name, out var raw, out var rejectedValue)) return null;
-            // An instant holds 100 ns; a finer boundary is rejected rather than silently moved.
-            if (raw is not null && FinerThanTicks(raw))
-                return Invalid(name, "Value is finer than 100 nanoseconds; use at most seven fractional digits.", "time.precision_unsupported", rejectedValue);
-            if (raw is not null && TryParseRfc3339(raw, out var parsed))
+            if (raw is not null && ContractDateTime.Read(raw) is { } time)
             {
-                value = parsed;
-                return null;
+                // An instant holds 100 ns; a finer boundary is rejected rather than silently moved.
+                if (ContractDateTime.FinerThanTicks(time.Fraction))
+                    return Invalid(name, "Value is finer than 100 nanoseconds; use at most seven fractional digits.", "time.precision_unsupported", rejectedValue);
+                if (time.Instant is { } instant && QylTimeConversions.TryToUnixNanoUnsigned(instant.ToUniversalTime(), out _))
+                {
+                    value = instant;
+                    return null;
+                }
             }
 
             return Invalid(
@@ -437,43 +440,6 @@ internal static class ContractQueryParser
 
         private static string JoinValues(StringValues values) =>
             string.Join(',', values.ToArray());
-    }
-
-    // RFC 3339 places a fraction right after the seconds; digits beyond the seventh below a tick must be zero.
-    private static bool FinerThanTicks(string value)
-    {
-        if (value.Length < 21 || value[19] != '.') return false;
-        var end = 20;
-        while (end < value.Length && char.IsAsciiDigit(value[end])) end++;
-        return end - 20 > 7 && value.AsSpan(27, end - 27).ContainsAnyExcept('0');
-    }
-
-    private static bool TryParseRfc3339(string value, out DateTimeOffset parsed)
-    {
-        parsed = default;
-        if (value.Length < 20 || value.AsSpan().Trim().Length != value.Length ||
-            value[4] != '-' || value[7] != '-' ||
-            value[10] is not ('T' or 't') ||
-            value[13] != ':' || value[16] != ':')
-        {
-            return false;
-        }
-
-        var hasUtcDesignator = value[^1] is 'Z' or 'z';
-        var hasNumericOffset = value.Length >= 25 &&
-                               value[^6] is '+' or '-' &&
-                               value[^3] == ':' &&
-                               char.IsAsciiDigit(value[^5]) &&
-                               char.IsAsciiDigit(value[^4]) &&
-                               char.IsAsciiDigit(value[^2]) &&
-                               char.IsAsciiDigit(value[^1]);
-        return (hasUtcDesignator || hasNumericOffset) &&
-               DateTimeOffset.TryParse(
-                   value,
-                   CultureInfo.InvariantCulture,
-                   DateTimeStyles.None,
-                   out parsed) &&
-               QylTimeConversions.TryToUnixNanoUnsigned(parsed.ToUniversalTime(), out _);
     }
 
     private static IResult Invalid(string field, string message, string code, string? rejectedValue) =>

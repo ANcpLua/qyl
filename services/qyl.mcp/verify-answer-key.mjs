@@ -544,6 +544,27 @@ verify('34 a string or an array outside its length is refused by the MCP and by 
  assert(refused>=2*Object.keys(analysisArguments).length,`every tool's bounded strings and arrays, both ends: ${refused}`);
 });
 
+verify('36 a time is read by one rule, RFC 3339 date-time with T and Z in either case and an offset with its colon, by the MCP and by the Collector\'s HTTP route',async(_call,client)=>{
+ // An hour before the seed's T, in UTC and two hours east of it.
+ const at=Math.floor((Date.parse(fixture.T)-3_600_000)/1000)*1000, utc=new Date(at).toISOString().slice(0,19), east=new Date(at+7_200_000).toISOString().slice(0,19);
+ const accepted=[`${utc}Z`,`${utc.replace('T','t')}z`,`${utc}.0000000000Z`,`${east}+02:00`];
+ const refused=[`${utc.replace('T',' ')}Z`,`${utc}+0000`,`${utc}+00`,`${utc.slice(0,10)}T23:59:60Z`,'2026-02-29T11:00:00Z',`${utc}+24:00`];
+ for (const start_time of [...accepted,...refused]) {
+  const args={start_time,limit:1}, ok=accepted.includes(start_time);
+  const mcp=await client.callTool({name:'list_traces',arguments:args});
+  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}/api/v1/analysis/list_traces`,{method:'POST',headers:{'content-type':'application/json',...collectorHeaders()},body:JSON.stringify(args)});
+  const http=await response.json();
+  if (ok) {
+   assert.equal(mcp.isError,undefined,`${start_time}: ${JSON.stringify(mcp)}`);
+   assert.equal(response.status,200,`${start_time}: ${JSON.stringify(http)}`);
+   assert.equal(Date.parse(http.window.start_time),at,start_time);
+  } else {
+   assert.deepEqual([mcp.structuredContent?.error?.code,mcp.structuredContent?.error?.field],['invalid_argument','start_time'],start_time);
+   assert.deepEqual([response.status,http.errors?.[0]?.field],[400,'start_time'],start_time);
+  }
+ }
+});
+
 // Existing projection and paging semantics stay exercised against real storage.
 verify('regression get_trace removes all attribute collections without changing totals', async call=>{
  const args={...w,trace_id:key['db-root'].trace_id};
