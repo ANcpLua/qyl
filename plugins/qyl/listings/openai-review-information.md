@@ -6,7 +6,9 @@ Use these sections for the corresponding review fields. Supply reviewer credenti
 
 Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.
 
-qyl connects ChatGPT to telemetry already recorded by the user's qyl Collector. Users can investigate traces, logs, metric streams, sessions, CI runs, agent executions and MCP calls; compare recorded behavior across windows or releases; and check the evidence for a fix. They can save questions, add annotations and record a failure's status.
+qyl is built for AI agents. Its MCP tools return structured telemetry, analysis and typed errors; its skills guide investigations and local .NET work. qyl ships no dashboard, Workbench, embedded viewer or other product UI. Review the agent's tool calls and recorded evidence in the host client.
+
+qyl exposes recorded Collector telemetry to connected AI agents. Agents can investigate traces, logs, metric streams, sessions, CI runs, agent executions and MCP calls; compare recorded behavior across windows or releases; and check the evidence for a fix. They can save questions, add annotations and record a failure's status.
 
 Answers use the returned telemetry and its coverage information. An empty result means no matching evidence was returned; it does not establish that the system is healthy.
 
