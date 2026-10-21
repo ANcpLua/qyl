@@ -165,13 +165,14 @@ for (const multiProject of [true, false]) {
       assert.match(attribute(span.attributes, "jsonrpc.request.id") ?? "", /^\d+$/u);
       const metrics = signals.find(receipt => receipt.signal === "/v1/metrics")!.body as unknown as {
         resourceMetrics: Array<{ scopeMetrics: Array<{ scope: { name: string }; metrics: Array<{ name: string; unit: string;
-          histogram: { dataPoints: Array<{ count: string; attributes: Attribute[] }> } }> }> }> };
+          histogram: { aggregationTemporality: number; dataPoints: Array<{ count: string; attributes: Attribute[] }> } }> }> }> };
       const metricScope = metrics.resourceMetrics[0]!.scopeMetrics[0]!;
       assert.equal(metricScope.scope.name, "qyl.mcp");
       assert.equal(metricScope.metrics.length, 1);
       const metric = metricScope.metrics[0]!;
       assert.equal(metric.name, "mcp.server.operation.duration");
       assert.equal(metric.unit, "s");
+      assert.equal(metric.histogram.aggregationTemporality, 1, "delta: an idle server exports no points");
       assert.equal(metric.histogram.dataPoints.length, 1);
       assert.equal(metric.histogram.dataPoints[0]!.count, "1");
       assert.equal(attribute(metric.histogram.dataPoints[0]!.attributes, "gen_ai.tool.name"), "fixture.telemetry");

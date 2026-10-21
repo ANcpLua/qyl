@@ -27,6 +27,7 @@ import {
     LoggerProvider,
 } from "@opentelemetry/sdk-logs";
 import {
+    AggregationTemporality,
     MeterProvider,
     PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
@@ -62,6 +63,8 @@ const Product = {
 } as const;
 
 const FLUSH_INTERVAL_MS = 5_000;
+// One metric collection a minute, the OpenTelemetry default; shutdown exports the rest.
+const METRIC_EXPORT_INTERVAL_MS = 60_000;
 const MAX_QUEUE = 512;
 const EXPORT_TIMEOUT_MS = 3_000;
 const ATTRIBUTE_VALUE_LIMIT = 2_000;
@@ -219,19 +222,24 @@ export class McpTelemetry {
             url: endpoints.metrics,
             timeoutMillis: EXPORT_TIMEOUT_MS,
             headers,
+            // Delta: a collection carries only the attribute sets recorded since the
+            // previous one, so an idle server exports nothing. Cumulative temporality
+            // resent every set on every collection, hundreds of thousands of points a
+            // day in the caller's project, which crowded the project's own metrics out
+            // of an analysis read.
+            temporalityPreference: AggregationTemporality.DELTA,
         });
         this.metricProvider = new MeterProvider({
             resource,
             readers: [new PeriodicExportingMetricReader({
                 exporter: metricExporter,
-                exportIntervalMillis: FLUSH_INTERVAL_MS,
+                exportIntervalMillis: METRIC_EXPORT_INTERVAL_MS,
                 exportTimeoutMillis: EXPORT_TIMEOUT_MS,
                 // Data points per export, the same cap the span and log processors
-                // use per batch. The two histograms carry one point per attribute
-                // set, up to 2000 sets each in the SDK, and cumulative temporality
-                // resends every set on every collection; without the cap one
-                // collection is one 4000-point request against a 16 MiB Collector
-                // bound and one export timeout.
+                // use per batch. The two histograms carry one point per attribute set
+                // recorded in the interval, up to 2000 sets each in the SDK; without
+                // the cap one busy collection is one 4000-point request against a
+                // 16 MiB Collector bound and one export timeout.
                 maxExportBatchSize: MAX_QUEUE,
             })],
         });
