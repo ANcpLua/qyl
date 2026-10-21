@@ -12,6 +12,10 @@ internal static partial class CollectorEndpointExtensions
 {
     private const string SavedQueryOperation = "saved-queries";
     private static readonly ContractRules s_savedQueryRunRules = new(SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Patterns, SavedQueryRunRequest.Choices);
+    private static readonly ContractRules s_savedQueryCreateRules = new(SavedQueryCreateRequest.Ranges, SavedQueryCreateRequest.Lengths,
+        SavedQueryCreateRequest.Patterns, SavedQueryCreateRequest.Choices);
+    private static readonly ContractRules s_savedQueryUpdateRules = new(SavedQueryUpdateRequest.Ranges, SavedQueryUpdateRequest.Lengths,
+        SavedQueryUpdateRequest.Patterns, SavedQueryUpdateRequest.Choices);
     private const int SavedQueryMaxMatcherValueLength = 1024;
 
     private static async Task<IResult> CreateSavedQueryAsync(
@@ -24,7 +28,7 @@ internal static partial class CollectorEndpointExtensions
             return keyError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryCreateRequest,
-            SavedQueryCreateRequest.Ranges, SavedQueryCreateRequest.Lengths, SavedQueryCreateRequest.Patterns, ct).ConfigureAwait(false);
+            s_savedQueryCreateRules, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -132,7 +136,7 @@ internal static partial class CollectorEndpointExtensions
             return preconditionError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryUpdateRequest,
-            SavedQueryUpdateRequest.Ranges, SavedQueryUpdateRequest.Lengths, SavedQueryUpdateRequest.Patterns, ct).ConfigureAwait(false);
+            s_savedQueryUpdateRules, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -177,6 +181,8 @@ internal static partial class CollectorEndpointExtensions
     {
         if (ResourceHttp.ReadIfMatch(httpContext.Request, out var ifMatch) is { } preconditionError)
             return preconditionError;
+        if (await RefuseBodyAsync(httpContext.Request, ct).ConfigureAwait(false) is { } bodyError)
+            return bodyError;
 
         var outcome = await store.DeleteSavedQueryAsync(ResolveProjectScope(httpContext), savedQueryId, ifMatch, ct)
             .ConfigureAwait(false);
@@ -244,40 +250,19 @@ internal static partial class CollectorEndpointExtensions
     private static IResult SavedQueryNameConflict(string name) =>
         ContractErrorResults.Conflict(name, "A saved query with this name already exists in the project.");
 
-    // The filter's lengths and ranges were checked with its body; what the contract states beside them is checked here.
+    // The filter was read against its contract with its body; what the contract does not state is checked here: a
+    // matcher's operands, a metric filter's non-empty group_by keys and its matcher values of at most 1024 characters.
     private static IResult? ValidateSavedQueryFilter(SavedQueryFilter filter)
     {
         try { Analysis.AnalysisMatchers.Validate(System.Text.Json.Nodes.JsonNode.Parse(SavedQueryMapper.WriteFilter(filter))?["matchers"]); }
         catch (Analysis.AnalysisInputException invalid) { return ContractErrorResults.Validation("filter.matchers", invalid.Description, invalid.Code); }
-
-        switch (filter)
-        {
-            case SavedTraceQueryFilter:
-                return null;
-
-            case SavedLogQueryFilter logs:
-                if (logs.SeverityMin is { } severity && !Enum.IsDefined(severity))
-                    return ContractErrorResults.Validation("filter.severity_min",
-                        "Severity must be an OpenTelemetry severity number from 0 to 24.", "severity.out_of_range",
-                        ((int)severity).ToString(CultureInfo.InvariantCulture));
-                return null;
-
-            case SavedMetricQueryFilter metrics:
-                if (metrics.Aggregation is { } aggregation && !Enum.IsDefined(aggregation))
-                    return ContractErrorResults.Validation("filter.aggregation", "Unknown aggregation.",
-                        "aggregation.invalid");
-                if (metrics.GroupBy is { } groupBy && groupBy.Any(static key => string.IsNullOrEmpty(key)))
-                    return ContractErrorResults.Validation("filter.group_by", "Group by non-empty attribute keys.", "group_by.invalid");
-                if (metrics.Matchers is { } matchers && matchers.Any(static matcher =>
-                        (Convert.ToString(matcher.Value, CultureInfo.InvariantCulture) ?? "").EnumerateRunes().Count() > SavedQueryMaxMatcherValueLength ||
-                        !Enum.IsDefined(matcher.Op)))
-                    return ContractErrorResults.Validation("filter.matchers",
-                        $"Each matcher takes one of the matcher ops and a value of at most {SavedQueryMaxMatcherValueLength} characters.",
-                        "matchers.invalid");
-                return null;
-
-            default:
-                return ResourceHttp.InvalidBody("filter.signal must be traces, logs or metrics.");
-        }
+        if (filter is not SavedMetricQueryFilter metrics) return null;
+        if (metrics.GroupBy is { } groupBy && groupBy.Any(static key => string.IsNullOrEmpty(key)))
+            return ContractErrorResults.Validation("filter.group_by", "Group by non-empty attribute keys.", "group_by.invalid");
+        if (metrics.Matchers is { } matchers && matchers.Any(static matcher =>
+                (Convert.ToString(matcher.Value, CultureInfo.InvariantCulture) ?? "").EnumerateRunes().Count() > SavedQueryMaxMatcherValueLength))
+            return ContractErrorResults.Validation("filter.matchers",
+                $"Each matcher takes a value of at most {SavedQueryMaxMatcherValueLength} characters.", "matchers.invalid");
+        return null;
     }
 }

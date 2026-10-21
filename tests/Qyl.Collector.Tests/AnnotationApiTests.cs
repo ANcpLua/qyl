@@ -68,8 +68,16 @@ public sealed class AnnotationApiTests(TestContext testContext)
     [DataRow("""{"target":{"kind":"session","session_id":".."},"text":"x"}""", "target.session_id")]
     [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","labels":["a","b","c","d","e","f","g","h","i","j","k"]}""", "labels")]
     [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","labels":[""]}""", "labels[0]")]
-    [DataRow("""{"target":{"kind":"metric","name":"x"},"text":"x"}""", "body")]
-    [DataRow("""{"text":"x"}""", "body")]
+    [DataRow("""{"target":{"kind":"metric","name":"x"},"text":"x"}""", "target.name")]
+    [DataRow("""{"target":{"kind":"metric","trace_id":"00000000000000000000000000000001"},"text":"x"}""", "target.kind")]
+    [DataRow("""{"target":{"trace_id":"00000000000000000000000000000001"},"text":"x"}""", "target.kind")]
+    [DataRow("""{"text":"x"}""", "target")]
+    [DataRow("""{"target":"trace","text":"x"}""", "target")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001","name":"x"},"text":"x"}""", "target.name")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","pinned":true}""", "pinned")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":5}""", "text")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","labels":"a"}""", "labels")]
+    [DataRow("""{"target":{"kind":"trace","trace_id":"00000000000000000000000000000001"},"text":"x","classification":"idea"}""", "classification")]
     [DataRow("""not json""", "body")]
     public async Task Invalid_create_bodies_are_400_with_the_offending_field(string json, string field)
     {
@@ -80,6 +88,47 @@ public sealed class AnnotationApiTests(TestContext testContext)
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.AreEqual("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         Assert.AreEqual(field, (await host.JsonAsync(response)).GetProperty("errors")[0].GetProperty("field").GetString());
+    }
+
+    /// <summary>
+    /// A body is read against its contract like an analysis request: a member the body or its target does not declare is
+    /// refused with the names it accepts, the target's kind with the kinds there are, and a change and a delete refuse a
+    /// member their contract does not declare, the delete one that takes no body at all.
+    /// </summary>
+    [TestMethod]
+    public async Task A_member_the_contract_does_not_declare_is_refused_with_what_it_accepts()
+    {
+        await using var host = await StartWithTraceAsync();
+        using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/annotations", "writer", TraceNote("kept"));
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString()!;
+        var etag = IfMatch(created.Headers.ETag!.ToString());
+
+        var unknown = await RefusedAsync(host, HttpMethod.Post, "/api/v1/annotations", "writer",
+            $$"""{"target":{"kind":"trace","trace_id":"{{TraceId(1)}}"},"text":"x","pinned":true}""");
+        var member = await RefusedAsync(host, HttpMethod.Post, "/api/v1/annotations", "writer",
+            $$"""{"target":{"kind":"span","trace_id":"{{TraceId(1)}}","span_id":"{{SpanId(2)}}","name":"x"},"text":"x"}""");
+        var kind = await RefusedAsync(host, HttpMethod.Post, "/api/v1/annotations", "writer", """{"target":{"kind":"metric"},"text":"x"}""");
+        var change = await RefusedAsync(host, HttpMethod.Patch, $"/api/v1/annotations/{id}", "writer", """{"text":"v2","pinned":true}""", etag);
+        var typed = await RefusedAsync(host, HttpMethod.Patch, $"/api/v1/annotations/{id}", "writer", """{"text":5}""", etag);
+        var delete = await RefusedAsync(host, HttpMethod.Delete, $"/api/v1/annotations/{id}", "deleter", """{"etag":"x"}""", etag);
+
+        Assert.AreEqual(("pinned", "is not accepted here; accepted: labels, classification, target, text"), (unknown.GetProperty("field").GetString(), unknown.GetProperty("message").GetString()));
+        Assert.AreEqual(("target.name", "is not accepted here; accepted: kind, trace_id, span_id"), (member.GetProperty("field").GetString(), member.GetProperty("message").GetString()));
+        Assert.AreEqual(("target.kind", "must be one of: trace, span, session, failure"), (kind.GetProperty("field").GetString(), kind.GetProperty("message").GetString()));
+        Assert.AreEqual(("pinned", "pinned.unknown"), (change.GetProperty("field").GetString(), change.GetProperty("code").GetString()));
+        Assert.AreEqual(("text", "must be string"), (typed.GetProperty("field").GetString(), typed.GetProperty("message").GetString()));
+        Assert.AreEqual(("etag", "is not accepted here"), (delete.GetProperty("field").GetString(), delete.GetProperty("message").GetString()));
+        using var read = await host.SendAsync(HttpMethod.Get, $"/api/v1/annotations/{id}", "reader");
+        Assert.AreEqual("kept", (await host.JsonAsync(read)).GetProperty("text").GetString());
+    }
+
+    private static async Task<JsonElement> RefusedAsync(CollectorApiTestHost host, HttpMethod method, string path, string key, string json,
+        IReadOnlyDictionary<string, string>? headers = null)
+    {
+        using var response = await host.SendAsync(method, path, key, json, headers);
+        var body = await host.JsonAsync(response);
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, body.GetRawText());
+        return Assert.ContainsSingle(body.GetProperty("errors").EnumerateArray());
     }
 
     [TestMethod]

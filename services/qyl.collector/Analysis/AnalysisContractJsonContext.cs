@@ -46,6 +46,7 @@ namespace Qyl.Collector.Analysis;
 [JsonSerializable(typeof(RunSavedQueryInput))]
 [JsonSerializable(typeof(RunSavedQueryOutput))]
 [JsonSerializable(typeof(UpdateFailureStatusInput))]
+[JsonSerializable(typeof(Api.Contracts.UpdateFailureStatusRequest))]
 [JsonSerializable(typeof(UpdateFailureStatusOutput))]
 // The object forms of the unions an input reads as a bare object, which the contract walk reads as their models.
 [JsonSerializable(typeof(BaselineOffset))]

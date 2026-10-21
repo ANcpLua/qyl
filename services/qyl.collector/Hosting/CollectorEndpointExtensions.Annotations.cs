@@ -11,6 +11,10 @@ namespace Qyl.Collector.Hosting;
 internal static partial class CollectorEndpointExtensions
 {
     private const string AnnotationOperation = "annotations";
+    private static readonly ContractRules s_annotationCreateRules = new(AnnotationCreateRequest.Ranges, AnnotationCreateRequest.Lengths,
+        AnnotationCreateRequest.Patterns, AnnotationCreateRequest.Choices);
+    private static readonly ContractRules s_annotationUpdateRules = new(AnnotationUpdateRequest.Ranges, AnnotationUpdateRequest.Lengths,
+        AnnotationUpdateRequest.Patterns, AnnotationUpdateRequest.Choices);
 
     private static async Task<IResult> CreateAnnotationAsync(
         HttpContext httpContext,
@@ -22,11 +26,9 @@ internal static partial class CollectorEndpointExtensions
             return keyError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationCreateRequest,
-            AnnotationCreateRequest.Ranges, AnnotationCreateRequest.Lengths, AnnotationCreateRequest.Patterns, ct).ConfigureAwait(false);
-        if (bodyError is not null)
-            return bodyError;
-
-        if (request!.Text is null) return ContractErrorResults.Validation("text", "Annotation text is required.", "text.required");
+            s_annotationCreateRules, ct).ConfigureAwait(false);
+        if (request is null)
+            return bodyError!;
 
         var projectId = ResolveProjectScope(httpContext);
         var fingerprint = ResourceHttp.Fingerprint(request, QylSerializerContext.Default.AnnotationCreateRequest);
@@ -168,7 +170,7 @@ internal static partial class CollectorEndpointExtensions
             return preconditionError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationUpdateRequest,
-            AnnotationUpdateRequest.Ranges, AnnotationUpdateRequest.Lengths, AnnotationUpdateRequest.Patterns, ct).ConfigureAwait(false);
+            s_annotationUpdateRules, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -204,6 +206,8 @@ internal static partial class CollectorEndpointExtensions
     {
         if (ResourceHttp.ReadIfMatch(httpContext.Request, out var ifMatch) is { } preconditionError)
             return preconditionError;
+        if (await RefuseBodyAsync(httpContext.Request, ct).ConfigureAwait(false) is { } bodyError)
+            return bodyError;
 
         var outcome = await store.DeleteAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ifMatch, ct)
             .ConfigureAwait(false);
@@ -251,7 +255,8 @@ internal static partial class CollectorEndpointExtensions
             await store.GetSessionAsync(session.SessionId, projectId, ct).ConfigureAwait(false) is not null
                 ? null
                 : ContractErrorResults.NotFound("session", session.SessionId),
-        _ => ResourceHttp.InvalidBody("target.kind must be trace, span or session.")
+        // The body was read against its contract, which takes these four targets only.
+        _ => throw new UnreachableException("An annotation target outside the contract's four kinds.")
     };
     private static async Task<IResult?> ValidateFailureTargetAsync(IQylStore store, string projectId, string failureId, CancellationToken ct)
     {

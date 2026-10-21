@@ -212,8 +212,16 @@ public sealed class SavedQueryApiTests(TestContext testContext)
     [DataRow("""{"name":"x","filter":{"signal":"logs","trace_id":"0af7651916cd43dd8448eb211c80319"}}""", "filter.trace_id")]
     [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","group_by":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q"]}}""", "filter.group_by")]
     [DataRow("""{"name":"x","filter":{"signal":"traces","matchers":[{"key":"k","op":"in","values":[]}]}}""", "filter.matchers[0].values")]
-    [DataRow("""{"name":"x","filter":{"signal":"alerts"}}""", "body")]
-    [DataRow("""{"name":"x"}""", "body")]
+    [DataRow("""{"name":"x","filter":{"signal":"alerts"}}""", "filter.signal")]
+    [DataRow("""{"name":"x","filter":{"service_name":"checkout"}}""", "filter.signal")]
+    [DataRow("""{"name":"x"}""", "filter")]
+    [DataRow("""{"name":5,"filter":{"signal":"traces"}}""", "name")]
+    [DataRow("""{"name":"x","filter":{"signal":"traces"},"owner":"me"}""", "owner")]
+    [DataRow("""{"name":"x","filter":{"signal":"traces","errors_only":"yes"}}""", "filter.errors_only")]
+    [DataRow("""{"name":"x","filter":{"signal":"traces","severity_min":9}}""", "filter.severity_min")]
+    [DataRow("""{"name":"x","filter":{"signal":"logs","severity_min":"error"}}""", "filter.severity_min")]
+    [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","aggregation":"median"}}""", "filter.aggregation")]
+    [DataRow("""{"name":"x","filter":{"signal":"metrics","metric_name":"m","matchers":[{"key":"k","op":"like","value":"v"}]}}""", "filter.matchers[0].op")]
     public async Task Invalid_saved_queries_are_400_with_the_offending_field(string json, string field)
     {
         await using var host = await StartAsync(testContext.CancellationToken);
@@ -222,6 +230,38 @@ public sealed class SavedQueryApiTests(TestContext testContext)
 
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.AreEqual(field, (await host.JsonAsync(response)).GetProperty("errors")[0].GetProperty("field").GetString());
+    }
+
+    /// <summary>
+    /// A filter is read as the form its signal names, which comes first: a member that form does not declare is refused
+    /// with the names it accepts, a severity with the severity numbers there are, and a change refuses a member the
+    /// change does not declare and a value of another type.
+    /// </summary>
+    [TestMethod]
+    public async Task A_filter_is_read_as_the_form_its_signal_names_and_a_change_as_its_contract()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer", """{"name":"kept","filter":{"signal":"traces"}}""");
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString()!;
+        var etag = new Dictionary<string, string> { ["If-Match"] = created.Headers.ETag!.ToString() };
+
+        async Task<System.Text.Json.JsonElement> RefusedAsync(HttpMethod method, string path, string json)
+        {
+            using var response = await host.SendAsync(method, path, "writer", json, etag);
+            var body = await host.JsonAsync(response);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, body.GetRawText());
+            return Assert.ContainsSingle(body.GetProperty("errors").EnumerateArray());
+        }
+        var form = await RefusedAsync(HttpMethod.Post, "/api/v1/saved-queries", """{"name":"x","filter":{"signal":"logs","errors_only":true}}""");
+        var severity = await RefusedAsync(HttpMethod.Post, "/api/v1/saved-queries", """{"name":"x","filter":{"signal":"logs","severity_min":99}}""");
+        var change = await RefusedAsync(HttpMethod.Patch, $"/api/v1/saved-queries/{id}", """{"name":"y","owner":"me"}""");
+        var typed = await RefusedAsync(HttpMethod.Patch, $"/api/v1/saved-queries/{id}", """{"description":5}""");
+
+        Assert.AreEqual(("filter.errors_only", "is not accepted here; accepted: signal, matchers, lookback_minutes, service_name, severity_min, session_id, trace_id, query"),
+            (form.GetProperty("field").GetString(), form.GetProperty("message").GetString()));
+        Assert.AreEqual(("filter.severity_min", "filter.severity_min.invalid", 25), (severity.GetProperty("field").GetString(), severity.GetProperty("code").GetString(), severity.GetProperty("allowed").GetArrayLength()));
+        Assert.AreEqual(("owner", "owner.unknown"), (change.GetProperty("field").GetString(), change.GetProperty("code").GetString()));
+        Assert.AreEqual(("description", "must be string"), (typed.GetProperty("field").GetString(), typed.GetProperty("message").GetString()));
     }
 
     [TestMethod]

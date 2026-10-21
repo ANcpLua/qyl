@@ -1338,16 +1338,16 @@ export interface SaveQueryInput {
 }
 
 export interface SavedTraceQueryFilter {
-  "matchers"?: TelemetryMatcher[];
   "signal": "traces";
+  "matchers"?: TelemetryMatcher[];
   "lookback_minutes"?: number;
   "service_name"?: string;
   "errors_only"?: boolean;
 }
 
 export interface SavedLogQueryFilter {
-  "matchers"?: TelemetryMatcher[];
   "signal": "logs";
+  "matchers"?: TelemetryMatcher[];
   "lookback_minutes"?: number;
   "service_name"?: string;
   "severity_min"?: SeverityNumber;
@@ -1357,8 +1357,8 @@ export interface SavedLogQueryFilter {
 }
 
 export interface SavedMetricQueryFilter {
-  "series_id"?: string;
   "signal": "metrics";
+  "series_id"?: string;
   "lookback_minutes"?: number;
   "metric_name": string;
   "aggregation"?: MetricAggregation;

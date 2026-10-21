@@ -43,7 +43,7 @@ const cases: Array<{
     // The discriminator matched one branch: only that branch's rule is reported.
     tool: "save_query", arguments: { name: "errors", filter: { signal: "logs", errors_only: true } },
     field: "filter.errors_only", keyword: "additionalProperties", allowedIncludes: ["severity_min", "query"],
-    message: /^filter\.errors_only: is not accepted here; accepted: matchers, signal, lookback_minutes, service_name, severity_min/u,
+    message: /^filter\.errors_only: is not accepted here; accepted: signal, matchers, lookback_minutes, service_name, severity_min/u,
   },
   {
     tool: "get_trace", arguments: undefined,

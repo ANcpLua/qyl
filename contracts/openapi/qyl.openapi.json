@@ -15272,6 +15272,13 @@
           "signal"
         ],
         "properties": {
+          "signal": {
+            "type": "string",
+            "enum": [
+              "logs"
+            ],
+            "description": "Always `logs`: the query searches log records."
+          },
           "matchers": {
             "type": "array",
             "items": {
@@ -15279,13 +15286,6 @@
             },
             "maxItems": 32,
             "description": "Attribute predicates every log record must satisfy."
-          },
-          "signal": {
-            "type": "string",
-            "enum": [
-              "logs"
-            ],
-            "description": "Always `logs`: the query searches log records."
           },
           "lookback_minutes": {
             "type": "integer",
@@ -15365,17 +15365,17 @@
           "metric_name"
         ],
         "properties": {
-          "series_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Select one exact metric series, when the query must disambiguate instruments."
-          },
           "signal": {
             "type": "string",
             "enum": [
               "metrics"
             ],
             "description": "Always `metrics`: the query is a metric range query."
+          },
+          "series_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Select one exact metric series, when the query must disambiguate instruments."
           },
           "lookback_minutes": {
             "type": "integer",
@@ -15517,7 +15517,7 @@
             "$ref": "#/components/schemas/SavedQueries.SavedMetricQueryFilter"
           }
         ],
-        "description": "Exactly one structured filter; `signal` selects which."
+        "description": "Exactly one structured filter; `signal`, which each form declares first, selects which."
       },
       "SavedQueries.SavedQueryRunRequest": {
         "type": "object",
@@ -15616,6 +15616,13 @@
           "signal"
         ],
         "properties": {
+          "signal": {
+            "type": "string",
+            "enum": [
+              "traces"
+            ],
+            "description": "Always `traces`: the query lists traces."
+          },
           "matchers": {
             "type": "array",
             "items": {
@@ -15623,13 +15630,6 @@
             },
             "maxItems": 32,
             "description": "Attribute predicates one span of the trace must all satisfy."
-          },
-          "signal": {
-            "type": "string",
-            "enum": [
-              "traces"
-            ],
-            "description": "Always `traces`: the query lists traces."
           },
           "lookback_minutes": {
             "type": "integer",

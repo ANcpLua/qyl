@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Mcp.Tools;
 using Qyl.Collector.Analysis;
 using Qyl.Collector.Storage;
-using ContractLengths = System.Collections.Generic.IReadOnlyList<(string Name, int? Minimum, int? Maximum)>;
-using ContractPatterns = System.Collections.Generic.IReadOnlyList<(string Name, string Pattern)>;
-using ContractRanges = System.Collections.Generic.IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)>;
 
 namespace Qyl.Collector.Hosting;
 
@@ -119,14 +116,17 @@ internal static partial class CollectorEndpointExtensions
 
     private static void CheckObject(JsonObject members, JsonTypeInfo type, string field, string path, ContractRules rules)
     {
-        string[] accepted = [.. type.Properties.Select(static p => p.Name)];
+        if (type.PolymorphismOptions is { } polymorphism) CheckVariant(members, type, polymorphism, field, path, rules);
+        else CheckMembers(members, type, field, path, rules, discriminator: null);
+    }
+
+    // An object's members: one it does not declare first, in the order sent, then each declared one in the contract's
+    // order, a required one left out where it is declared. A form of a polymorphic union declares its discriminator first.
+    private static void CheckMembers(JsonObject members, JsonTypeInfo type, string field, string path, ContractRules rules, string? discriminator)
+    {
+        string[] accepted = [.. discriminator is null ? [] : new[] { discriminator }, .. type.Properties.Select(static p => p.Name)];
         foreach (var (name, _) in members)
-        {
-            if (accepted.Contains(name, StringComparer.Ordinal)) continue;
-            var at = Join(field, name);
-            throw new AnalysisInputException(at, $"is not accepted here; accepted: {string.Join(", ", accepted)}", Join(path, name) + ".unknown")
-                { Allowed = accepted, Hint = $"Replace {at} with one of the accepted arguments or drop it." };
-        }
+            if (!accepted.Contains(name, StringComparer.Ordinal)) throw Unknown(Join(field, name), Join(path, name), accepted);
         foreach (var property in type.Properties)
         {
             var at = Join(field, property.Name);
@@ -136,6 +136,39 @@ internal static partial class CollectorEndpointExtensions
                 throw new AnalysisInputException(at, "is required", Join(path, property.Name) + ".required") { Hint = $"Send {at}." };
         }
     }
+
+    // An object a polymorphic union takes, an annotation's target or a saved query's filter, read as the form its
+    // discriminator names, as the MCP's input schema resolves the union: that form's members. Without a form it names,
+    // a member no form declares comes first, then the discriminator, missing or outside the forms there are.
+    private static void CheckVariant(JsonObject members, JsonTypeInfo type, JsonPolymorphismOptions polymorphism, string field, string path, ContractRules rules)
+    {
+        var discriminator = polymorphism.TypeDiscriminatorPropertyName;
+        (string Tag, JsonTypeInfo Type)[] forms = [.. polymorphism.DerivedTypes.Select(derived =>
+            (Convert.ToString(derived.TypeDiscriminator, CultureInfo.InvariantCulture)!, type.Options.GetTypeInfo(derived.DerivedType)))];
+        var tag = members.TryGetPropertyValue(discriminator, out var sent) && sent is JsonValue value && value.GetValueKind() == JsonValueKind.String
+            ? value.GetValue<string>() : null;
+        if (forms.FirstOrDefault(form => form.Tag == tag) is { Type: not null } named)
+        {
+            CheckMembers(members, named.Type, field, path, rules, discriminator);
+            return;
+        }
+        string[] firstForm = [discriminator, .. forms[0].Type.Properties.Select(static p => p.Name)];
+        foreach (var (name, _) in members)
+            if (name != discriminator && forms.All(form => form.Type.Properties.All(p => p.Name != name)))
+                throw Unknown(Join(field, name), Join(path, name), firstForm);
+        var at = Join(field, discriminator);
+        if (sent is null && !members.ContainsKey(discriminator))
+            throw new AnalysisInputException(at, "is required", Join(path, discriminator) + ".required") { Hint = $"Send {at}." };
+        string[] tags = [.. forms.Select(static form => form.Tag)];
+        throw new AnalysisInputException(at, $"must be one of: {string.Join(", ", tags)}", Join(path, discriminator) + ".invalid") { Allowed = tags, Hint = "Send one of the allowed values." };
+    }
+
+    private static AnalysisInputException Unknown(string at, string rule, string[] accepted) =>
+        new(at, accepted.Length is 0 ? "is not accepted here" : $"is not accepted here; accepted: {string.Join(", ", accepted)}", rule + ".unknown")
+        {
+            Allowed = accepted.Length is 0 ? null : accepted,
+            Hint = accepted.Length is 0 ? $"Drop {at}." : $"Replace {at} with one of the accepted arguments or drop it."
+        };
 
     // One member's value: the forms its closed set takes or its type, the range, the length and the pattern the contract
     // bounds it to, then what it holds, an object's members or an array's items, whose paths write the item's index as [].
@@ -161,31 +194,36 @@ internal static partial class CollectorEndpointExtensions
 
     private static string Join(string parent, string name) => parent.Length == 0 ? name : $"{parent}.{name}";
 
-    // C# reads a union as a bare object or a polymorphic interface: CheckForm reads it as its form's model.
-    private static bool Opaque(JsonTypeInfo type) => (Nullable.GetUnderlyingType(type.Type) ?? type.Type) == typeof(object) || type.PolymorphismOptions is not null;
+    // C# reads a union of models as a bare object, which CheckForm reads as its form's model.
+    private static bool Opaque(JsonTypeInfo type) => (Nullable.GetUnderlyingType(type.Type) ?? type.Type) == typeof(object);
 
-    // A saved query's or an annotation's body read as its contract model once the ranges, lengths and patterns its
-    // contract declares hold, checked as an analysis request's are and refused naming the field by its path.
+    // A saved query's or an annotation's body read against its contract as an analysis request is, then as its model.
     private static async Task<(T? Value, IResult? Error)> ReadResourceBodyAsync<T>(HttpRequest request, JsonTypeInfo<T> type,
-        ContractRanges ranges, ContractLengths lengths, ContractPatterns patterns, CancellationToken ct) where T : class
+        ContractRules rules, CancellationToken ct) where T : class
     {
         try
         {
             if (await JsonNode.ParseAsync(request.Body, cancellationToken: ct).ConfigureAwait(false) is not JsonObject body)
                 return (null, ResourceHttp.InvalidBody("The request body must be a JSON object."));
-            CheckRanges(body, ranges);
-            CheckLengths(body, lengths);
-            CheckPatterns(body, patterns);
+            CheckContract(body, type, rules);
             return (body.Deserialize(type), null);
         }
         catch (AnalysisInputException invalid) { return (null, AnalysisError(invalid)); }
-        // A missing discriminator or an unknown kind or signal surfaces as NotSupportedException. The serializer's own
-        // message names internal types, so the response carries a fixed one.
-        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        catch (JsonException) { return (null, ResourceHttp.InvalidBody("The request body is not valid JSON.")); }
+    }
+
+    // A request whose contract takes no body, a delete, refuses a member it sends as a member no body declares.
+    private static async Task<IResult?> RefuseBodyAsync(HttpRequest request, CancellationToken ct)
+    {
+        if (request.ContentLength is null or 0 && !request.Headers.TransferEncoding.Any(static encoding => encoding is { Length: > 0 })) return null;
+        try
         {
-            return (null, ResourceHttp.InvalidBody(
-                "The request body is not valid JSON for this operation's contract model, or a required member or discriminator is missing or unknown."));
+            var body = await JsonNode.ParseAsync(request.Body, cancellationToken: ct).ConfigureAwait(false);
+            if (body is JsonObject members)
+                return members.FirstOrDefault() is { Key: { } name } ? AnalysisError(Unknown(name, name, [])) : null;
+            return ResourceHttp.InvalidBody("This request takes no body.");
         }
+        catch (JsonException) { return ResourceHttp.InvalidBody("This request takes no body."); }
     }
 
     // A value of the JSON type the member's C# type stands for, as the MCP's input schema names it: an object, an array,
@@ -213,9 +251,14 @@ internal static partial class CollectorEndpointExtensions
         var kind = value.GetValueKind();
         if (clr.IsEnum)
         {
+            // An enumeration travels as its names, or, without a string converter, as its numbers.
             var names = type.Options.GetTypeInfo(clr);
-            string[] allowed = [.. Enum.GetValuesAsUnderlyingType(clr).Cast<object>().Select(member => JsonSerializer.Serialize(Enum.ToObject(clr, member), names).Trim('"'))];
-            if (kind == JsonValueKind.String && allowed.Contains(value.GetValue<string>(), StringComparer.Ordinal)) return;
+            string[] wire = [.. Enum.GetValuesAsUnderlyingType(clr).Cast<object>().Select(member => JsonSerializer.Serialize(Enum.ToObject(clr, member), names))];
+            string[] allowed = [.. wire.Select(static text => text.Trim('"'))];
+            var numeric = wire.All(static text => !text.StartsWith('"'));
+            if (numeric ? kind == JsonValueKind.Number && allowed.Any(member => double.Parse(member, CultureInfo.InvariantCulture) == double.Parse(value.ToJsonString(), CultureInfo.InvariantCulture))
+                    : kind == JsonValueKind.String && allowed.Contains(value.GetValue<string>(), StringComparer.Ordinal))
+                return;
             throw new AnalysisInputException(field, $"must be one of: {string.Join(", ", allowed)}", path + ".invalid") { Allowed = allowed, Hint = "Send one of the allowed values." };
         }
         if (clr == typeof(DateTimeOffset) && kind == JsonValueKind.String)
@@ -366,47 +409,6 @@ internal static partial class CollectorEndpointExtensions
             throw new AnalysisInputException(field, $"must match pattern \"{pattern}\"", path + ".pattern") { Hint = $"Correct {field}." };
     }
 
-    // A saved query's, an annotation's and a failure's body keeps the ranges, lengths and patterns its contract declares,
-    // each value at its path checked as an analysis member's is.
-    private static void CheckRanges(JsonObject input, ContractRanges ranges)
-    {
-        foreach (var (path, minimum, maximum, fallback) in ranges)
-        foreach (var (field, sent) in Sent(input, path))
-            CheckRange(sent, field, path, (minimum, maximum, fallback));
-    }
-
-    private static void CheckLengths(JsonObject input, ContractLengths lengths)
-    {
-        foreach (var (path, minimum, maximum) in lengths)
-        foreach (var (field, sent) in Sent(input, path))
-            CheckLength(sent, field, path, (minimum, maximum));
-    }
-
-    private static void CheckPatterns(JsonObject input, ContractPatterns patterns)
-    {
-        foreach (var (path, pattern) in patterns)
-        foreach (var (field, sent) in Sent(input, path))
-            CheckPattern(sent, field, path, pattern);
-    }
-
-    // The values a request sends at a contract path, null included, each named as the MCP names it: baseline.offset_minutes,
-    // and an array's elements, written [] in the path, by their index, as matchers[0].key.
-    private static IEnumerable<(string Field, JsonNode? Value)> Sent(JsonNode? node, string path, string field = "")
-    {
-        var dot = path.IndexOf('.');
-        var segment = dot < 0 ? path : path[..dot];
-        var elements = segment.EndsWith("[]", StringComparison.Ordinal);
-        var name = elements ? segment[..^2] : segment;
-        if (node is not JsonObject members || !members.TryGetPropertyValue(name, out var member)) yield break;
-        var at = field.Length == 0 ? name : field + "." + name;
-        IEnumerable<(string, JsonNode?)> values = !elements ? [(at, member)] : member is JsonArray items ? items.Select((item, i) => ($"{at}[{i}]", item)) : [];
-        foreach (var (named, value) in values)
-        {
-            if (dot < 0) yield return (named, value);
-            else foreach (var nested in Sent(value, path[(dot + 1)..], named)) yield return nested;
-        }
-    }
-
     private static IResult AnalysisResult(string operation, JsonObject result)
     {
         var typeInfo = AnalysisContract(operation).Output;
@@ -415,17 +417,18 @@ internal static partial class CollectorEndpointExtensions
         return Results.Json(typed, typeInfo);
     }
 
+    private static readonly ContractRules s_failureStatusRules = new(Api.Contracts.UpdateFailureStatusRequest.Ranges, Api.Contracts.UpdateFailureStatusRequest.Lengths,
+        Api.Contracts.UpdateFailureStatusRequest.Patterns, Api.Contracts.UpdateFailureStatusRequest.Choices);
+
     private static async Task<IResult> UpdateFailureStatusAsync(HttpContext context, [FromRoute(Name = "failure_id")] string failureId, IQylStore store, TimeProvider time, CancellationToken ct)
     {
         try
         {
             if (ResourceHttp.ReadIfMatch(context.Request, out var condition) is { } error) return error;
             if (await JsonNode.ParseAsync(context.Request.Body, cancellationToken: ct).ConfigureAwait(false) as JsonObject is not { } body) return ResourceHttp.InvalidBody("The request body must be a JSON object.");
+            CheckContract(body, AnalysisContractJsonContext.Default.UpdateFailureStatusRequest, s_failureStatusRules);
             var status = J.String(body, "status");
-            if (status is not ("open" or "resolved" or "ignored")) return ContractErrorResults.Validation("status", "Choose open, resolved or ignored.", "status.invalid");
             if (body["ignore_until"] is not null && status != "ignored") return ContractErrorResults.Validation("ignore_until", "ignore_until is valid only with status=ignored.", "ignore_until.invalid");
-            if (body["assignee"] is not null && body["assignee"]!.GetValueKind() != JsonValueKind.String) return ContractErrorResults.Validation("assignee", "assignee must be a string.", "assignee.type");
-            CheckLengths(body, Api.Contracts.UpdateFailureStatusRequest.Lengths);
             var ignoreUntil = J.Date(body, "ignore_until");
             body = J.O(("status", status), ("assignee", J.String(body, "assignee")), ("ignore_until", ignoreUntil?.ToString("O")));
             var project = ResolveProjectScope(context); var snapshot = await store.ReadAnalysisSnapshotAsync(project, new AnalysisReadQuery { ErrorsOnly = true, Tables = AnalysisTables.Spans }, ct).ConfigureAwait(false);

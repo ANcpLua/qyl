@@ -46,12 +46,12 @@ model SavedQueryWindow {
 
 @doc("A saved filter over traces.")
 model SavedTraceQueryFilter {
+  @doc("Always `traces`: the query lists traces.")
+  signal: "traces";
+
   @doc("Attribute predicates one span of the trace must all satisfy.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
-
-  @doc("Always `traces`: the query lists traces.")
-  signal: "traces";
   ...SavedQueryWindow;
 
   @doc("Keep traces with at least one span from this service.")
@@ -67,12 +67,12 @@ model SavedTraceQueryFilter {
 
 @doc("A saved filter over log records.")
 model SavedLogQueryFilter {
+  @doc("Always `logs`: the query searches log records.")
+  signal: "logs";
+
   @doc("Attribute predicates every log record must satisfy.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
-
-  @doc("Always `logs`: the query searches log records.")
-  signal: "logs";
   ...SavedQueryWindow;
 
   @doc("Keep log records of this service.")
@@ -101,12 +101,13 @@ model SavedLogQueryFilter {
 
 @doc("A saved metric range query.")
 model SavedMetricQueryFilter {
+  @doc("Always `metrics`: the query is a metric range query.")
+  signal: "metrics";
+
   @doc("Select one exact metric series, when the query must disambiguate instruments.")
   @encodedName("application/json", "series_id")
   @minLength(1)
   seriesId?: string;
-  @doc("Always `metrics`: the query is a metric range query.")
-  signal: "metrics";
   ...SavedQueryWindow;
 
   @doc("The instrument to query.")
@@ -134,7 +135,7 @@ model SavedMetricQueryFilter {
   matchers?: MetricAttributeMatcher[];
 }
 
-@doc("Exactly one structured filter; `signal` selects which.")
+@doc("Exactly one structured filter; `signal`, which each form declares first, selects which.")
 @oneOf
 union SavedQueryFilter {
   traces: SavedTraceQueryFilter,

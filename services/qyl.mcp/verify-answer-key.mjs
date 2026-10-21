@@ -637,6 +637,31 @@ verify('37 with several arguments wrong, the MCP and the Collector\'s HTTP route
  assert(compared>=2*Object.keys(analysisArguments).length+7,`${compared}`);
 });
 
+verify('38 a write\'s body is read by its contract: an unknown member, another type, a value outside its set or its pattern is refused by the MCP and by the Collector\'s write route, naming the same field',async(_call,client)=>{
+ const trace='a'.repeat(32), target={kind:'trace',trace_id:trace};
+ const http=async(method,path,body)=>{
+  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}${path}`,{method,headers:{'content-type':'application/json','if-match':'*',...collectorHeaders()},body:JSON.stringify(body)});
+  return [response.status,((await response.json()).errors??[])[0]?.field];
+ };
+ for (const [tool,args,method,path,field,body=args] of [
+  ['annotate',{target:{kind:'trace',trace_id:'A'.repeat(32)},text:'x'},'POST','/api/v1/annotations','target.trace_id'],
+  ['annotate',{target:{...target,bogus:1},text:'x'},'POST','/api/v1/annotations','target.bogus'],
+  ['annotate',{target:{kind:'metric'},text:'x'},'POST','/api/v1/annotations','target.kind'],
+  ['annotate',{target,text:5},'POST','/api/v1/annotations','text'],
+  ['annotate',{target,text:'x',labels:'a'},'POST','/api/v1/annotations','labels'],
+  ['annotate',{target,text:'x',classification:'idea'},'POST','/api/v1/annotations','classification'],
+  ['save_query',{name:'x',filter:{signal:'logs',trace_id:'A'.repeat(32)}},'POST','/api/v1/saved-queries','filter.trace_id'],
+  ['save_query',{name:'x',filter:{signal:'alerts'}},'POST','/api/v1/saved-queries','filter.signal'],
+  ['save_query',{name:'x',filter:{signal:'traces',bogus:1}},'POST','/api/v1/saved-queries','filter.bogus'],
+  ['save_query',{name:5,filter:{signal:'traces'}},'POST','/api/v1/saved-queries','name'],
+  ['save_query',{name:'x',filter:{signal:'logs',severity_min:99}},'POST','/api/v1/saved-queries','filter.severity_min'],
+  ['update_failure_status',{failure_id:'fail_answer_key',etag:'"e"',status:'closed'},'PATCH','/api/v1/failures/fail_answer_key','status',{status:'closed'}],
+  ['update_failure_status',{failure_id:'fail_answer_key',etag:'"e"',status:'resolved',assignee:5},'PATCH','/api/v1/failures/fail_answer_key','assignee',{status:'resolved',assignee:5}]]) {
+  const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
+  assert.deepEqual([mcp?.code,mcp?.field,...await http(method,path,body)],['invalid_argument',field,400,field],`${tool} ${JSON.stringify(args)}`);
+ }
+});
+
 // Existing projection and paging semantics stay exercised against real storage.
 verify('regression get_trace removes all attribute collections without changing totals', async call=>{
  const args={...w,trace_id:key['db-root'].trace_id};

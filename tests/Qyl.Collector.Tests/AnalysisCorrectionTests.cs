@@ -105,10 +105,22 @@ public sealed partial class AnalysisApiTests
         var route = "/api/v1/failures/" + failure.GetProperty("failure_id").GetString();
         var etag = failure.GetProperty("etag").GetString()!;
         var headers = new Dictionary<string, string> { ["If-Match"] = etag };
-        foreach (var body in new[] { "{\"status\":\"open\",\"ignore_until\":\"2026-01-01T00:00:00Z\"}", "{\"status\":\"ignored\",\"ignore_until\":\"tomorrow\"}", "{\"status\":\"open\",\"assignee\":42}" })
+        // Read against its contract like an analysis request: a member it does not declare, a status outside its set, a
+        // missing status and a value of another type are refused naming the field, as the cross-field ignore_until is.
+        foreach (var (body, field, code) in new[]
+                 {
+                     ("{\"status\":\"open\",\"ignore_until\":\"2026-01-01T00:00:00Z\"}", "ignore_until", "ignore_until.invalid"),
+                     ("{\"status\":\"ignored\",\"ignore_until\":\"tomorrow\"}", "ignore_until", "ignore_until.format"),
+                     ("{\"status\":\"open\",\"assignee\":42}", "assignee", "assignee.type"),
+                     ("{\"status\":\"resolved\",\"note\":\"fixed\"}", "note", "note.unknown"),
+                     ("{\"status\":\"closed\"}", "status", "status.invalid"),
+                     ("{\"status\":5}", "status", "status.invalid"),
+                     ("{\"assignee\":\"me\"}", "status", "status.required")
+                 })
         {
             using var rejected = await host.SendAsync(HttpMethod.Patch, route, "writer", body, headers);
-            Assert.AreEqual(HttpStatusCode.BadRequest, rejected.StatusCode);
+            var error = (await host.JsonAsync(rejected)).GetProperty("errors")[0];
+            Assert.AreEqual((HttpStatusCode.BadRequest, field, code), (rejected.StatusCode, error.GetProperty("field").GetString(), error.GetProperty("code").GetString()), body);
         }
         using var longAssignee = await host.SendAsync(HttpMethod.Patch, route, "writer", $$"""{"status":"open","assignee":"{{new string('a', 257)}}"}""", headers);
         var assignee = (await host.JsonAsync(longAssignee)).GetProperty("errors")[0];
