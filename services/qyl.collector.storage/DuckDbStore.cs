@@ -51,6 +51,7 @@ internal sealed partial class DuckDbStore : IQylStore
             ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
             var preservedHistory = PreserveHistoricalMetricPoints(connection);
             MigrateUnknownLogTimes(connection);
+            DropStoredIdempotencyResponses(connection);
             var resetDerived = InitializeSchema(connection);
             var migratedSeries = BackfillMetricInstrumentIds(connection);
             if (preservedHistory || resetDerived || migratedSeries || MetricProjectionsNeedRebuild(connection))

@@ -324,13 +324,13 @@ public sealed class RetentionTests(TestContext testContext)
             await store.CreateSavedQueryAsync(savedQuery, new IdempotencyKeyRow
             {
                 ProjectId = "alpha", Operation = "saved-queries", IdempotencyKey = "old", RequestHash = "h",
-                ResourceId = "kept", ResponseJson = "{}", CreatedAtUnixNano = dayAgo - 1
+                ResourceId = "kept", CreatedAtUnixNano = dayAgo - 1
             }, 0, ct);
             await store.CreateSavedQueryAsync(savedQuery with { SavedQueryId = "kept-2", Name = "kept-2" },
                 new IdempotencyKeyRow
                 {
                     ProjectId = "alpha", Operation = "saved-queries", IdempotencyKey = "new", RequestHash = "h",
-                    ResourceId = "kept-2", ResponseJson = "{}", CreatedAtUnixNano = dayAgo
+                    ResourceId = "kept-2", CreatedAtUnixNano = dayAgo
                 }, 0, ct);
 
             using var service = CreateService(store, days: 30);

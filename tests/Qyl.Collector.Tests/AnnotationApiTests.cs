@@ -185,7 +185,7 @@ public sealed class AnnotationApiTests(TestContext testContext)
         IdempotencyKeyRow Key(string resourceId) => new()
         {
             ProjectId = AlphaProjectId, Operation = "annotations", IdempotencyKey = "stale", RequestHash = "body",
-            ResourceId = resourceId, ResponseJson = "{}", CreatedAtUnixNano = FixtureUnixNano
+            ResourceId = resourceId, CreatedAtUnixNano = FixtureUnixNano
         };
         await host.Store.CreateAnnotationAsync(Row("ann_kept"), Key("ann_gone"), 0, ct: testContext.CancellationToken);
 

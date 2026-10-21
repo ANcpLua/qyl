@@ -187,7 +187,7 @@ public sealed class SavedQueryApiTests(TestContext testContext)
         IdempotencyKeyRow Key(string resourceId) => new()
         {
             ProjectId = AlphaProjectId, Operation = "saved-queries", IdempotencyKey = "stale", RequestHash = "body",
-            ResourceId = resourceId, ResponseJson = "{}", CreatedAtUnixNano = FixtureUnixNano
+            ResourceId = resourceId, CreatedAtUnixNano = FixtureUnixNano
         };
         await host.Store.CreateSavedQueryAsync(Row("sq_kept"), Key("sq_gone"), 0, testContext.CancellationToken);
 

@@ -56,7 +56,6 @@ internal static partial class CollectorEndpointExtensions
                 IdempotencyKey = idempotencyKey,
                 RequestHash = fingerprint,
                 ResourceId = row.SavedQueryId,
-                ResponseJson = JsonSerializer.Serialize(savedQuery, QylSerializerContext.Default.SavedQuery),
                 CreatedAtUnixNano = now
             };
 

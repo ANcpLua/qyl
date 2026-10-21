@@ -96,7 +96,6 @@ internal sealed partial record SavedQueryRow
     ON CONFLICT (project_id, operation, idempotency_key) DO UPDATE SET
         request_hash = EXCLUDED.request_hash,
         resource_id = EXCLUDED.resource_id,
-        response_json = EXCLUDED.response_json,
         created_at_unix_nano = EXCLUDED.created_at_unix_nano
     """)]
 internal sealed partial record IdempotencyKeyRow
@@ -117,13 +116,6 @@ internal sealed partial record IdempotencyKeyRow
 
     [DuckDbColumn(SqlType = "VARCHAR(128)")]
     public required string ResourceId { get; init; }
-
-    /// <summary>
-    /// The created resource as the first response returned it. A repeat answers the record as it is now, so nothing
-    /// reads this; the column stays because the schema check refuses a database whose table lost one.
-    /// </summary>
-    [DuckDbColumn(SqlType = "JSON")]
-    public required string ResponseJson { get; init; }
 
     public required ulong CreatedAtUnixNano { get; init; }
 }

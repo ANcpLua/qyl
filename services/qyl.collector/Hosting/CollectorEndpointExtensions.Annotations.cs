@@ -86,7 +86,6 @@ internal static partial class CollectorEndpointExtensions
                 IdempotencyKey = idempotencyKey,
                 RequestHash = fingerprint,
                 ResourceId = row.AnnotationId,
-                ResponseJson = JsonSerializer.Serialize(annotation, QylSerializerContext.Default.Annotation),
                 CreatedAtUnixNano = now
             };
 
