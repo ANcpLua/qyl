@@ -33,6 +33,14 @@ internal sealed record AnalysisReadQuery
     /// <summary>Also load each metric series' last recorded point before <see cref="Start"/>, the predecessor its first change is measured from.</summary>
     public bool IncludeMetricPredecessors { get; init; }
     /// <summary>
+    /// The metric instruments the analysis measures. When set, only their series, points and exemplars are read, so
+    /// another instrument's points cannot fill the row cap, and <see cref="AnalysisSnapshot.MetricLastSeen"/> holds each
+    /// one's last point over every retained series.
+    /// </summary>
+    public string[] MetricNames { get; init; } = [];
+    /// <summary>Read only the metric points that hold a conflicting measurement, and no exemplars: a health check reports nothing else of them.</summary>
+    public bool ConflictingPointsOnly { get; init; }
+    /// <summary>
     /// A <c>service.version</c> whose first span per service the read looks up over every retained span of the
     /// project, the anchor of a release verification; the row cap never cuts it.
     /// </summary>
@@ -69,6 +77,12 @@ internal sealed record AnalysisSnapshot(
     /// over every retained span of the project; empty when the read looked none up.
     /// </summary>
     public IReadOnlyDictionary<string, ulong> ReleaseStarts { get; init; } = new Dictionary<string, ulong>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Each metric of <see cref="AnalysisReadQuery.MetricNames"/> the project recorded, with its last point over every
+    /// retained series whatever the window; empty when the read named no metric.
+    /// </summary>
+    public IReadOnlyDictionary<string, ulong> MetricLastSeen { get; init; } = new Dictionary<string, ulong>(StringComparer.Ordinal);
 }
 
 /// <summary>Every span of the project that starts in [<see cref="FromUnixNano"/>, <see cref="ToUnixNano"/>) is loaded.</summary>
@@ -156,6 +170,16 @@ internal sealed partial class DuckDbStore
                     if (query.End is { } end && table != "metric_series") Add(timeColumn, " < ", (decimal)end);
                 }
                 if (query.ErrorsOnly && table == "spans") predicates.Add("status_code = 2");
+                if (query.ConflictingPointsOnly && table == "metric_exemplars") return [];
+                if (query.ConflictingPointsOnly && table == "metric_points") predicates.Add("has_conflict <> 0");
+                if (query.MetricNames.Length > 0 && table is "metric_series" or "metric_points" or "metric_exemplars")
+                {
+                    var names = new List<string>();
+                    foreach (var name in query.MetricNames) { values.Add(name); names.Add("$" + values.Count); }
+                    // A point or exemplar belongs to its instrument through its series.
+                    predicates.Add(table == "metric_series" ? "metric_name IN (" + string.Join(", ", names) + ")"
+                        : "series_id IN (SELECT series_id FROM metric_series WHERE project_id = $1 AND metric_name IN (" + string.Join(", ", names) + "))");
+                }
                 cmd.CommandTimeout = 50;
                 // CA2100: columns, table and the predicate shapes are this method's constants; every value is a $n parameter.
                 cmd.CommandText = "SELECT " + columns + " FROM " + table + " WHERE " + string.Join(" AND ", predicates)
@@ -221,6 +245,25 @@ internal sealed partial class DuckDbStore
                 while (reader.Read()) starts[reader.IsDBNull(0) ? "unknown_service" : reader.GetString(0)] = DuckDbValueReader.ReadUInt64(reader, 1, 0);
                 return starts;
             }
+            // A named metric may have no series in the window; its last point over every retained series tells the
+            // answer that the project recorded it.
+            Dictionary<string, ulong> MetricLastSeen(string[] names)
+            {
+                var lastSeen = new Dictionary<string, ulong>(StringComparer.Ordinal);
+                if (names.Length is 0) return lastSeen;
+                using var cmd = con.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandTimeout = 50;
+                // CA2100: the statement is constants and $n placeholders; every name is a bound parameter.
+                cmd.CommandText = "SELECT metric_name, max(last_seen_unix_nano) FROM metric_series WHERE project_id = $1 AND metric_name IN ("
+                    + string.Join(", ", names.Select(static (_, i) => "$" + (i + 2))) + ") GROUP BY metric_name";
+                AddParameters(cmd, [projectId, .. names]);
+                ct.ThrowIfCancellationRequested();
+                using var cancellation = ct.Register(cmd.Cancel);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read()) lastSeen[reader.GetString(0)] = DuckDbValueReader.ReadUInt64(reader, 1, 0);
+                return lastSeen;
+            }
             var spans = Read("spans", SpanStorageRow.SelectColumnList, SpanStorageRow.MapFromReader);
             var linkTargets = query.IncludeLinkTargets ? RetainedLinkTargets(spans) : new HashSet<(string TraceId, string SpanId)>();
             // Rows are read newest first, so the cap cuts the oldest spans; spans sharing the oldest loaded
@@ -235,7 +278,10 @@ internal sealed partial class DuckDbStore
                 Read("annotations", AnnotationRow.SelectColumnList, AnnotationRow.MapFromReader),
                 Read("analysis_state", AnalysisStateRow.SelectColumnList, AnalysisStateRow.MapFromReader),
                 Read("saved_queries", SavedQueryRow.SelectColumnList, SavedQueryRow.MapFromReader))
-            { Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage, RetainedLinkTargets = linkTargets, ReleaseStarts = ReleaseStarts(query.Release) };
+            {
+                Exemplars = Read("metric_exemplars", MetricExemplarRow.SelectColumnList, MetricExemplarRow.MapFromReader), SpanCoverage = coverage, RetainedLinkTargets = linkTargets,
+                ReleaseStarts = ReleaseStarts(query.Release), MetricLastSeen = MetricLastSeen(query.MetricNames)
+            };
             tx.Commit();
             return result with { ScanComplete = complete };
         }, ct);

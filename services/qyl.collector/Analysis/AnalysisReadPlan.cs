@@ -59,9 +59,15 @@ internal static class AnalysisReadPlan
             IncludeWindowWithTargets = operation is "get_failure_context" or "ci_log",
             IncludeLinkTargets = operation == "get_trace",
             IncludeMetricPredecessors = operation is "query_metric" or "run_saved_query",
+            MetricNames = operation is "query_metric" or "run_saved_query" ? MetricNames(input) : [],
+            ConflictingPointsOnly = operation == "check_telemetry_health",
             Release = release
         };
     }
+
+    // The instruments a metric answer measures: its metric and a ratio's denominator.
+    private static string[] MetricNames(JsonObject input) =>
+        [.. new[] { J.String(input, "metric_name"), J.String(input["ratio_of"], "metric_name") }.OfType<string>().Distinct(StringComparer.Ordinal)];
 
     // The tables the operation's answer comes from, so that a table it never looks at cannot make its read incomplete.
     private static AnalysisTables Tables(string operation, JsonObject input) => operation switch

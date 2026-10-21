@@ -6,7 +6,7 @@ using static Qyl.Collector.Tests.CollectorApiTestHost;
 namespace Qyl.Collector.Tests;
 
 /// <summary>
-/// An analysis read holds at most <see cref="AnalysisReadQuery.MaximumRows"/> spans, the newest ones.
+/// An analysis read holds at most <see cref="AnalysisReadQuery.MaximumRows"/> rows of a table, the newest ones.
 /// A verdict may rest only on windows the read covered completely. Each case stores more spans than the
 /// cap, so the class runs alone instead of competing with the parallel suite.
 /// </summary>
@@ -182,8 +182,50 @@ public sealed class AnalysisScanBudgetTests(TestContext testContext)
         Assert.AreEqual(1, coverage.GetProperty("matched").GetInt32());
     }
 
+    /// <summary>
+    /// A metric answer reads its own instrument's points, and check_telemetry_health only the conflicting ones: more
+    /// points of another instrument than one read holds, all newer, leave query_metric, a saved metric query's run and
+    /// the health report complete, and the health report still names an older conflict.
+    /// </summary>
+    [TestMethod]
+    public async Task Another_instruments_points_leave_metric_answers_and_health_complete()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var measured = FixtureUnixNano - 50 * Minute; var noisy = FixtureUnixNano - 40 * Minute;
+        var depth = Gauge("queue.depth", "s_depth", measured); var pool = Gauge("pool.size", "s_pool", FixtureUnixNano - 55 * Minute);
+        var noise = Gauge("mcp.server.operation.duration", "s_noise", noisy);
+        await host.Store.InsertMetricsAsync([depth], [Point(depth, measured, 7)], testContext.CancellationToken);
+        await host.Store.InsertMetricsAsync([pool], [Point(pool, pool.LastSeenUnixNano, 3), Point(pool, pool.LastSeenUnixNano, 4)], testContext.CancellationToken);
+        await host.Store.InsertMetricsAsync([noise], [.. Enumerable.Range(0, AnalysisReadQuery.MaximumRows + 1).Select(i => Point(noise, noisy + (ulong)i * 1_000, i))],
+            testContext.CancellationToken);
+        using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer",
+            """{"name":"depth","filter":{"signal":"metrics","metric_name":"queue.depth","aggregation":"last","step_ms":3600000}}""");
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
+        var id = (await host.JsonAsync(created)).GetProperty("id").GetString();
+
+        var metric = await ReadAsync(host, "query_metric", """{"metric_name":"queue.depth","aggregation":"last","step_ms":3600000}""");
+        var run = await ReadAsync(host, "run_saved_query", $$"""{"id":"{{id}}"}""");
+        var health = await ReadAsync(host, "check_telemetry_health", "{}");
+
+        Assert.AreEqual(7d, Assert.ContainsSingle(metric.GetProperty("series").EnumerateArray()).GetProperty("value").GetDouble());
+        Assert.AreEqual(7d, Assert.ContainsSingle(run.GetProperty("metric").GetProperty("series").EnumerateArray()).GetProperty("value").GetDouble());
+        foreach (var (operation, answer) in new[] { ("query_metric", metric), ("run_saved_query", run), ("check_telemetry_health", health) })
+            Assert.IsTrue(answer.GetProperty("coverage").GetProperty("scan_complete").GetBoolean(), operation);
+        var conflict = Assert.ContainsSingle(health.GetProperty("metric_conflicts").GetProperty("series").EnumerateArray());
+        Assert.AreEqual(("pool.size", 1), (conflict.GetProperty("metric_name").GetString(), conflict.GetProperty("points").GetInt32()));
+    }
+
     private static SpanStorageRow Request(int id, ulong start, bool failed = false) =>
         Span(TraceId(id), SpanId(id), start, start + 500, status: failed ? (byte)2 : (byte)1);
+
+    private static MetricSeriesRow Gauge(string name, string seriesId, ulong lastSeen) => new()
+    {
+        ProjectId = AlphaProjectId, SeriesId = seriesId, MetricName = name, MetricKind = 1, Temporality = 0, IsMonotonic = 0,
+        FirstSeenUnixNano = lastSeen, LastSeenUnixNano = lastSeen, ServiceName = "checkout"
+    };
+
+    private static MetricObservationRow Point(MetricSeriesRow series, ulong time, double value) =>
+        MetricFixtures.Observation(series, new MetricPointRow { ProjectId = AlphaProjectId, SeriesId = series.SeriesId, TimeUnixNano = time, Value = value });
 
     private static Task<JsonElement> VerifyAsync(CollectorApiTestHost host, string input) => ReadAsync(host, "verify_fix", input);
 
