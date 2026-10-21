@@ -3,7 +3,7 @@
     The runtime of a Qyl API as a compiled assembly: the builder AddQylApi returns, the typed results, the problem-details JSON
     context, and the OpenAPI transformer that describes application/xml responses from the generated XmlShape. Everything that
     does not have to sit in the consumer's compilation lives here; only AddQylApi itself stays linked source, because the
-    validation and OpenAPI generators intercept the calls it makes (DECISIONS.md, 2026-09-07).
+    validation and OpenAPI generators intercept the calls it makes.
   -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

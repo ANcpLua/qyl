@@ -37,7 +37,6 @@
     <None Include="Build/Qyl.Api.Sdk.props" Pack="true" PackagePath="Build/" />
     <None Include="Build/Qyl.Api.Sdk.targets" Pack="true" PackagePath="Build/" />
     <None Include="Sources/**/*.cs" Pack="true" PackagePath="Sources/%(RecursiveDir)" />
-    <None Include="DECISIONS.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <!--

@@ -21,7 +21,6 @@
   </Folder>
 
   <Folder Name="/packages/Qyl.Api.Sdk/">
-    <File Path="packages/Qyl.Api.Sdk/DECISIONS.md" />
     <File Path="packages/Qyl.Api.Sdk/Sdk/Sdk.props" />
     <File Path="packages/Qyl.Api.Sdk/Sdk/Sdk.targets" />
     <File Path="packages/Qyl.Api.Sdk/Build/Qyl.Api.Sdk.props" />
