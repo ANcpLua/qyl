@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@ancplua/qyl-api-schema",
+      "name": "qyl-contracts",
       "devDependencies": {
         "@types/node": "26.6.5",
         "@typespec/compiler": "1.17.0",
