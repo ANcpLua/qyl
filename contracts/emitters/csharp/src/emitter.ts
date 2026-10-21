@@ -10,6 +10,7 @@ import {
   getMinItems,
   getMinLength,
   getMinValue,
+  getPattern,
   isArrayModelType,
   isRecordModelType,
   navigateProgram,
@@ -87,10 +88,44 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   const unions = [...buckets.values()].flatMap((bucket) => bucket.unions);
   const requestBodies = requestBodyModels(program);
   const requestModels = nestedModels(requestBodies);
+  const routes = routeParameters(program);
   for (const [ns, bucket] of buckets) {
     const path = `${context.emitterOutputDir}/${ns.replace(/\./g, "/")}.cs`;
-    await emitFile(program, { path, content: renderBucket(program, bucket, unions, requestBodies, requestModels) });
+    const content = renderBucket(program, bucket, unions, requestBodies, requestModels);
+    await emitFile(program, { path, content: ns === routes.namespace ? `${content}\n${routes.content}` : content });
   }
+}
+
+/**
+ * Every path and query parameter of the service's HTTP operations that the contract bounds by a length or a pattern,
+ * by its operation's method and route, rendered in the service's namespace, so a server refuses a parameter outside
+ * them from the contract, as it refuses a body member, whichever route takes it.
+ */
+function routeParameters(program: Program): { namespace: string | undefined; content: string } {
+  const [services] = getAllHttpServices(program);
+  const entries: string[] = [];
+  for (const operation of services.flatMap((service) => service.operations)) {
+    for (const parameter of operation.parameters.parameters) {
+      if (parameter.type !== "path" && parameter.type !== "query") continue;
+      const property = parameter.param;
+      if (property.type.kind !== "Scalar" || !isStringScalar(property.type)) continue;
+      const minimum = numericBound(program, property, getMinLength, true);
+      const maximum = numericBound(program, property, getMaxLength, true);
+      const pattern = getPattern(program, property) ?? scalarPattern(program, property.type);
+      if (minimum === undefined && maximum === undefined && pattern === undefined) continue;
+      entries.push(`        ("${operation.verb.toUpperCase()}", "${escapeCsharpString(operation.path)}", "${escapeCsharpString(parameter.name)}", "${parameter.type}", ${minimum ?? "null"}, ${maximum ?? "null"}, ${pattern === undefined ? "null" : `"${escapeCsharpString(pattern)}"`}),`);
+    }
+  }
+  const service = services.find(() => true)?.namespace;
+  return {
+    namespace: service === undefined ? undefined : getCsharpNamespace(program, service),
+    content: "/// <summary>\n/// Each path and query parameter of an HTTP operation the contract bounds, by the operation's method and route: where it\n"
+      + "/// travels, the characters it keeps, counted as code points, and the ECMAScript pattern it matches, as JSON Schema's\n"
+      + "/// pattern reads it.\n/// </summary>\n"
+      + "public static class RouteParameters\n{\n"
+      + "    public static readonly IReadOnlyList<(string Method, string Route, string Name, string In, int? MinLength, int? MaxLength, string? Pattern)> All =\n"
+      + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];\n}\n`,
+  };
 }
 
 /** The models an HTTP operation takes as its request body. */
@@ -283,7 +318,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
   if (requestBody) {
     const members = bodyMembers(program, model);
     constants.push(renderRanges(rangeEntries(program, model, members)), renderLengths(lengthEntries(program, model, members)),
-      renderChoices(choiceEntries(program, model, members)));
+      renderPatterns(patternEntries(program, model, members)), renderChoices(choiceEntries(program, model, members)));
   }
   const members = [...constants, ...props];
   const body = members.length ? `\n${members.join("\n")}\n` : "\n";
@@ -424,6 +459,48 @@ function scalarBound(program: Program, scalar: Scalar, read: (program: Program, 
 function renderLengths(entries: string[]): string {
   return "    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>\n"
     + "    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =\n"
+    + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
+}
+
+/**
+ * Each string member of a request body the contract gives a pattern, its own or its scalar's, an array's elements under
+ * `[]`. Members of a union's models that share a path share one entry and must share its pattern.
+ */
+function patternEntries(program: Program, body: Model, members: BodyMember[]): string[] {
+  const entries = new Map<string, string>();
+  const add = (path: string, pattern: string | undefined): void => {
+    if (pattern === undefined) return;
+    const entry = `        ("${path}", "${escapeCsharpString(pattern)}"),`;
+    if (entries.has(path) && entries.get(path) !== entry) throw new Error(`Request body '${body.name}' gives '${path}' another pattern in two of its union's models.`);
+    entries.set(path, entry);
+  };
+  for (const { path, property } of members) {
+    const type = property.type;
+    if (type.kind === "Model" && isArrayModelType(type)) {
+      const element = type.indexer!.value;
+      if (element.kind === "Scalar" && isStringScalar(element)) add(`${path}[]`, scalarPattern(program, element));
+    } else if (type.kind === "Scalar" && isStringScalar(type)) {
+      add(path, getPattern(program, property) ?? scalarPattern(program, type));
+    }
+  }
+  return [...entries.values()];
+}
+
+function scalarPattern(program: Program, scalar: Scalar): string | undefined {
+  for (let current: Scalar | undefined = scalar; current; current = current.baseScalar) {
+    const pattern = getPattern(program, current);
+    if (pattern !== undefined) return pattern;
+  }
+  return undefined;
+}
+
+/**
+ * A request body's patterned strings in one list, so a server refuses a sent value that does not match from the contract,
+ * whichever operation takes the body.
+ */
+function renderPatterns(entries: string[]): string {
+  return "    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>\n"
+    + "    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =\n"
     + `    [${entries.length === 0 ? "" : `\n${entries.join("\n")}\n    `}];`;
 }
 

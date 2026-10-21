@@ -64,6 +64,58 @@ public sealed partial class AnalysisApiTests
     }
 
     /// <summary>
+    /// A value of the right length that breaks the pattern the contract gives its member is refused naming the field and
+    /// the pattern, as the MCP's input schema refuses it, never answered as a record not found: a trace id in upper case,
+    /// a session id of dots only, a span id with a letter past f, a member of a union's object form and one of a pair's.
+    /// </summary>
+    [TestMethod]
+    [DataRow("get_trace", """{"trace_id":"0AF7651916CD43DD8448EB211C80319C"}""", "trace_id", "trace_id.pattern", "^[a-f0-9]{32}$")]
+    [DataRow("list_traces", """{"session_id":".."}""", "session_id", "session_id.pattern", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$")]
+    [DataRow("search_logs", """{"span_id":"b7ad6b716920333g"}""", "span_id", "span_id.pattern", "^[a-f0-9]{16}$")]
+    [DataRow("ci_log", """{"baseline":{"ci_run_id":"run 1"}}""", "baseline.ci_run_id", "baseline.ci_run_id.pattern", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$")]
+    [DataRow("compare_traces", """{"a":{"trace_id":"0AF7651916CD43DD8448EB211C80319C"},"b":{"trace_id":"0af7651916cd43dd8448eb211c80319c"}}""", "a.trace_id", "a.trace_id.pattern", "^[a-f0-9]{32}$")]
+    public async Task A_value_outside_its_contract_pattern_is_refused_naming_the_field(string operation, string input, string field, string code, string pattern)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+
+        var error = await RejectedAsync(host, operation, input);
+
+        Assert.AreEqual((field, code, $"must match pattern \"{pattern}\"", $"Correct {field}."),
+            (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString(), error.GetProperty("hint").GetString()));
+    }
+
+    /// <summary>
+    /// A path or query parameter outside the length or the pattern the contract gives it is refused naming it, as a body
+    /// member is, never answered as a record not found or an empty page: a trace id in upper case or too short, a session
+    /// id with a space, an annotation id past its 128 characters, a failure id past its 512, a log query's trace id and an
+    /// annotation query's span id.
+    /// </summary>
+    [TestMethod]
+    [DataRow("GET", "/api/v1/traces/0AF7651916CD43DD8448EB211C80319C", "trace_id", "trace_id.pattern")]
+    [DataRow("GET", "/api/v1/traces/abc/spans", "trace_id", "trace_id.length")]
+    [DataRow("GET", "/api/v1/sessions/a%20b", "session_id", "session_id.pattern")]
+    [DataRow("GET", "/api/v1/sessions/a%20b/traces", "session_id", "session_id.pattern")]
+    [DataRow("GET", "/api/v1/annotations/{129}", "annotation_id", "annotation_id.length")]
+    [DataRow("DELETE", "/api/v1/saved-queries/{129}", "saved_query_id", "saved_query_id.length")]
+    [DataRow("PATCH", "/api/v1/failures/{513}", "failure_id", "failure_id.length")]
+    [DataRow("GET", "/api/v1/logs?trace_id=0AF7651916CD43DD8448EB211C80319C", "trace_id", "trace_id.pattern")]
+    [DataRow("GET", "/api/v1/annotations?trace_id=0af7651916cd43dd8448eb211c80319c&span_id=B7AD6B7169203331", "span_id", "span_id.pattern")]
+    public async Task A_route_parameter_outside_its_contract_length_or_pattern_is_refused_naming_it(string method, string route, string field, string code)
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var path = route.Replace("{129}", new string('a', 129), StringComparison.Ordinal).Replace("{513}", new string('f', 513), StringComparison.Ordinal);
+
+        using var response = await host.SendAsync(new HttpMethod(method), path, method switch { "PATCH" => "writer", "DELETE" => "deleter", _ => ReaderApiKey },
+            method == "PATCH" ? """{"status":"resolved"}""" : null, new Dictionary<string, string> { ["If-Match"] = "*" });
+        var json = await host.JsonAsync(response);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, json.GetRawText());
+        var error = Assert.ContainsSingle(json.GetProperty("errors").EnumerateArray());
+        Assert.AreEqual((field, code), (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()));
+        Assert.AreEqual($"Correct {field}.", error.GetProperty("hint").GetString());
+    }
+
+    /// <summary>
     /// With several fields wrong, the one named is the one the contract declares first, as the MCP names it: a member an
     /// object does not declare before its declared ones, a required member left out where it is declared, and depth
     /// first, so a member's own rule comes before those of what it holds and a union's object before a later member.

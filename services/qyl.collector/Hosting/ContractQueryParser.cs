@@ -246,14 +246,9 @@ internal static class ContractQueryParser
         if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
         if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
 
-        if (traceId is not null && !ContractIdentifiers.IsTraceId(traceId))
-            return Invalid("trace_id", ContractIdentifiers.TraceIdMessage, "trace_id.invalid", traceId);
-        if (spanId is not null && !ContractIdentifiers.IsSpanId(spanId))
-            return Invalid("span_id", ContractIdentifiers.SpanIdMessage, "span_id.invalid", spanId);
+        // The ids' lengths and patterns are the contract's, checked before the route runs (RouteParameterRules).
         if (spanId is not null && traceId is null)
             return Invalid("span_id", "span_id requires trace_id.", "span_id.requires_trace_id", spanId);
-        if (sessionId is not null && !ContractIdentifiers.IsSessionId(sessionId))
-            return Invalid("session_id", ContractIdentifiers.SessionIdMessage, "session_id.invalid", sessionId);
 
         parsed = new ParsedAnnotationsParameters(traceId, spanId, sessionId, limit, cursor);
         return null;
@@ -446,22 +441,12 @@ internal static class ContractQueryParser
         ContractErrorResults.Validation(field, message, code, rejectedValue);
 }
 
-/// <summary>The identifier formats the contract's scalars declare (common/types.tsp).</summary>
+/// <summary>The trace and span id formats a page cursor this Collector issued carries (common/types.tsp).</summary>
 internal static class ContractIdentifiers
 {
-    internal const string TraceIdMessage = "Value must be 32 lowercase hex characters.";
-    internal const string SpanIdMessage = "Value must be 16 lowercase hex characters.";
-    internal const string SessionIdMessage =
-        "Value must be 1 to 128 URL-safe characters (A-Z a-z 0-9 . _ ~ -), not only dots.";
-
     internal static bool IsTraceId(string? value) => IsLowerHex(value, 32);
 
     internal static bool IsSpanId(string? value) => IsLowerHex(value, 16);
-
-    internal static bool IsSessionId(string? value) =>
-        value is { Length: >= 1 and <= 128 } &&
-        value.All(static c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '~' or '-') &&
-        value.Any(static c => c is not '.');
 
     private static bool IsLowerHex(string? value, int length) =>
         value is not null && value.Length == length &&

@@ -64,10 +64,12 @@ contracts:
 analysis_boundaries:
   - The Collector computes every analysis result behind POST /api/v1/analysis/<tool_name>.
   - The Collector refuses an analysis argument its contract does not declare, of another type, outside its closed set,
-    its numeric range or its length, as the MCP's input schema does: it reads the request against the generated C#
-    contract type, an object a union takes as the model of its form, and each request body's generated Choices, Ranges
-    and Lengths, those of the objects it holds included, and a refusal names the field by its path, the names, values,
-    range or length it accepts and a hint. With several fields wrong, the MCP and the Collector name the same first one,
+    its numeric range, its length or its pattern, as the MCP's input schema does: it reads the request against the
+    generated C# contract type, an object a union takes as the model of its form, and each request body's generated
+    Choices, Ranges, Lengths and Patterns, those of the objects it holds included, and a refusal names the field by its
+    path, the names, values, range, length or pattern it accepts and a hint. A path or query parameter keeps the length
+    and the pattern the generated RouteParameters give it, checked before its route runs, so a malformed id is refused
+    naming it, never answered as a record not found. With several fields wrong, the MCP and the Collector name the same first one,
     the one the contract declares first: a member an object does not declare before its declared ones, then depth first
     in the contract's order. A saved query's, an annotation's and a failure's body keeps its Ranges and Lengths the same
     way.

@@ -22,13 +22,11 @@ internal static partial class CollectorEndpointExtensions
             return keyError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationCreateRequest,
-            AnnotationCreateRequest.Ranges, AnnotationCreateRequest.Lengths, ct).ConfigureAwait(false);
+            AnnotationCreateRequest.Ranges, AnnotationCreateRequest.Lengths, AnnotationCreateRequest.Patterns, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
         if (request!.Text is null) return ContractErrorResults.Validation("text", "Annotation text is required.", "text.required");
-        if (ValidateAnnotationTarget(request.Target) is { } targetError)
-            return targetError;
 
         var projectId = ResolveProjectScope(httpContext);
         var fingerprint = ResourceHttp.Fingerprint(request, QylSerializerContext.Default.AnnotationCreateRequest);
@@ -170,7 +168,7 @@ internal static partial class CollectorEndpointExtensions
             return preconditionError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationUpdateRequest,
-            AnnotationUpdateRequest.Ranges, AnnotationUpdateRequest.Lengths, ct).ConfigureAwait(false);
+            AnnotationUpdateRequest.Ranges, AnnotationUpdateRequest.Lengths, AnnotationUpdateRequest.Patterns, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -232,24 +230,6 @@ internal static partial class CollectorEndpointExtensions
         return ResourceHttp.Created(httpContext, AnnotationLocation(current.AnnotationId), current.Etag, annotation,
             QylSerializerContext.Default.Annotation);
     }
-
-    private static IResult? ValidateAnnotationTarget(AnnotationTarget target) => target switch
-    {
-        TraceAnnotationTarget trace when !ContractIdentifiers.IsTraceId(trace.TraceId) =>
-            ContractErrorResults.Validation("target.trace_id", ContractIdentifiers.TraceIdMessage, "trace_id.invalid",
-                trace.TraceId),
-        SpanAnnotationTarget span when !ContractIdentifiers.IsTraceId(span.TraceId) =>
-            ContractErrorResults.Validation("target.trace_id", ContractIdentifiers.TraceIdMessage, "trace_id.invalid",
-                span.TraceId),
-        SpanAnnotationTarget span when !ContractIdentifiers.IsSpanId(span.SpanId) =>
-            ContractErrorResults.Validation("target.span_id", ContractIdentifiers.SpanIdMessage, "span_id.invalid",
-                span.SpanId),
-        SessionAnnotationTarget session when !ContractIdentifiers.IsSessionId(session.SessionId) =>
-            ContractErrorResults.Validation("target.session_id", ContractIdentifiers.SessionIdMessage,
-                "session_id.invalid", session.SessionId),
-        TraceAnnotationTarget or SpanAnnotationTarget or SessionAnnotationTarget or FailureAnnotationTarget => null,
-        _ => ResourceHttp.InvalidBody("target.kind must be trace, span or session.")
-    };
 
     private static async Task<IResult?> FindMissingTargetAsync(
         IQylStore store,

@@ -544,6 +544,40 @@ verify('34 a string or an array outside its length is refused by the MCP and by 
  assert(refused>=2*Object.keys(analysisArguments).length,`every tool's bounded strings and arrays, both ends: ${refused}`);
 });
 
+verify('35 a value of its length outside its pattern is refused by the MCP and by the Collector\'s HTTP route, naming the same field, a path parameter too',async(_call,client)=>{
+ const pascal=tool=>tool.split('_').map(part=>part[0].toUpperCase()+part.slice(1)).join('');
+ // A value of the length the pattern takes that it refuses: a trace or span id in upper case, a session id of dots only.
+ const malformed=pattern=>pattern.includes('{32}')?'A'.repeat(32):pattern.includes('{16}')?'A'.repeat(16):'..';
+ // Each patterned member by its path, a member of an argument's object forms too.
+ const patterned=(properties,path=[])=>Object.entries(properties).flatMap(([name,schema])=>[
+  ...(schema.pattern===undefined?[]:[[[...path,name],schema.pattern]]),
+  ...[schema,...(schema.anyOf??[])].filter(form=>form.properties).flatMap(form=>patterned(form.properties,[...path,name]))]);
+ let refused=0;
+ for (const [tool,required] of Object.entries(analysisArguments))
+  for (const [path,pattern] of patterned(documents[`Mcp.Tools.${pascal(tool)}Input`].properties)) {
+   const field=path.join('.'), args={...required,...path.reduceRight((inner,name)=>({[name]:inner}),malformed(pattern))}, at=`${tool} ${JSON.stringify(args)}`;
+   const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
+   const response=await fetch(`${process.env.QYL_COLLECTOR_URL}/api/v1/analysis/${tool}`,{method:'POST',headers:{'content-type':'application/json',...collectorHeaders()},body:JSON.stringify(args)});
+   const [http]=(await response.json()).errors??[];
+   assert.equal(response.status,400,`${at}: ${JSON.stringify(http)}`);
+   assert.deepEqual([mcp?.code,mcp?.field,http?.field,http?.code],['invalid_argument',field,field,`${field}.pattern`],at);
+   refused++;
+  }
+ assert(refused>=15,`trace, span, session and CI run ids of every tool, nested ones included: ${refused}`);
+ // A path parameter is refused naming it, as the MCP names the argument it reads the same id from.
+ for (const [route,tool,args] of [
+  [`/api/v1/traces/${'A'.repeat(32)}`,'get_trace',{trace_id:'A'.repeat(32)}],
+  [`/api/v1/traces/${'A'.repeat(32)}/spans`,'get_trace',{trace_id:'A'.repeat(32)}],
+  ['/api/v1/sessions/a%20b','list_traces',{session_id:'a b'}],
+  ['/api/v1/sessions/a%20b/traces','list_traces',{session_id:'a b'}]]) {
+  const [field]=Object.keys(args);
+  const mcp=(await client.callTool({name:tool,arguments:args})).structuredContent?.error;
+  const response=await fetch(`${process.env.QYL_COLLECTOR_URL}${route}`,{headers:collectorHeaders()});
+  const [http]=(await response.json()).errors??[];
+  assert.deepEqual([response.status,mcp?.code,mcp?.field,http?.field,http?.code],[400,'invalid_argument',field,field,`${field}.pattern`],route);
+ }
+});
+
 verify('36 a time is read by one rule, RFC 3339 date-time with T and Z in either case and an offset with its colon, by the MCP and by the Collector\'s HTTP route',async(_call,client)=>{
  // An hour before the seed's T, in UTC and two hours east of it.
  const at=Math.floor((Date.parse(fixture.T)-3_600_000)/1000)*1000, utc=new Date(at).toISOString().slice(0,19), east=new Date(at+7_200_000).toISOString().slice(0,19);

@@ -11,7 +11,7 @@ namespace Qyl.Collector.Hosting;
 internal static partial class CollectorEndpointExtensions
 {
     private const string SavedQueryOperation = "saved-queries";
-    private static readonly ContractRules s_savedQueryRunRules = new(SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Choices);
+    private static readonly ContractRules s_savedQueryRunRules = new(SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Patterns, SavedQueryRunRequest.Choices);
     private const int SavedQueryMaxMatcherValueLength = 1024;
 
     private static async Task<IResult> CreateSavedQueryAsync(
@@ -24,7 +24,7 @@ internal static partial class CollectorEndpointExtensions
             return keyError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryCreateRequest,
-            SavedQueryCreateRequest.Ranges, SavedQueryCreateRequest.Lengths, ct).ConfigureAwait(false);
+            SavedQueryCreateRequest.Ranges, SavedQueryCreateRequest.Lengths, SavedQueryCreateRequest.Patterns, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -132,7 +132,7 @@ internal static partial class CollectorEndpointExtensions
             return preconditionError;
 
         var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryUpdateRequest,
-            SavedQueryUpdateRequest.Ranges, SavedQueryUpdateRequest.Lengths, ct).ConfigureAwait(false);
+            SavedQueryUpdateRequest.Ranges, SavedQueryUpdateRequest.Lengths, SavedQueryUpdateRequest.Patterns, ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -260,12 +260,6 @@ internal static partial class CollectorEndpointExtensions
                     return ContractErrorResults.Validation("filter.severity_min",
                         "Severity must be an OpenTelemetry severity number from 0 to 24.", "severity.out_of_range",
                         ((int)severity).ToString(CultureInfo.InvariantCulture));
-                if (logs.TraceId is { } traceId && !ContractIdentifiers.IsTraceId(traceId))
-                    return ContractErrorResults.Validation("filter.trace_id", ContractIdentifiers.TraceIdMessage,
-                        "trace_id.invalid", traceId);
-                if (logs.SessionId is { } sessionId && !ContractIdentifiers.IsSessionId(sessionId))
-                    return ContractErrorResults.Validation("filter.session_id", ContractIdentifiers.SessionIdMessage,
-                        "session_id.invalid", sessionId);
                 return null;
 
             case SavedMetricQueryFilter metrics:

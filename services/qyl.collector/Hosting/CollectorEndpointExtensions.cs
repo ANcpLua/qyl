@@ -31,6 +31,7 @@ internal static partial class CollectorEndpointExtensions
         // creating and updating a resource `write`, deleting one `delete`. Running a saved query
         // is a read even though it is a POST.
         var api = app.MapGroup("/api/v1");
+        api.AddEndpointFilter(CheckRouteParametersAsync);
 
         api.MapGet("/sessions", GetSessionsAsync).RequireKeyRole(ApiKeyRoles.Read);
         api.MapGet("/sessions/stats", GetSessionStatsAsync).RequireKeyRole(ApiKeyRoles.Read);

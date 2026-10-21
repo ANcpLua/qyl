@@ -18,6 +18,9 @@ public sealed class UpdateFailureStatusRequest
     [
         ("assignee", null, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
@@ -29,4 +32,34 @@ public sealed class UpdateFailureStatusRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assignee")]
     public string? Assignee { get; init; }
+}
+
+/// <summary>
+/// Each path and query parameter of an HTTP operation the contract bounds, by the operation's method and route: where it
+/// travels, the characters it keeps, counted as code points, and the ECMAScript pattern it matches, as JSON Schema's
+/// pattern reads it.
+/// </summary>
+public static class RouteParameters
+{
+    public static readonly IReadOnlyList<(string Method, string Route, string Name, string In, int? MinLength, int? MaxLength, string? Pattern)> All =
+    [
+        ("GET", "/api/v1/traces/{trace_id}", "trace_id", "path", 32, 32, "^[a-f0-9]{32}$"),
+        ("GET", "/api/v1/traces/{trace_id}/spans", "trace_id", "path", 32, 32, "^[a-f0-9]{32}$"),
+        ("GET", "/api/v1/logs", "session_id", "query", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("GET", "/api/v1/logs", "trace_id", "query", 32, 32, "^[a-f0-9]{32}$"),
+        ("GET", "/api/v1/metrics/{metric_name}/query", "series_id", "query", 1, null, null),
+        ("GET", "/api/v1/sessions/{session_id}", "session_id", "path", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("GET", "/api/v1/sessions/{session_id}/traces", "session_id", "path", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("GET", "/api/v1/annotations", "trace_id", "query", 32, 32, "^[a-f0-9]{32}$"),
+        ("GET", "/api/v1/annotations", "span_id", "query", 16, 16, "^[a-f0-9]{16}$"),
+        ("GET", "/api/v1/annotations", "session_id", "query", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("GET", "/api/v1/annotations/{annotation_id}", "annotation_id", "path", 1, 128, null),
+        ("PATCH", "/api/v1/annotations/{annotation_id}", "annotation_id", "path", 1, 128, null),
+        ("DELETE", "/api/v1/annotations/{annotation_id}", "annotation_id", "path", 1, 128, null),
+        ("GET", "/api/v1/saved-queries/{saved_query_id}", "saved_query_id", "path", 1, 128, null),
+        ("PATCH", "/api/v1/saved-queries/{saved_query_id}", "saved_query_id", "path", 1, 128, null),
+        ("DELETE", "/api/v1/saved-queries/{saved_query_id}", "saved_query_id", "path", 1, 128, null),
+        ("POST", "/api/v1/saved-queries/{saved_query_id}:run", "saved_query_id", "path", 1, 128, null),
+        ("PATCH", "/api/v1/failures/{failure_id}", "failure_id", "path", 1, 512, null),
+    ];
 }

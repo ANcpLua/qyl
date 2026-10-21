@@ -99,6 +99,11 @@ public sealed class ListTracesInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -241,6 +246,11 @@ public sealed class GetTraceInput
     public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
     [
         ("trace_id", 32, 32),
+    ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("trace_id", "^[a-f0-9]{32}$"),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
@@ -433,6 +443,9 @@ public sealed class ListSessionsInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -608,6 +621,13 @@ public sealed class SearchLogsInput
         ("trace_id", 32, 32),
         ("session_id", 1, 128),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("span_id", "^[a-f0-9]{16}$"),
+        ("trace_id", "^[a-f0-9]{32}$"),
+        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -726,6 +746,12 @@ public sealed class CiLogInput
         ("matchers[].values", 1, 256),
         ("ci_run_id", 1, 128),
         ("service_prefix", 1, 256),
+    ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("baseline.ci_run_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("ci_run_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
@@ -959,6 +985,9 @@ public sealed class ListMetricsInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -1089,6 +1118,9 @@ public sealed class QueryMetricInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -1379,6 +1411,9 @@ public sealed class RunSavedQueryInput
     [
         ("id", 1, 128),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [];
@@ -1562,6 +1597,9 @@ public sealed class TriageInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -1740,6 +1778,13 @@ public sealed class GetFailureContextInput
         ("session_id", 1, 128),
         ("failure_id", 1, 512),
         ("ci_run_id", 1, 128),
+    ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("trace_id", "^[a-f0-9]{32}$"),
+        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("ci_run_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
@@ -2009,6 +2054,9 @@ public sealed class CompareGroupsInput
         ("group_b.matchers[].values", 1, 256),
         ("group_b.failure_id", 1, 512),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -2161,6 +2209,14 @@ public sealed class CompareTracesInput
         ("b.trace_id", 32, 32),
         ("b.session_id", 1, 128),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("a.trace_id", "^[a-f0-9]{32}$"),
+        ("a.session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("b.trace_id", "^[a-f0-9]{32}$"),
+        ("b.session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+    ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -2264,6 +2320,9 @@ public sealed class VerifyFixInput
         ("failure_id", 1, 512),
         ("verify_id", 1, 8192),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -2403,6 +2462,9 @@ public sealed class AggregateTelemetryInput
         ("matchers[].values", 1, 256),
         ("group_by", null, 4),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -2515,6 +2577,9 @@ public sealed class DiscoverAttributesInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -2632,6 +2697,12 @@ public sealed class GetAgentRunInput
         ("matchers[].values", 1, 256),
         ("session_id", 1, 128),
         ("trace_id", 32, 32),
+    ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [
+        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("trace_id", "^[a-f0-9]{32}$"),
     ];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
@@ -2796,6 +2867,9 @@ public sealed class ListReleasesInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -2912,6 +2986,9 @@ public sealed class GetServiceMapInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -3031,6 +3108,9 @@ public sealed class CheckTelemetryHealthInput
         ("matchers[].key", 1, 256),
         ("matchers[].values", 1, 256),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
@@ -3183,6 +3263,9 @@ public sealed class GetMcpStatsInput
         ("matchers[].values", 1, 256),
         ("group_by", null, 1),
     ];
+    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
+    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
+    [];
     /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
     [
