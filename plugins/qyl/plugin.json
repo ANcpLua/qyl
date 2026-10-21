@@ -80,10 +80,10 @@
             }
           ]
         },
-        "demo_recording_url": "https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-reviewer-demo-17.0.1.mp4"
+        "demo_recording_url": "https://github.com/ANcpLua/qyl/releases/download/v17.0.10/qyl-chatgpt-investigation-17.0.10.mp4"
       },
       "publication": {
-        "release_notes": "qyl 17.0.x publishes 24 tools without aliases. triage ranks what changed and, with its status filter, lists failures by their recorded status; annotate and save_query create a note or a saved filter without an id and change one with its id and current etag, and run_saved_query answers a saved query or lists them; query_metric with raw returns one series' recorded points. Every result opens with a one-line headline naming the top rows, their ids and the next tool to call; a rejected argument names its field, the accepted values and a hint; verify_fix resolves a release within the failure's own service and reports the change anchor it used. The plugin retains its focused .NET and native MSTest skills, verified reviewer cases and published workflow recording."
+        "release_notes": "qyl 17.0.x publishes 24 tools without aliases. triage ranks what changed and, with its status filter, lists failures by their recorded status; annotate and save_query create a note or a saved filter without an id and change one with its id and current etag, and run_saved_query answers a saved query or lists them; query_metric with raw returns one series' recorded points. Every result opens with a one-line headline naming the top rows, their ids and the next tool to call; a rejected argument names its field, the accepted values and a hint; verify_fix resolves a release within the failure's own service and reports the change anchor it used. triage and check_telemetry_health leave the hosted server's own telemetry out unless service_name names it, and a metric answer reads only the instrument it measures. The plugin retains its focused .NET and native MSTest skills, verified reviewer cases and published workflow recording."
       }
     }
   },

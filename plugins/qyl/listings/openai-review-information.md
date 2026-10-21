@@ -49,17 +49,17 @@ The skill starts a fresh connection with `triage` and a `lookback_minutes` that 
 
 Use the dedicated reviewer account and seeded `review` project supplied in the private access fields. Use `lookback_minutes: 1440`; the sample data is deliberately historical, and the default one-hour window can miss it. The tools that filter by window, such as `list_traces`, `search_logs`, `list_sessions` and `aggregate_telemetry`, take a result's `window` as `start_time` and `end_time`, so one investigation keeps one window; `get_trace` reads the whole trace by its identifier whatever the window.
 
-The project is reseeded every 12 hours, at 00:00 and 12:00 UTC, so a 1440-minute window always holds the latest reseed whole. Each reseed names its checkout releases by its UTC date and hour, 00 or 12: `YYYY.MM.DD.HH.1` introduces the checkout failure and `YYYY.MM.DD.HH.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending` until a hundred checkouts ran it, then `passed`.
+The project is reseeded every 12 hours, at 00:00 and 12:00 UTC, so a 1440-minute window always holds the latest reseed whole. Each reseed names its checkout releases by its UTC date and hour, 00 or 12: `YYYY.MM.DD.HH.1` introduces the checkout failure and `YYYY.MM.DD.HH.2` fixes it. Ask about the latest checkout release, which `list_releases` lists first, rather than a fixed version: `verify_fix` with it answers `pending`, naming how many more requests it needs, until the fixed release has served a hundred, about seven hours after each reseed at the steady test traffic, then `passed`.
 
 The ZIP's five positive cases cover checkout trace discovery and detail, `qyl-mcp` error logs, metric instrument discovery, the five most recent sessions, and telemetry health. The three negative cases check that qyl cannot delete raw telemetry, roll back a deployment, or search the public web. A read-only capability question checks the raw-telemetry deletion boundary.
 
-The demo also creates an annotation on the inspected checkout trace, reads it back, and removes only that new annotation using its current `etag`. The underlying trace remains unchanged.
+The demo is one investigation in ChatGPT against the reviewer project: `triage` ranks what changed, `get_failure_context` and `compare_traces` explain the checkout failure, `verify_fix` reports its verdict for the latest checkout release, `compare_groups` separates the failing regional requests, `query_metric` compares the latency of /checkout and /cart, `save_query` stores that comparison and `delete_record` removes it with its current `etag`. No telemetry changes.
 
-Demo recording: https://github.com/ANcpLua/qyl/releases/download/v17.0.1/qyl-reviewer-demo-17.0.1.mp4
+Demo recording: https://github.com/ANcpLua/qyl/releases/download/v17.0.10/qyl-chatgpt-investigation-17.0.10.mp4
 
-The reviewer rehearsal used the real hosted server and ChatGPT Work. Native connector readbacks also verified the sample data and annotation cleanup. The initial development connection needed **Refresh tools** after OAuth sign-in; a new conversation then returned the seeded results. ChatGPT Work exposes user-visible results but not raw tool arguments in its activity panel, so the evidence does not claim an argument-by-argument trace.
+The recording used the real hosted server and the reviewer account in ChatGPT: 34 tool calls, none failed. A development connection needs **Refresh tools** after the server's tool list changes; a new conversation then returns the seeded results.
 
-In 17.0.1, `get_mcp_stats` does not yet receive hosted tool-call telemetry; a zero count does not establish that no calls occurred. It is excluded from the demo and review cases. The engine owner is separately correcting histogram-rate and cumulative-predecessor comparison cases. Original data remains inspectable through `query_metric` with `raw`; do not treat the affected aggregate calculations as verified.
+`get_mcp_stats` reports the hosted server's own tool calls in the connected project, as server `qyl.mcp`, beside the seeded `qyl-mcp` service. `triage` and `check_telemetry_health` leave `qyl.mcp` out unless `service_name` names it, so a reviewer's own calls never rank among the failures or the silent services.
 
 A missing record, unsupported aggregation or insufficient evidence must be reported as such. Neither an empty result nor a pending `verify_fix` verdict establishes that a fix succeeded.
 
