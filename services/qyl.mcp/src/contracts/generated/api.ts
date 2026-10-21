@@ -1213,6 +1213,7 @@ export interface MetricCatalogRow {
   "kind": MetricKind;
   "unit"?: string;
   "temporality": MetricTemporality;
+  "monotonic": boolean;
   "services": string[];
   "series_count": number;
   "last_seen": string;
@@ -2305,4 +2306,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:a170236db17b1fa7";
+export const CONTRACT_REVISION: string = "sha256:525f31279d147968";

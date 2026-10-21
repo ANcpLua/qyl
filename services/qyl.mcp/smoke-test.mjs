@@ -60,7 +60,7 @@ const fixture = getTelemetryFixture();
 const MISSING_TRACE = "0000000000000000000000000000dead";
 const now = new Date().toISOString();
 const metricRow = (index) => ({
-  name: `fixture.metric.${index}`, kind: "gauge", unit: "1", temporality: "unspecified", services: ["qyl-collector"],
+  name: `fixture.metric.${index}`, kind: "gauge", unit: "1", temporality: "unspecified", monotonic: false, services: ["qyl-collector"],
   series_count: 1, last_seen: now, supported_aggregations: ["avg", "min", "max", "last"], has_conflict: false,
   keys: [], suggested_group_by: [],
 });

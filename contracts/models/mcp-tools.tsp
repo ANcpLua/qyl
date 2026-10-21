@@ -536,19 +536,19 @@ model CiLogOutput {
 // Metric tools: list_metrics, query_metric
 // -----------------------------------------------------------------------------
 
-@doc("Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.")
+@doc("Lists the recorded metrics, one row per descriptor, its name, kind, unit, temporality and monotonicity, across every resource and scope version that reports it: reporting services, series count, last seen, the aggregations query_metric accepts, whether the name is also recorded with another kind, unit or monotonicity, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the metric with query_metric, split by its `suggested_group_by`. Default: 50 rows per page, ordered by name.")
 model ListMetricsInput {
-  @doc("Case-insensitive substring of the instrument name or description.")
+  @doc("Case-insensitive substring of the metric name or description.")
   query?: string;
-  @doc("Keep instruments this service reports.")
+  @doc("Keep the series this service reports.")
   @encodedName("application/json", "service_name")
   serviceName?: string;
-  @doc("Keep instruments of this kind.")
+  @doc("Keep metrics of this kind.")
   kind?: MetricKind;
-  @doc("Keep instruments with exactly this unit, e.g. `s` or `By`.")
+  @doc("Keep metrics with exactly this unit, e.g. `s` or `By`.")
   unit?: string;
 
-  @doc("Attribute predicates one series of the instrument must satisfy; `scope: resource` tests its resource attributes.")
+  @doc("Attribute predicates a series must satisfy to be counted; `scope: resource` tests its resource attributes.")
   @maxItems(32)
   matchers?: TelemetryMatcher[];
 
@@ -558,7 +558,7 @@ model ListMetricsInput {
   @encodedName("application/json", "name_prefix")
   namePrefix?: string;
 
-  @doc("Instruments per page, 1 to 1000; default 50.")
+  @doc("Rows per page, 1 to 1000; default 50.")
   @minValue(1)
   @maxValue(1000)
   limit?: int32 = 50;
@@ -588,7 +588,7 @@ model QueryMetricInput {
   @encodedName("application/json", "ratio_of")
   ratioOf?: MetricRatio;
 
-  @doc("The instrument to query, e.g. from list_metrics.")
+  @doc("The metric to query, e.g. from list_metrics.")
   @encodedName("application/json", "metric_name")
   @minLength(1)
   metricName: string;
@@ -601,7 +601,7 @@ model QueryMetricInput {
   @maxValue(86400000)
   stepMs?: int64;
 
-  @doc("Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each instrument's `supported_aggregations`.")
+  @doc("Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each metric's `supported_aggregations`.")
   aggregation?: MetricAggregation = MetricAggregation.avg;
 
   @doc("Select one exact metric series; disambiguates scopes and conflicting instrument descriptors. A conflict error and a `raw` read that matches several series name their series ids.")

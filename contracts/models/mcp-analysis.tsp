@@ -1218,25 +1218,29 @@ model ToolLogRow {
   attributes: Attribute[];
 }
 
-@doc("One metric instrument of list_metrics.")
+@doc("One metric descriptor of list_metrics, its name, kind, unit, temporality and monotonicity, across every resource and scope version that reports it.")
 model MetricCatalogRow {
   name: string;
   kind: MetricKind;
   unit?: string;
   temporality: MetricTemporality;
-  @doc("Services that report the instrument.")
+  @doc("Whether the sum only increases; false for an up-down sum and every other kind.")
+  monotonic: boolean;
+  @doc("Services that report the metric with this descriptor.")
   services: string[];
+  @doc("Series of this descriptor, across every resource and scope version that reports it.")
   @encodedName("application/json", "series_count")
   seriesCount: int64;
+  @doc("When the latest of those series was last seen.")
   @encodedName("application/json", "last_seen")
   lastSeen: utcDateTime;
   @doc("The aggregations query_metric accepts for it.")
   @encodedName("application/json", "supported_aggregations")
   supportedAggregations: MetricAggregation[];
-  @doc("Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`, which its conflict error names.")
+  @doc("Whether the name is also recorded with another kind, unit or monotonicity; query_metric then needs a `series_id`, which its conflict error names. Another temporality alone is no conflict: query_metric reads each series by its own.")
   @encodedName("application/json", "has_conflict")
   hasConflict: boolean;
-  @doc("The attribute keys of the instrument's series with their numbers of distinct values, most values first.")
+  @doc("The attribute keys of the descriptor's series with their numbers of distinct values across them, most values first.")
   keys: MetricKeySummary[];
   @doc("The keys with 2 to 20 values: the ones to pass as query_metric's `group_by`.")
   @encodedName("application/json", "suggested_group_by")
@@ -1246,7 +1250,7 @@ model MetricCatalogRow {
 @doc("One attribute key of a metric instrument's series.")
 model MetricKeySummary {
   key: string;
-  @doc("Distinct values the key holds across the instrument's series.")
+  @doc("Distinct values the key holds across the descriptor's series.")
   cardinality: int64;
 }
 

@@ -198,10 +198,13 @@ const cases: Array<{ operation: string; schema: ContractSchemaName; input?: obje
   },
   {
     operation: "list_metrics", schema: "Mcp.Tools.ListMetricsOutput",
-    output: { ...context, items: [{ name: "http.server.request.duration", kind: "histogram", unit: "s", temporality: "cumulative",
+    output: { ...context, items: [{ name: "http.server.request.duration", kind: "histogram", unit: "s", temporality: "cumulative", monotonic: false,
       services: ["checkout"], series_count: 2, last_seen: NOW, supported_aggregations: ["avg", "p95"], has_conflict: false,
-      keys: [{ key: "http.route", cardinality: 2 }], suggested_group_by: ["http.route"] }] },
-    expect: [/^list_metrics: 1 instruments\. Top: http\.server\.request\.duration \(histogram, s, 2 series, group by http\.route\)\./u,
+      keys: [{ key: "http.route", cardinality: 2 }], suggested_group_by: ["http.route"] },
+      { name: "http.server.request.duration", kind: "histogram", unit: "s", temporality: "delta", monotonic: false,
+        services: ["checkout"], series_count: 1, last_seen: NOW, supported_aggregations: ["avg", "p95"], has_conflict: false,
+        keys: [], suggested_group_by: [] }] },
+    expect: [/^list_metrics: 2 metrics\. Top: http\.server\.request\.duration \(histogram, s, cumulative, 2 series, group by http\.route\); http\.server\.request\.duration \(histogram, s, delta, 1 series\)\./u,
       /→ query_metric metric_name=http\.server\.request\.duration group_by=\["http\.route"\]$/u],
   },
   {

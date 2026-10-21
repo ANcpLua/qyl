@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:a170236db17b1fa7",
+  "contract_revision": "sha256:525f31279d147968",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -2354,11 +2354,11 @@
         "properties": {
           "query": {
             "type": "string",
-            "description": "Case-insensitive substring of the instrument name or description."
+            "description": "Case-insensitive substring of the metric name or description."
           },
           "service_name": {
             "type": "string",
-            "description": "Keep instruments this service reports."
+            "description": "Keep the series this service reports."
           },
           "kind": {
             "type": "string",
@@ -2369,11 +2369,11 @@
               "exponential_histogram",
               "summary"
             ],
-            "description": "Keep instruments of this kind."
+            "description": "Keep metrics of this kind."
           },
           "unit": {
             "type": "string",
-            "description": "Keep instruments with exactly this unit, e.g. `s` or `By`."
+            "description": "Keep metrics with exactly this unit, e.g. `s` or `By`."
           },
           "matchers": {
             "type": "array",
@@ -2454,7 +2454,7 @@
               "additionalProperties": false
             },
             "maxItems": 32,
-            "description": "Attribute predicates one series of the instrument must satisfy; `scope: resource` tests its resource attributes."
+            "description": "Attribute predicates a series must satisfy to be counted; `scope: resource` tests its resource attributes."
           },
           "lookback_minutes": {
             "type": "integer",
@@ -2480,7 +2480,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 1000,
-            "description": "Instruments per page, 1 to 1000; default 50.",
+            "description": "Rows per page, 1 to 1000; default 50.",
             "default": 50
           },
           "cursor": {
@@ -2488,7 +2488,7 @@
             "description": "`next_cursor` of a previous list_metrics call with the same filters."
           }
         },
-        "description": "Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.",
+        "description": "Lists the recorded metrics, one row per descriptor, its name, kind, unit, temporality and monotonicity, across every resource and scope version that reports it: reporting services, series count, last seen, the aggregations query_metric accepts, whether the name is also recorded with another kind, unit or monotonicity, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the metric with query_metric, split by its `suggested_group_by`. Default: 50 rows per page, ordered by name.",
         "additionalProperties": false
       }
     },
@@ -3226,7 +3226,7 @@
           "metric_name": {
             "type": "string",
             "minLength": 1,
-            "description": "The instrument to query, e.g. from list_metrics."
+            "description": "The metric to query, e.g. from list_metrics."
           },
           "lookback_minutes": {
             "type": "integer",
@@ -3264,7 +3264,7 @@
               "p95",
               "p99"
             ],
-            "description": "Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each instrument's `supported_aggregations`.",
+            "description": "Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each metric's `supported_aggregations`.",
             "default": "avg"
           },
           "series_id": {

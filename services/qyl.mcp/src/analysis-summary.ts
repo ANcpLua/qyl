@@ -348,11 +348,12 @@ function ciLog(output: CiLogOutput): string {
   return finish(`ci_log: ${runs.length} runs.`, [section("Top", rows)], output, target === undefined ? "widen lookback_minutes" : `ci_log ci_run_id=${target.ci_run_id}`);
 }
 
+/** One row per metric descriptor: a name recorded cumulative and delta is two rows, which its temporality tells apart. */
 function listMetrics(output: ListMetricsOutput): string {
-  const rows = top(output.items, (item) => `${item.name} (${item.kind}${item.unit ? `, ${item.unit}` : ""}, ${item.series_count} series${item.has_conflict ? ", conflicting descriptors" : ""}${item.suggested_group_by.length ? `, group by ${item.suggested_group_by.slice(0, TOP).join(", ")}` : ""})`);
+  const rows = top(output.items, (item) => `${item.name} (${item.kind}${item.unit ? `, ${item.unit}` : ""}${item.temporality === "unspecified" ? "" : `, ${item.temporality}`}${item.kind === "sum" && !item.monotonic ? ", up-down" : ""}, ${item.series_count} series${item.has_conflict ? ", conflicting descriptors" : ""}${item.suggested_group_by.length ? `, group by ${item.suggested_group_by.slice(0, TOP).join(", ")}` : ""})`);
   const first = output.items[0];
   const groupBy = first?.suggested_group_by.length ? ` group_by=${JSON.stringify(first.suggested_group_by.slice(0, TOP))}` : "";
-  return finish(`list_metrics: ${output.items.length} instruments.`, [section("Top", rows)], output, first === undefined ? "widen lookback_minutes" : `query_metric metric_name=${first.name}${groupBy}`);
+  return finish(`list_metrics: ${output.items.length} metrics.`, [section("Top", rows)], output, first === undefined ? "widen lookback_minutes" : `query_metric metric_name=${first.name}${groupBy}`);
 }
 
 /** query_metric with raw: one series' original points. */

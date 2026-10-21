@@ -25,19 +25,28 @@ internal sealed partial class AnalysisEngine
     ];
     private JsonObject Metrics(JsonObject input)
     {
-        var items = SeriesRows(input).GroupBy(static row => row.InstrumentId ?? MetricStorageMapper.InstrumentId(row))
-            .Select(static group => (Entry: MetricStorageMapper.ToCatalogEntry(group.ToArray()), Series: group.ToArray()))
-            .OrderBy(static instrument => instrument.Entry.MetricName, StringComparer.Ordinal)
-            .ThenBy(static instrument => instrument.Entry.InstrumentId, StringComparer.Ordinal)
-            .Select(static instrument =>
+        var rows = SeriesRows(input);
+        // A name recorded with another kind, unit or monotonicity needs a series_id in query_metric; another temporality
+        // does not, since query_metric reads each series by its own.
+        var conflicting = rows.GroupBy(static row => row.MetricName, StringComparer.Ordinal)
+            .Where(static name => name.Select(static row => (row.MetricKind, row.Unit, row.IsMonotonic)).Distinct().Skip(1).Any())
+            .Select(static name => name.Key).ToHashSet(StringComparer.Ordinal);
+        // One row per metric descriptor across every resource and scope version that reports it: a restart's new
+        // service.instance.id and a deploy's new service and scope versions add series to a row, not rows.
+        var items = rows.GroupBy(static row => (row.MetricName, row.MetricKind, row.Unit, row.Temporality, row.IsMonotonic))
+            .OrderBy(static descriptor => descriptor.Key.MetricName, StringComparer.Ordinal)
+            .ThenBy(static descriptor => descriptor.Key.MetricKind).ThenBy(static descriptor => descriptor.Key.Temporality)
+            .ThenBy(static descriptor => descriptor.Key.IsMonotonic).ThenBy(static descriptor => descriptor.Key.Unit, StringComparer.Ordinal)
+            .Select(descriptor =>
             {
-                // One row per instrument: its descriptor and how many values each attribute key of its series holds.
-                var full = JsonSerializer.SerializeToNode(MetricMapper.ToContract(instrument.Entry), QylSerializerContext.Default.MetricDescriptor)!.AsObject();
-                var keys = instrument.Series.SelectMany(static s => SeriesRecord(s).Attributes).GroupBy(static p => p.Key, StringComparer.Ordinal)
+                // Its series counted, their latest last_seen, their services and how many values each key holds across them.
+                var full = JsonSerializer.SerializeToNode(MetricMapper.ToContract(MetricStorageMapper.ToCatalogEntry(descriptor.ToArray())), QylSerializerContext.Default.MetricDescriptor)!.AsObject();
+                var keys = descriptor.SelectMany(static s => SeriesRecord(s).Attributes).GroupBy(static p => p.Key, StringComparer.Ordinal)
                     .Select(static g => (Key: g.Key, Cardinality: g.Select(static p => p.Value?.ToJsonString() ?? "null").Distinct(StringComparer.Ordinal).Count()))
                     .OrderByDescending(static k => k.Cardinality).ThenBy(static k => k.Key, StringComparer.Ordinal).ToList();
-                return J.O(("name", full["name"]), ("kind", full["kind"]), ("unit", full["unit"]), ("temporality", full["temporality"]), ("services", full["services"] ?? new JsonArray()),
-                    ("series_count", full["series_count"]), ("last_seen", full["last_seen"]), ("supported_aggregations", full["supported_aggregations"] ?? new JsonArray()), ("has_conflict", full["has_conflict"]),
+                return J.O(("name", full["name"]), ("kind", full["kind"]), ("unit", full["unit"]), ("temporality", full["temporality"]), ("monotonic", full["monotonic"]),
+                    ("services", full["services"] ?? new JsonArray()), ("series_count", full["series_count"]), ("last_seen", full["last_seen"]),
+                    ("supported_aggregations", full["supported_aggregations"] ?? new JsonArray()), ("has_conflict", conflicting.Contains(descriptor.Key.MetricName)),
                     ("keys", J.A(keys.Select(static k => (JsonNode?)J.O(("key", k.Key), ("cardinality", k.Cardinality))))),
                     ("suggested_group_by", J.N(keys.Where(static k => k.Cardinality is > 1 and <= 20).Select(static k => k.Key))));
             });

@@ -1032,6 +1032,8 @@ public sealed class MetricCatalogRow
     public string? Unit { get; init; }
     [JsonPropertyName("temporality")]
     public required Qyl.Api.Contracts.OTel.Metrics.MetricTemporality Temporality { get; init; }
+    [JsonPropertyName("monotonic")]
+    public required bool Monotonic { get; init; }
     [JsonPropertyName("services")]
     public required IReadOnlyList<string> Services { get; init; }
     [JsonPropertyName("series_count")]

@@ -10004,11 +10004,11 @@
     "properties": {
       "query": {
         "type": "string",
-        "description": "Case-insensitive substring of the instrument name or description."
+        "description": "Case-insensitive substring of the metric name or description."
       },
       "service_name": {
         "type": "string",
-        "description": "Keep instruments this service reports."
+        "description": "Keep the series this service reports."
       },
       "kind": {
         "type": "string",
@@ -10019,11 +10019,11 @@
           "exponential_histogram",
           "summary"
         ],
-        "description": "Keep instruments of this kind."
+        "description": "Keep metrics of this kind."
       },
       "unit": {
         "type": "string",
-        "description": "Keep instruments with exactly this unit, e.g. `s` or `By`."
+        "description": "Keep metrics with exactly this unit, e.g. `s` or `By`."
       },
       "matchers": {
         "type": "array",
@@ -10104,7 +10104,7 @@
           "additionalProperties": false
         },
         "maxItems": 32,
-        "description": "Attribute predicates one series of the instrument must satisfy; `scope: resource` tests its resource attributes."
+        "description": "Attribute predicates a series must satisfy to be counted; `scope: resource` tests its resource attributes."
       },
       "lookback_minutes": {
         "type": "integer",
@@ -10130,7 +10130,7 @@
         "type": "integer",
         "minimum": 1,
         "maximum": 1000,
-        "description": "Instruments per page, 1 to 1000; default 50.",
+        "description": "Rows per page, 1 to 1000; default 50.",
         "default": 50
       },
       "cursor": {
@@ -10138,7 +10138,7 @@
         "description": "`next_cursor` of a previous list_metrics call with the same filters."
       }
     },
-    "description": "Lists the recorded metric instruments, one row each: name, kind, unit, temporality, reporting services, series count, last seen, the aggregations query_metric accepts, whether its descriptors conflict, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the instrument with query_metric, split by its `suggested_group_by`. Default: 50 instruments per page, ordered by name.",
+    "description": "Lists the recorded metrics, one row per descriptor, its name, kind, unit, temporality and monotonicity, across every resource and scope version that reports it: reporting services, series count, last seen, the aggregations query_metric accepts, whether the name is also recorded with another kind, unit or monotonicity, each attribute key's cardinality and the keys worth grouping by. Start a metric question here, then measure the metric with query_metric, split by its `suggested_group_by`. Default: 50 rows per page, ordered by name.",
     "additionalProperties": false
   },
   "Mcp.Tools.ListMetricsOutput": {
@@ -10253,6 +10253,7 @@
             "name",
             "kind",
             "temporality",
+            "monotonic",
             "services",
             "series_count",
             "last_seen",
@@ -10288,19 +10289,25 @@
               ],
               "description": "How successive points of a sum or histogram relate to each other."
             },
+            "monotonic": {
+              "type": "boolean",
+              "description": "Whether the sum only increases; false for an up-down sum and every other kind."
+            },
             "services": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Services that report the instrument."
+              "description": "Services that report the metric with this descriptor."
             },
             "series_count": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Series of this descriptor, across every resource and scope version that reports it."
             },
             "last_seen": {
               "type": "string",
-              "format": "date-time"
+              "format": "date-time",
+              "description": "When the latest of those series was last seen."
             },
             "supported_aggregations": {
               "type": "array",
@@ -10324,7 +10331,7 @@
             },
             "has_conflict": {
               "type": "boolean",
-              "description": "Whether the name is recorded with incompatible descriptors; query_metric then needs a `series_id`, which its conflict error names."
+              "description": "Whether the name is also recorded with another kind, unit or monotonicity; query_metric then needs a `series_id`, which its conflict error names. Another temporality alone is no conflict: query_metric reads each series by its own."
             },
             "keys": {
               "type": "array",
@@ -10340,13 +10347,13 @@
                   },
                   "cardinality": {
                     "type": "integer",
-                    "description": "Distinct values the key holds across the instrument's series."
+                    "description": "Distinct values the key holds across the descriptor's series."
                   }
                 },
                 "description": "One attribute key of a metric instrument's series.",
                 "additionalProperties": false
               },
-              "description": "The attribute keys of the instrument's series with their numbers of distinct values, most values first."
+              "description": "The attribute keys of the descriptor's series with their numbers of distinct values across them, most values first."
             },
             "suggested_group_by": {
               "type": "array",
@@ -10356,7 +10363,7 @@
               "description": "The keys with 2 to 20 values: the ones to pass as query_metric's `group_by`."
             }
           },
-          "description": "One metric instrument of list_metrics.",
+          "description": "One metric descriptor of list_metrics, its name, kind, unit, temporality and monotonicity, across every resource and scope version that reports it.",
           "additionalProperties": false
         }
       },
@@ -12646,7 +12653,7 @@
       "metric_name": {
         "type": "string",
         "minLength": 1,
-        "description": "The instrument to query, e.g. from list_metrics."
+        "description": "The metric to query, e.g. from list_metrics."
       },
       "lookback_minutes": {
         "type": "integer",
@@ -12684,7 +12691,7 @@
           "p95",
           "p99"
         ],
-        "description": "Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each instrument's `supported_aggregations`.",
+        "description": "Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each metric's `supported_aggregations`.",
         "default": "avg"
       },
       "series_id": {

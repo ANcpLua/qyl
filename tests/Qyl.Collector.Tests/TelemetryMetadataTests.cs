@@ -465,8 +465,12 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         Assert.AreEqual(10_000d, buckets[0].GetProperty("value").GetDouble(), 0.0000000005d);
     }
 
+    /// <summary>
+    /// One metric name in two instrumentation scopes is two instruments of the HTTP catalog, paged one at a time, and
+    /// one row of list_metrics, which shows a metric descriptor across the scopes that report it.
+    /// </summary>
     [TestMethod]
-    public async Task Same_metric_name_in_two_scopes_produces_two_paged_catalog_entries()
+    public async Task Same_metric_name_in_two_scopes_produces_two_paged_catalog_entries_and_one_list_metrics_row()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
         var first = Point() with { TimeUnixNano = CollectorApiTestHost.FixtureUnixNano - 1_000_000_000 };
@@ -476,7 +480,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         Assert.HasCount(2, await host.Store.ListMetricsAsync("alpha", ct: testContext.CancellationToken));
         using var analysis = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/list_metrics", "reader", "{\"name_prefix\":\"requests\"}");
         Assert.AreEqual(System.Net.HttpStatusCode.OK, analysis.StatusCode);
-        Assert.AreEqual(2, (await host.JsonAsync(analysis)).GetProperty("items").GetArrayLength());
+        Assert.AreEqual(2, Assert.ContainsSingle((await host.JsonAsync(analysis)).GetProperty("items").EnumerateArray()).GetProperty("series_count").GetInt32());
         using var firstPage = await host.SendAsync(HttpMethod.Get, "/api/v1/metrics?name_prefix=requests&limit=1", "reader");
         Assert.AreEqual(System.Net.HttpStatusCode.OK, firstPage.StatusCode);
         var firstJson = await host.JsonAsync(firstPage);

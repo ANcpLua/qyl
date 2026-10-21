@@ -321,9 +321,9 @@ public sealed partial class AnalysisApiTests
         Assert.AreSequenceEqual([10d, 30d], series.GetProperty("buckets").EnumerateArray().Select(static b => b.GetProperty("value").GetDouble()));
     }
 
-    private static readonly string[] s_catalogRowKeys = ["name", "kind", "temporality", "services", "series_count", "last_seen", "supported_aggregations", "has_conflict", "keys", "suggested_group_by"];
+    private static readonly string[] s_catalogRowKeys = ["name", "kind", "temporality", "monotonic", "services", "series_count", "last_seen", "supported_aggregations", "has_conflict", "keys", "suggested_group_by"];
 
-    /// <summary>list_metrics names each instrument in one compact row, fifty to a page by default.</summary>
+    /// <summary>list_metrics names each metric descriptor in one compact row, fifty to a page by default.</summary>
     [TestMethod]
     public async Task List_metrics_returns_compact_rows_fifty_by_default()
     {
@@ -339,6 +339,59 @@ public sealed partial class AnalysisApiTests
         Assert.IsTrue(result.GetProperty("has_more").GetBoolean());
         Assert.AreEquivalent(s_catalogRowKeys, items[0].EnumerateObject().Select(static p => p.Name).ToArray());
         Assert.AreEqual(("metric.000", "gauge", 1), (items[0].GetProperty("name").GetString(), items[0].GetProperty("kind").GetString(), items[0].GetProperty("series_count").GetInt32()));
+    }
+
+    /// <summary>
+    /// list_metrics shows one row per metric descriptor, its name, kind, unit, temporality and monotonicity, across the
+    /// resources and scope versions that report it: every restart gives a service a new service.instance.id and every
+    /// deploy a new service.version and scope version, and the MCP server's operation histogram is still one cumulative
+    /// and one delta row. A row counts the series of all of them, takes the latest last_seen, unions their services and
+    /// counts each key's values across them; a name recorded with another kind, unit or monotonicity is flagged.
+    /// </summary>
+    [TestMethod]
+    public async Task List_metrics_shows_one_row_per_descriptor_across_resources_and_scope_versions()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var latest = FixtureUnixNano - 5 * Minute;
+        MetricSeriesRow Series(string id, string name, byte kind, byte temporality, string service, string version, string instance, string tool, ulong lastSeen, byte monotonic = 0) => new()
+        {
+            ProjectId = "alpha", SeriesId = id, MetricName = name, MetricKind = kind, Temporality = temporality, IsMonotonic = monotonic, Unit = kind == 3 ? "s" : "{request}",
+            ServiceName = service, ScopeName = "qyl.mcp", ScopeVersion = version, AttributesJson = "{\"gen_ai.tool.name\":\"" + tool + "\"}",
+            ResourceJson = "{\"service.name\":\"" + service + "\",\"service.version\":\"" + version + "\",\"service.instance.id\":\"" + instance + "\"}",
+            FirstSeenUnixNano = lastSeen - Minute, LastSeenUnixNano = lastSeen
+        };
+        MetricSeriesRow[] series =
+        [
+            Series("h_10_a", "mcp.server.operation.duration", 3, 2, "qyl-mcp", "17.0.10", "a", "triage", latest - 50 * Minute),
+            Series("h_10_b", "mcp.server.operation.duration", 3, 2, "qyl-mcp", "17.0.10", "b", "get_trace", latest - 40 * Minute),
+            Series("h_10_c", "mcp.server.operation.duration", 3, 2, "qyl-mcp", "17.0.10", "c", "triage", latest - 30 * Minute),
+            Series("h_11_d", "mcp.server.operation.duration", 3, 1, "qyl-mcp", "17.0.11", "d", "triage", latest - 10 * Minute),
+            Series("h_11_e", "mcp.server.operation.duration", 3, 1, "qyl-mcp-staging", "17.0.11", "e", "list_metrics", latest),
+            Series("q_counter", "queue.items", 2, 2, "worker", "1.0", "w", "enqueue", latest, monotonic: 1),
+            Series("q_up_down", "queue.items", 2, 2, "worker", "1.1", "w", "enqueue", latest)
+        ];
+        foreach (var row in series)
+        {
+            var point = row.MetricKind == 3
+                ? new MetricPointRow { ProjectId = "alpha", SeriesId = row.SeriesId, TimeUnixNano = row.LastSeenUnixNano, StartTimeUnixNano = row.FirstSeenUnixNano, HistogramCount = 1, HistogramSum = 1, BucketBoundsJson = "[1]", BucketCountsJson = "[1,0]" }
+                : new MetricPointRow { ProjectId = "alpha", SeriesId = row.SeriesId, TimeUnixNano = row.LastSeenUnixNano, StartTimeUnixNano = row.FirstSeenUnixNano, Value = 1 };
+            await host.Store.InsertMetricsAsync([row], [MetricFixtures.Observation(row, point)], testContext.CancellationToken);
+        }
+
+        var items = (await Read(host, "list_metrics", "{}")).GetProperty("items").EnumerateArray().ToArray();
+
+        static string Row(JsonElement item) => string.Join(" ", item.GetProperty("name").GetString(), item.GetProperty("kind").GetString(),
+            item.GetProperty("temporality").GetString(), item.GetProperty("monotonic").GetBoolean() ? "monotonic" : "-", item.GetProperty("series_count").GetInt32(),
+            string.Join(",", item.GetProperty("services").EnumerateArray().Select(static service => service.GetString())), item.GetProperty("has_conflict").GetBoolean() ? "conflict" : "-");
+        Assert.AreSequenceEqual([
+            "mcp.server.operation.duration histogram delta - 2 qyl-mcp,qyl-mcp-staging -",
+            "mcp.server.operation.duration histogram cumulative - 3 qyl-mcp -",
+            "queue.items sum cumulative - 1 worker conflict",
+            "queue.items sum cumulative monotonic 1 worker conflict"], items.Select(Row));
+        Assert.AreEqual(FixtureUtcNow.AddMinutes(-35), items[1].GetProperty("last_seen").GetDateTimeOffset());
+        var tool = Assert.ContainsSingle(items[1].GetProperty("keys").EnumerateArray());
+        Assert.AreEqual(("gen_ai.tool.name", 2), (tool.GetProperty("key").GetString(), tool.GetProperty("cardinality").GetInt32()));
+        Assert.AreSequenceEqual(["gen_ai.tool.name"], items[0].GetProperty("suggested_group_by").EnumerateArray().Select(static key => key.GetString()));
     }
 
     private static MetricPointRow[] Observations(string seriesId, ulong start, params (ulong Time, ulong Count)[] samples) =>
