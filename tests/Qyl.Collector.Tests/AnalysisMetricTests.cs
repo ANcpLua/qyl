@@ -30,6 +30,33 @@ public sealed partial class AnalysisApiTests
         Assert.AreEqual(JsonValueKind.Null, Bucket(await Read(host, "query_metric", """{"metric_name":"pool.size","aggregation":"last","step_ms":3600000}""")).ValueKind);
     }
 
+    /// <summary>
+    /// A metric query without series names why: a metric the project never recorded, one whose last point precedes
+    /// the window, and filters that exclude every series the window holds each answer differently.
+    /// </summary>
+    [TestMethod]
+    public async Task A_metric_query_without_series_names_why()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        var earlier = FixtureUnixNano - 180 * Minute; var recent = FixtureUnixNano - 5 * Minute;
+        await InsertAsync(host, Gauge("queue.depth", "s_earlier", earlier), (earlier, 1d));
+        await InsertAsync(host, Gauge("pool.size", "s_recent", recent), (recent, 2d));
+
+        foreach (var (input, detail) in new[]
+                 {
+                     ("""{"metric_name":"never.recorded"}""", "Metric never.recorded was not found in this project"),
+                     ("""{"metric_name":"queue.depth"}""", "Metric queue.depth has no points in this window; its last point is at "
+                         + FixtureUtcNow.AddMinutes(-180).ToString("O", System.Globalization.CultureInfo.InvariantCulture)),
+                     ("""{"metric_name":"pool.size","matchers":[{"key":"instance","op":"eq","value":"s_other"}]}""", "No series of metric pool.size in this window matches")
+                 })
+        {
+            using var response = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/query_metric", ReaderApiKey, input);
+            var error = await host.JsonAsync(response);
+            Assert.AreEqual(System.Net.HttpStatusCode.NotFound, response.StatusCode, error.GetRawText());
+            Assert.Contains(detail, error.GetProperty("detail").GetString()!, StringComparison.Ordinal);
+        }
+    }
+
     [TestMethod]
     public async Task A_ratio_of_an_exact_numerator_series_finds_its_denominator_metric()
     {

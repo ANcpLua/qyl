@@ -56,10 +56,18 @@ internal sealed partial class AnalysisEngine
             ? J.O(("type", "int"), ("value", integer.ToString(CultureInfo.InvariantCulture)))
             : J.O(("type", "double"), ("value", value));
     }
+    // A query without series names why: a metric the project never recorded, one recorded only before the window, or
+    // filters that exclude every series the window holds.
+    private AnalysisInputException NoMetricSeries(string name) =>
+        snapshot.Series.Any(s => s.MetricName == name)
+            ? new("metric_name", $"No series of metric {name} in this window matches series_id and matchers; list_metrics with query {name} lists its series' attribute keys.", "metric.not_found") { Missing = name }
+            : snapshot.MetricLastSeen.TryGetValue(name, out var lastSeen)
+                ? new("metric_name", $"Metric {name} has no points in this window; its last point is at {J.Time(lastSeen)}. Widen lookback_minutes or pass start_time to cover it.", "metric.not_found") { Missing = name }
+                : new("metric_name", $"Metric {name} was not found in this project; list_metrics lists the recorded metrics.", "metric.not_found") { Missing = name };
     private JsonObject QueryMetric(JsonObject input)
     {
         var rows = SeriesRows(input); var name = J.String(input, "metric_name")!;
-        if (rows.Count is 0) throw new AnalysisInputException("metric_name", $"Metric {name} was not found in this project; list_metrics lists the recorded metrics.", "metric.not_found") { Missing = name };
+        if (rows.Count is 0) throw NoMetricSeries(name);
         var aggregation = J.String(input, "aggregation") ?? "avg"; var function = J.String(input, "function") ?? "none";
         if (rows.Select(static row => (row.MetricKind, row.Unit, row.Temporality, row.IsMonotonic)).Distinct().Skip(1).Any())
             throw new MetricQueryConflictException();
