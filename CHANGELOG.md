@@ -1,5 +1,32 @@
 # Changelog
 
+## 17.0.12
+
+- The Collector's HTTP routes refuse what the MCP refuses, and both name the same field:
+  - A value that breaks its contract pattern (an id in the wrong case or shape) is answered with 400 naming the field and the pattern. This covers bodies and path and query parameters; the checks come from the generated `Patterns` and `RouteParameters`. Before, an analysis route or `/api/v1/traces/{trace_id}` answered 404.
+  - The write routes (annotations, saved queries, failure status, delete) read their bodies by their contract, as the analysis routes do. A member the contract does not declare, a value of another type, an invalid value and a missing required member are refused naming the field: `<field>.unknown`, `<field>.type`, `<field>.invalid` or `<field>.required` replaces the former `body.invalid`.
+  - New refusal codes over HTTP: `<field>.pattern` for body members and path and query parameters, `<param>.length` for path and query ids, and `function.mixed_temporality` (below).
+  - With several arguments wrong, both sides name the field the contract declares first.
+- Both sides read times by one rule, the RFC 3339 §5.6 date-time:
+  - `T` and `Z` in either case
+  - a numeric offset with its colon
+  - no space for `T`
+  - no leap second
+
+  The MCP replaces Ajv's more lenient format.
+- `list_metrics` lists one row per metric descriptor (name, kind, unit, temporality, monotonicity) across the resources and scope versions that report it, and says whether a sum is monotonic. Before, every restart or deploy of a service added a row with the same name.
+- `query_metric` reads a metric whose series differ in temporality, per series; kind, unit and monotonicity must still agree. A sum's recorded values over mixed temporality (`function` none) are refused naming `function`, with `delta`, `increase` and `rate`.
+- `ci_log` takes `phase_limit`, the phases per page of the broken-down run (1 to 50, default 50), beside `phase_cursor`. When a page exceeds the MCP's 24 KB budget, the MCP asks the Collector for fewer phases, and the `next_phase_cursor` resumes at the first phase not returned. Before, the MCP dropped phases from the page and the next page started after them, so they were never shown.
+- Storage: the idempotency keys no longer keep a stored response, which nothing has read since 17.0.10. The column is dropped when the database is opened, so a database 17.0.12 has opened can no longer be opened by 17.0.11.
+- The OpenAI plugin description names no AI vendor or model.
+- MCP Events are removed. The hosted server no longer advertises an `events` capability, stores webhook
+  subscriptions or posts to callbacks, and on start it deletes the retired subscription store. Its Auth0
+  management client is retired. No supported client used the experimental extension.
+- The qyl tool's console drops the open-browser key, whose page no longer exists.
+- The README, AGENTS, SECURITY, the MCP server's README (the npm README), the threat model, the
+  configuration reference and the package READMEs are rewritten against the code. qyl is free, under the
+  MIT license; the plugin bundle is MIT AND Apache-2.0 for its bundled ancplua-dotnet skills.
+
 ## 17.0.11
 
 - `query_metric` and a saved metric query's run read only the series and points of the instruments
