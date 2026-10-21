@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
-import { createHmac, randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -19,7 +19,6 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { createResourceAuthorization } from "./dist/authorization.js";
 import { API_KEY_AUTH_HEADER, PROJECT_SCOPE_HEADER } from "./dist/contracts/generated/headers.js";
-import { EventsRuntime, createEventStore } from "./dist/events.js";
 import { QYL_MCP_DELETE_SCOPE, QYL_MCP_RESOURCE, QYL_MCP_SCOPE, QYL_MCP_WRITE_SCOPE } from "./dist/oauth.js";
 import { createServer } from "./dist/server.js";
 
@@ -97,7 +96,6 @@ async function ingest(f, signal, body) {
   assert.doesNotMatch(text, /rejected/u, `OTLP ${signal} partially rejected data`);
 }
 let handler;
-let runtime;
 const clients = [];
 try {
   await waitFor(async () => (await fetch(`${baseUrl}/health`)).ok, "Collector startup", 120_000);
@@ -303,48 +301,6 @@ try {
     console.log(`ok ${revision}: every tool isolates concurrent accounts; writes stay in each account's project; foreign trace IDs, foreign objects and unassigned accounts denied`);
   }
 
-  const store = createEventStore(join(temp, "events.json"));
-  const deliveries = [];
-  const signingKey = randomBytes(32);
-  const secret = `whsec_${signingKey.toString("base64")}`;
-  const params = (f) => ({ name: "trace.error", arguments: {},
-    delivery: { mode: "webhook", url: `https://callback.example.test/${f.project}`, secret } });
-  const principal = (f) => ({ subject: f.subject, clientId: "local-scope-test" });
-  runtime = new EventsRuntime({ store, isAuthorized: async () => true, pollIntervalMs: 60_000,
-    post: async (url, body, signedHeaders) => {
-      const signature = createHmac("sha256", signingKey)
-        .update(`${signedHeaders["webhook-id"]}.${signedHeaders["webhook-timestamp"]}.${body}`).digest("base64");
-      assert.equal(signedHeaders["webhook-signature"], `v1,${signature}`);
-      const value = JSON.parse(body);
-      if (value.type === "verification") return { status: 200, body: JSON.stringify({ challenge: value.challenge }) };
-      deliveries.push({ project: url.pathname.slice(1), value });
-      return { status: 200, body: "" };
-    },
-  });
-  for (const f of fixtures) await runtime.subscribe(params(f), principal(f));
-  await runtime.poll();
-  const sharedTraceId = randomBytes(16).toString("hex");
-  for (const f of fixtures) await ingest(f, "traces", spans(f, sharedTraceId));
-  await waitFor(async () => {
-    await runtime.poll();
-    return deliveries.length === 2;
-  }, "two project-scoped Events");
-  for (const delivery of deliveries) {
-    const f = fixtures.find((entry) => entry.project === delivery.project);
-    assert.equal(delivery.value.data.trace_id, sharedTraceId);
-    assert.equal(delivery.value.data.root_span, `tools/call ${f.marker}_tool`);
-    assert.deepEqual(delivery.value.data.services, [`qyl-ci-${f.marker}`]);
-  }
-  await runtime.unsubscribe(params(fixtures[1]), principal(fixtures[1]));
-  for (const f of fixtures) await ingest(f, "traces", spans(f, randomBytes(16).toString("hex")));
-  await waitFor(async () => { await runtime.poll(); return deliveries.length === 3; }, "remaining owner's event");
-  assert.equal(deliveries[2].project, "owner");
-  process.env.MCP_COLLECTOR_PROJECTS = JSON.stringify([{
-    project: fixtures[1].project, apiKey: fixtures[1].apiKey, subjects: [fixtures[1].subject],
-  }]);
-  await runtime.poll();
-  assert.equal((await store.read()).subscriptions.length, 0);
-  console.log("ok Events: same trace ID stays project-scoped; signatures, unsubscribe and assignment revocation pass");
   console.log("all real-Collector project-isolation checks passed (local test identities; hosted reviewer login still required)");
 } catch (error) {
   let message = error instanceof Error ? error.stack : String(error);
@@ -352,7 +308,6 @@ try {
   console.error(message);
   process.exitCode = 1;
 } finally {
-  await runtime?.stop();
   await Promise.allSettled(clients.map((client) => client.close()));
   await handler?.close();
   if (collector.exitCode === null && collector.signalCode === null) {

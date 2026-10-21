@@ -15,16 +15,12 @@ class FakeAuth0:
         self.resources = [{"id": "api", **CONFIG["resource"], "scopes": [
             *CONFIG["resource"]["scopes"], {"value": "unrelated:scope", "description": "Preserve"}]}]
         self.clients = [{"client_id": name, "name": name} for name in CONFIG["user_client_names"]]
-        management = CONFIG["management_client"]
-        self.clients.append({"client_id": "events", "name": management["name"], "app_type": management["app_type"]})
         self.grants = [{"id": name, "client_id": name, "audience": CONFIG["resource"]["identifier"],
                         "subject_type": "user", "scope": [*CONFIG["user_scopes"], "unrelated:scope"]}
                        for name in CONFIG["user_client_names"]]
-        self.grants += [{"id": "events", "client_id": "events", "audience": f"https://{CONFIG['tenant']}/api/v2/",
-                         "subject_type": "client", "scope": management["scope"]},
-                        {"id": "default", "audience": CONFIG["resource"]["identifier"],
-                         "subject_type": "user", "default_for": "third_party_clients",
-                         **CONFIG["third_party_default"]}]
+        self.grants.append({"id": "default", "audience": CONFIG["resource"]["identifier"],
+                            "subject_type": "user", "default_for": "third_party_clients",
+                            **CONFIG["third_party_default"]})
         self.permissions = [{"resource_server_identifier": CONFIG["resource"]["identifier"],
                              "permission_name": scope} for scope in CONFIG["user_scopes"]]
         self.blocked = False

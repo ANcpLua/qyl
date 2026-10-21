@@ -1,6 +1,6 @@
 // Drive the hosted qyl MCP server, https://mcp.qyl.at/mcp, with the official
 // client SDK pinned to protocol revision 2026-07-28 for this modern-path check,
-// using the bearer token hosted-mcp-login.py obtained. One line per
+// using the bearer token login.py obtained. One line per
 // expectation; exit 0 when every expectation holds. Never prints the token.
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -107,7 +107,6 @@ try {
     console.log("info\tno trace on the hosted collector; trace-dependent reads not exercised");
   }
 
-  check(!client.getServerCapabilities()?.events, "shared deployment does not advertise MCP Events");
   const covered = new Set([...plan.map(([n]) => n), ...dependent, "annotate"]);
   for (const name of tools.filter((n) => !covered.has(n)).sort()) {
     const { res, text: t, err } = await call(name, {});

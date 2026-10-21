@@ -11,8 +11,6 @@
   project.
 - The API's third-party default grant, kept empty: Dynamic Client Registration is open to anyone.
 - The tenant flag `use_scope_descriptions_for_consent`, so consent shows the scope descriptions.
-- A non-interactive Management API client with the read-only scopes `read:users`, `read:clients`,
-  `read:client_grants` and `read:grants`.
 
 ## Check and apply
 
@@ -31,6 +29,5 @@ The reconciler creates no applications or users; every named client and mapped u
 adds missing scopes and restores their descriptions, turns on RBAC, adds missing client and user
 permissions, empties the third-party default grant and sets the consent flag. It keeps every other
 scope, grant, user, application setting and tenant setting, prints no API response, subject
-identifier or secret, and triggers no deployment. The Management API client's credential stays in
-Vitals and Railway; the reconciler never rotates it. Which user owns a project is set in
+identifier or secret, and triggers no deployment. Which user owns a project is set in
 `MCP_COLLECTOR_PROJECTS`, not here.

@@ -12,7 +12,6 @@ import { registerCiTools } from "./ci.js";
 import { registerMetricsTools } from "./metrics-tools.js";
 import { registerWriteTools } from "./write-tools.js";
 import { CATALOG_CACHE, registerSkills } from "./skills.js";
-import type { EventsRuntime } from "./events.js";
 import type { McpTelemetryTransport } from "./mcp-semconv.js";
 import {
   assertToolCallFrameArmed,
@@ -52,8 +51,6 @@ export interface CreateServerOptions {
   transport?: McpTelemetryTransport;
   /** Test/embedding override. Native evidence is automatic unless explicitly disabled. */
   nativeExecution?: NativeExecutionRuntime | false;
-  /** MCP Events (`events/*`, webhook delivery); only a hosted process with a store has one. */
-  events?: EventsRuntime;
 }
 
 /** Creates a server with automatic native execution evidence for every tool. */
@@ -90,7 +87,6 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
   registerMetricsTools(server);
   registerWriteTools(server);
   registerSkills(server);
-  options.events?.register(server);
 
   assertToolCallFrameArmed(server);
 

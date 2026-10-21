@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test, { type TestContext } from "node:test";
 import { Client, StreamableHTTPClientTransport, type FetchLike } from "@modelcontextprotocol/client";
@@ -11,10 +8,8 @@ import { createResourceAuthorization } from "./authorization.js";
 import { CollectorAccessError, collectorAccessForSubject, readCollectorProjects } from "./collector-access.js";
 import { collectorPost } from "./collector.js";
 import { API_KEY_AUTH_HEADER, PROJECT_SCOPE_HEADER } from "./contracts/generated/headers.js";
-import type { ToolTraceRow } from "./contracts/generated/api.js";
 import { readContext, toolTrace, toolSummary } from "./analysis-context.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
-import { EventsRuntime, createEventStore, type Principal, type SubscribeParams } from "./events.js";
 import { hostedAuth } from "./main.js";
 import { QYL_MCP_RESOURCE, QYL_MCP_SCOPE } from "./oauth.js";
 import { createServer } from "./server.js";
@@ -190,140 +185,5 @@ for (const revision of ["2026-07-28", "2025-11-25"] as const) {
     assert.equal(denied.isError, true);
     assert.match(JSON.stringify(denied), /No Collector project is assigned/u);
     assert.equal(calls.length, beforeDenied);
-  });
-}
-
-test("Events poll and deduplicate within each account's Collector scope", { timeout: 5_000 }, async (context) => {
-  environment(context, {
-    MCP_COLLECTOR_PROJECTS: JSON.stringify(PROJECTS),
-    QYL_COLLECTOR_URL: "https://collector.example.test",
-    QYL_API_KEY: "default-must-not-be-used",
-  });
-  const dir = await mkdtemp(join(tmpdir(), "qyl-project-events-"));
-  context.after(() => rm(dir, { recursive: true, force: true }));
-  const store = createEventStore(join(dir, "events.json"));
-  let phase = 0;
-  let ownerUnavailable = false;
-  let releaseOwner!: () => void;
-  const ownerGate = new Promise<void>((resolve) => { releaseOwner = resolve; });
-  context.after(() => releaseOwner());
-  let markReviewDelivered!: () => void;
-  const reviewDelivered = new Promise<void>((resolve) => { markReviewDelivered = resolve; });
-  const sharedId = getTelemetryFixture().traces[0]!.trace_id;
-  const traces = new Map<string, ToolTraceRow>(PROJECTS.map((entry) => [entry.project, {
-    ...toolSummary(getTelemetryFixture().traces[0]!), trace_id: sharedId, error_count: 1,
-    services: [entry.project], root: { service: entry.project, name: `${entry.project}-sample` },
-  }]));
-  context.mock.method(globalThis, "fetch", async (input: string | Request | URL, init?: RequestInit) => {
-    const request = new Request(input, init);
-    const project = request.headers.get(PROJECT_SCOPE_HEADER)!;
-    const expected = PROJECTS.find((entry) => entry.project === project)!;
-    assert.equal(request.headers.get(API_KEY_AUTH_HEADER), expected.apiKey);
-    if (ownerUnavailable && project === "owner") {
-      await ownerGate;
-      throw new Error("upstream unavailable");
-    }
-    return Response.json({ ...readContext(phase === 0 ? 0 : 1), traces: phase === 0 ? [] : [traces.get(project)!], has_more: false });
-  });
-  const deliveries: Array<{ url: string; body: string }> = [];
-  const runtime = new EventsRuntime({
-    store, isAuthorized: async () => true, log: () => {},
-    post: async (url, body) => {
-      const value = JSON.parse(body) as { type?: string; challenge?: string };
-      if (value.type === "verification") return { status: 200, body: JSON.stringify({ challenge: value.challenge }) };
-      deliveries.push({ url: url.href, body });
-      if (url.pathname === "/review") markReviewDelivered();
-      return { status: 200, body: "" };
-    },
-  });
-  context.after(() => runtime.stop());
-  function params(project: string): SubscribeParams {
-    return {
-      name: "trace.error", arguments: {},
-      delivery: { mode: "webhook", url: `https://receiver.example.test/${project}`, secret: `whsec_${Buffer.alloc(32, 3).toString("base64")}` },
-    };
-  }
-  const owner: Principal = { subject: OWNER, clientId: "client" };
-  const reviewer: Principal = { subject: REVIEWER, clientId: "client" };
-  await runtime.subscribe(params("owner"), owner);
-  await runtime.subscribe(params("review"), reviewer);
-  await runtime.poll();
-  phase = 1;
-  ownerUnavailable = true;
-  const stalledPoll = runtime.poll();
-  await reviewDelivered;
-  assert.equal(deliveries.length, 1, "one account's upstream failure must not block another");
-  releaseOwner();
-  await stalledPoll;
-  assert.equal(deliveries[0]!.url, "https://receiver.example.test/review");
-  assert.match(deliveries[0]!.body, /review-sample/u);
-  assert.doesNotMatch(deliveries[0]!.body, /owner-sample|owner-test-key|review-test-key/u);
-  ownerUnavailable = false;
-  await runtime.poll();
-  assert.equal(deliveries.length, 2, "the same trace ID in another project is a distinct observation");
-  assert.equal(deliveries[1]!.url, "https://receiver.example.test/owner");
-  assert.match(deliveries[1]!.body, /owner-sample/u);
-  await runtime.poll();
-  assert.equal(deliveries.length, 2);
-  assert.doesNotMatch(JSON.stringify(await store.read()), /owner-test-key|review-test-key/u);
-  await runtime.unsubscribe(params("review"), reviewer);
-  process.env.MCP_COLLECTOR_PROJECTS = JSON.stringify([PROJECTS[1]]);
-  await runtime.poll();
-  assert.equal((await store.read()).subscriptions.length, 0, "removed project access revokes the subscription");
-  const before = deliveries.length;
-  await assert.rejects(runtime.subscribe(params("owner"), owner), /No Collector project is assigned/u);
-  assert.equal(deliveries.length, before);
-});
-
-for (const configured of [false, true]) {
-  test(`Events share a ${configured ? "assigned" : "default"} project poll while retaining each account's outage cursor`, async (context) => {
-    environment(context, {
-      MCP_COLLECTOR_PROJECTS: configured
-        ? JSON.stringify([{ ...PROJECTS[0], subjects: [OWNER, REVIEWER] }]) : undefined,
-    });
-    const dir = await mkdtemp(join(tmpdir(), "qyl-shared-project-events-"));
-    context.after(() => rm(dir, { recursive: true, force: true }));
-    let reads = 0;
-    let phase = 0;
-    let ownerUnavailable = false;
-    const deliveries: string[] = [];
-    const runtime = new EventsRuntime({
-      store: createEventStore(join(dir, "events.json")),
-      isAuthorized: async (principal) => {
-        if (ownerUnavailable && principal.subject === OWNER) throw new Error("temporary authorization outage");
-        return true;
-      },
-      log: () => {},
-      recentTraces: async () => {
-        reads++;
-        return phase === 0 ? [] : [{ ...toolSummary(getTelemetryFixture().traces[0]!), error_count: 1 }];
-      },
-      post: async (url, body) => {
-        const event = JSON.parse(body) as { type?: string; challenge?: string };
-        if (event.type === "verification") return { status: 200, body: JSON.stringify({ challenge: event.challenge }) };
-        deliveries.push(url.pathname);
-        return { status: 200, body: "" };
-      },
-    });
-    context.after(() => runtime.stop());
-    for (const [index, subject] of [OWNER, REVIEWER].entries()) {
-      await runtime.subscribe({ name: "trace.error", arguments: {}, delivery: {
-        mode: "webhook", url: `https://receiver.example.test/${index}`,
-        secret: `whsec_${Buffer.alloc(32, 3).toString("base64")}`,
-      } }, { subject, clientId: "shared-project-test" });
-    }
-    await runtime.poll();
-    assert.equal(reads, 1);
-    phase = 1;
-    ownerUnavailable = true;
-    await runtime.poll();
-    assert.equal(reads, 2);
-    assert.deepEqual(deliveries, ["/1"]);
-    ownerUnavailable = false;
-    await runtime.poll();
-    assert.equal(reads, 3);
-    assert.deepEqual(deliveries.sort(), ["/0", "/1"]);
-    await runtime.poll();
-    assert.equal(deliveries.length, 2, "recovery must not duplicate another account's delivery");
   });
 }

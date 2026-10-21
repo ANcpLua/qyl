@@ -37,8 +37,8 @@ ownership:
     component that reads telemetry.
   mcp: >-
     services/qyl.mcp owns the agent surface: tool registration and schemas, the OAuth resource
-    server, project mapping, MCP Events and the served skill. It calls the Collector's analysis API
-    and holds no telemetry.
+    server, project mapping and the served skill. It calls the Collector's analysis API and holds
+    no telemetry.
   contracts: >-
     contracts/ owns every wire shape between the Collector, the MCP server and the qyl tool.
     Generated code is regenerated from TypeSpec, never edited.
@@ -102,7 +102,6 @@ deployment:
       start: bun dist/main.js
       domain: mcp.qyl.at
       healthcheck: /healthz
-      volume: /data (Events store)
   revision_skew: >-
     The two services deploy independently. While the Collector's contract_revision differs from the
     MCP server's, tools answer collector_contract_mismatch and /healthz reports degraded.

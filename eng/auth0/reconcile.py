@@ -74,7 +74,7 @@ def plan(api, config, environment):
     resource_name = config["resource"]["identifier"]
     resources = api.list("resource-servers")
     resource = single(resources, lambda item: item.get("identifier") == resource_name, "qyl API")
-    clients = api.list("clients", ("fields=client_id,name,app_type", "include_fields=true"))
+    clients = api.list("clients", ("fields=client_id,name", "include_fields=true"))
     grants = api.list("client-grants")
     changes = []
 
@@ -96,10 +96,8 @@ def plan(api, config, environment):
     if wrong_flags:
         changes.append(("tenant flags", "patch", "tenants/settings", {"flags": wrong_flags}))
 
-    def grant_for(client_name, audience, subject_type, required, app_type=None):
+    def grant_for(client_name, audience, subject_type, required):
         client = single(clients, lambda item: item.get("name") == client_name, f"client {client_name}")
-        if app_type and client.get("app_type") != app_type:
-            raise RuntimeError(f"Existing client {client_name} has an unexpected application type")
         matches = [grant for grant in grants if grant.get("client_id") == client["client_id"]
                    and grant.get("audience") == audience and grant.get("subject_type") == subject_type]
         if len(matches) > 1:
@@ -115,9 +113,6 @@ def plan(api, config, environment):
 
     for client_name in config["user_client_names"]:
         grant_for(client_name, resource_name, "user", config["user_scopes"])
-    management = config["management_client"]
-    grant_for(management["name"], f"https://{config['tenant']}/api/v2/", "client",
-              management["scope"], management["app_type"])
 
     default = single(grants, lambda grant: grant.get("audience") == resource_name
                      and grant.get("subject_type") == "user"
@@ -147,7 +142,7 @@ def reconcile(api, config, environment, apply=False, report=print):
     # Finish the read-only plan before making the first mutation. Missing or
     # ambiguous identities therefore fail before any policy can be changed.
     changes, count = plan(api, config, environment)
-    report(f"Checked qyl API, {len(config['user_client_names'])} user clients, Events client, default grant, {count} mapped users")
+    report(f"Checked qyl API, {len(config['user_client_names'])} user clients, default grant, {count} mapped users")
     for label, method, path, body in changes:
         report(f"{'Apply' if apply else 'Drift'}: {label}")
         if apply:

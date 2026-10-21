@@ -40,7 +40,7 @@ await new Promise(resolve => reservation.close(resolve));
 const env = { ...process.env, PORT: String(port), MCP_BIND_HOST: "127.0.0.1",
   QYL_COLLECTOR_URL: `http://127.0.0.1:${collector.address().port}`, QYL_MCP_TELEMETRY: "0",
   QYL_MCP_NATIVE_STATE_PATH: join(temp, "native.json") };
-for (const key of ["MCP_PUBLIC_URL", "MCP_COLLECTOR_PROJECTS", "MCP_EVENTS_STORE"]) delete env[key];
+for (const key of ["MCP_PUBLIC_URL", "MCP_COLLECTOR_PROJECTS"]) delete env[key];
 const child = spawn("bun", ["dist/main.js"], { cwd: new URL(".", import.meta.url), env, stdio: ["ignore", "pipe", "pipe"] });
 let stderr = "";
 child.stderr.on("data", data => { stderr += data; });

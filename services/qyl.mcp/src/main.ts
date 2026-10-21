@@ -9,14 +9,14 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import { serveStdio, type StdioServerHandle } from "@modelcontextprotocol/server/stdio";
-import { realpathSync } from "node:fs";
+import { realpathSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createServer } from "./server.js";
 import { collectorContract, startCollectorContractMonitor } from "./contract-handshake.js";
 import { CONTRACT_REVISION } from "./contracts/generated/api.js";
 import { dnsRebindingResponse, isLoopbackBindHost, unique } from "./http-security.js";
-import { loadHostedOAuth, QYL_MCP_ISSUER } from "./oauth.js";
+import { loadHostedOAuth } from "./oauth.js";
 import { createResourceAuthorization } from "./authorization.js";
 import { readAuthorizationExtensions } from "./auth-extensions.js";
 import { createCloudflareAccessAuth, readAccessConfig } from "./cloudflare-access.js";
@@ -25,8 +25,6 @@ import {
   createNativeExecutionRuntime,
   defaultNativeExecutionRuntime,
 } from "./native-execution.js";
-import { EventsRuntime, createEventStore } from "./events.js";
-import { hostedEventsAuthorization } from "./events-authorization.js";
 import { readCollectorProjects } from "./collector-access.js";
 import { logInfo } from "./stderr-log.js";
 
@@ -339,41 +337,15 @@ export function openaiAppsChallenge(
   return token === undefined || token === "" ? undefined : token;
 }
 
-/**
- * MCP Events need subscription storage that survives restarts and a caller
- * identity, so they exist only on an authenticated hosted endpoint whose
- * operator named a store file (on a persistent volume): MCP_EVENTS_STORE.
- */
-export async function hostedEvents(
-  auth: HostedAuth | undefined,
-  environment: Readonly<Record<string, string | undefined>> = process.env,
-): Promise<EventsRuntime | undefined> {
-  const storePath = environment["MCP_EVENTS_STORE"]?.trim();
-  if (storePath === undefined || storePath === "") return undefined;
-  if (auth === undefined) {
-    throw new Error("MCP_EVENTS_STORE requires hosted authorization (MCP_PUBLIC_URL)");
-  }
-  if (auth.metadata?.oauthMetadata.issuer !== QYL_MCP_ISSUER) {
-    throw new Error("MCP_EVENTS_STORE requires the Auth0 authorization provider for ongoing access checks");
-  }
-  const pollMs = Number(environment["MCP_EVENTS_POLL_MS"] ?? "");
-  const events = new EventsRuntime({
-    store: createEventStore(resolve(storePath)),
-    isAuthorized: hostedEventsAuthorization(environment),
-    ...(Number.isInteger(pollMs) && pollMs >= 5_000 ? { pollIntervalMs: pollMs } : {}),
-  });
-  await events.start();
-  return events;
+/** Deletes the store of the retired MCP Events from the hosted volume, if it is still there. */
+export function deleteRetiredEventsStore(path = "/data/mcp-events.json"): void {
+  rmSync(path, { force: true });
 }
 
-export function createHttpMcpServer(
-  config: StreamableHTTPServerConfig,
-  events?: EventsRuntime,
-): McpServer {
+export function createHttpMcpServer(config: StreamableHTTPServerConfig): McpServer {
   return createServer({
     transport: "streamable_http",
     nativeExecution: defaultNativeExecutionRuntime(process.env, recordsNativeExecutionEvidence(config)),
-    ...(events === undefined ? {} : { events }),
   });
 }
 
@@ -381,9 +353,8 @@ async function createHostedRuntime(
   config: StreamableHTTPServerConfig,
 ): Promise<void> {
   const auth = await hostedAuth(config);
-  const events = await hostedEvents(auth);
   const handler = createHostedHandler(
-    () => createHttpMcpServer(config, events),
+    () => createHttpMcpServer(config),
     (error) => reportError("Standalone MCP request", error),
   );
 
@@ -401,7 +372,7 @@ async function createHostedRuntime(
   const shutdown = (): void => {
     if (shuttingDown) return;
     shuttingDown = true;
-    void Promise.all([http.stop(true), handler.close(), events?.stop()])
+    void Promise.all([http.stop(true), handler.close()])
       .then(closeDefaultNativeExecutionRuntime)
       .catch((error: unknown) => {
         reportError("Standalone MCP HTTP shutdown cleanup", error);
@@ -424,8 +395,7 @@ async function createHostedRuntime(
  * Collector contract monitor and a telemetry runtime of its own. Both are released
  * when the connection closes, whether stdin reached end-of-file or the process was
  * signalled (stdio.md, "Shut down cleanly"); closing the runtime flushes the spans,
- * metrics and logs still batched, so a short session's telemetry is not lost. A
- * stdio server never runs the Events poller: Events need hosted authorization.
+ * metrics and logs still batched, so a short session's telemetry is not lost.
  */
 export function createStdioMcpServer(
   environment: Readonly<Record<string, string | undefined>> = process.env,
@@ -492,6 +462,8 @@ async function bootstrap(): Promise<void> {
       return undefined;
     }
 
+    // MCP Events are retired, and their store held webhook callback URLs and signing secrets.
+    deleteRetiredEventsStore();
     // The Collector may run another contract revision for the minutes between two deploys;
     // tools report that skew per call instead of the process refusing to start.
     startCollectorContractMonitor();

@@ -67,8 +67,8 @@ export default defineRailway(() => {
     },
   });
 
-  // MCP Events subscriptions must survive restarts and redeploys (ChatGPT MCP Events); the
-  // store is one small JSON file.
+  // Holds nothing the MCP server reads. It stays mounted so the server can delete the retired
+  // MCP Events store (/data/mcp-events.json) at startup.
   const mcpVolume = volume("qyl-mcp-volume", {
     region: "europe-west4-drams3a",
     sizeMB: 1000,
@@ -101,10 +101,6 @@ export default defineRailway(() => {
       MCP_AUTH_EXTENSIONS: preserve(),
       MCP_BIND_HOST: preserve(),
       MCP_COLLECTOR_PROJECTS: preserve(),
-      // Not a secret, and tied to the mount above, so the value lives here.
-      MCP_EVENTS_STORE: "/data/mcp-events.json",
-      MCP_EVENTS_AUTH0_CLIENT_ID: preserve(),
-      MCP_EVENTS_AUTH0_CLIENT_SECRET: preserve(),
       MCP_PUBLIC_URL: preserve(),
       NODE_ENV: preserve(),
       // The OpenAI plugin portal's domain-verification token, set when the portal shows it.
