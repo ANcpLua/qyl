@@ -1,30 +1,28 @@
-# Security Policy
+# Security policy
 
 ## Reporting a vulnerability
 
-Report security vulnerabilities privately through GitHub's private vulnerability
-reporting, which is enabled for this repository:
+Report a vulnerability privately through GitHub's private vulnerability reporting:
 
 https://github.com/ANcpLua/qyl/security/advisories/new
 
-That channel keeps the report visible only to the maintainers until an advisory
-is published. Please do not open a public issue or pull request for a security
-problem, and please do not disclose the details publicly before a fix is
-available.
+The report stays visible to the maintainers only until an advisory is published. Do not open a
+public issue or pull request for a security problem, and do not disclose details before a fix
+ships.
 
-A useful report includes the affected component, the qyl version or commit, and
-the steps needed to reproduce the issue.
-
-qyl is maintained by a single maintainer, so reports are triaged as time allows
-rather than against a guaranteed response window.
+A useful report names the affected component (the Collector, the MCP server, a package, or the
+hosted service at `mcp.qyl.at` or `api.qyl.at`), the qyl version or commit, and the steps to
+reproduce it. qyl has one maintainer, so reports are triaged as time allows, without a guaranteed
+response window.
 
 ## Supported versions
 
-Fixes land on `main` and ship in the next release. Security fixes are published
-for the latest release line only; earlier lines are not patched in
-place.
+Fixes land on `main` and ship in the next release. Only the latest release line receives security
+fixes.
 
 ## Disclosure
 
-Confirmed vulnerabilities are disclosed through a GitHub Security Advisory on
-this repository once a fixed version is published.
+A confirmed vulnerability is disclosed in a GitHub Security Advisory on this repository once the
+fixed version is published.
+
+The MCP server's trust boundaries are in [docs/mcp/threat-model.md](docs/mcp/threat-model.md).

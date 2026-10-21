@@ -1,55 +1,108 @@
 # qyl
 
-qyl is an analytical engine for AI agents. The Collector (C#; NativeAOT in the hosted container,
-framework-dependent in the local `qyl` tool) ingests OpenTelemetry traces, logs and metrics, stores them per project in DuckDB and answers typed analysis questions:
-triage, failures and their context, comparisons, fix verification, aggregates, agent runs,
-releases, service maps and telemetry health. Agents use it through the MCP server
-(TypeScript SDK v2, protocol `2026-07-28`, 2025-era clients negotiated down).
-[docs/architecture.yaml](docs/architecture.yaml) is the architecture.
+qyl is an analytical engine built for AI agents. Services send it OpenTelemetry traces, logs and
+metrics; agents query it through MCP and get typed answers: what changed, why a request failed or
+was slow, whether a fix held, how an agent run, a release or a CI run behaved. qyl measures and
+correlates; the agent reasons and acts. qyl ships no dashboard or other product UI.
 
-## Endpoints
+Built over ten months by one developer, starting with Claude Opus 4.5, using Anthropic and OpenAI models to the fullest.
 
-| Endpoint | Serves |
+## Official sources
+
+- Website: https://qyl.at
+- Source: https://github.com/ANcpLua/qyl
+- Hosted MCP server: https://mcp.qyl.at/mcp
+- npm: [`qyl-mcp-server`](https://www.npmjs.com/package/qyl-mcp-server)
+- NuGet: [`qyl`](https://www.nuget.org/packages/qyl) and [`Qyl.Api.Contracts`](https://www.nuget.org/packages/Qyl.Api.Contracts)
+
+## Connect an agent
+
+Add `https://mcp.qyl.at/mcp` as a remote MCP server (Streamable HTTP). Sign-in is OAuth through
+qyl's Auth0 tenant `qyl-eu`. The client registers itself with a Client ID Metadata Document (CIMD)
+or Dynamic Client Registration (DCR), so no client ID is needed.
+
+| Scope | Allows |
 | --- | --- |
-| `https://mcp.qyl.at/mcp` | Hosted MCP server. OAuth 2.1 (Auth0 issuer `https://qyl-eu.eu.auth0.com/`), scopes `qyl:read`, `qyl:write`, `qyl:delete`; an unauthenticated request answers `401` with `resource_metadata`. `/healthz` is its health: `degraded` names both contract revisions while the Collector serves another, and tools answer `collector_contract_mismatch` until both match; `degraded` without them while the Collector does not answer its `/health`, as while it restarts, and tools answer `collector_unavailable` at once, with `retry_after_seconds`, until it does. |
-| `https://api.qyl.at` | Hosted Collector: read API under `/api/v1/`, analysis under `POST /api/v1/analysis/<tool_name>`, OTLP under `/v1/traces`, `/v1/logs`, `/v1/metrics`. `/health` carries `contract_revision`. |
-| `bunx qyl-mcp-server --stdio` | Local MCP over stdio; `bunx qyl-mcp-server` serves HTTP on `127.0.0.1:3001`. Point it at a Collector with `QYL_COLLECTOR_URL` and, if secured, `QYL_API_KEY`. |
-| `dotnet tool install --global qyl && qyl up` | Local Collector API on `127.0.0.1:5100`, diagnostics on `:5200`, OTLP on `:4318` (HTTP) and `:4317` (gRPC), runner API on `:18889`; data under `~/.qyl/`. |
+| `qyl:read` | Every call needs it; the 20 read tools need nothing else. |
+| `qyl:write` | Creating and changing annotations and saved queries, and setting a failure's status. |
+| `qyl:delete` | Deleting annotations and saved queries. |
 
-Applications send telemetry with `Qyl.Telemetry.Hosting` (`builder.AddQyl()`); APIs built by
-`Qyl.Api.Sdk` (`<Project Sdk="Qyl.Api.Sdk/<version>">`) are instrumented from their first line.
+No tool changes or deletes telemetry; retention alone removes it. The server speaks MCP protocol
+`2026-07-28` and serves 2025-era clients from the same endpoint, through the MCP TypeScript SDK v2
+default `legacy: 'stateless'`. The [MCP server README](https://github.com/ANcpLua/qyl/blob/main/services/qyl.mcp/README.md)
+lists the 24 tools, their result and error shapes and the server's configuration.
 
-## Layout
+Locally, run a Collector with the `qyl` tool and give the MCP client `bunx qyl-mcp-server --stdio`
+as its server command:
 
-```text
-contracts/                 TypeSpec contract, emitters, generation scripts; openapi/qyl.openapi.json
-services/qyl.collector*/   Collector: host and analysis, OTLP ingestion, DuckDB storage
-services/qyl.mcp/          MCP server (npm qyl-mcp-server): src/, skills/, eval/, smokes
-internal/                  generated C# contracts (qyl.contracts), Collector self-telemetry defaults, source generators
-packages/                  qyl tool (Qyl.Cli), Qyl.Orchestration, Qyl.Api.Sdk, Qyl.Run.Workload
-plugins/qyl/               plugin bundles and connector listing texts
-samples/qyl.sample/        API built by Qyl.Api.Sdk
-tests/                     .NET tests
-eng/                       Fallout build (eng/build), scripts, smoke tools, Auth0 tenant config
-docs/                      architecture, configuration, attribute persistence, MCP threat model
-.railway/railway.ts        Railway services qyl-collector and qyl-mcp
+```bash
+dotnet tool install --global qyl && qyl up
+bunx qyl-mcp-server --stdio    # started by the MCP client
 ```
+
+## Send telemetry
+
+Any OpenTelemetry SDK exports to the Collector over OTLP: `/v1/traces`, `/v1/logs` and
+`/v1/metrics` over HTTP (protobuf or JSON), or gRPC. `qyl up` listens on `http://127.0.0.1:4318`
+(HTTP) and `127.0.0.1:4317` (gRPC) and accepts telemetry without a key. The hosted Collector takes
+OTLP over HTTP at `https://api.qyl.at` with the project's key in the `x-otlp-api-key` header. An
+API built with [`Qyl.Api.Sdk`](https://github.com/ANcpLua/qyl/blob/main/packages/Qyl.Api.Sdk/README.md)
+exports from its first line.
+
+## Repository
+
+| Path | What it is |
+| --- | --- |
+| `services/qyl.collector*` | The Collector (C#, .NET 10): OTLP ingestion over HTTP and gRPC, DuckDB storage per project, and every analysis, behind `POST /api/v1/analysis/<tool_name>`. NativeAOT in the hosted container, framework-dependent in the `qyl` tool. |
+| `services/qyl.mcp` | The MCP server (TypeScript, MCP TypeScript SDK v2, Bun), npm `qyl-mcp-server`. It validates, scopes and frames tool calls and serves the `qyl-investigate` skill; it adds no analysis of its own. |
+| `contracts/` | TypeSpec for every wire shape. It generates `contracts/openapi/qyl.openapi.json`, the C# types in `internal/qyl.contracts` (NuGet `Qyl.Api.Contracts`, released with the Collector at the same version) and the MCP server's TypeScript types and tool schemas. |
+| `plugins/qyl` | The plugin bundle: the hosted MCP connection and 18 skills, `qyl-investigate` among them. |
+| `packages/Qyl.Cli` | The `qyl` tool. `qyl up` runs a local Collector ([README](https://github.com/ANcpLua/qyl/blob/main/packages/Qyl.Cli/README.md)). |
+| `packages/Qyl.Api.Sdk` | An MSBuild SDK for NativeAOT ASP.NET Core APIs that are validated, documented and instrumented from the first line. |
+| `packages/Qyl.Orchestration` | The process supervisor `qyl up` runs on, as a library. |
+| `packages/Qyl.Run.Workload` | A synthetic workload that sends telemetry to a local Collector. |
+| `internal/` | The generated C# contracts, the Collector's self-telemetry defaults and the source generators. |
+| `samples/qyl.sample` | An API built with `Qyl.Api.Sdk`. |
+| `tests/` | The .NET tests (MSTest on Microsoft.Testing.Platform). |
+| `eng/` | The Fallout build (`eng/build`), scripts, smoke tools and the Auth0 tenant configuration (`eng/auth0`). |
+| `docs/` | Architecture, Collector configuration, attribute persistence and the MCP threat model. |
+| `.railway/railway.ts` | The two Railway services: `qyl-collector` at `https://api.qyl.at` and `qyl-mcp` at `https://mcp.qyl.at`. |
+
+`https://mcp.qyl.at/healthz` reports `ok`, or `degraded` while the Collector is unreachable or
+serves another contract revision. `https://api.qyl.at/health` reports the Collector's health and its
+`contract_revision`.
 
 ## Build, test, release
 
-`mise install` installs the pinned dotnet, bun and node.
+`mise install` installs the pinned dotnet, bun and node. The build is Fallout, and
+`./eng/build.sh --help` lists every target.
 
 | Command | Does |
 | --- | --- |
-| `./eng/build.sh Check --Configuration Release` (`mise run check`) | `VerifyContractsCurrent` (regenerates the contract outputs and fails on any difference), compile, .NET tests, orchestration smoke, `Verify` (routes, key roles and limits against the OpenAPI contract, generated semantic catalog, project-scoped reads, span and log storage identity, instrumentation redaction), `McpBuild` and `McpTest` (MCP lint, unit tests, smokes, answer key and project isolation against the Collector built here). Runs on every push and pull request. |
-| `./eng/build.sh CheckFull --Configuration Release` (`mise run check-full`) | Check plus the Collector NativeAOT container smoke, the packed-tool smoke and the Qyl.Api.Sdk proof. Runs on `main`, and on `gh workflow run check.yml --ref <branch>` to verify a commit before `main` moves; the container stages need Docker. |
-| `./eng/build.sh Contracts` | Regenerate `contracts/openapi`, `internal/qyl.contracts` and `services/qyl.mcp/src/contracts/generated` from the TypeSpec; commit them with the TypeSpec change. |
-| `./eng/build.sh GenerateCollectorSemanticAttributeCatalog` | Regenerate the Collector's semantic catalog after a SemanticConventions pin change. |
-| `./release.sh` | Release `Version.props` `QylVersion`: pack once into `artifacts/release/<version>/` with `SHA512SUMS`, publish what nuget.org and npm lack, tag `v<version>`, push the tag. Rerun to resume. |
+| `./eng/build.sh Check --Configuration Release` | The gate before every push, and in CI on every push and pull request: generated contracts current, compile, .NET tests, the orchestration smoke, the Collector's contract and storage checks, and the MCP server's SDK boundary check, lint, unit tests, smokes, answer key and project isolation against the Collector built here. |
+| `./eng/build.sh CheckFull --Configuration Release` | Check plus the Collector NativeAOT container smoke, the packed-tool smoke and the Qyl.Api.Sdk proof. CI runs it on `main`; the container stages need Docker. |
+| `./eng/build.sh Contracts` | Regenerates the contract outputs from the TypeSpec; commit them with the TypeSpec change. |
+| `./eng/build.sh GenerateCollectorSemanticAttributeCatalog` | Regenerates the Collector's semantic catalog after a SemanticConventions pin change. |
+| `./release.sh` | Releases `Version.props` `QylVersion`: packs once into `artifacts/release/<version>/` with `SHA512SUMS`, publishes what nuget.org and npm lack, tags `v<version>` and creates the GitHub release. Rerun it to resume. |
+| `mise run hosted-eval` | Checks the hosted MCP server's reads, scope challenges and input validation with a token from the Keychain. |
 
-`./eng/build.sh --help` lists every target. A push to `main` deploys both Railway services when
-their watched paths change.
+## Documentation
+
+- [MCP server](https://github.com/ANcpLua/qyl/blob/main/services/qyl.mcp/README.md): tools, sign-in, configuration and telemetry
+- [Collector configuration](https://github.com/ANcpLua/qyl/blob/main/docs/configuration.md)
+- [Attribute persistence and redaction](https://github.com/ANcpLua/qyl/blob/main/docs/attribute-persistence.md)
+- [MCP threat model](https://github.com/ANcpLua/qyl/blob/main/docs/mcp/threat-model.md)
+- [Architecture](https://github.com/ANcpLua/qyl/blob/main/docs/architecture.yaml)
+- [Security policy](https://github.com/ANcpLua/qyl/blob/main/SECURITY.md)
+- [Changes per version](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
 
 ## License
 
-MIT
+qyl is free, under the [MIT license](https://github.com/ANcpLua/qyl/blob/main/LICENSE). That covers
+the Collector, the MCP server, the contracts and every package this repository publishes: `qyl`,
+`qyl.<rid>`, `Qyl.Api.Contracts`, `Qyl.Api.Sdk` and `Qyl.Orchestration` on NuGet, and
+`qyl-mcp-server` on npm.
+
+The plugin bundle in `plugins/qyl` is `MIT AND Apache-2.0`, because it carries the ancplua-dotnet
+skills under Apache-2.0, with their LICENSE and NOTICE in `plugins/qyl/licenses/ancplua-dotnet/`.
+Its MSTest skills are MIT, with their LICENSE in `plugins/qyl/licenses/mstest-extensions-plugin/`.

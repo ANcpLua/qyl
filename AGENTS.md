@@ -1,3 +1,3 @@
 # qyl
 
-Engine: services/qyl.collector* (C#, NativeAOT). MCP: services/qyl.mcp (bun, MCP SDK v2). Contracts: contracts/ (TypeSpec). Check: ./eng/build.sh Check. Version: Version.props QylVersion, equal in services/qyl.mcp/package.json; ./release.sh releases it. Pushes to main deploy via .railway/railway.ts. After a SemanticConventions pin change: ./eng/build.sh GenerateCollectorSemanticAttributeCatalog. Layout and endpoints: README.md.
+Engine: services/qyl.collector* (C#, NativeAOT, DuckDB). MCP: services/qyl.mcp (Bun, MCP TypeScript SDK v2). Contracts: contracts/ (TypeSpec); regenerate with ./eng/build.sh Contracts. Before every push: ./eng/build.sh Check --Configuration Release. Version: Version.props QylVersion, the same in services/qyl.mcp/package.json; ./release.sh releases it. After a SemanticConventions pin change: ./eng/build.sh GenerateCollectorSemanticAttributeCatalog. More: README.md.
