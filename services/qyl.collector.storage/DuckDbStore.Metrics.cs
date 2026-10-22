@@ -338,7 +338,7 @@ internal sealed partial class DuckDbStore
         if (request.SeriesId is not null) where.Add("p.series_id = $N", request.SeriesId);
         AppendMatchers(ref where, request.Matchers, "s.");
         where.Add("p.time_unix_nano >= $N", (decimal)request.StartUnixNano);
-        where.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
+        where.Add("p.time_unix_nano < $N", (decimal)request.EndUnixNano);
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT max(p.has_conflict), first(p.projection_unavailable_reason) FILTER " +
             "(WHERE p.projection_unavailable_reason IS NOT NULL) FROM metric_points p JOIN metric_series s " +
@@ -363,7 +363,7 @@ internal sealed partial class DuckDbStore
         if (request.SeriesId is not null) qb.Add("s.series_id = $N", request.SeriesId);
         AppendMatchers(ref qb, request.Matchers, "s.");
         qb.Add("p.time_unix_nano >= $N", (decimal)request.StartUnixNano);
-        qb.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
+        qb.Add("p.time_unix_nano < $N", (decimal)request.EndUnixNano);
 
         var groupExpression = BuildGroupExpression(request.GroupBy);
         var sample = BuildSampleExpression(request.Aggregation);
@@ -418,7 +418,7 @@ internal sealed partial class DuckDbStore
         qb.Add("s.metric_name = $N", request.MetricName);
         if (request.SeriesId is not null) qb.Add("s.series_id = $N", request.SeriesId);
         AppendMatchers(ref qb, request.Matchers, "s.");
-        qb.Add("p.time_unix_nano <= $N", (decimal)request.EndUnixNano);
+        qb.Add("p.time_unix_nano < $N", (decimal)request.EndUnixNano);
         // Include the last observation before the range to derive the first interval.
         qb.Add("(p.time_unix_nano >= $N OR p.time_unix_nano = "
             + "(SELECT max(prior.time_unix_nano) FROM metric_points prior WHERE prior.project_id = p.project_id "

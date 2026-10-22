@@ -10,6 +10,7 @@ using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
+using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
 using OtlpMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 
@@ -285,6 +286,31 @@ public sealed class MetricApiTests(TestContext testContext)
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
         Assert.AreEqual(2, result.Series.Count);
         Assert.IsTrue(result.Truncated);
+    }
+
+    [TestMethod]
+    public async Task QueryRoute_PointAtEndTimeOfOneStepRange_StaysOutOfTheSingleBucket()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var ct = testContext.CancellationToken;
+        var clock = new FakeTimeProvider(DateTimeOffset.Parse(T0Iso, CultureInfo.InvariantCulture));
+        var start = clock.GetUtcNow();
+        clock.Advance(TimeSpan.FromMinutes(1));
+        var end = clock.GetUtcNow();
+        await IngestAsync(store, ct, Gauge("http.server.active", "/a",
+            (TimeConversions.ToUnixNanoUnsigned(start), 1d), (TimeConversions.ToUnixNanoUnsigned(end), 5d)));
+
+        var context = CreateContext(
+            $"start_time={Uri.EscapeDataString(start.ToString("O", CultureInfo.InvariantCulture))}&end_time={Uri.EscapeDataString(end.ToString("O", CultureInfo.InvariantCulture))}&step_ms=60000&aggregation=max");
+        await (await CollectorEndpointExtensions.QueryMetricAsync(
+            context, "http.server.active", store, ct)).ExecuteAsync(context);
+
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
+        var result = JsonSerializer.Deserialize(
+            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+        var bucket = Assert.ContainsSingle(Assert.ContainsSingle(result.Series).Buckets);
+        Assert.AreEqual(start, bucket.BucketStart);
+        Assert.AreEqual(1d, BucketValue(bucket), 0.0000000005d);
     }
 
     [TestMethod]
