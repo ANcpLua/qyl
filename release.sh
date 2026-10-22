@@ -11,6 +11,8 @@
 # 3. Publish what nuget.org and npm do not have yet: runtime packages before the tool pointer.
 # 4. Tag v<version> on the packed commit, push the tag and create its GitHub release from the
 #    version's CHANGELOG.md section.
+# 5. Fast-forward the production branch to the packed commit. Railway deploys qyl-collector and
+#    qyl-mcp from that branch only, so a release is what deploys; a push to main deploys nothing.
 #
 # Rerun after any failure; every step skips what is already done. The keys come from the Vitals
 # registry files below and are passed to the publishers through their environment, never printed.
@@ -82,5 +84,13 @@ if gh release view "v$version" >/dev/null 2>&1; then
 else
   notes=$(awk -v heading="## $version" '$0 == heading { found = 1; next } /^## / && found { exit } found' CHANGELOG.md)
   gh release create "v$version" --verify-tag --title "qyl $version" --notes "$notes"
+fi
+say "production -> $commit"
+git fetch origin production
+if [[ $(git rev-parse origin/production) == "$commit" ]]; then
+  echo "production is at $commit"
+else
+  git merge-base --is-ancestor origin/production "$commit" || die "production is not an ancestor of $commit; it never moves backwards"
+  git push origin "$commit:refs/heads/production"
 fi
 echo "released $version from $commit"
