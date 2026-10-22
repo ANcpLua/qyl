@@ -3,15 +3,20 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
+    <File Path=".globalconfig" />
+    <File Path="AGENTS.md" />
     <File Path="CHANGELOG.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
     <File Path="Directory.Packages.props" />
+    <File Path="LICENSE" />
     <File Path="README.md" />
+    <File Path="SECURITY.md" />
     <File Path="Version.props" />
     <File Path="global.json" />
+    <File Path="mise.toml" />
     <File Path="nuget.config" />
-    <File Path="eng/MSBuild/Shared.props" />
+    <File Path="release.sh" />
   </Folder>
 
   <Folder Name="/packages/">
@@ -59,6 +64,7 @@
   </Folder>
 
   <Folder Name="/eng/">
+    <File Path="eng/MSBuild/Shared.props" />
     <Project Path="eng/build/build.csproj" />
   </Folder>
 
