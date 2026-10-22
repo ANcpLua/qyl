@@ -15,6 +15,7 @@ namespace Qyl.Collector.Storage;
 [JsonSerializable(typeof(List<SpanEventJson>), TypeInfoPropertyName = "SpanEventJsonList")]
 [JsonSerializable(typeof(List<SpanLinkJson>), TypeInfoPropertyName = "SpanLinkJsonList")]
 [JsonSerializable(typeof(List<ResourceEntityRefIngestionRecord>), TypeInfoPropertyName = "ResourceEntityRefIngestionRecordList")]
+[JsonSerializable(typeof(IReadOnlyList<ResourceEntityRefIngestionRecord>), TypeInfoPropertyName = "ResourceEntityRefIngestionRecordReadOnlyList")]
 [JsonSerializable(typeof(StoredAttributeValue))]
 [JsonSerializable(typeof(StoredObjectValue))]
 [JsonSerializable(typeof(StoredIntValue))]

@@ -7,7 +7,5 @@ internal static class StorageJson
     internal static string? SerializeResourceEntityRefs(IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs) =>
         entityRefs.Count is 0
             ? null
-            : JsonSerializer.Serialize(
-                entityRefs as List<ResourceEntityRefIngestionRecord> ?? [.. entityRefs],
-                StorageJsonSerializerContext.Default.ResourceEntityRefIngestionRecordList);
+            : JsonSerializer.Serialize(entityRefs, StorageJsonSerializerContext.Default.ResourceEntityRefIngestionRecordReadOnlyList);
 }
