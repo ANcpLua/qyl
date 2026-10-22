@@ -219,6 +219,11 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
                 builder.AppendLine();
             }
 
+            // Every value of the class, so consumers derive their sets from the registry instead of listing them by hand.
+            builder.AppendLine();
+            builder.Append("        internal static readonly string[] All = [")
+                .AppendJoin(", ", values.Select(static entry => entry.FieldName))
+                .AppendLine("];");
             builder.AppendLine("    }");
         }
 

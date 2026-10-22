@@ -2790,6 +2790,8 @@ internal static class CollectorSemanticAttributeCatalog
         internal const string TextCompletion = "text_completion"; // incubating
         internal const string UpdateMemory = "update_memory"; // incubating
         internal const string UpsertMemory = "upsert_memory"; // incubating
+
+        internal static readonly string[] All = [Chat, CreateAgent, CreateMemory, CreateMemoryStore, DeleteMemory, DeleteMemoryStore, Embeddings, ExecuteTool, FetchResponse, GenerateContent, InvokeAgent, InvokeWorkflow, Plan, Retrieval, SearchMemory, TextCompletion, UpdateMemory, UpsertMemory];
     }
 
     internal static class GenAiOutputTypeValues
@@ -2798,5 +2800,7 @@ internal static class CollectorSemanticAttributeCatalog
         internal const string Json = "json"; // incubating
         internal const string Speech = "speech"; // incubating
         internal const string Text = "text"; // incubating
+
+        internal static readonly string[] All = [Image, Json, Speech, Text];
     }
 }

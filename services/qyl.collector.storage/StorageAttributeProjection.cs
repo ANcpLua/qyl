@@ -2,32 +2,11 @@ namespace Qyl.Collector.Storage;
 
 internal static class StorageAttributeProjection
 {
-    private static readonly FrozenSet<string> s_genAiOperationNames = FrozenSet.Create(
-        StringComparer.OrdinalIgnoreCase,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Chat,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.CreateAgent,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.CreateMemory,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.CreateMemoryStore,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.DeleteMemory,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.DeleteMemoryStore,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Embeddings,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.ExecuteTool,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.GenerateContent,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.InvokeAgent,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.InvokeWorkflow,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Plan,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.Retrieval,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.SearchMemory,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.TextCompletion,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.UpdateMemory,
-        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.UpsertMemory);
+    private static readonly FrozenSet<string> s_genAiOperationNames =
+        CollectorSemanticAttributeCatalog.GenAiOperationNameValues.All.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly FrozenSet<string> s_genAiOutputTypes = FrozenSet.Create(
-        StringComparer.OrdinalIgnoreCase,
-        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Image,
-        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Json,
-        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Speech,
-        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Text);
+    private static readonly FrozenSet<string> s_genAiOutputTypes =
+        CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.All.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     internal static SpanHotAttributeProjection ExtractSpanHotAttributes(SpanIngestionRecord span)
     {
