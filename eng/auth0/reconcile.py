@@ -3,7 +3,7 @@
 
 Uses the authenticated Auth0 CLI. Secrets and subject/client identifiers are never
 printed or saved. --apply reconciles missing managed permissions, the managed scope
-descriptions and tenant flags; it never deletes unrelated scopes, clients, users or
+descriptions, the API settings and tenant flags; it never deletes unrelated scopes, clients, users or
 grants. No applications/users are created.
 """
 import argparse
@@ -84,8 +84,9 @@ def plan(api, config, environment):
     if any(existing_scopes.get(value) != scope for value, scope in desired_scopes.items()):
         patch["scopes"] = [scope for value, scope in existing_scopes.items() if value not in desired_scopes] \
             + [desired_scopes[value] for value in sorted(desired_scopes)]
-    if resource.get("enforce_policies") != config["resource"]["enforce_policies"]:
-        patch["enforce_policies"] = config["resource"]["enforce_policies"]
+    for field, value in config["resource"].items():
+        if field not in ("identifier", "scopes") and resource.get(field) != value:
+            patch[field] = value
     if patch:
         changes.append(("qyl API permissions", "patch", f"resource-servers/{resource['id']}", patch))
 

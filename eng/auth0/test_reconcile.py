@@ -92,6 +92,15 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(reconcile(api, CONFIG, ENV, apply=True, report=lambda _: None), 0)
         self.assertEqual(api.flags, {"unrelated_flag": True, "use_scope_descriptions_for_consent": True})
 
+    def test_first_party_consent_skip_is_turned_off_and_scopes_kept(self):
+        api = WritableFakeAuth0()
+        api.resources[0]["skip_consent_for_verifiable_first_party_clients"] = True
+        self.assertEqual(plan(api, CONFIG, ENV)[0], [("qyl API permissions", "patch", "resource-servers/api",
+                                                       {"skip_consent_for_verifiable_first_party_clients": False})])
+        self.assertEqual(reconcile(api, CONFIG, ENV, apply=True, report=lambda _: None), 0)
+        self.assertFalse(api.resources[0]["skip_consent_for_verifiable_first_party_clients"])
+        self.assertIn({"value": "unrelated:scope", "description": "Preserve"}, api.resources[0]["scopes"])
+
     def test_missing_grant_targets_only_verified_client(self):
         api = FakeAuth0()
         removed = api.grants.pop(0)

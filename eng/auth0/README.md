@@ -4,13 +4,17 @@
 (`qyl-eu.eu.auth0.com`). It holds no credentials and no user or client identifiers.
 
 - The API `https://mcp.qyl.at/mcp`, with RBAC and the scopes `qyl:read`, `qyl:write` and
-  `qyl:delete`, each with the description the consent screen shows. The server accepts only RS256
-  access tokens for it.
+  `qyl:delete`, each with the description the consent screen shows, and
+  `skip_consent_for_verifiable_first_party_clients` off, so every client shows consent. The server
+  accepts only RS256 access tokens for it.
 - Grants of all three scopes for seven named user clients.
 - The three permissions for every user that the deployment's `MCP_COLLECTOR_PROJECTS` maps to a
   project.
 - The API's third-party default grant, kept empty: Dynamic Client Registration is open to anyone.
 - The tenant flag `use_scope_descriptions_for_consent`, so consent shows the scope descriptions.
+- `dashboard_only`: settings the Management API does not expose, so the reconciler neither checks
+  nor applies them; verify them in the Auth0 dashboard. `dynamic_client_registration_security_mode`
+  is `strict` (`GET tenants/settings` rejects the field, checked 2026-10-22).
 
 ## Check and apply
 
@@ -26,7 +30,7 @@ Exit code `0` means the tenant matches (or was reconciled), `1` drift, and `2` a
 ambiguous identity, an invalid mapping or an API error.
 
 The reconciler creates no applications or users; every named client and mapped user must exist. It
-adds missing scopes and restores their descriptions, turns on RBAC, adds missing client and user
+adds missing scopes and restores their descriptions, sets the API fields in `resource`, adds missing client and user
 permissions, empties the third-party default grant and sets the consent flag. It keeps every other
 scope, grant, user, application setting and tenant setting, prints no API response, subject
 identifier or secret, and triggers no deployment. Which user owns a project is set in
