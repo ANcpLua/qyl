@@ -6,20 +6,23 @@
 - A span whose `gen_ai.operation.name` is `fetch_response` keeps it in the operation column and in its attributes. The operation and output-type sets now come from the generated catalog instead of a hand-written list that missed it.
 - An OTLP enum value outside its definition is stored as zero with a warning in the partial-success message, and the record is kept: a log `severity_number` outside 0–24 becomes SEVERITY_NUMBER_UNSPECIFIED, a span kind outside 0–5 SPAN_KIND_UNSPECIFIED, a status code outside 0–2 STATUS_CODE_UNSET. Before, severity 25 was clamped to FATAL4, and the span fields fell to 0 without notice.
 - Sessions: a session is active by one definition in `GET /api/v1/sessions` and `list_sessions`, and a session listed under `start_time`/`end_time` keeps its whole totals.
-- Log search finds text with non-ASCII characters, double quotes and backslashes, and matches `%` and `_` literally.
-- `query_metric` rejects an aggregation that is not one of the contract's names, leaves a point at `end_time` out, and answers no bucket past its range.
+- Log search (`GET /api/v1/logs?query=`) finds text with non-ASCII characters, double quotes, backslashes and control characters, in the body and in attributes, and matches `%` and `_` literally.
+- `GET /api/v1/metrics/{metric_name}/query` rejects an aggregation that is not one of the contract's names (for example `aggregation=3`), leaves a point at `end_time` out, and answers no bucket past its range. The MCP `query_metric` tool already behaved this way.
 - Contract times keep their 100 ns precision instead of whole milliseconds.
 - An exception message with an XPath locator is kept instead of `[SANITIZATION_FAILED]`.
 - The MCP server calls a Collector behind a path prefix under that prefix.
 - The Collector's options bind and validate through `IOptions<T>`; an invalid setting stops the start naming the setting.
+- `Qyl.Orchestration`: a `StartAsync` queued behind `QylApplication.DisposeAsync` now fails with `ObjectDisposedException` instead of never completing.
+- Page cursors and analysis handles are read as unpadded base64url only. A cursor spelled in the standard base64 alphabet, which no Collector issued, is now refused.
+- The analysis `settled` flag compares the newest span's end with the clock at 100 ns precision instead of whole milliseconds, so a span that ended less than the settle window ago is no longer reported as settled.
 - Storage reads fail closed: a NULL in a required column throws naming the column instead of reading as `""` or 0, and a HUGEINT aggregate above about 7.9e28 reads as a double instead of overflowing through decimal.
 - A GenAI token count written as a string (`"120"`) no longer becomes a number: the token columns stay empty and the string stays on the record. The registry types these counts as int.
-- Internal cleanup from a code review, with no change in behavior:
+- Internal cleanup from a code review, with no change in behavior beyond the three entries above:
   - one OTLP/HTTP ingest handler instead of three copies
   - one canonical segment writer and one entity-ref serializer
   - `Base64Url` for page cursors and analysis handles
   - shared paging and integer-query helpers
-  - disposal of the test port reservation and the application's semaphore
+  - disposal of the test port reservation
   - analyzer fixes across the tests
   - decoded bool, long and double attribute values stored unboxed
   - decoded values mapped straight to storage's record, so key-value lists are sorted once
@@ -29,7 +32,8 @@
   The JWT header check in the exception sanitizer keeps its lenient base64 decode, so a token with non-zero trailing bits is still redacted.
 - The hosted MCP keeps no data: the start no longer deletes the retired MCP Events store, which 17.0.12 removed on its first start, and the service has no volume.
 - Qyl.Telemetry.SemanticConventions 15.0.5: the Codex vendor attribute `openai_codex.thread.id` (wire key `thread.id`) and the analyzer fixes of 15.0.4 and 15.0.5.
-- Repository: Rider indexes every root file, AGENTS.md names the skill each test project follows, `.railway/railway.ts` describes deploys without a push trigger, and `eng/auth0/tenant.json` records the first-party consent setting and the DCR security mode.
+- The Qyl.Telemetry producer family 28.2.4 (Qyl.Telemetry.Hosting and the AutoInstrumentation packages), built against SemanticConventions 15.0.5.
+- Repository: the documentation pages under `docs/` and the plugin skills' reference Markdown are removed (the repository keeps README, AGENTS, SKILL files, notices and the changelog), Rider indexes every root file, AGENTS.md names the skill each test project follows, `.railway/railway.ts` describes deploys without a push trigger, and `eng/auth0/tenant.json` records the first-party consent setting and the DCR security mode.
 
 ## 17.0.12
 
