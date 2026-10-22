@@ -346,7 +346,7 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
         .Description("Verify span storage identity is project- and trace-scoped")
         .Executes(() =>
         {
-            var spanStorageRowFile = CollectorStorageDirectory / "DuckDbReaderExtensions.cs";
+            var spanStorageRowFile = CollectorStorageDirectory / "StorageRecords.cs";
             var storeFile = CollectorStorageDirectory / "DuckDbStore.cs";
 
             var missingRequired = new List<string>();
@@ -416,7 +416,7 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
         .Description("Verify collector log storage writes are replay-idempotent")
         .Executes(() =>
         {
-            var storageRowsFile = CollectorStorageDirectory / "DuckDbReaderExtensions.cs";
+            var storageRowsFile = CollectorStorageDirectory / "StorageRecords.cs";
             var storageMapperFile = CollectorStorageDirectory / "IngestionStorageMapper.cs";
             var persistedPolicyFile = CollectorStorageDirectory / "PersistedAttributePolicy.cs";
             var converterFile = CollectorIngestionDirectory / "OtlpConverter.cs";
