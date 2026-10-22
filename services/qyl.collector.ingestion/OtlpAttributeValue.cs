@@ -49,16 +49,7 @@ internal sealed class OtlpAttributeValue
         Kind is OtlpAttributeValueKind.String ? (string)_value : null;
 
     public long? AsInt64() =>
-        Kind switch
-        {
-            OtlpAttributeValueKind.Int => (long)_value,
-            OtlpAttributeValueKind.String when long.TryParse(
-                (string)_value,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var parsed) => parsed,
-            _ => null
-        };
+        Kind is OtlpAttributeValueKind.Int ? (long)_value : null;
 
     /// <summary>
     /// The contract's canonical text of this value, shared with TypeScript. Decoding orders and
