@@ -5,7 +5,7 @@
     "": {
       "name": "qyl-mcp-server",
       "dependencies": {
-        "@ancplua/qyl-semantic-conventions": "15.0.4",
+        "@ancplua/qyl-semantic-conventions": "15.0.5",
         "@modelcontextprotocol/core": "2.3.1",
         "@modelcontextprotocol/server": "2.3.1",
         "@opentelemetry/api": "1.9.1",
@@ -34,7 +34,7 @@
     },
   },
   "packages": {
-    "@ancplua/qyl-semantic-conventions": ["@ancplua/qyl-semantic-conventions@15.0.4", "", {}, "sha512-FJOAUeXe3Md9lbvnI5vT85ExyEqp3cID5c/xhxZDjHrNOYn5kffu101cIjnvJAh4WAtPXbKLQEUXAg0e11G8uw=="],
+    "@ancplua/qyl-semantic-conventions": ["@ancplua/qyl-semantic-conventions@15.0.5", "", {}, "sha512-dlAkM2dSg8bonI8Ee+QtOw6Tz9SE+BzzM9LkqHXVdDObrP2K7XOoIaSE4jU3Hc7Fqy48x+y4h7a0Gb8Fb9Ww/w=="],
 
     "@modelcontextprotocol/client": ["@modelcontextprotocol/client@2.3.1", "", { "dependencies": { "@modelcontextprotocol/core": "2.3.1", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "eventsource-parser": "^3.0.8", "jose": "^6.1.3", "pkce-challenge": "^5.0.0", "zod": "^4.2.0" } }, "sha512-mIGZXpHsjnZ6lD+gD/WCMpR5k8yVQQ8nNFH1N0Srf7AvnwTUMYD6pvTY8ng2+He5FfV7YMZLmrjL7cLa/cc3dQ=="],
 
