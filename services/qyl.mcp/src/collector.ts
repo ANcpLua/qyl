@@ -15,7 +15,7 @@ import type {
 import type { ContractDefinitions } from "./contracts/generated/definitions.js";
 import { checkContract, type ContractSchemaName } from "./contracts/tool-schemas.js";
 import { redactTelemetryText } from "./telemetry-redaction.js";
-import { collectorHeaders, collectorUrl } from "./config.js";
+import { collectorEndpoint, collectorHeaders, collectorUrl } from "./config.js";
 import { CollectorAccessError, readCollectorProjects, type CollectorAccess } from "./collector-access.js";
 import { collectorOutageSignal, collectorUnavailable } from "./contract-handshake.js";
 
@@ -206,7 +206,7 @@ async function collectorRequest(
   }
   const outage = collectorOutageSignal();
   if (outage.aborted) throw collectorUnavailable(false);
-  const url = new URL(pathname, collectorUrl());
+  const url = collectorEndpoint(pathname);
   const timeout = AbortSignal.timeout(options.timeoutMs ?? 10_000);
   const signal = AbortSignal.any(options.signal ? [options.signal, outage, timeout] : [outage, timeout]);
   // Whichever signal ended the request names the failure, whether the response had not begun or

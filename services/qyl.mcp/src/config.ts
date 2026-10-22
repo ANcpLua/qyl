@@ -28,6 +28,15 @@ export function collectorUrl(): string {
   return url.toString();
 }
 
+/**
+ * A Collector route under QYL_COLLECTOR_URL. The route joins the base URL's path, as the OTLP
+ * export to the same URL does, so a Collector behind a path prefix receives it under that prefix.
+ */
+export function collectorEndpoint(route: string): URL {
+  const base = collectorUrl();
+  return new URL(route.replace(/^\/+/u, ""), base.endsWith("/") ? base : `${base}/`);
+}
+
 /** Optional collector credential and project scope, under the contract's headers. */
 export function collectorHeaders(access?: CollectorAccess): Record<string, string> {
   const apiKey = access?.apiKey ?? process.env.QYL_API_KEY?.trim();

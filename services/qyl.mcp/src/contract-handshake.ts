@@ -18,7 +18,7 @@
  * revision comes from a Collector older than the revision field, which is skew.
  */
 
-import { collectorHeaders, collectorUrl } from "./config.js";
+import { collectorEndpoint, collectorHeaders, collectorUrl } from "./config.js";
 import { CONTRACT_REVISION } from "./contracts/generated/api.js";
 import { logInfo, logWarning } from "./stderr-log.js";
 
@@ -53,7 +53,7 @@ export function collectorOutageSignal(): AbortSignal {
  * read like a 200.
  */
 export async function readCollectorRevision(timeoutMs = 5_000): Promise<string | null | undefined> {
-  const response = await fetch(new URL("/health", collectorUrl()), {
+  const response = await fetch(collectorEndpoint("/health"), {
     headers: { accept: "application/json", ...collectorHeaders() },
     signal: AbortSignal.timeout(timeoutMs),
   });

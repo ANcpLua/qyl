@@ -16,6 +16,26 @@ test("collector URL rejects embedded credentials and query secrets", () => {
   }
 });
 
+test("CollectorRequest_CollectorUrlWithPath_KeepsThePathPrefix", async (t) => {
+  const seen: string[] = [];
+  const listener = createServer((request, response) => {
+    seen.push(`${request.method} ${request.url}`);
+    response.writeHead(204);
+    response.end();
+  });
+  await listen(listener);
+  t.after(() => close(listener));
+  const address = listener.address();
+  assert(address && typeof address === "object");
+  const previous = process.env.QYL_COLLECTOR_URL;
+  t.after(() => restoreEnvironment("QYL_COLLECTOR_URL", previous));
+  process.env.QYL_COLLECTOR_URL = `http://127.0.0.1:${address.port}/qyl`;
+
+  await collectorPost("/api/v1/analysis/triage", {});
+
+  assert.deepEqual(seen, ["POST /qyl/api/v1/analysis/triage"]);
+});
+
 test("tool errors expose only controlled collector failures", () => {
   const unreachable = { code: "collector_unreachable", message: "collector unavailable", retryable: true, hint: "Retry the same call later." };
   assert.deepEqual(toolError("list_traces", new CollectorError("collector unavailable", true)), {
