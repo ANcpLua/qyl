@@ -64,7 +64,13 @@ internal static partial class ExceptionTextSanitizer
         var networkPath = match.Value.StartsWith("//", StringComparison.Ordinal);
         var candidate = networkPath ? "http:" + match.Value : match.Value;
         if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || uri.Host.Length == 0 && !uri.IsFile)
+        {
+            // A '//' text that is no URL, such as the XPath step //button[text()='Submit'], has no user
+            // information, query or fragment to remove; only a scheme URL or such a part fails closed.
+            if (networkPath && !match.ValueSpan.ContainsAny('@', '?', '#'))
+                return match.Value;
             throw new UriFormatException("An exception attribute contains an invalid URL.");
+        }
         if (uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0)
             return match.Value;
 
