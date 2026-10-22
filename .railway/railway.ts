@@ -13,14 +13,16 @@ export default defineRailway(() => {
   });
 
   const collector = service("qyl-collector", {
-    // CI only reports: a push deploys at once and never waits for the GitHub checks on its commit.
-    source: github("ANcpLua/qyl", { checkSuites: false }),
+    // No push trigger since 2026-10-22: a push to main deploys nothing. A deploy is
+    // serviceInstanceDeployV2 with a release-tag commit, or "Deploy Latest Commit".
+    source: github("ANcpLua/qyl"),
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "services/qyl.collector/Dockerfile",
       buildEnvironment: "V3",
-      // The Collector's build inputs only, so an MCP, contract-source, plugin or docs commit does not
-      // rebuild it. Include a new top-level build input here.
+      // The Collector's build inputs. Watch patterns filter push-triggered deploys only, which are
+      // off; keep them current so a returning trigger rebuilds on these paths alone. Include a new
+      // top-level build input here.
       watchPatterns: [
         "services/qyl.collector*/**", "internal/**",
         "eng/MSBuild/**", "eng/scripts/publish-collector-aot.sh",
@@ -77,10 +79,11 @@ export default defineRailway(() => {
   });
 
   const mcp = service("qyl-mcp", {
-    // CI only reports: a push deploys at once and never waits for the GitHub checks on its commit.
+    // No push trigger since 2026-10-22: a push to main deploys nothing. A deploy is
+    // serviceInstanceDeployV2 with a release-tag commit, or "Deploy Latest Commit".
     // Railway pulls only services/qyl.mcp, which carries its generated contract module;
     // Railpack takes Bun from its package.json packageManager.
-    source: github("ANcpLua/qyl", { rootDirectory: "services/qyl.mcp", checkSuites: false }),
+    source: github("ANcpLua/qyl", { rootDirectory: "services/qyl.mcp" }),
     build: {
       builder: "RAILPACK",
       buildCommand: "bun run build",
@@ -98,7 +101,6 @@ export default defineRailway(() => {
     env: {
       MCP_ALLOWED_HOSTS: preserve(),
       MCP_ALLOWED_ORIGIN_HOSTS: preserve(),
-      MCP_AUTH_EXTENSIONS: preserve(),
       MCP_BIND_HOST: preserve(),
       MCP_COLLECTOR_PROJECTS: preserve(),
       MCP_PUBLIC_URL: preserve(),
