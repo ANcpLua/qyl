@@ -64,6 +64,21 @@ internal sealed class OtlpAttributeValue
     public long? AsInt64() =>
         Kind is OtlpAttributeValueKind.Int ? _int : null;
 
+    public bool? AsBool() =>
+        Kind is OtlpAttributeValueKind.Bool ? _bool : null;
+
+    public double? AsDouble() =>
+        Kind is OtlpAttributeValueKind.Double ? _double : null;
+
+    public byte[]? AsBytes() =>
+        Kind is OtlpAttributeValueKind.Bytes ? (byte[])_reference! : null;
+
+    public IReadOnlyList<OtlpAttributeValue>? AsArray() =>
+        Kind is OtlpAttributeValueKind.Array ? (IReadOnlyList<OtlpAttributeValue>)_reference! : null;
+
+    public IReadOnlyDictionary<string, OtlpAttributeValue>? AsKeyValueList() =>
+        Kind is OtlpAttributeValueKind.KeyValueList ? (IReadOnlyDictionary<string, OtlpAttributeValue>)_reference! : null;
+
     /// <summary>
     /// The contract's canonical text of this value, shared with TypeScript. Decoding orders and
     /// deduplicates resource entity references by it; storage hashes its own canonical text.

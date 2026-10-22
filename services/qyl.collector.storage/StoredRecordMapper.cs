@@ -11,7 +11,24 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 internal static class StoredRecordMapper
 {
-    internal static StoredAttributeValue? ToStored(OtlpAttributeValue value) => ToStored(value.ToContract());
+    // Decoded values map straight to storage's record, without the contract value in between; the
+    // persisted bytes are the same: lossless Int64, any double, raw bytes, maps in ordinal key order.
+    internal static StoredAttributeValue? ToStored(OtlpAttributeValue value) => value.Kind switch
+    {
+        OtlpAttributeValueKind.Empty => null,
+        OtlpAttributeValueKind.String => new StoredAttributeValue.StringValue(value.AsString()!),
+        OtlpAttributeValueKind.Bool => new StoredAttributeValue.BoolValue(value.AsBool()!.Value),
+        OtlpAttributeValueKind.Int => new StoredAttributeValue.ObjectValue(new StoredIntValue { Value = value.AsInt64()!.Value }),
+        OtlpAttributeValueKind.Double => new StoredAttributeValue.ObjectValue(new StoredDoubleValue { Value = value.AsDouble()!.Value }),
+        OtlpAttributeValueKind.Bytes => new StoredAttributeValue.ObjectValue(new StoredBytesValue { Base64 = value.AsBytes()! }),
+        OtlpAttributeValueKind.Array => new StoredAttributeValue.ArrayValue([.. value.AsArray()!.Select(static item => ToStored(item))]),
+        OtlpAttributeValueKind.KeyValueList => new StoredAttributeValue.ObjectValue(new StoredKeyValueListValue
+        {
+            Values = value.AsKeyValueList()!.OrderBy(static item => item.Key, StringComparer.Ordinal)
+                .ToDictionary(static item => item.Key, static item => ToStored(item.Value), StringComparer.Ordinal)
+        }),
+        _ => throw new InvalidDataException("Unknown OTLP attribute value shape.")
+    };
 
     internal static StoredAttributeValue? ToStored(AttributeValue? value) => value switch
     {
