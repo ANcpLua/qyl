@@ -1,5 +1,30 @@
 # Changelog
 
+## 17.0.13
+
+- Codex sessions: the Collector files `conversation.id` (from any producer) under the session, and `thread.id` when it holds a UUID on a record whose instrumentation scope name or `service.name` starts with `codex`. The id is kept as received and the original attribute stays on the record. A .NET `thread.id` such as 12 never becomes a session. Behavior change: a blank `session.id`, `mcp.session.id`, `gen_ai.conversation.id` or `conversation.id` no longer counts as a session.
+- A span whose `gen_ai.operation.name` is `fetch_response` keeps it in the operation column and in its attributes. The operation and output-type sets now come from the generated catalog instead of a hand-written list that missed it.
+- An OTLP enum value outside its definition is stored as zero with a warning in the partial-success message, and the record is kept: a log `severity_number` outside 0–24 becomes SEVERITY_NUMBER_UNSPECIFIED, a span kind outside 0–5 SPAN_KIND_UNSPECIFIED, a status code outside 0–2 STATUS_CODE_UNSET. Before, severity 25 was clamped to FATAL4, and the span fields fell to 0 without notice.
+- Sessions: a session is active by one definition in `GET /api/v1/sessions` and `list_sessions`, and a session listed under `start_time`/`end_time` keeps its whole totals.
+- Log search finds text with non-ASCII characters, double quotes and backslashes, and matches `%` and `_` literally.
+- `query_metric` rejects an aggregation that is not one of the contract's names, leaves a point at `end_time` out, and answers no bucket past its range.
+- Contract times keep their 100 ns precision instead of whole milliseconds.
+- An exception message with an XPath locator is kept instead of `[SANITIZATION_FAILED]`.
+- The MCP server calls a Collector behind a path prefix under that prefix.
+- The Collector's options bind and validate through `IOptions<T>`; an invalid setting stops the start naming the setting.
+- Internal cleanup from a code review, with no change in behavior:
+  - one OTLP/HTTP ingest handler instead of three copies
+  - one canonical segment writer and one entity-ref serializer
+  - `Base64Url` for page cursors and analysis handles
+  - shared paging and integer-query helpers
+  - disposal of the test port reservation and the application's semaphore
+  - analyzer fixes across the tests
+
+  The JWT header check in the exception sanitizer keeps its lenient base64 decode, so a token with non-zero trailing bits is still redacted.
+- The hosted MCP keeps no data: the start no longer deletes the retired MCP Events store, which 17.0.12 removed on its first start, and the service has no volume.
+- Qyl.Telemetry.SemanticConventions 15.0.4: the Codex vendor attribute `openai_codex.thread.id` (wire key `thread.id`) and its analyzer fixes.
+- Repository: Rider indexes every root file, AGENTS.md names the skill each test project follows, `.railway/railway.ts` describes deploys without a push trigger, and `eng/auth0/tenant.json` records the first-party consent setting and the DCR security mode.
+
 ## 17.0.12
 
 - The Collector's HTTP routes refuse what the MCP refuses, and both name the same field:
