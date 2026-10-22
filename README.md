@@ -91,7 +91,7 @@ serves another contract revision. `https://api.qyl.at/health` reports the Collec
 - [MCP server](https://github.com/ANcpLua/qyl/blob/main/services/qyl.mcp/README.md): tools, sign-in, configuration and telemetry
 - [Architecture](https://github.com/ANcpLua/qyl/blob/main/docs/architecture.yaml)
 - [Security policy](https://github.com/ANcpLua/qyl/blob/main/SECURITY.md)
-- [Changes per version](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
+- [Changes per version](https://github.com/ANcpLua/qyl/releases)
 
 ## License
 

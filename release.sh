@@ -9,8 +9,9 @@
 #    artifacts/release/<version>/. A directory with SHA512SUMS is sealed and is never repacked.
 # 2. Verify the sealed set against SHA512SUMS.
 # 3. Publish what nuget.org and npm do not have yet: runtime packages before the tool pointer.
-# 4. Tag v<version> on the packed commit, push the tag and create its GitHub release from the
-#    version's CHANGELOG.md section.
+# 4. Tag v<version> on the packed commit, push the tag and create its GitHub release. Its notes are
+#    the commit subjects since the previous v* tag, grouped by their conventional prefix; the commit
+#    texts are the change record, so there is no CHANGELOG file to keep in step.
 # 5. Fast-forward the production branch to the packed commit. Railway deploys qyl-collector and
 #    qyl-mcp from that branch only, so a release is what deploys; a push to main deploys nothing.
 #
@@ -26,6 +27,22 @@ NUGET_FLAT=https://api.nuget.org/v3-flatcontainer
 NPM_REGISTRY=https://registry.npmjs.org
 
 die() { echo "release: $*" >&2; exit 1; }
+# The commit subjects since the previous v* tag, grouped by conventional prefix; release commits are left out.
+release_notes() {
+  local previous range subjects group heading lines
+  previous=$(git describe --tags --abbrev=0 --match 'v*' "$1^" 2>/dev/null || true)
+  range=${previous:+$previous..}$1
+  subjects=$(git log --no-merges --format='%s' "$range" | grep -v '^release: ' || true)
+  [[ -n $previous ]] && printf 'Changes since %s.\n' "$previous"
+  for group in 'feat:Features' 'fix:Fixes' 'perf:Performance' 'refactor:Refactoring' 'build:Build' 'test:Tests' 'docs:Documentation' 'chore:Maintenance'; do
+    heading=${group#*:}
+    lines=$(grep -E "^${group%%:*}(\([^)]*\))?!?: " <<<"$subjects" | sed -E 's/^[a-z]+(\([^)]*\))?!?: /- /' || true)
+    [[ -n $lines ]] && printf '\n## %s\n\n%s\n' "$heading" "$lines"
+  done
+  lines=$(grep -vE '^(feat|fix|perf|refactor|build|test|docs|chore)(\([^)]*\))?!?: ' <<<"$subjects" | sed 's/^/- /' || true)
+  [[ -n $lines ]] && printf '\n## Other\n\n%s\n' "$lines"
+  return 0
+}
 say() { printf '\n== %s\n' "$*"; }
 
 version=$(sed -n 's:.*<QylVersion>\([^<]*\)</QylVersion>.*:\1:p' Version.props)
@@ -82,7 +99,7 @@ say "GitHub release v$version"
 if gh release view "v$version" >/dev/null 2>&1; then
   echo "GitHub release v$version exists"
 else
-  notes=$(awk -v heading="## $version" '$0 == heading { found = 1; next } /^## / && found { exit } found' CHANGELOG.md)
+  notes=$(release_notes "$commit")
   gh release create "v$version" --verify-tag --title "qyl $version" --notes "$notes"
 fi
 say "production -> $commit"

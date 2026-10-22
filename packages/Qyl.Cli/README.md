@@ -42,7 +42,7 @@ Its default `QYL_COLLECTOR_URL` is this Collector. The Collector's own API is un
 - Website: https://qyl.at
 - Source: https://github.com/ANcpLua/qyl
 - Hosted MCP server: https://mcp.qyl.at/mcp
-- Changes per version: [CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
+- Changes per version: [GitHub releases](https://github.com/ANcpLua/qyl/releases)
 
 ## License
 

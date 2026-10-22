@@ -79,7 +79,7 @@ never change once they ship, because a consumer's `NoWarn` names them.
 - Documentation: [qyl.at/docs/api-sdk](https://qyl.at/docs/api-sdk/)
 - A local Collector for that telemetry: the [`qyl`](https://www.nuget.org/packages/qyl) tool
 - Source: https://github.com/ANcpLua/qyl
-- Changes per version: [CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
+- Changes per version: [GitHub releases](https://github.com/ANcpLua/qyl/releases)
 
 ## License
 

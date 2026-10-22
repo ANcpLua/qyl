@@ -181,4 +181,4 @@ arguments, metadata, results or error messages. A hosted server keeps no executi
 qyl is free: this package is under the MIT license
 ([LICENSE](https://github.com/ANcpLua/qyl/blob/main/services/qyl.mcp/LICENSE)). Source:
 https://github.com/ANcpLua/qyl. Changes per version:
-[CHANGELOG](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md).
+[GitHub releases](https://github.com/ANcpLua/qyl/releases).
