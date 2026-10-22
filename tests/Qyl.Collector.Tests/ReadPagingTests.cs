@@ -158,6 +158,28 @@ public sealed class ReadPagingTests(TestContext testContext)
     }
 
     [TestMethod]
+    public async Task SessionList_TimeRangeCutsSession_KeepsWholeTotals()
+    {
+        await using var host = await StartAsync(testContext.CancellationToken);
+        const ulong Second = 1_000_000_000UL;
+        await host.Store.EnqueueAsync(new SpanBatch(
+        [
+            Span(TraceId(1), SpanId(1), 1 * Second, 2 * Second, sessionId: "spanning"),
+            Span(TraceId(2), SpanId(2), 5 * Second, 6 * Second, sessionId: "spanning")
+        ]), testContext.CancellationToken);
+
+        using var whole = await host.SendAsync(HttpMethod.Get, "/api/v1/sessions/spanning", "reader");
+        var session = await host.JsonAsync(whole);
+        using var listed = await host.SendAsync(HttpMethod.Get, "/api/v1/sessions?start_time=1970-01-01T00:00:04Z", "reader");
+        var item = Assert.ContainsSingle((await host.JsonAsync(listed)).GetProperty("items").EnumerateArray());
+
+        Assert.AreEqual(2, session.GetProperty("span_count").GetInt32());
+        Assert.AreEqual(session.GetProperty("span_count").GetInt32(), item.GetProperty("span_count").GetInt32());
+        Assert.AreEqual(session.GetProperty("trace_count").GetInt32(), item.GetProperty("trace_count").GetInt32());
+        Assert.AreEqual(session.GetProperty("start_time").GetString(), item.GetProperty("start_time").GetString());
+    }
+
+    [TestMethod]
     public async Task Logs_page_by_time_and_id_with_a_next_cursor()
     {
         await using var host = await StartAsync(testContext.CancellationToken);

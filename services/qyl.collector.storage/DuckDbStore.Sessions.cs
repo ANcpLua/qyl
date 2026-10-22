@@ -6,6 +6,11 @@ internal sealed partial class DuckDbStore
 {
     private const int SessionFacetValueLimit = 16;
 
+    // The range ($2, $3) selects the sessions with a span starting in it; the aggregates stay over every
+    // span of the session, so a listed session has the totals GET /sessions/{id} reports.
+    private const string SessionInRangeSql =
+        "bool_or(($2::UBIGINT IS NULL OR start_time_unix_nano >= $2) AND ($3::UBIGINT IS NULL OR start_time_unix_nano <= $3))";
+
     private static string SessionSelectColumns => $$"""
                                                     SELECT
                                                         COALESCE(session_id, trace_id) AS session_id,
@@ -50,10 +55,9 @@ internal sealed partial class DuckDbStore
             cmd.CommandText = "SELECT * FROM ("
                               + SessionSelectColumns
                               + " WHERE project_id = $1"
-                              + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
-                              + " AND ($3::UBIGINT IS NULL OR start_time_unix_nano <= $3)"
                               + " GROUP BY COALESCE(session_id, trace_id)"
-                              + " HAVING ($4::BOOLEAN IS NULL OR (MAX(end_time_unix_nano) >= $5) = $4)"
+                              + " HAVING " + SessionInRangeSql
+                              + " AND ($4::BOOLEAN IS NULL OR (MAX(end_time_unix_nano) >= $5) = $4)"
                               + ") AS sessions"
                               + " WHERE $7::UBIGINT IS NULL OR last_activity < $7"
                               + " OR (last_activity = $7 AND session_id < $8::VARCHAR)"
@@ -107,7 +111,7 @@ internal sealed partial class DuckDbStore
         return ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = """
+            cmd.CommandText = $$"""
                               WITH sessions AS (
                                   SELECT
                                       COALESCE(session_id, trace_id) AS session_id,
@@ -118,9 +122,8 @@ internal sealed partial class DuckDbStore
                                       COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count
                                   FROM spans
                                   WHERE project_id = $1
-                                    AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
-                                    AND ($3::UBIGINT IS NULL OR start_time_unix_nano <= $3)
                                   GROUP BY COALESCE(session_id, trace_id)
+                                  HAVING {{SessionInRangeSql}}
                               )
                               SELECT
                                   COUNT(*) AS total_sessions,
