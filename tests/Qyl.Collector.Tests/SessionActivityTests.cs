@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Time.Testing;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
+using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Storage;
 using static Qyl.Collector.Tests.CollectorApiTestHost;
 
@@ -12,9 +13,9 @@ namespace Qyl.Collector.Tests;
 public sealed class SessionActivityTests(TestContext testContext)
 {
     private const string SessionId = "boundary";
-    // Independent fixtures for 2026-10-17 12:00 UTC and the inclusive 11:30 UTC cutoff.
+    // Independent fixtures for 2026-10-17 12:00 UTC and the first still-active nanosecond after 11:55 UTC.
     private const ulong NowUnixNano = 1_792_238_400_000_000_000;
-    private const ulong CutoffUnixNano = 1_792_236_600_000_000_000;
+    private const ulong CutoffUnixNano = 1_792_238_100_000_000_001;
     private static readonly DateTimeOffset s_now = new(2026, 10, 17, 12, 0, 0, TimeSpan.Zero);
 
     private FakeTimeProvider _clock = null!;
@@ -76,7 +77,7 @@ public sealed class SessionActivityTests(TestContext testContext)
         await SeedAsync(NowUnixNano);
         Assert.AreEqual(SessionState.Active, (await GetSessionAsync()).State);
 
-        _clock.Advance(TimeSpan.FromMinutes(30));
+        _clock.Advance(TimeSpan.FromMinutes(5) - TimeSpan.FromTicks(1));
         Assert.AreEqual(SessionState.Active, (await GetSessionAsync()).State);
         Assert.AreEqual(1, (await GetStatsAsync()).ActiveSessions);
 
@@ -110,6 +111,21 @@ public sealed class SessionActivityTests(TestContext testContext)
         Assert.AreSequenceEqual(["after-cutoff", "at-cutoff"], page.Items.Select(static item => item.SessionId));
         Assert.AreSequenceEqual([SessionState.Active, SessionState.Active], page.Items.Select(static item => item.State));
         Assert.AreSequenceEqual<DateTimeOffset?>([null, null], page.Items.Select(static item => item.EndTime));
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task SessionState_LastSpanTenMinutesAgo_IsEndedInRestAndAnalysis()
+    {
+        var tenMinutesAgo = TimeConversions.ToUnixNanoUnsigned(_clock.GetUtcNow() - TimeSpan.FromMinutes(10));
+        await SeedAsync(tenMinutesAgo);
+
+        var rest = await GetSessionAsync();
+        using var response = await Host.SendAsync(HttpMethod.Post, "/api/v1/analysis/list_sessions", ReaderApiKey, "{}");
+        var analysis = Assert.ContainsSingle((await Host.JsonAsync(response)).GetProperty("sessions").EnumerateArray());
+
+        Assert.AreEqual(SessionState.Ended, rest.State);
+        Assert.AreEqual("ended", analysis.GetProperty("state").GetString());
     }
 
     private ValueTask SeedAsync(ulong lastActivity) =>

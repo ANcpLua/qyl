@@ -57,11 +57,12 @@ internal sealed partial class AnalysisEngine
     }
     private JsonObject Sessions(JsonObject input)
     {
+        var activeCutoff = QylSessionActivity.GetActiveCutoffUnixNano(now);
         var all = _spans.Where(s => s.SessionId is not null).GroupBy(s => s.SessionId).Select(g =>
         {
             var items = g.ToList(); var start = items.Min(s => s.Start); var end = items.Max(s => s.End); var errors = items.Count(s => s.Error);
             var model = items.Select(s => s.Span?.GenAiResponseModel ?? s.Span?.GenAiRequestModel).OfType<string>().Distinct().ToArray();
-            var active = now.ToUnixTimeMilliseconds() - (long)(end / 1_000_000) < 300_000;
+            var active = end >= activeCutoff;
             var annotations = snapshot.Annotations.Where(n => n.SessionId == g.Key).Select(AnnotationJson).ToList();
             var labels = annotations.SelectMany(n => (n["labels"] as JsonArray)?.Select(J.Text) ?? []);
             var name = items.Select(s => J.Text(s.Value(CollectorSemanticAttributeCatalog.GenAiAgentName))).FirstOrDefault(v => v.Length > 0);
