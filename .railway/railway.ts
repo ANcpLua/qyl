@@ -69,15 +69,6 @@ export default defineRailway(() => {
     },
   });
 
-  // Holds nothing the MCP server reads. It stays mounted so the server can delete the retired
-  // MCP Events store (/data/mcp-events.json) at startup.
-  const mcpVolume = volume("qyl-mcp-volume", {
-    region: "europe-west4-drams3a",
-    sizeMB: 1000,
-    allowOnlineResize: true,
-    alerts: { usage: { "80": {}, "95": {}, "100": {} } },
-  });
-
   const mcp = service("qyl-mcp", {
     // No push trigger since 2026-10-22: a push to main deploys nothing. A deploy is
     // serviceInstanceDeployV2 with a release-tag commit, or "Deploy Latest Commit".
@@ -96,7 +87,6 @@ export default defineRailway(() => {
     },
     replicas: { "europe-west4-drams3a": 1 },
     domains: ["mcp.qyl.at"],
-    volumeMounts: { "/data": mcpVolume },
     // Values stay in Railway; the file only declares which variables exist.
     env: {
       MCP_ALLOWED_HOSTS: preserve(),
@@ -112,5 +102,5 @@ export default defineRailway(() => {
     },
   });
 
-  return project("qyl", { resources: [collector, collectorVolume, mcp, mcpVolume] });
+  return project("qyl", { resources: [collector, collectorVolume, mcp] });
 });

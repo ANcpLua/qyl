@@ -1,8 +1,4 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import test from "node:test";
 import { Client, StreamableHTTPClientTransport, type FetchLike } from "@modelcontextprotocol/client";
 import {
@@ -19,7 +15,6 @@ import * as z from "zod/v4";
 import {
   createFetch,
   createHostedHandler,
-  deleteRetiredEventsStore,
   openaiAppsChallenge,
   readStreamableHTTPConfig,
   recordsNativeExecutionEvidence,
@@ -139,17 +134,6 @@ test("the OpenAI domain challenge answers the configured token as plain text, be
   assert.equal((await without.fetch(hosted("/.well-known/openai-apps-challenge"))).status, 404);
   assert.equal(openaiAppsChallenge({ OPENAI_APPS_CHALLENGE: "  " }), undefined);
   assert.equal(openaiAppsChallenge({ OPENAI_APPS_CHALLENGE: " tok " }), "tok");
-});
-
-test("the retired MCP Events store is deleted, and one already gone is no error", async (context) => {
-  const directory = await mkdtemp(join(tmpdir(), "qyl-retired-events-"));
-  context.after(() => rm(directory, { recursive: true, force: true }));
-  const store = join(directory, "mcp-events.json");
-  await writeFile(store, "{}\n");
-
-  deleteRetiredEventsStore(store);
-  assert.equal(existsSync(store), false);
-  deleteRetiredEventsStore(store);
 });
 
 test("sanitized errors expose only a safe error class", () => {

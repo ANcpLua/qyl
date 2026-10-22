@@ -9,7 +9,7 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import { serveStdio, type StdioServerHandle } from "@modelcontextprotocol/server/stdio";
-import { realpathSync, rmSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createServer } from "./server.js";
@@ -337,11 +337,6 @@ export function openaiAppsChallenge(
   return token === undefined || token === "" ? undefined : token;
 }
 
-/** Deletes the store of the retired MCP Events from the hosted volume, if it is still there. */
-export function deleteRetiredEventsStore(path = "/data/mcp-events.json"): void {
-  rmSync(path, { force: true });
-}
-
 export function createHttpMcpServer(config: StreamableHTTPServerConfig): McpServer {
   return createServer({
     transport: "streamable_http",
@@ -462,8 +457,6 @@ async function bootstrap(): Promise<void> {
       return undefined;
     }
 
-    // MCP Events are retired, and their store held webhook callback URLs and signing secrets.
-    deleteRetiredEventsStore();
     // The Collector may run another contract revision for the minutes between two deploys;
     // tools report that skew per call instead of the process refusing to start.
     startCollectorContractMonitor();
