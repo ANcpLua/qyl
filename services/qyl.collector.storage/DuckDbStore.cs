@@ -531,6 +531,16 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct).ConfigureAwait(false);
     }
 
+    // The search text matches literally: its LIKE metacharacters are escaped under ESCAPE '\'.
+    private const string LogSearchSql =
+        @"(body ILIKE $N ESCAPE '\' OR severity_text ILIKE $N ESCAPE '\' OR service_name ILIKE $N ESCAPE '\' OR attributes_json ILIKE $N ESCAPE '\')";
+
+    private static string LogSearchPattern(string search) =>
+        "%" + search
+            .Replace(@"\", @"\\", StringComparison.Ordinal)
+            .Replace("%", @"\%", StringComparison.Ordinal)
+            .Replace("_", @"\_", StringComparison.Ordinal) + "%";
+
     public Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
         string projectId,
         string? sessionId = null,
@@ -561,8 +571,7 @@ internal sealed partial class DuckDbStore : IQylStore
             if (minSeverity.HasValue)
                 qb.Add("severity_number >= $N", minSeverity.Value);
             if (!string.IsNullOrWhiteSpace(search))
-                qb.Add("(body ILIKE $N OR severity_text ILIKE $N OR service_name ILIKE $N OR attributes_json ILIKE $N)",
-                    $"%{search}%");
+                qb.Add(LogSearchSql, LogSearchPattern(search));
             if (!string.IsNullOrEmpty(serviceName))
                 qb.Add("service_name = $N", serviceName);
             if (start.HasValue)
@@ -614,8 +623,7 @@ internal sealed partial class DuckDbStore : IQylStore
             if (minSeverity.HasValue)
                 qb.Add("severity_number >= $N", minSeverity.Value);
             if (!string.IsNullOrWhiteSpace(search))
-                qb.Add("(body ILIKE $N OR severity_text ILIKE $N OR service_name ILIKE $N OR attributes_json ILIKE $N)",
-                    $"%{search}%");
+                qb.Add(LogSearchSql, LogSearchPattern(search));
             if (afterIngestSequence.HasValue)
                 qb.Add("ingest_sequence > $N", afterIngestSequence.Value);
 

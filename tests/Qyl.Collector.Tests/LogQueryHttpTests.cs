@@ -7,6 +7,11 @@ namespace Qyl.Collector.Tests;
 [TestClass]
 public sealed class LogQueryHttpTests(TestContext testContext)
 {
+    private const string PercentQuery = "100%";
+    private const string PercentBody = "progress 100% done";
+    private const string UnderscoreQuery = "user_id";
+    private const string UnderscoreBody = "login user_id=7";
+
     [TestMethod]
     public async Task Published_log_filters_exclude_nonmatching_rows_over_http()
     {
@@ -57,6 +62,38 @@ public sealed class LogQueryHttpTests(TestContext testContext)
         using var absent = await host.SendAsync(HttpMethod.Get, "/api/v1/logs?service_name=missing&severity_min=17&limit=20", "reader");
         Assert.AreEqual(HttpStatusCode.OK, absent.StatusCode);
         Assert.AreEqual(0, (await host.JsonAsync(absent)).GetProperty("items").GetArrayLength());
+    }
+
+    [TestMethod]
+    [DataRow(PercentQuery, PercentBody)]
+    [DataRow(UnderscoreQuery, UnderscoreBody)]
+    public async Task LogSearch_LikeWildcardInText_MatchesTheTextLiterally(string query, string expected)
+    {
+        var ct = testContext.CancellationToken;
+        await using var host = await CollectorApiTestHost.StartAsync(ct);
+        var scope = new OpenTelemetry.Proto.Logs.V1.ScopeLogs();
+        string[] bodies = [PercentBody, "progress 1000 done", UnderscoreBody, "login userXid=7"];
+        for (var index = 0; index < bodies.Length; index++)
+        {
+            scope.LogRecords.Add(new OpenTelemetry.Proto.Logs.V1.LogRecord
+            {
+                TimeUnixNano = 2_000_000_000UL + (ulong)index,
+                SeverityNumber = OpenTelemetry.Proto.Logs.V1.SeverityNumber.Info,
+                Body = new OpenTelemetry.Proto.Common.V1.AnyValue { StringValue = bodies[index] }
+            });
+        }
+
+        using var ingest = await host.SendProtobufAsync("/v1/logs", new OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest
+        {
+            ResourceLogs = { new OpenTelemetry.Proto.Logs.V1.ResourceLogs { ScopeLogs = { scope } } }
+        }, "ingester");
+        Assert.AreEqual(HttpStatusCode.OK, ingest.StatusCode);
+
+        using var response = await host.SendAsync(HttpMethod.Get, "/api/v1/logs?query=" + Uri.EscapeDataString(query), "reader");
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        var item = Assert.ContainsSingle((await host.JsonAsync(response)).GetProperty("items").EnumerateArray());
+        Assert.AreEqual(expected, item.GetProperty("body").GetString());
     }
 
     [TestMethod]
