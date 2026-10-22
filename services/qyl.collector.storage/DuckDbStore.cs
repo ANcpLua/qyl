@@ -531,9 +531,15 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct).ConfigureAwait(false);
     }
 
-    // The search text matches literally: its LIKE metacharacters are escaped under ESCAPE '\'.
+    // The search text matches literally (its LIKE metacharacters are escaped under ESCAPE '\') and
+    // against the text as it was logged: the JSON columns are decoded first, since their stored
+    // encoding escapes non-ASCII characters, quotes and backslashes. A body that is not JSON is
+    // a raw-text row from before attribute value storage and is searched as it is.
     private const string LogSearchSql =
-        @"(body ILIKE $N ESCAPE '\' OR severity_text ILIKE $N ESCAPE '\' OR service_name ILIKE $N ESCAPE '\' OR attributes_json ILIKE $N ESCAPE '\')";
+        "(CASE WHEN json_valid(body) THEN body ->> '$' ELSE body END ILIKE $N ESCAPE '\\'"
+        + " OR severity_text ILIKE $N ESCAPE '\\'"
+        + " OR service_name ILIKE $N ESCAPE '\\'"
+        + " OR CASE WHEN json_valid(attributes_json) THEN json(attributes_json)::VARCHAR ELSE attributes_json END ILIKE $N ESCAPE '\\')";
 
     private static string LogSearchPattern(string search) =>
         "%" + search

@@ -11,6 +11,12 @@ public sealed class LogQueryHttpTests(TestContext testContext)
     private const string PercentBody = "progress 100% done";
     private const string UnderscoreQuery = "user_id";
     private const string UnderscoreBody = "login user_id=7";
+    private const string NonAsciiQuery = "Größe";
+    private const string NonAsciiBody = "Größe überschritten";
+    private const string QuotedQuery = "\"hi\"";
+    private const string QuotedBody = "said \"hi\" there";
+    private const string BackslashQuery = "C:\\temp";
+    private const string BackslashBody = "path C:\\temp\\x";
 
     [TestMethod]
     public async Task Published_log_filters_exclude_nonmatching_rows_over_http()
@@ -122,6 +128,39 @@ public sealed class LogQueryHttpTests(TestContext testContext)
         var page = await host.JsonAsync(response);
         Assert.AreEqual(expectedItems, page.GetProperty("items").GetArrayLength());
         Assert.AreEqual(expectedHasMore, page.GetProperty("has_more").GetBoolean());
+    }
+
+    [TestMethod]
+    [DataRow(NonAsciiQuery, NonAsciiBody)]
+    [DataRow(QuotedQuery, QuotedBody)]
+    [DataRow(BackslashQuery, BackslashBody)]
+    public async Task LogSearch_TextTheStoredBodyJsonEscapes_FindsTheRecord(string query, string expected)
+    {
+        var ct = testContext.CancellationToken;
+        await using var host = await CollectorApiTestHost.StartAsync(ct);
+        var scope = new OpenTelemetry.Proto.Logs.V1.ScopeLogs();
+        string[] bodies = [NonAsciiBody, QuotedBody, BackslashBody];
+        for (var index = 0; index < bodies.Length; index++)
+        {
+            scope.LogRecords.Add(new OpenTelemetry.Proto.Logs.V1.LogRecord
+            {
+                TimeUnixNano = 2_000_000_000UL + (ulong)index,
+                SeverityNumber = OpenTelemetry.Proto.Logs.V1.SeverityNumber.Info,
+                Body = new OpenTelemetry.Proto.Common.V1.AnyValue { StringValue = bodies[index] }
+            });
+        }
+
+        using var ingest = await host.SendProtobufAsync("/v1/logs", new OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest
+        {
+            ResourceLogs = { new OpenTelemetry.Proto.Logs.V1.ResourceLogs { ScopeLogs = { scope } } }
+        }, "ingester");
+        Assert.AreEqual(HttpStatusCode.OK, ingest.StatusCode);
+
+        using var response = await host.SendAsync(HttpMethod.Get, "/api/v1/logs?query=" + Uri.EscapeDataString(query), "reader");
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        var item = Assert.ContainsSingle((await host.JsonAsync(response)).GetProperty("items").EnumerateArray());
+        Assert.AreEqual(expected, item.GetProperty("body").GetString());
     }
 
     [TestMethod]
