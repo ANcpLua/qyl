@@ -27,4 +27,26 @@ public sealed class QylApplicationTests(TestContext testContext)
 
         Assert.AreEqual(typeof(QylApplication).FullName, error.ObjectName);
     }
+
+    [TestMethod]
+    [Timeout(60_000)]
+    public async Task StartAsync_QueuedBehindDispose_Completes()
+    {
+        const int queuedStarts = 1000;
+        var builder = new QylApplicationBuilder();
+        builder.AddExecutable("never-ready", "sleep", ["60"]).WithHealthCheck();
+        var application = builder.Build();
+        using var firstStartCancellation = CancellationTokenSource.CreateLinkedTokenSource(testContext.CancellationToken);
+        var first = application.StartAsync(firstStartCancellation.Token);
+        var disposal = application.DisposeAsync().AsTask();
+        var queued = Enumerable.Range(0, queuedStarts).Select(_ => application.StartAsync(testContext.CancellationToken)).ToArray();
+        Task[] calls = [first, disposal, .. queued];
+
+        await firstStartCancellation.CancelAsync();
+        await Task.WhenAll(calls)
+            .ContinueWith(static _ => { }, TaskScheduler.Default)
+            .WaitAsync(TimeSpan.FromSeconds(30), TimeProvider.System, testContext.CancellationToken);
+
+        Assert.IsEmpty(calls.Where(static call => !call.IsCompleted));
+    }
 }

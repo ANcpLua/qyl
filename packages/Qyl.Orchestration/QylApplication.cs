@@ -106,17 +106,12 @@ public sealed class QylApplication : IAsyncDisposable
     }
 
     /// <summary>Stops every process and releases reserved endpoints. Safe to call more than once.</summary>
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            await _disposal.Value.ConfigureAwait(false);
-        }
-        finally
-        {
-            _lifecycle.Dispose();
-        }
-    }
+    /// <remarks>
+    /// The lifecycle semaphore is never disposed: a start still queued on it must wake and fail with
+    /// <see cref="ObjectDisposedException"/>, and disposing it would abandon that call. It holds no
+    /// unmanaged handle, because nothing reads its AvailableWaitHandle.
+    /// </remarks>
+    public ValueTask DisposeAsync() => new(_disposal.Value);
 
     // Runs once, however often DisposeAsync is called: every call awaits the same stop.
     private async Task StopOnceAsync()
