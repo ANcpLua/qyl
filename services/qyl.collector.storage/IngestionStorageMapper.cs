@@ -41,11 +41,11 @@ internal static class IngestionStorageMapper
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
             SessionId = projection.SessionId,
             Name = span.Name,
-            Kind = ConvertSpanKindToByte(span.Kind),
+            Kind = (byte)(span.Kind ?? 0),
             StartTimeUnixNano = span.StartTimeUnixNano,
             EndTimeUnixNano = span.EndTimeUnixNano,
             DurationNs = durationNs,
-            StatusCode = ConvertStatusCodeToByte(span.StatusCode),
+            StatusCode = (byte)(span.StatusCode ?? 0),
             ServiceName = span.ServiceName,
             GenAiProviderName = projection.GenAiProviderName,
             GenAiOperationName = projection.GenAiOperationName,
@@ -83,7 +83,7 @@ internal static class IngestionStorageMapper
     {
         var projectId = ProjectScope.ForIngest(log.ProjectIdHint, authenticatedProjectId);
         var severityText = log.SeverityText;
-        var severityNumber = (byte)Math.Clamp(log.SeverityNumber, 0, 24);
+        var severityNumber = (byte)log.SeverityNumber;
         var sessionId = log.Attributes.GetSessionId(log.ScopeName, log.ServiceName);
         // Identity uses complete canonical content; the retention rendering may be bounded.
         // Omitted suffixes contribute only to the digest and are never stored.
@@ -287,23 +287,6 @@ internal static class IngestionStorageMapper
 
         return builder.Append(TruncatedLogBodySuffix).ToString();
     }
-
-    private static byte ConvertSpanKindToByte(int? kind) => kind switch
-    {
-        1 => 1,
-        2 => 2,
-        3 => 3,
-        4 => 4,
-        5 => 5,
-        _ => 0
-    };
-
-    private static byte ConvertStatusCodeToByte(int? code) => code switch
-    {
-        1 => 1,
-        2 => 2,
-        _ => 0
-    };
 
     private static string? SerializeResourceEntityRefs(
         IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs) =>

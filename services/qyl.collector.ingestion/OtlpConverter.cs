@@ -8,12 +8,30 @@ using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoKeyValueList = OpenTelemetry.Proto.Common.V1.KeyValueList;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
+using ProtoSeverityNumber = OpenTelemetry.Proto.Logs.V1.SeverityNumber;
 using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
+using ProtoStatusCode = OpenTelemetry.Proto.Trace.V1.Status.Types.StatusCode;
 
 namespace Qyl.Collector.Ingestion;
 
 internal static partial class OtlpConverter
 {
+    // OTLP accepts a record whose enum field holds an undefined value; qyl keeps the record, stores the
+    // field's zero value and answers the sender with a partial-success warning that rejects nothing.
+    // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/collector/logs/v1/logs_service.proto
+    private const string SpanKindWarning = "OTLP span kind outside 0-5 is recorded as SPAN_KIND_UNSPECIFIED (0).";
+    private const string StatusCodeWarning = "OTLP span status code outside 0-2 is recorded as STATUS_CODE_UNSET (0).";
+    private const string SeverityNumberWarning = "OTLP log severity_number outside 0-24 is recorded as SEVERITY_NUMBER_UNSPECIFIED (0).";
+
+    private static int DefinedOrZero(int value, int maximum, string warning, ISet<string> warnings)
+    {
+        if (value >= 0 && value <= maximum)
+            return value;
+
+        warnings.Add(warning);
+        return 0;
+    }
+
     #region OTLP Trace Conversion
 
     public static TraceIngestionBatch ConvertTraceRequest(ExportTraceServiceRequest request)
@@ -45,7 +63,7 @@ internal static partial class OtlpConverter
                             throw new InvalidDataException("OTLP span requires start and end times with end >= start.");
                         spans.Add(CreateSpanRecordFromProto(span, project, serviceName,
                             ExtractAttributesFromProto(span.Attributes, serviceName), resource.Attributes, resource.EntityRefs,
-                            NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name), NullIfEmpty(scope.Scope?.Version)) with
+                            NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name), NullIfEmpty(scope.Scope?.Version), reasons) with
                         {
                             ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl), ScopeAttributes = scopeAttributes,
                             ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
@@ -391,7 +409,8 @@ internal static partial class OtlpConverter
         IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         string? schemaUrl,
         string? scopeName,
-        string? scopeVersion) =>
+        string? scopeVersion,
+        ISet<string> warnings) =>
         new()
         {
             ProjectIdHint = projectIdHint,
@@ -404,10 +423,12 @@ internal static partial class OtlpConverter
             DroppedEventsCount = span.DroppedEventsCount,
             DroppedLinksCount = span.DroppedLinksCount,
             Name = span.Name ?? "unknown",
-            Kind = (int)span.Kind,
+            Kind = DefinedOrZero((int)span.Kind, (int)ProtoSpan.Types.SpanKind.Consumer, SpanKindWarning, warnings),
             StartTimeUnixNano = span.StartTimeUnixNano,
             EndTimeUnixNano = span.EndTimeUnixNano,
-            StatusCode = span.Status is not null ? (int)span.Status.Code : null,
+            StatusCode = span.Status is not null
+                ? DefinedOrZero((int)span.Status.Code, (int)ProtoStatusCode.Error, StatusCodeWarning, warnings)
+                : null,
             StatusMessage = string.IsNullOrEmpty(span.Status?.Message) ? null : span.Status.Message,
             ServiceName = serviceName,
             Attributes = attributes,
@@ -483,7 +504,7 @@ internal static partial class OtlpConverter
                     var requestOrdinal = ordinal++;
                     try
                     {
-                        logs.Add(CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs, observedTime) with
+                        logs.Add(CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs, observedTime, reasons) with
                         {
                             UntimedRequestOrdinal = log.TimeUnixNano == 0 && log.ObservedTimeUnixNano == 0 ? requestOrdinal : null,
                             ScopeName = NullIfEmpty(scope.Scope?.Name), ScopeVersion = NullIfEmpty(scope.Scope?.Version),
@@ -505,11 +526,12 @@ internal static partial class OtlpConverter
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
-        ulong observedTime)
+        ulong observedTime,
+        ISet<string> warnings)
     {
         var attributes = ExtractLogAttributes(log.Attributes);
 
-        var severityNumber = (int)log.SeverityNumber;
+        var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4, SeverityNumberWarning, warnings);
 
         return new LogIngestionRecord
         {

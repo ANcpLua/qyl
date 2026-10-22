@@ -11,15 +11,16 @@ internal static class OtlpTestLogs
     private const ulong Now = CollectorApiTestHost.FixtureUnixNano - 120_000_000_000;
 
     /// <summary>
-    /// One log record of service <paramref name="serviceName"/> on the scope <paramref name="scopeName"/>, carrying
-    /// <paramref name="attributes"/> in wire order.
+    /// One log record of service <paramref name="serviceName"/> and severity <paramref name="severity"/> on the scope
+    /// <paramref name="scopeName"/>, carrying <paramref name="attributes"/> in wire order.
     /// </summary>
     internal static ExportLogsServiceRequest Request(
         string scopeName,
         IEnumerable<KeyValue> attributes,
-        string serviceName = "app-service")
+        string serviceName = "app-service",
+        SeverityNumber severity = SeverityNumber.Unspecified)
     {
-        var record = new LogRecord { TimeUnixNano = Now, EventName = "work" };
+        var record = new LogRecord { TimeUnixNano = Now, EventName = "work", SeverityNumber = severity };
         record.Attributes.Add(attributes);
 
         return new ExportLogsServiceRequest
