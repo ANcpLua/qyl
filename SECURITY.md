@@ -24,5 +24,3 @@ fixes.
 
 A confirmed vulnerability is disclosed in a GitHub Security Advisory on this repository once the
 fixed version is published.
-
-The MCP server's trust boundaries are in [docs/mcp/threat-model.md](docs/mcp/threat-model.md).

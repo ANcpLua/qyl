@@ -5,7 +5,7 @@ description: "Review MSTest tests for false confidence, flakiness, ownership and
 
 # Review MSTest tests
 
-The [opinionated native stack](../mstest-extensions/references/native-stack.md)
+The opinionated native stack
 is MSTest.Sdk 4.5.1 / MTP 2.5.1 with `AllMicrosoft` and Microsoft.CodeCoverage.
 
 Read the named tests, their helpers and only the production context that changes
@@ -29,7 +29,3 @@ Report confirmed findings by impact, with file/line evidence, the accepted wrong
 behavior or likely race, and a native replacement. Keep static findings separate
 from unexecuted fault hypotheses. Clean code can receive a clean report. This
 workflow does not authorize edits, a repository-wide scan or new model trials.
-
-[Quality and evidence](../mstest-extensions/references/test-quality.md) provides
-calibration. [Lifecycle](../mstest-extensions/references/lifecycle.md) provides
-native ordering and cancellation details where those determine a finding.

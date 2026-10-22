@@ -6,9 +6,6 @@ license: Apache-2.0
 
 # MSBuild for SDK-style repositories
 
-For MSTest-specific project or runner work, use the
-[companion routing table](../audit/references/mstest-routing.md).
-
 ## 1. Evaluation order decides where things go
 
 SDK-style projects import SDK props before their body and SDK targets afterward.
@@ -49,8 +46,6 @@ its values or target definitions. Trace the actual order with `-preprocess`.
   `TreatWarningsAsErrors`, `ImplicitUsings` and the analyzer set) is never restated in a project.
 - Analyzer and build-tool packages (`*.Analyzers`, SourceLink, MinVer, Nerdbank.GitVersioning) are
   `PrivateAssets="all"`, or a `GlobalPackageReference` from the SDK or `Directory.Packages.props`.
-- Use [items and outputs](references/items-and-outputs.md) for Include/Update/Remove,
-  metadata batching and the copy contract, including outputs mutated by the app.
 
 ## 3. Custom targets
 
@@ -82,8 +77,7 @@ its values or target definitions. Trace the actual order with `-preprocess`.
 
 ## 4. Packaging build assets and analyzers
 
-Read `references/packaging.md` before changing a package's `build/`, `buildTransitive/` or
-`analyzers/` content. In brief: file names equal the PackageId, analyzers go to
+For a package's `build/`, `buildTransitive/` or `analyzers/` content: file names equal the PackageId, analyzers go to
 `analyzers/dotnet/cs`, and their dependencies ship next to them.
 
 ## 5. Diagnosing
@@ -93,7 +87,7 @@ Read `references/packaging.md` before changing a package's `build/`, `buildTrans
 3. Inspect with the binlog tools available in the session (a binlog MCP server: call its tool list
    first) or `dotnet msbuild -preprocess:pp.xml` for the fully evaluated project.
 4. For "why is this property X?", use `dotnet msbuild -getProperty:X -getItem:Y` on the project.
-5. For slow builds, use [performance evidence](references/performance.md): controlled
+5. For slow builds, compare controlled
    cold/incremental/no-op samples, evaluation versus execution, task time and dependency waits.
 6. Duplicate outputs: two projects or two global-property sets writing the same `bin`/`obj` (shared
    `BaseIntermediateOutputPath`, `SetTargetFramework` to the project's own single TFM, the same
@@ -101,7 +95,7 @@ Read `references/packaging.md` before changing a package's `build/`, `buildTrans
 
 ## 6. Review
 
-Check changes against `references/antipatterns.md`. A build-defect finding identifies
+A build-defect finding identifies
 the affected supported environment/configuration and evidence of failure. A Linux-only
 or conditional-build failure is still a defect; distinguish it from an unverified risk.
 Report findings as `file:line | rule | evidence | fix`, most severe first.

@@ -5,7 +5,7 @@ description: "Assess the strength and meaning of existing MSTest assertions with
 
 # Assess assertion strength
 
-The [opinionated native stack](../mstest-extensions/references/native-stack.md)
+The opinionated native stack
 is MSTest.Sdk 4.5.1 / MTP 2.5.1 with `AllMicrosoft` and Microsoft.CodeCoverage.
 
 Follow the executed check through helpers and child reports before deciding it
@@ -27,7 +27,3 @@ Report the concrete accepted wrong behavior and an appropriate native assertion
 shape. Expected/actual order and specific typed assertions improve failure
 output, but no custom fluent API or new assertion framework is implied. Keep a
 source-proven weakness distinct from an unexecuted hypothetical fault.
-
-[Assertions](../mstest-extensions/references/assertions.md) describes native APIs;
-[quality guidance](../mstest-extensions/references/test-quality.md) calibrates
-independent evidence and required preconditions.

@@ -5,14 +5,13 @@ description: "Publish and verify MSTest consumers under Native AOT, trimming or 
 
 # Verify native test execution
 
-The [opinionated native stack](../mstest-extensions/references/native-stack.md)
+The opinionated native stack
 is MSTest.Sdk 4.5.1 / MTP 2.5.1 with `AllMicrosoft` and Microsoft.CodeCoverage.
 
 Establish the consumer's actual SDK, target framework, runtime identifier,
 MSTest packages and runner. The checked baseline is MSTest 4.5.1 with MTP 2.5.1;
 these are different versioned components. Preserve the consumer's pins unless
-migration is requested. [Version resolution](../mstest-extensions/references/version-resolution.md)
-provides the package and MSBuild evidence.
+migration is requested.
 
 Separate generated discovery, generated direct invocation, managed reflection
 fallback and execution of a Native AOT binary. Enabling
@@ -24,8 +23,6 @@ Prefer supported framework attributes and generated invocation over scanning
 assemblies or invoking private members. Public provider metadata parameters are
 not themselves a reflection workaround. Use evaluated MSBuild properties such
 as `TargetPath` for build identity rather than reflecting assembly configuration.
-Read [runner and generation](../mstest-extensions/references/runner-and-generation.md)
-for the resolved feature's limits.
 
 Inheritance, custom execution attributes, dynamic data, assembly fixture
 providers and optional hosting need evidence for their particular shape.
@@ -35,14 +32,13 @@ claim automatic fixture discovery survived when it did not.
 In the inspected 4.5.1 family, experimental `AddMSTestTestClassInjection` uses
 reflection and excludes source-generated/AOT test execution. A managed hosted
 suite can still exercise a separately published Native AOT application; keep
-those artifact claims distinct. See the
-[hosting limits](../mstest-extensions/references/lifecycle.md#hosting-integration-when-available).
+those artifact claims distinct.
 
 Publish for the intended RID and execute that published binary through its
 supported entrypoint. Inspect case identities, outcomes and required negative
 behavior; a compiler error or startup crash is not an expected assertion failure.
 Record artifact identity, runtime mode and relevant dependency versions.
-[The packaged verifier](../mstest-extensions/references/executable-evidence.md)
+[The packaged verifier](../mstest-extensions/scripts/verify_capabilities.py)
 already checks defined managed/AOT shapes; reuse its unchanged evidence rather
 than publishing unrelated consumers.
 

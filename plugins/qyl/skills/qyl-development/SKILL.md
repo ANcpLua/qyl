@@ -14,7 +14,7 @@ parts below; an ordinary code edit does not require production telemetry.
 | Runtime cost and profiling | [performance](../performance/SKILL.md) |
 | Build, package versions or analyzers | [audit](../audit/SKILL.md), then its focused skill |
 | Structural code changes, constants or abandoned paths | [csharp-refactoring](../csharp-refactoring/SKILL.md) |
-| Tests, extensions, execution or test-quality evidence | [MSTest routing](../audit/references/mstest-routing.md) |
+| Tests, extensions, execution or test-quality evidence | [mstest-writing-tests](../mstest-writing-tests/SKILL.md), [mstest-run-tests](../mstest-run-tests/SKILL.md), [mstest-extensions](../mstest-extensions/SKILL.md) |
 
 Connect runtime observations to the matching source revision and configuration.
 Keep observed facts, source hypotheses and missing evidence distinct. Fix the

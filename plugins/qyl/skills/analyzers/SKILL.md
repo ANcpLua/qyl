@@ -6,9 +6,7 @@ license: Apache-2.0
 
 # Roslyn analyzer adoption and suppression hygiene
 
-Keep analyzer loading, packaging and severity configuration here. For an MSTest
-diagnostic's test-code correction, use the
-[companion routing table](../audit/references/mstest-routing.md).
+Keep analyzer loading, packaging and severity configuration here.
 
 ## 1. How an analyzer reaches a project
 
@@ -60,9 +58,9 @@ Facts that make configurations silently inert:
   on one member, a section for one generated file, a project `NoWarn`, and only then a repository
   `NoWarn`.
 - A suppression for an ID that no package in the project defines is dead. After a renumbering,
-  rewrite or delete every `NoWarn`, pragma, `SuppressMessage` and editorconfig entry. For
-  ANcpLua.Analyzers 2.0 (`AL0xxx` became `AL1xxx`), the complete old-to-new map ships with this skill
-  in `references/id-migration.md`; for example, AL0017 became AL1600 and AL0018 became AL1601.
+  rewrite or delete every `NoWarn`, pragma, `SuppressMessage` and editorconfig entry. In
+  ANcpLua.Analyzers 2.0, `AL0xxx` became `AL1xxx`; for example, AL0017 became AL1600 and AL0018
+  became AL1601.
 - A pragma or `NoWarn` that works around a false positive is temporary: fix the analyzer, add a
   regression test, then delete the suppression.
 - Two settings that cancel each other (a project `NoWarn` plus an editorconfig "warning" for the
@@ -99,12 +97,6 @@ An analyzer reads `build_property.<Name>` from `AnalyzerConfigOptions`, which wo
   (`PublishAot`/`IsAotCompatible`).
 - AL1600-AL1602 report on props files (see section 2).
 
-## 6. Worked examples (found in real repositories)
-
-Read `references/examples.md` for before and after cases: stale renumbered IDs in `NoWarn`, a
-package `build/` props that never reached consumers, editorconfig lines for props-file rules,
-`WarningsAsErrors` without self-reference wiping the SDK's NuGetAudit escalation, a pragma hiding
-a false positive, and test "relax" blocks that relax nothing.
 
 ## 7. Audit output
 

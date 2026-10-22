@@ -34,11 +34,9 @@ license: Apache-2.0
 
 ## Constants and abandoned code
 
-For exhaustive cleanup, use [constant reconciliation](references/constant-reconciliation.md).
 Account for every declaration in scope, including retained and unresolved items;
 do not stop at an easy deletion shortlist. Use [performance](../performance/SKILL.md)
 for production telemetry and profiles when deciding which checks are expensive.
 
-For MSTest validation or changes to test code, select the focused skill through
-[companion routing](../audit/references/mstest-routing.md). Package/framework
+Package/framework
 upgrades use [nuget-versions](../nuget-versions/SKILL.md).

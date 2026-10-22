@@ -23,11 +23,11 @@ layout: |
   │   └── qyl.mcp/                 MCP server on the TypeScript SDK v2 and Bun: tools, skills/,
   │                                eval/, src/contracts/generated/ (TS types, MCP-ready JSON Schema)
   ├── packages/                    qyl tool (Qyl.Cli), Qyl.Orchestration, Qyl.Api.Sdk, Qyl.Run.Workload
-  ├── plugins/qyl/                 Claude, Codex and OpenAI plugin manifests, skills, listings/
+  ├── plugins/qyl/                 Claude, Codex and OpenAI plugin manifests, skills
   ├── samples/qyl.sample/          an API built by Qyl.Api.Sdk
   ├── tests/                       .NET tests (MSTest on Microsoft.Testing.Platform)
   ├── eng/                         Fallout build (eng/build), scripts, smoke tools, auth0/
-  ├── docs/                        this file, configuration, attribute persistence, mcp/
+  ├── docs/                        this file
   ├── .railway/railway.ts          Railway services qyl-collector and qyl-mcp
   └── Version.props                QylVersion, the one release version
 

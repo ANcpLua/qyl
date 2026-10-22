@@ -9,8 +9,7 @@ license: Apache-2.0
 Every package version lives in exactly one place. A change that moves a version moves every
 place that has to agree with it in the same commit, or it is half a change.
 
-Keep version-chain work here; route MSTest runner, profile and project semantics
-through the [companion routing table](../audit/references/mstest-routing.md).
+Keep version-chain work here.
 
 ## 1. Where versions live
 
@@ -56,8 +55,7 @@ get deleted. Audit by diffing against
   project must reference it as an SDK.
 - If no installed SDK satisfies the pin's resolution policy, use the machine's
   normal installation channel rather than lowering the pin to fit the host.
-- For a requested project-local SDK or `sdk.paths` setup, read
-  [SDK selection](references/sdk-selection.md); verify host and SDK separately.
+- For a requested project-local SDK or `sdk.paths` setup, verify host and SDK separately.
 - When the SDK pin moves, keep the CI `setup-dotnet` (`global-json-file: global.json`), the
   template-stamped `DotNetSdkVersion`, and documentation that names the version in line with it.
 
@@ -119,6 +117,5 @@ Listing commands: `dotnet package list --include-transitive` and `--vulnerable` 
 ## 6. Converting a repository to CPM
 
 `packages.config` projects need a separate PackageReference migration first.
-For a requested CPM conversion, read [conditional migration](references/cpm-migration.md):
-preserve evaluated versions and conditions, respect central-file boundaries, and
+For a requested CPM conversion, preserve evaluated versions and conditions, respect central-file boundaries, and
 explain every intentional difference in the resolved before/after package graph.

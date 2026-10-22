@@ -15,8 +15,7 @@ someone opening the cited file.
   the working tree has someone else's uncommitted work (never touch it).
 - For a fleet audit, start with an inventory table: repository, `global.json` (`sdk.version`,
   `rollForward`, `msbuild-sdks`), SDK used by the projects, shared-package versions
-  and where each is set, release mechanism. Include test-platform observations when requested,
-  using the [MSTest routing table](references/mstest-routing.md).
+  and where each is set, release mechanism. Include test-platform observations when requested.
 
 ## 2. Passes
 
@@ -27,12 +26,12 @@ read-only instruction, then merge the ledgers. Otherwise run the passes in seque
 | Pass | Rulebook | Looks at |
 |---|---|---|
 | Versions | `nuget-versions` | global.json, Version.props, Directory.Packages.props, csproj versions, Renovate annotations, stale overrides |
-| Build | `msbuild` (`references/antipatterns.md`) | csproj, props, targets, slnx, CI build steps |
+| Build | `msbuild` | csproj, props, targets, slnx, CI build steps |
 | Analyzers | `analyzers` | how analyzers arrive, analysis modes, every suppression, stale IDs |
-| MSTest, when in scope | [Companion skill routing](references/mstest-routing.md) | delegate project setup, execution, extensions and test-quality analysis to their focused owners |
+| MSTest, when in scope | the bundled `mstest-*` skills | delegate project setup, execution, extensions and test-quality analysis to their focused owners |
 | Release | `release` | publish workflows, gates, credentials model, tag hygiene |
 | Runtime cost, when requested | [performance](../performance/SKILL.md) | existing measurements or source hypotheses; retain the audit's read-only scope |
-| Constants/dead code, when requested | [constant reconciliation](../csharp-refactoring/references/constant-reconciliation.md) | complete declaration/caller inventory, indirect production uses, disposition and measured cost |
+| Constants/dead code, when requested | [csharp-refactoring](../csharp-refactoring/SKILL.md) | complete declaration/caller inventory, indirect production uses, disposition and measured cost |
 
 Useful searches (ripgrep; skip `bin/`, `obj/`, `artifacts/`, `node_modules/`, `TestResults/`):
 

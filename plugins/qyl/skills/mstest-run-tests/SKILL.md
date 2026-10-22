@@ -6,7 +6,7 @@ description: "Choose or execute native-MTP MSTest commands, discover/filter test
 # Run native MSTest tests
 
 Use the repository's test entrypoint and its resolved native MTP configuration.
-The [checked stack](../mstest-extensions/references/native-stack.md) is
+The checked stack is
 MSTest.Sdk 4.5.1 / MTP 2.5.1 with `AllMicrosoft` and native Microsoft code coverage.
 Inspect the selected project's SDK, imported settings and restored packages,
 the effective `global.json`, and actual .NET SDK. Native `dotnet test` requires
@@ -50,7 +50,7 @@ it also skips restore. `--no-restore` requires current restore state.
 
 Read the process result and test counts. Zero tests or all-skipped tests do not
 establish a passing requested behavior. Diagnose the selected project, filter,
-framework and [solution/CI inclusion](../mstest-extensions/references/test-projects.md)
+framework and solution/CI inclusion
 before changing test code. A supported `--minimum-expected-tests` can enforce a
 known minimum but includes skipped cases; do not invent a count or suppress
 zero-test failures. Report the actual command, executed/passed/failed/skipped

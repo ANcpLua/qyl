@@ -5,7 +5,7 @@ description: "Assess MSTest tests using formal named test-smell categories when 
 
 # Assess formal test smells
 
-The [opinionated native stack](../mstest-extensions/references/native-stack.md)
+The opinionated native stack
 is MSTest.Sdk 4.5.1 / MTP 2.5.1 with `AllMicrosoft` and Microsoft.CodeCoverage.
 
 Use this workflow when the request calls for formal categories or taxonomy.
@@ -30,7 +30,3 @@ and a native MSTest correction. Report non-catalog correctness defects separatel
 No finding is required when the requested scope is clean. Refer to the upstream
 catalog only when the request needs a category not established locally or an
 explicit academic citation; do not invent a formal definition.
-
-[Review calibration](../mstest-extensions/references/test-quality.md) contains
-source routes and distinctions. [Lifecycle](../mstest-extensions/references/lifecycle.md)
-resolves native fixture semantics before a lifecycle smell is assigned.

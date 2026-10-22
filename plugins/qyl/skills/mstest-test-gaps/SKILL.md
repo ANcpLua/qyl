@@ -5,7 +5,7 @@ description: "Find caller-visible behavioral changes that existing MSTest cases 
 
 # Find observable test gaps
 
-The [opinionated native stack](../mstest-extensions/references/native-stack.md)
+The opinionated native stack
 is MSTest.Sdk 4.5.1 / MTP 2.5.1 with `AllMicrosoft` and Microsoft.CodeCoverage.
 
 Inventory the requested public outcomes and the tests that reach them. The
@@ -28,6 +28,4 @@ requested to close demonstrated gaps, not to fill a quota.
 
 Report each distinct outcome, reaching cases, missing distinguishing check and
 the evidence status. Keep static absence, suspected weakness, detected fault and
-executed survivor separate. [Quality guidance](../mstest-extensions/references/test-quality.md)
-contains examples and [test scopes](../mstest-extensions/references/test-scopes.md)
-separates source, component and package-consumer boundaries.
+executed survivor separate.

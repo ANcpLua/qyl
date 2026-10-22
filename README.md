@@ -65,7 +65,7 @@ exports from its first line.
 | `samples/qyl.sample` | An API built with `Qyl.Api.Sdk`. |
 | `tests/` | The .NET tests (MSTest on Microsoft.Testing.Platform). |
 | `eng/` | The Fallout build (`eng/build`), scripts, smoke tools and the Auth0 tenant configuration (`eng/auth0`). |
-| `docs/` | Architecture, Collector configuration, attribute persistence and the MCP threat model. |
+| `docs/architecture.yaml` | The target architecture: layout, ownership, contracts. |
 | `.railway/railway.ts` | The two Railway services: `qyl-collector` at `https://api.qyl.at` and `qyl-mcp` at `https://mcp.qyl.at`. |
 
 `https://mcp.qyl.at/healthz` reports `ok`, or `degraded` while the Collector is unreachable or
@@ -89,9 +89,6 @@ serves another contract revision. `https://api.qyl.at/health` reports the Collec
 ## Documentation
 
 - [MCP server](https://github.com/ANcpLua/qyl/blob/main/services/qyl.mcp/README.md): tools, sign-in, configuration and telemetry
-- [Collector configuration](https://github.com/ANcpLua/qyl/blob/main/docs/configuration.md)
-- [Attribute persistence and redaction](https://github.com/ANcpLua/qyl/blob/main/docs/attribute-persistence.md)
-- [MCP threat model](https://github.com/ANcpLua/qyl/blob/main/docs/mcp/threat-model.md)
 - [Architecture](https://github.com/ANcpLua/qyl/blob/main/docs/architecture.yaml)
 - [Security policy](https://github.com/ANcpLua/qyl/blob/main/SECURITY.md)
 - [Changes per version](https://github.com/ANcpLua/qyl/blob/main/CHANGELOG.md)
