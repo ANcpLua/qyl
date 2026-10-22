@@ -407,19 +407,22 @@ internal static class DuckDbEmitter
                 _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
             };
 
+        // A required member fails closed on NULL, as the Arrow reader does: a NULL here is a schema or
+        // query error, never a value to substitute.
+        var missing = $"throw new InvalidDataException(\"Column '{col.ColumnName}' contains NULL.\")";
         return baseType switch
         {
-            "string" => $"DuckDbValueReader.ReadString(reader, {ordinal}, \"\")",
-            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal}, 0UL)",
-            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal}, 0L)",
-            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}, 0d)",
-            "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? 0m : reader.GetDecimal({ordinal})",
-            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}, 0)",
-            "uint" or "System.UInt32" => $"DuckDbValueReader.ReadUInt32(reader, {ordinal}, 0U)",
-            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}, 0)",
-            "byte[]" or "System.Byte[]" => $"DuckDbValueReader.ReadBytes(reader, {ordinal})",
-            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
-            _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
+            "string" => $"DuckDbValueReader.ReadString(reader, {ordinal}) ?? {missing}",
+            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal}) ?? {missing}",
+            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal}) ?? {missing}",
+            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}) ?? {missing}",
+            "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? {missing} : reader.GetDecimal({ordinal})",
+            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}) ?? {missing}",
+            "uint" or "System.UInt32" => $"DuckDbValueReader.ReadUInt32(reader, {ordinal}) ?? {missing}",
+            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}) ?? {missing}",
+            "byte[]" or "System.Byte[]" => $"reader.IsDBNull({ordinal}) ? {missing} : DuckDbValueReader.ReadBytes(reader, {ordinal})",
+            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? {missing}",
+            _ => $"reader.IsDBNull({ordinal}) ? {missing} : reader.GetValue({ordinal})"
         };
     }
 

@@ -1,13 +1,17 @@
+using System.Numerics;
+
 namespace Qyl.Collector.Storage;
 
 internal static class DuckDbValueReader
 {
     // DuckDB aggregates (SUM over BIGINT, COUNT) return HUGEINT, which the provider surfaces as
-    // System.Numerics.BigInteger. BigInteger is not IConvertible, so Convert.ToXxx throws on it.
-    // Normalize it to a value Convert understands before any numeric read.
+    // System.Numerics.BigInteger. BigInteger is not IConvertible, so it converts to the target type
+    // directly: checked for an integer, which throws OverflowException when the value does not fit,
+    // and to the nearest double for a double, whatever its size.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static object Normalize(object value) =>
-        value is System.Numerics.BigInteger big ? (decimal)big : value;
+    private static T Number<T>(object value, Func<object, IFormatProvider, T> convert)
+        where T : INumberBase<T> =>
+        value is BigInteger big ? T.CreateChecked(big) : convert(value, CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? ReadString(DbDataReader reader, int ordinal) =>
@@ -23,7 +27,7 @@ internal static class DuckDbValueReader
     public static ulong? ReadUInt64(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToUInt64(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+            : Number(reader.GetValue(ordinal), Convert.ToUInt64);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadUInt64(DbDataReader reader, int ordinal, ulong defaultValue) =>
@@ -33,7 +37,7 @@ internal static class DuckDbValueReader
     public static long? ReadInt64(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToInt64(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+            : Number(reader.GetValue(ordinal), Convert.ToInt64);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadInt64(DbDataReader reader, int ordinal, long defaultValue) =>
@@ -43,7 +47,7 @@ internal static class DuckDbValueReader
     public static int? ReadInt32(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToInt32(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+            : Number(reader.GetValue(ordinal), Convert.ToInt32);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReadInt32(DbDataReader reader, int ordinal, int defaultValue) =>
@@ -52,7 +56,7 @@ internal static class DuckDbValueReader
     public static uint? ReadUInt32(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToUInt32(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+            : Number(reader.GetValue(ordinal), Convert.ToUInt32);
 
     public static uint ReadUInt32(DbDataReader reader, int ordinal, uint defaultValue) =>
         ReadUInt32(reader, ordinal) ?? defaultValue;
@@ -61,7 +65,7 @@ internal static class DuckDbValueReader
     public static byte? ReadByte(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToByte(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+            : Number(reader.GetValue(ordinal), Convert.ToByte);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte ReadByte(DbDataReader reader, int ordinal, byte defaultValue) =>
@@ -71,7 +75,7 @@ internal static class DuckDbValueReader
     public static double? ReadDouble(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToDouble(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
+            : Number(reader.GetValue(ordinal), Convert.ToDouble);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double ReadDouble(DbDataReader reader, int ordinal, double defaultValue) =>
