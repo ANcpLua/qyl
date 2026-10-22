@@ -6,8 +6,15 @@
   "sessionCorrelation": [
     "session.id",
     "mcp.session.id",
-    "gen_ai.conversation.id"
+    "gen_ai.conversation.id",
+    "conversation.id"
   ],
+  "codexSessionCorrelation": {
+    "producerPrefix": "codex",
+    "keys": [
+      "thread.id"
+    ]
+  },
   "spanHotAttributeKeys": [
     "gen_ai.provider.name",
     "gen_ai.operation.name",

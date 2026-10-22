@@ -29,10 +29,11 @@ internal static class StorageAttributeProjection
         CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Speech,
         CollectorSemanticAttributeCatalog.GenAiOutputTypeValues.Text);
 
-    internal static SpanHotAttributeProjection ExtractSpanHotAttributes(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        new(
-            SessionId: attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelationPrecedence),
+    internal static SpanHotAttributeProjection ExtractSpanHotAttributes(SpanIngestionRecord span)
+    {
+        var attributes = span.Attributes;
+        return new(
+            SessionId: attributes.GetSessionId(span.ScopeName, span.ServiceName),
             GenAiProviderName: attributes.GetString(CollectorSemanticAttributeCatalog.GenAiProviderName),
             GenAiOperationName: Canonicalize(
                 attributes.GetString(CollectorSemanticAttributeCatalog.GenAiOperationName),
@@ -47,6 +48,7 @@ internal static class StorageAttributeProjection
             GenAiCacheReadInputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiCacheReadInputTokens),
             GenAiCacheWriteInputTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiCacheWriteInputTokens),
             GenAiReasoningTokens: attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiReasoningTokens));
+    }
 
     private static string? GetString(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes, string? key) =>
         key is null ? null : attributes.GetValueOrDefault(key)?.AsString();

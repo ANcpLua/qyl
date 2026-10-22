@@ -17,12 +17,15 @@ namespace Qyl.Collector.Ingestion;
 internal static class CollectorSemanticAttributeCatalog
 {
     internal const string BaggagePrefix = "baggage.";
+    internal const string CodexProducerPrefix = "codex";
 
     internal static readonly FrozenSet<string> SessionCorrelation = FrozenSet.Create(
         StringComparer.Ordinal,
+        "conversation.id", // incubating
         "gen_ai.conversation.id", // incubating
         "mcp.session.id", // incubating
-        "session.id" // incubating
+        "session.id", // incubating
+        "thread.id" // incubating
     );
 
     internal static readonly FrozenSet<string> ProjectIdResourceKeys = FrozenSet.Create(
@@ -36,6 +39,12 @@ internal static class CollectorSemanticAttributeCatalog
         "session.id", // incubating
         "mcp.session.id", // incubating
         "gen_ai.conversation.id", // incubating
+        "conversation.id", // incubating
+    ];
+
+    internal static readonly string[] CodexSessionCorrelationPrecedence =
+    [
+        "thread.id", // incubating
     ];
 
     internal static readonly string[] ProjectIdResourceKeyPrecedence =

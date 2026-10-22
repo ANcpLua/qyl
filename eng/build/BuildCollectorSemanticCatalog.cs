@@ -94,6 +94,11 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
             StringComparer.Ordinal);
         var sessionCorrelation = resolver.RequiredAttributeValues(policy.SessionCorrelation);
 
+        // Keys that identify a session only on a record whose instrumentation scope or service.name
+        // carries the Codex producer prefix: Codex writes its conversation thread UUID as thread.id, the
+        // key the core registry defines as the integer managed thread id.
+        var codexSessionCorrelation = resolver.RequiredAttributeValues(policy.CodexSessionCorrelation.Keys);
+
         // The project-id keys decide which project a row is filed under, so a key that has drifted out of the
         // registry does not fail loudly, it misfiles data. Order is the policy's, because the lookup is
         // first-match; only membership is validated here.
@@ -144,15 +149,19 @@ interface ICollectorSemanticCatalog : IHasSourcePaths
         builder.AppendLine("internal static class CollectorSemanticAttributeCatalog");
         builder.AppendLine("{");
         builder.AppendLine("    internal const string BaggagePrefix = \"baggage.\";");
+        builder.Append("    internal const string CodexProducerPrefix = ")
+            .Append(StringLiteral(policy.CodexSessionCorrelation.ProducerPrefix))
+            .AppendLine(";");
         builder.AppendLine();
 
-        WriteFrozenSet(builder, "SessionCorrelation", sessionCorrelation, "StringComparer.Ordinal", incubatingKeys);
+        WriteFrozenSet(builder, "SessionCorrelation", sessionCorrelation.Concat(codexSessionCorrelation), "StringComparer.Ordinal", incubatingKeys);
         WriteFrozenSet(builder, "ProjectIdResourceKeys", projectIdResourceKeys, "StringComparer.Ordinal", incubatingKeys);
 
         // Precedence arrays preserve the order declared in collector-semantic-policy.json. The
         // FrozenSets above answer membership only; first-match lookups (session id, project-id
         // partition key) must read these, because FrozenSet enumeration order is unspecified.
         WriteOrderedStringArray(builder, "SessionCorrelationPrecedence", sessionCorrelation, incubatingKeys);
+        WriteOrderedStringArray(builder, "CodexSessionCorrelationPrecedence", codexSessionCorrelation, incubatingKeys);
         WriteOrderedStringArray(builder, "ProjectIdResourceKeyPrecedence", projectIdResourceKeys, incubatingKeys);
         // RegistryPolicy, verbatim. A denied key compares case-insensitively here, stricter than the registry's
         // ordinal comparison: a differently cased spelling of a denied key stays denied. The exempt and vendor keys
@@ -342,6 +351,7 @@ internal sealed class CollectorSemanticPolicyConfig
 {
     public string[] ProjectIdResourceKeys { get; init; } = [];
     public string[] SessionCorrelation { get; init; } = [];
+    public CodexSessionCorrelationConfig CodexSessionCorrelation { get; init; } = new();
     public string[] SpanHotAttributeKeys { get; init; } = [];
     public Dictionary<string, string> ProjectionConstants { get; init; } = [];
     public Dictionary<string, string> WellKnownValueClasses { get; init; } = [];
@@ -351,6 +361,14 @@ internal sealed class CollectorSemanticPolicyConfig
 
         RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
         RequireNonEmpty(SessionCorrelation, relativePath, "sessionCorrelation");
+        RequireNonEmpty(CodexSessionCorrelation.Keys, relativePath, "codexSessionCorrelation.keys");
+
+        if (string.IsNullOrWhiteSpace(CodexSessionCorrelation.ProducerPrefix))
+            throw new InvalidOperationException($"{relativePath}: codexSessionCorrelation.producerPrefix must not be empty.");
+
+        var sharedSessionKeys = CodexSessionCorrelation.Keys.Intersect(SessionCorrelation, StringComparer.Ordinal).ToArray();
+        if (sharedSessionKeys.Length is not 0)
+            throw new InvalidOperationException($"{relativePath}: codexSessionCorrelation.keys repeats sessionCorrelation keys: {string.Join(", ", sharedSessionKeys)}.");
         RequireNonEmpty(SpanHotAttributeKeys, relativePath, "spanHotAttributeKeys");
 
         if (ProjectionConstants.Count is 0)
@@ -389,6 +407,12 @@ internal sealed class CollectorSemanticPolicyConfig
         if (duplicates.Length is not 0)
             throw new InvalidOperationException($"{relativePath}: {section} contains duplicate values: {string.Join(", ", duplicates)}.");
     }
+}
+
+internal sealed class CodexSessionCorrelationConfig
+{
+    public string ProducerPrefix { get; init; } = "";
+    public string[] Keys { get; init; } = [];
 }
 
 [JsonSourceGenerationOptions(

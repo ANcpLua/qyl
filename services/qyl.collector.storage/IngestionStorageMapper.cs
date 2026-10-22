@@ -30,7 +30,7 @@ internal static class IngestionStorageMapper
         if (span.EndTimeUnixNano < span.StartTimeUnixNano)
             throw new InvalidDataException("Span end time must not precede its start.");
         var durationNs = span.EndTimeUnixNano - span.StartTimeUnixNano;
-        var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span.Attributes);
+        var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span);
         var resourceEntityRefsJson = SerializeResourceEntityRefs(span.ResourceEntityRefs);
 
         return new SpanStorageRow
@@ -84,7 +84,7 @@ internal static class IngestionStorageMapper
         var projectId = ProjectScope.ForIngest(log.ProjectIdHint, authenticatedProjectId);
         var severityText = log.SeverityText;
         var severityNumber = (byte)Math.Clamp(log.SeverityNumber, 0, 24);
-        var sessionId = log.Attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelationPrecedence);
+        var sessionId = log.Attributes.GetSessionId(log.ScopeName, log.ServiceName);
         // Identity uses complete canonical content; the retention rendering may be bounded.
         // Omitted suffixes contribute only to the digest and are never stored.
         var storedBody = StoredRecordMapper.ToStored(log.Body);

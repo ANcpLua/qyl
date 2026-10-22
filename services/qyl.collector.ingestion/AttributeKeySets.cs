@@ -12,6 +12,9 @@ internal static class AttributeKeySets
     internal static string[] SessionCorrelationPrecedence =>
         CollectorSemanticAttributeCatalog.SessionCorrelationPrecedence;
 
+    internal static string[] CodexSessionCorrelationPrecedence =>
+        CollectorSemanticAttributeCatalog.CodexSessionCorrelationPrecedence;
+
     internal static string[] ProjectIdResourceKeyPrecedence =>
         CollectorSemanticAttributeCatalog.ProjectIdResourceKeyPrecedence;
 
@@ -112,18 +115,36 @@ internal static class AttributeKeySets
 
 internal static class AttributeLookupExtensions
 {
-    internal static string? GetFirstValueOrDefault(
+    /// <summary>
+    /// The record's session id, exactly as received: the first non-blank string among the session
+    /// correlation keys, else, on a record whose scope name or service.name starts with the Codex
+    /// producer prefix, the first Codex key holding a UUID string. Anything else is no session.
+    /// </summary>
+    internal static string? GetSessionId(
         this IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        IEnumerable<string> keys)
+        string? scopeName,
+        string? serviceName)
     {
-        foreach (var key in keys)
+        foreach (var key in AttributeKeySets.SessionCorrelationPrecedence)
         {
-            if (attributes.GetValueOrDefault(key)?.AsString() is { } value)
+            if (attributes.GetValueOrDefault(key)?.AsString() is { } value && !string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+
+        if (!IsCodexProducer(scopeName) && !IsCodexProducer(serviceName))
+            return null;
+
+        foreach (var key in AttributeKeySets.CodexSessionCorrelationPrecedence)
+        {
+            if (attributes.GetValueOrDefault(key)?.AsString() is { } value && Guid.TryParse(value, out _))
                 return value;
         }
 
         return null;
     }
+
+    private static bool IsCodexProducer(string? producer) =>
+        producer?.StartsWith(CollectorSemanticAttributeCatalog.CodexProducerPrefix, StringComparison.OrdinalIgnoreCase) is true;
 
     internal static bool IsAny(
         this string key,
