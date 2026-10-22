@@ -14,10 +14,14 @@ internal static class OtlpTestSpans
     private const ulong Now = CollectorApiTestHost.FixtureUnixNano - 120_000_000_000;
 
     /// <summary>
-    /// One internal span of service <c>app-service</c> on the scope <paramref name="scopeName"/>, carrying
+    /// One internal span of service <paramref name="serviceName"/> on the scope <paramref name="scopeName"/>, carrying
     /// <paramref name="attributes"/> in wire order.
     /// </summary>
-    internal static ExportTraceServiceRequest Request(string scopeName, IEnumerable<KeyValue> attributes, string name = "work")
+    internal static ExportTraceServiceRequest Request(
+        string scopeName,
+        IEnumerable<KeyValue> attributes,
+        string name = "work",
+        string serviceName = "app-service")
     {
         var start = Now;
         var span = new OtlpSpan
@@ -37,7 +41,7 @@ internal static class OtlpTestSpans
             {
                 new OtlpResourceSpans
                 {
-                    Resource = new Resource { Attributes = { String("service.name", "app-service") } },
+                    Resource = new Resource { Attributes = { String("service.name", serviceName) } },
                     ScopeSpans = { new OtlpScopeSpans { Scope = new InstrumentationScope { Name = scopeName }, Spans = { span } } }
                 }
             }
