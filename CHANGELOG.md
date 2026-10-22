@@ -12,6 +12,8 @@
 - An exception message with an XPath locator is kept instead of `[SANITIZATION_FAILED]`.
 - The MCP server calls a Collector behind a path prefix under that prefix.
 - The Collector's options bind and validate through `IOptions<T>`; an invalid setting stops the start naming the setting.
+- Storage reads fail closed: a NULL in a required column throws naming the column instead of reading as `""` or 0, and a HUGEINT aggregate above about 7.9e28 reads as a double instead of overflowing through decimal.
+- A GenAI token count written as a string (`"120"`) no longer becomes a number: the token columns stay empty and the string stays on the record. The registry types these counts as int.
 - Internal cleanup from a code review, with no change in behavior:
   - one OTLP/HTTP ingest handler instead of three copies
   - one canonical segment writer and one entity-ref serializer
@@ -19,10 +21,14 @@
   - shared paging and integer-query helpers
   - disposal of the test port reservation and the application's semaphore
   - analyzer fixes across the tests
+  - decoded bool, long and double attribute values stored unboxed
+  - decoded values mapped straight to storage's record, so key-value lists are sorted once
+  - resource entity refs written without a copy
+  - `DuckDbReaderExtensions.cs` renamed to `StorageRecords.cs`
 
   The JWT header check in the exception sanitizer keeps its lenient base64 decode, so a token with non-zero trailing bits is still redacted.
 - The hosted MCP keeps no data: the start no longer deletes the retired MCP Events store, which 17.0.12 removed on its first start, and the service has no volume.
-- Qyl.Telemetry.SemanticConventions 15.0.4: the Codex vendor attribute `openai_codex.thread.id` (wire key `thread.id`) and its analyzer fixes.
+- Qyl.Telemetry.SemanticConventions 15.0.5: the Codex vendor attribute `openai_codex.thread.id` (wire key `thread.id`) and the analyzer fixes of 15.0.4 and 15.0.5.
 - Repository: Rider indexes every root file, AGENTS.md names the skill each test project follows, `.railway/railway.ts` describes deploys without a push trigger, and `eng/auth0/tenant.json` records the first-party consent setting and the DCR security mode.
 
 ## 17.0.12
