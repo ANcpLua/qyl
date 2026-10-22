@@ -56,7 +56,7 @@ public sealed class SessionTraceRetrievalTests(TestContext testContext)
         var spans = Assert.ContainsSingle(page.Items).Spans;
 
         var taggedHex = Convert.ToHexString(taggedTraceId).ToLowerInvariant();
-        Assert.AreEqual(3, spans.Count);
+        Assert.HasCount(3, spans);
         spans.ToList().ForEach(s => Assert.AreEqual(taggedHex, s.TraceId));
         Assert.AreSequenceEqual(["root", "request-handler", "gen_ai.chat"], spans.Select(s => s.Name));
     }
@@ -98,7 +98,7 @@ public sealed class SessionTraceRetrievalTests(TestContext testContext)
             testContext.CancellationToken);
         var spans = Assert.ContainsSingle(page.Items).Spans;
 
-        Assert.AreEqual(2, spans.Count);
+        Assert.HasCount(2, spans);
         spans.ToList().ForEach(s => Assert.AreEqual(sessionKey, s.TraceId));
     }
 

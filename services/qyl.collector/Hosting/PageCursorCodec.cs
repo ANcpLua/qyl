@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Hosting;
@@ -24,10 +25,7 @@ internal static class PageCursorCodec
         foreach (var field in fields)
             payload.Append('|').Append(Uri.EscapeDataString(field));
 
-        return Convert.ToBase64String(s_strictUtf8.GetBytes(payload.ToString()))
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        return Base64Url.EncodeToString(s_strictUtf8.GetBytes(payload.ToString()));
     }
 
     internal static bool TryDecode(string? encoded, PageCursorKind kind, int fieldCount, out string[] fields)
@@ -35,18 +33,10 @@ internal static class PageCursorCodec
         fields = [];
         if (string.IsNullOrEmpty(encoded) || encoded.Length > MaxEncodedLength) return false;
 
-        var base64 = encoded.Replace('-', '+').Replace('_', '/');
-        switch (base64.Length % 4)
-        {
-            case 2: base64 += "=="; break;
-            case 3: base64 += "="; break;
-            case 1: return false;
-        }
-
         string payload;
         try
         {
-            payload = s_strictUtf8.GetString(Convert.FromBase64String(base64));
+            payload = s_strictUtf8.GetString(Base64Url.DecodeFromChars(encoded));
         }
         catch (Exception ex) when (ex is FormatException or DecoderFallbackException)
         {

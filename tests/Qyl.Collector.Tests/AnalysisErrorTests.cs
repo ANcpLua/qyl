@@ -359,8 +359,10 @@ public sealed partial class AnalysisApiTests
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode, json.GetRawText());
         Assert.AreEqual((type, id), (json.GetProperty("resource_type").GetString(), json.GetProperty("resource_id").GetString()));
-        StringAssert.Contains(json.GetProperty("detail").GetString(), tool);
-        StringAssert.Contains(json.GetProperty("detail").GetString(), id);
+        var detail = json.GetProperty("detail").GetString();
+        Assert.IsNotNull(detail);
+        Assert.Contains(tool, detail);
+        Assert.Contains(id, detail);
     }
 
     private static async Task<JsonElement> RejectedAsync(CollectorApiTestHost host, string operation, string input)

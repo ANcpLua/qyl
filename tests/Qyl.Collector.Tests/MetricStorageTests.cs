@@ -36,7 +36,7 @@ public sealed class MetricStorageTests(TestContext testContext)
 
         Assert.AreEqual(0, batch.RejectedDataPoints);
         var gauge = batch.Points.Where(static point => point.MetricName is "proc.threads").ToArray();
-        Assert.AreEqual(2, gauge.Length);
+        Assert.HasCount(2, gauge);
         foreach (var point in gauge) Assert.AreEqual(MetricKind.Gauge, point.Kind);
         foreach (var point in gauge) Assert.AreEqual(MetricTemporality.Unspecified, point.Temporality);
         Assert.AreSequenceEqual([4d, 6d], gauge.Select(static point => Assert.IsExactInstanceOfType<CommonContract.AttributeDoubleValue>(Assert.IsExactInstanceOfType<MetricContract.MetricNumberPointData>(point.Data).Value).Value));
@@ -140,7 +140,7 @@ public sealed class MetricStorageTests(TestContext testContext)
         Assert.AreSequenceEqual([2UL], data.Negative.BucketCounts);
         var projected = MetricProjection.Project(Assert.ContainsSingle(MetricStorageMapper.ToStorageRows(batch).Observations), false);
         var bounds = System.Text.Json.JsonSerializer.Deserialize(projected.BucketBoundsJson!, StorageJsonSerializerContext.Default.Doubles)!;
-        Assert.AreEqual(4, bounds.Count);
+        Assert.HasCount(4, bounds);
         Assert.AreEqual(-1d, bounds[0], 0.0000000005d);
         Assert.AreEqual(0.5d, bounds[1], 0.0000000005d);
         Assert.AreEqual(4d, bounds[2], 0.0000000005d);
@@ -217,7 +217,7 @@ public sealed class MetricStorageTests(TestContext testContext)
 
         var all = await store.ListMetricSeriesAsync(
             ProjectScope.DefaultProjectId, "http.server.active", [], ct: ct);
-        Assert.AreEqual(2, all.Count);
+        Assert.HasCount(2, all);
 
         var exact = await store.ListMetricSeriesAsync(
             ProjectScope.DefaultProjectId,
@@ -231,7 +231,7 @@ public sealed class MetricStorageTests(TestContext testContext)
             "http.server.active",
             [new MetricAttributeMatcher("http.route", "/", IsPrefix: true)],
             ct: ct);
-        Assert.AreEqual(2, prefixed.Count);
+        Assert.HasCount(2, prefixed);
     }
 
     [TestMethod]
@@ -306,9 +306,9 @@ public sealed class MetricStorageTests(TestContext testContext)
             GroupBy = ["http.route"]
         }, ct);
 
-        Assert.AreEqual(2, result.Count);
+        Assert.HasCount(2, result);
         var routeA = result.Single(static stream => stream.AttributesJson!.Contains("/a", StringComparison.Ordinal));
-        Assert.AreEqual(2, routeA.Points.Count);
+        Assert.HasCount(2, routeA.Points);
         Assert.AreEqual(T0, routeA.Points[0].BucketStartUnixNano);
         Assert.AreEqual(1d, routeA.Points[0].Value!.Value, 0.0000000005d);
         Assert.AreEqual(T0 + 5 * OneSecond, routeA.Points[1].BucketStartUnixNano);

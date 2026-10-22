@@ -216,12 +216,12 @@ internal static partial class OtlpConverter
         IReadOnlyDictionary<string, OtlpAttributeValue> resourceAttributes)
     {
         var builder = new StringBuilder();
-        AppendCanonicalSegment(builder, entityRef.Type);
+        builder.AppendSegment(entityRef.Type);
         builder.Append(entityRef.IdKeys.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
         foreach (var key in entityRef.IdKeys)
         {
-            AppendCanonicalSegment(builder, key);
-            AppendCanonicalSegment(builder, resourceAttributes[key].ToStableString());
+            builder.AppendSegment(key);
+            builder.AppendSegment(resourceAttributes[key].ToStableString());
         }
 
         return builder.ToString();
@@ -578,12 +578,6 @@ internal static partial class OtlpConverter
     }
 
     #endregion
-
-    private static void AppendCanonicalSegment(StringBuilder builder, string value) =>
-        builder
-            .Append(value.Length.ToString(CultureInfo.InvariantCulture))
-            .Append(':')
-            .Append(value);
 
     private static void SetNormalizedAttribute(
         Dictionary<string, OtlpAttributeValue> attributes,

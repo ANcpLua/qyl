@@ -25,7 +25,7 @@ public sealed class BoundedStreamTests
 
         Assert.IsTrue(subscription.Events.TryRead(out _));
         Assert.IsFalse(subscription.Events.TryRead(out _));
-        Assert.AreEqual(resources.Length, registry.Snapshot.Count);
+        Assert.HasCount(resources.Length, registry.Snapshot);
         foreach (var state in registry.Snapshot.Values)
             Assert.AreEqual(ResourceLifecycle.Ready, state.Lifecycle);
     }
@@ -41,7 +41,7 @@ public sealed class BoundedStreamTests
         var retained = new List<QylLogLine>();
         while (subscription.Events.TryRead(out var line)) retained.Add(line);
 
-        Assert.AreEqual(QylLogStore.SubscriberCapacity, retained.Count);
+        Assert.HasCount(QylLogStore.SubscriberCapacity, retained);
         Assert.AreEqual("100", retained[0].Line);
         Assert.AreEqual((QylLogStore.SubscriberCapacity + 99).ToString(CultureInfo.InvariantCulture), retained[^1].Line);
     }

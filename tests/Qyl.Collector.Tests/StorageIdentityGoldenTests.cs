@@ -571,7 +571,7 @@ public sealed class StorageIdentityGoldenTests(TestContext testContext)
     }
 
     private static ByteString Id(int length, byte first) =>
-        ByteString.CopyFrom(Enumerable.Range(0, length).Select(index => (byte)(first + index)).ToArray());
+        ByteString.CopyFrom([.. Enumerable.Range(0, length).Select(index => (byte)(first + index))]);
 
     private static KeyValue Pair(string key, AnyValue value) => new() { Key = key, Value = value };
 

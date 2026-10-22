@@ -12,10 +12,9 @@ public sealed class RunnerControlTests(TestContext testContext)
 {
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public async Task Loopback_actions_restart_and_stop_a_real_supervised_process()
     {
-        if (OperatingSystem.IsWindows()) return;
-
         // Never green on GitHub macOS runners: the supervised python3 worker emits zero
         // output (no "started", no traceback) within a 30s readiness window even after an
         // interpreter warmup — see 76e6895b for the captured evidence. Local macOS runs

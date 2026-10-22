@@ -26,7 +26,7 @@ interface IMcp : IHasSourcePaths, IHasConfiguration
         .Description("Install the locked MCP dependencies and build services/qyl.mcp")
         .Executes(() =>
         {
-            Run("bun", "install --frozen-lockfile", McpDirectory);
+            BunInstall(McpDirectory);
             Run("bun", "run build", McpDirectory);
         });
 

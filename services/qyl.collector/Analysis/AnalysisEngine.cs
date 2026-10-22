@@ -29,6 +29,9 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     private AnalysisWindow _window;
     private string _operation = "";
 
+    // How long before the engine's now a Unix-nanosecond time lies.
+    private TimeSpan Age(ulong unixNano) => now - J.Instant(unixNano);
+
     public JsonObject Run(string operation, JsonObject input)
     {
         ct.ThrowIfCancellationRequested();

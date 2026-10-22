@@ -139,14 +139,14 @@ public sealed class ReadPagingTests(TestContext testContext)
     public async Task Sessions_keep_is_active_and_the_time_range_while_paging()
     {
         await using var host = await StartAsync(testContext.CancellationToken);
-        const ulong now = FixtureUnixNano;
+        const ulong Now = FixtureUnixNano;
         const ulong Second = 1_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
             Span(TraceId(1), SpanId(1), 1 * Second, 2 * Second, sessionId: "ended-early"),
             Span(TraceId(2), SpanId(2), 5 * Second, 6 * Second, sessionId: "ended-late"),
             Span(TraceId(3), SpanId(3), 6 * Second, 7 * Second, sessionId: "ended-later"),
-            Span(TraceId(4), SpanId(4), now - Second, now, sessionId: "live")
+            Span(TraceId(4), SpanId(4), Now - Second, Now, sessionId: "live")
         ]), testContext.CancellationToken);
 
         Assert.AreSequenceEqual(["live"], await CollectAsync(host, "/api/v1/sessions?is_active=true&limit=1", "session_id"));
@@ -246,7 +246,7 @@ public sealed class ReadPagingTests(TestContext testContext)
         Assert.AreSequenceEqual(["m.one", "m.three", "m.two"], await CollectAsync(host, "/api/v1/metrics?limit=1", "name"));
 
         var series = await CollectAsync(host, "/api/v1/metrics/m.one/series?limit=1", "series_id");
-        Assert.AreEqual(3, series.Distinct(StringComparer.Ordinal).Count());
+        Assert.HasCount(3, series.Distinct(StringComparer.Ordinal));
     }
 
     // Follows next_cursor to the end, asserting has_more agrees with it on every page.
@@ -266,7 +266,7 @@ public sealed class ReadPagingTests(TestContext testContext)
             cursor = body.TryGetProperty("next_cursor", out var next) ? next.GetString() : null;
             Assert.AreEqual(cursor is not null, body.GetProperty("has_more").GetBoolean());
             Assert.IsFalse(body.TryGetProperty("prev_cursor", out _));
-            Assert.IsTrue(++pages < 20, "Paging did not terminate.");
+            Assert.IsLessThan(20, ++pages, "Paging did not terminate.");
         } while (cursor is not null);
 
         return values;

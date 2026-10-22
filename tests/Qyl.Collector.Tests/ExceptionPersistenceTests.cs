@@ -73,7 +73,7 @@ public sealed class ExceptionPersistenceTests(TestContext testContext)
            at Checkout.Handler.Place() in /src/Checkout.cs:line 42
         End of diagnostic context.
         """;
-    private static readonly string[] DeniedKeys =
+    private static readonly string[] s_deniedKeys =
     [
         "authorization", "api_key", "password", "diagnostic.message", "exception.message.detail",
         "user.exception.stacktrace", "code.stacktrace", "baggage.secret",
@@ -226,13 +226,13 @@ public sealed class ExceptionPersistenceTests(TestContext testContext)
     private static AnyValue Text(string value) => new() { StringValue = value };
     private static KeyValue Attribute(string key, AnyValue value) => new() { Key = key, Value = value };
     private static string Name(Scenario scenario) => "exception-case-" + scenario.Id;
-    private static ByteString Id(byte value, int length) => ByteString.CopyFrom(Enumerable.Repeat(value, length).ToArray());
+    private static ByteString Id(byte value, int length) => ByteString.CopyFrom([.. Enumerable.Repeat(value, length)]);
 
     private static KeyValue[] Attributes(Scenario scenario) =>
     [
         Attribute("exception.message", scenario.Message), Attribute("exception.stacktrace", Text(scenario.Stack)),
         Attribute("checkout.accepted", new AnyValue { BoolValue = false }), Attribute("checkout.stage", Text("persisted")),
-        .. DeniedKeys.Select(static key => Attribute(key, Text("synthetic-denied-credential")))
+        .. s_deniedKeys.Select(static key => Attribute(key, Text("synthetic-denied-credential")))
     ];
 
     private static AnyValue Map(Scenario scenario) => new() { KvlistValue = new KeyValueList { Values = { Attributes(scenario) } } };
@@ -386,7 +386,7 @@ public sealed class ExceptionPersistenceTests(TestContext testContext)
         Assert.AreEqual(expectedStack, Assert.ContainsSingle(Find(json, "exception.stacktrace")).GetString());
         Assert.IsFalse(Assert.ContainsSingle(Find(json, "checkout.accepted")).GetBoolean());
         Assert.AreEqual("persisted", Assert.ContainsSingle(Find(json, "checkout.stage")).GetString());
-        foreach (var key in DeniedKeys) Assert.IsEmpty(Find(json, key), key);
+        foreach (var key in s_deniedKeys) Assert.IsEmpty(Find(json, key), key);
         Assert.DoesNotContain("synthetic-", json.ToString(), StringComparison.Ordinal);
         Assert.IsLessThanOrEqualTo(PersistedByteLimit, Encoding.UTF8.GetByteCount(message.GetString()!));
     }
@@ -399,6 +399,6 @@ public sealed class ExceptionPersistenceTests(TestContext testContext)
         if (node.TryGetProperty("key", out var name) && name.ValueKind is JsonValueKind.String && name.GetString() == key)
             return [node.GetProperty("value")];
         return node.EnumerateObject().SelectMany(property => property.Name == key
-            ? new[] { property.Value } : Find(property.Value, key));
+            ? [property.Value] : Find(property.Value, key));
     }
 }

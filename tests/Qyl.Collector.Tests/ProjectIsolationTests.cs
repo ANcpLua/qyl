@@ -170,8 +170,8 @@ public sealed class ProjectIsolationTests(TestContext testContext)
                             {
                                 new Span
                                 {
-                                    TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
-                                    SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
+                                    TraceId = ByteString.CopyFrom([.. Enumerable.Range(1, 16).Select(static value => (byte)value)]),
+                                    SpanId = ByteString.CopyFrom([.. Enumerable.Range(1, 8).Select(static value => (byte)value)]),
                                     Name = "alpha-trace",
                                     StartTimeUnixNano = 1,
                                     EndTimeUnixNano = 2

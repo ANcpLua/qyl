@@ -28,8 +28,8 @@ public sealed class SemanticPolicyJsonRpcTests
     {
         var span = new Span
         {
-            TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
-            SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
+            TraceId = ByteString.CopyFrom([.. Enumerable.Range(1, 16).Select(static value => (byte)value)]),
+            SpanId = ByteString.CopyFrom([.. Enumerable.Range(1, 8).Select(static value => (byte)value)]),
             Name = "tools/call",
             StartTimeUnixNano = 1,
             EndTimeUnixNano = 2
@@ -62,8 +62,8 @@ public sealed class SemanticPolicyJsonRpcTests
     {
         var span = new Span
         {
-            TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
-            SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
+            TraceId = ByteString.CopyFrom([.. Enumerable.Range(1, 16).Select(static value => (byte)value)]),
+            SpanId = ByteString.CopyFrom([.. Enumerable.Range(1, 8).Select(static value => (byte)value)]),
             Name = "alpha-fields",
             StartTimeUnixNano = 1,
             EndTimeUnixNano = 2
@@ -91,7 +91,7 @@ public sealed class SemanticPolicyJsonRpcTests
         Assert.IsEmpty(converted.ScopeAttributes);
         var attributes = converted.Attributes;
         Assert.AreEqual(OtlpAttributeValue.Empty, attributes["http.request.method"]);
-        Assert.AreEqual(2, attributes.Count); // service.name plus the key whose value is absent
+        Assert.HasCount(2, attributes); // service.name plus the key whose value is absent
     }
 
     [TestMethod]

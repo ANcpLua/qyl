@@ -23,7 +23,7 @@ public sealed class GeneratorTests(TestContext testContext)
 
         Assert.IsEmpty(run.DiagnosticIds);
         Assert.IsEmpty(run.OutputErrors);
-        Assert.AreEqual(4, run.Result.GeneratedSources.Length);
+        Assert.HasCount(4, run.Result.GeneratedSources);
         Snapshot.Matches(run.GeneratedSource("Shop_Order.GenerateXml.g.cs"), "Shop_Order.GenerateXml.g.cs.txt");
     }
 

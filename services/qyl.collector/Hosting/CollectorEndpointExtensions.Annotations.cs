@@ -108,11 +108,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseAnnotations(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.MaxPageLimit, out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(query.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         AnnotationPageCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -136,8 +133,7 @@ internal static partial class CollectorEndpointExtensions
             Cursor = cursor
         }, ct).ConfigureAwait(false);
 
-        var hasMore = rows.Count > boundedLimit;
-        IReadOnlyList<AnnotationRow> page = hasMore ? [.. rows.Take(boundedLimit)] : rows;
+        var (page, hasMore) = SplitPage(rows, boundedLimit);
         return Results.Json(new CursorPageAnnotation
         {
             Items = await AnnotationContractsAsync(store, page, ct),

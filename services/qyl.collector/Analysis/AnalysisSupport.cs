@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Qyl.Collector.Storage;
@@ -195,14 +196,14 @@ internal sealed class AnalysisHandles(byte[] key)
     public string Issue(string project, string kind, JsonObject value)
     {
         var data = Encoding.UTF8.GetBytes(J.O(("project", project), ("kind", kind), ("value", value)).ToJsonString());
-        return Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_') + "." + Convert.ToHexStringLower(HMACSHA256.HashData(key, data));
+        return Base64Url.EncodeToString(data) + "." + Convert.ToHexStringLower(HMACSHA256.HashData(key, data));
     }
     public JsonObject Read(string token, string project, string kind)
     {
         try
         {
-            var parts = token.Split('.'); var b64 = parts[0].Replace('-', '+').Replace('_', '/');
-            var data = Convert.FromBase64String(b64.PadRight((b64.Length + 3) / 4 * 4, '='));
+            var parts = token.Split('.');
+            var data = Base64Url.DecodeFromChars(parts[0]);
             if (parts.Length != 2 || !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(parts[1]), HMACSHA256.HashData(key, data))) throw new FormatException();
             var payload = JsonNode.Parse(data)!.AsObject();
             if (J.String(payload, "project") != project || J.String(payload, "kind") != kind) throw new FormatException();

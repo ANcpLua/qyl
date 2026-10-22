@@ -30,7 +30,7 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
 {
     internal const string ReaderApiKey = "reader";
     internal const string AlphaProjectId = "alpha";
-    internal static readonly DateTimeOffset FixtureUtcNow = new(2026, 10, 17, 12, 0, 0, TimeSpan.Zero);
+    internal static DateTimeOffset FixtureUtcNow { get; } = new(2026, 10, 17, 12, 0, 0, TimeSpan.Zero);
     internal const ulong FixtureUnixNano = 1_792_238_400_000_000_000;
 
     // One explicitly scoped credential per role combination the tests need.
@@ -102,7 +102,7 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
             await app.StartAsync(ct);
             // Kestrel binds the endpoints in the order they were listed.
             var urls = app.Urls.ToArray();
-            Assert.AreEqual(2, urls.Length);
+            Assert.HasCount(2, urls);
             return new CollectorApiTestHost(app, store, new HttpClient { BaseAddress = new Uri(urls[0]) }, urls[1], ct);
         }
         catch (Exception startupFailure)

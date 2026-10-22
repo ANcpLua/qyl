@@ -44,7 +44,7 @@ public sealed class OtlpRequestSizeTests(TestContext testContext)
     {
         await using var store = new DuckDbStore(":memory:");
         var compressed = Gzip(new byte[MaxPayloadBytes + 1]);
-        Assert.IsTrue(compressed.Length < MaxPayloadBytes / 64, $"the bomb should be small on the wire, was {compressed.Length} bytes");
+        Assert.IsLessThan(MaxPayloadBytes / 64, compressed.Length, $"the bomb should be small on the wire, was {compressed.Length} bytes");
         var context = NewOtlpEndpointContext(OtlpPayloadParser.JsonContentType, compressed);
         context.Request.Headers.ContentEncoding = "gzip";
 

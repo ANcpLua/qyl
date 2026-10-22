@@ -102,19 +102,7 @@ internal sealed partial class QylOrchestrator(
             _processes[resource.Name] = process;
             await SuperviseProcessAsync(resource, process, port, endpoint, stoppingToken).ConfigureAwait(false);
         }
-        catch (SocketException ex)
-        {
-            FailResource(resource, ex);
-        }
-        catch (Win32Exception ex)
-        {
-            FailResource(resource, ex);
-        }
-        catch (FileNotFoundException ex)
-        {
-            FailResource(resource, ex);
-        }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is SocketException or Win32Exception or FileNotFoundException or InvalidOperationException)
         {
             FailResource(resource, ex);
         }

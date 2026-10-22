@@ -106,11 +106,14 @@ internal sealed partial class AnalysisEngine
 
                     JsonObject Perf(List<AnalysisRecord> items) =>
                         J.O(("error_rate", items.Count is 0 ? null : items.Count(s => s.Error) / (double)items.Count),
-                            ("p95_ms", Math.Round(J.Percentile(items.Select(s => s.Duration), .95), 3, MidpointRounding.AwayFromZero)));
+                            ("p95_ms", P95Ms(items)));
                 }).OrderByDescending(r => J.String(r, "first_seen"), StringComparer.Ordinal)
         ];
     }
     private JsonObject Releases(JsonObject input) => Page(input, "releases", ReleaseList(Select(input)));
+    // A release's and a service map edge's or node's p95 duration in milliseconds, rounded to the microsecond.
+    private static double P95Ms(IEnumerable<AnalysisRecord> rows) =>
+        Math.Round(J.Percentile(rows.Select(static r => r.Duration), .95), 3, MidpointRounding.AwayFromZero);
     private JsonObject ServiceMap(JsonObject input)
     {
         var mapInput = input.DeepClone().AsObject(); mapInput.Remove("service_name");
@@ -143,10 +146,10 @@ internal sealed partial class AnalysisEngine
             edges = [.. edges.Where(e => names.Contains(e.From) && names.Contains(e.To))]; kinds = kinds.Where(p => names.Contains(p.Key)).ToDictionary();
         }
         var grouped = edges.GroupBy(e => (e.From, e.To));
-        var resultEdges = grouped.Select(g => J.O(("from", g.Key.From), ("to", g.Key.To), ("calls", g.Count()), ("error_rate", g.Count(e => e.Span.Error) / (double)g.Count()), ("p95_ms", Math.Round(J.Percentile(g.Select(e => e.Span.Duration), .95), 3, MidpointRounding.AwayFromZero)), ("example_operations", g.Select(e => e.Span.Name).Distinct().Take(3)), ("unit", "spans")));
+        var resultEdges = grouped.Select(g => J.O(("from", g.Key.From), ("to", g.Key.To), ("calls", g.Count()), ("error_rate", g.Count(e => e.Span.Error) / (double)g.Count()), ("p95_ms", P95Ms(g.Select(e => e.Span))), ("example_operations", g.Select(e => e.Span.Name).Distinct().Take(3)), ("unit", "spans")));
         var serviceRowsByName = rows.ToLookup(s => s.Service, StringComparer.Ordinal);
         var incomingByName = edges.ToLookup(e => e.To, StringComparer.Ordinal);
-        var nodes = kinds.Select(k => { var nodeRows = serviceRowsByName[k.Key].Concat(k.Value == "service" ? [] : incomingByName[k.Key].Select(e => e.Span)).ToList(); return J.O(("name", k.Key), ("kind", k.Value), ("calls", nodeRows.Count), ("error_rate", nodeRows.Count is 0 ? 0 : nodeRows.Count(s => s.Error) / (double)nodeRows.Count), ("p95_ms", Math.Round(J.Percentile(nodeRows.Select(s => s.Duration), .95), 3, MidpointRounding.AwayFromZero)), ("unit", "spans")); });
+        var nodes = kinds.Select(k => { var nodeRows = serviceRowsByName[k.Key].Concat(k.Value == "service" ? [] : incomingByName[k.Key].Select(e => e.Span)).ToList(); return J.O(("name", k.Key), ("kind", k.Value), ("calls", nodeRows.Count), ("error_rate", nodeRows.Count is 0 ? 0 : nodeRows.Count(s => s.Error) / (double)nodeRows.Count), ("p95_ms", P95Ms(nodeRows)), ("unit", "spans")); });
         return J.O(("nodes", J.A(nodes)), ("edges", J.A(resultEdges)), ("unknown_callers", rows.Count is 0 ? 0 : rows.Count(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))) / (double)rows.Count));
     }
     private JsonObject Health(JsonObject input)
@@ -174,7 +177,7 @@ internal sealed partial class AnalysisEngine
             ("points", c.Times.Count), ("first_time", J.Time(c.Times.Min())), ("last_time", J.Time(c.Times.Max())))))));
         return J.O(("silent_services", Silent(input)), ("metric_conflicts", metricConflicts), ("orphan_spans", J.O(("count", orphans.Count), ("share", rows.Count is 0 ? 0 : orphans.Count / (double)rows.Count), ("services", orphans.Select(s => s.Service).Distinct()), ("unit", "spans"))),
             ("semconv_gaps", SemanticGaps(rows)), ("unknown_service_share", rows.Count is 0 ? 0 : rows.Count(s => s.Service.StartsWith("unknown", StringComparison.Ordinal)) / (double)rows.Count),
-            ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("data_span", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : (now.ToUnixTimeMilliseconds() - (long)(oldest / 1_000_000)) / 86_400_000d))),
+            ("schema_urls", rows.Select(s => s.Span?.SchemaUrl).OfType<string>().Where(static url => url.Length > 0).Distinct()), ("data_span", J.O(("oldest", oldest is 0 ? null : J.Time(oldest)), ("days", oldest is 0 ? null : Age(oldest).TotalDays))),
             ("ingestion_lag_ms", lag.Count is 0 ? null : lag.Average()));
     }
     // OTLP span flags bits 8 and 9: the producer knew whether the parent was remote, and it was. A remote parent

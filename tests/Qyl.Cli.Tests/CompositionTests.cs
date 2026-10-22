@@ -10,11 +10,10 @@ public sealed class CompositionTests(TestContext testContext)
 {
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     [Timeout(10_000, CooperativeCancellation = true)]
     public async Task Command_arguments_reach_a_real_process_without_shell_parsing()
     {
-        if (OperatingSystem.IsWindows()) return;
-
         const string Executable = "/bin/echo";
         Assert.IsTrue(File.Exists(Executable), $"Expected the platform executable {Executable}.");
 

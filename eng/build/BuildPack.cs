@@ -92,7 +92,7 @@ interface IPack : IHasSourcePaths, IHasConfiguration
                 .SetOutputDirectory(ReleaseDirectory)
                 .CombineWith(ShippablePackProjects, static (settings, project) => settings.SetProject(project)));
 
-            ProcessTasks.StartProcess("bun", "install --frozen-lockfile", mcpDirectory).AssertZeroExitCode();
+            BunInstall(mcpDirectory);
             ProcessTasks.StartProcess("bun", $"pm pack --destination \"{ReleaseDirectory}\"", mcpDirectory).AssertZeroExitCode();
 
             var expected = ShippablePackageIds.Select(id => $"{id}.{PackageVersion}.nupkg")

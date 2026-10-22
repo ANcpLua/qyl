@@ -1,3 +1,4 @@
+using Google.Protobuf;
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
@@ -5,11 +6,8 @@ using Qyl.Api.Contracts.Streaming;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Storage;
-using ExportLogsServiceRequest = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
 using ExportLogsServiceResponse = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
-using ExportMetricsServiceRequest = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest;
 using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
-using ExportTraceServiceRequest = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
 using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
 
 namespace Qyl.Collector.Hosting;
@@ -93,194 +91,91 @@ internal static partial class CollectorEndpointExtensions
         return app;
     }
 
-    internal static async Task<IResult> IngestOtlpTracesAsync(
+    internal static Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         IQylStore store,
-        CancellationToken ct)
-    {
-        var encoding = OtlpPayloadEncoding.Json;
-        ExportTraceServiceRequest otlpData;
-        try
-        {
-            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
-            otlpData = await OtlpPayloadParser.ParseTraceRequestAsync(context.Request, encoding, ct);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (OtlpPayloadTooLargeException ex)
-        {
-            // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpTracesEndpoint");
-            OtlpTracesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status413PayloadTooLarge,
-                encoding,
-                OtlpPayloadParser.PayloadTooLargeMessage);
-        }
-        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpTracesEndpoint");
-            OtlpTracesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status415UnsupportedMediaType,
-                encoding,
-                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpTracesEndpoint");
-            OtlpTracesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP traces payload could not be decoded.");
-        }
+        CancellationToken ct) =>
+        IngestOtlpAsync(
+            context,
+            "traces",
+            OtlpPayloadParser.ParseTraceRequestAsync,
+            static request => request.ResourceSpans.Count is 0,
+            new ExportTraceServiceResponse(),
+            OtlpConverter.ConvertTraceRequest,
+            async (batch, token) =>
+            {
+                var spans = IngestionStorageMapper.ToSpanStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
+                if (spans.Count > 0) await store.EnqueueAsync(new SpanBatch(spans), token);
+            },
+            OtlpExportAck.Create,
+            OtlpTracesLog.FailedToProcessPayload,
+            ct);
 
-        try
-        {
-            if (otlpData.ResourceSpans.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportTraceServiceResponse());
-
-            var traceBatch = OtlpConverter.ConvertTraceRequest(otlpData);
-            var spans = IngestionStorageMapper.ToSpanStorageRows(
-                traceBatch, AuthenticatedProject.ForHttpIngest(context));
-
-            if (spans.Count > 0) await store.EnqueueAsync(new SpanBatch(spans), ct);
-            return OtlpHttpResult.Success(encoding, OtlpExportAck.Create(traceBatch));
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (InvalidDataException ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpTracesEndpoint");
-            OtlpTracesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP traces payload is invalid.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpTracesEndpoint");
-            OtlpTracesLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status503ServiceUnavailable,
-                encoding,
-                "The collector could not persist the OTLP traces payload.");
-        }
-    }
-
-    internal static async Task<IResult> IngestOtlpLogsAsync(
+    internal static Task<IResult> IngestOtlpLogsAsync(
         HttpContext context,
         IQylStore store,
         TimeProvider timeProvider,
-        CancellationToken ct)
-    {
-        var encoding = OtlpPayloadEncoding.Json;
-        ExportLogsServiceRequest otlpData;
-        try
-        {
-            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
-            otlpData = await OtlpPayloadParser.ParseLogsRequestAsync(context.Request, encoding, ct);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (OtlpPayloadTooLargeException ex)
-        {
-            // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpLogsEndpoint");
-            OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status413PayloadTooLarge,
-                encoding,
-                OtlpPayloadParser.PayloadTooLargeMessage);
-        }
-        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpLogsEndpoint");
-            OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status415UnsupportedMediaType,
-                encoding,
-                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpLogsEndpoint");
-            OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP logs payload could not be decoded.");
-        }
+        CancellationToken ct) =>
+        IngestOtlpAsync(
+            context,
+            "logs",
+            OtlpPayloadParser.ParseLogsRequestAsync,
+            static request => request.ResourceLogs.Count is 0,
+            new ExportLogsServiceResponse(),
+            request => OtlpConverter.ConvertLogs(request, timeProvider),
+            async (batch, token) =>
+            {
+                var logs = IngestionStorageMapper.ToLogStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
+                if (logs.Count > 0) await store.InsertLogsAsync(logs, token);
+            },
+            OtlpExportAck.Create,
+            OtlpLogsLog.FailedToProcessPayload,
+            ct);
 
-        try
-        {
-            if (otlpData.ResourceLogs.Count is 0)
-                return OtlpHttpResult.Success(
-                    encoding,
-                    new ExportLogsServiceResponse());
-
-            var logBatch = OtlpConverter.ConvertLogs(otlpData, timeProvider);
-            var logs = IngestionStorageMapper.ToLogStorageRows(
-                logBatch, AuthenticatedProject.ForHttpIngest(context));
-
-            if (logs.Count > 0) await store.InsertLogsAsync(logs, ct);
-            return OtlpHttpResult.Success(encoding, OtlpExportAck.Create(logBatch));
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (InvalidDataException ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpLogsEndpoint");
-            OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP logs payload is invalid.");
-        }
-        catch (Exception ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpLogsEndpoint");
-            OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status503ServiceUnavailable,
-                encoding,
-                "The collector could not persist the OTLP logs payload.");
-        }
-    }
-
-    internal static async Task<IResult> IngestOtlpMetricsAsync(
+    internal static Task<IResult> IngestOtlpMetricsAsync(
         HttpContext context,
         IQylStore store,
+        CancellationToken ct) =>
+        IngestOtlpAsync(
+            context,
+            "metrics",
+            OtlpPayloadParser.ParseMetricsRequestAsync,
+            static request => request.ResourceMetrics.Count is 0,
+            new ExportMetricsServiceResponse(),
+            OtlpConverter.ConvertMetrics,
+            async (batch, token) =>
+            {
+                var write = MetricStorageMapper.ToStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
+                if (write.Observations.Count > 0)
+                    await store.InsertMetricsAsync(write.Series, write.Observations, token);
+            },
+            OtlpExportAck.Create,
+            OtlpMetricsLog.FailedToProcessPayload,
+            ct);
+
+    /// <summary>
+    /// One OTLP/HTTP export of any signal: an undecodable body is 413 over the size bound, 415 for a media type or
+    /// content encoding OTLP does not define and 400 otherwise; a decoded export the converter or the storage mapper
+    /// rejects is 400, and one the store cannot persist is a retryable 503.
+    /// </summary>
+    private static async Task<IResult> IngestOtlpAsync<TRequest, TBatch>(
+        HttpContext context,
+        string signal,
+        Func<HttpRequest, OtlpPayloadEncoding, CancellationToken, Task<TRequest>> parse,
+        Func<TRequest, bool> isEmpty,
+        IMessage emptyResponse,
+        Func<TRequest, TBatch> convert,
+        Func<TBatch, CancellationToken, Task> persist,
+        Func<TBatch, IMessage> acknowledge,
+        Action<ILogger, Exception> logFailure,
         CancellationToken ct)
     {
         var encoding = OtlpPayloadEncoding.Json;
-        ExportMetricsServiceRequest otlpData;
+        TRequest request;
         try
         {
             encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
-            otlpData = await OtlpPayloadParser.ParseMetricsRequestAsync(context.Request, encoding, ct);
+            request = await parse(context.Request, encoding, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -289,48 +184,28 @@ internal static partial class CollectorEndpointExtensions
         catch (OtlpPayloadTooLargeException ex)
         {
             // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status413PayloadTooLarge,
-                encoding,
-                OtlpPayloadParser.PayloadTooLargeMessage);
+            return Failure(ex, StatusCodes.Status413PayloadTooLarge, OtlpPayloadParser.PayloadTooLargeMessage);
         }
         catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
         {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
+            return Failure(
+                ex,
                 StatusCodes.Status415UnsupportedMediaType,
-                encoding,
                 "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
         }
         catch (Exception ex)
         {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP metrics payload could not be decoded.");
+            return Failure(ex, StatusCodes.Status400BadRequest, $"The OTLP {signal} payload could not be decoded.");
         }
 
         try
         {
-            if (otlpData.ResourceMetrics.Count is 0)
-                return OtlpHttpResult.Success(encoding, new ExportMetricsServiceResponse());
+            if (isEmpty(request))
+                return OtlpHttpResult.Success(encoding, emptyResponse);
 
-            var batch = OtlpConverter.ConvertMetrics(otlpData);
-            var write = MetricStorageMapper.ToStorageRows(
-                batch, AuthenticatedProject.ForHttpIngest(context));
-
-            if (write.Observations.Count > 0)
-                await store.InsertMetricsAsync(write.Series, write.Observations, ct);
-
-            return OtlpHttpResult.Success(encoding, OtlpExportAck.Create(batch));
+            var batch = convert(request);
+            await persist(batch, ct);
+            return OtlpHttpResult.Success(encoding, acknowledge(batch));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -338,23 +213,18 @@ internal static partial class CollectorEndpointExtensions
         }
         catch (InvalidDataException ex)
         {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status400BadRequest,
-                encoding,
-                "The OTLP metrics payload is invalid.");
+            return Failure(ex, StatusCodes.Status400BadRequest, $"The OTLP {signal} payload is invalid.");
         }
         catch (Exception ex)
         {
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("OtlpMetricsEndpoint");
-            OtlpMetricsLog.FailedToProcessPayload(logger, ex);
-            return OtlpHttpResult.Failure(
-                StatusCodes.Status503ServiceUnavailable,
-                encoding,
-                "The collector could not persist the OTLP metrics payload.");
+            return Failure(ex, StatusCodes.Status503ServiceUnavailable, $"The collector could not persist the OTLP {signal} payload.");
+        }
+
+        IResult Failure(Exception exception, int statusCode, string message)
+        {
+            var category = $"Otlp{char.ToUpperInvariant(signal[0])}{signal[1..]}Endpoint";
+            logFailure(context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(category), exception);
+            return OtlpHttpResult.Failure(statusCode, encoding, message);
         }
     }
 
@@ -366,11 +236,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseMetrics(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.MaxPageLimit, out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(query.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         MetricCatalogCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -389,8 +256,7 @@ internal static partial class CollectorEndpointExtensions
             cursor,
             ct: ct);
 
-        var hasMore = metrics.Count > boundedLimit;
-        IReadOnlyList<MetricCatalogEntry> page = hasMore ? [.. metrics.Take(boundedLimit)] : metrics;
+        var (page, hasMore) = SplitPage(metrics, boundedLimit);
         return Results.Ok(new CursorPageMetricDescriptor
         {
             Items = MetricMapper.ToContracts(page),
@@ -408,11 +274,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseMetricSeries(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.MaxPageLimit, out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(query.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         MetricSeriesPageCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -441,8 +304,7 @@ internal static partial class CollectorEndpointExtensions
         if (series.Count is 0 && query.Matchers.Count is 0 && cursor is null)
             return ContractErrorResults.NotFound("metric", metricName);
 
-        var hasMore = series.Count > boundedLimit;
-        IReadOnlyList<MetricSeriesRow> page = hasMore ? [.. series.Take(boundedLimit)] : series;
+        var (page, hasMore) = SplitPage(series, boundedLimit);
         return Results.Ok(new CursorPageMetricSeries
         {
             Items = MetricMapper.ToContracts(page),
@@ -562,11 +424,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseSessions(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(query.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         SessionPageCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -591,8 +450,7 @@ internal static partial class CollectorEndpointExtensions
             query.EndTime,
             ct: ct).ConfigureAwait(false);
 
-        var hasMore = sessions.Count > boundedLimit;
-        IReadOnlyList<SessionQueryRow> page = hasMore ? [.. sessions.Take(boundedLimit)] : sessions;
+        var (page, hasMore) = SplitPage(sessions, boundedLimit);
         return Results.Ok(SessionMapper.ToPage(
             page,
             activeCutoffUnixNano,
@@ -653,11 +511,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParsePage(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit,
-                ContractLimits.MaxPageLimit, out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(query.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         TracePageCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -689,11 +544,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseTraces(httpContext.Request, out var parameters) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(parameters.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(parameters.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(parameters.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         TracePageCursor? cursor = null;
         if (parameters.Cursor is { } encodedCursor)
@@ -736,11 +588,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParsePage(httpContext.Request, out var query) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(query.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(query.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         SpanPageCursor? cursor = null;
         if (query.Cursor is { } encoded)
@@ -764,8 +613,7 @@ internal static partial class CollectorEndpointExtensions
             return ContractErrorResults.NotFound("trace", traceId);
         }
 
-        var hasMore = spans.Count > boundedLimit;
-        IReadOnlyList<SpanStorageRow> page = hasMore ? [.. spans.Take(boundedLimit)] : spans;
+        var (page, hasMore) = SplitPage(spans, boundedLimit);
         return Results.Ok(new CursorPageSpan
         {
             Items = SpanMapper.ToContracts(page),
@@ -806,11 +654,8 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseLogs(httpContext.Request, out var typedQuery) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(typedQuery.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit,
-                out var boundedLimit))
-        {
-            return InvalidLimit(typedQuery.Limit, ContractLimits.MaxPageLimit);
-        }
+        if (ResolvePageLimit(typedQuery.Limit, out var boundedLimit) is { } limitError)
+            return limitError;
 
         if (typedQuery.SeverityMin is < ContractLimits.MinimumLogSeverity or > ContractLimits.MaximumLogSeverity)
         {
@@ -852,8 +697,7 @@ internal static partial class CollectorEndpointExtensions
         PageCursorKind kind,
         params string[] cursorPrefix)
     {
-        var hasMore = logs.Count > limit;
-        IReadOnlyList<LogStorageRow> page = hasMore ? [.. logs.Take(limit)] : logs;
+        var (page, hasMore) = SplitPage(logs, limit);
         return new CursorPageLogRecord
         {
             Items = LogMapper.ToContracts(page),
@@ -1053,12 +897,19 @@ internal static partial class CollectorEndpointExtensions
         await response.Body.FlushAsync(ct).ConfigureAwait(false);
     }
 
-    private static IResult InvalidLimit(int? limit, int maximum) =>
-        ContractErrorResults.Validation(
-            "limit",
-            $"Limit must be between 1 and {maximum}.",
-            "limit.out_of_range",
-            limit?.ToString(CultureInfo.InvariantCulture));
+    private static IResult? ResolvePageLimit(int? requested, out int limit) =>
+        ContractLimits.TryResolve(requested, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit, out limit)
+            ? null
+            : ContractErrorResults.Validation(
+                "limit",
+                $"Limit must be between 1 and {ContractLimits.MaxPageLimit}.",
+                "limit.out_of_range",
+                requested?.ToString(CultureInfo.InvariantCulture));
+
+    // Every list asks its store for one row past the limit, so HasMore is a fact rather than the
+    // coincidence of a page that exactly fills the limit.
+    private static (IReadOnlyList<T> Page, bool HasMore) SplitPage<T>(IReadOnlyList<T> rows, int limit) =>
+        rows.Count > limit ? ([.. rows.Take(limit)], true) : (rows, false);
 
     private static string ResolveProjectScope(HttpContext httpContext) =>
         AuthenticatedProject.ForHttpRead(httpContext);

@@ -49,8 +49,8 @@ public sealed class TracePagingTests(TestContext testContext)
             Assert.AreEqual(cursor is not null, page.HasMore);
         } while (cursor is not null);
 
-        Assert.AreEqual(3, traceIds.Count);
-        Assert.AreEqual(3, traceIds.Distinct(StringComparer.Ordinal).Count());
+        Assert.HasCount(3, traceIds);
+        Assert.HasCount(3, traceIds.Distinct(StringComparer.Ordinal));
     }
 
     [TestMethod]
@@ -77,14 +77,14 @@ public sealed class TracePagingTests(TestContext testContext)
         await firstResult.ExecuteAsync(firstContext);
         var first = await ReadPageAsync(firstContext);
 
-        Assert.AreEqual(2, first.Items.Count);
+        Assert.HasCount(2, first.Items);
         Assert.IsTrue(first.HasMore);
         Assert.IsFalse(string.IsNullOrWhiteSpace(first.NextCursor));
         Assert.AreEqual(3, first.Items[0].SpanCount);
-        Assert.AreEqual(3, first.Items[0].Spans.Count);
+        Assert.HasCount(3, first.Items[0].Spans);
         Assert.AreEqual<ulong>(200, first.Items[0].DurationNs);
         Assert.AreEqual(2, first.Items[1].SpanCount);
-        Assert.AreEqual(2, first.Items[1].Spans.Count);
+        Assert.HasCount(2, first.Items[1].Spans);
 
         var secondContext = CreateContext(
             "?limit=2&cursor=" + Uri.EscapeDataString(first.NextCursor!));
@@ -105,8 +105,8 @@ public sealed class TracePagingTests(TestContext testContext)
 
     private static ResourceSpans Trace(byte identity, params (ulong Start, ulong End)[] timings)
     {
-        var traceId = ByteString.CopyFrom(Enumerable.Repeat(identity, 16).ToArray());
-        var rootSpanId = ByteString.CopyFrom(Enumerable.Repeat(identity, 8).ToArray());
+        var traceId = ByteString.CopyFrom([.. Enumerable.Repeat(identity, 16)]);
+        var rootSpanId = ByteString.CopyFrom([.. Enumerable.Repeat(identity, 8)]);
         var scopeSpans = new ScopeSpans();
         for (var index = 0; index < timings.Length; index++)
         {
@@ -116,7 +116,7 @@ public sealed class TracePagingTests(TestContext testContext)
                 TraceId = traceId,
                 SpanId = index is 0
                     ? rootSpanId
-                    : ByteString.CopyFrom(Enumerable.Repeat((byte)(identity + index), 8).ToArray()),
+                    : ByteString.CopyFrom([.. Enumerable.Repeat((byte)(identity + index), 8)]),
                 ParentSpanId = index is 0 ? ByteString.Empty : rootSpanId,
                 Name = $"trace-{identity}-span-{index}",
                 StartTimeUnixNano = start,

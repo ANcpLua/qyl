@@ -134,7 +134,7 @@ public sealed class SchemaEvolutionTests(TestContext testContext)
 
             // Re-opening the migrated database is a plain match: nothing left to add.
             await using (var reopened = new DuckDbStore(path))
-                Assert.AreEqual(2, (await reopened.GetSpansAsync("alpha", ct: testContext.CancellationToken)).Count);
+                Assert.HasCount(2, await reopened.GetSpansAsync("alpha", ct: testContext.CancellationToken));
         }
         finally { DeleteDatabase(path); }
     }

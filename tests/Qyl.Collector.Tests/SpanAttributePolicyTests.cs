@@ -65,8 +65,8 @@ public sealed class SpanAttributePolicyTests(TestContext testContext)
 
         var span = new Span
         {
-            TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
-            SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
+            TraceId = ByteString.CopyFrom([.. Enumerable.Range(1, 16).Select(static value => (byte)value)]),
+            SpanId = ByteString.CopyFrom([.. Enumerable.Range(1, 8).Select(static value => (byte)value)]),
             Name = "ingest-policy",
             StartTimeUnixNano = 1,
             EndTimeUnixNano = 2

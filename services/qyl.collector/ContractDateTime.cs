@@ -23,9 +23,8 @@ internal static partial class ContractDateTime
         if (Grammar().Match(text) is not { Success: true } match) return null;
         int Part(string name) => int.Parse(match.Groups[name].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
         int year = Part("year"), month = Part("month"), day = Part("day"), hour = Part("hour"), minute = Part("minute"), second = Part("second");
-        var leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-        int[] days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        if (month is < 1 or > 12 || day < 1 || day > days[month - 1] || hour > 23 || minute > 59 || second > 59) return null;
+        // Year 0 follows the same 400-year leap rule as 2000; DateTime starts at year 1.
+        if (month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(year is 0 ? 2000 : year, month) || hour > 23 || minute > 59 || second > 59) return null;
         var offset = TimeSpan.Zero;
         if (match.Groups["sign"].Success)
         {

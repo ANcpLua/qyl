@@ -23,7 +23,7 @@ internal static class MetricStorageMapper
             var projectId = ProjectScope.ForIngest(record.ProjectIdHint, authenticatedProjectId);
             var attributesJson = PersistedAttributePolicy.SerializeAttributes(record.Attributes);
             var resourceJson = PersistedAttributePolicy.SerializeAttributes(record.ResourceAttributes);
-            var resourceEntityRefsJson = SerializeResourceEntityRefs(record.ResourceEntityRefs);
+            var resourceEntityRefsJson = StorageJson.SerializeResourceEntityRefs(record.ResourceEntityRefs);
             var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(record.ScopeAttributes);
             var instrumentId = ComputeInstrumentId(
                 record.MetricName,
@@ -102,16 +102,16 @@ internal static class MetricStorageMapper
         string? resourceSchemaUrl, string? resourceIdentity = null, string? scopeIdentity = null)
     {
         var builder = new StringBuilder("metric_instrument\n");
-        AppendIdentityPart(builder, metricName);
-        AppendIdentityPart(builder, serviceName);
-        AppendIdentityPart(builder, resourceJson);
-        AppendIdentityPart(builder, scopeName);
-        AppendIdentityPart(builder, scopeVersion);
-        AppendIdentityPart(builder, scopeSchemaUrl);
-        AppendIdentityPart(builder, scopeAttributesJson);
-        AppendIdentityPart(builder, resourceSchemaUrl);
-        if (resourceIdentity is not null) AppendIdentityPart(builder, resourceIdentity);
-        if (scopeIdentity is not null) AppendIdentityPart(builder, scopeIdentity);
+        builder.AppendSegment(metricName, terminate: true);
+        builder.AppendSegment(serviceName, terminate: true);
+        builder.AppendSegment(resourceJson, terminate: true);
+        builder.AppendSegment(scopeName, terminate: true);
+        builder.AppendSegment(scopeVersion, terminate: true);
+        builder.AppendSegment(scopeSchemaUrl, terminate: true);
+        builder.AppendSegment(scopeAttributesJson, terminate: true);
+        builder.AppendSegment(resourceSchemaUrl, terminate: true);
+        if (resourceIdentity is not null) builder.AppendSegment(resourceIdentity, terminate: true);
+        if (scopeIdentity is not null) builder.AppendSegment(scopeIdentity, terminate: true);
         return "mi_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
     }
 
@@ -154,13 +154,13 @@ internal static class MetricStorageMapper
     {
         var builder = new StringBuilder(512);
         builder.Append("metric_series\n");
-        AppendIdentityPart(builder, instrumentId);
-        AppendIdentityPart(builder, attributesJson);
-        AppendIdentityPart(builder, ((byte)kind).ToString(CultureInfo.InvariantCulture));
-        AppendIdentityPart(builder, ((byte)temporality).ToString(CultureInfo.InvariantCulture));
-        AppendIdentityPart(builder, isMonotonic ? "1" : "0");
-        AppendIdentityPart(builder, unit);
-        if (attributesIdentity is not null) AppendIdentityPart(builder, attributesIdentity);
+        builder.AppendSegment(instrumentId, terminate: true);
+        builder.AppendSegment(attributesJson, terminate: true);
+        builder.AppendSegment(((byte)kind).ToString(CultureInfo.InvariantCulture), terminate: true);
+        builder.AppendSegment(((byte)temporality).ToString(CultureInfo.InvariantCulture), terminate: true);
+        builder.AppendSegment(isMonotonic ? "1" : "0", terminate: true);
+        builder.AppendSegment(unit, terminate: true);
+        if (attributesIdentity is not null) builder.AppendSegment(attributesIdentity, terminate: true);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return "ms_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
@@ -172,27 +172,4 @@ internal static class MetricStorageMapper
         (left?.Length ?? 0) > (right?.Length ?? 0) ? left :
         (left?.Length ?? 0) < (right?.Length ?? 0) ? right :
         StringComparer.Ordinal.Compare(left, right) >= 0 ? left : right;
-
-    private static void AppendIdentityPart(StringBuilder builder, string? value)
-    {
-        if (value is null)
-        {
-            builder.Append("-1:\n");
-            return;
-        }
-
-        builder
-            .Append(value.Length.ToString(CultureInfo.InvariantCulture))
-            .Append(':')
-            .Append(value)
-            .Append('\n');
-    }
-
-    private static string? SerializeResourceEntityRefs(
-        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs) =>
-        entityRefs.Count is 0
-            ? null
-            : JsonSerializer.Serialize(
-                entityRefs as List<ResourceEntityRefIngestionRecord> ?? [.. entityRefs],
-                StorageJsonSerializerContext.Default.ResourceEntityRefIngestionRecordList);
 }

@@ -132,7 +132,7 @@ public sealed class NativeApplicationAttributeTests(TestContext testContext)
             await using var reopened = new DuckDbStore(path);
             var series = await reopened.ListMetricSeriesAsync("alpha", "checkout.depth", [], ct: testContext.CancellationToken);
             Assert.HasCount(2, series);
-            Assert.AreEqual(2, series.Select(static s => s.SeriesId).Distinct().Count());
+            Assert.HasCount(2, series.Select(static s => s.SeriesId).Distinct());
             Assert.AreSequenceEqual(["north", "south"], series.Select(static s =>
                 ReadString(s.AttributesJson, "checkout.region")).Order(StringComparer.Ordinal));
             foreach (var s in series)
@@ -195,7 +195,7 @@ public sealed class NativeApplicationAttributeTests(TestContext testContext)
         Assert.AreEqual(Convert.ToHexStringLower(span.SpanId.Span), log.SpanId);
         using var attributes = JsonDocument.Parse(log.AttributesJson!);
         Assert.AreEqual(traceId, attributes.RootElement.GetProperty("TraceId").GetString());
-        Assert.AreEqual(1, attributes.RootElement.EnumerateObject().Count(static a => a.Name is "TraceId"));
+        Assert.ContainsSingle(static a => a.Name is "TraceId", attributes.RootElement.EnumerateObject());
         Assert.IsFalse(attributes.RootElement.GetProperty("checkout.accepted").GetBoolean());
         Assert.AreEqual(3L, measurements.Sum(static m => m.Value), "Resource, scope and log duplicates must be visible diagnostics.");
         foreach (var measurement in measurements)

@@ -55,7 +55,9 @@ public sealed partial class AnalysisApiTests
 
         var typo = await RejectedAsync(host, "aggregate_telemetry", """{"signal":"spans","measures":["count"],"group_by":["http_route"]}""");
         Assert.AreEqual(("group_by", "group_by.unrecorded"), (typo.GetProperty("field").GetString(), typo.GetProperty("code").GetString()));
-        StringAssert.Contains(typo.GetProperty("hint").GetString(), "discover_attributes");
+        var hint = typo.GetProperty("hint").GetString();
+        Assert.IsNotNull(hint);
+        Assert.Contains("discover_attributes", hint);
         var order = await RejectedAsync(host, "aggregate_telemetry", """{"signal":"spans","measures":["count"],"order_by":"p95"}""");
         Assert.AreEqual("order_by", order.GetProperty("field").GetString());
         Assert.Contains("count", order.GetProperty("allowed").EnumerateArray().Select(static v => v.GetString()).ToArray());
@@ -84,7 +86,9 @@ public sealed partial class AnalysisApiTests
         Assert.AreSequenceEqual(["input"], run.GetProperty("steps")[1].GetProperty("tokens").EnumerateObject().Select(static p => p.Name));
         using var missing = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/get_agent_run", ReaderApiKey, """{"session_id":"absent"}""");
         Assert.AreEqual(HttpStatusCode.NotFound, missing.StatusCode);
-        StringAssert.Contains((await host.JsonAsync(missing)).GetProperty("detail").GetString(), "list_sessions");
+        var detail = (await host.JsonAsync(missing)).GetProperty("detail").GetString();
+        Assert.IsNotNull(detail);
+        Assert.Contains("list_sessions", detail);
     }
 
     /// <summary>An unknown CI run is not found, and the answer names the runs that exist.</summary>
@@ -101,7 +105,9 @@ public sealed partial class AnalysisApiTests
         var json = await host.JsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode, json.GetRawText());
-        StringAssert.Contains(json.GetProperty("detail").GetString(), "run-1");
+        var detail = json.GetProperty("detail").GetString();
+        Assert.IsNotNull(detail);
+        Assert.Contains("run-1", detail);
     }
 
     /// <summary>Durations come rounded to the microsecond, and an environment that was never recorded is absent.</summary>

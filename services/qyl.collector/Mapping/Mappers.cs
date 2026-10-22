@@ -181,18 +181,12 @@ internal static class ResourceMapping
     private static string GetIdentity(string type, IReadOnlyList<string> idKeys)
     {
         var builder = new StringBuilder();
-        AppendSegment(builder, type);
+        builder.AppendSegment(type);
         builder.Append(idKeys.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
         foreach (var key in idKeys)
-            AppendSegment(builder, key);
+            builder.AppendSegment(key);
         return builder.ToString();
     }
-
-    private static void AppendSegment(StringBuilder builder, string value) =>
-        builder
-            .Append(value.Length.ToString(CultureInfo.InvariantCulture))
-            .Append(':')
-            .Append(value);
 }
 
 internal static class SpanMapper

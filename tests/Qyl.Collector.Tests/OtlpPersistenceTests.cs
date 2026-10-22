@@ -104,7 +104,7 @@ public sealed class OtlpPersistenceTests(TestContext testContext)
         await Task.WhenAll(first, queued);
 
         var rows = await store.GetSpansAsync("default", ct: testContext.CancellationToken);
-        Assert.AreEqual(2, rows.Count);
+        Assert.HasCount(2, rows);
     }
 
     private static DefaultHttpContext ResponseContext()

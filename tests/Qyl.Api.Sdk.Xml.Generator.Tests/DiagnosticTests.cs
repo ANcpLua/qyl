@@ -72,7 +72,7 @@ public sealed class DiagnosticTests
 
         var run = GeneratorHarness.Run(("Model.cs", Usings + Source));
 
-        Assert.IsTrue(run.DiagnosticIds.Length is 0, string.Join(Environment.NewLine, run.Diagnostics));
+        Assert.IsEmpty(run.DiagnosticIds, string.Join(Environment.NewLine, run.Diagnostics));
         Assert.IsEmpty(run.OutputErrors);
     }
 }

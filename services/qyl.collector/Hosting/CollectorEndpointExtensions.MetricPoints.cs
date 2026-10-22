@@ -44,8 +44,7 @@ internal static partial class CollectorEndpointExtensions
             StartUnixNano = query.Start is { } from ? QylTimeConversions.ToUnixNanoUnsigned(from) : null,
             EndUnixNano = query.End is { } until ? QylTimeConversions.ToUnixNanoUnsigned(until) : null, Cursor = cursor
         }, ct);
-        var more = observations.Count > limit;
-        var page = observations.Take(limit).ToArray();
+        var (page, more) = SplitPage(observations, limit);
         return new CursorPageMetricPoint
         {
             Items = page.Select(item => MetricMapper.ToContract(item, series)).ToArray(), HasMore = more,

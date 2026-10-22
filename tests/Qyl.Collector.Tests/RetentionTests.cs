@@ -164,8 +164,9 @@ public sealed class RetentionTests(TestContext testContext)
             // blocks every cycle (~50% growth), so the 10% allowance is a crisp discriminator.
             var establishedSteadyState = Math.Max(sizes[0], sizes[1]);
             var finalSize = sizes[Cycles - 1];
-            Assert.IsTrue(
-                finalSize <= establishedSteadyState * 110 / 100,
+            Assert.IsLessThanOrEqualTo(
+                establishedSteadyState * 110 / 100,
+                finalSize,
                 $"Expected repeated cycles to hold the file near {establishedSteadyState} bytes, but it "
                 + $"trended upward to {finalSize} bytes (sizes: {string.Join(", ", sizes)}).");
             Assert.AreEqual(0, FileLength($"{databasePath}.wal"));
@@ -238,7 +239,7 @@ public sealed class RetentionTests(TestContext testContext)
 
             var result = await cycle;
             Assert.AreEqual(2501, result.DeletedLogRows);
-            Assert.IsTrue(result.WriteBatches > 1);
+            Assert.IsGreaterThan(1, result.WriteBatches);
             Assert.ContainsSingle(await store.GetTraceAsync(
                 "active-ingest", "default", testContext.CancellationToken));
         }
@@ -267,8 +268,8 @@ public sealed class RetentionTests(TestContext testContext)
                 testContext.CancellationToken);
 
             Assert.AreEqual(HealthStatus.Degraded, result.Status);
-            Assert.IsTrue(Assert.IsExactInstanceOfType<long>(result.Data["database_file_size_bytes"]) > 0);
-            Assert.IsTrue(Assert.IsExactInstanceOfType<long>(result.Data["storage_free_bytes"]) >= 0);
+            Assert.IsGreaterThan(0L, Assert.IsExactInstanceOfType<long>(result.Data["database_file_size_bytes"]));
+            Assert.IsGreaterThanOrEqualTo(0L, Assert.IsExactInstanceOfType<long>(result.Data["storage_free_bytes"]));
         }
         finally
         {
@@ -343,7 +344,7 @@ public sealed class RetentionTests(TestContext testContext)
             Assert.AreEqual(1, result.DeletedIdempotencyKeys);
             Assert.IsNull(await store.GetAnnotationAsync("alpha", "stale", ct));
             Assert.IsNotNull(await store.GetAnnotationAsync("alpha", "edited", ct));
-            Assert.AreEqual(2, (await store.ListSavedQueriesAsync("alpha", null, null, 10, ct)).Count);
+            Assert.HasCount(2, await store.ListSavedQueriesAsync("alpha", null, null, 10, ct));
             Assert.IsNull(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "old", 0, ct));
             Assert.IsNotNull(await store.GetIdempotencyKeyAsync("alpha", "saved-queries", "new", 0, ct));
         }

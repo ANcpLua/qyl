@@ -27,5 +27,5 @@ internal sealed class PortReservation : IDisposable
 
     internal int Port { get; }
 
-    public void Dispose() => _listener.Stop();
+    public void Dispose() => _listener.Dispose();
 }

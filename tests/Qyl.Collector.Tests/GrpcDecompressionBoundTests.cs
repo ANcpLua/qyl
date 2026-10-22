@@ -44,7 +44,7 @@ public sealed class GrpcDecompressionBoundTests
 
         // Zeros compress about a thousandfold: 16 times the limit arrives as a small message.
         var bomb = Compress(provider, new byte[limit * 16]);
-        Assert.IsTrue(bomb.Length < limit / 16, $"the bomb should be small on the wire, was {bomb.Length} bytes");
+        Assert.IsLessThan(limit / 16, bomb.Length, $"the bomb should be small on the wire, was {bomb.Length} bytes");
 
         using var stream = provider.CreateDecompressionStream(new MemoryStream(bomb));
         var ex = Assert.ThrowsExactly<RpcException>(() => stream.CopyTo(Stream.Null));

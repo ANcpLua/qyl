@@ -127,7 +127,7 @@ internal sealed partial class AnalysisEngine
             ("fanout", J.A(spans.GroupBy(s => (s.TraceId, Parent: s.Span?.ParentSpanId)).Where(g => g.Key.Parent is not null && g.Count() > 1).Select(g => J.O(("parent_span_id", g.Key.Parent), ("count", g.Count()), ("trace_id", g.Key.TraceId))))))),
             ("comparison", J.O(("nearest_success_trace_id", success?.TraceId), ("first_divergence", divergence))),
             ("context", J.O(("similar_failures", J.A(errors.GroupBy(Signature).Where(g => FailureId(g.Key) != explained).Select(g => J.O(("failure_id", FailureId(g.Key)), ("count", g.Count()), ("first_seen", J.Time(g.Min(s => s.Start))), ("releases", g.Select(ReleaseOf).Where(static v => v.Length > 0).Distinct()))))), ("changes", rootCause is null ? new JsonArray() : Triage(J.O(("service_name", rootCause.Service)))["regressions"]), ("annotations", J.A(snapshot.Annotations.Where(n => traceIds.Contains(n.TraceId) || n.SessionId is not null && sessionIds.Contains(n.SessionId) || explained is not null && FailureNote(n, explained)).Select(AnnotationJson))))),
-            ("settled", spans.Count is 0 || now.ToUnixTimeMilliseconds() - (long)(spans.Max(s => s.End) / 1_000_000) >= 5000), ("unknowns", J.A(unknowns)),
+            ("settled", spans.Count is 0 || Age(spans.Max(s => s.End)) >= TimeSpan.FromSeconds(5)), ("unknowns", J.A(unknowns)),
             ("coverage", Coverage(spans.Count + logs.Count, evidence.Count + logs.Count, evidence.Count + logs.Count, false)));
     }
     private JsonArray Discriminators(List<AnalysisRecord> a, List<AnalysisRecord> b, string scope, int limit, HashSet<string>? predicates = null)

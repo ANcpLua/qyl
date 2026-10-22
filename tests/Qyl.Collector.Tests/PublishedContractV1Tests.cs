@@ -49,8 +49,8 @@ public sealed class PublishedContractV1Tests(TestContext testContext)
                             {
                                 new OtlpSpan
                                 {
-                                    TraceId = ByteString.CopyFrom(Enumerable.Repeat((byte)1, 16).ToArray()),
-                                    SpanId = ByteString.CopyFrom(Enumerable.Repeat((byte)2, 8).ToArray()),
+                                    TraceId = ByteString.CopyFrom([.. Enumerable.Repeat((byte)1, 16)]),
+                                    SpanId = ByteString.CopyFrom([.. Enumerable.Repeat((byte)2, 8)]),
                                     Name = "published-contract-trace",
                                     Kind = OtlpSpan.Types.SpanKind.Server,
                                     StartTimeUnixNano = 1_000,

@@ -268,15 +268,15 @@ public sealed class SavedQueryApiTests(TestContext testContext)
     public async Task A_trace_run_applies_the_filter_and_look_back_and_pages_with_its_own_cursor()
     {
         await using var host = await StartAsync(testContext.CancellationToken);
-        const ulong now = FixtureUnixNano;
+        const ulong Now = FixtureUnixNano;
         const ulong Minute = 60_000_000_000UL;
         await host.Store.EnqueueAsync(new SpanBatch(
         [
-            Span(TraceId(1), SpanId(1), now - 5 * Minute, now - 4 * Minute, status: 2),
-            Span(TraceId(2), SpanId(2), now - 3 * Minute, now - 2 * Minute, status: 2),
-            Span(TraceId(3), SpanId(3), now - 3 * Minute, now - 2 * Minute),
-            Span(TraceId(4), SpanId(4), now - 3 * Minute, now - 2 * Minute, service: "billing", status: 2),
-            Span(TraceId(5), SpanId(5), now - 180 * Minute, now - 179 * Minute, status: 2)
+            Span(TraceId(1), SpanId(1), Now - 5 * Minute, Now - 4 * Minute, status: 2),
+            Span(TraceId(2), SpanId(2), Now - 3 * Minute, Now - 2 * Minute, status: 2),
+            Span(TraceId(3), SpanId(3), Now - 3 * Minute, Now - 2 * Minute),
+            Span(TraceId(4), SpanId(4), Now - 3 * Minute, Now - 2 * Minute, service: "billing", status: 2),
+            Span(TraceId(5), SpanId(5), Now - 180 * Minute, Now - 179 * Minute, status: 2)
         ]), testContext.CancellationToken);
         using var created = await host.SendAsync(HttpMethod.Post, "/api/v1/saved-queries", "writer",
             $$"""{"name":"errors","filter":{{ErrorsFilter}}}""");
@@ -444,7 +444,9 @@ public sealed class SavedQueryApiTests(TestContext testContext)
         // Like the analysis route, the run's 404 names what is missing and the tool that lists what exists.
         var missing = await host.JsonAsync(notFound);
         Assert.AreEqual(("metric", "never.recorded"), (missing.GetProperty("resource_type").GetString(), missing.GetProperty("resource_id").GetString()));
-        StringAssert.Contains(missing.GetProperty("detail").GetString(), "list_metrics");
+        var detail = missing.GetProperty("detail").GetString();
+        Assert.IsNotNull(detail);
+        Assert.Contains("list_metrics", detail);
     }
 
     private static Task<HttpResponseMessage> Create(CollectorApiTestHost host, string name) =>

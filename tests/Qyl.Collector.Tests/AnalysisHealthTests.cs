@@ -148,7 +148,7 @@ public sealed partial class AnalysisApiTests
         var json = await host.JsonAsync(response);
 
         Assert.AreEqual(System.Net.HttpStatusCode.NotFound, response.StatusCode, json.GetRawText());
-        StringAssert.Contains(json.GetRawText(), "nope");
+        Assert.Contains("nope", json.GetRawText());
         using var known = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/check_telemetry_health", ReaderApiKey, """{"service_name":"checkout"}""");
         Assert.AreEqual(System.Net.HttpStatusCode.OK, known.StatusCode);
     }

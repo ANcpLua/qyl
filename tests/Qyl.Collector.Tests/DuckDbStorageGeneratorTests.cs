@@ -103,9 +103,9 @@ public sealed class DuckDbStorageGeneratorTests(TestContext testContext)
         foreach (var generated in new[] { Generate(First), Generate(Reordered) })
         {
             Assert.Contains("\"id\", \"sequence\"", generated, StringComparison.Ordinal);
-            Assert.IsTrue(
-                generated.IndexOf("string id,", StringComparison.Ordinal) <
-                generated.IndexOf("ulong sequence)", StringComparison.Ordinal));
+            Assert.IsLessThan(
+                generated.IndexOf("ulong sequence)", StringComparison.Ordinal),
+                generated.IndexOf("string id,", StringComparison.Ordinal));
         }
     }
 

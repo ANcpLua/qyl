@@ -94,7 +94,7 @@ public sealed class OtlpUtf8Tests(TestContext testContext)
     private static byte[] Corrupt(byte[] payload, string text)
     {
         var at = payload.AsSpan().IndexOf(Encoding.UTF8.GetBytes(text));
-        Assert.IsTrue(at >= 0, $"'{text}' must be serialized verbatim");
+        Assert.IsGreaterThanOrEqualTo(0, at, $"'{text}' must be serialized verbatim");
         payload[at + text.IndexOf(Placeholder, StringComparison.Ordinal)] = 0xFF;
         return payload;
     }
@@ -117,8 +117,8 @@ public sealed class OtlpUtf8Tests(TestContext testContext)
                         {
                             new Span
                             {
-                                TraceId = ByteString.CopyFrom(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray()),
-                                SpanId = ByteString.CopyFrom(Enumerable.Range(16, 8).Select(static value => (byte)value).ToArray()),
+                                TraceId = ByteString.CopyFrom([.. Enumerable.Range(0, 16).Select(static value => (byte)value)]),
+                                SpanId = ByteString.CopyFrom([.. Enumerable.Range(16, 8).Select(static value => (byte)value)]),
                                 Name = SpanName,
                                 Kind = Span.Types.SpanKind.Server,
                                 StartTimeUnixNano = 1_000,

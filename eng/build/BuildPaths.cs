@@ -1,4 +1,5 @@
 using Fallout.Common.IO;
+using Fallout.Common.Tooling;
 using Fallout.Components;
 
 namespace Qyl.Build;
@@ -35,6 +36,10 @@ interface IHasSourcePaths : IHasSolution, IHasArtifacts
         PackagesDirectory / "Qyl.Api.Sdk" / "Qyl.Api.Sdk.csproj",
         ContractsProject
     ];
+
+    /// <summary>Installs a bun package's dependencies exactly as its lockfile pins them.</summary>
+    static void BunInstall(AbsolutePath directory) =>
+        ProcessTasks.StartProcess("bun", "install --frozen-lockfile", directory, logOutput: true).AssertZeroExitCode();
 
     string[] ShippablePackageIds =>
     [

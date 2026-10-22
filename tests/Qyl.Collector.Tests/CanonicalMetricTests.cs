@@ -29,8 +29,8 @@ public sealed class CanonicalMetricTests(TestContext testContext)
             wire.Exemplars.Add(new Exemplar
             {
                 TimeUnixNano = Time + (ulong)i, AsInt = long.MaxValue - i,
-                TraceId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x12, 16).ToArray()),
-                SpanId = ByteString.CopyFrom(Enumerable.Repeat((byte)(0x34 + i), 8).ToArray()),
+                TraceId = ByteString.CopyFrom([.. Enumerable.Repeat((byte)0x12, 16)]),
+                SpanId = ByteString.CopyFrom([.. Enumerable.Repeat((byte)(0x34 + i), 8)]),
                 FilteredAttributes = { new OpenTelemetry.Proto.Common.V1.KeyValue
                 { Key = "http.response.status_code", Value = new OpenTelemetry.Proto.Common.V1.AnyValue { IntValue = i } } }
             });
@@ -55,7 +55,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
                 Assert.AreEqual(Time + (ulong)i, exemplar.TimeUnixNano);
                 Assert.AreEqual(long.MaxValue - i, Assert.IsInstanceOfType<AttributeIntValue>(exemplar.Value).Value);
                 Assert.AreEqual(string.Concat(Enumerable.Repeat("12", 16)), exemplar.TraceId);
-                Assert.AreEqual(Convert.ToHexStringLower(Enumerable.Repeat((byte)(0x34 + i), 8).ToArray()), exemplar.SpanId);
+                Assert.AreEqual(Convert.ToHexStringLower([.. Enumerable.Repeat((byte)(0x34 + i), 8)]), exemplar.SpanId);
                 Assert.AreEqual(i, Assert.IsInstanceOfType<AttributeIntValue>(Assert.IsInstanceOfType<AttributeValue.ObjectValue>(Assert.ContainsSingle(exemplar.FilteredAttributes).Value).Value).Value);
             }
             var json = JsonSerializer.Serialize(contract, QylSerializerContext.Default.MetricPoint);
@@ -117,7 +117,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
         var data = new Contract.MetricExponentialHistogramPointData
         {
             Count = (ulong)bucketCount + 1, Sum = 1, Min = 0, Max = 2, Scale = scale, ZeroCount = 1, ZeroThreshold = 0.001,
-            Positive = new Contract.MetricExponentialBuckets { Offset = 1, BucketCounts = Enumerable.Repeat(1UL, bucketCount).ToArray() },
+            Positive = new Contract.MetricExponentialBuckets { Offset = 1, BucketCounts = [.. Enumerable.Repeat(1UL, bucketCount)] },
             Negative = new Contract.MetricExponentialBuckets { Offset = -88, BucketCounts = [] }
         };
         var input = Number(1) with { Kind = Kind.ExponentialHistogram, Data = data };
@@ -163,7 +163,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
     public async Task Http_and_a_raw_query_metric_page_all_observations_with_exact_values()
     {
         await using var host = await CollectorApiTestHost.StartAsync(Ct);
-        await Insert(host.Store, Enumerable.Range(0, 301).Select(i => Number(9_007_199_254_740_993 + i) with { TimeUnixNano = Time + (ulong)i }).ToArray());
+        await Insert(host.Store, [.. Enumerable.Range(0, 301).Select(i => Number(9_007_199_254_740_993 + i) with { TimeUnixNano = Time + (ulong)i })]);
         var series = Assert.ContainsSingle(await host.Store.ListMetricSeriesAsync("alpha", "canonical.number", [], ct: Ct));
         var ids = new HashSet<string>(StringComparer.Ordinal); string? cursor = null;
         do

@@ -252,10 +252,10 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
     public async Task Legacy_zero_time_cursor_continues_unknown_history_without_repeating_rows()
     {
         await using var host = await CollectorApiTestHost.StartAsync(Ct);
-        await host.Store.InsertLogsAsync(Enumerable.Range(0, 3).Select(static index => new LogStorageRow
+        await host.Store.InsertLogsAsync([.. Enumerable.Range(0, 3).Select(static index => new LogStorageRow
         {
             ProjectId = "alpha", LogId = "unknown-" + index, SeverityNumber = 9, Body = "\"unknown\""
-        }).ToArray(), Ct);
+        })], Ct);
         var cursor = PageCursorCodec.Encode(PageCursorKind.Logs, PageCursorCodec.Hex(0UL), "unknown-2");
         using var response = await host.SendAsync(HttpMethod.Get,
             "/api/v1/logs?limit=10&cursor=" + Uri.EscapeDataString(cursor), "reader");
@@ -352,7 +352,7 @@ public sealed class OtlpRecordValidationTests(TestContext testContext)
     }
     private static WireSpan Span(byte id) => new()
     {
-        TraceId = ByteString.CopyFrom(Enumerable.Repeat(id, 16).ToArray()), SpanId = ByteString.CopyFrom(Enumerable.Repeat(id, 8).ToArray()),
+        TraceId = ByteString.CopyFrom([.. Enumerable.Repeat(id, 16)]), SpanId = ByteString.CopyFrom([.. Enumerable.Repeat(id, 8)]),
         Name = "valid", StartTimeUnixNano = Time, EndTimeUnixNano = Time + 1
     };
     private static WireSpan Bounds(WireSpan span, ulong start, ulong end)

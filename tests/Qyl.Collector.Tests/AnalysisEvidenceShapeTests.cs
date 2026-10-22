@@ -70,6 +70,6 @@ public sealed partial class AnalysisApiTests
         using var missing = await host.SendAsync(HttpMethod.Post, "/api/v1/analysis/compare_traces", ReaderApiKey, $$$"""{"a":{"trace_id":"{{{TraceId(1)}}}"},"b":{"trace_id":"{{{TraceId(9)}}}"}}""");
         var error = await host.JsonAsync(missing);
         Assert.AreEqual(HttpStatusCode.NotFound, missing.StatusCode, error.GetRawText());
-        StringAssert.Contains(error.GetRawText(), TraceId(9));
+        Assert.Contains(TraceId(9), error.GetRawText());
     }
 }

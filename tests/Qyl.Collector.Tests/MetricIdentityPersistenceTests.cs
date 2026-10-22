@@ -66,7 +66,7 @@ public sealed class MetricIdentityPersistenceTests(TestContext testContext)
                 var data = Assert.IsInstanceOfType<Qyl.Api.Contracts.OTel.Metrics.MetricNumberPointData>(MetricMapper.ToContract(point, stream).Data);
                 values.Add(Assert.IsInstanceOfType<Qyl.Api.Contracts.Common.AttributeIntValue>(data.Value).Value);
             }
-            CollectionAssert.AreEquivalent(new long[] { 1, 2 }, values);
+            Assert.AreSequenceEqual([1L, 2L], values, SequenceOrder.InAnyOrder);
 
             using var catalogs = await reopened.SendAsync(HttpMethod.Get, "/api/v1/metrics?prefix=identity.number", "reader");
             Assert.AreEqual(HttpStatusCode.OK, catalogs.StatusCode);

@@ -141,7 +141,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
             using var badHostResponse = await s_securityClient.SendAsync(badHostRequest, lifetime.Token);
             Assert.Contains(
                 badHostResponse.StatusCode,
-                new[] { HttpStatusCode.Forbidden, HttpStatusCode.NotFound });
+                [HttpStatusCode.Forbidden, HttpStatusCode.NotFound]);
 
             using var crossOrigin = new HttpRequestMessage(
                 HttpMethod.Post,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Fallout.Common;
 using Fallout.Common.IO;
 using Fallout.Common.Tooling;
@@ -19,6 +20,9 @@ interface IContracts : IHasSourcePaths
 {
     AbsolutePath ContractsDirectory => RootDirectory / "contracts";
     AbsolutePath OpenApiContractFile => ContractsDirectory / "openapi" / "qyl.openapi.json";
+
+    /// <summary>The committed OpenAPI document; the caller disposes it.</summary>
+    JsonDocument ReadOpenApi() => JsonDocument.Parse(File.ReadAllText(OpenApiContractFile));
 
     /// <summary>Every directory the contract compile writes.</summary>
     AbsolutePath[] GeneratedContractDirectories =>
@@ -62,7 +66,7 @@ interface IContracts : IHasSourcePaths
 
     private static void CompileContracts(AbsolutePath directory)
     {
-        ProcessTasks.StartProcess("bun", "install --frozen-lockfile", directory, logOutput: true).AssertZeroExitCode();
+        BunInstall(directory);
         ProcessTasks.StartProcess("bun", "run compile", directory, logOutput: true).AssertZeroExitCode();
     }
 

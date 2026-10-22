@@ -275,7 +275,7 @@ internal sealed partial class AnalysisEngine
             var info = runInfo[g.Key];
             var observed = info.ProviderId is { } provider ? attempts[provider] : [];
             return J.O(("ci_run_id", g.Key),
-                (CollectorSemanticAttributeCatalog.State, now.ToUnixTimeMilliseconds() - (long)(info.End / 1_000_000) < 5000 ? "active" : "ended"),
+                (CollectorSemanticAttributeCatalog.State, Age(info.End) < TimeSpan.FromSeconds(5) ? "active" : "ended"),
                 ("start_time", J.Time(info.Start)), ("duration_ms", (info.End - info.Start) / 1_000_000d),
                 ("error_count", g.Count(s => s.Error)), ("services", g.Select(s => s.Service).Distinct()),
                 ("attempt", observed.Length > 0 ? observed.First(p => p.RunId == g.Key).Attempt : (int?)null),

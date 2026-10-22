@@ -13,6 +13,7 @@ public sealed class QylApplication : IAsyncDisposable
     private readonly QylLogStore _logs;
     private readonly int _startupTimeoutSeconds;
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
+    private readonly Lazy<Task> _disposal;
     private bool _started;
     private bool _disposed;
 
@@ -23,11 +24,13 @@ public sealed class QylApplication : IAsyncDisposable
         _registry = host.Services.GetRequiredService<QylResourceRegistry>();
         _logs = host.Services.GetRequiredService<QylLogStore>();
         _startupTimeoutSeconds = startupTimeoutSeconds;
+        _disposal = new Lazy<Task>(StopOnceAsync);
     }
 
     /// <summary>Starts all services and returns only when each is ready. Failure or cancellation stops every child.</summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         await _lifecycle.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -104,6 +107,19 @@ public sealed class QylApplication : IAsyncDisposable
 
     /// <summary>Stops every process and releases reserved endpoints. Safe to call more than once.</summary>
     public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _disposal.Value.ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycle.Dispose();
+        }
+    }
+
+    // Runs once, however often DisposeAsync is called: every call awaits the same stop.
+    private async Task StopOnceAsync()
     {
         await _lifecycle.WaitAsync().ConfigureAwait(false);
         try

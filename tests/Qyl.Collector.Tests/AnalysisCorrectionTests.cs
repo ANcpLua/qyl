@@ -92,7 +92,7 @@ public sealed partial class AnalysisApiTests
             }
             cursor = result.TryGetProperty("next_cursor", out var next) ? next.GetString() : null;
         }
-        Assert.AreEqual(5, seen.Count);
+        Assert.HasCount(5, seen);
         Assert.IsNull(cursor);
     }
 
@@ -187,7 +187,7 @@ public sealed partial class AnalysisApiTests
         var snapshot = await host.Store.ReadAnalysisSnapshotAsync("alpha", new AnalysisReadQuery { Start = time, End = time + 1000 }, testContext.CancellationToken);
         Assert.ContainsSingle(snapshot.Spans);
         var engine = new AnalysisEngine(snapshot with { ScanComplete = false }, "alpha", new AnalysisHandles(new byte[32]), FixtureUtcNow);
-        var result = engine.Run("list_traces", new JsonObject());
+        var result = engine.Run("list_traces", []);
         Assert.IsFalse(result["coverage"]!["scan_complete"]!.GetValue<bool>());
         Assert.IsNull(result["coverage"]!["matched"]);
         // A partial read is reported by scan_complete; truncated says only that the answer left matching items out.

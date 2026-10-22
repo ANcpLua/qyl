@@ -44,7 +44,7 @@ public sealed class MetricApiTests(TestContext testContext)
         var body = await ReadBodyAsync(context);
         var page = JsonSerializer.Deserialize(body, QylSerializerContext.Default.CursorPageMetricDescriptor)!;
 
-        Assert.AreEqual(2, page.Items.Count);
+        Assert.HasCount(2, page.Items);
         var active = page.Items.Single(static item => item.Name is "http.server.active");
         // Two attribute sets under one name are two series, not two metrics.
         Assert.AreEqual(2, active.SeriesCount);
@@ -92,7 +92,7 @@ public sealed class MetricApiTests(TestContext testContext)
             all, "http.server.active", store, ct)).ExecuteAsync(all);
         var allPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(all), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        Assert.AreEqual(2, allPage.Items.Count);
+        Assert.HasCount(2, allPage.Items);
         allPage.Items.ToList().ForEach(static item => Assert.StartsWith("ms_", item.SeriesId, StringComparison.Ordinal));
         allPage.Items.ToList().ForEach(static item =>
             Assert.Contains(static a => a.Key is "http.route",item.Attributes));
@@ -112,7 +112,7 @@ public sealed class MetricApiTests(TestContext testContext)
             prefixed, "http.server.active", store, ct)).ExecuteAsync(prefixed);
         var prefixedPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(prefixed), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        Assert.AreEqual(2, prefixedPage.Items.Count);
+        Assert.HasCount(2, prefixedPage.Items);
     }
 
     [TestMethod]
@@ -156,11 +156,11 @@ public sealed class MetricApiTests(TestContext testContext)
         Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricAggregation.Avg, result.Aggregation);
         Assert.AreEqual(30_000, result.StepMs);
         Assert.IsFalse(result.Truncated);
-        Assert.AreEqual(2, result.Series.Count);
+        Assert.HasCount(2, result.Series);
 
         var routeA = result.Series.Single(stream =>
             stream.Attributes.Any(static a => a.Key is "http.route" && AttributeString(a) is "/a"));
-        Assert.AreEqual(2, routeA.Buckets.Count);
+        Assert.HasCount(2, routeA.Buckets);
         Assert.AreEqual(1d, BucketValue(routeA.Buckets[0]), 0.0000000005d);
         Assert.AreEqual(3d, BucketValue(routeA.Buckets[1]), 0.0000000005d);
         Assert.AreEqual(1, routeA.Buckets[0].PointCount);
@@ -307,7 +307,7 @@ public sealed class MetricApiTests(TestContext testContext)
 
         var result = JsonSerializer.Deserialize(
             await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
-        Assert.AreEqual(2, result.Series.Count);
+        Assert.HasCount(2, result.Series);
         Assert.IsTrue(result.Truncated);
     }
 
@@ -354,7 +354,7 @@ public sealed class MetricApiTests(TestContext testContext)
         await (await CollectorEndpointExtensions.GetMetricsAsync(catalog, store, ct)).ExecuteAsync(catalog);
         var catalogPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(catalog), QylSerializerContext.Default.CursorPageMetricDescriptor)!;
-        Assert.AreEqual(expectedItems, catalogPage.Items.Count);
+        Assert.HasCount(expectedItems, catalogPage.Items);
         Assert.AreEqual(expectedHasMore, catalogPage.HasMore);
 
         var series = CreateContext($"limit={limit}");
@@ -362,7 +362,7 @@ public sealed class MetricApiTests(TestContext testContext)
             series, "http.server.active", store, ct)).ExecuteAsync(series);
         var seriesPage = JsonSerializer.Deserialize(
             await ReadBodyAsync(series), QylSerializerContext.Default.CursorPageMetricSeries)!;
-        Assert.AreEqual(expectedItems, seriesPage.Items.Count);
+        Assert.HasCount(expectedItems, seriesPage.Items);
         Assert.AreEqual(expectedHasMore, seriesPage.HasMore);
     }
 

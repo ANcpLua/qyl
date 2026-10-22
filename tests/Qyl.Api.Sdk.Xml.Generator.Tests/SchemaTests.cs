@@ -33,7 +33,7 @@ public sealed class SchemaTests
 
         var status = (OpenApiSchema)order.Properties["status"];
         Assert.IsTrue(status.Xml!.Attribute);
-        Assert.AreSequenceEqual(s_statusNames, status.Enum!.Select(static value => value.GetValue<string>()).ToArray());
+        Assert.AreSequenceEqual(s_statusNames, [.. status.Enum!.Select(static value => value.GetValue<string>())]);
 
         var days = (OpenApiSchema)order.Properties["days"];
         Assert.AreEqual(JsonSchemaType.String, days.Type);
@@ -97,6 +97,6 @@ public sealed class SchemaTests
         QylXmlSchema.Reference(document, Customer.XmlShape);
         QylXmlSchema.Reference(document, Order.XmlShape);
 
-        Assert.AreEqual(5, document.Components!.Schemas!.Count);
+        Assert.HasCount(5, document.Components!.Schemas!);
     }
 }

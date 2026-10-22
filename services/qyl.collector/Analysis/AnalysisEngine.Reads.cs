@@ -49,7 +49,7 @@ internal sealed partial class AnalysisEngine
         }).ToList();
         var repeated = rows.Select(r => (Producer: r.Service, Tool: J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiToolName)), Hash: J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash))))
             .Where(r => r.Tool.Length > 0 && r.Hash.Length > 0).GroupBy(r => r).Where(g => g.Count() > 1).Select(g => J.O(("tool", g.Key.Tool), ("argument_hash", g.Key.Hash), ("count", g.Count())));
-        var total = TotalTokens(rows); var start = rows.Count is 0 ? now : DateTimeOffset.FromUnixTimeMilliseconds((long)(rows.Min(r => r.Start) / 1_000_000));
+        var total = TotalTokens(rows); var start = rows.Count is 0 ? now : J.Instant(rows.Min(r => r.Start));
         return J.O(("run", J.O(("agent_name", rows.Select(r => J.Text(r.Value(CollectorSemanticAttributeCatalog.GenAiAgentName))).FirstOrDefault(v => v.Length > 0)), ("models", rows.Select(r => r.Span?.GenAiResponseModel ?? r.Span?.GenAiRequestModel).OfType<string>().Distinct()), ("started", start.ToString("O")), ("duration_ms", rows.Count is 0 ? 0 : (rows.Max(r => r.End) - rows.Min(r => r.Start)) / 1_000_000d), ("tokens", Tokens(rows)), ("errors", rows.Count(r => r.Error)), ("session_id", J.String(input, "session_id")), ("trace_id", J.String(input, "trace_id")))),
             ("steps", J.A(steps)), ("findings", J.O(("repeated_calls", J.A(repeated)), ("failed_tool_calls", J.A(steps.Where(s => J.String(s, "kind") == "tool_call" && J.String(s, "status") == "error").Take(10).Select(static s => s["index"]))), ("slowest_steps", J.A(steps.OrderByDescending(s => J.Number(s, "duration_ms")).Take(3).Select(static s => s["index"]))), ("token_share", J.A(rows.GroupBy(r => r.Name).Select(g => J.O(("name", g.Key), ("tokens", TotalTokens(g)), ("share", total is 0 ? 0 : TotalTokens(g) / (double)total))))))),
             ("unknowns", J.N(rows.Any(r => r.Value(CollectorSemanticAttributeCatalog.GenAiToolName) is not null && r.Value(CollectorSemanticAttributeCatalog.GenAiToolCallArgumentsHash) is null) ? s_missingArguments : [])),
@@ -161,7 +161,7 @@ internal sealed partial class AnalysisEngine
         return J.O(("trace", trace), ("window", new AnalysisWindow(J.Instant(start), J.Instant(end)).Json), ("annotations", J.A(TraceAnnotations(rows[0].TraceId!, rows.Select(static row => row.Id).ToHashSet(StringComparer.Ordinal)))),
             ("missing_parent_span_ids", rows.Where(s => s.Span?.ParentSpanId is { Length: > 0 } p && !SpanIndex.ContainsKey((s.TraceId, p))).Select(s => s.Span!.ParentSpanId!).Distinct()), ("links", J.A(links)),
             ("logs", J.A(_logs.Where(l => traceIds.Contains(l.TraceId)).OrderByDescending(static l => l.Start).ThenBy(static l => l.Id, StringComparer.Ordinal).Take((int)J.Number(input, "max_logs")).Select(LogJson))),
-            ("settled", now.ToUnixTimeMilliseconds() - (long)(end / 1_000_000) >= 5000), ("coverage", Coverage(rows.Count, selected.Count, spans.Count, false)));
+            ("settled", Age(end) >= TimeSpan.FromSeconds(5)), ("coverage", Coverage(rows.Count, selected.Count, spans.Count, false)));
     }
     private JsonObject Logs(JsonObject input)
     {

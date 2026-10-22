@@ -25,8 +25,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     private const ulong Time = 1_700_000_000_000_000_000;
     private const string ResourceSchema = "https://opentelemetry.io/schemas/1.44.0";
     private const string ScopeSchema = "https://example.test/instrumentation/2";
-    private static readonly ByteString s_traceId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x12, 16).ToArray());
-    private static readonly ByteString s_spanId = ByteString.CopyFrom(Enumerable.Repeat((byte)0x34, 8).ToArray());
+    private static readonly ByteString s_traceId = ByteString.CopyFrom([.. Enumerable.Repeat((byte)0x12, 16)]);
+    private static readonly ByteString s_spanId = ByteString.CopyFrom([.. Enumerable.Repeat((byte)0x34, 8)]);
 
 
     [TestMethod]
@@ -210,17 +210,17 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
     public async Task Missing_event_timestamps_use_observation_for_filtering_and_pagination()
     {
         await using var host = await CollectorApiTestHost.StartAsync(testContext.CancellationToken);
-        const ulong start = CollectorApiTestHost.FixtureUnixNano - 60_000_000_000;
+        const ulong Start = CollectorApiTestHost.FixtureUnixNano - 60_000_000_000;
         await host.Store.InsertLogsAsync(
         [
             new LogStorageRow { ProjectId = "alpha", LogId = "newest", TimeUnixNano = 0,
-                ObservedTimeUnixNano = start + 30_000_000, SeverityNumber = 17, Body = "\"newest\"" },
-            new LogStorageRow { ProjectId = "alpha", LogId = "event", TimeUnixNano = start + 20_000_000,
-                ObservedTimeUnixNano = start + 40_000_000, SeverityNumber = 17, Body = "\"event\"" },
+                ObservedTimeUnixNano = Start + 30_000_000, SeverityNumber = 17, Body = "\"newest\"" },
+            new LogStorageRow { ProjectId = "alpha", LogId = "event", TimeUnixNano = Start + 20_000_000,
+                ObservedTimeUnixNano = Start + 40_000_000, SeverityNumber = 17, Body = "\"event\"" },
             new LogStorageRow { ProjectId = "alpha", LogId = "oldest", TimeUnixNano = 0,
-                ObservedTimeUnixNano = start + 10_000_000, SeverityNumber = 17, Body = "\"oldest\"" }
+                ObservedTimeUnixNano = Start + 10_000_000, SeverityNumber = 17, Body = "\"oldest\"" }
         ], testContext.CancellationToken);
-        var since = Uri.EscapeDataString(DateTimeOffset.FromUnixTimeMilliseconds((long)(start / 1_000_000)).ToString("O"));
+        var since = Uri.EscapeDataString(DateTimeOffset.FromUnixTimeMilliseconds((long)(Start / 1_000_000)).ToString("O"));
         var path = $"/api/v1/logs?start_time={since}&limit=1";
         var bodies = new List<string?>();
         for (var page = 0; page < 3; page++)
@@ -233,7 +233,7 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
             if (page is 0)
             {
                 Assert.IsFalse(log.TryGetProperty("time_unix_nano", out _));
-                Assert.AreEqual((start + 30_000_000).ToString(System.Globalization.CultureInfo.InvariantCulture), log.GetProperty("observed_time_unix_nano").GetString());
+                Assert.AreEqual((Start + 30_000_000).ToString(System.Globalization.CultureInfo.InvariantCulture), log.GetProperty("observed_time_unix_nano").GetString());
             }
             if (page < 2)
                 path = $"/api/v1/logs?start_time={since}&limit=1&cursor={Uri.EscapeDataString(json.GetProperty("next_cursor").GetString()!)}";
@@ -622,8 +622,8 @@ public sealed class TelemetryMetadataTests(TestContext testContext)
         Assert.HasCount(2, await store.ListMetricSeriesAsync("metadata", first.MetricName, [], ct: testContext.CancellationToken));
         var descriptor = MetricMapper.ToContract(Assert.ContainsSingle(await store.ListMetricsAsync("metadata", ct: testContext.CancellationToken)));
         Assert.HasCount(2, descriptor.Conflicts!);
-        Assert.IsTrue(descriptor.Conflicts!.Any(static conflict => conflict is { Kind: Api.Contracts.OTel.Metrics.MetricKind.Gauge, Monotonic: false }));
-        Assert.IsTrue(descriptor.Conflicts!.Any(static conflict => conflict is { Kind: Api.Contracts.OTel.Metrics.MetricKind.Sum, Monotonic: true, Unit: "{item}" }));
+        Assert.Contains(static conflict => conflict is { Kind: Api.Contracts.OTel.Metrics.MetricKind.Gauge, Monotonic: false }, descriptor.Conflicts!);
+        Assert.Contains(static conflict => conflict is { Kind: Api.Contracts.OTel.Metrics.MetricKind.Sum, Monotonic: true, Unit: "{item}" }, descriptor.Conflicts!);
         var query = new MetricRangeQuery
         {
             ProjectId = "metadata",

@@ -37,6 +37,10 @@ namespace Qyl.Collector.Tests;
 [TestClass]
 public sealed class OtlpWireTests(TestContext testContext)
 {
+    private const string TracesSignal = "traces";
+    private const string LogsSignal = "logs";
+    private const string MetricsSignal = "metrics";
+
     [TestMethod]
     [DataRow("application/json", "Json")]
     [DataRow("APPLICATION/JSON; charset=utf-8", "Json")]
@@ -166,8 +170,8 @@ public sealed class OtlpWireTests(TestContext testContext)
                             {
                                 new Span
                                 {
-                                    TraceId = ByteString.CopyFrom(Enumerable.Range(1, 16).Select(static value => (byte)value).ToArray()),
-                                    SpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static value => (byte)value).ToArray()),
+                                    TraceId = ByteString.CopyFrom([.. Enumerable.Range(1, 16).Select(static value => (byte)value)]),
+                                    SpanId = ByteString.CopyFrom([.. Enumerable.Range(1, 8).Select(static value => (byte)value)]),
                                     Name = "cross-project",
                                     StartTimeUnixNano = 1,
                                     EndTimeUnixNano = 2
@@ -211,6 +215,26 @@ public sealed class OtlpWireTests(TestContext testContext)
         Assert.AreEqual(
             "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.",
             status.Message);
+    }
+
+    [TestMethod]
+    [DataRow(TracesSignal, "The OTLP traces payload could not be decoded.")]
+    [DataRow(LogsSignal, "The OTLP logs payload could not be decoded.")]
+    [DataRow(MetricsSignal, "The OTLP metrics payload could not be decoded.")]
+    public async Task IngestOtlp_UndecodableProtobuf_Answers400NamingItsSignal(string signal, string expectedMessage)
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var context = NewOtlpEndpointContext(OtlpPayloadParser.ProtobufContentType, [0x00]);
+        var result = signal switch
+        {
+            TracesSignal => await CollectorEndpointExtensions.IngestOtlpTracesAsync(context, store, testContext.CancellationToken),
+            LogsSignal => await CollectorEndpointExtensions.IngestOtlpLogsAsync(context, store, TimeProvider.System, testContext.CancellationToken),
+            _ => await CollectorEndpointExtensions.IngestOtlpMetricsAsync(context, store, testContext.CancellationToken)
+        };
+        await result.ExecuteAsync(context);
+
+        Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.AreEqual(expectedMessage, RpcStatus.Parser.ParseFrom(ResponseBytes(context)).Message);
     }
 
     [TestMethod]
@@ -684,7 +708,7 @@ public sealed class OtlpWireTests(TestContext testContext)
             ContractJson.ParseAttributes(Persisted));
 
         var node = JsonNode.Parse(JsonSerializer.Serialize(
-            attributes.ToArray(),
+            [.. attributes],
             QylSerializerContext.Default.AttributeArray))!;
         Assert.AreEqual("bytes", node[0]!["value"]!["type"]!.GetValue<string>());
         Assert.AreEqual("/wA=", node[0]!["value"]!["base64"]!.GetValue<string>());
@@ -714,7 +738,7 @@ public sealed class OtlpWireTests(TestContext testContext)
         protected override Metadata ResponseTrailersCore { get; } = [];
         protected override GrpcStatus StatusCore { get; set; }
         protected override WriteOptions? WriteOptionsCore { get; set; }
-        protected override AuthContext AuthContextCore { get; } = new("", new Dictionary<string, List<AuthProperty>>());
+        protected override AuthContext AuthContextCore { get; } = new("", []);
         protected override IDictionary<object, object> UserStateCore { get; } = new Dictionary<object, object>();
 
         protected override ContextPropagationToken CreatePropagationTokenCore(
@@ -782,7 +806,7 @@ public sealed class OtlpWireTests(TestContext testContext)
         JsonNode.Parse(JsonFormatter.Default.Format(message))!.AsObject();
 
     private static byte[] SequentialBytes(int start, int length) =>
-        Enumerable.Range(start, length).Select(static value => (byte)value).ToArray();
+        [.. Enumerable.Range(start, length).Select(static value => (byte)value)];
 
     private static byte[] ResponseBytes(DefaultHttpContext context)
     {

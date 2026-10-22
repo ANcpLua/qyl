@@ -117,7 +117,7 @@ public sealed class ParityTests
         Assert.AreEqual(new XmlName("order", "urn:qyl:orders"), Order.XmlShape.Root);
         Assert.AreEqual("Order", Order.XmlShape.TypeName);
         Assert.AreEqual(new XmlName("document", null), Document.XmlShape.Root);
-        Assert.AreEqual(3, Document.XmlShape.Nodes.Count);
+        Assert.HasCount(3, Document.XmlShape.Nodes);
         Assert.AreEqual(new XmlName("Customer", null), Customer.XmlShape.Root);
 
         var lines = Order.XmlShape.Nodes.OfType<XmlCollectionShape>().Single(node => node.PropertyName == "Lines");
@@ -127,7 +127,7 @@ public sealed class ParityTests
         Assert.IsTrue(lines.ItemNillable);
 
         var status = Order.XmlShape.Nodes.OfType<XmlAttributeShape>().Single(node => node.PropertyName == "Status");
-        Assert.AreSequenceEqual(s_statusNames, status.Value.EnumValues!.ToArray());
+        Assert.AreSequenceEqual(s_statusNames, [.. status.Value.EnumValues!]);
 
         var days = Order.XmlShape.Nodes.OfType<XmlElementShape>().Single(node => node.PropertyName == "Days");
         Assert.IsNull(days.Value.EnumValues);

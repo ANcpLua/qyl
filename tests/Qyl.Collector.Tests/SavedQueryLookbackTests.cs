@@ -183,14 +183,14 @@ public sealed class SavedQueryLookbackTests(TestContext testContext)
     private async Task SeedAsync(string signal, ulong[] times)
     {
         if (signal == "traces")
-            await Host.Store.EnqueueAsync(new SpanBatch(times.Select((time, i) =>
-                Span(TraceId(i + 1), SpanId(i + 1), time, time + 1)).ToArray()), testContext.CancellationToken);
+            await Host.Store.EnqueueAsync(new SpanBatch([.. times.Select((time, i) =>
+                Span(TraceId(i + 1), SpanId(i + 1), time, time + 1))]), testContext.CancellationToken);
         else
-            await Host.Store.InsertLogsAsync(times.Select((time, i) => new LogStorageRow
+            await Host.Store.InsertLogsAsync([.. times.Select((time, i) => new LogStorageRow
             {
                 ProjectId = AlphaProjectId, LogId = (i + 1).ToString(CultureInfo.InvariantCulture),
                 TimeUnixNano = time, SeverityNumber = 9, Body = $"\"{i + 1}\""
-            }).ToArray(), testContext.CancellationToken);
+            })], testContext.CancellationToken);
     }
 
     private async Task<string> CreateAsync(string signal)

@@ -42,7 +42,7 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
         {
             var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
             var constants = ReadContractLimitConstants(endpointFile);
-            using var document = JsonDocument.Parse(File.ReadAllText(OpenApiContractFile));
+            using var document = ReadOpenApi();
 
             // The contract has one PageLimit: every list route's `limit` and SavedQueryRunRequest.limit
             // reference the same schema (1 to 1000) with the same default (100). The collector keeps that
@@ -104,7 +104,7 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
         .Executes(() =>
         {
             var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
-            using var openApiDocument = JsonDocument.Parse(File.ReadAllText(OpenApiContractFile));
+            using var openApiDocument = ReadOpenApi();
 
             var operationNames = new HashSet<string>(StringComparer.Ordinal)
             {
@@ -123,8 +123,7 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
                 .ToDictionary(static item => item.Route, static item => item.Role, StringComparer.Ordinal);
             var expected = expectedRoles.Keys.ToHashSet(StringComparer.Ordinal);
 
-            var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(endpointFile), path: endpointFile.ToString());
-            var mapped = tree.GetCompilationUnitRoot().DescendantNodes()
+            var mapped = ParseCompilationUnit(endpointFile).DescendantNodes()
                 .OfType<InvocationExpressionSyntax>()
                 .Select(static invocation => (Invocation: invocation, Member: invocation.Expression as MemberAccessExpressionSyntax))
                 .Where(static item => item.Member?.Expression is IdentifierNameSyntax { Identifier.ValueText: "api" })

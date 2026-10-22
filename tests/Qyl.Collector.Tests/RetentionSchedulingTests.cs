@@ -59,7 +59,7 @@ public sealed class RetentionSchedulingTests(TestContext testContext) : IAsyncDi
         Assert.AreEqual(TimeSpan.FromSeconds(10), await _clock.WaitForTimerAsync(testContext.CancellationToken));
 
         _fake.Advance(TimeSpan.FromSeconds(9));
-        Assert.AreEqual(2, (await Store.GetLogsAsync(AlphaProjectId, ct: testContext.CancellationToken)).Count);
+        Assert.HasCount(2, await Store.GetLogsAsync(AlphaProjectId, ct: testContext.CancellationToken));
 
         _fake.Advance(TimeSpan.FromSeconds(1));
         // Registering the next wait also proves that deletion and checkpointing have completed.

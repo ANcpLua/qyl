@@ -10,6 +10,9 @@ namespace Qyl.Collector.Tests;
 [TestClass]
 public sealed class ContractQueryParserTests(TestContext testContext)
 {
+    private const string SeriesLimitField = "series_limit";
+    private const string StepMsField = "step_ms";
+
     public static IEnumerable<object[]> MalformedTypedQueries =>
         [
             [ QueryEndpoint.Sessions, "is_active", "not-a-boolean", "query.invalid_boolean" ],
@@ -109,6 +112,24 @@ public sealed class ContractQueryParserTests(TestContext testContext)
         Assert.AreEqual(
             123_456_700UL,
             QylTimeConversions.ToUnixNanoUnsigned(parsed.StartTime!.Value) % 1_000_000_000UL);
+    }
+
+    [TestMethod]
+    [DataRow(SeriesLimitField, "Value must be a single 32-bit integer.")]
+    [DataRow(StepMsField, "Value must be a single 64-bit integer.")]
+    public async Task MetricQuery_UnparsableInteger_NamesItsBitWidth(string field, string expectedMessage)
+    {
+        var context = CreateContext(field, "many");
+
+        await Assert.IsInstanceOfType<IResult>(ContractQueryParser.ParseMetricQuery(context.Request, out _)).ExecuteAsync(context);
+
+        context.Response.Body.Position = 0;
+        var problem = await JsonSerializer.DeserializeAsync(
+            context.Response.Body,
+            QylSerializerContext.Default.ValidationError,
+            testContext.CancellationToken);
+        var detail = Assert.ContainsSingle(Assert.IsExactInstanceOfType<ValidationError>(problem).Errors);
+        Assert.AreEqual(expectedMessage, detail.Message);
     }
 
     private async Task InvokeEndpointAsync(QueryEndpoint endpoint, DefaultHttpContext context)
