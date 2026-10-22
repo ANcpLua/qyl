@@ -32,12 +32,12 @@ internal static class TimeConversions
     public static double NanosToMs(ulong nanos) => nanos / (double)NanosPerMillisecond;
 
     public static DateTimeOffset NanosToDateTimeOffset(ulong nanos) =>
-        DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / NanosPerMillisecond));
+        DateTimeOffset.UnixEpoch.AddTicks((long)(nanos / NanosPerTick));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime UnixNanoToDateTime(ulong unixNano)
     {
-        var ticks = (long)(unixNano / 100);
+        var ticks = (long)(unixNano / NanosPerTick);
         return DateTime.UnixEpoch.AddTicks(ticks);
     }
 }

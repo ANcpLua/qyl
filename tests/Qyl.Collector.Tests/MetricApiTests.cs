@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -195,6 +197,28 @@ public sealed class MetricApiTests(TestContext testContext)
         var bucket = Assert.ContainsSingle(Assert.ContainsSingle(result.Series).Buckets);
         Assert.AreEqual(3d, BucketValue(bucket), 0.0000000005d);
         Assert.AreEqual(8, bucket.PointCount);
+    }
+
+    [TestMethod]
+    public async Task QueryRoute_StartBetweenMilliseconds_StartsBucketAtTheTick()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var ct = testContext.CancellationToken;
+        await IngestAsync(store, ct, Gauge("http.server.active", "/a", (T0 + OneSecond, 1d)));
+        var clock = new FakeTimeProvider(DateTimeOffset.Parse(T0Iso, CultureInfo.InvariantCulture));
+        clock.Advance(TimeSpan.FromMicroseconds(500));
+        var start = clock.GetUtcNow();
+
+        var context = CreateContext(
+            $"start_time={Uri.EscapeDataString(start.ToString("O", CultureInfo.InvariantCulture))}&end_time={T0PlusMinuteIso}&step_ms=60000");
+        await (await CollectorEndpointExtensions.QueryMetricAsync(
+            context, "http.server.active", store, ct)).ExecuteAsync(context);
+
+        Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
+        var result = JsonSerializer.Deserialize(
+            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+        var bucket = Assert.ContainsSingle(Assert.ContainsSingle(result.Series).Buckets);
+        Assert.AreEqual(start, bucket.BucketStart);
     }
 
     [TestMethod]
