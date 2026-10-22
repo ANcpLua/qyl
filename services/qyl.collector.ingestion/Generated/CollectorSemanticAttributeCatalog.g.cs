@@ -2395,6 +2395,7 @@ internal static class CollectorSemanticAttributeCatalog
         "thinking_forced", // incubating
         "third_party", // incubating
         "third_party_gpu_modules_allowed", // incubating
+        "thread.id", // incubating
         "thread_id", // incubating
         "thread_start.dynamic_tool_count", // incubating
         "thread_start.experimental_raw_events", // incubating
