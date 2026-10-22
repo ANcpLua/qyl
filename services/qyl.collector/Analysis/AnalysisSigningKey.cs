@@ -1,4 +1,5 @@
-using Qyl.Collector.Storage;
+using Microsoft.Extensions.Options;
+using Qyl.Collector.Hosting;
 
 namespace Qyl.Collector.Analysis;
 
@@ -6,19 +7,16 @@ internal sealed class AnalysisSigningKey
 {
     private readonly byte[] _key;
 
-    public AnalysisSigningKey(IConfiguration configuration)
+    public AnalysisSigningKey(IOptions<AnalysisOptions> analysis, IOptions<CollectorStorageOptions> storage)
     {
-        var configured = configuration["QYL_ANALYSIS_SIGNING_KEY"];
-        if (!string.IsNullOrWhiteSpace(configured))
+        if (analysis.Value is { HasSigningKey: true, SigningKey: { } configured })
         {
-            if (Encoding.UTF8.GetByteCount(configured) < 32)
-                throw new InvalidOperationException("QYL_ANALYSIS_SIGNING_KEY must contain at least 32 bytes.");
             _key = Encoding.UTF8.GetBytes(configured);
             return;
         }
         // Local collectors persist an independent random key beside their database.
         // Rotating an ingest/read credential never invalidates signed continuations.
-        var database = configuration["QYL_DATA_PATH"] ?? StorageDefaults.DatabaseFileName;
+        var database = storage.Value.DataPath;
         if (database == ":memory:") { _key = RandomNumberGenerator.GetBytes(32); return; }
         var path = Path.GetFullPath(database) + ".analysis-signing.key";
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);

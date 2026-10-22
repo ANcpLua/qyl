@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Qyl.Collector.Health;
 using Qyl.Collector.Retention;
 using Qyl.Collector.Storage;
@@ -11,7 +12,10 @@ internal static class CollectorStorageExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
+        services.AddOptions<RetentionOptions>()
+            .Bind(configuration)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<RetentionOptions>, RetentionOptionsValidator>();
         services.AddSingleton(CreateStore);
         services.ActivateSingleton<IQylStore>();
         services.AddHostedService<RetentionService>();
@@ -23,17 +27,16 @@ internal static class CollectorStorageExtensions
 
     private static IQylStore CreateStore(IServiceProvider services)
     {
-        var config = services.GetRequiredService<IConfiguration>();
-        var dataPath = config["QYL_DATA_PATH"] ?? StorageDefaults.DatabaseFileName;
-        var dataDir = Path.GetDirectoryName(dataPath);
+        var storage = services.GetRequiredService<IOptions<CollectorStorageOptions>>().Value;
+        var dataDir = Path.GetDirectoryName(storage.DataPath);
         if (!string.IsNullOrEmpty(dataDir))
             Directory.CreateDirectory(dataDir);
 
         return new DuckDbStore(
-            dataPath,
-            memoryLimit: config["QYL_DB_MEMORY_LIMIT"],
-            threads: config["QYL_DB_THREADS"] is { } threads ? int.Parse(threads, CultureInfo.InvariantCulture) : null,
-            tempDirectory: config["QYL_DB_TEMP_DIR"],
+            storage.DataPath,
+            memoryLimit: storage.MemoryLimit,
+            threads: storage.Threads,
+            tempDirectory: storage.TempDirectory,
             loggerFactory: services.GetRequiredService<ILoggerFactory>());
     }
 }

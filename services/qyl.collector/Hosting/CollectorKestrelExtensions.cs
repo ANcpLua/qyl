@@ -1,24 +1,26 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Options;
 
 namespace Qyl.Collector.Hosting;
 
 internal static class CollectorKestrelExtensions
 {
-    public static ConfigureWebHostBuilder ConfigureQylCollectorKestrel(
-        this ConfigureWebHostBuilder webHost,
-        CollectorPortOptions ports)
+    public static IServiceCollection ConfigureQylCollectorKestrel(this IServiceCollection services)
     {
-        webHost.ConfigureKestrel(options =>
-        {
-            options.Listen(ports.BindAddress, ports.Http, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
+        services.AddOptions<KestrelServerOptions>()
+            .Configure<IOptions<CollectorPortOptions>>(static (options, configured) =>
+            {
+                var ports = configured.Value;
+                var address = ports.ParseBindAddress();
+                options.Listen(address, ports.Http, static lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
 
-            if (ports.OtlpHttp > 0 && ports.OtlpHttp != ports.Http)
-                options.Listen(ports.BindAddress, ports.OtlpHttp, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
+                if (ports.OtlpHttp > 0 && ports.OtlpHttp != ports.Http)
+                    options.Listen(address, ports.OtlpHttp, static lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
 
-            if (ports.Grpc > 0)
-                options.Listen(ports.BindAddress, ports.Grpc, lo => lo.Protocols = HttpProtocols.Http2);
-        });
+                if (ports.Grpc > 0)
+                    options.Listen(address, ports.Grpc, static lo => lo.Protocols = HttpProtocols.Http2);
+            });
 
-        return webHost;
+        return services;
     }
 }

@@ -1,18 +1,19 @@
 using Qyl.Collector.ApiKeys;
+using Qyl.Collector.Hosting;
 
 namespace Qyl.Collector;
 
 internal static class StartupBanner
 {
     public static void Print(
-        string baseUrl,
-        int grpcPort = 4317,
-        int otlpHttpPort = 4318,
-        OtlpCorsOptions? corsOptions = null,
-        OtlpApiKeyOptions? apiKeyOptions = null)
+        CollectorPortOptions ports,
+        OtlpCorsOptions corsOptions,
+        OtlpApiKeyOptions apiKeyOptions)
     {
-        var httpReceiver = otlpHttpPort > 0
-            ? $"http://localhost:{otlpHttpPort}"
+        var baseUrl = $"http://localhost:{ports.Http}";
+        var grpcPort = ports.Grpc;
+        var httpReceiver = ports.OtlpHttp > 0
+            ? $"http://localhost:{ports.OtlpHttp}"
             : baseUrl;
 
         Console.WriteLine();
@@ -24,10 +25,10 @@ internal static class StartupBanner
             : "  OTLP/gRPC         disabled");
         Console.WriteLine($"  readiness         {baseUrl}/health");
 
-        if (corsOptions?.IsEnabled == true)
+        if (corsOptions.IsEnabled)
             Console.WriteLine($"  CORS origins      {corsOptions.AllowedOrigins}");
 
-        Console.WriteLine(apiKeyOptions?.IsApiKeyMode == true
+        Console.WriteLine(apiKeyOptions.IsApiKeyMode
             ? $"  authentication    {OtlpConstants.ApiKeyHeaderName} required"
             : "  authentication    unsecured");
         Console.WriteLine();

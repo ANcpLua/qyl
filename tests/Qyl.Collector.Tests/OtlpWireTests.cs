@@ -68,7 +68,7 @@ public sealed class OtlpWireTests(TestContext testContext)
             AuthMode = "ApiKey",
             Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
-        var interceptor = new OtlpApiKeyInterceptor(options);
+        var interceptor = new OtlpApiKeyInterceptor(Options.Create(options));
         var context = new TestServerCallContext(testContext.CancellationToken);
         context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
 
@@ -92,7 +92,7 @@ public sealed class OtlpWireTests(TestContext testContext)
             AuthMode = "ApiKey",
             Keys = [new ProjectApiKey("alpha", "reader", ApiKeyRoles.Read | ApiKeyRoles.Write)]
         };
-        var interceptor = new OtlpApiKeyInterceptor(options);
+        var interceptor = new OtlpApiKeyInterceptor(Options.Create(options));
         var context = new TestServerCallContext(testContext.CancellationToken);
         context.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "reader");
 
@@ -109,7 +109,7 @@ public sealed class OtlpWireTests(TestContext testContext)
             AuthMode = "ApiKey",
             Keys = [new ProjectApiKey("alpha", "a1", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))]
         };
-        var interceptor = new OtlpApiKeyInterceptor(options);
+        var interceptor = new OtlpApiKeyInterceptor(Options.Create(options));
 
         var conflicting = new TestServerCallContext(testContext.CancellationToken);
         conflicting.RequestHeaders.Add(OtlpConstants.ApiKeyHeaderName, "a1");
@@ -183,8 +183,8 @@ public sealed class OtlpWireTests(TestContext testContext)
         await using var store = new DuckDbStore(":memory:");
 
         var error = await Assert.ThrowsExactlyAsync<RpcException>(() =>
-            new OtlpApiKeyInterceptor(options).UnaryServerHandler(
-                request, context, (message, call) => new TraceServiceImpl(store, options).Export(message, call)));
+            new OtlpApiKeyInterceptor(Options.Create(options)).UnaryServerHandler(
+                request, context, (message, call) => new TraceServiceImpl(store, Options.Create(options)).Export(message, call)));
         Assert.AreEqual(StatusCode.InvalidArgument, error.StatusCode);
         Assert.IsEmpty(await store.GetSpansAsync("alpha", ct: testContext.CancellationToken));
         Assert.IsEmpty(await store.GetSpansAsync("beta", ct: testContext.CancellationToken));

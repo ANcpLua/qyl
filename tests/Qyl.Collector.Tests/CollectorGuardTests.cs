@@ -19,8 +19,8 @@ public sealed class CollectorGuardTests
 {
     private static CollectorPortOptions Ports => new()
     {
-        BindAddress = IPAddress.Loopback,
-        Http = 5100,
+        BindAddress = IPAddress.Loopback.ToString(),
+        Port = 5100,
         OtlpHttp = 4318,
         Grpc = 4317,
     };

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.Options;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Telemetry;
 
@@ -8,13 +9,10 @@ internal static class CollectorMiddlewareExtensions
 {
     public static WebApplication UseQylCollectorMiddleware(this WebApplication app)
     {
-        var otlpCorsOptions = app.Services.GetRequiredService<OtlpCorsOptions>();
-        var otlpApiKeyOptions = app.Services.GetRequiredService<OtlpApiKeyOptions>();
+        if (app.Services.GetRequiredService<IOptions<OtlpCorsOptions>>().Value.IsEnabled)
+            app.UseMiddleware<OtlpCorsMiddleware>();
 
-        if (otlpCorsOptions.IsEnabled)
-            app.UseMiddleware<OtlpCorsMiddleware>(otlpCorsOptions);
-
-        app.UseMiddleware<CollectorApiKeyMiddleware>(otlpApiKeyOptions);
+        app.UseMiddleware<CollectorApiKeyMiddleware>();
 
         app.UseExceptionHandler(static errorApp =>
         {

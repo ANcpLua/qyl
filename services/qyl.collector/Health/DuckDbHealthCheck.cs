@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Qyl.Collector.Retention;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Health;
 
-internal sealed class DuckDbHealthCheck(IQylStore store, RetentionOptions retentionOptions) : IHealthCheck
+internal sealed class DuckDbHealthCheck(IQylStore store, IOptions<RetentionOptions> retentionOptions) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
@@ -25,7 +26,7 @@ internal sealed class DuckDbHealthCheck(IQylStore store, RetentionOptions retent
                 ["storage_free_bytes"] = fileMetrics.StorageFreeBytes
             };
 
-            if (fileMetrics.StorageFreeBytes < retentionOptions.StorageMinimumFreeBytes)
+            if (fileMetrics.StorageFreeBytes < retentionOptions.Value.StorageMinimumFreeBytes)
             {
                 return HealthCheckResult.Degraded(
                     $"DuckDB storage free space is below the configured minimum; " +

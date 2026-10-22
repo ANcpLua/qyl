@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Qyl.Collector.Ingestion.Primitives;
 
 namespace Qyl.Collector.ApiKeys;
@@ -11,8 +12,10 @@ namespace Qyl.Collector.ApiKeys;
 /// <c>/health</c> and <c>/alive</c> stay open for unauthenticated liveness probes.
 /// The gRPC ingest boundary is <see cref="Qyl.Collector.Grpc.OtlpApiKeyInterceptor"/>.
 /// </summary>
-internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
+internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, IOptions<OtlpApiKeyOptions> configured)
 {
+    private readonly OtlpApiKeyOptions _options = configured.Value;
+
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "";
@@ -21,14 +24,14 @@ internal sealed class CollectorApiKeyMiddleware(RequestDelegate next, OtlpApiKey
         if (isProductApi)
             context.Response.Headers.CacheControl = "private, no-store";
 
-        if (!options.IsApiKeyMode || (!OtlpConstants.IsOtlpPath(path) && !isProductApi))
+        if (!_options.IsApiKeyMode || (!OtlpConstants.IsOtlpPath(path) && !isProductApi))
         {
             await next(context).ConfigureAwait(false);
             return;
         }
 
         var credential = OtlpApiKeyValidator.Resolve(
-            context.Request.Headers[OtlpConstants.ApiKeyHeaderName].FirstOrDefault(), options);
+            context.Request.Headers[OtlpConstants.ApiKeyHeaderName].FirstOrDefault(), _options);
         if (credential is null)
         {
             var challenge = $"{OtlpConstants.ApiKeyHeaderName} realm=\"qyl-otlp\"";

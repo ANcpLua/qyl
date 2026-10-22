@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
 
@@ -61,7 +62,7 @@ public sealed class ApiKeyRoleTests(TestContext testContext)
     [DataRow("""{"alpha":[{"key":"k","roles":["read"],"roles":["write"]}]}""")]
     [DataRow("""{"alpha":[{"key":"k","roles":["read"]}],"beta":[{"key":"k","roles":["write"]}]}""")]
     public void Malformed_role_credentials_fail_start_up(string keys) =>
-        Assert.ThrowsExactly<InvalidOperationException>(() => Parse(keys));
+        Assert.ThrowsExactly<OptionsValidationException>(() => Parse(keys));
 
     [TestMethod]
     // A combined ingest/read credential cannot write or delete.
@@ -173,7 +174,7 @@ public sealed class ApiKeyRoleTests(TestContext testContext)
         using var provider = new ServiceCollection()
             .AddQylCollectorAuth(config, new ProductionEnvironment())
             .BuildServiceProvider();
-        return provider.GetRequiredService<OtlpApiKeyOptions>();
+        return provider.GetRequiredService<IOptions<OtlpApiKeyOptions>>().Value;
     }
 
     private static ProjectApiKey Resolve(OtlpApiKeyOptions options, string key) =>

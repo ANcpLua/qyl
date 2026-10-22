@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Qyl.Collector.Ingestion.Primitives;
 
 namespace Qyl.Collector.ApiKeys;
@@ -19,7 +20,7 @@ internal static class AuthenticatedProject
         if (context.Items.TryGetValue(s_httpKey, out var value) && value is string projectId)
             return projectId;
 
-        if (context.RequestServices.GetService<OtlpApiKeyOptions>()?.IsApiKeyMode == true)
+        if (context.RequestServices.GetService<IOptions<OtlpApiKeyOptions>>()?.Value.IsApiKeyMode == true)
             throw new InvalidOperationException("Authenticated project scope is missing.");
 
         return null;

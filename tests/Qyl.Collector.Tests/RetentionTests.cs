@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Qyl.Collector.Health;
+using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Retention;
 using Qyl.Collector.Storage;
@@ -257,7 +260,7 @@ public sealed class RetentionTests(TestContext testContext)
             await using var store = new DuckDbStore(databasePath, maxConcurrentReads: 1);
             var check = new DuckDbHealthCheck(
                 store,
-                new RetentionOptions { StorageMinimumFreeBytes = long.MaxValue });
+                Options.Create(new RetentionOptions { StorageMinimumFreeMegabytes = long.MaxValue / (1024L * 1024L) }));
 
             var result = await check.CheckHealthAsync(
                 new HealthCheckContext(),
@@ -276,12 +279,12 @@ public sealed class RetentionTests(TestContext testContext)
     [TestMethod]
     public void Retention_configuration_binds_the_three_operator_variables()
     {
-        var defaults = RetentionOptions.FromConfiguration(new ConfigurationBuilder().Build());
+        var defaults = BindRetention(new ConfigurationBuilder().Build());
         Assert.AreEqual(30, defaults.Days);
         Assert.AreEqual(TimeSpan.FromMinutes(60), defaults.Interval);
         Assert.AreEqual(2048L * 1024L * 1024L, defaults.StorageMinimumFreeBytes);
 
-        var configured = RetentionOptions.FromConfiguration(
+        var configured = BindRetention(
             new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -350,10 +353,16 @@ public sealed class RetentionTests(TestContext testContext)
         }
     }
 
+    private static RetentionOptions BindRetention(IConfiguration configuration)
+    {
+        using var provider = new ServiceCollection().AddQylCollectorStorage(configuration).BuildServiceProvider();
+        return provider.GetRequiredService<IOptions<RetentionOptions>>().Value;
+    }
+
     private static RetentionService CreateService(DuckDbStore store, int days) =>
         new(
             store,
-            new RetentionOptions { Days = days },
+            Options.Create(new RetentionOptions { Days = days }),
             new FakeTimeProvider(s_now),
             NullLogger<RetentionService>.Instance);
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Grpc.Core.Interceptors;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Ingestion.Primitives;
@@ -12,17 +13,19 @@ namespace Qyl.Collector.Grpc;
 /// 400 when <c>x-qyl-project</c> names another project.
 /// All OTLP export methods are unary, so the unary handler is the whole boundary.
 /// </summary>
-internal sealed class OtlpApiKeyInterceptor(OtlpApiKeyOptions options) : Interceptor
+internal sealed class OtlpApiKeyInterceptor(IOptions<OtlpApiKeyOptions> configured) : Interceptor
 {
+    private readonly OtlpApiKeyOptions _options = configured.Value;
+
     public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(
         TRequest request,
         ServerCallContext context,
         UnaryServerMethod<TRequest, TResponse> continuation)
     {
-        if (options.IsApiKeyMode)
+        if (_options.IsApiKeyMode)
         {
             if (OtlpApiKeyValidator.Resolve(
-                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), options) is not { } credential)
+                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), _options) is not { } credential)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
 
             if ((credential.Roles & ApiKeyRoles.Ingest) is ApiKeyRoles.None)

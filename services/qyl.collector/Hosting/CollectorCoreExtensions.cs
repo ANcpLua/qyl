@@ -1,26 +1,39 @@
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Model;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using Qyl.Collector.Analysis;
 using Qyl.Collector.Grpc;
 
 namespace Qyl.Collector.Hosting;
 
 internal static class CollectorCoreExtensions
 {
-    public static CollectorPortOptions AddQylCollectorCore(
+    public static IServiceCollection AddQylCollectorCore(
         this IServiceCollection services,
         IConfiguration config)
     {
-        var ports = CollectorPortOptions.FromConfiguration(config);
-        services.AddSingleton(ports);
+        services.AddOptions<CollectorPortOptions>()
+            .Bind(config)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<CollectorPortOptions>, CollectorPortOptionsValidator>();
+        services.AddSingleton<IValidateOptions<CollectorPortOptions>, CollectorPortOptionsRules>();
+        services.AddOptions<CollectorStorageOptions>()
+            .Bind(config)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<CollectorStorageOptions>, CollectorStorageOptionsValidator>();
+        services.AddOptions<AnalysisOptions>()
+            .Bind(config)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AnalysisOptions>, AnalysisOptionsRules>();
         services.AddSingleton<CollectorStreamCapacity>();
 
         // Preserve a host-supplied clock for observation times and analysis windows.
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton(_ => new Analysis.AnalysisSigningKey(config));
+        services.AddSingleton<AnalysisSigningKey>();
 
         services.ConfigureHttpJsonOptions(static options =>
         {
@@ -70,6 +83,6 @@ internal static class CollectorCoreExtensions
             }
         });
 
-        return ports;
+        return services;
     }
 }

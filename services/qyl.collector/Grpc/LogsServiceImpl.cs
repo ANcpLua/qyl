@@ -1,10 +1,11 @@
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class LogsServiceImpl(IQylStore store, TimeProvider timeProvider, OtlpApiKeyOptions? options = null)
+internal sealed class LogsServiceImpl(IQylStore store, TimeProvider timeProvider, IOptions<OtlpApiKeyOptions>? options = null)
 {
     public Task<ExportLogsServiceResponse> Export(
         ExportLogsServiceRequest request,
@@ -13,7 +14,7 @@ internal sealed class LogsServiceImpl(IQylStore store, TimeProvider timeProvider
         {
             var logBatch = OtlpConverter.ConvertLogs(request, timeProvider);
             var logs = IngestionStorageMapper.ToLogStorageRows(
-                logBatch, AuthenticatedProject.ForGrpcIngest(context, options));
+                logBatch, AuthenticatedProject.ForGrpcIngest(context, options?.Value));
 
             if (logs.Count <= 0) return OtlpExportAck.Create(logBatch);
 

@@ -1,21 +1,24 @@
+using Microsoft.Extensions.Options;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Retention;
 
 internal sealed partial class RetentionService(
     IQylStore store,
-    RetentionOptions options,
+    IOptions<RetentionOptions> configured,
     TimeProvider timeProvider,
     ILogger<RetentionService> logger) : BackgroundService
 {
     private const int DeleteBatchSize = 1000;
+
+    private readonly RetentionOptions _options = configured.Value;
 
     private static readonly TimeSpan s_initialDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan s_shutdownCheckpointTimeout = TimeSpan.FromSeconds(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!options.IsEnabled)
+        if (!_options.IsEnabled)
             return;
 
         try
@@ -44,7 +47,7 @@ internal sealed partial class RetentionService(
 
             try
             {
-                await Task.Delay(options.Interval, timeProvider, stoppingToken).ConfigureAwait(false);
+                await Task.Delay(_options.Interval, timeProvider, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -55,7 +58,7 @@ internal sealed partial class RetentionService(
 
     internal async Task<RetentionCycleOutcome> RunCycleAsync(CancellationToken cancellationToken = default)
     {
-        if (!options.IsEnabled)
+        if (!_options.IsEnabled)
             return RetentionCycleOutcome.Empty;
 
         var startedAt = Stopwatch.GetTimestamp();
@@ -71,7 +74,7 @@ internal sealed partial class RetentionService(
         try
         {
             var cutoff = QylTimeConversions.ToUnixNanoUnsigned(
-                timeProvider.GetUtcNow().AddDays(-options.Days));
+                timeProvider.GetUtcNow().AddDays(-_options.Days));
 
             while (true)
             {

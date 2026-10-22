@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+
 namespace Qyl.Collector.Ingestion;
 
 internal sealed class OtlpCorsMiddleware
@@ -7,8 +9,9 @@ internal sealed class OtlpCorsMiddleware
     private readonly HashSet<string> _allowedOrigins;
     private readonly RequestDelegate _next;
 
-    public OtlpCorsMiddleware(RequestDelegate next, OtlpCorsOptions options)
+    public OtlpCorsMiddleware(RequestDelegate next, IOptions<OtlpCorsOptions> configured)
     {
+        var options = configured.Value;
         _next = next;
         _allowedOrigins = options.GetOrigins().ToHashSet(StringComparer.OrdinalIgnoreCase);
         _allowedHeadersHeader = string.Join(", ", options.GetHeaders());

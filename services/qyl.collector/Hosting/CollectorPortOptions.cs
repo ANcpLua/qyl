@@ -1,42 +1,50 @@
 using System.Net;
+using Microsoft.Extensions.Options;
+using Qyl.Collector.Ingestion.Configuration;
 
 namespace Qyl.Collector.Hosting;
 
-internal sealed record CollectorPortOptions
+internal sealed class CollectorPortOptions
 {
-    public required IPAddress BindAddress { get; init; }
+    private const int DefaultHttpPort = 5100;
 
-    public required int Http { get; init; }
+    [ConfigurationKeyName(CollectorConfigurationKeys.BindAddress)]
+    public string BindAddress { get; set; } = IPAddress.Loopback.ToString();
 
-    public required int OtlpHttp { get; init; }
+    // QYL_PORT wins over the platform's PORT; either is the product API port.
+    [ConfigurationKeyName(CollectorConfigurationKeys.Port)]
+    [ConfiguredRange(CollectorConfigurationKeys.Port, 1, IPEndPoint.MaxPort)]
+    public int? Port { get; set; }
 
-    public required int Grpc { get; init; }
+    [ConfigurationKeyName(CollectorConfigurationKeys.PlatformPort)]
+    public int? PlatformPort { get; set; }
 
-    public static CollectorPortOptions FromConfiguration(IConfiguration config)
+    [ConfigurationKeyName(CollectorConfigurationKeys.OtlpPort)]
+    [ConfiguredRange(CollectorConfigurationKeys.OtlpPort, 0, IPEndPoint.MaxPort)]
+    public int OtlpHttp { get; set; } = 4318;
+
+    [ConfigurationKeyName(CollectorConfigurationKeys.GrpcPort)]
+    [ConfiguredRange(CollectorConfigurationKeys.GrpcPort, 0, IPEndPoint.MaxPort)]
+    public int Grpc { get; set; } = 4317;
+
+    public int Http => Port ?? PlatformPort ?? DefaultHttpPort;
+
+    public IPAddress ParseBindAddress() => IPAddress.Parse(BindAddress);
+}
+
+[OptionsValidator]
+internal sealed partial class CollectorPortOptionsValidator : IValidateOptions<CollectorPortOptions>;
+
+/// <summary>The rules across members: the bind address parses and the effective product API port is usable.</summary>
+internal sealed class CollectorPortOptionsRules : IValidateOptions<CollectorPortOptions>
+{
+    public ValidateOptionsResult Validate(string? name, CollectorPortOptions options)
     {
-        var configuredAddress = config["QYL_BIND_ADDRESS"] ?? IPAddress.Loopback.ToString();
-        if (!IPAddress.TryParse(configuredAddress, out var bindAddress))
-            throw new InvalidOperationException(
-                $"QYL_BIND_ADDRESS must be an IP address literal, but was '{configuredAddress}'.");
-
-        var options = new CollectorPortOptions
-        {
-            BindAddress = bindAddress,
-            Http = int.Parse(config["QYL_PORT"] ?? config["PORT"] ?? "5100", CultureInfo.InvariantCulture),
-            OtlpHttp = int.Parse(config["QYL_OTLP_PORT"] ?? "4318", CultureInfo.InvariantCulture),
-            Grpc = int.Parse(config["QYL_GRPC_PORT"] ?? "4317", CultureInfo.InvariantCulture)
-        };
-
-        ValidatePort(options.Http, nameof(Http), allowDisabled: false);
-        ValidatePort(options.OtlpHttp, nameof(OtlpHttp), allowDisabled: true);
-        ValidatePort(options.Grpc, nameof(Grpc), allowDisabled: true);
-        return options;
-    }
-
-    private static void ValidatePort(int port, string name, bool allowDisabled)
-    {
-        var minimum = allowDisabled ? 0 : 1;
-        if (port < minimum || port > IPEndPoint.MaxPort)
-            throw new InvalidOperationException($"{name} must be between {minimum} and {IPEndPoint.MaxPort}.");
+        List<string> failures = [];
+        if (!IPAddress.TryParse(options.BindAddress, out _))
+            failures.Add($"{CollectorConfigurationKeys.BindAddress} must be an IP address literal, but was '{options.BindAddress}'.");
+        if (options.Port is null && options.PlatformPort is { } platform && platform is < 1 or > IPEndPoint.MaxPort)
+            failures.Add($"{CollectorConfigurationKeys.PlatformPort} must be between 1 and {IPEndPoint.MaxPort}, but was '{platform}'.");
+        return failures.Count is 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }

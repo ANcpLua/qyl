@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
@@ -20,22 +21,16 @@ public sealed class ProjectIsolationTests(TestContext testContext)
     [TestMethod]
     public void Api_key_mode_requires_explicit_unique_project_bindings()
     {
-        var environment = new TestEnvironment();
-        IServiceCollection services = new ServiceCollection();
-        Assert.ThrowsExactly<InvalidOperationException>(() => services.AddQylCollectorAuth(
-            Config(("QYL_OTLP_AUTH_MODE", "ApiKey")), environment));
+        Assert.ThrowsExactly<OptionsValidationException>(() => ApiKeyOptions(
+            Config(("QYL_OTLP_AUTH_MODE", "ApiKey"))));
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => new ServiceCollection().AddQylCollectorAuth(
+        Assert.ThrowsExactly<OptionsValidationException>(() => ApiKeyOptions(
             Config(("QYL_OTLP_AUTH_MODE", "ApiKey"),
-                ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"same","roles":["read"]}],"beta":[{"key":"same","roles":["read"]}]}""")),
-            environment));
+                ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"same","roles":["read"]}],"beta":[{"key":"same","roles":["read"]}]}"""))));
 
-        services = new ServiceCollection().AddQylCollectorAuth(
+        var options = ApiKeyOptions(
             Config(("QYL_OTLP_AUTH_MODE", "ApiKey"),
-                ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"a1","roles":["ingest","read"]},{"key":"a2","roles":["ingest","read"]}],"beta":[{"key":"b1","roles":["ingest","read"]}]}""")),
-            environment);
-        using var provider = services.BuildServiceProvider();
-        var options = provider.GetRequiredService<OtlpApiKeyOptions>();
+                ("QYL_OTLP_PROJECT_KEYS", """{"alpha":[{"key":"a1","roles":["ingest","read"]},{"key":"a2","roles":["ingest","read"]}],"beta":[{"key":"b1","roles":["ingest","read"]}]}""")));
         Assert.AreEqual("alpha", OtlpApiKeyValidator.Resolve("a2", options)?.ProjectId);
         Assert.AreEqual("beta", OtlpApiKeyValidator.Resolve("b1", options)?.ProjectId);
         Assert.IsNull(OtlpApiKeyValidator.Resolve("unknown", options)?.ProjectId);
@@ -55,7 +50,7 @@ public sealed class ProjectIsolationTests(TestContext testContext)
             {
                 reachedProject = AuthenticatedProject.ForHttpRead(context);
                 return Task.CompletedTask;
-            }, options);
+            }, Options.Create(options));
         var context = Context(options);
         context.Request.Path = "/api/v1/logs";
         context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "a1";
@@ -138,7 +133,7 @@ public sealed class ProjectIsolationTests(TestContext testContext)
             var result = await CollectorEndpointExtensions.GetLogsAsync(
                 context, store, null, null, null, null, null, testContext.CancellationToken);
             await result.ExecuteAsync(context);
-        }, options);
+        }, Options.Create(options));
         var request = Context(options);
         request.Request.Path = "/api/v1/logs";
         request.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "a1";
@@ -193,7 +188,7 @@ public sealed class ProjectIsolationTests(TestContext testContext)
             var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
                 context, store, testContext.CancellationToken);
             await result.ExecuteAsync(context);
-        }, options);
+        }, Options.Create(options));
         var request = Context(options);
         request.Request.Path = "/v1/traces";
         request.Request.ContentType = OtlpPayloadParser.ProtobufContentType;
@@ -209,13 +204,21 @@ public sealed class ProjectIsolationTests(TestContext testContext)
             ct: testContext.CancellationToken));
     }
 
+    private static OtlpApiKeyOptions ApiKeyOptions(IConfiguration config)
+    {
+        using var provider = new ServiceCollection()
+            .AddQylCollectorAuth(config, new TestEnvironment())
+            .BuildServiceProvider();
+        return provider.GetRequiredService<IOptions<OtlpApiKeyOptions>>().Value;
+    }
+
     private static IConfiguration Config(params (string Key, string Value)[] values) =>
         new ConfigurationBuilder().AddInMemoryCollection(
             values.Select(static pair => new KeyValuePair<string, string?>(pair.Key, pair.Value))).Build();
 
     private static DefaultHttpContext Context(OtlpApiKeyOptions options)
     {
-        var services = new ServiceCollection().AddLogging().AddSingleton(options);
+        var services = new ServiceCollection().AddLogging().AddSingleton(Options.Create(options));
         services.ConfigureHttpJsonOptions(static json =>
             json.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default));
         return new DefaultHttpContext

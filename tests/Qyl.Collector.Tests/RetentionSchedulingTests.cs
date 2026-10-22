@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Qyl.Collector.Ingestion.Primitives;
 using Qyl.Collector.Retention;
@@ -124,7 +125,7 @@ public sealed class RetentionSchedulingTests(TestContext testContext) : IAsyncDi
 
     private Task StartServiceAsync(int days)
     {
-        _service = new RetentionService(Store, new RetentionOptions { Days = days }, _clock,
+        _service = new RetentionService(Store, Options.Create(new RetentionOptions { Days = days }), _clock,
             NullLogger<RetentionService>.Instance);
         return _service.StartAsync(testContext.CancellationToken);
     }

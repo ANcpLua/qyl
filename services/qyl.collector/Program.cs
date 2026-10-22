@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Qyl.Collector;
 using Qyl.Collector.ApiKeys;
 using Qyl.Collector.Hosting;
@@ -17,14 +18,15 @@ builder.UseQyl(options =>
     options.AdditionalMeters.Add(QylTelemetry.ServiceName);
 });
 
-var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
-CollectorSelfExportGuard.ThrowIfSelfExporting(builder.Configuration, ports);
+builder.Services.AddQylCollectorCore(builder.Configuration);
 builder.Services.AddQylCollectorStorage(builder.Configuration);
 builder.Services.AddQylCollectorAuth(builder.Configuration, builder.Environment);
 builder.Services.AddQylCollectorTelemetry(builder.Environment);
-builder.WebHost.ConfigureQylCollectorKestrel(ports);
+builder.Services.ConfigureQylCollectorKestrel();
 
 var app = builder.Build();
+var ports = app.Services.GetRequiredService<IOptions<CollectorPortOptions>>().Value;
+CollectorSelfExportGuard.ThrowIfSelfExporting(app.Configuration, ports);
 
 app.UseQylCollectorMiddleware();
 
@@ -32,9 +34,9 @@ app.MapQylCollectorEndpoints();
 CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app);
 
 StartupBanner.Print(
-    $"http://localhost:{ports.Http}", ports.Grpc, ports.OtlpHttp,
-    app.Services.GetRequiredService<OtlpCorsOptions>(),
-    app.Services.GetRequiredService<OtlpApiKeyOptions>());
+    ports,
+    app.Services.GetRequiredService<IOptions<OtlpCorsOptions>>().Value,
+    app.Services.GetRequiredService<IOptions<OtlpApiKeyOptions>>().Value);
 
 app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"[qyl] Application started and listening on port {ports.Http}"));

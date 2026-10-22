@@ -97,7 +97,7 @@ internal sealed class CollectorApiTestHost : IAsyncDisposable
             builder.Services.AddQylCollectorAuth(config, builder.Environment);
             builder.Services.AddSingleton<IQylStore>(store);
             app = builder.Build();
-            app.UseMiddleware<CollectorApiKeyMiddleware>(app.Services.GetRequiredService<OtlpApiKeyOptions>());
+            app.UseMiddleware<CollectorApiKeyMiddleware>();
             app.MapQylCollectorEndpoints();
             await app.StartAsync(ct);
             // Kestrel binds the endpoints in the order they were listed.

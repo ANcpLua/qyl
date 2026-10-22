@@ -1,39 +1,30 @@
+using Microsoft.Extensions.Options;
+using Qyl.Collector.Ingestion.Configuration;
+
 namespace Qyl.Collector.Retention;
 
-internal sealed record RetentionOptions
+internal sealed class RetentionOptions
 {
     private const long BytesPerMegabyte = 1024L * 1024L;
 
-    public int Days { get; init; } = 30;
+    [ConfigurationKeyName(CollectorConfigurationKeys.RetentionDays)]
+    [ConfiguredRange(CollectorConfigurationKeys.RetentionDays, 0, int.MaxValue)]
+    public int Days { get; set; } = 30;
 
-    public TimeSpan Interval { get; private init; } = TimeSpan.FromMinutes(60);
+    [ConfigurationKeyName(CollectorConfigurationKeys.RetentionIntervalMinutes)]
+    [ConfiguredRange(CollectorConfigurationKeys.RetentionIntervalMinutes, 1, int.MaxValue)]
+    public int IntervalMinutes { get; set; } = 60;
 
-    public long StorageMinimumFreeBytes { get; init; } = 2048L * BytesPerMegabyte;
+    [ConfigurationKeyName(CollectorConfigurationKeys.StorageMinimumFreeMegabytes)]
+    [ConfiguredRange(CollectorConfigurationKeys.StorageMinimumFreeMegabytes, 0, long.MaxValue / BytesPerMegabyte)]
+    public long StorageMinimumFreeMegabytes { get; set; } = 2048;
+
+    public TimeSpan Interval => TimeSpan.FromMinutes(IntervalMinutes);
+
+    public long StorageMinimumFreeBytes => StorageMinimumFreeMegabytes * BytesPerMegabyte;
 
     public bool IsEnabled => Days > 0;
-
-    public static RetentionOptions FromConfiguration(IConfiguration configuration)
-    {
-        var days = int.Parse(configuration["QYL_RETENTION_DAYS"] ?? "30", CultureInfo.InvariantCulture);
-        var intervalMinutes = int.Parse(
-            configuration["QYL_RETENTION_INTERVAL_MINUTES"] ?? "60",
-            CultureInfo.InvariantCulture);
-        var minimumFreeMegabytes = long.Parse(
-            configuration["QYL_STORAGE_MIN_FREE_MB"] ?? "2048",
-            CultureInfo.InvariantCulture);
-
-        if (days < 0)
-            throw new ArgumentOutOfRangeException(nameof(configuration), days, "Retention days cannot be negative.");
-        if (intervalMinutes < 1)
-            throw new ArgumentOutOfRangeException(nameof(configuration), intervalMinutes, "Retention interval must be positive.");
-        if (minimumFreeMegabytes < 0)
-            throw new ArgumentOutOfRangeException(nameof(configuration), minimumFreeMegabytes, "Minimum free space cannot be negative.");
-
-        return new RetentionOptions
-        {
-            Days = days,
-            Interval = TimeSpan.FromMinutes(intervalMinutes),
-            StorageMinimumFreeBytes = checked(minimumFreeMegabytes * BytesPerMegabyte)
-        };
-    }
 }
+
+[OptionsValidator]
+internal sealed partial class RetentionOptionsValidator : IValidateOptions<RetentionOptions>;

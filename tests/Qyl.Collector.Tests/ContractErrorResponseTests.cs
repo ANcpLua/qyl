@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
@@ -76,7 +77,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
                 nextInvoked = true;
                 return Task.CompletedTask;
             },
-            options);
+            Options.Create(options));
         var context = CreateContext();
         context.Request.Path = "/api/v1/logs";
 
@@ -105,7 +106,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
     {
         var middleware = new CollectorApiKeyMiddleware(
             _ => throw new InvalidOperationException("Rejected OTLP request reached the endpoint."),
-            new OtlpApiKeyOptions { AuthMode = "ApiKey", Keys = [new ProjectApiKey("tenant-a", "real-key", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))] });
+            Options.Create(new OtlpApiKeyOptions { AuthMode = "ApiKey", Keys = [new ProjectApiKey("tenant-a", "real-key", (ApiKeyRoles.Ingest | ApiKeyRoles.Read))] }));
         var context = CreateContext();
         context.Request.Path = "/v1/traces";
         context.Request.ContentType = contentType;
@@ -148,7 +149,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
                 context.Response.StatusCode = StatusCodes.Status204NoContent;
                 return Task.CompletedTask;
             },
-            options);
+            Options.Create(options));
         var context = CreateContext();
         context.Request.Path = "/api/v1/logs";
         context.Request.Headers[OtlpConstants.ApiKeyHeaderName] = "real-key";
@@ -165,7 +166,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
     {
         var middleware = new OtlpCorsMiddleware(
             _ => Task.CompletedTask,
-            new OtlpCorsOptions { AllowedOrigins = "https://console.example" });
+            Options.Create(new OtlpCorsOptions { AllowedOrigins = "https://console.example" }));
         var context = CreateContext();
         context.Request.Path = "/v1/traces";
         context.Request.Headers.Origin = "https://console.example";

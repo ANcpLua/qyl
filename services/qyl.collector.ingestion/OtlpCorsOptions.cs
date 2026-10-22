@@ -1,10 +1,15 @@
+using Microsoft.Extensions.Configuration;
+using Qyl.Collector.Ingestion.Configuration;
+
 namespace Qyl.Collector.Ingestion;
 
 internal sealed class OtlpCorsOptions
 {
-    public string? AllowedOrigins { get; init; }
+    [ConfigurationKeyName(CollectorConfigurationKeys.CorsAllowedOrigins)]
+    public string? AllowedOrigins { get; set; }
 
-    public string? AllowedHeaders { get; init; }
+    [ConfigurationKeyName(CollectorConfigurationKeys.CorsAllowedHeaders)]
+    public string? AllowedHeaders { get; set; }
 
     internal const int MaxAge = 86400;
 
