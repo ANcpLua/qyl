@@ -49,7 +49,9 @@ public sealed class CollectorOptionsTests(TestContext testContext)
     [TestMethod]
     public async Task CollectorPortOptions_PortOutOfRange_FailsStartNamingTheKeyAndValue()
     {
-        var failure = await StartFailureAsync(new Dictionary<string, string> { [Keys.OtlpPort] = "70000" });
+        using var host = StartableHost(new Dictionary<string, string> { [Keys.OtlpPort] = "70000" });
+
+        var failure = await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
 
         StringAssert.Contains(failure.Message, $"{Keys.OtlpPort} must be between 0 and 65535, but was '70000'.");
     }
@@ -57,7 +59,9 @@ public sealed class CollectorOptionsTests(TestContext testContext)
     [TestMethod]
     public async Task CollectorPortOptions_BindAddressNotAnIp_FailsStartNamingTheKeyAndValue()
     {
-        var failure = await StartFailureAsync(new Dictionary<string, string> { [Keys.BindAddress] = "localhost" });
+        using var host = StartableHost(new Dictionary<string, string> { [Keys.BindAddress] = "localhost" });
+
+        var failure = await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
 
         StringAssert.Contains(failure.Message, $"{Keys.BindAddress} must be an IP address literal, but was 'localhost'.");
     }
@@ -129,7 +133,9 @@ public sealed class CollectorOptionsTests(TestContext testContext)
     [TestMethod]
     public async Task OtlpApiKeyOptions_UnknownAuthMode_FailsStartNamingTheKeyAndValue()
     {
-        var failure = await StartFailureAsync(new Dictionary<string, string> { [Keys.AuthMode] = "Open" });
+        using var host = StartableHost(new Dictionary<string, string> { [Keys.AuthMode] = "Open" });
+
+        var failure = await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
 
         StringAssert.Contains(failure.Message, $"{Keys.AuthMode} must be one of ApiKey, Unsecured, but was 'Open'.");
     }
@@ -165,7 +171,9 @@ public sealed class CollectorOptionsTests(TestContext testContext)
     [TestMethod]
     public async Task RetentionOptions_ZeroInterval_FailsStartNamingTheKeyAndValue()
     {
-        var failure = await StartFailureAsync(new Dictionary<string, string> { [Keys.RetentionIntervalMinutes] = "0" });
+        using var host = StartableHost(new Dictionary<string, string> { [Keys.RetentionIntervalMinutes] = "0" });
+
+        var failure = await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
 
         StringAssert.Contains(failure.Message, $"{Keys.RetentionIntervalMinutes} must be between 1 and {int.MaxValue}, but was '0'.");
     }
@@ -203,7 +211,9 @@ public sealed class CollectorOptionsTests(TestContext testContext)
     [TestMethod]
     public async Task CollectorStorageOptions_ZeroThreads_FailsStartNamingTheKeyAndValue()
     {
-        var failure = await StartFailureAsync(new Dictionary<string, string> { [Keys.DatabaseThreads] = "0" });
+        using var host = StartableHost(new Dictionary<string, string> { [Keys.DatabaseThreads] = "0" });
+
+        var failure = await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
 
         StringAssert.Contains(failure.Message, $"{Keys.DatabaseThreads} must be between 1 and {int.MaxValue}, but was '0'.");
     }
@@ -236,7 +246,9 @@ public sealed class CollectorOptionsTests(TestContext testContext)
     [TestMethod]
     public async Task AnalysisOptions_ShortSigningKey_FailsStartNamingTheKeyAndLength()
     {
-        var failure = await StartFailureAsync(new Dictionary<string, string> { [Keys.AnalysisSigningKey] = "short" });
+        using var host = StartableHost(new Dictionary<string, string> { [Keys.AnalysisSigningKey] = "short" });
+
+        var failure = await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
 
         StringAssert.Contains(failure.Message, $"{Keys.AnalysisSigningKey} must contain at least 32 bytes, but has 5.");
     }
@@ -265,11 +277,7 @@ public sealed class CollectorOptionsTests(TestContext testContext)
         return host.Services.GetRequiredService<IOptions<T>>().Value;
     }
 
-    private async Task<OptionsValidationException> StartFailureAsync(IReadOnlyDictionary<string, string> values)
-    {
-        using var host = BuildHost(StartableConfiguration(values));
-        return await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => host.StartAsync(testContext.CancellationToken));
-    }
+    private static IHost StartableHost(IReadOnlyDictionary<string, string> values) => BuildHost(StartableConfiguration(values));
 
     private static IConfiguration StartableConfiguration(IReadOnlyDictionary<string, string> values) =>
         new ConfigurationBuilder()
