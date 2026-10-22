@@ -23,6 +23,8 @@ public sealed class MetricApiTests(TestContext testContext)
     private const ulong OneSecond = 1_000_000_000UL;
     private const string T0Iso = "2023-11-14T22:13:20Z";
     private const string T0PlusMinuteIso = "2023-11-14T22:14:20Z";
+    private const string AggregationFlagsCombination = "min,max";
+    private const string AggregationOrdinal = "3";
 
     [TestMethod]
     public async Task The_catalog_route_lists_metric_names_with_their_shape()
@@ -265,6 +267,27 @@ public sealed class MetricApiTests(TestContext testContext)
         Assert.AreEqual("aggregation", error.Field);
         Assert.AreEqual("aggregation.requires_histogram", error.Code);
         Assert.AreEqual("p95", error.RejectedValue);
+    }
+
+    [TestMethod]
+    [DataRow(AggregationFlagsCombination)]
+    [DataRow(AggregationOrdinal)]
+    public async Task QueryRoute_AggregationOutsideContractNames_IsRejectedNamingTheField(string aggregation)
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var ct = testContext.CancellationToken;
+        await IngestAsync(store, ct, Gauge("http.server.active", "/a", (T0, 1d), (T0 + OneSecond, 2d), (T0 + 2 * OneSecond, 3d)));
+
+        var context = CreateContext(
+            $"start_time={T0Iso}&end_time={T0PlusMinuteIso}&aggregation={Uri.EscapeDataString(aggregation)}");
+        await (await CollectorEndpointExtensions.QueryMetricAsync(
+            context, "http.server.active", store, ct)).ExecuteAsync(context);
+
+        Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        var error = Assert.ContainsSingle(JsonSerializer.Deserialize(
+            await ReadBodyAsync(context), QylSerializerContext.Default.ValidationError)!.Errors);
+        Assert.AreEqual("aggregation", error.Field);
+        Assert.AreEqual("aggregation.invalid", error.Code);
     }
 
     [TestMethod]

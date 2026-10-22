@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Primitives;
 using Qyl.Collector.Storage;
+using MetricAggregationValues = Qyl.Api.Contracts.OTel.Metrics.MetricAggregationValues;
 
 namespace Qyl.Collector.Hosting;
 
@@ -181,8 +182,27 @@ internal static class ContractQueryParser
         return null;
     }
 
-    private static bool TryParseAggregation(string raw, out MetricAggregation aggregation) =>
-        Enum.TryParse(raw, ignoreCase: true, out aggregation) && Enum.IsDefined(aggregation);
+    // The contract's closed set, matched exactly as the other enum parameters are: Enum.TryParse
+    // would also take a comma list (min,max is Min|Max, which is Sum) and a decimal ordinal.
+    private static bool TryParseAggregation(string raw, out MetricAggregation aggregation)
+    {
+        MetricAggregation? parsed = raw switch
+        {
+            MetricAggregationValues.Avg => MetricAggregation.Avg,
+            MetricAggregationValues.Min => MetricAggregation.Min,
+            MetricAggregationValues.Max => MetricAggregation.Max,
+            MetricAggregationValues.Sum => MetricAggregation.Sum,
+            MetricAggregationValues.Count => MetricAggregation.Count,
+            MetricAggregationValues.Last => MetricAggregation.Last,
+            MetricAggregationValues.P50 => MetricAggregation.P50,
+            MetricAggregationValues.P90 => MetricAggregation.P90,
+            MetricAggregationValues.P95 => MetricAggregation.P95,
+            MetricAggregationValues.P99 => MetricAggregation.P99,
+            _ => null
+        };
+        aggregation = parsed.GetValueOrDefault();
+        return parsed.HasValue;
+    }
 
     internal static IResult? ParseSessions(HttpRequest request, out ParsedSessionsParameters parsed)
     {
