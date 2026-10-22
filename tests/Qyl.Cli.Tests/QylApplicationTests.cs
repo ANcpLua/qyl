@@ -30,7 +30,7 @@ public sealed class QylApplicationTests(TestContext testContext)
 
     [TestMethod]
     [Timeout(60_000)]
-    public async Task StartAsync_QueuedBehindDispose_Completes()
+    public async Task StartAsync_QueuedBehindDispose_FailsWithObjectDisposed()
     {
         const int queuedStarts = 1000;
         var builder = new QylApplicationBuilder();
@@ -47,6 +47,6 @@ public sealed class QylApplicationTests(TestContext testContext)
             .ContinueWith(static _ => { }, TaskScheduler.Default)
             .WaitAsync(TimeSpan.FromSeconds(30), TimeProvider.System, testContext.CancellationToken);
 
-        Assert.IsEmpty(calls.Where(static call => !call.IsCompleted));
+        Assert.IsEmpty(queued.Where(static start => start.Exception?.InnerException is not ObjectDisposedException));
     }
 }
