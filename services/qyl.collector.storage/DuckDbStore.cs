@@ -532,20 +532,46 @@ internal sealed partial class DuckDbStore : IQylStore
     }
 
     // The search text matches literally (its LIKE metacharacters are escaped under ESCAPE '\') and
-    // against the text as it was logged: the JSON columns are decoded first, since their stored
-    // encoding escapes non-ASCII characters, quotes and backslashes. A body that is not JSON is
-    // a raw-text row from before attribute value storage and is searched as it is.
+    // against the text as it was logged. $A is the text itself, for the body (decoded from its JSON
+    // first), the severity and the service. $B is the text as JSON writes it, for the attributes:
+    // json() re-renders them with non-ASCII characters literal but quotes, backslashes and control
+    // characters still escaped. A body that is not JSON is a raw-text row from before attribute value
+    // storage and is searched as it is.
     private const string LogSearchSql =
-        "(CASE WHEN json_valid(body) THEN body ->> '$' ELSE body END ILIKE $N ESCAPE '\\'"
-        + " OR severity_text ILIKE $N ESCAPE '\\'"
-        + " OR service_name ILIKE $N ESCAPE '\\'"
-        + " OR CASE WHEN json_valid(attributes_json) THEN json(attributes_json)::VARCHAR ELSE attributes_json END ILIKE $N ESCAPE '\\')";
+        "(CASE WHEN json_valid(body) THEN body ->> '$' ELSE body END ILIKE $A ESCAPE '\\'"
+        + " OR severity_text ILIKE $A ESCAPE '\\'"
+        + " OR service_name ILIKE $A ESCAPE '\\'"
+        + " OR CASE WHEN json_valid(attributes_json) THEN json(attributes_json)::VARCHAR ELSE attributes_json END ILIKE $B ESCAPE '\\')";
 
     private static string LogSearchPattern(string search) =>
         "%" + search
             .Replace(@"\", @"\\", StringComparison.Ordinal)
             .Replace("%", @"\%", StringComparison.Ordinal)
             .Replace("_", @"\_", StringComparison.Ordinal) + "%";
+
+    // The search text as it appears inside a JSON string: quotes, backslashes and control characters
+    // escaped, every other character literal.
+    private static string JsonStringContent(string search)
+    {
+        var builder = new StringBuilder(search.Length);
+        foreach (var character in search)
+        {
+            _ = character switch
+            {
+                '"' => builder.Append("\\\""),
+                '\\' => builder.Append(@"\\"),
+                '\n' => builder.Append(@"\n"),
+                '\r' => builder.Append(@"\r"),
+                '\t' => builder.Append(@"\t"),
+                '\b' => builder.Append(@"\b"),
+                '\f' => builder.Append(@"\f"),
+                < ' ' => builder.Append(CultureInfo.InvariantCulture, $"\\u{(int)character:x4}"),
+                _ => builder.Append(character)
+            };
+        }
+
+        return builder.ToString();
+    }
 
     public Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
         string projectId,
@@ -577,7 +603,7 @@ internal sealed partial class DuckDbStore : IQylStore
             if (minSeverity.HasValue)
                 qb.Add("severity_number >= $N", minSeverity.Value);
             if (!string.IsNullOrWhiteSpace(search))
-                qb.Add(LogSearchSql, LogSearchPattern(search));
+                qb.Add(LogSearchSql, LogSearchPattern(search), LogSearchPattern(JsonStringContent(search)));
             if (!string.IsNullOrEmpty(serviceName))
                 qb.Add("service_name = $N", serviceName);
             if (start.HasValue)
@@ -629,7 +655,7 @@ internal sealed partial class DuckDbStore : IQylStore
             if (minSeverity.HasValue)
                 qb.Add("severity_number >= $N", minSeverity.Value);
             if (!string.IsNullOrWhiteSpace(search))
-                qb.Add(LogSearchSql, LogSearchPattern(search));
+                qb.Add(LogSearchSql, LogSearchPattern(search), LogSearchPattern(JsonStringContent(search)));
             if (afterIngestSequence.HasValue)
                 qb.Add("ingest_sequence > $N", afterIngestSequence.Value);
 

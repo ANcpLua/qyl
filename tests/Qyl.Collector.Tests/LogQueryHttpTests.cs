@@ -17,6 +17,7 @@ public sealed class LogQueryHttpTests(TestContext testContext)
     private const string QuotedBody = "said \"hi\" there";
     private const string BackslashQuery = "C:\\temp";
     private const string BackslashBody = "path C:\\temp\\x";
+    private const string ExceptionMessageKey = "exception.message";
 
     [TestMethod]
     public async Task Published_log_filters_exclude_nonmatching_rows_over_http()
@@ -161,6 +162,42 @@ public sealed class LogQueryHttpTests(TestContext testContext)
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var item = Assert.ContainsSingle((await host.JsonAsync(response)).GetProperty("items").EnumerateArray());
         Assert.AreEqual(expected, item.GetProperty("body").GetString());
+    }
+
+    [TestMethod]
+    [DataRow(NonAsciiQuery, NonAsciiBody)]
+    [DataRow(QuotedQuery, QuotedBody)]
+    [DataRow(BackslashQuery, BackslashBody)]
+    public async Task LogSearch_TextAnAttributeJsonEscapes_FindsTheRecord(string query, string attributeText)
+    {
+        var ct = testContext.CancellationToken;
+        await using var host = await CollectorApiTestHost.StartAsync(ct);
+        var scope = new OpenTelemetry.Proto.Logs.V1.ScopeLogs();
+        string[] attributeTexts = [NonAsciiBody, QuotedBody, BackslashBody];
+        for (var index = 0; index < attributeTexts.Length; index++)
+        {
+            var record = new OpenTelemetry.Proto.Logs.V1.LogRecord
+            {
+                TimeUnixNano = 2_000_000_000UL + (ulong)index,
+                SeverityNumber = OpenTelemetry.Proto.Logs.V1.SeverityNumber.Error,
+                Body = new OpenTelemetry.Proto.Common.V1.AnyValue { StringValue = $"failure {index}" }
+            };
+            record.Attributes.Add(OtlpTestSpans.String(ExceptionMessageKey, attributeTexts[index]));
+            scope.LogRecords.Add(record);
+        }
+
+        using var ingest = await host.SendProtobufAsync("/v1/logs", new OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest
+        {
+            ResourceLogs = { new OpenTelemetry.Proto.Logs.V1.ResourceLogs { ScopeLogs = { scope } } }
+        }, "ingester");
+        Assert.AreEqual(HttpStatusCode.OK, ingest.StatusCode);
+
+        using var response = await host.SendAsync(HttpMethod.Get, "/api/v1/logs?query=" + Uri.EscapeDataString(query), "reader");
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        var item = Assert.ContainsSingle((await host.JsonAsync(response)).GetProperty("items").EnumerateArray());
+        var attribute = Assert.ContainsSingle(item.GetProperty("attributes").EnumerateArray());
+        Assert.AreEqual(attributeText, attribute.GetProperty("value").GetString());
     }
 
     [TestMethod]
