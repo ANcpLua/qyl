@@ -266,7 +266,7 @@ internal sealed partial class AnalysisEngine
             var current = _window;
             if (J.String(baseline, "server_version") is { } version) copy["server_version"] = version;
             else _window = Baseline(input);
-            var old = McpTraffic(copy, McpRows(copy)); old["window"] = _window.Json; output["comparison"] = old; _window = current;
+            var old = McpTraffic(copy, McpRows(copy)); old.Remove("coverage"); old["window"] = _window.Json; output["comparison"] = old; _window = current;
         }
         return output;
     }

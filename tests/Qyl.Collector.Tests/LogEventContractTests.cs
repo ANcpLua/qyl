@@ -110,7 +110,7 @@ public sealed class LogEventContractTests(TestContext testContext)
         Assert.AreEqual(SpanId, converted.SpanId);
         // The stored body is the value's canonical JSON, so a string body carries its quotes.
         Assert.AreEqual(
-            JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(logBody), QylSerializerContext.Default.AttributeValue),
+            JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(logBody), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.AttributeValue>()),
             converted.Body);
         Assert.IsNotNull(converted.AttributesJson);
         Assert.Contains(
@@ -152,7 +152,7 @@ public sealed class LogEventContractTests(TestContext testContext)
         Assert.Contains("\"value\":\"/docs/mcp/\"", restJson, StringComparison.Ordinal);
         Assert.Contains($"\"key\":\"{valueKey}\"", restJson, StringComparison.Ordinal);
         Assert.Contains("778", restJson, StringComparison.Ordinal);
-        var page = JsonSerializer.Deserialize(restJson, QylSerializerContext.Default.CursorPageLogRecord);
+        var page = JsonSerializer.Deserialize(restJson, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageLogRecord>());
         Assert.AreEqual(eventName, Assert.ContainsSingle(Assert.IsExactInstanceOfType<CursorPageLogRecord>(page).Items).EventName);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
@@ -172,7 +172,7 @@ public sealed class LogEventContractTests(TestContext testContext)
         Assert.IsTrue(await stream.MoveNextAsync());
         var streamEvent = Assert.IsExactInstanceOfType<LogStreamEvent>(stream.Current.Log);
         Assert.AreEqual(eventName, streamEvent.Data.EventName);
-        var streamJson = JsonSerializer.Serialize(streamEvent, QylSerializerContext.Default.LogStreamEvent);
+        var streamJson = JsonSerializer.Serialize(streamEvent, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Streaming.LogStreamEvent>());
         Assert.Contains($"\"event_name\":\"{eventName}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains($"\"trace_id\":\"{TraceId}\"", streamJson, StringComparison.Ordinal);
         Assert.Contains($"\"span_id\":\"{SpanId}\"", streamJson, StringComparison.Ordinal);
@@ -228,7 +228,7 @@ public sealed class LogEventContractTests(TestContext testContext)
         await result.ExecuteAsync(context);
         Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var page = JsonSerializer.Deserialize(await ReadBodyAsync(context),
-            QylSerializerContext.Default.CursorPageLogRecord);
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageLogRecord>());
         var record = Assert.ContainsSingle(Assert.IsExactInstanceOfType<CursorPageLogRecord>(page).Items);
         Assert.AreEqual(body, Assert.IsExactInstanceOfType<Api.Contracts.Common.AttributeValue.StringValue>(record.Body).Value);
 

@@ -17,7 +17,7 @@ public sealed class RunnerResourceState
     [JsonPropertyName("lifecycle")]
     public required Qyl.Api.Contracts.Runner.RunnerResourceLifecycle Lifecycle { get; init; }
     [JsonPropertyName("timestamp")]
-    public required DateTimeOffset Timestamp { get; init; }
+    public required string Timestamp { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("kind")]
     public Qyl.Api.Contracts.Runner.RunnerResourceKind? Kind { get; init; }
@@ -26,7 +26,7 @@ public sealed class RunnerResourceState
     public int? AllocatedPort { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("endpoint")]
-    public Uri? Endpoint { get; init; }
+    public string? Endpoint { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("last_error")]
     public string? LastError { get; init; }
@@ -42,7 +42,7 @@ public sealed class RunnerLogLine
     public required string Line { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<RunnerResourceLifecycle>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<RunnerResourceLifecycle>))]
 public enum RunnerResourceLifecycle
 {
     [JsonStringEnumMemberName("pending")]
@@ -69,7 +69,7 @@ public static class RunnerResourceLifecycleValues
     public const string Failed = "failed";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<RunnerResourceKind>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<RunnerResourceKind>))]
 public enum RunnerResourceKind
 {
     [JsonStringEnumMemberName("collector")]
@@ -87,7 +87,7 @@ public static class RunnerResourceKindValues
     public const string Command = "command";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<RunnerLogStream>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<RunnerLogStream>))]
 public enum RunnerLogStream
 {
     [JsonStringEnumMemberName("out")]

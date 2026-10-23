@@ -123,12 +123,12 @@ model SavedMetricQueryFilter {
   @encodedName("application/json", "step_ms")
   @minValue(1)
   @maxValue(86400000)
-  stepMs?: int64;
+  stepMs?: Qyl.Api.Contracts.Common.JsonInteger;
 
   @doc("Attribute keys to split the result by.")
   @encodedName("application/json", "group_by")
   @maxItems(16)
-  groupBy?: string[];
+  groupBy?: MetricGroupKey[];
 
   @doc("Attribute matchers a series must all satisfy.")
   @maxItems(32)
@@ -190,11 +190,11 @@ model SavedQueryUpdateRequest {
 model SavedQueryRunRequest {
   @doc("Start of this run's window (inclusive), RFC 3339; overrides the saved look-back window.")
   @encodedName("application/json", "start_time")
-  startTime?: utcDateTime;
+  startTime?: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("End of this run's window (exclusive), RFC 3339; default the time of the run.")
   @encodedName("application/json", "end_time")
-  endTime?: utcDateTime;
+  endTime?: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("Page size for trace and log runs; 100 when omitted.")
   limit?: PageLimit = 100;

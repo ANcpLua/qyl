@@ -69,11 +69,7 @@ public static class QylServiceDefaultsExtensions
         };
 
         context.Response.ContentType = "application/json; charset=utf-8";
-        return JsonSerializer.SerializeAsync(
-            context.Response.Body,
-            contract,
-            QylHealthJsonContext.Default.HealthReport,
-            context.RequestAborted);
+        return Api.Contracts.ContractJson.SerializeAsync(context.Response.Body, contract, context.RequestAborted);
     }
 
     private static ContractHealthStatus ToContractStatus(HealthStatus status) => status switch
@@ -228,10 +224,3 @@ public sealed class QylOptions
 }
 
 internal sealed class QylServiceDefaultsMarker;
-
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    UseStringEnumConverter = true)]
-[JsonSerializable(typeof(ContractHealthReport))]
-internal sealed partial class QylHealthJsonContext : JsonSerializerContext;

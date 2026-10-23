@@ -71,7 +71,7 @@ model ProblemDetails {
   detail?: string;
 
   @doc("URI reference identifying this occurrence.")
-  instance?: url;
+  instance?: Qyl.Api.Contracts.Common.UrlString;
 
   @doc("Stable code of the problem type.")
   code: ProblemCode;

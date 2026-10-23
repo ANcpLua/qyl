@@ -103,9 +103,9 @@ public sealed class SavedQuery
     [JsonPropertyName("id")]
     public required string Id { get; init; }
     [JsonPropertyName("created_at")]
-    public required DateTimeOffset CreatedAt { get; init; }
+    public required string CreatedAt { get; init; }
     [JsonPropertyName("updated_at")]
-    public required DateTimeOffset UpdatedAt { get; init; }
+    public required string UpdatedAt { get; init; }
     [JsonPropertyName("etag")]
     public required string Etag { get; init; }
     [JsonPropertyName("name")]
@@ -128,37 +128,6 @@ public sealed class SavedQueryWindow
 
 public sealed class SavedQueryCreateRequest
 {
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
-        ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("name", 1, 200),
-        ("description", null, 2000),
-        ("filter.matchers", null, 32),
-        ("filter.matchers[].key", 1, 256),
-        ("filter.matchers[].values", 1, 256),
-        ("filter.service_name", 1, 256),
-        ("filter.session_id", 1, 128),
-        ("filter.trace_id", 32, 32),
-        ("filter.query", 1, 1024),
-        ("filter.series_id", 1, null),
-        ("filter.metric_name", 1, 256),
-        ("filter.group_by", null, 16),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("filter.session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("filter.trace_id", "^[a-f0-9]{32}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [];
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -170,37 +139,6 @@ public sealed class SavedQueryCreateRequest
 
 public sealed class SavedQueryUpdateRequest
 {
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("filter.lookback_minutes", SavedTraceQueryFilter.LookbackMinutesMinimum, SavedTraceQueryFilter.LookbackMinutesMaximum, null),
-        ("filter.step_ms", SavedMetricQueryFilter.StepMsMinimum, SavedMetricQueryFilter.StepMsMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("name", 1, 200),
-        ("description", null, 2000),
-        ("filter.matchers", null, 32),
-        ("filter.matchers[].key", 1, 256),
-        ("filter.matchers[].values", 1, 256),
-        ("filter.service_name", 1, 256),
-        ("filter.session_id", 1, 128),
-        ("filter.trace_id", 32, 32),
-        ("filter.query", 1, 1024),
-        ("filter.series_id", 1, null),
-        ("filter.metric_name", 1, 256),
-        ("filter.group_by", null, 16),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("filter.session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("filter.trace_id", "^[a-f0-9]{32}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
     public string? Name { get; init; }
@@ -217,26 +155,12 @@ public sealed class SavedQueryRunRequest
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("limit")]
     public int? Limit { get; init; }
@@ -273,7 +197,7 @@ public sealed class SavedMetricQueryRun : SavedQueryRunResult
     public required Qyl.Api.Contracts.OTel.Metrics.MetricQueryResult Result { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<SavedQuerySignal>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<SavedQuerySignal>))]
 public enum SavedQuerySignal
 {
     [JsonStringEnumMemberName("traces")]

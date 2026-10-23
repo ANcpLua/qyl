@@ -359,7 +359,7 @@ public sealed class AnnotationApiTests(TestContext testContext)
     }
 
     private static string TraceNote(string text) =>
-        $$"""{"target":{"kind":"trace","trace_id":"{{TraceId(1)}}"},"text":{{JsonSerializer.Serialize(text, QylSerializerContext.Default.String)}}}""";
+        $$"""{"target":{"kind":"trace","trace_id":"{{TraceId(1)}}"},"text":{{JsonSerializer.Serialize(text, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::System.String>())}}}""";
 
     private static Dictionary<string, string> IfMatch(string etag) => new() { ["If-Match"] = etag };
 }

@@ -1,7 +1,7 @@
 /**
  * The MCP's generated contract module, beside the TypeScript types the emitter writes there:
  *
- * - tool-schemas.json: one JSON Schema document per tool input and output model
+ * - contract-schemas.json: one JSON Schema document per tool input and output model
  *   (`Mcp.Tools.*Input`, `Mcp.Tools.*Output`) and per body the MCP reads from the Collector
  *   outside the analysis routes. Each document is ready for `fromJsonSchema(document,
  *   validator)` as it is: every `$ref` is inlined except the cycles of a recursive type, which
@@ -14,33 +14,14 @@
  *   node scripts/emit-mcp-schemas.mjs
  */
 import { mkdir, writeFile } from "node:fs/promises";
+import { encodedIntegerPattern } from "./lib/encoded-integers.mjs";
 import { dirname } from "node:path";
-import { mcpHeadersPath, mcpToolSchemasPath, readOpenApi } from "./lib/paths.mjs";
+import { csharpGeneratedDirectory, mcpHeadersPath, mcpContractSchemasPath, readOpenApi } from "./lib/paths.mjs";
 
 const openapi = await readOpenApi();
 const components = openapi.components ?? {};
 const schemas = components.schemas ?? {};
 const refPrefix = "#/components/schemas/";
-
-// Bodies the MCP validates beyond its tool models: the resources the write tools create and
-// update, the Problem Details of a refused request (a rejected argument's and a missing record's
-// carry what the tool error forwards), and its own failed-call error.
-const readBodies = [
-  "Annotations.Annotation",
-  "SavedQueries.SavedQuery",
-  "Common.Errors.ProblemDetails",
-  "Common.Errors.ValidationError",
-  "Common.Errors.NotFoundError",
-  "Mcp.Tools.ToolError",
-];
-
-// A tool's arguments and structured result are objects, so only object models are tool models.
-const roots = [
-  ...Object.entries(schemas)
-    .filter(([name, schema]) => /^Mcp\.Tools\.[A-Za-z0-9]+(?:Input|Output)$/u.test(name) && (schema.type === "object" || Array.isArray(schema.allOf)))
-    .map(([name]) => name),
-  ...readBodies,
-].sort(compareNames);
 
 // Keywords whose value is a schema, a map of schemas or a list of schemas. Every other keyword
 // (enum, const, default, examples, required, description, ...) is data and is copied as is.
@@ -141,22 +122,6 @@ const recursive = recursiveDefinitions();
 
 // JSON Schema numeric bounds do not apply to decimal strings. Encode the exact 64-bit boundary
 // in a portable pattern so every validator agrees with the Collector.
-function decimalAtMost(maximum, includeZero) {
-  const digits = maximum.toString();
-  const alternatives = includeZero ? ["0"] : [];
-  if (digits.length > 1) alternatives.push(`[1-9][0-9]{0,${digits.length - 2}}`);
-  for (let index = 0; index < digits.length; index += 1) {
-    const lower = index === 0 ? 1 : 0;
-    const upper = Number(digits[index]) - 1;
-    if (upper < lower) continue;
-    const digit = lower === upper ? String(lower) : `[${lower}-${upper}]`;
-    const remaining = digits.length - index - 1;
-    alternatives.push(digits.slice(0, index) + digit + (remaining === 0 ? "" : `[0-9]{${remaining}}`));
-  }
-  alternatives.push(digits);
-  return `(?:${alternatives.join("|")})`;
-}
-
 /** Formats become plain JSON Schema: kept string formats, bounds for fixed-width integers. */
 function normalizeFormat(schema, context) {
   const format = schema.format;
@@ -165,16 +130,8 @@ function normalizeFormat(schema, context) {
   if (schema.type === "string") {
     if (stringFormats.has(format)) return schema;
     if (format === "int64" || format === "uint64") {
-      // @encode(string) 64-bit integers: canonical decimal text within the signed or unsigned range.
-      const nonZero = format === "uint64" && Number(schema.minimum ?? 0) >= 1;
       const { minimum: _min, maximum: _max, exclusiveMinimum: _xmin, exclusiveMaximum: _xmax, ...text } = rest;
-      return {
-        ...text,
-        pattern: format === "uint64"
-          ? `^${decimalAtMost((1n << 64n) - 1n, !nonZero)}$`
-          : `^(?:${decimalAtMost((1n << 63n) - 1n, true)}|-${decimalAtMost(1n << 63n, false)})$`,
-        maxLength: 20,
-      };
+      return { ...text, pattern: encodedIntegerPattern(schema, context), maxLength: 20 };
     }
     throw new Error(`${context}: string format '${format}' has no JSON Schema meaning; add it to stringFormats or the contract.`);
   }
@@ -186,6 +143,10 @@ function normalizeFormat(schema, context) {
         minimum: Math.max(range[0], schema.minimum ?? range[0]),
         maximum: Math.min(range[1], schema.maximum ?? range[1]),
       };
+    }
+    if (format === "int64" || format === "uint64") {
+      if (!Number.isSafeInteger(schema.minimum) || !Number.isSafeInteger(schema.maximum))
+        throw new Error(`${context}: numeric 64-bit values need explicit safe-integer bounds; use Common.JsonInteger or @encode(string).`);
     }
     if (unboundedNumericFormats.has(format)) return rest;
   }
@@ -286,6 +247,11 @@ function normalizeKeywords(node, context) {
       result[keyword] = value;
     }
   }
+  if (result.contentEncoding === "base64") {
+    // RFC 4648 canonical padding and pad bits. Both runtimes validate this before
+    // the C# bytes converter can silently normalize a non-canonical spelling.
+    result.pattern = "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?(?![\\s\\S])";
+  }
   return normalizeFormat(result, context);
 }
 
@@ -309,19 +275,31 @@ function referencedDefinitions(node, found = new Set()) {
 }
 
 function document(name) {
-  if (recursive.has(name)) throw new Error(`${name} is recursive; a tool document needs an object root.`);
   const body = definition(name);
-  if (body.type !== "object") throw new Error(`${name} is not an object schema; MCP tool schemas are objects.`);
   const needed = [...referencedDefinitions(body)].sort(compareNames);
   return needed.length === 0
     ? body
     : { ...body, $defs: Object.fromEntries(needed.map((definitionName) => [definitionName, definition(definitionName)])) };
 }
 
-const documents = Object.fromEntries(roots.map((name) => [name, document(name)]));
+const allDocuments = Object.fromEntries(Object.keys(schemas).sort(compareNames).map((name) => [name, document(name)]));
+const assertions = new Set(["$ref", "$defs", "type", "properties", "required", "additionalProperties", "items", "enum", "const", "anyOf", "oneOf", "allOf", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "minLength", "maxLength", "minItems", "maxItems", "pattern"]);
+const annotations = new Set(["description", "title", "default", "examples", "readOnly", "writeOnly", "deprecated", "contentEncoding"]);
+function checkSupported(node) {
+  if (!isObject(node)) return;
+  for (const [key, value] of Object.entries(node)) {
+    if (!assertions.has(key) && !annotations.has(key)) throw new Error(`C# contract validator does not implement '${key}'. Define a portable TypeSpec constraint before emitting it.`);
+    if (schemaMapKeywords.has(key) || key === "$defs") Object.values(value).forEach(checkSupported);
+    else if (schemaListKeywords.has(key)) value.forEach(checkSupported);
+    else if (schemaKeywords.has(key)) checkSupported(value);
+  }
+}
+Object.values(allDocuments).forEach(checkSupported);
+await mkdir(`${csharpGeneratedDirectory}/Api/Contracts`, { recursive: true });
+await writeFile(`${csharpGeneratedDirectory}/Api/Contracts/contract-schemas.json`, `${JSON.stringify(allDocuments)}\n`);
 
-await mkdir(dirname(mcpToolSchemasPath), { recursive: true });
-await writeFile(mcpToolSchemasPath, `${JSON.stringify(documents, null, 2)}\n`);
+await mkdir(dirname(mcpContractSchemasPath), { recursive: true });
+await writeFile(mcpContractSchemasPath, `${JSON.stringify(allDocuments)}\n`);
 
 // -- Header names --------------------------------------------------------------------------------
 
@@ -353,4 +331,4 @@ await writeFile(
       `/** ${description} */\nexport const ${constant} = ${JSON.stringify(value)};\n`).join("\n"),
 );
 
-console.log(`emit-mcp-schemas: ${roots.length} documents -> ${mcpToolSchemasPath}; ${headers.size} header names -> ${mcpHeadersPath}`);
+console.log(`emit-mcp-schemas: ${Object.keys(allDocuments).length} documents -> ${mcpContractSchemasPath}; ${headers.size} header names -> ${mcpHeadersPath}`);

@@ -58,7 +58,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
                 Assert.AreEqual(Convert.ToHexStringLower([.. Enumerable.Repeat((byte)(0x34 + i), 8)]), exemplar.SpanId);
                 Assert.AreEqual(i, Assert.IsInstanceOfType<AttributeIntValue>(Assert.IsInstanceOfType<AttributeValue.ObjectValue>(Assert.ContainsSingle(exemplar.FilteredAttributes).Value).Value).Value);
             }
-            var json = JsonSerializer.Serialize(contract, QylSerializerContext.Default.MetricPoint);
+            var json = JsonSerializer.Serialize(contract, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricPoint>());
             using var parsed = JsonDocument.Parse(json);
             Assert.AreEqual("9007199254740993", parsed.RootElement.GetProperty("data").GetProperty("value").GetProperty("value").GetString());
         }
@@ -78,7 +78,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
         var raw = MetricMapper.ToContract(Assert.ContainsSingle(await Read(store, series)), series);
         var actual = Assert.IsInstanceOfType<AttributeDoubleValue>(Assert.IsInstanceOfType<Contract.MetricNumberPointData>(raw.Data).Value).Value;
         if (double.IsNaN(value)) Assert.IsTrue(double.IsNaN(actual)); else Assert.AreEqual(value, actual);
-        using var json = JsonDocument.Parse(JsonSerializer.Serialize(raw, QylSerializerContext.Default.MetricPoint));
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(raw, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricPoint>()));
         Assert.AreEqual(wireValue, json.RootElement.GetProperty("data").GetProperty("value").GetProperty("value").GetString());
     }
 
@@ -283,7 +283,7 @@ public sealed class CanonicalMetricTests(TestContext testContext)
                 Assert.IsNull(raw.ResourceDroppedAttributesCount); Assert.IsNull(raw.ScopeDroppedAttributesCount);
                 Assert.AreEqual("12121212121212121212121212121212", Assert.ContainsSingle(raw.HistoricalExemplarTraceIds!));
                 Assert.AreEqual(9_007_199_254_740_992d, raw.Projection!.Value);
-                using var json = JsonDocument.Parse(JsonSerializer.Serialize(raw, QylSerializerContext.Default.MetricPoint));
+                using var json = JsonDocument.Parse(JsonSerializer.Serialize(raw, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricPoint>()));
                 Assert.AreEqual(JsonValueKind.Null, json.RootElement.GetProperty("data").ValueKind);
             }
         }

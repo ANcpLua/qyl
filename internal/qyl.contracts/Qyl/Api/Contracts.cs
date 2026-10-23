@@ -10,25 +10,11 @@ namespace Qyl.Api.Contracts;
 
 public sealed class UpdateFailureStatusRequest
 {
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("assignee", null, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [];
     [JsonPropertyName("status")]
     public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
+    public string? IgnoreUntil { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assignee")]
     public string? Assignee { get; init; }
@@ -43,16 +29,28 @@ public static class RouteParameters
 {
     public static readonly IReadOnlyList<(string Method, string Route, string Name, string In, int? MinLength, int? MaxLength, string? Pattern)> All =
     [
-        ("GET", "/api/v1/traces/{trace_id}", "trace_id", "path", 32, 32, "^[a-f0-9]{32}$"),
-        ("GET", "/api/v1/traces/{trace_id}/spans", "trace_id", "path", 32, 32, "^[a-f0-9]{32}$"),
-        ("GET", "/api/v1/logs", "session_id", "query", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("GET", "/api/v1/logs", "trace_id", "query", 32, 32, "^[a-f0-9]{32}$"),
+        ("GET", "/api/v1/traces", "start_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/traces", "end_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/traces/{trace_id}", "trace_id", "path", 32, 32, "^[a-f0-9]{32}(?![\\s\\S])"),
+        ("GET", "/api/v1/traces/{trace_id}/spans", "trace_id", "path", 32, 32, "^[a-f0-9]{32}(?![\\s\\S])"),
+        ("GET", "/api/v1/logs", "session_id", "query", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])"),
+        ("GET", "/api/v1/logs", "trace_id", "query", 32, 32, "^[a-f0-9]{32}(?![\\s\\S])"),
+        ("GET", "/api/v1/logs", "start_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/logs", "end_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/metrics/{metric_name}/series/{series_id}/points", "start_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/metrics/{metric_name}/series/{series_id}/points", "end_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/metrics/{metric_name}/query", "start_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/metrics/{metric_name}/query", "end_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
         ("GET", "/api/v1/metrics/{metric_name}/query", "series_id", "query", 1, null, null),
-        ("GET", "/api/v1/sessions/{session_id}", "session_id", "path", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("GET", "/api/v1/sessions/{session_id}/traces", "session_id", "path", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("GET", "/api/v1/annotations", "trace_id", "query", 32, 32, "^[a-f0-9]{32}$"),
-        ("GET", "/api/v1/annotations", "span_id", "query", 16, 16, "^[a-f0-9]{16}$"),
-        ("GET", "/api/v1/annotations", "session_id", "query", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
+        ("GET", "/api/v1/sessions", "start_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/sessions", "end_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/sessions/{session_id}", "session_id", "path", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])"),
+        ("GET", "/api/v1/sessions/{session_id}/traces", "session_id", "path", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])"),
+        ("GET", "/api/v1/sessions/stats", "start_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/sessions/stats", "end_time", "query", null, null, "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])"),
+        ("GET", "/api/v1/annotations", "trace_id", "query", 32, 32, "^[a-f0-9]{32}(?![\\s\\S])"),
+        ("GET", "/api/v1/annotations", "span_id", "query", 16, 16, "^[a-f0-9]{16}(?![\\s\\S])"),
+        ("GET", "/api/v1/annotations", "session_id", "query", 1, 128, "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])"),
         ("GET", "/api/v1/annotations/{annotation_id}", "annotation_id", "path", 1, 128, null),
         ("PATCH", "/api/v1/annotations/{annotation_id}", "annotation_id", "path", 1, 128, null),
         ("DELETE", "/api/v1/annotations/{annotation_id}", "annotation_id", "path", 1, 128, null),
@@ -62,4 +60,22 @@ public static class RouteParameters
         ("POST", "/api/v1/saved-queries/{saved_query_id}:run", "saved_query_id", "path", 1, 128, null),
         ("PATCH", "/api/v1/failures/{failure_id}", "failure_id", "path", 1, 512, null),
     ];
+    public readonly record struct NumericParameter(double? Default, double? Minimum, double? Maximum);
+    private static readonly (string Method, string Route, string Name, NumericParameter Value)[] Numbers =
+    [
+        ("GET", "/api/v1/stream/logs", "min_severity", new(null, 1, 24)),
+        ("GET", "/api/v1/traces", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/traces/{trace_id}/spans", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/logs", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/metrics", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/metrics/{metric_name}/series", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/metrics/{metric_name}/series/{series_id}/points", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/metrics/{metric_name}/query", "step_ms", new(60000, 1, 86400000)),
+        ("GET", "/api/v1/metrics/{metric_name}/query", "series_limit", new(50, 1, 500)),
+        ("GET", "/api/v1/sessions", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/sessions/{session_id}/traces", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/annotations", "limit", new(100, 1, 1000)),
+        ("GET", "/api/v1/saved-queries", "limit", new(100, 1, 1000)),
+    ];
+    public static NumericParameter Number(string method, string route, string name) => Numbers.Single(item => item.Method == method && item.Route == route && item.Name == name).Value;
 }

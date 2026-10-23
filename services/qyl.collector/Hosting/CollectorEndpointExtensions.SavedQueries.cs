@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WireJson = Qyl.Api.Contracts.ContractJson;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.SavedQueries;
 using Qyl.Collector.Storage;
@@ -11,12 +12,6 @@ namespace Qyl.Collector.Hosting;
 internal static partial class CollectorEndpointExtensions
 {
     private const string SavedQueryOperation = "saved-queries";
-    private static readonly ContractRules s_savedQueryRunRules = new(SavedQueryRunRequest.Ranges, SavedQueryRunRequest.Lengths, SavedQueryRunRequest.Patterns, SavedQueryRunRequest.Choices);
-    private static readonly ContractRules s_savedQueryCreateRules = new(SavedQueryCreateRequest.Ranges, SavedQueryCreateRequest.Lengths,
-        SavedQueryCreateRequest.Patterns, SavedQueryCreateRequest.Choices);
-    private static readonly ContractRules s_savedQueryUpdateRules = new(SavedQueryUpdateRequest.Ranges, SavedQueryUpdateRequest.Lengths,
-        SavedQueryUpdateRequest.Patterns, SavedQueryUpdateRequest.Choices);
-    private const int SavedQueryMaxMatcherValueLength = 1024;
 
     private static async Task<IResult> CreateSavedQueryAsync(
         HttpContext httpContext,
@@ -27,8 +22,8 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIdempotencyKey(httpContext.Request, out var idempotencyKey) is { } keyError)
             return keyError;
 
-        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryCreateRequest,
-            s_savedQueryCreateRules, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.SavedQueries.SavedQueryCreateRequest>(),
+            ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -36,7 +31,7 @@ internal static partial class CollectorEndpointExtensions
             return filterError;
 
         var projectId = ResolveProjectScope(httpContext);
-        var fingerprint = ResourceHttp.Fingerprint(request, QylSerializerContext.Default.SavedQueryCreateRequest);
+        var fingerprint = ResourceHttp.Fingerprint(request);
         var notBefore = ResourceHttp.IdempotencyNotBefore(timeProvider);
         var now = ResourceHttp.NowUnixNano(timeProvider);
         var row = new SavedQueryRow
@@ -68,12 +63,10 @@ internal static partial class CollectorEndpointExtensions
         return outcome.Status switch
         {
             ResourceWriteStatus.Created => ResourceHttp.Created(
-                httpContext, SavedQueryLocation(row.SavedQueryId), row.Etag, savedQuery,
-                QylSerializerContext.Default.SavedQuery),
+                httpContext, SavedQueryLocation(row.SavedQueryId), row.Etag, savedQuery),
             // A repeat answers the saved query its key created as it is now, with its current etag.
             ResourceWriteStatus.Replayed => ResourceHttp.Created(
-                httpContext, SavedQueryLocation(outcome.Row!.SavedQueryId), outcome.Row.Etag, SavedQueryMapper.ToContract(outcome.Row),
-                QylSerializerContext.Default.SavedQuery),
+                httpContext, SavedQueryLocation(outcome.Row!.SavedQueryId), outcome.Row.Etag, SavedQueryMapper.ToContract(outcome.Row)),
             ResourceWriteStatus.NameConflict => SavedQueryNameConflict(request.Name),
             _ => ResourceHttp.IdempotencyConflict(idempotencyKey!)
         };
@@ -102,12 +95,12 @@ internal static partial class CollectorEndpointExtensions
                 ResolveProjectScope(httpContext), query.Signal, afterName, boundedLimit + 1, ct)
             .ConfigureAwait(false);
         var (page, hasMore) = SplitPage(rows, boundedLimit);
-        return Results.Json(new CursorPageSavedQuery
+        return ContractHttp.Json(new CursorPageSavedQuery
         {
             Items = SavedQueryMapper.ToContracts(page),
             HasMore = hasMore,
             NextCursor = hasMore ? PageCursorCodec.Encode(PageCursorKind.SavedQueries, page[^1].Name) : null
-        }, QylSerializerContext.Default.CursorPageSavedQuery);
+        });
     }
 
     private static async Task<IResult> GetSavedQueryAsync(
@@ -118,8 +111,7 @@ internal static partial class CollectorEndpointExtensions
         await store.GetSavedQueryAsync(ResolveProjectScope(httpContext), savedQueryId, ct).ConfigureAwait(false)
             is not { } row
             ? ContractErrorResults.NotFound("saved_query", savedQueryId)
-            : ResourceHttp.WithEtag(httpContext, row.Etag, SavedQueryMapper.ToContract(row),
-                QylSerializerContext.Default.SavedQuery);
+            : ResourceHttp.WithEtag(httpContext, row.Etag, SavedQueryMapper.ToContract(row));
 
     private static async Task<IResult> UpdateSavedQueryAsync(
         HttpContext httpContext,
@@ -131,8 +123,8 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIfMatch(httpContext.Request, out var ifMatch) is { } preconditionError)
             return preconditionError;
 
-        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.SavedQueryUpdateRequest,
-            s_savedQueryUpdateRules, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.SavedQueries.SavedQueryUpdateRequest>(),
+            ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -162,7 +154,7 @@ internal static partial class CollectorEndpointExtensions
         return outcome.Status switch
         {
             ResourceWriteStatus.Updated => ResourceHttp.WithEtag(httpContext, outcome.Row!.Etag,
-                SavedQueryMapper.ToContract(outcome.Row), QylSerializerContext.Default.SavedQuery),
+                SavedQueryMapper.ToContract(outcome.Row)),
             ResourceWriteStatus.PreconditionFailed => ContractErrorResults.PreconditionFailed(outcome.CurrentEtag),
             ResourceWriteStatus.NameConflict => SavedQueryNameConflict(request.Name!),
             _ => ContractErrorResults.NotFound("saved_query", savedQueryId)
@@ -209,7 +201,7 @@ internal static partial class CollectorEndpointExtensions
             if ((httpContext.Request.ContentLength is > 0
                 ? await System.Text.Json.Nodes.JsonNode.ParseAsync(httpContext.Request.Body, cancellationToken: ct).ConfigureAwait(false) as System.Text.Json.Nodes.JsonObject
                 : new System.Text.Json.Nodes.JsonObject()) is not { } body) return ResourceHttp.InvalidBody("Provide an object with the run options.");
-            CheckContract(body, QylSerializerContext.Default.SavedQueryRunRequest, s_savedQueryRunRules);
+            CheckContract(body, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.SavedQueries.SavedQueryRunRequest>());
             body["id"] = savedQueryId;
             var project = ResolveProjectScope(httpContext);
             if (await store.GetSavedQueryAsync(project, savedQueryId, ct).ConfigureAwait(false) is not { } saved)
@@ -225,8 +217,8 @@ internal static partial class CollectorEndpointExtensions
             var run = signal == "metrics"
                 ? Analysis.J.O(("signal", signal), ("result", MetricRunResult(result)))
                 : Analysis.J.O(("signal", signal), ("items", result[signal]), ("has_more", result["has_more"]), ("next_cursor", result["next_cursor"]));
-            var typed = JsonSerializer.Deserialize(run.ToJsonString(), QylSerializerContext.Default.SavedQueryRunResult)!;
-            return Results.Json(typed, QylSerializerContext.Default.SavedQueryRunResult);
+            var wire = WireJson.Serialize("SavedQueries.SavedQueryRunResult", WireJson.ToElement(run));
+            return Results.Json(wire, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::System.Text.Json.JsonElement>());
         }
         catch (Analysis.AnalysisInputException invalid) { return AnalysisError(invalid); }
         catch (JsonException) { return ResourceHttp.InvalidBody("Provide valid run options."); }
@@ -237,6 +229,8 @@ internal static partial class CollectorEndpointExtensions
         var metric = result["metric"]!.DeepClone().AsObject();
         metric["start_time"] = result["window"]!["start_time"]!.DeepClone();
         metric["end_time"] = result["window"]!["end_time"]!.DeepClone();
+        metric["truncated"] = result["coverage"]!["truncated"]!.DeepClone();
+        foreach (var field in new[] { "method", "exemplar_trace_ids", "comparison" }) metric.Remove(field);
         return metric;
     }
 
@@ -246,19 +240,11 @@ internal static partial class CollectorEndpointExtensions
     private static IResult SavedQueryNameConflict(string name) =>
         ContractErrorResults.Conflict(name, "A saved query with this name already exists in the project.");
 
-    // The filter was read against its contract with its body; what the contract does not state is checked here: a
-    // matcher's operands, a metric filter's non-empty group_by keys and its matcher values of at most 1024 characters.
+    // TypeSpec validates each field. Operand relationships still depend on the selected operator.
     private static IResult? ValidateSavedQueryFilter(SavedQueryFilter filter)
     {
         try { Analysis.AnalysisMatchers.Validate(System.Text.Json.Nodes.JsonNode.Parse(SavedQueryMapper.WriteFilter(filter))?["matchers"]); }
         catch (Analysis.AnalysisInputException invalid) { return ContractErrorResults.Validation("filter.matchers", invalid.Description, invalid.Code); }
-        if (filter is not SavedMetricQueryFilter metrics) return null;
-        if (metrics.GroupBy is { } groupBy && groupBy.Any(static key => string.IsNullOrEmpty(key)))
-            return ContractErrorResults.Validation("filter.group_by", "Group by non-empty attribute keys.", "group_by.invalid");
-        if (metrics.Matchers is { } matchers && matchers.Any(static matcher =>
-                (Convert.ToString(matcher.Value, CultureInfo.InvariantCulture) ?? "").EnumerateRunes().Count() > SavedQueryMaxMatcherValueLength))
-            return ContractErrorResults.Validation("filter.matchers",
-                $"Each matcher takes a value of at most {SavedQueryMaxMatcherValueLength} characters.", "matchers.invalid");
         return null;
     }
 }

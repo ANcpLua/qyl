@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CollectorError, parseCollectorBody } from "./collector.js";
 import { checkContract, contractSchema, type ContractSchemaName } from "./contracts/tool-schemas.js";
-import documents from "./contracts/generated/tool-schemas.json" with { type: "json" };
+import documents from "./contracts/generated/contract-schemas.json" with { type: "json" };
 import { readContext, toolLog, toolTrace, toolSummary } from "./analysis-context.test-helper.js";
 import { getTelemetryFixture } from "./telemetry-fixtures.test-helper.js";
 import { toolError } from "./request-scope.js";

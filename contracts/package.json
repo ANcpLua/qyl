@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/ts-types && tsc -p emitters/qyl-lint",
-    "compile": "node scripts/clean-generated.mjs && bun run build:emitters && tsp compile main.tsp --warn-as-error && node scripts/emit-contract-revision.mjs && node scripts/emit-mcp-schemas.mjs",
+    "compile": "node --test scripts/lib/*.test.mjs && node scripts/clean-generated.mjs && bun run build:emitters && tsp compile main.tsp --warn-as-error && node scripts/emit-mcp-schemas.mjs && node scripts/emit-contract-revision.mjs",
     "format": "tsp format **/*.tsp"
   },
   "devDependencies": {

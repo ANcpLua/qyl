@@ -149,11 +149,11 @@ model ToolTimeRange {
 
   @doc("Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`.")
   @encodedName("application/json", "start_time")
-  startTime?: utcDateTime;
+  startTime?: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("End of the window (exclusive), RFC 3339; default now.")
   @encodedName("application/json", "end_time")
-  endTime?: utcDateTime;
+  endTime?: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("Finds executions: one compact row per trace that started in the window, with its root service and span name, start, duration in ms, span and error counts, services, failure ids and session. Use it to get the trace ids that get_trace, compare_traces and get_failure_context take; aggregate_telemetry computes numbers per group and compare_groups explains what differs between two populations. Default: the last 60 minutes, 10 traces per page, newest first.")
@@ -476,7 +476,7 @@ model CiRunSummary {
   state: SessionState;
 
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
 
   @encodedName("application/json", "duration_ms")
   durationMs?: DurationMs;
@@ -497,7 +497,7 @@ model CiPhase {
   @encodedName("application/json", "trace_ids")
   traceIds?: TraceId[];
   @encodedName("application/json", "error_log_count")
-  errorLogCount?: int64;
+  errorLogCount?: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "error_logs")
   errorLogs?: CiErrorExcerpt[];
 
@@ -604,7 +604,7 @@ model QueryMetricInput {
   @encodedName("application/json", "step_ms")
   @minValue(1)
   @maxValue(86400000)
-  stepMs?: int64;
+  stepMs?: Qyl.Api.Contracts.Common.JsonInteger;
 
   @doc("Reducer of the points in each bucket and in the whole window: `avg` (default), `min`, `max`, `sum`, `count`, `last`, or `p50`, `p90`, `p95` and `p99` for histograms. list_metrics shows each metric's `supported_aggregations`.")
   aggregation?: MetricAggregation = MetricAggregation.avg;
@@ -650,7 +650,7 @@ model MetricAnswer {
 
   @doc("Bucket width in milliseconds.")
   @encodedName("application/json", "step_ms")
-  stepMs: int64;
+  stepMs: Qyl.Api.Contracts.Common.JsonInteger;
 
   @doc("One stream per `group_by` combination: its value for the whole window and the buckets that hold points.")
   series: MetricSeriesResult[];

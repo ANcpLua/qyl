@@ -12,7 +12,7 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { createServer } from './dist/server.js';
 import { collectorHeaders } from './dist/config.js';
 import { QylServiceValues } from './dist/contracts/generated/api.js';
-import documents from './dist/contracts/generated/tool-schemas.json' with { type: 'json' };
+import documents from './dist/contracts/generated/contract-schemas.json' with { type: 'json' };
 const fixture = JSON.parse(await readFile(process.env.QYL_ANSWER_KEY_FILE ?? new URL('missing-answer-key-use-run-answer-key', import.meta.url),'utf8'));
 process.env.QYL_COLLECTOR_URL = process.env.QYL_ANSWER_KEY_COLLECTOR ?? 'http://127.0.0.1:5510';
 process.env.QYL_PROJECT = fixture.project;

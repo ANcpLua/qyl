@@ -57,7 +57,10 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         // A verification's before and after windows bound it; the request's window would only mislead.
         if (operation != "verify_fix") result["window"] ??= _window.Json;
         result["coverage"] ??= Coverage(Select(input).Count + Select(input, "logs").Count, Select(input).Count + Select(input, "logs").Count, 1, false);
-        return PageCollections(input, result);
+        var paged = PageCollections(input, result);
+        foreach (var logs in new[] { paged["logs"] as JsonArray, paged["observed"]?["logs"] as JsonArray })
+            if (logs is not null) foreach (var log in logs.OfType<JsonObject>()) log.Remove("log_id");
+        return paged;
     }
 
     // scan_complete says whether the read held every record the answer could come from, truncated whether the answer
@@ -98,7 +101,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     {
         Api.Contracts.Common.AttributeValue.StringValue text => text.Value,
         null => "",
-        var value => JsonSerializer.Serialize(value, QylSerializerContext.Default.AttributeValue)
+        var value => JsonSerializer.Serialize(value, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.AttributeValue>())
     };
     private static string Message(AnalysisRecord s) => s.Span?.StatusMessage ?? LogBody(s);
     private static string Operation(AnalysisRecord s) => J.Text(s.Value(CollectorSemanticAttributeCatalog.HttpRoute)) is { Length: > 0 } route ? route : s.Name;
@@ -131,6 +134,15 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
             ("status", J.String(state, "status") ?? "open"), ("updated_at", J.String(state, "updated_at") ?? J.Time(records.Min(s => s.Start))), ("ignore_until", state["ignore_until"]), ("assignee", state["assignee"]),
             ("annotation_count", notes), ("example_trace_ids", records.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)));
     }
+    private static JsonObject AsTriageFailure(JsonObject failure, string? exampleTraceId)
+    {
+        failure["example_trace_id"] = exampleTraceId;
+        failure.Remove("affected_sessions");
+        failure.Remove("releases_seen");
+        failure.Remove("updated_at");
+        failure.Remove("example_trace_ids");
+        return failure;
+    }
     private static string? NonEmpty(string value) => value.Length > 0 ? value : null;
     private bool AnnotationTargetsFailure(AnnotationRow note, string id, List<AnalysisRecord> records) => FailureNote(note, id)
         || note.TargetKind switch { "trace" => records.Any(r => r.TraceId == note.TraceId), "span" => records.Any(r => r.SpanId == note.SpanId && r.TraceId == note.TraceId), "session" => records.Any(r => r.SessionId == note.SessionId), _ => false };
@@ -146,12 +158,12 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
         var listed = J.String(input, "status") ?? "open";
         var failures = errors.Select(g =>
         {
-            var f = Failure(g); var id = J.String(f, "failure_id")!; var state = State(id);
+            var f = AsTriageFailure(Failure(g), g.First().TraceId); var id = J.String(f, "failure_id")!; var state = State(id);
             var old = baseline.GetValueOrDefault(g.Key); var count = g.Count(); var status = J.String(state, "status");
             var changedAfter = J.Date(state, "updated_at");
             var change = status == "resolved" && changedAfter.HasValue && g.Any(s => s.Start > QylTimeConversions.ToUnixNanoUnsigned(changedAfter.Value))
                 ? "regressed" : old is 0 ? "new" : count > old ? "worsening" : count < old ? "recovering" : "ongoing";
-            f["change"] = change; f["baseline_count"] = old; f["example_trace_id"] = g.First().TraceId;
+            f["change"] = change; f["baseline_count"] = old;
             f["coinciding_release"] = CoincidingRelease(g, releases)?.DeepClone();
             f["root_cause_failure_id"] = RootCauseFailure(g);
             return f;
@@ -177,7 +189,7 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
                     regressions.Add(J.O(("service", g.Key.Service), ("operation", g.Key.Op), ("measure", m.Item1), ("value", m.Item2), ("baseline_value", m.Item3), ("denominator", g.Count()), ("unit", m.Item1 == "p95_ms" ? "ms" : m.Item1 == "error_rate" ? "1" : "spans")));
         }
         // New failures lead the ranking, so they keep their places on the first page even when their count is low.
-        return J.O(("failures", J.A(failures.OrderBy(f => J.String(f, "change") == "new" ? 0 : 1))), ("regressions", J.A(regressions)), ("releases", J.A(releases.Where(r => J.Date(r, "first_seen") >= _window.Start))),
+        return J.O(("failures", J.A(failures.OrderBy(f => J.String(f, "change") == "new" ? 0 : 1))), ("regressions", J.A(regressions)), ("releases", J.A(releases.Where(r => J.Date(r, "first_seen") >= _window.Start).Select(ReleaseReference))),
             ("silent_services", Silent(input)), ("coverage", Coverage(_spans.Count, current.Count, failures.Count, false)));
     }
     // The release the failing spans run on: their most common version, the later one among equals, when the
@@ -186,9 +198,12 @@ internal sealed partial class AnalysisEngine(AnalysisSnapshot snapshot, string p
     {
         if (failing.Where(static s => ReleaseOf(s).Length > 0).GroupBy(static s => (s.Service, Version: ReleaseOf(s), Env: EnvironmentOf(s)))
                 .OrderByDescending(static g => g.Count()).ThenByDescending(static g => g.Max(static s => s.Start)).FirstOrDefault()?.Key is not { } run) return null;
-        return releases.FirstOrDefault(r => J.String(r, "service") == run.Service && J.String(r, "version") == run.Version && (J.String(r, "environment") ?? "") == run.Env
+        var release = releases.FirstOrDefault(r => J.String(r, "service") == run.Service && J.String(r, "version") == run.Version && (J.String(r, "environment") ?? "") == run.Env
             && _window.Contains(QylTimeConversions.ToUnixNanoUnsigned(J.Date(r, "first_seen")!.Value)));
+        return release is null ? null : ReleaseReference(release);
     }
+    private static JsonObject ReleaseReference(JsonObject release) => J.O(("service", release["service"]), ("version", release["version"]),
+        ("first_seen", release["first_seen"]), ("revision", release["revision"]));
     private ILookup<string?, AnalysisRecord> ErrorsByTrace => field ??= _spans.Where(static s => s.Error).ToLookup(static s => s.TraceId);
     // The failure the occurrences propagated from: in each of their traces the earliest error span without a failing
     // child, by majority.

@@ -37,7 +37,7 @@ internal static class CollectorCoreExtensions
 
         services.ConfigureHttpJsonOptions(static options =>
         {
-            options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default);
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, global::Qyl.Api.Contracts.ContractTypes.Resolver);
         });
 
         services.AddGrpc(static options =>

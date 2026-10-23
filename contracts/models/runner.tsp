@@ -25,7 +25,7 @@ enum RunnerResourceKind {
 model RunnerResourceState {
   name: string;
   lifecycle: RunnerResourceLifecycle;
-  timestamp: utcDateTime;
+  timestamp: Qyl.Api.Contracts.Common.Timestamp;
   kind?: RunnerResourceKind;
 
   @minValue(1)
@@ -33,7 +33,7 @@ model RunnerResourceState {
   @encodedName("application/json", "allocated_port")
   allocatedPort?: int32;
 
-  endpoint?: url;
+  endpoint?: Qyl.Api.Contracts.Common.UrlString;
   @encodedName("application/json", "last_error")
   lastError?: string;
 }

@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
@@ -202,8 +201,8 @@ internal static class SdkConformance
                 if (!string.Equals(body, "qyl-sdk-conformance-ok", StringComparison.Ordinal))
                     throw new InvalidOperationException($"Conformance endpoint returned an unexpected body: {body}");
 
-                var traceId = ReadIdHeader(response, TraceIdHeader, 32);
-                var spanId = ReadIdHeader(response, SpanIdHeader, 16);
+                var traceId = ReadIdHeader(response, TraceIdHeader, "Common.TraceId");
+                var spanId = ReadIdHeader(response, SpanIdHeader, "Common.SpanId");
                 return new TraceAndSpanIds(traceId, spanId);
             }
             catch (HttpRequestException)
@@ -349,7 +348,7 @@ internal static class SdkConformance
         }
     }
 
-    private static string ReadIdHeader(HttpResponseMessage response, string header, int expectedLength)
+    private static string ReadIdHeader(HttpResponseMessage response, string header, string contract)
     {
         if (!response.Headers.TryGetValues(header, out var values))
         {
@@ -358,7 +357,7 @@ internal static class SdkConformance
         }
 
         var value = values.Single();
-        if (value.Length != expectedLength || value.Any(static character => !Uri.IsHexDigit(character)))
+        if (Qyl.Api.Contracts.ContractJson.Validate(contract, System.Text.Json.Nodes.JsonValue.Create(value)) is not null)
             throw new InvalidOperationException($"Conformance response {header} is not a valid lowercase OTLP id: {value}");
         return value;
     }
@@ -403,21 +402,20 @@ internal sealed class QylApiContractClient(HttpClient http, Uri apiBase)
         using var response = await http.GetAsync(new Uri(apiBase, path)).ConfigureAwait(false);
         if (response.StatusCode is HttpStatusCode.NotFound)
             return null;
-        return await ReadContractAsync(response, path, ContractJsonContext.Default.OtelTrace).ConfigureAwait(false);
+        return await ReadContractAsync<ContractTrace>(response, path).ConfigureAwait(false);
     }
 
     internal async Task<CursorPageLogRecord> GetLogsAsync(string traceId)
     {
         var path = $"api/v1/logs?trace_id={Uri.EscapeDataString(traceId)}&limit=100";
         using var response = await http.GetAsync(new Uri(apiBase, path)).ConfigureAwait(false);
-        return await ReadContractAsync(response, path, ContractJsonContext.Default.CursorPageLogRecord)
+        return await ReadContractAsync<CursorPageLogRecord>(response, path)
             .ConfigureAwait(false);
     }
 
     private static async Task<T> ReadContractAsync<T>(
         HttpResponseMessage response,
-        string path,
-        JsonTypeInfo<T> typeInfo)
+        string path)
     {
         if (!response.IsSuccessStatusCode)
         {
@@ -430,34 +428,7 @@ internal sealed class QylApiContractClient(HttpClient http, Uri apiBase)
         if (!string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"Product API {path} returned content type {mediaType ?? "<missing>"}.");
 
-        return await response.Content.ReadFromJsonAsync(typeInfo).ConfigureAwait(false)
+        return Qyl.Api.Contracts.ContractJson.Deserialize<T>(await response.Content.ReadAsStringAsync().ConfigureAwait(false))
                ?? throw new InvalidOperationException($"Product API {path} returned an empty contract body.");
     }
 }
-
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    NumberHandling = JsonNumberHandling.AllowReadingFromString |
-                     JsonNumberHandling.AllowNamedFloatingPointLiterals)]
-[JsonSerializable(typeof(ContractTrace), TypeInfoPropertyName = "OtelTrace")]
-[JsonSerializable(typeof(ContractSpan))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.SpanEvent))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.SpanLink))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.SpanStatus))]
-[JsonSerializable(typeof(CursorPageLogRecord))]
-[JsonSerializable(typeof(LogRecord))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeValue))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeObjectValue))]
-[JsonSerializable(typeof(ContractResource))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.EntityRef), TypeInfoPropertyName = "CommonEntityRef")]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.InstrumentationScope))]
-[JsonSerializable(typeof(ContractAttribute))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeBytesValue))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeIntValue))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeDoubleValue))]
-[JsonSerializable(typeof(Qyl.Api.Contracts.Common.AttributeKeyValueListValue))]
-[JsonSerializable(typeof(JsonElement))]
-[JsonSerializable(typeof(object[]))]
-[JsonSerializable(typeof(Dictionary<string, object?>))]
-internal sealed partial class ContractJsonContext : JsonSerializerContext;

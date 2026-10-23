@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { isDeepStrictEqual } from "node:util";
 import test from "node:test";
-import documents from "./contracts/generated/tool-schemas.json" with { type: "json" };
+import documents from "./contracts/generated/contract-schemas.json" with { type: "json" };
 import { connectModernTestClient } from "./modern-test-client.test-helper.js";
 import { createServer } from "./server.js";
 

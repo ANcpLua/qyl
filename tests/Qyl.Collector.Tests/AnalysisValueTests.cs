@@ -50,7 +50,7 @@ public sealed partial class AnalysisApiTests
         ]), testContext.CancellationToken);
 
         var json = await Read(host, "discover_attributes", """{"signal":"spans","key_prefix":"probe."}""");
-        var output = JsonSerializer.Deserialize(json.GetRawText(), AnalysisContractJsonContext.Default.DiscoverAttributesOutput)!;
+        var output = JsonSerializer.Deserialize(json.GetRawText(), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Mcp.Tools.DiscoverAttributesOutput>())!;
 
         var number = Assert.ContainsSingle(output.Attributes.Single(static a => a.Key == "probe.number").TopValues);
         var integer = Assert.IsInstanceOfType<AttributeIntValue>(Assert.IsInstanceOfType<AttributeValue.ObjectValue>(number.Value).Value);

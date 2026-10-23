@@ -6,7 +6,7 @@ namespace Qyl.Collector.Analysis;
 internal sealed partial class AnalysisEngine
 {
     private static readonly string[] s_missingArguments = ["Arguments not captured; repeats cannot be confirmed without argument hashes."];
-    private JsonObject AnnotationJson(AnnotationRow row) => _state.GetValueOrDefault("annotation:" + row.AnnotationId) is { } metadata ? JsonNode.Parse(metadata.ValueJson)!.AsObject() : JsonSerializer.SerializeToNode(AnnotationMapper.ToContract(row), QylSerializerContext.Default.Annotation)!.AsObject();
+    private JsonObject AnnotationJson(AnnotationRow row) => _state.GetValueOrDefault("annotation:" + row.AnnotationId) is { } metadata ? JsonNode.Parse(metadata.ValueJson)!.AsObject() : JsonSerializer.SerializeToNode(AnnotationMapper.ToContract(row), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Annotations.Annotation>())!.AsObject();
     private List<JsonObject> TraceAnnotations(string traceId, IReadOnlySet<string>? spanIds = null) =>
     [
         .. snapshot.Annotations
@@ -80,7 +80,12 @@ internal sealed partial class AnalysisEngine
                 ("annotations", annotations.Count is 0 ? null : J.A(annotations)), ("tokens", TotalTokens(items)));
         }).OfType<JsonObject>();
         var sorted = J.String(input, "order_by") switch { "errors" => all.OrderByDescending(s => J.Number(s, "error_count")), "duration" => all.OrderByDescending(s => J.Number(s, "duration_ms")), "tokens" => all.OrderByDescending(s => J.Number(s, "tokens")), _ => all.OrderByDescending(s => J.String(s, "last_activity"), StringComparer.Ordinal) };
-        return Page(input, "sessions", sorted.ThenBy(s => J.String(s, "session_id"), StringComparer.Ordinal));
+        return Page(input, "sessions", sorted.ThenBy(s => J.String(s, "session_id"), StringComparer.Ordinal).Select(static row =>
+        {
+            row.Remove("last_activity");
+            row.Remove("tokens");
+            return row;
+        }));
     }
     private static long TotalInput(IEnumerable<AnalysisRecord> rows) => rows.Sum(static s => s.Span?.GenAiInputTokens ?? 0);
     private static long TotalOutput(IEnumerable<AnalysisRecord> rows) => rows.Sum(static s => s.Span?.GenAiOutputTokens ?? 0);

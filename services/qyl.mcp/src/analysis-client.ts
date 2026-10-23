@@ -10,7 +10,7 @@ import { telemetryToolResult } from "./telemetry-redaction.js";
 export async function queryAnalysis<Input extends object>(
   operation: string,
   input: Input,
-  schema: ContractSchemaName,
+  schema: Extract<ContractSchemaName, `Mcp.Tools.${string}Output`>,
   scope: ToolScope,
 ): Promise<CallToolResult> {
   const path = `/api/v1/analysis/${operation}`;

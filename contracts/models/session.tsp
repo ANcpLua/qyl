@@ -29,11 +29,11 @@ model SessionEntity {
 
   @doc("Session start time")
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("Session end time")
   @encodedName("application/json", "end_time")
-  endTime?: utcDateTime;
+  endTime?: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("Session duration in milliseconds")
   @encodedName("application/json", "duration_ms")

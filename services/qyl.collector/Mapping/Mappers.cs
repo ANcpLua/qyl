@@ -210,8 +210,8 @@ internal static class SpanMapper
             RootSpan = rootSpan,
             SpanCount = spans.Count,
             DurationNs = duration,
-            StartTime = QylTimeConversions.NanosToDateTimeOffset(start),
-            EndTime = QylTimeConversions.NanosToDateTimeOffset(end),
+            StartTime = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(start)),
+            EndTime = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(end)),
             Services = [.. spans.Select(static s => s.Resource.ServiceName).Distinct(StringComparer.Ordinal)],
             HasError = spans.Any(static s => s.Status.Code is SpanStatusCode.Error)
         };
@@ -388,8 +388,8 @@ internal static class SessionMapper
         return new SessionEntity
         {
             SessionId = summary.SessionId,
-            StartTime = startTime,
-            EndTime = isActive ? null : lastActivity,
+            StartTime = Api.Contracts.ContractJson.FormatTimestamp(startTime),
+            EndTime = isActive ? null : Api.Contracts.ContractJson.FormatTimestamp(lastActivity),
             DurationMs = summary.DurationMs,
             SpanCount = ToInt32(summary.SpanCount),
             TraceCount = ToInt32(summary.TraceCount),
@@ -472,7 +472,7 @@ internal static class MetricMapper
             SupportedAggregations = SupportedAggregations(entry.Variants.Count is 0
                 ? [entry.MetricKind] : entry.Variants.Select(static variant => variant.Kind)),
             SeriesCount = entry.SeriesCount,
-            LastSeen = QylTimeConversions.NanosToDateTimeOffset(entry.LastSeenUnixNano)
+            LastSeen = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(entry.LastSeenUnixNano))
         };
 
     public static IReadOnlyList<MetricDescriptor> ToContracts(IReadOnlyList<MetricCatalogEntry> entries) =>
@@ -519,8 +519,8 @@ internal static class MetricMapper
                     ScopeAttributes = ContractJson.ParseAttributes(row.ScopeAttributesJson),
                     DroppedAttributesCount = row.ScopeDroppedAttributesCount
                 },
-            FirstSeen = QylTimeConversions.NanosToDateTimeOffset(row.FirstSeenUnixNano),
-            LastSeen = QylTimeConversions.NanosToDateTimeOffset(row.LastSeenUnixNano)
+            FirstSeen = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(row.FirstSeenUnixNano)),
+            LastSeen = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(row.LastSeenUnixNano))
         };
 
     public static IReadOnlyList<MetricSeries> ToContracts(IReadOnlyList<MetricSeriesRow> rows) =>
@@ -573,8 +573,8 @@ internal static class MetricMapper
             Unit = descriptor.Unit,
             Aggregation = ToAggregation(aggregation),
             StepMs = stepMs,
-            StartTime = startTime,
-            EndTime = endTime,
+            StartTime = Api.Contracts.ContractJson.FormatTimestamp(startTime),
+            EndTime = Api.Contracts.ContractJson.FormatTimestamp(endTime),
             Series = [.. series.Select(static stream => ToContract(stream))],
             Truncated = truncated,
             NumericRepresentation = "float64",
@@ -589,7 +589,7 @@ internal static class MetricMapper
             [
                 .. stream.Points.Select(static point => new MetricBucket
                 {
-                    BucketStart = QylTimeConversions.NanosToDateTimeOffset(point.BucketStartUnixNano),
+                    BucketStart = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(point.BucketStartUnixNano)),
                     Value = point.Value,
                     PointCount = (long)point.PointCount
                 })
@@ -641,8 +641,8 @@ internal static class AnnotationMapper
         new()
         {
             Id = row.AnnotationId,
-            CreatedAt = QylTimeConversions.NanosToDateTimeOffset(row.CreatedAtUnixNano),
-            UpdatedAt = QylTimeConversions.NanosToDateTimeOffset(row.UpdatedAtUnixNano),
+            CreatedAt = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(row.CreatedAtUnixNano)),
+            UpdatedAt = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(row.UpdatedAtUnixNano)),
             Etag = row.Etag,
             Target = row.TargetKind switch
             {
@@ -664,8 +664,8 @@ internal static class SavedQueryMapper
         new()
         {
             Id = row.SavedQueryId,
-            CreatedAt = QylTimeConversions.NanosToDateTimeOffset(row.CreatedAtUnixNano),
-            UpdatedAt = QylTimeConversions.NanosToDateTimeOffset(row.UpdatedAtUnixNano),
+            CreatedAt = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(row.CreatedAtUnixNano)),
+            UpdatedAt = Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(row.UpdatedAtUnixNano)),
             Etag = row.Etag,
             Name = row.Name,
             Description = row.Description,
@@ -676,11 +676,11 @@ internal static class SavedQueryMapper
         [.. rows.Select(static row => ToContract(row))];
 
     private static SavedQueryFilter ReadFilter(string filterJson) =>
-        JsonSerializer.Deserialize(filterJson, QylSerializerContext.Default.SavedQueryFilter)
+        JsonSerializer.Deserialize(filterJson, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.SavedQueries.SavedQueryFilter>())
         ?? throw new InvalidDataException("A stored saved-query filter is empty.");
 
     public static string WriteFilter(SavedQueryFilter filter) =>
-        JsonSerializer.Serialize(filter, QylSerializerContext.Default.SavedQueryFilter);
+        JsonSerializer.Serialize(filter, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.SavedQueries.SavedQueryFilter>());
 
     public static string SignalName(SavedQueryFilter filter) => filter switch
     {

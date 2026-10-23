@@ -29,7 +29,7 @@
   ],
   "scripts": {
     "clean": "bun -e \"const fs=require('node:fs'); fs.rmSync('dist', { recursive: true, force: true }); fs.rmSync('dist-test', { recursive: true, force: true })\"",
-    "build": "bun run clean && tsc -p tsconfig.server.json && bun -e \"const fs=require('node:fs'); fs.chmodSync('dist/main.js', 0o755); fs.cpSync('skills', 'dist/skills', { recursive: true })\"",
+    "build": "bun run clean && tsc -p tsconfig.server.json && bun -e \"const fs=require('node:fs'); fs.chmodSync('dist/main.js', 0o755); fs.cpSync('skills', 'dist/skills', { recursive: true }); fs.copyFileSync('../../contracts/THIRD-PARTY-NOTICES.txt', 'dist/THIRD-PARTY-NOTICES.txt')\"",
     "lint": "oxlint .",
     "verify:sdk": "node --test scripts/verify-mcp-sdk.test.mjs && bun scripts/verify-mcp-sdk.mjs",
     "verify:frame": "node verify-tool-frame.mjs",

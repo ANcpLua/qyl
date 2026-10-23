@@ -10,11 +10,11 @@ namespace Qyl.Api.Contracts.OTel.Logs;
 
 public sealed class LogRecord
 {
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("time_unix_nano")]
     public ulong? TimeUnixNano { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("observed_time_unix_nano")]
     public ulong? ObservedTimeUnixNano { get; init; }

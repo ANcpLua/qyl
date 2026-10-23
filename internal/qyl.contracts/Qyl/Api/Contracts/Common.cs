@@ -241,7 +241,7 @@ public sealed class AttributeBytesValue : AttributeObjectValue
 
 public sealed class AttributeIntValue : AttributeObjectValue, Qyl.Api.Contracts.OTel.Metrics.MetricNumberValue
 {
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.Int64StringConverter))]
     [JsonPropertyName("value")]
     public required long Value { get; init; }
 }
@@ -327,9 +327,9 @@ public sealed class TelemetryMatcher
 public sealed class ToolWindow
 {
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
+    public required string EndTime { get; init; }
 }
 
 public sealed class ToolCoverage
@@ -348,7 +348,7 @@ public sealed class ToolCoverage
     [JsonPropertyName("scan_complete")]
     public required bool ScanComplete { get; init; }
     [JsonPropertyName("as_of")]
-    public required DateTimeOffset AsOf { get; init; }
+    public required string AsOf { get; init; }
 }
 
 public sealed class ToolReadContext
@@ -367,14 +367,14 @@ public sealed class ResourceBase
     [JsonPropertyName("id")]
     public required string Id { get; init; }
     [JsonPropertyName("created_at")]
-    public required DateTimeOffset CreatedAt { get; init; }
+    public required string CreatedAt { get; init; }
     [JsonPropertyName("updated_at")]
-    public required DateTimeOffset UpdatedAt { get; init; }
+    public required string UpdatedAt { get; init; }
     [JsonPropertyName("etag")]
     public required string Etag { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MatcherOp>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<MatcherOp>))]
 public enum MatcherOp
 {
     [JsonStringEnumMemberName("eq")]
@@ -413,7 +413,7 @@ public static class MatcherOpValues
     public const string Lte = "lte";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MatcherScope>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<MatcherScope>))]
 public enum MatcherScope
 {
     [JsonStringEnumMemberName("span")]
@@ -431,7 +431,7 @@ public static class MatcherScopeValues
     public const string Log = "log";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<CollectorKeyRole>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<CollectorKeyRole>))]
 public enum CollectorKeyRole
 {
     [JsonStringEnumMemberName("ingest")]

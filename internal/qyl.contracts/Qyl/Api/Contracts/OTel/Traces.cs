@@ -24,10 +24,10 @@ public sealed class Span
     public required string Name { get; init; }
     [JsonPropertyName("kind")]
     public required Qyl.Api.Contracts.OTel.Enums.SpanKind Kind { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("start_time_unix_nano")]
     public required ulong StartTimeUnixNano { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("end_time_unix_nano")]
     public required ulong EndTimeUnixNano { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -64,7 +64,7 @@ public sealed class SpanEvent
 {
     [JsonPropertyName("name")]
     public required string Name { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("time_unix_nano")]
     public required ulong TimeUnixNano { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -113,13 +113,13 @@ public sealed class TraceSummary
     public Qyl.Api.Contracts.OTel.Traces.Span? RootSpan { get; init; }
     [JsonPropertyName("span_count")]
     public required int SpanCount { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("duration_ns")]
     public required ulong DurationNs { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
+    public required string EndTime { get; init; }
     [JsonPropertyName("services")]
     public required IReadOnlyList<string> Services { get; init; }
     [JsonPropertyName("has_error")]
@@ -135,13 +135,13 @@ public sealed class Trace
     public Qyl.Api.Contracts.OTel.Traces.Span? RootSpan { get; init; }
     [JsonPropertyName("span_count")]
     public required int SpanCount { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("duration_ns")]
     public required ulong DurationNs { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
+    public required string EndTime { get; init; }
     [JsonPropertyName("services")]
     public required IReadOnlyList<string> Services { get; init; }
     [JsonPropertyName("has_error")]

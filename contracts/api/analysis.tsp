@@ -118,7 +118,7 @@ interface AnalysisApi {
 model UpdateFailureStatusRequest {
   status: FailureStatus;
   @encodedName("application/json", "ignore_until")
-  ignoreUntil?: utcDateTime;
+  ignoreUntil?: Qyl.Api.Contracts.Common.Timestamp;
   @maxLength(256)
   assignee?: string;
 }

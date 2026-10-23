@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Time.Testing;
@@ -84,7 +85,7 @@ public sealed class SessionActivityTests(TestContext testContext)
         _clock.Advance(TimeSpan.FromTicks(1));
         var expired = await GetSessionAsync();
         Assert.AreEqual(SessionState.Ended, expired.State);
-        Assert.AreEqual(s_now, expired.EndTime);
+        Assert.AreEqual(s_now, DateTimeOffset.Parse(expired.EndTime!, CultureInfo.InvariantCulture));
         Assert.IsEmpty((await GetPageAsync("?is_active=true")).Items);
         Assert.AreEqual(SessionId, Assert.ContainsSingle((await GetPageAsync("?is_active=false")).Items).SessionId);
         Assert.AreEqual(0, (await GetStatsAsync()).ActiveSessions);
@@ -110,7 +111,7 @@ public sealed class SessionActivityTests(TestContext testContext)
 
         Assert.AreSequenceEqual(["after-cutoff", "at-cutoff"], page.Items.Select(static item => item.SessionId));
         Assert.AreSequenceEqual([SessionState.Active, SessionState.Active], page.Items.Select(static item => item.State));
-        Assert.AreSequenceEqual<DateTimeOffset?>([null, null], page.Items.Select(static item => item.EndTime));
+        Assert.AreSequenceEqual<string?>([null, null], page.Items.Select(static item => item.EndTime));
     }
 
     [TestMethod]
@@ -139,7 +140,7 @@ public sealed class SessionActivityTests(TestContext testContext)
         using var response = await Host.SendAsync(HttpMethod.Get, $"/api/v1/sessions/{SessionId}", ReaderApiKey);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var session = await response.Content.ReadFromJsonAsync(
-            QylSerializerContext.Default.SessionEntity, testContext.CancellationToken);
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Domains.Observe.Session.SessionEntity>(), testContext.CancellationToken);
         Assert.IsNotNull(session);
         return session;
     }
@@ -149,7 +150,7 @@ public sealed class SessionActivityTests(TestContext testContext)
         using var response = await Host.SendAsync(HttpMethod.Get, "/api/v1/sessions" + query, ReaderApiKey);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var page = await response.Content.ReadFromJsonAsync(
-            QylSerializerContext.Default.CursorPageSessionEntity, testContext.CancellationToken);
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageSessionEntity>(), testContext.CancellationToken);
         Assert.IsNotNull(page);
         return page;
     }
@@ -159,7 +160,7 @@ public sealed class SessionActivityTests(TestContext testContext)
         using var response = await Host.SendAsync(HttpMethod.Get, "/api/v1/sessions/stats", ReaderApiKey);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var stats = await response.Content.ReadFromJsonAsync(
-            QylSerializerContext.Default.SessionStats, testContext.CancellationToken);
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Domains.Observe.Session.SessionStats>(), testContext.CancellationToken);
         Assert.IsNotNull(stats);
         return stats;
     }

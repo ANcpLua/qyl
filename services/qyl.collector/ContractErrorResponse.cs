@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization.Metadata;
 using Qyl.Api.Contracts.Common.Errors;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 
@@ -7,14 +6,13 @@ namespace Qyl.Collector;
 internal static class ContractErrorResults
 {
     internal static IResult InternalServerError(string errorCode) =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             CreateInternalServerError(errorCode),
-            QylSerializerContext.Default.ContractInternalServerError,
             statusCode: StatusCodes.Status500InternalServerError,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static IResult AnalysisDeadlineExceeded() =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             new ProblemDetails
             {
                 Type = ProblemType.ServiceUnavailable,
@@ -23,14 +21,12 @@ internal static class ContractErrorResults
                 Status = StatusCodes.Status504GatewayTimeout,
                 Detail = "Narrow the time window or filters and retry."
             },
-            QylSerializerContext.Default.ProblemDetails,
             statusCode: StatusCodes.Status504GatewayTimeout,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static IResult NotFound(string resourceType, string? resourceId, string? detail = null) =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             CreateNotFound(resourceType, resourceId, detail),
-            QylSerializerContext.Default.NotFoundError,
             statusCode: StatusCodes.Status404NotFound,
             contentType: ProblemDetailsMediaType.Value);
 
@@ -41,14 +37,13 @@ internal static class ContractErrorResults
         string? rejectedValue = null,
         IReadOnlyList<string>? allowed = null,
         string? hint = null) =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             CreateValidation(field, message, code, rejectedValue, allowed, hint),
-            QylSerializerContext.Default.ValidationError,
             statusCode: StatusCodes.Status400BadRequest,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static IResult Conflict(string resourceId, string detail) =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             new ConflictError
             {
                 Type = ProblemType.Conflict,
@@ -58,12 +53,11 @@ internal static class ContractErrorResults
                 Detail = detail,
                 ConflictingResource = resourceId
             },
-            QylSerializerContext.Default.ConflictError,
             statusCode: StatusCodes.Status409Conflict,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static IResult PreconditionFailed(string? currentEtag) =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             new PreconditionFailedError
             {
                 Type = ProblemType.PreconditionFailed,
@@ -73,12 +67,11 @@ internal static class ContractErrorResults
                 Detail = "If-Match does not name the current version. Read the resource again and retry with its etag.",
                 CurrentEtag = currentEtag
             },
-            QylSerializerContext.Default.PreconditionFailedError,
             statusCode: StatusCodes.Status412PreconditionFailed,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static IResult PreconditionRequired() =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             new PreconditionRequiredError
             {
                 Type = ProblemType.PreconditionRequired,
@@ -88,14 +81,12 @@ internal static class ContractErrorResults
                 Detail = "Send the etag of the version being changed in If-Match.",
                 RequiredHeader = "If-Match"
             },
-            QylSerializerContext.Default.PreconditionRequiredError,
             statusCode: StatusCodes.Status428PreconditionRequired,
             contentType: ProblemDetailsMediaType.Value);
 
     internal static IResult ServiceUnavailable(string reason) =>
-        Results.Json(
+        Hosting.ContractHttp.Json(
             CreateServiceUnavailable(reason),
-            QylSerializerContext.Default.ServiceUnavailableError,
             statusCode: StatusCodes.Status503ServiceUnavailable,
             contentType: ProblemDetailsMediaType.Value);
 
@@ -107,7 +98,6 @@ internal static class ContractErrorResults
         WriteAsync(
             response,
             CreateNotFound(resourceType, resourceId),
-            QylSerializerContext.Default.NotFoundError,
             StatusCodes.Status404NotFound,
             cancellationToken);
 
@@ -121,7 +111,6 @@ internal static class ContractErrorResults
         WriteAsync(
             response,
             CreateValidation(field, message, code, rejectedValue, null, null),
-            QylSerializerContext.Default.ValidationError,
             StatusCodes.Status400BadRequest,
             cancellationToken);
 
@@ -132,7 +121,6 @@ internal static class ContractErrorResults
         WriteAsync(
             response,
             CreateUnauthorized(detail),
-            QylSerializerContext.Default.UnauthorizedError,
             StatusCodes.Status401Unauthorized,
             cancellationToken);
 
@@ -151,7 +139,6 @@ internal static class ContractErrorResults
                 Detail = $"The API key lacks the {requiredPermission} role.",
                 RequiredPermission = requiredPermission
             },
-            QylSerializerContext.Default.ForbiddenError,
             StatusCodes.Status403Forbidden,
             cancellationToken);
 
@@ -162,7 +149,6 @@ internal static class ContractErrorResults
         WriteAsync(
             response,
             CreateInternalServerError(errorCode),
-            QylSerializerContext.Default.ContractInternalServerError,
             StatusCodes.Status500InternalServerError,
             cancellationToken);
 
@@ -173,7 +159,6 @@ internal static class ContractErrorResults
         WriteAsync(
             response,
             CreateServiceUnavailable(reason),
-            QylSerializerContext.Default.ServiceUnavailableError,
             StatusCodes.Status503ServiceUnavailable,
             cancellationToken);
 
@@ -251,14 +236,13 @@ internal static class ContractErrorResults
     private static Task WriteAsync<T>(
         HttpResponse response,
         T error,
-        JsonTypeInfo<T> jsonTypeInfo,
         int statusCode,
         CancellationToken cancellationToken)
     {
         response.StatusCode = statusCode;
         return response.WriteAsJsonAsync(
-            error,
-            jsonTypeInfo,
+            Qyl.Api.Contracts.ContractJson.Serialize(error),
+            Qyl.Api.Contracts.ContractTypes.TypeInfo<JsonElement>(),
             contentType: ProblemDetailsMediaType.Value,
             cancellationToken);
     }

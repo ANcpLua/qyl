@@ -43,10 +43,10 @@ model TelemetryMatcher {
 model ToolWindow {
   @doc("Start of the window (inclusive), RFC 3339.")
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
   @doc("End of the window (exclusive), RFC 3339.")
   @encodedName("application/json", "end_time")
-  endTime: utcDateTime;
+  endTime: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("What the answer rests on; unknown counts are null, never an invented zero.")
@@ -64,7 +64,7 @@ model ToolCoverage {
   scanComplete: boolean;
   @doc("End of the window the answer covers.")
   @encodedName("application/json", "as_of")
-  asOf: utcDateTime;
+  asOf: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("ToolReadContext contract.")
@@ -73,6 +73,6 @@ model ToolReadContext {
   coverage: ToolCoverage;
   @doc("Item totals by paged collection path. Omitted totals are unknown, not zero.")
   @encodedName("application/json", "page_totals")
-  pageTotals?: Record<int64>;
+  pageTotals?: Record<Qyl.Api.Contracts.Common.JsonInteger>;
 }
 

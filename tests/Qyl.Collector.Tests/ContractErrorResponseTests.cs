@@ -27,7 +27,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
             Assert.AreEqual(status, context.Response.StatusCode);
             Assert.AreEqual(ProblemDetailsMediaType.Value, context.Response.ContentType);
             var body = await JsonSerializer.DeserializeAsync(context.Response.Body,
-                QylSerializerContext.Default.ProblemDetails, testContext.CancellationToken);
+                global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ProblemDetails>(), testContext.CancellationToken);
             Assert.IsNotNull(body);
             Assert.AreEqual(status, body.Status);
             Assert.AreEqual(code, body.Code);
@@ -47,7 +47,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
         Assert.AreEqual(ProblemDetailsMediaType.Value, validation.Response.ContentType);
         var validationBody = await JsonSerializer.DeserializeAsync(
             validation.Response.Body,
-            QylSerializerContext.Default.ValidationError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ValidationError>(),
             testContext.CancellationToken);
         Assert.AreEqual("limit.invalid", Assert.ContainsSingle(Assert.IsExactInstanceOfType<ValidationError>(validationBody).Errors).Code);
 
@@ -57,7 +57,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
         Assert.AreEqual(ProblemDetailsMediaType.Value, notFound.Response.ContentType);
         var notFoundBody = await JsonSerializer.DeserializeAsync(
             notFound.Response.Body,
-            QylSerializerContext.Default.NotFoundError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.NotFoundError>(),
             testContext.CancellationToken);
         Assert.AreEqual("trace-42", Assert.IsExactInstanceOfType<NotFoundError>(notFoundBody).ResourceId);
     }
@@ -93,7 +93,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var error = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.UnauthorizedError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.UnauthorizedError>(),
             testContext.CancellationToken);
         Assert.AreEqual(StatusCodes.Status401Unauthorized, Assert.IsExactInstanceOfType<UnauthorizedError>(error).Status);
     }
@@ -195,7 +195,7 @@ public sealed class ContractErrorResultsTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var error = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.ContractInternalServerError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.InternalServerError>(),
             testContext.CancellationToken);
         var problem = Assert.IsExactInstanceOfType<InternalServerError>(error);
         Assert.AreEqual(ProblemType.InternalError, problem.Type);

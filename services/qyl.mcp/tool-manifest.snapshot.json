@@ -1,5 +1,5 @@
 {
-  "contract_revision": "sha256:b194b79e8e74e8d4",
+  "contract_revision": "sha256:8b4f06c4f2c5f854",
   "tools": [
     {
       "name": "aggregate_telemetry",
@@ -36,12 +36,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -230,7 +230,7 @@
                     "type": "string",
                     "minLength": 32,
                     "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
+                    "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
                     "description": "The annotated trace.",
                     "examples": [
                       "0af7651916cd43dd8448eb211c80319c"
@@ -259,7 +259,7 @@
                     "type": "string",
                     "minLength": 32,
                     "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
+                    "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
                     "description": "The trace that holds the span.",
                     "examples": [
                       "0af7651916cd43dd8448eb211c80319c"
@@ -269,7 +269,7 @@
                     "type": "string",
                     "minLength": 16,
                     "maxLength": 16,
-                    "pattern": "^[a-f0-9]{16}$",
+                    "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
                     "description": "The annotated span.",
                     "examples": [
                       "b7ad6b7169203331"
@@ -297,7 +297,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128,
-                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
                     "description": "The annotated session."
                   }
                 },
@@ -400,12 +400,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -589,7 +589,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128,
-                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
                     "description": "A `ci_run_id` of ci_log's run list."
                   }
                 },
@@ -688,19 +688,19 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "ci_run_id": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
             "description": "The run to break into phases: a `ci_run_id` of the run list, the run's session id; an unknown run is answered with not_found naming recent runs. Omitted, the newest matching run is broken down."
           },
           "service_prefix": {
@@ -758,12 +758,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -959,12 +959,12 @@
                 "properties": {
                   "start_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "Start of the window (inclusive), RFC 3339."
                   },
                   "end_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "End of the window (exclusive), RFC 3339."
                   }
                 },
@@ -1076,12 +1076,12 @@
                     "properties": {
                       "start_time": {
                         "type": "string",
-                        "format": "date-time",
+                        "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                         "description": "Start of the window (inclusive), RFC 3339."
                       },
                       "end_time": {
                         "type": "string",
-                        "format": "date-time",
+                        "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                         "description": "End of the window (exclusive), RFC 3339."
                       }
                     },
@@ -1157,12 +1157,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -1264,7 +1264,7 @@
                 "type": "string",
                 "minLength": 32,
                 "maxLength": 32,
-                "pattern": "^[a-f0-9]{32}$",
+                "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
                 "description": "The execution's trace; takes precedence over `session_id`.",
                 "examples": [
                   "0af7651916cd43dd8448eb211c80319c"
@@ -1274,7 +1274,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 128,
-                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
                 "description": "The execution's session, all of its traces."
               }
             },
@@ -1288,7 +1288,7 @@
                 "type": "string",
                 "minLength": 32,
                 "maxLength": 32,
-                "pattern": "^[a-f0-9]{32}$",
+                "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
                 "description": "The execution's trace; takes precedence over `session_id`.",
                 "examples": [
                   "0af7651916cd43dd8448eb211c80319c"
@@ -1298,7 +1298,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 128,
-                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
                 "description": "The execution's session, all of its traces."
               }
             },
@@ -1398,12 +1398,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -1551,12 +1551,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -1648,14 +1648,14 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
             "description": "The agent session to reconstruct. Give `session_id` or `trace_id`; `trace_id` wins when both are sent."
           },
           "trace_id": {
             "type": "string",
             "minLength": 32,
             "maxLength": 32,
-            "pattern": "^[a-f0-9]{32}$",
+            "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
             "description": "One trace of an agent run.",
             "examples": [
               "0af7651916cd43dd8448eb211c80319c"
@@ -1704,12 +1704,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -1808,7 +1808,7 @@
             "type": "string",
             "minLength": 32,
             "maxLength": 32,
-            "pattern": "^[a-f0-9]{32}$",
+            "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
             "description": "The failing trace, 32 lowercase hex characters. Give exactly one of trace_id, session_id, failure_id or ci_run_id.",
             "examples": [
               "0af7651916cd43dd8448eb211c80319c"
@@ -1818,7 +1818,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
             "description": "A session whose traces hold the failure. Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "failure_id": {
@@ -1831,7 +1831,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
             "description": "A CI run: its session id (ci_log's `ci_run_id`) or its provider run id (`cicd.pipeline.run.id`). Give exactly one of trace_id, session_id, failure_id or ci_run_id."
           },
           "max_spans": {
@@ -1884,12 +1884,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -2017,12 +2017,12 @@
                 "properties": {
                   "start_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "Start of the window (inclusive), RFC 3339."
                   },
                   "end_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "End of the window (exclusive), RFC 3339."
                   }
                 },
@@ -2117,12 +2117,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -2301,19 +2301,19 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "trace_id": {
             "type": "string",
             "minLength": 32,
             "maxLength": 32,
-            "pattern": "^[a-f0-9]{32}$",
+            "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
             "description": "The trace to read, 32 lowercase hex characters, e.g. from list_traces.",
             "examples": [
               "0af7651916cd43dd8448eb211c80319c"
@@ -2471,12 +2471,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "name_prefix": {
@@ -2530,12 +2530,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -2685,6 +2685,7 @@
           "min_tokens": {
             "type": "integer",
             "minimum": 0,
+            "maximum": 9007199254740991,
             "description": "Keep sessions with at least this many input plus output tokens."
           },
           "min_duration_ms": {
@@ -2806,12 +2807,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
@@ -2874,7 +2875,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
             "description": "Keep traces with a span in this session."
           },
           "root_span_name": {
@@ -3010,12 +3011,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "service_name": {
@@ -3088,12 +3089,12 @@
                 "properties": {
                   "start_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "Start of the window (inclusive), RFC 3339."
                   },
                   "end_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "End of the window (exclusive), RFC 3339."
                   }
                 },
@@ -3243,12 +3244,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "step_ms": {
@@ -3326,20 +3327,6 @@
                   ],
                   "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
                 },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ],
-                  "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                },
                 "values": {
                   "type": "array",
                   "items": {
@@ -3368,9 +3355,22 @@
                     "log"
                   ],
                   "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 1024
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
                 }
               },
-              "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them.",
               "additionalProperties": false
             },
             "maxItems": 32,
@@ -3434,12 +3434,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
@@ -3762,14 +3762,14 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128,
-                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+                    "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
                     "description": "Keep log records of this session."
                   },
                   "trace_id": {
                     "type": "string",
                     "minLength": 32,
                     "maxLength": 32,
-                    "pattern": "^[a-f0-9]{32}$",
+                    "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
                     "description": "Keep log records correlated with this trace.",
                     "examples": [
                       "0af7651916cd43dd8448eb211c80319c"
@@ -3842,7 +3842,9 @@
                   "group_by": {
                     "type": "array",
                     "items": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them."
                     },
                     "maxItems": 16,
                     "description": "Attribute keys to split the result by."
@@ -3878,20 +3880,6 @@
                           ],
                           "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
                         },
-                        "value": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ],
-                          "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-                        },
                         "values": {
                           "type": "array",
                           "items": {
@@ -3920,9 +3908,22 @@
                             "log"
                           ],
                           "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 1024
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
                         }
                       },
-                      "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them.",
                       "additionalProperties": false
                     },
                     "maxItems": 32,
@@ -3973,7 +3974,7 @@
             "type": "string",
             "minLength": 16,
             "maxLength": 16,
-            "pattern": "^[a-f0-9]{16}$",
+            "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
             "description": "Return only log records correlated with this span.",
             "examples": [
               "b7ad6b7169203331"
@@ -4081,7 +4082,7 @@
             "type": "string",
             "minLength": 32,
             "maxLength": 32,
-            "pattern": "^[a-f0-9]{32}$",
+            "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
             "description": "Return only log records correlated with this trace.",
             "examples": [
               "0af7651916cd43dd8448eb211c80319c"
@@ -4112,7 +4113,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+            "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
             "description": "Return only log records of this session."
           },
           "lookback_minutes": {
@@ -4123,12 +4124,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
@@ -4171,12 +4172,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -4296,12 +4297,12 @@
                 "properties": {
                   "start_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "Start of the window (inclusive), RFC 3339."
                   },
                   "end_time": {
                     "type": "string",
-                    "format": "date-time",
+                    "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
                     "description": "End of the window (exclusive), RFC 3339."
                   }
                 },
@@ -4404,7 +4405,7 @@
           },
           "ignore_until": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "With `status: ignored`, when triage shows the failure again, RFC 3339; omitted, it stays ignored. Refused with any other status."
           },
           "assignee": {
@@ -4448,12 +4449,12 @@
           },
           "start_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -4556,7 +4557,7 @@
           },
           "since": {
             "type": "string",
-            "format": "date-time",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
             "description": "When the fix took effect, RFC 3339; the after window runs from here to now. Takes precedence over `release`."
           },
           "release": {

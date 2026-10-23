@@ -58,7 +58,7 @@ public sealed class ContractQueryParserTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var problem = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.ValidationError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ValidationError>(),
             testContext.CancellationToken);
         var detail = Assert.ContainsSingle(Assert.IsExactInstanceOfType<ValidationError>(problem).Errors);
         Assert.AreEqual(field, detail.Field);
@@ -78,7 +78,7 @@ public sealed class ContractQueryParserTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var problem = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.ValidationError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ValidationError>(),
             testContext.CancellationToken);
         var detail = Assert.ContainsSingle(Assert.IsExactInstanceOfType<ValidationError>(problem).Errors);
         Assert.AreEqual("query.invalid_integer", detail.Code);
@@ -126,7 +126,7 @@ public sealed class ContractQueryParserTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var problem = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.ValidationError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ValidationError>(),
             testContext.CancellationToken);
         var detail = Assert.ContainsSingle(Assert.IsExactInstanceOfType<ValidationError>(problem).Errors);
         Assert.AreEqual(expectedMessage, detail.Message);

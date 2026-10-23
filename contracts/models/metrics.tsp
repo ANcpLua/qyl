@@ -107,11 +107,11 @@ model MetricDescriptor {
 
   @doc("Number of distinct attribute streams recorded under this name.")
   @encodedName("application/json", "series_count")
-  seriesCount: int64;
+  seriesCount: Qyl.Api.Contracts.Common.JsonInteger;
 
   @doc("Timestamp of the most recent point recorded under this name.")
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("One distinct attribute stream recorded under a metric name.")
@@ -144,17 +144,17 @@ model MetricSeries {
   unit?: string;
 
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
 
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("One aggregated time bucket of a metric range query.")
 model MetricBucket {
   @doc("Inclusive start of the bucket, aligned to the query's step from the query's start.")
   @encodedName("application/json", "bucket_start")
-  bucketStart: utcDateTime;
+  bucketStart: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("""
     The aggregation applied to the points in this bucket. Null when none of them
@@ -165,7 +165,7 @@ model MetricBucket {
 
   @doc("Number of stored points folded into this bucket.")
   @encodedName("application/json", "point_count")
-  pointCount: int64;
+  pointCount: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("""
@@ -203,13 +203,13 @@ model MetricQueryResult {
 
   @doc("Bucket width actually used, which may be widened from the requested step.")
   @encodedName("application/json", "step_ms")
-  stepMs: int64;
+  stepMs: Qyl.Api.Contracts.Common.JsonInteger;
 
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
 
   @encodedName("application/json", "end_time")
-  endTime: utcDateTime;
+  endTime: Qyl.Api.Contracts.Common.Timestamp;
 
   series: MetricSeriesResult[];
 
@@ -225,8 +225,17 @@ enum MetricMatcherOp { eq, neq, `in`, prefix, contains, exists, gt, gte, lt, lte
   matchers in this form; the HTTP routes keep their `key=value` string
   parameters, and a client serializes each matcher to one of them.
   """)
+@minLength(1)
+scalar MetricGroupKey extends string;
+
+@maxLength(1024)
+scalar MetricMatcherText extends string;
+
+union MetricMatcherValue { text: MetricMatcherText, number: float64, boolean: boolean }
+
 model MetricAttributeMatcher {
-  ...TelemetryMatcher;
+  ...OmitProperties<TelemetryMatcher, "value">;
+  value?: MetricMatcherValue;
 }
 
 @doc("MetricDescriptorConflict contract.")

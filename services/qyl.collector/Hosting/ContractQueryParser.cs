@@ -444,10 +444,9 @@ internal static class ContractQueryParser
 /// <summary>The trace and span id formats a page cursor this Collector issued carries (common/types.tsp).</summary>
 internal static class ContractIdentifiers
 {
-    internal static bool IsTraceId(string? value) => IsLowerHex(value, 32);
+    internal static bool IsTraceId(string? value) =>
+        Qyl.Api.Contracts.ContractJson.Validate("Common.TraceId", System.Text.Json.Nodes.JsonValue.Create(value)) is null;
 
-    internal static bool IsSpanId(string? value) => IsLowerHex(value, 16);
-
-    private static bool IsLowerHex(string? value, int length) =>
-        value is not null && value.Length == length && value.All(char.IsAsciiHexDigitLower);
+    internal static bool IsSpanId(string? value) =>
+        Qyl.Api.Contracts.ContractJson.Validate("Common.SpanId", System.Text.Json.Nodes.JsonValue.Create(value)) is null;
 }

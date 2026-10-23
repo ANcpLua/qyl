@@ -2062,32 +2062,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Annotations.Annotation"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageAnnotation"
                 }
               }
             }
@@ -2654,8 +2629,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -2664,8 +2638,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -2706,32 +2679,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Logs.LogRecord"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageLogRecord"
                 }
               }
             }
@@ -2832,32 +2780,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Metrics.MetricDescriptor"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageMetricDescriptor"
                 }
               }
             }
@@ -2933,8 +2856,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -2943,8 +2865,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -2954,8 +2875,7 @@
             "required": false,
             "description": "Bucket width in milliseconds. One bucket spanning the range collapses the query to a single value.",
             "schema": {
-              "type": "integer",
-              "format": "int64",
+              "$ref": "#/components/schemas/Common.JsonInteger",
               "minimum": 1,
               "maximum": 86400000,
               "default": 60000
@@ -3183,32 +3103,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Metrics.MetricSeries"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageMetricSeries"
                 }
               }
             }
@@ -3302,8 +3197,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -3312,8 +3206,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -3345,32 +3238,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Metrics.MetricPoint"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageMetricPoint"
                 }
               }
             }
@@ -3596,32 +3464,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/SavedQueries.SavedQuery"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageSavedQuery"
                 }
               }
             }
@@ -4129,8 +3972,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -4139,8 +3981,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -4172,32 +4013,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Domains.Observe.Session.SessionEntity"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageSessionEntity"
                 }
               }
             }
@@ -4264,8 +4080,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -4274,8 +4089,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           }
@@ -4461,32 +4275,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Traces.Trace"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageTrace"
                 }
               }
             }
@@ -4720,8 +4509,7 @@
             "required": false,
             "description": "Keep traces that started at or after this time.",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -4731,8 +4519,7 @@
             "required": false,
             "description": "Keep traces that started before this time.",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "$ref": "#/components/schemas/Common.Timestamp"
             },
             "explode": false
           },
@@ -4784,32 +4571,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Traces.Trace"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageTrace"
                 }
               }
             }
@@ -4985,32 +4747,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "has_more"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OTel.Traces.Span"
-                      },
-                      "description": "The items of this page."
-                    },
-                    "next_cursor": {
-                      "$ref": "#/components/schemas/Common.Cursor",
-                      "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
-                    },
-                    "has_more": {
-                      "type": "boolean",
-                      "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
-                    }
-                  },
-                  "unevaluatedProperties": {
-                    "not": {}
-                  },
-                  "description": "One page of a list operation."
+                  "$ref": "#/components/schemas/CursorPageSpan"
                 }
               }
             }
@@ -6037,6 +5774,7 @@
         "type": "integer",
         "format": "int64",
         "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Size in bytes"
       },
       "Common.CollectorKeyRole": {
@@ -6060,7 +5798,7 @@
         "type": "string",
         "minLength": 23,
         "maxLength": 23,
-        "pattern": "^sha256:[a-f0-9]{16}$",
+        "pattern": "^sha256:[a-f0-9]{16}(?![\\s\\S])",
         "description": "Deterministic revision of the generated API contract: 'sha256:' followed by the first 16 hex characters of its canonical semantic digest.",
         "examples": [
           "sha256:0f1e2d3c4b5a6978"
@@ -6076,6 +5814,7 @@
         "type": "integer",
         "format": "int64",
         "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Generic non-negative counter"
       },
       "Common.Cursor": {
@@ -6439,8 +6178,7 @@
             "description": "Explanation specific to this occurrence."
           },
           "instance": {
-            "type": "string",
-            "format": "uri",
+            "$ref": "#/components/schemas/Common.UrlString",
             "description": "URI reference identifying this occurrence."
           },
           "code": {
@@ -6649,7 +6387,7 @@
       },
       "Common.IPv4Address": {
         "type": "string",
-        "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+        "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![\\s\\S])",
         "description": "IPv4 address in dotted-decimal notation",
         "examples": [
           "192.168.1.1"
@@ -6700,12 +6438,19 @@
       },
       "Common.IsoDuration": {
         "type": "string",
-        "format": "duration",
+        "pattern": "^P(?!$)(([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?|([0-9]+W)?)(?![\\s\\S])",
         "description": "ISO 8601 duration format (e.g., PT1H30M)"
+      },
+      "Common.JsonInteger": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "description": "A JSON integer exactly representable in both JavaScript and C#. Larger integers use decimal string encoding."
       },
       "Common.LanguageCode": {
         "type": "string",
-        "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$",
+        "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(?![\\s\\S])",
         "description": "Language/locale code (BCP 47)",
         "examples": [
           "en-US"
@@ -6713,7 +6458,7 @@
       },
       "Common.MacAddress": {
         "type": "string",
-        "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$",
+        "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}(?![\\s\\S])",
         "description": "MAC address in colon-separated hex notation",
         "examples": [
           "00:1A:2B:3C:4D:5E"
@@ -6809,14 +6554,12 @@
             "readOnly": true
           },
           "created_at": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the resource was created.",
             "readOnly": true
           },
           "updated_at": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the resource was last changed.",
             "readOnly": true
           },
@@ -6836,7 +6579,7 @@
       },
       "Common.SemVer": {
         "type": "string",
-        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?(?![\\s\\S])",
         "description": "Semantic version string (e.g., 1.2.3)",
         "examples": [
           "2.1.0"
@@ -6846,21 +6589,21 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 128,
-        "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$",
+        "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
         "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
       },
       "Common.Sha256Hash": {
         "type": "string",
         "minLength": 64,
         "maxLength": 64,
-        "pattern": "^[a-f0-9]{64}$",
+        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
         "description": "SHA-256 hash in lowercase hex"
       },
       "Common.SpanId": {
         "type": "string",
         "minLength": 16,
         "maxLength": 16,
-        "pattern": "^[a-f0-9]{16}$",
+        "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
         "description": "Unique span identifier (16 lowercase hex characters)",
         "examples": [
           "b7ad6b7169203331"
@@ -6915,13 +6658,14 @@
       },
       "Common.Timestamp": {
         "type": "string",
-        "format": "date-time",
-        "description": "ISO 8601 timestamp with nanosecond precision (RFC 3339)"
+        "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
+        "description": "RFC 3339 timestamp preserved exactly as text, including fractional precision and offset. Leap seconds are not supported. Execution windows additionally require an instant representable by the telemetry store."
       },
       "Common.TokenCount": {
         "type": "integer",
         "format": "int64",
         "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Token count (for LLM operations)"
       },
       "Common.ToolCoverage": {
@@ -6977,8 +6721,7 @@
             "description": "Whether the read held every record the answer could come from. False is a partial answer: the read stopped at its row limit."
           },
           "as_of": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window the answer covers."
           }
         },
@@ -7003,8 +6746,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           }
@@ -7022,13 +6764,11 @@
         ],
         "properties": {
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339."
           }
         },
@@ -7041,7 +6781,7 @@
         "type": "string",
         "minLength": 32,
         "maxLength": 32,
-        "pattern": "^[a-f0-9]{32}$",
+        "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
         "description": "Unique trace identifier (32 lowercase hex characters)",
         "examples": [
           "0af7651916cd43dd8448eb211c80319c"
@@ -7049,7 +6789,7 @@
       },
       "Common.TraceParent": {
         "type": "string",
-        "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+        "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}(?![\\s\\S])",
         "description": "W3C Trace Context traceparent header format",
         "examples": [
           "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
@@ -7084,7 +6824,7 @@
       },
       "Common.UrlString": {
         "type": "string",
-        "format": "uri",
+        "pattern": "^(?:[A-Za-z][A-Za-z0-9+\\-.]*:)(?:\\/?\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})*@)?(?:\\[(?:(?:(?:(?:[0-9A-Fa-f]{1,4}:){6}|::(?:[0-9A-Fa-f]{1,4}:){5}|(?:[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,1}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){3}|(?:(?:[0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){2}|(?:(?:[0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}:|(?:(?:[0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})?::)(?:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?))|(?:(?:[0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})?::)|[Vv][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\]|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)|(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*)(?::\\d*)?(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*|\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)?|(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?:#(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?![\\s\\S])",
         "description": "URL string (absolute)"
       },
       "Common.UserAgent": {
@@ -7105,6 +6845,258 @@
         "minLength": 1,
         "maxLength": 8192,
         "description": "Signed self-contained project-scoped verification token issued by the collector."
+      },
+      "CursorPageAnnotation": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Annotations.Annotation"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageLogRecord": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Logs.LogRecord"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageMetricDescriptor": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Metrics.MetricDescriptor"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageMetricPoint": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Metrics.MetricPoint"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageMetricSeries": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Metrics.MetricSeries"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageSavedQuery": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedQueries.SavedQuery"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageSessionEntity": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Domains.Observe.Session.SessionEntity"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageSpan": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Traces.Span"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
+      },
+      "CursorPageTrace": {
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OTel.Traces.Trace"
+            },
+            "description": "The items of this page."
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Common.Cursor",
+            "description": "Cursor of the next page, passed back as the `cursor` query parameter. Absent on the last page."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more items follow this page. `next_cursor` is present exactly when this is true."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One page of a list operation."
       },
       "Domains.Observe.Session.DeviceType": {
         "type": "string",
@@ -7175,13 +7167,11 @@
             "description": "User ID (if authenticated)"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Session start time"
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Session end time"
           },
           "duration_ms": {
@@ -7492,8 +7482,7 @@
             }
           },
           "started": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "duration_ms": {
             "$ref": "#/components/schemas/Common.DurationMs"
@@ -7502,8 +7491,7 @@
             "$ref": "#/components/schemas/Mcp.Tools.AgentTokens"
           },
           "errors": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "session_id": {
             "$ref": "#/components/schemas/Common.SessionId"
@@ -7593,8 +7581,7 @@
             "type": "string"
           },
           "tokens": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "share": {
             "type": "number",
@@ -7610,24 +7597,19 @@
         "type": "object",
         "properties": {
           "input": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "output": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "cache_read": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "cache_write": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "reasoning": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           }
         },
         "unevaluatedProperties": {
@@ -7643,8 +7625,7 @@
         ],
         "properties": {
           "start_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "measures": {
             "type": "object",
@@ -7721,12 +7702,10 @@
         ],
         "properties": {
           "groups": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           }
         },
         "unevaluatedProperties": {
@@ -7749,13 +7728,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -7802,8 +7779,7 @@
             "description": "Measures to compute per group; at least one. Accepted values: `count`, `error_count`, `error_rate` (share from 0 to 1), `duration_avg`, `duration_p50`, `duration_p90`, `duration_p95`, `duration_p99`, `duration_max` (milliseconds, spans only) and `sum:<attribute key>` for a numeric attribute. The result's `units` names the unit of each measure. Example: [\"count\", \"error_rate\", \"duration_p95\"]."
           },
           "step_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "minimum": 1,
             "maximum": 86400000,
             "description": "Bucket width in integer milliseconds for a per-group time series in `buckets`, 1 to 86400000 (one day) like query_metric's; omit for group totals only. A step at least as long as the window yields one bucket per group."
@@ -7838,8 +7814,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -8010,12 +7985,10 @@
             "format": "double"
           },
           "count_a": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "count_b": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "lift": {
             "anyOf": [
@@ -8070,8 +8043,7 @@
             "description": "The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit."
           },
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "share": {
             "type": "number",
@@ -8113,13 +8085,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -8180,8 +8150,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -8398,13 +8367,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "ci_run_id": {
@@ -8463,8 +8430,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -8513,8 +8479,7 @@
             }
           },
           "error_log_count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "error_logs": {
             "type": "array",
@@ -8639,8 +8604,7 @@
             "$ref": "#/components/schemas/Domains.Observe.Session.SessionState"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "duration_ms": {
             "$ref": "#/components/schemas/Common.DurationMs"
@@ -8705,13 +8669,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -8800,8 +8762,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -8832,12 +8793,10 @@
             "$ref": "#/components/schemas/Mcp.Tools.GroupComposition"
           },
           "size_a": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "size_b": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "excluded_keys": {
             "type": "array",
@@ -8869,13 +8828,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -8934,8 +8891,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -9059,13 +9015,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -9129,8 +9083,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -9183,8 +9136,7 @@
             "format": "double"
           },
           "cardinality": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Distinct values the key holds; with `coverage.scan_complete` false, among the records the read held."
           },
           "top_values": {
@@ -9290,8 +9242,7 @@
             "type": "string"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "duration_ms": {
             "$ref": "#/components/schemas/Common.DurationMs"
@@ -9512,8 +9463,7 @@
             "type": "string"
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "revision": {
             "type": "string"
@@ -9597,34 +9547,27 @@
             "description": "Who owns the failure, when update_failure_status named one."
           },
           "ignore_until": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "With `status: ignored`, when triage lists the failure again."
           },
           "updated_at": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the status was last recorded; the first occurrence while none was."
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "affected_traces": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "affected_sessions": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "releases_seen": {
             "type": "array",
@@ -9633,8 +9576,7 @@
             }
           },
           "annotation_count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "example_trace_ids": {
             "type": "array",
@@ -9684,13 +9626,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -9748,8 +9688,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -9799,13 +9738,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -9888,8 +9825,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -9940,13 +9876,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -10038,8 +9972,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10067,8 +10000,7 @@
             "$ref": "#/components/schemas/Mcp.Tools.McpStatsComparisonResult"
           },
           "bucket_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "minimum": 1000,
             "description": "With `buckets`, the width of every bucket in integer milliseconds: the window split into 60 buckets of at least one second."
           },
@@ -10127,13 +10059,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -10201,8 +10131,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10281,13 +10210,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "trace_id": {
@@ -10362,8 +10289,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10493,13 +10419,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "name_prefix": {
@@ -10542,8 +10466,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10582,13 +10505,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -10643,8 +10564,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10740,13 +10660,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
@@ -10777,8 +10695,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10886,13 +10803,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "service_name": {
@@ -10931,8 +10846,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -10975,20 +10889,17 @@
             "type": "string"
           },
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "severity": {
             "type": "integer",
             "format": "int32"
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "example_trace_ids": {
             "type": "array",
@@ -11044,28 +10955,22 @@
         ],
         "properties": {
           "transport": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "protocol": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "tool_result": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "authentication": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "cancellation": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "timeout": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           }
         },
         "unevaluatedProperties": {
@@ -11209,8 +11114,7 @@
         ],
         "properties": {
           "start": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the bucket (inclusive); it ends `bucket_ms` later, or at the window's end."
           },
           "requests": {
@@ -11243,12 +11147,10 @@
         ],
         "properties": {
           "requests": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "errors": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "error_rate": {
             "type": "number",
@@ -11310,12 +11212,10 @@
         ],
         "properties": {
           "requests": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "errors": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "error_rate": {
             "type": "number",
@@ -11383,8 +11283,7 @@
             "description": "The reducer applied to each bucket and to the whole window."
           },
           "step_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Bucket width in milliseconds."
           },
           "series": {
@@ -11462,13 +11361,11 @@
             "description": "Services that report the metric with this descriptor."
           },
           "series_count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Series of this descriptor, across every resource and scope version that reports it."
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the latest of those series was last seen."
           },
           "supported_aggregations": {
@@ -11545,17 +11442,14 @@
             "type": "string"
           },
           "points": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Timestamps of this series in the window that hold different measurements."
           },
           "first_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "last_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           }
         },
         "unevaluatedProperties": {
@@ -11572,8 +11466,7 @@
         ],
         "properties": {
           "points": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "unit": {
             "type": "string",
@@ -11604,8 +11497,7 @@
             "type": "string"
           },
           "cardinality": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Distinct values the key holds across the descriptor's series."
           }
         },
@@ -11650,8 +11542,7 @@
         ],
         "properties": {
           "time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "value": {
             "$ref": "#/components/schemas/OTel.Metrics.MetricNumberValue"
@@ -11684,13 +11575,11 @@
         ],
         "properties": {
           "time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the point was recorded."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the interval the point covers, when the producer recorded one."
           },
           "data": {
@@ -11731,8 +11620,7 @@
         ],
         "properties": {
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "share": {
             "type": "number",
@@ -11793,18 +11681,15 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "step_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "minimum": 1,
             "maximum": 86400000,
             "description": "Bucket width in integer milliseconds; the window may hold at most 10000 buckets. Omit for whole seconds that split the window into at most 60 buckets."
@@ -11875,8 +11760,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -11896,8 +11780,7 @@
             "description": "The reducer applied to each bucket and to the whole window."
           },
           "step_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Bucket width in milliseconds."
           },
           "series": {
@@ -12038,12 +11921,10 @@
             "type": "string"
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "current": {
             "type": "boolean"
@@ -12088,8 +11969,7 @@
             "type": "string"
           },
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           }
         },
         "unevaluatedProperties": {
@@ -12143,13 +12023,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
@@ -12183,8 +12061,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -12361,13 +12238,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "cursor": {
@@ -12404,8 +12279,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -12492,8 +12366,7 @@
             "type": "string"
           },
           "calls": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "error_rate": {
             "type": "number",
@@ -12552,8 +12425,7 @@
             ]
           },
           "calls": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "error_rate": {
             "type": "number",
@@ -12595,8 +12467,7 @@
             "type": "string"
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "usual_rate": {
             "anyOf": [
@@ -12631,12 +12502,10 @@
             "$ref": "#/components/schemas/Common.FailureId"
           },
           "count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "releases": {
             "type": "array",
@@ -12654,9 +12523,7 @@
         "type": "object",
         "required": [
           "kind",
-          "key",
-          "a",
-          "b"
+          "key"
         ],
         "properties": {
           "kind": {
@@ -12671,10 +12538,12 @@
             "type": "string"
           },
           "a": {
-            "$ref": "#/components/schemas/Common.AttributeValue"
+            "$ref": "#/components/schemas/Common.AttributeValue",
+            "description": "Absent when side A has no attribute; null when it explicitly records null."
           },
           "b": {
-            "$ref": "#/components/schemas/Common.AttributeValue"
+            "$ref": "#/components/schemas/Common.AttributeValue",
+            "description": "Absent when side B has no attribute; null when it explicitly records null."
           }
         },
         "unevaluatedProperties": {
@@ -12711,8 +12580,7 @@
           "oldest": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "$ref": "#/components/schemas/Common.Timestamp"
               },
               {
                 "type": "null"
@@ -12862,8 +12730,7 @@
         ],
         "properties": {
           "time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "The record's event time, else the time it was observed."
           },
           "severity": {
@@ -12940,13 +12807,11 @@
             "description": "User ID (if authenticated)"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Session start time"
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Session end time"
           },
           "duration_ms": {
@@ -13035,13 +12900,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           }
         },
@@ -13067,12 +12930,10 @@
             "$ref": "#/components/schemas/Common.TraceId"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "duration_ms": {
             "$ref": "#/components/schemas/Common.DurationMs"
@@ -13083,8 +12944,7 @@
             "description": "Spans of the trace, before `selection` and paging."
           },
           "error_count": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "services": {
             "type": "array",
@@ -13131,8 +12991,7 @@
             "$ref": "#/components/schemas/Mcp.Tools.TraceRoot"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the trace's earliest span."
           },
           "duration_ms": {
@@ -13144,8 +13003,7 @@
             "format": "int32"
           },
           "error_count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Spans with error status."
           },
           "services": {
@@ -13302,8 +13160,7 @@
             "type": "string"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "duration_ms": {
             "$ref": "#/components/schemas/Common.DurationMs"
@@ -13389,34 +13246,28 @@
             "description": "Who owns the failure, when update_failure_status named one."
           },
           "ignore_until": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "With `status: ignored`, when triage lists the failure again."
           },
           "change": {
             "$ref": "#/components/schemas/Mcp.Tools.FailureChange"
           },
           "count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Occurrences in the window."
           },
           "baseline_count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Occurrences in the baseline window."
           },
           "affected_traces": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "example_trace_id": {
             "$ref": "#/components/schemas/Common.TraceId"
@@ -13430,8 +13281,7 @@
             "description": "The failure this one propagated from: in most of its traces, the failure of the earliest error span without a failing child. Equal to `failure_id` when the failure is its own cause."
           },
           "annotation_count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Annotations on the failure; get_failure_context with its `failure_id` returns them."
           }
         },
@@ -13451,13 +13301,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -13523,8 +13371,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -13604,8 +13451,7 @@
             "format": "double"
           },
           "denominator": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "unit": {
             "type": "string"
@@ -13637,8 +13483,7 @@
             "description": "The new status: `open`, `resolved` or `ignored`."
           },
           "ignore_until": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "With `status: ignored`, when triage shows the failure again, RFC 3339; omitted, it stays ignored. Refused with any other status."
           },
           "assignee": {
@@ -13686,8 +13531,7 @@
             "description": "`since` for a time the request gave, `release` for the first span of a release."
           },
           "time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the change took effect; the after window starts here."
           },
           "service": {
@@ -13712,13 +13556,11 @@
         ],
         "properties": {
           "requests": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Requests still to observe after the change."
           },
           "minutes": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Whole minutes still to wait, rounded up."
           }
         },
@@ -13741,12 +13583,10 @@
             "$ref": "#/components/schemas/Common.ToolWindow"
           },
           "occurrences": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "requests": {
-            "type": "integer",
-            "format": "int64"
+            "$ref": "#/components/schemas/Common.JsonInteger"
           },
           "rate": {
             "anyOf": [
@@ -13782,13 +13622,11 @@
             "description": "Minutes before `end_time` (or now) when `start_time` is omitted, at most 43200 (30 days). Default 60, unless the tool's input description names another default."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of the window (inclusive), RFC 3339; takes precedence over `lookback_minutes`."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of the window (exclusive), RFC 3339; default now."
           },
           "matchers": {
@@ -13816,8 +13654,7 @@
             "description": "The failure to verify; its requests are the spans of its service and operation. Give exactly one of `failure_id` or `matchers`."
           },
           "since": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "When the fix took effect, RFC 3339; the after window runs from here to now. Takes precedence over `release`."
           },
           "release": {
@@ -13868,8 +13705,7 @@
           "page_totals": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/Common.JsonInteger"
             },
             "description": "Item totals by paged collection path. Omitted totals are unknown, not zero."
           },
@@ -14081,10 +13917,6 @@
             "$ref": "#/components/schemas/Common.MatcherOp",
             "description": "Comparison operator: `in` takes `values`, `exists` takes no operand and every other operator takes `value`."
           },
-          "value": {
-            "$ref": "#/components/schemas/Common.MatcherValue",
-            "description": "Operand of every operator except `in` and `exists`. It keeps its JSON type, so the number 1 does not equal the string `1`."
-          },
           "values": {
             "type": "array",
             "items": {
@@ -14097,12 +13929,14 @@
           "scope": {
             "$ref": "#/components/schemas/Common.MatcherScope",
             "description": "Where `key` is looked up: `span` or `log` for the record's own attributes (the default), `resource` for its resource attributes, such as `service.version` or `deployment.environment.name`."
+          },
+          "value": {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricMatcherValue"
           }
         },
         "unevaluatedProperties": {
           "not": {}
-        },
-        "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them."
+        }
       },
       "OTel.Metrics.MetricBucket": {
         "type": "object",
@@ -14113,8 +13947,7 @@
         ],
         "properties": {
           "bucket_start": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Inclusive start of the bucket, aligned to the query's step from the query's start."
           },
           "value": {
@@ -14130,8 +13963,7 @@
             "description": "The aggregation applied to the points in this bucket. Null when none of them\nholds a value, for example OTLP `NO_RECORDED_VALUE` markers or changes\nwithout a known interval."
           },
           "point_count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Number of stored points folded into this bucket."
           }
         },
@@ -14216,13 +14048,11 @@
             "description": "Producer-supplied description of the instrument."
           },
           "series_count": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Number of distinct attribute streams recorded under this name."
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Timestamp of the most recent point recorded under this name."
           }
         },
@@ -14369,6 +14199,11 @@
         },
         "description": "An original exponential histogram. Its native scale and buckets are never reconstructed from explicit bounds."
       },
+      "OTel.Metrics.MetricGroupKey": {
+        "type": "string",
+        "minLength": 1,
+        "description": "One structured attribute matcher. Tool inputs and saved queries carry\nmatchers in this form; the HTTP routes keep their `key=value` string\nparameters, and a client serializes each matcher to one of them."
+      },
       "OTel.Metrics.MetricHistogramPointData": {
         "type": "object",
         "required": [
@@ -14440,6 +14275,24 @@
           "lte"
         ],
         "description": "How a structured attribute matcher compares an attribute value."
+      },
+      "OTel.Metrics.MetricMatcherText": {
+        "type": "string",
+        "maxLength": 1024
+      },
+      "OTel.Metrics.MetricMatcherValue": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/OTel.Metrics.MetricMatcherText"
+          },
+          {
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
       },
       "OTel.Metrics.MetricNumberPointData": {
         "type": "object",
@@ -14695,17 +14548,14 @@
             "$ref": "#/components/schemas/OTel.Metrics.MetricAggregation"
           },
           "step_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "description": "Bucket width actually used, which may be widened from the requested step."
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "series": {
             "type": "array",
@@ -14773,12 +14623,10 @@
             "type": "string"
           },
           "first_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "last_seen": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           }
         },
         "unevaluatedProperties": {
@@ -15153,13 +15001,11 @@
             "description": "Trace duration in nanoseconds"
           },
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Trace start time"
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Trace end time"
           },
           "services": {
@@ -15249,8 +15095,7 @@
             "$ref": "#/components/schemas/Runner.RunnerResourceLifecycle"
           },
           "timestamp": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "kind": {
             "$ref": "#/components/schemas/Runner.RunnerResourceKind"
@@ -15262,8 +15107,7 @@
             "maximum": 65535
           },
           "endpoint": {
-            "type": "string",
-            "format": "uri"
+            "$ref": "#/components/schemas/Common.UrlString"
           },
           "last_error": {
             "type": "string"
@@ -15404,8 +15248,7 @@
             "default": "avg"
           },
           "step_ms": {
-            "type": "integer",
-            "format": "int64",
+            "$ref": "#/components/schemas/Common.JsonInteger",
             "minimum": 1,
             "maximum": 86400000,
             "description": "Bucket width in integer milliseconds. Omit for whole seconds that split the run's window into at most 60 buckets."
@@ -15413,7 +15256,7 @@
           "group_by": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/OTel.Metrics.MetricGroupKey"
             },
             "maxItems": 16,
             "description": "Attribute keys to split the result by."
@@ -15531,13 +15374,11 @@
         "type": "object",
         "properties": {
           "start_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Start of this run's window (inclusive), RFC 3339; overrides the saved look-back window."
           },
           "end_time": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "End of this run's window (exclusive), RFC 3339; default the time of the run."
           },
           "limit": {
@@ -15710,8 +15551,7 @@
             ]
           },
           "timestamp": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           }
         },
         "unevaluatedProperties": {
@@ -15746,8 +15586,7 @@
             "$ref": "#/components/schemas/OTel.Logs.LogRecord"
           },
           "timestamp": {
-            "type": "string",
-            "format": "date-time",
+            "$ref": "#/components/schemas/Common.Timestamp",
             "description": "Event timestamp, falling back to the observed timestamp. Absent when both are historically unknown; this is not the stream emission time."
           }
         },
@@ -15766,8 +15605,7 @@
             "$ref": "#/components/schemas/Mcp.Tools.FailureStatus"
           },
           "ignore_until": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Common.Timestamp"
           },
           "assignee": {
             "type": "string",

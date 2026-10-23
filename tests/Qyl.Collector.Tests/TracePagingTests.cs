@@ -156,7 +156,7 @@ public sealed class TracePagingTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var page = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.CursorPageTrace,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageTrace>(),
             testContext.CancellationToken);
         return Assert.IsExactInstanceOfType<CursorPageTrace>(page);
     }

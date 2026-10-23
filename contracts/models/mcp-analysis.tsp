@@ -71,7 +71,7 @@ model FailureRelease {
   service: string;
   version: string;
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
   revision?: string;
 }
 
@@ -84,9 +84,9 @@ model AttributeAssociation {
   @encodedName("application/json", "share_b")
   shareB: float64;
   @encodedName("application/json", "count_a")
-  countA: int64;
+  countA: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "count_b")
-  countB: int64;
+  countB: Qyl.Api.Contracts.Common.JsonInteger;
   lift: float64 | null;
 }
 
@@ -116,7 +116,7 @@ alias FailureState = {
   assignee?: string;
   @doc("With `status: ignored`, when triage lists the failure again.")
   @encodedName("application/json", "ignore_until")
-  ignoreUntil?: utcDateTime;
+  ignoreUntil?: Qyl.Api.Contracts.Common.Timestamp;
 };
 
 @doc("A failure with its recorded status over the whole retained history: one fingerprint of service, operation, exception or error type and normalized message.")
@@ -125,20 +125,20 @@ model FailureSummary {
   ...FailureState;
   @doc("When the status was last recorded; the first occurrence while none was.")
   @encodedName("application/json", "updated_at")
-  updatedAt: utcDateTime;
+  updatedAt: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
-  count: int64;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "affected_traces")
-  affectedTraces: int64;
+  affectedTraces: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "affected_sessions")
-  affectedSessions: int64;
+  affectedSessions: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "releases_seen")
   releasesSeen: string[];
   @encodedName("application/json", "annotation_count")
-  annotationCount: int64;
+  annotationCount: Qyl.Api.Contracts.Common.JsonInteger;
   @maxItems(3)
   @encodedName("application/json", "example_trace_ids")
   exampleTraceIds: TraceId[];
@@ -162,16 +162,16 @@ model TriageFailure {
   ...FailureState;
   change: FailureChange;
   @doc("Occurrences in the window.")
-  count: int64;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
   @doc("Occurrences in the baseline window.")
   @encodedName("application/json", "baseline_count")
-  baselineCount: int64;
+  baselineCount: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "affected_traces")
-  affectedTraces: int64;
+  affectedTraces: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "example_trace_id")
   exampleTraceId?: TraceId;
   @doc("The release the failing spans run on (their most common `service.version`), when it was first seen in the window.")
@@ -182,7 +182,7 @@ model TriageFailure {
   rootCauseFailureId?: FailureId;
   @doc("Annotations on the failure; get_failure_context with its `failure_id` returns them.")
   @encodedName("application/json", "annotation_count")
-  annotationCount: int64;
+  annotationCount: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("TriageRegression contract.")
@@ -193,7 +193,7 @@ model TriageRegression {
   value: float64;
   @encodedName("application/json", "baseline_value")
   baselineValue: float64;
-  denominator: int64;
+  denominator: Qyl.Api.Contracts.Common.JsonInteger;
   unit: string;
 }
 
@@ -201,7 +201,7 @@ model TriageRegression {
 model SilentService {
   service: string;
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "usual_rate")
   usualRate: float64 | null;
   unit: string;
@@ -258,7 +258,7 @@ model EvidenceSpan {
   service: string;
   name: string;
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
   status: "unset" | "ok" | "error";
@@ -337,8 +337,10 @@ model TraceDivergence {
 model SpanDifference {
   kind: "status" | "attribute" | "duration";
   key: string;
-  a: AttributeValue;
-  b: AttributeValue;
+  @doc("Absent when side A has no attribute; null when it explicitly records null.")
+  a?: AttributeValue;
+  @doc("Absent when side B has no attribute; null when it explicitly records null.")
+  b?: AttributeValue;
 }
 
 @doc("FailureComparison contract.")
@@ -353,9 +355,9 @@ model FailureComparison {
 model SimilarFailure {
   @encodedName("application/json", "failure_id")
   failureId: FailureId;
-  count: int64;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
   releases: string[];
 }
 
@@ -454,9 +456,9 @@ model CompareGroupsOutput {
   durations: GroupDurations;
   composition: GroupComposition;
   @encodedName("application/json", "size_a")
-  sizeA: int64;
+  sizeA: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "size_b")
-  sizeB: int64;
+  sizeB: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "excluded_keys")
   excludedKeys: string[];
   error?: ToolError;
@@ -515,7 +517,7 @@ model VerifyFixInput {
   @encodedName("application/json", "failure_id")
   failureId?: FailureId;
   @doc("When the fix took effect, RFC 3339; the after window runs from here to now. Takes precedence over `release`.")
-  since?: utcDateTime;
+  since?: Qyl.Api.Contracts.Common.Timestamp;
   @doc("A `service.version` of the failure's service (with `matchers`, of the matched requests' services) whose first recorded span marks the change, when `since` is omitted. A service that records no such version, such as a database, takes it from the services its executions run through. list_releases lists each service's versions.")
   release?: string;
   @doc("Requests the after window needs before the verdict can be `passed`, 0 or more; default 100.")
@@ -534,8 +536,8 @@ model VerifyFixInput {
 @doc("One side of a verification. `before` runs from the failure's first retained occurrence, or the request's lookback when matchers select the requests, up to the change; `after` runs from the change to now.")
 model VerificationPeriod {
   window: ToolWindow;
-  occurrences: int64;
-  requests: int64;
+  occurrences: Qyl.Api.Contracts.Common.JsonInteger;
+  requests: Qyl.Api.Contracts.Common.JsonInteger;
   rate: float64 | null;
   unit: "requests";
 }
@@ -545,7 +547,7 @@ model VerificationChange {
   @doc("`since` for a time the request gave, `release` for the first span of a release.")
   kind: "since" | "release";
   @doc("When the change took effect; the after window starts here.")
-  time: utcDateTime;
+  time: Qyl.Api.Contracts.Common.Timestamp;
   @doc("With `release`: the service whose first span of `version` marks the change.")
   service?: string;
   @doc("With `release`: the release, a `service.version`.")
@@ -555,9 +557,9 @@ model VerificationChange {
 @doc("What a pending verification still needs before it can pass.")
 model VerificationNeeds {
   @doc("Requests still to observe after the change.")
-  requests: int64;
+  requests: Qyl.Api.Contracts.Common.JsonInteger;
   @doc("Whole minutes still to wait, rounded up.")
-  minutes: int64;
+  minutes: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("The verdict of a fix and the before and after windows it weighs; each window states its own bounds.")
@@ -565,7 +567,7 @@ model VerifyFixOutput {
   coverage: ToolCoverage;
   @doc("Item totals by paged collection path. Omitted totals are unknown, not zero.")
   @encodedName("application/json", "page_totals")
-  pageTotals?: Record<int64>;
+  pageTotals?: Record<Qyl.Api.Contracts.Common.JsonInteger>;
   ...ToolPage;
   verdict: "passed" | "failed" | "pending" | "inconclusive";
   change: VerificationChange;
@@ -597,7 +599,7 @@ model AggregateTelemetryInput {
   @doc("Bucket width in integer milliseconds for a per-group time series in `buckets`, 1 to 86400000 (one day) like query_metric's; omit for group totals only. A step at least as long as the window yields one bucket per group.")
   @minValue(1) @maxValue(86400000)
   @encodedName("application/json", "step_ms")
-  stepMs?: int64;
+  stepMs?: Qyl.Api.Contracts.Common.JsonInteger;
   @doc("One of the requested measures, optionally followed by ` asc` or ` desc`. Default: the first measure, descending. Examples: `error_rate`, `duration_p95 desc`, `count asc`.")
   @encodedName("application/json", "order_by")
   orderBy?: string;
@@ -606,7 +608,7 @@ model AggregateTelemetryInput {
 @doc("AggregateBucket contract.")
 model AggregateBucket {
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
   measures: Record<float64 | null>;
 }
 
@@ -620,8 +622,8 @@ model AggregateGroup {
 
 @doc("AggregateOther contract.")
 model AggregateOther {
-  groups: int64;
-  count: int64;
+  groups: Qyl.Api.Contracts.Common.JsonInteger;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("AggregateTelemetryOutput contract.")
@@ -650,7 +652,7 @@ model DiscoverAttributesInput {
 model AttributeValueCount {
   @doc("The recorded value in the lossless attribute form: an int64 is a tagged string that keeps every digit.")
   value: AttributeValue;
-  count: int64;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
   share: float64;
 }
 
@@ -670,7 +672,7 @@ model DiscoveredAttribute {
   @encodedName("application/json", "coverage_share")
   coverageShare: float64;
   @doc("Distinct values the key holds; with `coverage.scan_complete` false, among the records the read held.")
-  cardinality: int64;
+  cardinality: Qyl.Api.Contracts.Common.JsonInteger;
   @maxItems(10)
   @encodedName("application/json", "top_values")
   topValues: AttributeValueCount[];
@@ -701,13 +703,13 @@ model GetAgentRunInput {
 
 @doc("AgentTokens contract.")
 model AgentTokens {
-  input?: int64;
-  output?: int64;
+  input?: Qyl.Api.Contracts.Common.JsonInteger;
+  output?: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "cache_read")
-  cacheRead?: int64;
+  cacheRead?: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "cache_write")
-  cacheWrite?: int64;
-  reasoning?: int64;
+  cacheWrite?: Qyl.Api.Contracts.Common.JsonInteger;
+  reasoning?: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("AgentRun contract.")
@@ -715,11 +717,11 @@ model AgentRun {
   @encodedName("application/json", "agent_name")
   agentName?: string;
   models: string[];
-  started: utcDateTime;
+  started: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
   tokens: AgentTokens;
-  errors: int64;
+  errors: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "session_id")
   sessionId?: SessionId;
   @encodedName("application/json", "trace_id")
@@ -751,13 +753,13 @@ model RepeatedCall {
   tool: string;
   @encodedName("application/json", "argument_hash")
   argumentHash: string;
-  count: int64;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("AgentTokenShare contract.")
 model AgentTokenShare {
   name: string;
-  tokens: int64;
+  tokens: Qyl.Api.Contracts.Common.JsonInteger;
   share: float64;
 }
 
@@ -806,9 +808,9 @@ model ReleaseSummary {
   version: string;
   revision?: string;
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
   current: boolean;
   concurrent: boolean;
   @encodedName("application/json", "traffic_share")
@@ -842,7 +844,7 @@ model GetServiceMapInput {
 model ServiceMapNode {
   name: string;
   kind: "service" | "database" | "external" | "messaging";
-  calls: int64;
+  calls: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "error_rate")
   errorRate: float64;
   @encodedName("application/json", "p95_ms")
@@ -854,7 +856,7 @@ model ServiceMapNode {
 model ServiceMapEdge {
   from: string;
   to: string;
-  calls: int64;
+  calls: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "error_rate")
   errorRate: float64;
   @encodedName("application/json", "p95_ms")
@@ -882,7 +884,7 @@ model CheckTelemetryHealthInput {
 
 @doc("Spans whose parent span qyl does not retain. A span whose producer marked its parent remote (OTLP span flags) is not counted: its caller runs in another process.")
 model OrphanSpans {
-  count: int64;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
   share: float64;
   services: string[];
   unit: "spans";
@@ -901,7 +903,7 @@ model SemconvGap {
 
 @doc("How far back the read's data reaches in the report's scope: the oldest span or log record of the services, environment and matchers the rest of the report covers, without `qyl.mcp` unless `service_name` names it, and the days from it to now. This is not the configured retention.")
 model TelemetryDataSpan {
-  oldest: utcDateTime | null;
+  oldest: Qyl.Api.Contracts.Common.Timestamp | null;
   days: float64 | null;
 }
 
@@ -913,16 +915,16 @@ model MetricConflictSeries {
   seriesId: string;
   service: string;
   @doc("Timestamps of this series in the window that hold different measurements.")
-  points: int64;
+  points: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "first_time")
-  firstTime: utcDateTime;
+  firstTime: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "last_time")
-  lastTime: utcDateTime;
+  lastTime: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("Metric points at which a producer recorded different measurements for one series timestamp. Each point keeps the measurement recorded first, query_metric with `raw` and the series_id returns every observation, and query_metric refuses to aggregate a window that holds one.")
 model MetricConflicts {
-  points: int64;
+  points: Qyl.Api.Contracts.Common.JsonInteger;
   unit: "points";
   series: MetricConflictSeries[];
 }
@@ -984,8 +986,8 @@ model GetMcpStatsInput {
 
 @doc("McpTrafficTotals contract.")
 model McpTrafficTotals {
-  requests: int64;
-  errors: int64;
+  requests: Qyl.Api.Contracts.Common.JsonInteger;
+  errors: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "error_rate")
   errorRate: float64;
   @encodedName("application/json", "p50_ms")
@@ -1006,13 +1008,13 @@ model McpTrafficGroup {
 
 @doc("McpFailureClasses contract.")
 model McpFailureClasses {
-  transport: int64;
-  protocol: int64;
+  transport: Qyl.Api.Contracts.Common.JsonInteger;
+  protocol: Qyl.Api.Contracts.Common.JsonInteger;
   @encodedName("application/json", "tool_result")
-  toolResult: int64;
-  authentication: int64;
-  cancellation: int64;
-  timeout: int64;
+  toolResult: Qyl.Api.Contracts.Common.JsonInteger;
+  authentication: Qyl.Api.Contracts.Common.JsonInteger;
+  cancellation: Qyl.Api.Contracts.Common.JsonInteger;
+  timeout: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("McpStatsComparisonResult contract.")
@@ -1027,7 +1029,7 @@ model McpStatsComparisonResult {
 @doc("Requests and errors of one bucket of the window.")
 model McpTrafficBucket {
   @doc("Start of the bucket (inclusive); it ends `bucket_ms` later, or at the window's end.")
-  start: utcDateTime;
+  start: Qyl.Api.Contracts.Common.Timestamp;
 
   @minValue(0)
   requests: int32;
@@ -1082,7 +1084,7 @@ model GetMcpStatsOutput {
   @doc("With `buckets`, the width of every bucket in integer milliseconds: the window split into 60 buckets of at least one second.")
   @encodedName("application/json", "bucket_ms")
   @minValue(1000)
-  bucketMs?: int64;
+  bucketMs?: Qyl.Api.Contracts.Common.JsonInteger;
 
   @doc("With `buckets`, requests and errors of each bucket that saw requests, oldest first.")
   buckets?: McpTrafficBucket[];
@@ -1116,7 +1118,7 @@ model UpdateFailureStatusInput {
   status: FailureStatus;
   @doc("With `status: ignored`, when triage shows the failure again, RFC 3339; omitted, it stays ignored. Refused with any other status.")
   @encodedName("application/json", "ignore_until")
-  ignoreUntil?: utcDateTime;
+  ignoreUntil?: Qyl.Api.Contracts.Common.Timestamp;
   @doc("Who owns the failure, at most 256 characters; omitted, the failure has no assignee afterwards.")
   @maxLength(256)
   assignee?: string;
@@ -1151,7 +1153,7 @@ model ToolTraceRow {
   root: TraceRoot;
   @doc("Start of the trace's earliest span.")
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
   @doc("From the earliest span's start to the latest span's end.")
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
@@ -1159,7 +1161,7 @@ model ToolTraceRow {
   spanCount: int32;
   @doc("Spans with error status.")
   @encodedName("application/json", "error_count")
-  errorCount: int64;
+  errorCount: Qyl.Api.Contracts.Common.JsonInteger;
   @doc("Services with a span in the trace.")
   services: string[];
   @doc("Failures of the trace's error spans; get_failure_context explains one.")
@@ -1188,12 +1190,12 @@ model ToolSession {
 @doc("LogPattern contract.")
 model LogPattern {
   template: string;
-  count: int64;
+  count: Qyl.Api.Contracts.Common.JsonInteger;
   severity: int32;
   @encodedName("application/json", "first_seen")
-  firstSeen: utcDateTime;
+  firstSeen: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
   @doc("Traces the pattern was seen in.")
   @maxItems(3)
   @encodedName("application/json", "example_trace_ids")
@@ -1203,7 +1205,7 @@ model LogPattern {
 @doc("A log record as the analysis tools return it.")
 model ToolLogRow {
   @doc("The record's event time, else the time it was observed.")
-  time: utcDateTime;
+  time: Qyl.Api.Contracts.Common.Timestamp;
   @doc("The severity text, else the OTel short name of its severity number.")
   severity?: string;
   @encodedName("application/json", "severity_number")
@@ -1230,10 +1232,10 @@ model MetricCatalogRow {
   services: string[];
   @doc("Series of this descriptor, across every resource and scope version that reports it.")
   @encodedName("application/json", "series_count")
-  seriesCount: int64;
+  seriesCount: Qyl.Api.Contracts.Common.JsonInteger;
   @doc("When the latest of those series was last seen.")
   @encodedName("application/json", "last_seen")
-  lastSeen: utcDateTime;
+  lastSeen: Qyl.Api.Contracts.Common.Timestamp;
   @doc("The aggregations query_metric accepts for it.")
   @encodedName("application/json", "supported_aggregations")
   supportedAggregations: MetricAggregation[];
@@ -1251,16 +1253,16 @@ model MetricCatalogRow {
 model MetricKeySummary {
   key: string;
   @doc("Distinct values the key holds across the descriptor's series.")
-  cardinality: int64;
+  cardinality: Qyl.Api.Contracts.Common.JsonInteger;
 }
 
 @doc("One original point of a metric series, as the producer recorded it.")
 model MetricRawPoint {
   @doc("When the point was recorded.")
-  time: utcDateTime;
+  time: Qyl.Api.Contracts.Common.Timestamp;
   @doc("Start of the interval the point covers, when the producer recorded one.")
   @encodedName("application/json", "start_time")
-  startTime?: utcDateTime;
+  startTime?: Qyl.Api.Contracts.Common.Timestamp;
   @doc("The original OTLP data: a number (an int64 is a tagged string that keeps every digit), a histogram, an exponential histogram or a summary; null when an older record did not retain it.")
   data: MetricPointData | null;
   @doc("Whether a different measurement was recorded at the same timestamp; each one is its own point.")
@@ -1272,7 +1274,7 @@ model MetricRawPoint {
 
 @doc("One exemplar of an original metric point: a sampled measurement and the span it came from.")
 model MetricRawExemplar {
-  time: utcDateTime;
+  time: Qyl.Api.Contracts.Common.Timestamp;
   value: MetricNumberValue;
   @encodedName("application/json", "trace_id")
   traceId?: TraceId;
@@ -1358,7 +1360,7 @@ model TraceSpanRow {
   service: string;
   name: string;
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
   status: "unset" | "ok" | "error";
@@ -1384,16 +1386,16 @@ model ToolTrace {
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "end_time")
-  endTime: utcDateTime;
+  endTime: Qyl.Api.Contracts.Common.Timestamp;
   @encodedName("application/json", "duration_ms")
   durationMs: DurationMs;
   @doc("Spans of the trace, before `selection` and paging.")
   @encodedName("application/json", "span_count")
   spanCount: int32;
   @encodedName("application/json", "error_count")
-  errorCount: int64;
+  errorCount: Qyl.Api.Contracts.Common.JsonInteger;
   services: string[];
   spans: TraceSpanRow[];
   @doc("Omitted when `include_attributes` is false.")

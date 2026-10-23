@@ -3,7 +3,7 @@
 
 export type TraceId = string & { readonly __brand: "TraceId" };
 
-const TraceIdPattern = new RegExp("^[a-f0-9]{32}$", "u");
+const TraceIdPattern = new RegExp("^[a-f0-9]{32}(?![\\s\\S])", "u");
 export function isTraceId(value: string): value is TraceId {
   return TraceIdPattern.test(value);
 }
@@ -14,7 +14,7 @@ export function parseTraceId(value: string): TraceId {
 
 export type SpanId = string & { readonly __brand: "SpanId" };
 
-const SpanIdPattern = new RegExp("^[a-f0-9]{16}$", "u");
+const SpanIdPattern = new RegExp("^[a-f0-9]{16}(?![\\s\\S])", "u");
 export function isSpanId(value: string): value is SpanId {
   return SpanIdPattern.test(value);
 }
@@ -25,7 +25,7 @@ export function parseSpanId(value: string): SpanId {
 
 export type SessionId = string & { readonly __brand: "SessionId" };
 
-const SessionIdPattern = new RegExp("^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$", "u");
+const SessionIdPattern = new RegExp("^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])", "u");
 export function isSessionId(value: string): value is SessionId {
   return SessionIdPattern.test(value);
 }
@@ -309,6 +309,8 @@ export type AttributeValue = null | string | boolean | AttributeValue[] | Attrib
 export type AttributeObjectValue = AttributeIntValue | AttributeDoubleValue | AttributeBytesValue | AttributeKeyValueListValue;
 
 export type MatcherValue = string | number | boolean;
+
+export type MetricMatcherValue = string | number | boolean;
 
 export type MetricNumberValue = AttributeIntValue | AttributeDoubleValue;
 
@@ -652,9 +654,9 @@ export interface MetricQueryResult {
 export interface MetricAttributeMatcher {
   "key": string;
   "op": MatcherOp;
-  "value"?: MatcherValue;
   "values"?: MatcherValue[];
   "scope"?: MatcherScope;
+  "value"?: MetricMatcherValue;
 }
 
 export interface MetricNumberPointData {
@@ -1595,8 +1597,8 @@ export interface TraceDivergence {
 export interface SpanDifference {
   "kind": "status" | "attribute" | "duration";
   "key": string;
-  "a": AttributeValue;
-  "b": AttributeValue;
+  "a"?: AttributeValue;
+  "b"?: AttributeValue;
 }
 
 export interface FailureComparison {
@@ -2307,4 +2309,4 @@ export interface CursorPageSavedQuery {
 
 // --- contract revision (scripts/emit-contract-revision.mjs) ---
 /** Revision of the API contract these types were emitted from; compare against HealthReport.contract_revision. */
-export const CONTRACT_REVISION: string = "sha256:b194b79e8e74e8d4";
+export const CONTRACT_REVISION: string = "sha256:8b4f06c4f2c5f854";

@@ -16,7 +16,7 @@ public sealed class LogStreamEvent
     public required Qyl.Api.Contracts.OTel.Logs.LogRecord Data { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("timestamp")]
-    public DateTimeOffset? Timestamp { get; init; }
+    public string? Timestamp { get; init; }
 }
 
 public sealed class HeartbeatEvent
@@ -24,5 +24,5 @@ public sealed class HeartbeatEvent
     [JsonPropertyName("type")]
     public required string Type { get; init; }
     [JsonPropertyName("timestamp")]
-    public required DateTimeOffset Timestamp { get; init; }
+    public required string Timestamp { get; init; }
 }

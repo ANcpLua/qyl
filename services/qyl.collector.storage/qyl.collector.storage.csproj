@@ -24,6 +24,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="qyl.collector"/>
     <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
+    <InternalsVisibleTo Include="Qyl.Telemetry.IntegrationTests"/>
   </ItemGroup>
 
 </Project>

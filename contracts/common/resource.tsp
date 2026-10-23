@@ -63,12 +63,12 @@ model ResourceBase {
   @doc("When the resource was created.")
   @visibility(Lifecycle.Read)
   @encodedName("application/json", "created_at")
-  createdAt: utcDateTime;
+  createdAt: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("When the resource was last changed.")
   @visibility(Lifecycle.Read)
   @encodedName("application/json", "updated_at")
-  updatedAt: utcDateTime;
+  updatedAt: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("Entity tag of this version; also served as the `ETag` response header.")
   @visibility(Lifecycle.Read)

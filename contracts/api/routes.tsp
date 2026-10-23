@@ -71,11 +71,11 @@ interface TracesApi {
 
     @doc("Keep traces that started at or after this time.")
     @query("start_time")
-    startTime?: utcDateTime,
+    startTime?: Qyl.Api.Contracts.Common.Timestamp,
 
     @doc("Keep traces that started before this time.")
     @query("end_time")
-    endTime?: utcDateTime,
+    endTime?: Qyl.Api.Contracts.Common.Timestamp,
 
     @doc("Keep traces with at least one span from this service.")
     @query("service_name")
@@ -134,8 +134,8 @@ interface LogsApi {
     @query level?: string,
     @query("severity_min") severityMin?: SeverityNumber,
     @query("trace_id") traceId?: TraceId,
-    @query("start_time") startTime?: utcDateTime,
-    @query("end_time") endTime?: utcDateTime,
+    @query("start_time") startTime?: Qyl.Api.Contracts.Common.Timestamp,
+    @query("end_time") endTime?: Qyl.Api.Contracts.Common.Timestamp,
     @query query?: string,
 
     ...CursorPageQuery,
@@ -211,8 +211,8 @@ interface MetricsApi {
     ...ProjectScopeHeader,
     @path("metric_name") metricName: string,
     @path("series_id") seriesId: string,
-    @query("start_time") startTime?: utcDateTime,
-    @query("end_time") endTime?: utcDateTime,
+    @query("start_time") startTime?: Qyl.Api.Contracts.Common.Timestamp,
+    @query("end_time") endTime?: Qyl.Api.Contracts.Common.Timestamp,
     ...CursorPageQuery,
   ):
     | CursorPage<MetricPoint>
@@ -230,14 +230,14 @@ interface MetricsApi {
   query(
     ...ProjectScopeHeader,
     @path("metric_name") metricName: string,
-    @query("start_time") startTime: utcDateTime,
-    @query("end_time") endTime: utcDateTime,
+    @query("start_time") startTime: Qyl.Api.Contracts.Common.Timestamp,
+    @query("end_time") endTime: Qyl.Api.Contracts.Common.Timestamp,
 
     @doc("Bucket width in milliseconds. One bucket spanning the range collapses the query to a single value.")
     @query("step_ms")
     @minValue(1)
     @maxValue(86400000)
-    stepMs?: int64 = 60000,
+    stepMs?: Qyl.Api.Contracts.Common.JsonInteger = 60000,
 
     @query aggregation?: MetricAggregation = MetricAggregation.avg,
 
@@ -285,8 +285,8 @@ interface SessionsApi {
   list(
     ...ProjectScopeHeader,
     @query("is_active") isActive?: boolean,
-    @query("start_time") startTime?: utcDateTime,
-    @query("end_time") endTime?: utcDateTime,
+    @query("start_time") startTime?: Qyl.Api.Contracts.Common.Timestamp,
+    @query("end_time") endTime?: Qyl.Api.Contracts.Common.Timestamp,
 
     ...CursorPageQuery,
   ):
@@ -322,8 +322,8 @@ interface SessionsApi {
   @route("/stats")
   getStats(
     ...ProjectScopeHeader,
-    @query("start_time") startTime?: utcDateTime,
-    @query("end_time") endTime?: utcDateTime,
+    @query("start_time") startTime?: Qyl.Api.Contracts.Common.Timestamp,
+    @query("end_time") endTime?: Qyl.Api.Contracts.Common.Timestamp,
   ): SessionStats | ValidationError | UnauthorizedError | CollectorServerErrorResponse;
 }
 

@@ -19,10 +19,10 @@ public sealed class SessionEntity
     [JsonPropertyName("user_id")]
     public string? UserId { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("duration_ms")]
     public double? DurationMs { get; init; }
@@ -122,7 +122,7 @@ public sealed class SessionStats
     public required double BounceRate { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<SessionState>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<SessionState>))]
 public enum SessionState
 {
     [JsonStringEnumMemberName("active")]
@@ -146,7 +146,7 @@ public static class SessionStateValues
     public const string Invalidated = "invalidated";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<DeviceType>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<DeviceType>))]
 public enum DeviceType
 {
     [JsonStringEnumMemberName("desktop")]

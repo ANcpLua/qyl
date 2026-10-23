@@ -35,6 +35,7 @@ alias CursorPageQuery = {
 };
 
 @doc("One page of a list operation.")
+@friendlyName("CursorPage{name}", T)
 model CursorPage<T> {
   @doc("The items of this page.")
   @pageItems

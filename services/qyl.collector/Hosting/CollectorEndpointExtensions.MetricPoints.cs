@@ -15,15 +15,15 @@ internal static partial class CollectorEndpointExtensions
         if (ContractQueryParser.ParseMetricPoints(context.Request, out var query) is { } error) return error;
         var project = ResolveProjectScope(context);
         if ((await store.ListMetricSeriesAsync(project, metricName, [], 1, seriesId: seriesId, ct: ct)).SingleOrDefault() is not { } series) return ContractErrorResults.NotFound("metric series", seriesId);
-        try { return Results.Ok(await ReadMetricPointPageAsync(store, series, project, query, ct)); }
+        try { return ContractHttp.Json(await ReadMetricPointPageAsync(store, series, project, query, ct)); }
         catch (AnalysisInputException invalid) { return AnalysisError(invalid); }
     }
 
     private static async Task<CursorPageMetricPoint> ReadMetricPointPageAsync(IQylStore store, MetricSeriesRow series,
         string project, ParsedMetricPointParameters query, CancellationToken ct)
     {
-        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit, out var limit))
-            throw new AnalysisInputException("limit", $"Limit must be between 1 and {ContractLimits.MaxPageLimit}.", "limit.out_of_range");
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit, ContractLimits.MinimumPageLimit, out var limit))
+            throw new AnalysisInputException("limit", $"Limit must be between {ContractLimits.MinimumPageLimit} and {ContractLimits.MaxPageLimit}.", "limit.out_of_range");
         if (query.Start < DateTimeOffset.UnixEpoch || query.End < DateTimeOffset.UnixEpoch)
             throw new AnalysisInputException("start_time", "Metric times must be on or after the Unix epoch.", "range.invalid");
         if (query.Start is { } start && query.End is { } end && start > end)
@@ -98,7 +98,7 @@ internal static partial class CollectorEndpointExtensions
     // An original point with RFC 3339 times; the series' attributes are on the answer, not on every point.
     private static JsonObject RawPoint(Api.Contracts.OTel.Metrics.MetricPoint point)
     {
-        var json = JsonSerializer.SerializeToNode(point, QylSerializerContext.Default.MetricPoint)!.AsObject();
+        var json = JsonSerializer.SerializeToNode(point, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricPoint>())!.AsObject();
         var exemplars = (json["exemplars"] as JsonArray ?? []).OfType<JsonObject>().Zip(point.Exemplars ?? []).Select(static pair => J.O(
             ("time", J.Time(pair.Second.TimeUnixNano)), ("value", pair.First["value"]), ("trace_id", pair.Second.TraceId), ("span_id", pair.Second.SpanId),
             ("filtered_attributes", pair.Second.FilteredAttributes.Count > 0 ? pair.First["filtered_attributes"] : null))).ToList();

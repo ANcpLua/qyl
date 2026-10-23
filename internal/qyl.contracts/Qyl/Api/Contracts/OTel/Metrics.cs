@@ -62,7 +62,7 @@ public sealed class MetricDescriptor
     [JsonPropertyName("series_count")]
     public required long SeriesCount { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
 }
 
 public sealed class MetricDescriptorConflict
@@ -109,15 +109,15 @@ public sealed class MetricSeries
     [JsonPropertyName("unit")]
     public string? Unit { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
 }
 
 public sealed class MetricBucket
 {
     [JsonPropertyName("bucket_start")]
-    public required DateTimeOffset BucketStart { get; init; }
+    public required string BucketStart { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("value")]
     public required double? Value { get; init; }
@@ -129,9 +129,10 @@ public sealed class MetricSeriesResult
 {
     [JsonPropertyName("attributes")]
     public required IReadOnlyList<Qyl.Api.Contracts.Common.Attribute> Attributes { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.OptionalValueConverter<double?>))]
     [JsonPropertyName("value")]
-    public double? Value { get; init; }
+    public global::Qyl.Api.Contracts.OptionalValue<double?> Value { get; init; }
     [JsonPropertyName("buckets")]
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricBucket> Buckets { get; init; }
 }
@@ -154,9 +155,9 @@ public sealed class MetricQueryResult
     [JsonPropertyName("step_ms")]
     public required long StepMs { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
+    public required string EndTime { get; init; }
     [JsonPropertyName("series")]
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricSeriesResult> Series { get; init; }
     [JsonPropertyName("truncated")]
@@ -170,14 +171,14 @@ public sealed class MetricAttributeMatcher
     [JsonPropertyName("op")]
     public required Qyl.Api.Contracts.Common.MatcherOp Op { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("value")]
-    public object? Value { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("values")]
     public IReadOnlyList<object>? Values { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("scope")]
     public Qyl.Api.Contracts.Common.MatcherScope? Scope { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("value")]
+    public object? Value { get; init; }
 }
 
 public sealed class MetricNumberPointData : MetricPointData
@@ -189,7 +190,7 @@ public sealed class MetricNumberPointData : MetricPointData
 
 public sealed class MetricHistogramPointData : MetricPointData
 {
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("count")]
     public required ulong Count { get; init; }
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
@@ -207,14 +208,14 @@ public sealed class MetricHistogramPointData : MetricPointData
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
     [JsonPropertyName("explicit_bounds")]
     public required IReadOnlyList<double> ExplicitBounds { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.IntegerStringListConverter<ulong>))]
     [JsonPropertyName("bucket_counts")]
     public required IReadOnlyList<ulong> BucketCounts { get; init; }
 }
 
 public sealed class MetricExponentialHistogramPointData : MetricPointData
 {
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("count")]
     public required ulong Count { get; init; }
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
@@ -231,7 +232,7 @@ public sealed class MetricExponentialHistogramPointData : MetricPointData
     public double? Max { get; init; }
     [JsonPropertyName("scale")]
     public required int Scale { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("zero_count")]
     public required ulong ZeroCount { get; init; }
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
@@ -249,14 +250,14 @@ public sealed class MetricExponentialBuckets
 {
     [JsonPropertyName("offset")]
     public required int Offset { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.IntegerStringListConverter<ulong>))]
     [JsonPropertyName("bucket_counts")]
     public required IReadOnlyList<ulong> BucketCounts { get; init; }
 }
 
 public sealed class MetricSummaryPointData : MetricPointData
 {
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("count")]
     public required ulong Count { get; init; }
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
@@ -279,7 +280,7 @@ public sealed class MetricQuantileValue
 
 public sealed class MetricExemplar
 {
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("time_unix_nano")]
     public required ulong TimeUnixNano { get; init; }
     [JsonPropertyName("value")]
@@ -300,7 +301,7 @@ public sealed class MetricPointProjection
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("value")]
     public double? Value { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("count")]
     public ulong? Count { get; init; }
@@ -320,7 +321,7 @@ public sealed class MetricPointProjection
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("explicit_bounds")]
     public IReadOnlyList<double>? ExplicitBounds { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.IntegerStringListConverter<ulong>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("bucket_counts")]
     public IReadOnlyList<ulong>? BucketCounts { get; init; }
@@ -334,10 +335,10 @@ public sealed class MetricPoint
     public required bool HasConflict { get; init; }
     [JsonPropertyName("series_id")]
     public required string SeriesId { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("time_unix_nano")]
     public required ulong TimeUnixNano { get; init; }
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.UInt64StringConverter))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time_unix_nano")]
     public ulong? StartTimeUnixNano { get; init; }
@@ -372,7 +373,7 @@ public sealed class MetricPoint
     public string? ProjectionUnavailableReason { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MetricAggregation>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<MetricAggregation>))]
 public enum MetricAggregation
 {
     [JsonStringEnumMemberName("avg")]
@@ -411,7 +412,7 @@ public static class MetricAggregationValues
     public const string P99 = "p99";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MetricKind>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<MetricKind>))]
 public enum MetricKind
 {
     [JsonStringEnumMemberName("gauge")]
@@ -435,7 +436,7 @@ public static class MetricKindValues
     public const string Summary = "summary";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MetricTemporality>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<MetricTemporality>))]
 public enum MetricTemporality
 {
     [JsonStringEnumMemberName("unspecified")]
@@ -453,7 +454,7 @@ public static class MetricTemporalityValues
     public const string Cumulative = "cumulative";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MetricMatcherOp>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<MetricMatcherOp>))]
 public enum MetricMatcherOp
 {
     [JsonStringEnumMemberName("eq")]

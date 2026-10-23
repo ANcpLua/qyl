@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization.Metadata;
+using WireJson = Qyl.Api.Contracts.ContractJson;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Hosting;
@@ -73,25 +73,24 @@ internal static class ResourceHttp
     internal static string NewId(string prefix) => prefix + Guid.CreateVersion7().ToString("N");
 
     /// <summary>SHA-256 of the canonical re-serialization, so whitespace or member order never changes it.</summary>
-    internal static string Fingerprint<T>(T body, JsonTypeInfo<T> typeInfo) =>
-        Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(body, typeInfo)));
+    internal static string Fingerprint<T>(T body) =>
+        Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(WireJson.Serialize(body).GetRawText())));
 
-    internal static IResult WithEtag<T>(HttpContext context, string etag, T body, JsonTypeInfo<T> typeInfo)
+    internal static IResult WithEtag<T>(HttpContext context, string etag, T body)
     {
         context.Response.Headers.ETag = etag;
-        return Results.Json(body, typeInfo);
+        return Results.Json(WireJson.Serialize(body), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::System.Text.Json.JsonElement>());
     }
 
     internal static IResult Created<T>(
         HttpContext context,
         string location,
         string etag,
-        T body,
-        JsonTypeInfo<T> typeInfo)
+        T body)
     {
         context.Response.Headers.ETag = etag;
         context.Response.Headers.Location = location;
-        return Results.Json(body, typeInfo, statusCode: StatusCodes.Status201Created);
+        return Results.Json(WireJson.Serialize(body), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::System.Text.Json.JsonElement>(), statusCode: StatusCodes.Status201Created);
     }
 
     internal static IResult IdempotencyConflict(string key) =>

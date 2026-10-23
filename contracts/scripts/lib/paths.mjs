@@ -16,7 +16,7 @@ export const csharpRevisionPath = repository("internal/qyl.contracts/Qyl/Api/Con
 export const mcpGeneratedDirectory = repository("services/qyl.mcp/src/contracts/generated");
 export const mcpApiPath = repository("services/qyl.mcp/src/contracts/generated/api.ts");
 export const mcpHeadersPath = repository("services/qyl.mcp/src/contracts/generated/headers.ts");
-export const mcpToolSchemasPath = repository("services/qyl.mcp/src/contracts/generated/tool-schemas.json");
+export const mcpContractSchemasPath = repository("services/qyl.mcp/src/contracts/generated/contract-schemas.json");
 
 export async function readOpenApi() {
   return JSON.parse(await readFile(openApiPath, "utf8"));

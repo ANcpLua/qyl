@@ -18,6 +18,7 @@ import type {
 import {
   emitFile,
   getEncode,
+  getFriendlyName,
   getMediaTypeHint,
   getPattern,
   isArrayModelType,
@@ -107,8 +108,7 @@ export async function $onEmit(context: EmitContext): Promise<void> {
       if (emittedModels.has(name)) return;
       emittedModels.add(name);
       modelBlock.push(renderInterface(program, m, name));
-      // Template instantiations are inlined by the OpenAPI emitter and have no definition of their own.
-      if (!m.templateMapper?.args.length) definitions.set(definitionName(m), name);
+      definitions.set(getFriendlyName(program, m) ?? definitionName({ ...m, name }), name);
     },
     union: (u) => {
       if (isBuiltin(u) || !u.name || u.name.endsWith("Auth")) return;

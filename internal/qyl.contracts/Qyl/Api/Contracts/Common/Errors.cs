@@ -26,7 +26,7 @@ public sealed class InternalServerError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
 }
@@ -44,7 +44,7 @@ public sealed class ProblemDetails
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
 }
@@ -62,7 +62,7 @@ public sealed class ValidationError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonPropertyName("errors")]
@@ -101,7 +101,7 @@ public sealed class UnauthorizedError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
 }
@@ -119,7 +119,7 @@ public sealed class ForbiddenError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -140,7 +140,7 @@ public sealed class NotFoundError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -164,7 +164,7 @@ public sealed class ConflictError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -185,7 +185,7 @@ public sealed class PreconditionFailedError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -206,7 +206,7 @@ public sealed class PreconditionRequiredError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -227,7 +227,7 @@ public sealed class ServiceUnavailableError
     public string? Detail { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("instance")]
-    public Uri? Instance { get; init; }
+    public string? Instance { get; init; }
     [JsonPropertyName("code")]
     public required Qyl.Api.Contracts.Common.Errors.ProblemCode Code { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -235,7 +235,7 @@ public sealed class ServiceUnavailableError
     public string? Reason { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ProblemType>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<ProblemType>))]
 public enum ProblemType
 {
     [JsonStringEnumMemberName("https://qyl.at/problems/validation-failed")]
@@ -271,7 +271,7 @@ public static class ProblemTypeValues
     public const string ServiceUnavailable = "https://qyl.at/problems/service-unavailable";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ProblemCode>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<ProblemCode>))]
 public enum ProblemCode
 {
     [JsonStringEnumMemberName("validation_failed")]

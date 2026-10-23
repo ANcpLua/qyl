@@ -29,6 +29,8 @@ internal static partial class CollectorEndpointExtensions
                     ? http.Request.RouteValues[name] as string
                     : http.Request.Query.TryGetValue(name, out var values) && values.Count == 1 ? values[0] : null;
                 if (value is null) continue;
+                // QueryReader reports the established date-time problem using the same generated Timestamp grammar.
+                if (location == "query" && pattern == Api.Contracts.ContractJson.Schema("Common.Timestamp").GetProperty("pattern").GetString()) continue;
                 try
                 {
                     var sent = JsonValue.Create(value);

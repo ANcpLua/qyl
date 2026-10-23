@@ -1,7 +1,7 @@
 /**
  * Emits the contract revision into both generated faces of the contract.
  *
- * The revision hashes the semantic OpenAPI projection. Presentation-only
+ * The revision hashes the semantic OpenAPI and normalized validation projections. Presentation-only
  * OpenAPI fields and `info.version` are removed and object keys are sorted
  * before hashing, so documentation edits and a release that changes nothing
  * but its version do not force a lockstep deploy, while any route, schema, or
@@ -15,9 +15,10 @@
  *   node scripts/emit-contract-revision.mjs --ts       TypeScript only
  */
 import { createHash } from "node:crypto";
+import { canonicalize } from "./lib/canonical-schema.mjs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { csharpRevisionPath as csharpPath, mcpApiPath as tsPath, openApiPath } from "./lib/paths.mjs";
+import { csharpRevisionPath as csharpPath, mcpApiPath as tsPath, mcpContractSchemasPath, openApiPath } from "./lib/paths.mjs";
 
 // Everything from this line to the end of api.ts belongs to this script; the
 // TypeSpec emitter owns everything above it. Re-running rewrites the block
@@ -54,33 +55,15 @@ const openApi = JSON.parse(
   ),
 );
 
-const presentationKeys = new Set([
-  "description",
-  "example",
-  "examples",
-  "externalDocs",
-  "summary",
-  "title",
-]);
-
-function canonicalize(value) {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (typeof value !== "object" || value === null) return value;
-  return Object.fromEntries(
-    Object.keys(value)
-      .filter((key) => !presentationKeys.has(key))
-      .sort()
-      .map((key) => [key, canonicalize(value[key])]),
-  );
-}
-
 // Only `info.version` leaves: a version key anywhere else (a schema property
 // named `version`, say) is contract.
 const versionlessInfo = { ...openApi.info };
 delete versionlessInfo.version;
+const schemas = JSON.parse(await readGenerated(mcpContractSchemasPath, "normalized validation schemas", "run `bun run compile` so schema normalization precedes the revision"));
 const revisionPayload = [
-  "qyl-contract-revision-v4",
+  "qyl-contract-revision-v5",
   JSON.stringify(canonicalize({ ...openApi, info: versionlessInfo })),
+  JSON.stringify(canonicalize(schemas)),
 ].join("\n");
 const revision =
   `sha256:${createHash("sha256").update(revisionPayload).digest("hex").slice(0, 16)}`;

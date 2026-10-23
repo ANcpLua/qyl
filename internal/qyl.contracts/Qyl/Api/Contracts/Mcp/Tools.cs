@@ -38,9 +38,10 @@ public sealed class ToolError
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("resource_id")]
     public string? ResourceId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.OptionalValueConverter<string?>))]
     [JsonPropertyName("collector_contract_revision")]
-    public string? CollectorContractRevision { get; init; }
+    public global::Qyl.Api.Contracts.OptionalValue<string?> CollectorContractRevision { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("server_contract_revision")]
     public string? ServerContractRevision { get; init; }
@@ -67,10 +68,10 @@ public sealed class ToolTimeRange
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
 }
 
 public sealed class ListTracesInput
@@ -82,35 +83,6 @@ public sealed class ListTracesInput
     public const int LimitMaximum = 100;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("min_duration_ms", MinDurationMsMinimum, null, null),
-        ("max_duration_ms", MaxDurationMsMinimum, null, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("session_id", 1, 128),
-        ("failure_id", 1, 512),
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("order_by", ["start_time", "duration", "errors"], []),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("failure_class")]
     public Qyl.Api.Contracts.Mcp.Tools.McpFailureClass? FailureClass { get; init; }
@@ -158,10 +130,10 @@ public sealed class ListTracesInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("service_name")]
     public string? ServiceName { get; init; }
@@ -201,7 +173,7 @@ public sealed class ToolTraceRow
     [JsonPropertyName("root")]
     public required Qyl.Api.Contracts.Mcp.Tools.TraceRoot Root { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("duration_ms")]
     public required double DurationMs { get; init; }
     [JsonPropertyName("span_count")]
@@ -235,28 +207,6 @@ public sealed class GetTraceInput
     public const int MaxSpansMinimum = 1;
     public const int MaxSpansMaximum = 1000;
     public const bool IncludeAttributesDefault = true;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("max_logs", MaxLogsMinimum, MaxLogsMaximum, null),
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("max_spans", MaxSpansMinimum, MaxSpansMaximum, MaxSpansDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("trace_id", 32, 32),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("trace_id", "^[a-f0-9]{32}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("selection", ["all", "errors", "errors_with_ancestors", "critical_path"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -274,10 +224,10 @@ public sealed class GetTraceInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -337,7 +287,7 @@ public sealed class TraceLinkAvailability
 public sealed class ToolLogRow
 {
     [JsonPropertyName("time")]
-    public required DateTimeOffset Time { get; init; }
+    public required string Time { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("severity")]
     public string? Severity { get; init; }
@@ -362,9 +312,9 @@ public sealed class ToolTrace
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("end_time")]
-    public required DateTimeOffset EndTime { get; init; }
+    public required string EndTime { get; init; }
     [JsonPropertyName("duration_ms")]
     public required double DurationMs { get; init; }
     [JsonPropertyName("span_count")]
@@ -392,7 +342,7 @@ public sealed class TraceSpanRow
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("duration_ms")]
     public required double DurationMs { get; init; }
     [JsonPropertyName("status")]
@@ -422,37 +372,13 @@ public sealed class TraceResource
 public sealed class ListSessionsInput
 {
     public const long MinTokensMinimum = 0;
+    public const long MinTokensMaximum = 9007199254740991;
     public const double MinDurationMsMinimum = 0;
     public const int LimitDefault = 20;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 100;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("min_tokens", MinTokensMinimum, null, null),
-        ("min_duration_ms", MinDurationMsMinimum, null, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("order_by", ["last_activity", "errors", "duration", "tokens"], []),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("errors_only")]
     public bool? ErrorsOnly { get; init; }
@@ -491,10 +417,10 @@ public sealed class ListSessionsInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -532,10 +458,10 @@ public sealed class ToolSession
     [JsonPropertyName("user_id")]
     public string? UserId { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("duration_ms")]
     public double? DurationMs { get; init; }
@@ -602,39 +528,6 @@ public sealed class SearchLogsInput
     public const int LimitMaximum = 200;
     public const int LookbackMinutesMinimum = 1;
     public const int LookbackMinutesMaximum = 43200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("context", ContextMinimum, ContextMaximum, null),
-        ("severity_min", SeverityMinMinimum, SeverityMinMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("span_id", 16, 16),
-        ("group_by", null, 1),
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("trace_id", 32, 32),
-        ("session_id", 1, 128),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("span_id", "^[a-f0-9]{16}$"),
-        ("trace_id", "^[a-f0-9]{32}$"),
-        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("group_by[]", ["pattern"], []),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("span_id")]
     public string? SpanId { get; init; }
@@ -670,10 +563,10 @@ public sealed class SearchLogsInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -716,9 +609,9 @@ public sealed class LogPattern
     [JsonPropertyName("severity")]
     public required int Severity { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
     [JsonPropertyName("example_trace_ids")]
     public required IReadOnlyList<string> ExampleTraceIds { get; init; }
 }
@@ -734,36 +627,6 @@ public sealed class CiLogInput
     public const int LimitDefault = 10;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 50;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("phase_limit", PhaseLimitMinimum, PhaseLimitMaximum, PhaseLimitDefault),
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("baseline.ci_run_id", 1, 128),
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("ci_run_id", 1, 128),
-        ("service_prefix", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("baseline.ci_run_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("ci_run_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("baseline", ["last_success", "{ci_run_id}"], [typeof(CiRunReference)]),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -799,10 +662,10 @@ public sealed class CiLogInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ci_run_id")]
     public string? CiRunId { get; init; }
@@ -840,7 +703,7 @@ public sealed class CiRunSummary
     [JsonPropertyName("state")]
     public required Qyl.Api.Contracts.Domains.Observe.Session.SessionState State { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("duration_ms")]
     public double? DurationMs { get; init; }
@@ -979,28 +842,6 @@ public sealed class ListMetricsInput
     public const int LimitDefault = 50;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("query")]
     public string? Query { get; init; }
@@ -1021,10 +862,10 @@ public sealed class ListMetricsInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name_prefix")]
     public string? NamePrefix { get; init; }
@@ -1075,7 +916,7 @@ public sealed class MetricCatalogRow
     [JsonPropertyName("series_count")]
     public required long SeriesCount { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
     [JsonPropertyName("supported_aggregations")]
     public required IReadOnlyList<Qyl.Api.Contracts.OTel.Metrics.MetricAggregation> SupportedAggregations { get; init; }
     [JsonPropertyName("has_conflict")]
@@ -1104,40 +945,6 @@ public sealed class QueryMetricInput
     public const int LimitDefault = 50;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 500;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("step_ms", StepMsMinimum, StepMsMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("ratio_of.matchers", null, 32),
-        ("ratio_of.matchers[].key", 1, 256),
-        ("ratio_of.matchers[].values", 1, 256),
-        ("metric_name", 1, null),
-        ("series_id", 1, null),
-        ("group_by", null, 16),
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("function", ["none", "rate", "increase", "delta"], []),
-        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"], [typeof(Qyl.Api.Contracts.Common.ToolWindow), typeof(BaselineOffset)]),
-        ("ratio_of.matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("ratio_of.matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("function")]
     public string? Function { get; init; }
@@ -1154,10 +961,10 @@ public sealed class QueryMetricInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("step_ms")]
     public long? StepMs { get; init; }
@@ -1302,10 +1109,10 @@ public sealed class MetricComparisonResult
 public sealed class MetricRawPoint
 {
     [JsonPropertyName("time")]
-    public required DateTimeOffset Time { get; init; }
+    public required string Time { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("data")]
     public required Qyl.Api.Contracts.OTel.Metrics.MetricPointData? Data { get; init; }
@@ -1319,7 +1126,7 @@ public sealed class MetricRawPoint
 public sealed class MetricRawExemplar
 {
     [JsonPropertyName("time")]
-    public required DateTimeOffset Time { get; init; }
+    public required string Time { get; init; }
     [JsonPropertyName("value")]
     public required Qyl.Api.Contracts.OTel.Metrics.MetricNumberValue Value { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -1407,23 +1214,6 @@ public sealed class RunSavedQueryInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("id", 1, 128),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("id")]
     public string? Id { get; init; }
@@ -1435,10 +1225,10 @@ public sealed class RunSavedQueryInput
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }
@@ -1514,7 +1304,7 @@ public sealed class FailureRelease
     [JsonPropertyName("version")]
     public required string Version { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("revision")]
     public string? Revision { get; init; }
@@ -1562,13 +1352,13 @@ public sealed class FailureSummary
     public string? Assignee { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
+    public string? IgnoreUntil { get; init; }
     [JsonPropertyName("updated_at")]
-    public required DateTimeOffset UpdatedAt { get; init; }
+    public required string UpdatedAt { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
     [JsonPropertyName("count")]
     public required long Count { get; init; }
     [JsonPropertyName("affected_traces")]
@@ -1590,40 +1380,15 @@ public sealed class TriageInput
     public const int LimitDefault = 10;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 50;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}"], [typeof(Qyl.Api.Contracts.Common.ToolWindow), typeof(BaselineOffset)]),
-        ("status", ["open", "resolved", "ignored", "all"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -1670,7 +1435,7 @@ public sealed class TriageFailure
     public string? Assignee { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
+    public string? IgnoreUntil { get; init; }
     [JsonPropertyName("change")]
     public required Qyl.Api.Contracts.Mcp.Tools.FailureChange Change { get; init; }
     [JsonPropertyName("count")]
@@ -1680,9 +1445,9 @@ public sealed class TriageFailure
     [JsonPropertyName("affected_traces")]
     public required long AffectedTraces { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("example_trace_id")]
     public string? ExampleTraceId { get; init; }
@@ -1719,7 +1484,7 @@ public sealed class SilentService
     [JsonPropertyName("service")]
     public required string Service { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("usual_rate")]
     public required double? UsualRate { get; init; }
@@ -1767,47 +1532,15 @@ public sealed class GetFailureContextInput
     public const int MaxLogsDefault = 100;
     public const int MaxLogsMinimum = 1;
     public const int MaxLogsMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("max_spans", MaxSpansMinimum, MaxSpansMaximum, MaxSpansDefault),
-        ("max_logs", MaxLogsMinimum, MaxLogsMaximum, MaxLogsDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("trace_id", 32, 32),
-        ("session_id", 1, 128),
-        ("failure_id", 1, 512),
-        ("ci_run_id", 1, 128),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("trace_id", "^[a-f0-9]{32}$"),
-        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("ci_run_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -1854,7 +1587,7 @@ public sealed class EvidenceSpan
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("duration_ms")]
     public required double DurationMs { get; init; }
     [JsonPropertyName("status")]
@@ -1931,12 +1664,14 @@ public sealed class TraceDivergence
     public required string Kind { get; init; }
     [JsonPropertyName("key")]
     public required string Key { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.OptionalValueConverter<Qyl.Api.Contracts.Common.AttributeValue?>))]
     [JsonPropertyName("a")]
-    public Qyl.Api.Contracts.Common.AttributeValue? A { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public global::Qyl.Api.Contracts.OptionalValue<Qyl.Api.Contracts.Common.AttributeValue?> A { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.OptionalValueConverter<Qyl.Api.Contracts.Common.AttributeValue?>))]
     [JsonPropertyName("b")]
-    public Qyl.Api.Contracts.Common.AttributeValue? B { get; init; }
+    public global::Qyl.Api.Contracts.OptionalValue<Qyl.Api.Contracts.Common.AttributeValue?> B { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("a_span_id")]
     public string? ASpanId { get; init; }
@@ -1951,12 +1686,14 @@ public sealed class SpanDifference
     public required string Kind { get; init; }
     [JsonPropertyName("key")]
     public required string Key { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.OptionalValueConverter<Qyl.Api.Contracts.Common.AttributeValue?>))]
     [JsonPropertyName("a")]
-    public required Qyl.Api.Contracts.Common.AttributeValue? A { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public global::Qyl.Api.Contracts.OptionalValue<Qyl.Api.Contracts.Common.AttributeValue?> A { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Qyl.Api.Contracts.OptionalValueConverter<Qyl.Api.Contracts.Common.AttributeValue?>))]
     [JsonPropertyName("b")]
-    public required Qyl.Api.Contracts.Common.AttributeValue? B { get; init; }
+    public global::Qyl.Api.Contracts.OptionalValue<Qyl.Api.Contracts.Common.AttributeValue?> B { get; init; }
 }
 
 public sealed class FailureComparison
@@ -1976,7 +1713,7 @@ public sealed class SimilarFailure
     [JsonPropertyName("count")]
     public required long Count { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonPropertyName("releases")]
     public required IReadOnlyList<string> Releases { get; init; }
 }
@@ -2040,52 +1777,15 @@ public sealed class CompareGroupsInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("group_a.matchers", null, 32),
-        ("group_a.matchers[].key", 1, 256),
-        ("group_a.matchers[].values", 1, 256),
-        ("group_a.failure_id", 1, 512),
-        ("group_b.matchers", null, 32),
-        ("group_b.matchers[].key", 1, 256),
-        ("group_b.matchers[].values", 1, 256),
-        ("group_b.failure_id", 1, 512),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("signal", ["spans", "logs"], []),
-        ("group_a.matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("group_a.matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("group_b", ["rest", "previous_window", "{matchers, window, failure_id}"], [typeof(CompareGroup)]),
-        ("group_b.matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("group_b.matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("attribute_scope", ["span", "resource", "both"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2199,46 +1899,15 @@ public sealed class CompareTracesInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("a.trace_id", 32, 32),
-        ("a.session_id", 1, 128),
-        ("b.trace_id", 32, 32),
-        ("b.session_id", 1, 128),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("a.trace_id", "^[a-f0-9]{32}$"),
-        ("a.session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("b.trace_id", "^[a-f0-9]{32}$"),
-        ("b.session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2310,41 +1979,15 @@ public sealed class VerifyFixInput
     public const int MinRequestsMinimum = 0;
     public const int MinMinutesDefault = 30;
     public const int MinMinutesMinimum = 0;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("min_requests", MinRequestsMinimum, null, MinRequestsDefault),
-        ("min_minutes", MinMinutesMinimum, null, MinMinutesDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("failure_id", 1, 512),
-        ("verify_id", 1, 8192),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2359,7 +2002,7 @@ public sealed class VerifyFixInput
     public string? FailureId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("since")]
-    public DateTimeOffset? Since { get; init; }
+    public string? Since { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("release")]
     public string? Release { get; init; }
@@ -2394,7 +2037,7 @@ public sealed class VerificationChange
     [JsonPropertyName("kind")]
     public required string Kind { get; init; }
     [JsonPropertyName("time")]
-    public required DateTimeOffset Time { get; init; }
+    public required string Time { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("service")]
     public string? Service { get; init; }
@@ -2454,40 +2097,15 @@ public sealed class AggregateTelemetryInput
     public const int LimitMaximum = 200;
     public const long StepMsMinimum = 1;
     public const long StepMsMaximum = 86400000;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("step_ms", StepMsMinimum, StepMsMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("group_by", null, 4),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("signal", ["spans", "logs"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2515,7 +2133,7 @@ public sealed class AggregateTelemetryInput
 public sealed class AggregateBucket
 {
     [JsonPropertyName("start_time")]
-    public required DateTimeOffset StartTime { get; init; }
+    public required string StartTime { get; init; }
     [JsonPropertyName("measures")]
     public required IReadOnlyDictionary<string, double?> Measures { get; init; }
 }
@@ -2571,38 +2189,15 @@ public sealed class DiscoverAttributesInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("signal", ["spans", "logs", "resources"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2690,42 +2285,15 @@ public sealed class GetAgentRunInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 1000;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("session_id", 1, 128),
-        ("trace_id", 32, 32),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [
-        ("session_id", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$"),
-        ("trace_id", "^[a-f0-9]{32}$"),
-    ];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2751,7 +2319,7 @@ public sealed class AgentRun
     [JsonPropertyName("models")]
     public required IReadOnlyList<string> Models { get; init; }
     [JsonPropertyName("started")]
-    public required DateTimeOffset Started { get; init; }
+    public required string Started { get; init; }
     [JsonPropertyName("duration_ms")]
     public required double DurationMs { get; init; }
     [JsonPropertyName("tokens")]
@@ -2861,37 +2429,15 @@ public sealed class ListReleasesInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -2932,9 +2478,9 @@ public sealed class ReleaseSummary
     [JsonPropertyName("revision")]
     public string? Revision { get; init; }
     [JsonPropertyName("first_seen")]
-    public required DateTimeOffset FirstSeen { get; init; }
+    public required string FirstSeen { get; init; }
     [JsonPropertyName("last_seen")]
-    public required DateTimeOffset LastSeen { get; init; }
+    public required string LastSeen { get; init; }
     [JsonPropertyName("current")]
     public required bool Current { get; init; }
     [JsonPropertyName("concurrent")]
@@ -2979,38 +2525,15 @@ public sealed class GetServiceMapInput
     public const int LimitMaximum = 200;
     public const int DepthMinimum = 1;
     public const int DepthMaximum = 3;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("depth", DepthMinimum, DepthMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -3102,37 +2625,15 @@ public sealed class CheckTelemetryHealthInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -3180,7 +2681,7 @@ public sealed class TelemetryDataSpan
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("oldest")]
-    public required DateTimeOffset? Oldest { get; init; }
+    public required string? Oldest { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("days")]
     public required double? Days { get; init; }
@@ -3197,9 +2698,9 @@ public sealed class MetricConflictSeries
     [JsonPropertyName("points")]
     public required long Points { get; init; }
     [JsonPropertyName("first_time")]
-    public required DateTimeOffset FirstTime { get; init; }
+    public required string FirstTime { get; init; }
     [JsonPropertyName("last_time")]
-    public required DateTimeOffset LastTime { get; init; }
+    public required string LastTime { get; init; }
 }
 
 public sealed class MetricConflicts
@@ -3255,41 +2756,15 @@ public sealed class GetMcpStatsInput
     public const int LimitDefault = 100;
     public const int LimitMinimum = 1;
     public const int LimitMaximum = 200;
-    /// <summary>Each numeric member the contract bounds, by wire path at any depth: the range a sent value keeps and the default an omitted one takes.</summary>
-    public static readonly IReadOnlyList<(string Name, double? Minimum, double? Maximum, double? Default)> Ranges =
-    [
-        ("lookback_minutes", LookbackMinutesMinimum, LookbackMinutesMaximum, null),
-        ("limit", LimitMinimum, LimitMaximum, LimitDefault),
-        ("baseline.offset_minutes", BaselineOffset.OffsetMinutesMinimum, BaselineOffset.OffsetMinutesMaximum, null),
-    ];
-    /// <summary>Each string and array member the contract bounds the length of, by wire path at any depth: the characters, counted as code points, or the items a sent value keeps.</summary>
-    public static readonly IReadOnlyList<(string Name, int? Minimum, int? Maximum)> Lengths =
-    [
-        ("matchers", null, 32),
-        ("matchers[].key", 1, 256),
-        ("matchers[].values", 1, 256),
-        ("group_by", null, 1),
-    ];
-    /// <summary>Each string member the contract gives a pattern, by wire path at any depth: the ECMAScript regular expression a sent value matches, as JSON Schema's pattern reads it.</summary>
-    public static readonly IReadOnlyList<(string Name, string Pattern)> Patterns =
-    [];
-    /// <summary>Each member whose value takes one of a set of forms, by wire path: the strings it takes, the object forms written {a, b} with their models and the JSON types written &lt;string&gt;.</summary>
-    public static readonly IReadOnlyList<(string Name, IReadOnlyList<string> Values, IReadOnlyList<Type> Models)> Choices =
-    [
-        ("matchers[].value", ["<string>", "<number>", "<boolean>"], []),
-        ("matchers[].values[]", ["<string>", "<number>", "<boolean>"], []),
-        ("baseline", ["previous_window", "{start_time, end_time}", "{offset_minutes}", "{server_version}"], [typeof(Qyl.Api.Contracts.Common.ToolWindow), typeof(BaselineOffset), typeof(McpComparisonVersion)]),
-        ("group_by[]", ["server", "tool", "method", "transport", "failure_class"], []),
-    ];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("lookback_minutes")]
     public int? LookbackMinutes { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("start_time")]
-    public DateTimeOffset? StartTime { get; init; }
+    public string? StartTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("end_time")]
-    public DateTimeOffset? EndTime { get; init; }
+    public string? EndTime { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("matchers")]
     public IReadOnlyList<Qyl.Api.Contracts.Common.TelemetryMatcher>? Matchers { get; init; }
@@ -3395,7 +2870,7 @@ public sealed class McpTrafficBucket
     public const int RequestsMinimum = 0;
     public const int ErrorsMinimum = 0;
     [JsonPropertyName("start")]
-    public required DateTimeOffset Start { get; init; }
+    public required string Start { get; init; }
     [JsonPropertyName("requests")]
     public required int Requests { get; init; }
     [JsonPropertyName("errors")]
@@ -3486,7 +2961,7 @@ public sealed class UpdateFailureStatusInput
     public required Qyl.Api.Contracts.Mcp.Tools.FailureStatus Status { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("ignore_until")]
-    public DateTimeOffset? IgnoreUntil { get; init; }
+    public string? IgnoreUntil { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("assignee")]
     public string? Assignee { get; init; }
@@ -3501,7 +2976,7 @@ public sealed class UpdateFailureStatusOutput
     public Qyl.Api.Contracts.Mcp.Tools.ToolError? Error { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<FailureStatus>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<FailureStatus>))]
 public enum FailureStatus
 {
     [JsonStringEnumMemberName("open")]
@@ -3519,7 +2994,7 @@ public static class FailureStatusValues
     public const string Ignored = "ignored";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<McpFailureClass>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<McpFailureClass>))]
 public enum McpFailureClass
 {
     [JsonStringEnumMemberName("transport")]
@@ -3546,7 +3021,7 @@ public static class McpFailureClassValues
     public const string Timeout = "timeout";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<CiPhaseStatus>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<CiPhaseStatus>))]
 public enum CiPhaseStatus
 {
     [JsonStringEnumMemberName("ok")]
@@ -3564,7 +3039,7 @@ public static class CiPhaseStatusValues
     public const string Unset = "unset";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<DeletableKind>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<DeletableKind>))]
 public enum DeletableKind
 {
     [JsonStringEnumMemberName("annotation")]
@@ -3579,7 +3054,7 @@ public static class DeletableKindValues
     public const string SavedQuery = "saved_query";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<FailureChange>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<FailureChange>))]
 public enum FailureChange
 {
     [JsonStringEnumMemberName("new")]
@@ -3603,7 +3078,7 @@ public static class FailureChangeValues
     public const string Regressed = "regressed";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<McpScope>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<McpScope>))]
 public enum McpScope
 {
     [JsonStringEnumMemberName("qyl:read")]
@@ -3621,7 +3096,7 @@ public static class McpScopeValues
     public const string Delete = "qyl:delete";
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<QylService>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<QylService>))]
 public enum QylService
 {
     [JsonStringEnumMemberName("qyl.mcp")]

@@ -21,7 +21,7 @@ internal static class QylRunnerContractMapper
             ResourceLifecycle.Failed => ContractLifecycle.Failed,
             _ => throw new ArgumentOutOfRangeException(nameof(state), state.Lifecycle, "Unknown lifecycle")
         },
-        Timestamp = state.Timestamp,
+        Timestamp = Qyl.Api.Contracts.ContractJson.FormatTimestamp(state.Timestamp),
         Kind = state.Kind switch
         {
             QylResourceKind.Collector => ContractResourceKind.Collector,
@@ -31,7 +31,7 @@ internal static class QylRunnerContractMapper
             _ => throw new ArgumentOutOfRangeException(nameof(state), state.Kind, "Unknown resource kind")
         },
         AllocatedPort = state.AllocatedPort,
-        Endpoint = state.Endpoint,
+        Endpoint = state.Endpoint?.AbsoluteUri,
         LastError = state.LastError
     };
 

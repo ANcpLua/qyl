@@ -257,7 +257,7 @@ internal static partial class CollectorEndpointExtensions
             ct: ct);
 
         var (page, hasMore) = SplitPage(metrics, boundedLimit);
-        return Results.Ok(new CursorPageMetricDescriptor
+        return ContractHttp.Json(new CursorPageMetricDescriptor
         {
             Items = MetricMapper.ToContracts(page),
             HasMore = hasMore,
@@ -305,7 +305,7 @@ internal static partial class CollectorEndpointExtensions
             return ContractErrorResults.NotFound("metric", metricName);
 
         var (page, hasMore) = SplitPage(series, boundedLimit);
-        return Results.Ok(new CursorPageMetricSeries
+        return ContractHttp.Json(new CursorPageMetricSeries
         {
             Items = MetricMapper.ToContracts(page),
             HasMore = hasMore,
@@ -341,21 +341,21 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var stepMs = query.StepMs ?? ContractLimits.MetricDefaultStepMs;
-        if (stepMs is < 1 or > ContractLimits.MetricMaxStepMs)
+        if (stepMs < ContractLimits.MetricMinimumStepMs || stepMs > ContractLimits.MetricMaxStepMs)
         {
             return ContractErrorResults.Validation(
                 "step_ms",
-                $"Step must be between 1 and {ContractLimits.MetricMaxStepMs} milliseconds.",
+                $"Step must be between {ContractLimits.MetricMinimumStepMs} and {ContractLimits.MetricMaxStepMs} milliseconds.",
                 "step.out_of_range",
                 stepMs.ToString(CultureInfo.InvariantCulture));
         }
 
         if (!ContractLimits.TryResolve(query.SeriesLimit, ContractLimits.MetricSeriesDefaultLimit,
-                ContractLimits.MetricSeriesMaxLimit, out var boundedSeriesLimit))
+                ContractLimits.MetricSeriesMaxLimit, ContractLimits.MinimumMetricSeriesLimit, out var boundedSeriesLimit))
         {
             return ContractErrorResults.Validation(
                 "series_limit",
-                $"Series limit must be between 1 and {ContractLimits.MetricSeriesMaxLimit}.",
+                $"Series limit must be between {ContractLimits.MinimumMetricSeriesLimit} and {ContractLimits.MetricSeriesMaxLimit}.",
                 "limit.out_of_range",
                 query.SeriesLimit?.ToString(CultureInfo.InvariantCulture));
         }
@@ -399,7 +399,7 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var truncated = series.Count > boundedSeriesLimit;
-        return Results.Ok(MetricMapper.ToQueryResult(
+        return ContractHttp.Json(MetricMapper.ToQueryResult(
             descriptor,
             query.Aggregation,
             stepMs,
@@ -451,7 +451,7 @@ internal static partial class CollectorEndpointExtensions
             ct: ct).ConfigureAwait(false);
 
         var (page, hasMore) = SplitPage(sessions, boundedLimit);
-        return Results.Ok(SessionMapper.ToPage(
+        return ContractHttp.Json(SessionMapper.ToPage(
             page,
             activeCutoffUnixNano,
             hasMore,
@@ -473,7 +473,7 @@ internal static partial class CollectorEndpointExtensions
         var activeCutoffUnixNano = QylSessionActivity.GetActiveCutoffUnixNano(timeProvider.GetUtcNow());
         return await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is not { } session
             ? ContractErrorResults.NotFound("session", sessionId)
-            : Results.Ok(SessionMapper.ToContract(session, activeCutoffUnixNano));
+            : ContractHttp.Json(SessionMapper.ToContract(session, activeCutoffUnixNano));
     }
 
     internal static async Task<IResult> GetSessionStatsAsync(
@@ -489,7 +489,7 @@ internal static partial class CollectorEndpointExtensions
         var stats = await store.GetSessionStatsAsync(
                 ResolveProjectScope(httpContext), activeCutoffUnixNano, query.StartTime, query.EndTime, ct: ct)
             .ConfigureAwait(false);
-        return Results.Ok(new SessionStats
+        return ContractHttp.Json(new SessionStats
         {
             ActiveSessions = stats.ActiveSessions,
             TotalSessions = stats.TotalSessions,
@@ -533,7 +533,7 @@ internal static partial class CollectorEndpointExtensions
             Cursor = cursor,
             SessionId = sessionId
         }, ct).ConfigureAwait(false);
-        return Results.Ok(ToTracePage(page, PageCursorKind.SessionTraces));
+        return ContractHttp.Json(ToTracePage(page, PageCursorKind.SessionTraces));
     }
 
     internal static async Task<IResult> GetTracesAsync(
@@ -566,7 +566,7 @@ internal static partial class CollectorEndpointExtensions
                 ErrorsOnly = parameters.ErrorsOnly is true
             }, ct)
             .ConfigureAwait(false);
-        return Results.Ok(ToTracePage(page, PageCursorKind.Traces));
+        return ContractHttp.Json(ToTracePage(page, PageCursorKind.Traces));
     }
 
     private static CursorPageTrace ToTracePage(TraceStoragePage page, PageCursorKind kind) =>
@@ -614,7 +614,7 @@ internal static partial class CollectorEndpointExtensions
         }
 
         var (page, hasMore) = SplitPage(spans, boundedLimit);
-        return Results.Ok(new CursorPageSpan
+        return ContractHttp.Json(new CursorPageSpan
         {
             Items = SpanMapper.ToContracts(page),
             HasMore = hasMore,
@@ -638,7 +638,7 @@ internal static partial class CollectorEndpointExtensions
 
         var spanContracts = SpanMapper.ToContracts(spans);
 
-        return Results.Ok(SpanMapper.ToTrace(traceId, spanContracts));
+        return ContractHttp.Json(SpanMapper.ToTrace(traceId, spanContracts));
     }
 
     internal static async Task<IResult> GetLogsAsync(
@@ -657,7 +657,7 @@ internal static partial class CollectorEndpointExtensions
         if (ResolvePageLimit(typedQuery.Limit, out var boundedLimit) is { } limitError)
             return limitError;
 
-        if (typedQuery.SeverityMin is < ContractLimits.MinimumLogSeverity or > ContractLimits.MaximumLogSeverity)
+        if (typedQuery.SeverityMin < ContractLimits.MinimumLogSeverity || typedQuery.SeverityMin > ContractLimits.MaximumLogSeverity)
         {
             return ContractErrorResults.Validation(
                 "severity_min",
@@ -688,7 +688,7 @@ internal static partial class CollectorEndpointExtensions
             cursor: cursor,
             ct: ct);
 
-        return Results.Ok(ToLogPage(logs, boundedLimit, PageCursorKind.Logs));
+        return ContractHttp.Json(ToLogPage(logs, boundedLimit, PageCursorKind.Logs));
     }
 
     private static CursorPageLogRecord ToLogPage(
@@ -750,7 +750,7 @@ internal static partial class CollectorEndpointExtensions
             return;
         }
 
-        if (minSeverity is < ContractLimits.MinimumStreamSeverity or > ContractLimits.MaximumLogSeverity)
+        if (minSeverity < ContractLimits.MinimumStreamSeverity || minSeverity > ContractLimits.MaximumLogSeverity)
         {
             await ContractErrorResults.WriteValidationAsync(
                 context.Response,
@@ -796,7 +796,6 @@ internal static partial class CollectorEndpointExtensions
                     streamEvent.EventType,
                     streamEvent.EventId,
                     log,
-                    QylSerializerContext.Default.LogStreamEvent,
                     ct).ConfigureAwait(false);
             }
             else if (streamEvent.Heartbeat is { } heartbeat)
@@ -806,7 +805,6 @@ internal static partial class CollectorEndpointExtensions
                     streamEvent.EventType,
                     null,
                     heartbeat,
-                    QylSerializerContext.Default.HeartbeatEvent,
                     ct).ConfigureAwait(false);
             }
         }
@@ -846,7 +844,7 @@ internal static partial class CollectorEndpointExtensions
                         {
                             Type = "log",
                             Data = LogMapper.ToContract(log),
-                            Timestamp = log.EffectiveTimeUnixNano() is { } timestamp ? QylTimeConversions.NanosToDateTimeOffset(timestamp) : null
+                            Timestamp = log.EffectiveTimeUnixNano() is { } timestamp ? Api.Contracts.ContractJson.FormatTimestamp(QylTimeConversions.NanosToDateTimeOffset(timestamp)) : null
                         },
                         null);
                     afterIngestSequence = log.IngestSequence;
@@ -857,7 +855,7 @@ internal static partial class CollectorEndpointExtensions
                 yield return ("heartbeat", null, null, new HeartbeatEvent
                 {
                     Type = "heartbeat",
-                    Timestamp = timeProvider.GetUtcNow()
+                    Timestamp = Api.Contracts.ContractJson.FormatTimestamp(timeProvider.GetUtcNow())
                 });
             }
 
@@ -875,9 +873,9 @@ internal static partial class CollectorEndpointExtensions
         string eventType,
         long? eventId,
         T streamEvent,
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo,
         CancellationToken ct)
     {
+        var wire = Qyl.Api.Contracts.ContractJson.Serialize(streamEvent);
         if (eventId.HasValue)
         {
             await response.WriteAsync("id: ", ct).ConfigureAwait(false);
@@ -888,21 +886,18 @@ internal static partial class CollectorEndpointExtensions
         await response.WriteAsync("event: ", ct).ConfigureAwait(false);
         await response.WriteAsync(eventType, ct).ConfigureAwait(false);
         await response.WriteAsync("\ndata: ", ct).ConfigureAwait(false);
-        await JsonSerializer.SerializeAsync(
-            response.Body,
-            streamEvent,
-            jsonTypeInfo,
-            ct).ConfigureAwait(false);
+        await JsonSerializer.SerializeAsync(response.Body, wire,
+            Qyl.Api.Contracts.ContractTypes.TypeInfo<JsonElement>(), ct).ConfigureAwait(false);
         await response.WriteAsync("\n\n", ct).ConfigureAwait(false);
         await response.Body.FlushAsync(ct).ConfigureAwait(false);
     }
 
     private static IResult? ResolvePageLimit(int? requested, out int limit) =>
-        ContractLimits.TryResolve(requested, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit, out limit)
+        ContractLimits.TryResolve(requested, ContractLimits.DefaultPageLimit, ContractLimits.MaxPageLimit, ContractLimits.MinimumPageLimit, out limit)
             ? null
             : ContractErrorResults.Validation(
                 "limit",
-                $"Limit must be between 1 and {ContractLimits.MaxPageLimit}.",
+                $"Limit must be between {ContractLimits.MinimumPageLimit} and {ContractLimits.MaxPageLimit}.",
                 "limit.out_of_range",
                 requested?.ToString(CultureInfo.InvariantCulture));
 
@@ -933,22 +928,24 @@ internal static partial class CollectorEndpointExtensions
 
     internal static class ContractLimits
     {
-        // Contract 12.0.0 has one PageLimit for every list route and for SavedQueryRunRequest.limit:
-        // 1 to 1000, 100 when omitted. Only series_limit on the metric query keeps its own range.
-        public const int DefaultPageLimit = 100;
-        public const int MaxPageLimit = 1_000;
-        public const int MetricSeriesDefaultLimit = 50;
-        public const int MetricSeriesMaxLimit = 500;
-        public const long MetricDefaultStepMs = 60_000;
-        public const long MetricMaxStepMs = 86_400_000;
-        public const int MinimumLogSeverity = 0;
-        public const int MinimumStreamSeverity = 1;
-        public const int MaximumLogSeverity = 24;
+        // Named views of the generated HTTP parameter rules; the values are owned by TypeSpec.
+        public static readonly int MinimumPageLimit = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/traces", "limit").Minimum!.Value;
+        public static readonly int DefaultPageLimit = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/traces", "limit").Default!.Value;
+        public static readonly int MaxPageLimit = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/traces", "limit").Maximum!.Value;
+        public static readonly int MinimumMetricSeriesLimit = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/metrics/{metric_name}/query", "series_limit").Minimum!.Value;
+        public static readonly int MetricSeriesDefaultLimit = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/metrics/{metric_name}/query", "series_limit").Default!.Value;
+        public static readonly int MetricSeriesMaxLimit = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/metrics/{metric_name}/query", "series_limit").Maximum!.Value;
+        public static readonly long MetricMinimumStepMs = (long)Api.Contracts.RouteParameters.Number("GET", "/api/v1/metrics/{metric_name}/query", "step_ms").Minimum!.Value;
+        public static readonly long MetricDefaultStepMs = (long)Api.Contracts.RouteParameters.Number("GET", "/api/v1/metrics/{metric_name}/query", "step_ms").Default!.Value;
+        public static readonly long MetricMaxStepMs = (long)Api.Contracts.RouteParameters.Number("GET", "/api/v1/metrics/{metric_name}/query", "step_ms").Maximum!.Value;
+        public static readonly int MinimumLogSeverity = Enum.GetValues<Api.Contracts.OTel.Enums.SeverityNumber>().Min(static value => (int)value);
+        public static readonly int MinimumStreamSeverity = (int)Api.Contracts.RouteParameters.Number("GET", "/api/v1/stream/logs", "min_severity").Minimum!.Value;
+        public static readonly int MaximumLogSeverity = Enum.GetValues<Api.Contracts.OTel.Enums.SeverityNumber>().Max(static value => (int)value);
 
-        public static bool TryResolve(int? requested, int defaultValue, int maxValue, out int resolved)
+        public static bool TryResolve(int? requested, int defaultValue, int maxValue, int minValue, out int resolved)
         {
             resolved = requested ?? defaultValue;
-            return resolved >= 1 && resolved <= maxValue;
+            return resolved >= minValue && resolved <= maxValue;
         }
     }
 }

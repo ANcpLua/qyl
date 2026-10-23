@@ -1,4 +1,5 @@
-using System.Text.RegularExpressions;
+using Qyl.Api.Contracts;
+using ContractJson = Qyl.Api.Contracts.ContractJson;
 
 namespace Qyl.Collector;
 
@@ -8,10 +9,10 @@ namespace Qyl.Collector;
 /// fraction of any length, and no space in place of <c>T</c>. A leap second is refused: no instant either side reads
 /// holds a second 60. https://www.rfc-editor.org/rfc/rfc3339#section-5.6
 /// </summary>
-internal static partial class ContractDateTime
+internal static class ContractDateTime
 {
     /// <summary>Whether <paramref name="text"/> is a contract date-time, whether or not a <see cref="DateTimeOffset"/> holds its instant.</summary>
-    internal static bool IsValid(string text) => Read(text) is not null;
+    internal static bool IsValid(string text) => ContractJson.Validate("Common.Timestamp", System.Text.Json.Nodes.JsonValue.Create(text)) is null;
 
     /// <summary>
     /// A contract date-time's instant and its fraction's digits, or null when <paramref name="text"/> is none. The instant
@@ -20,19 +21,18 @@ internal static partial class ContractDateTime
     /// </summary>
     internal static (DateTimeOffset? Instant, string Fraction)? Read(string text)
     {
-        if (Grammar().Match(text) is not { Success: true } match) return null;
-        int Part(string name) => int.Parse(match.Groups[name].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
-        int year = Part("year"), month = Part("month"), day = Part("day"), hour = Part("hour"), minute = Part("minute"), second = Part("second");
-        // Year 0 follows the same 400-year leap rule as 2000; DateTime starts at year 1.
-        if (month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(year is 0 ? 2000 : year, month) || hour > 23 || minute > 59 || second > 59) return null;
+        if (!IsValid(text)) return null;
+        int Part(int start, int length = 2) => int.Parse(text.AsSpan(start, length), NumberStyles.None, CultureInfo.InvariantCulture);
+        int year = Part(0, 4), month = Part(5), day = Part(8), hour = Part(11), minute = Part(14), second = Part(17);
+        var offsetStart = text.IndexOfAny(['+', '-'], 19);
+        var fractionEnd = offsetStart >= 0 ? offsetStart : text.Length - 1;
         var offset = TimeSpan.Zero;
-        if (match.Groups["sign"].Success)
+        if (offsetStart >= 0)
         {
-            int offsetHours = Part("offsetHour"), offsetMinutes = Part("offsetMinute");
-            if (offsetHours > 23 || offsetMinutes > 59) return null;
-            offset = new TimeSpan(offsetHours, offsetMinutes, 0) * (match.Groups["sign"].ValueSpan is "-" ? -1 : 1);
+            int offsetHours = Part(offsetStart + 1), offsetMinutes = Part(offsetStart + 4);
+            offset = new TimeSpan(offsetHours, offsetMinutes, 0) * (text[offsetStart] == '-' ? -1 : 1);
         }
-        var fraction = match.Groups["fraction"].Value;
+        var fraction = text[19] == '.' ? text[20..fractionEnd] : "";
         if (year is 0) return (null, fraction);
         var ticks = fraction.Length is 0 ? 0 : long.Parse(fraction.Length > 7 ? fraction[..7] : fraction.PadRight(7, '0'), NumberStyles.None, CultureInfo.InvariantCulture);
         var local = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Unspecified).AddTicks(ticks);
@@ -49,6 +49,4 @@ internal static partial class ContractDateTime
     /// <summary>Whether a fraction is finer than the 100 ns tick an instant holds: a digit past the seventh that is not zero.</summary>
     internal static bool FinerThanTicks(string fraction) => fraction.Length > 7 && fraction.AsSpan(7).ContainsAnyExcept('0');
 
-    [GeneratedRegex("^(?<year>[0-9]{4})-(?<month>[0-9]{2})-(?<day>[0-9]{2})[Tt](?<hour>[0-9]{2}):(?<minute>[0-9]{2}):(?<second>[0-9]{2})(?:\\.(?<fraction>[0-9]+))?(?:[Zz]|(?<sign>[+-])(?<offsetHour>[0-9]{2}):(?<offsetMinute>[0-9]{2}))\\z", RegexOptions.CultureInvariant)]
-    private static partial Regex Grammar();
 }

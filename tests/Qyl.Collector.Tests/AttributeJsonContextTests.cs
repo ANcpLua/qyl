@@ -54,6 +54,6 @@ public sealed class AttributeJsonContextTests
         var read = StoredValueMapper.ToContract(JsonSerializer.Deserialize(stored, StorageJsonSerializerContext.Default.StoredAttributeValue));
 
         Assert.AreEqual(expected, stored);
-        Assert.AreEqual(expected, JsonSerializer.Serialize(read, QylSerializerContext.Default.AttributeValue));
+        Assert.AreEqual(expected, JsonSerializer.Serialize(read, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.AttributeValue>()));
     }
 }

@@ -707,9 +707,7 @@ public sealed class OtlpWireTests(TestContext testContext)
         var attributes = Assert.IsInstanceOfType<IReadOnlyList<Qyl.Api.Contracts.Common.Attribute>>(
             ContractJson.ParseAttributes(Persisted));
 
-        var node = JsonNode.Parse(JsonSerializer.Serialize(
-            [.. attributes],
-            QylSerializerContext.Default.AttributeArray))!;
+        var node = JsonNode.Parse(Qyl.Api.Contracts.ContractJson.SerializeArray(attributes).GetRawText())!;
         Assert.AreEqual("bytes", node[0]!["value"]!["type"]!.GetValue<string>());
         Assert.AreEqual("/wA=", node[0]!["value"]!["base64"]!.GetValue<string>());
         Assert.IsTrue(node[1]!.AsObject().ContainsKey("value"));

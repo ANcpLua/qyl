@@ -151,8 +151,8 @@ public sealed class PublishedContractV1Tests(TestContext testContext)
                 context, state, null, null, null, null, null, ct),
             store,
             cancellationToken);
-        Assert.IsNotNull(JsonSerializer.Deserialize(traceJson, QylSerializerContext.Default.CursorPageTrace));
-        Assert.IsNotNull(JsonSerializer.Deserialize(logJson, QylSerializerContext.Default.CursorPageLogRecord));
+        Assert.IsNotNull(JsonSerializer.Deserialize(traceJson, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageTrace>()));
+        Assert.IsNotNull(JsonSerializer.Deserialize(logJson, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageLogRecord>()));
 
         var traceNode = JsonNode.Parse(traceJson)!;
         var logNode = JsonNode.Parse(logJson)!;
@@ -192,8 +192,8 @@ public sealed class PublishedContractV1Tests(TestContext testContext)
             .GetAsyncEnumerator(timeout.Token);
         Assert.IsTrue(await stream.MoveNextAsync());
         var streamEvent = Assert.IsExactInstanceOfType<LogStreamEvent>(stream.Current.Log);
-        var streamJson = JsonSerializer.Serialize(streamEvent, QylSerializerContext.Default.LogStreamEvent);
-        Assert.IsNotNull(JsonSerializer.Deserialize(streamJson, QylSerializerContext.Default.LogStreamEvent));
+        var streamJson = JsonSerializer.Serialize(streamEvent, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Streaming.LogStreamEvent>());
+        Assert.IsNotNull(JsonSerializer.Deserialize(streamJson, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Streaming.LogStreamEvent>()));
         AssertPublishedResource(JsonNode.Parse(streamJson)!["data"]!["resource"]!);
     }
 

@@ -17,6 +17,7 @@
     <Using Include="System.Text" />
     <InternalsVisibleTo Include="Qyl.Cli" />
     <InternalsVisibleTo Include="Qyl.Cli.Tests" />
+    <InternalsVisibleTo Include="Qyl.Telemetry.UnitTests" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

@@ -20,13 +20,13 @@ model LogStreamEvent {
   type: "log";
   data: LogRecord;
   @doc("Event timestamp, falling back to the observed timestamp. Absent when both are historically unknown; this is not the stream emission time.")
-  timestamp?: utcDateTime;
+  timestamp?: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @doc("Keep-alive event emitted while no new log is available.")
 model HeartbeatEvent {
   type: "heartbeat";
-  timestamp: utcDateTime;
+  timestamp: Qyl.Api.Contracts.Common.Timestamp;
 }
 
 @events

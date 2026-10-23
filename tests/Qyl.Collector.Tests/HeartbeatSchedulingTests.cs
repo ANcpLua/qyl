@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Time.Testing;
@@ -46,7 +47,7 @@ public sealed class HeartbeatSchedulingTests(TestContext testContext)
             Assert.AreEqual("heartbeat", stream.Current.EventType);
             var first = stream.Current.Heartbeat;
             Assert.IsNotNull(first);
-            Assert.AreEqual(s_now, first.Timestamp);
+            Assert.AreEqual(s_now, DateTimeOffset.Parse(first.Timestamp, CultureInfo.InvariantCulture));
 
             pending = stream.MoveNextAsync().AsTask();
             Assert.AreEqual(TimeSpan.FromSeconds(1), await _clock.WaitForTimerAsync(lifetime.Token));
@@ -57,7 +58,7 @@ public sealed class HeartbeatSchedulingTests(TestContext testContext)
             Assert.IsTrue(await pending.WaitAsync(lifetime.Token));
             var second = stream.Current.Heartbeat;
             Assert.IsNotNull(second);
-            Assert.AreEqual(s_now.AddSeconds(1), second.Timestamp);
+            Assert.AreEqual(s_now.AddSeconds(1), DateTimeOffset.Parse(second.Timestamp, CultureInfo.InvariantCulture));
 
             pending = stream.MoveNextAsync().AsTask();
             Assert.AreEqual(TimeSpan.FromSeconds(1), await _clock.WaitForTimerAsync(lifetime.Token));
@@ -65,7 +66,7 @@ public sealed class HeartbeatSchedulingTests(TestContext testContext)
             Assert.IsTrue(await pending.WaitAsync(lifetime.Token));
             var third = stream.Current.Heartbeat;
             Assert.IsNotNull(third);
-            Assert.AreEqual(s_now.AddSeconds(2), third.Timestamp);
+            Assert.AreEqual(s_now.AddSeconds(2), DateTimeOffset.Parse(third.Timestamp, CultureInfo.InvariantCulture));
         }
         finally
         {
@@ -124,9 +125,9 @@ public sealed class HeartbeatSchedulingTests(TestContext testContext)
         Assert.IsNotNull(data);
         var parts = data.Split(':', 2);
         Assert.AreEqual("data", parts[0]);
-        var heartbeat = JsonSerializer.Deserialize(parts[1], QylSerializerContext.Default.HeartbeatEvent);
+        var heartbeat = JsonSerializer.Deserialize(parts[1], global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Streaming.HeartbeatEvent>());
         Assert.IsNotNull(heartbeat);
-        Assert.AreEqual(s_now, heartbeat.Timestamp);
+        Assert.AreEqual(s_now, DateTimeOffset.Parse(heartbeat.Timestamp, CultureInfo.InvariantCulture));
     }
 
     private IAsyncEnumerator<(string EventType, long? EventId, LogStreamEvent? Log, HeartbeatEvent? Heartbeat)>

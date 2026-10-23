@@ -79,7 +79,7 @@ public sealed class RunnerCapacityAndResumeTests(TestContext testContext)
             using var rejected = await SendStreamAsync(client, uri, lastEventId: null, timeout.Token);
             Assert.AreEqual(HttpStatusCode.ServiceUnavailable, rejected.StatusCode);
             Assert.AreEqual(ProblemDetailsMediaType.Value, rejected.Content.Headers.ContentType?.MediaType);
-            var problem = await rejected.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ServiceUnavailableError, timeout.Token);
+            var problem = await rejected.Content.ReadFromJsonAsync(global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ServiceUnavailableError>(), timeout.Token);
             Assert.AreEqual("runner.stream_capacity", Assert.IsExactInstanceOfType<ServiceUnavailableError>(problem).Reason);
         }
         finally

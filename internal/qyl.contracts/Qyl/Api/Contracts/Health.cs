@@ -31,7 +31,7 @@ public sealed class HealthReport
     public required string ContractRevision { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<HealthStatus>))]
+[JsonConverter(typeof(global::Qyl.Api.Contracts.StringEnumConverter<HealthStatus>))]
 public enum HealthStatus
 {
     [JsonStringEnumMemberName("healthy")]

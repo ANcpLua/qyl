@@ -13,9 +13,6 @@
  * (tools.md, "Send arguments the schema rejects") tells the model what to change. The tool-call
  * frame reads the same issues back through `argumentIssues` for the structured error.
  *
- * A tool's arguments are read as the model meant them where that is unambiguous: an enumerated
- * string sent with its JSON quotes inside the value (`"\"rest\""`) is that string. A free-text
- * value keeps its quotes, and the Collector bodies the same validator checks are taken as sent.
  */
 import {
   fromJsonSchema,
@@ -25,17 +22,14 @@ import {
   type StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
 import { addFormats, Ajv } from "@modelcontextprotocol/server/validators/ajv";
-import { isContractDateTime } from "./date-time.js";
 import type { ToolError } from "./generated/api.js";
 import type { ContractDefinitions } from "./generated/definitions.js";
-import documents from "./generated/tool-schemas.json" with { type: "json" };
+import documents from "./generated/contract-schemas.json" with { type: "json" };
 
 // verbose: an additionalProperties error carries its object schema, whose property names are
 // what the rejection lists as accepted.
 const ajv = new Ajv({ strict: true, allErrors: true, verbose: true });
 addFormats(ajv);
-// A contract time is read by the Collector's rule, stricter than Ajv's own date-time.
-ajv.addFormat("date-time", { type: "string", validate: isContractDateTime });
 
 /** A value the contract's `ToolError.allowed` names: one a schema enumerates for an argument. */
 type ArgumentValue = NonNullable<ToolError["allowed"]>[number];
@@ -74,6 +68,8 @@ const isObject = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const nodes = (value: unknown): JsonSchemaNode[] => Array.isArray(value) ? value.filter(isObject) : [];
 const branchesOf = (schema: JsonSchemaNode): JsonSchemaNode[] => [...nodes(schema.anyOf), ...nodes(schema.oneOf)];
+
+const forms = (schema: JsonSchemaNode): JsonSchemaNode[] => [schema, ...branchesOf(schema).flatMap(forms)];
 
 const rejected = new WeakMap<object, readonly ArgumentIssue[]>();
 
@@ -302,67 +298,12 @@ function describeAjvErrors(errors: readonly AjvError[], schema: JsonSchemaNode):
     .map(({ issue }) => issue);
 }
 
-/** The content of a JSON string literal sent as a string: `"\"rest\""` is `rest`. */
-function quotedContent(value: string): string | undefined {
-  if (value.length < 2 || !value.startsWith("\"") || !value.endsWith("\"")) return undefined;
-  try {
-    const content: unknown = JSON.parse(value);
-    return typeof content === "string" ? content : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** A schema and every branch nested in its unions. */
-const forms = (schema: JsonSchemaNode): JsonSchemaNode[] => [schema, ...branchesOf(schema).flatMap(forms)];
-
-/** The strings a schema accepts when they form a closed set; undefined when it accepts free text. */
-function closedStrings(schema: JsonSchemaNode): string[] | undefined {
-  if (Array.isArray(schema.enum)) return schema.enum.filter((value): value is string => typeof value === "string");
-  if (schema.const !== undefined) return typeof schema.const === "string" ? [schema.const] : [];
-  const branches = branchesOf(schema);
-  if (branches.length > 0) {
-    const sets = branches.map(closedStrings);
-    return sets.some((set) => set === undefined) ? undefined : sets.flatMap((set) => set ?? []);
-  }
-  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
-  return types.includes("string") || (schema.type === undefined && !isObject(schema.properties)) ? undefined : [];
-}
-
-/** `value` with each enumerated string it carries in JSON quotes unquoted, copied only where that changed it. */
-function unquoteClosedStrings(schema: JsonSchemaNode, value: unknown): unknown {
-  if (typeof value === "string") {
-    const content = quotedContent(value);
-    const accepted = content === undefined ? undefined : closedStrings(schema);
-    return content !== undefined && accepted?.includes(content) === true && !accepted.includes(value) ? content : value;
-  }
-  const candidates = forms(schema);
-  if (Array.isArray(value)) {
-    const items = candidates.map((node) => node.items).filter(isObject);
-    const next = value.map((item) => items.reduce<unknown>((current, itemSchema) => unquoteClosedStrings(itemSchema, current), item));
-    return next.some((item, index) => item !== value[index]) ? next : value;
-  }
-  if (!isObject(value)) return value;
-  let next: Record<string, unknown> | undefined;
-  for (const [name, member] of Object.entries(value)) {
-    const unquoted = candidates
-      .map((node) => isObject(node.properties) && Object.hasOwn(node.properties, name) ? node.properties[name] : undefined)
-      .filter(isObject)
-      .reduce<unknown>((current, memberSchema) => unquoteClosedStrings(memberSchema, current), member);
-    if (unquoted !== member) (next ??= { ...value })[name] = unquoted;
-  }
-  return next ?? value;
-}
-
 /** The JSON Schema validator the generated documents are compiled with. */
 class ContractValidator implements jsonSchemaValidator {
-  /** `toolArguments`: a tool's arguments, whose enumerated strings may arrive in JSON quotes. */
-  constructor(private readonly toolArguments: boolean) {}
-
   getValidator<T>(schema: JsonSchemaType): JsonSchemaValidator<T> {
     const validate = ajv.compile(schema);
     return (input) => {
-      const data = this.toolArguments ? unquoteClosedStrings(schema as JsonSchemaNode, input) : input;
+      const data = input;
       if (validate(data)) return { valid: true, data: data as T, errorMessage: undefined };
       const issues = describeAjvErrors((validate.errors ?? []) as readonly AjvError[], schema as JsonSchemaNode);
       if (typeof input === "object" && input !== null) rejected.set(input, issues);
@@ -371,13 +312,14 @@ class ContractValidator implements jsonSchemaValidator {
   }
 }
 
-const contractValidator = new ContractValidator(false);
-const argumentValidator = new ContractValidator(true);
+const contractValidator = new ContractValidator();
 
 /** A generated document's name: its OpenAPI component name, e.g. `Mcp.Tools.TriageInput`. */
 export type ContractSchemaName = keyof typeof documents & keyof ContractDefinitions;
 
-export type ContractSchema<Name extends ContractSchemaName> =
+export type ContractName = keyof typeof documents & keyof ContractDefinitions;
+
+export type ContractSchema<Name extends ContractName> =
   StandardSchemaWithJSON<ContractDefinitions[Name], ContractDefinitions[Name]>;
 
 const compiled = new Map<string, StandardSchemaWithJSON<unknown, unknown>>();
@@ -386,13 +328,13 @@ const compiled = new Map<string, StandardSchemaWithJSON<unknown, unknown>>();
  * The generated document `name` as a Standard Schema. createServer() runs per hosted request, so
  * each document is compiled on first use and shared by every server instance after that.
  */
-export function contractSchema<Name extends ContractSchemaName>(name: Name): ContractSchema<Name> {
+export function contractSchema<Name extends ContractName>(name: Name): ContractSchema<Name> {
   let schema = compiled.get(name);
   if (schema === undefined) {
     // `in` would also find Object.prototype keys; only the generated names are documents.
     if (!Object.hasOwn(documents, name)) throw new Error(`The generated contract has no '${name}' document.`);
     schema = fromJsonSchema<ContractDefinitions[Name]>(documents[name] as JsonSchemaType,
-      name.startsWith("Mcp.Tools.") && name.endsWith("Input") ? argumentValidator : contractValidator);
+      contractValidator);
     compiled.set(name, schema);
   }
   return schema as ContractSchema<Name>;
@@ -401,7 +343,7 @@ export function contractSchema<Name extends ContractSchemaName>(name: Name): Con
 export type ContractCheck<T> = { valid: true; value: T } | { valid: false; message: string };
 
 /** Validate `value` against the generated document `name`. */
-export function checkContract<Name extends ContractSchemaName>(name: Name, value: unknown): ContractCheck<ContractDefinitions[Name]> {
+export function checkContract<Name extends ContractName>(name: Name, value: unknown): ContractCheck<ContractDefinitions[Name]> {
   const result = contractSchema(name)["~standard"].validate(value);
   // fromJsonSchema validates synchronously; a promise would mean another validator was wired in.
   if (result instanceof Promise) throw new Error(`The '${name}' validator is asynchronous.`);

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ContractConflictError = Qyl.Api.Contracts.Common.Errors.ConflictError;
@@ -401,9 +400,7 @@ internal sealed partial class QylRunnerApi(
     private async Task SnapshotAsync(HttpListenerContext context)
     {
         var states = SortedContractSnapshot();
-        var payload = JsonSerializer.SerializeToUtf8Bytes(
-            states,
-            QylRunnerJsonContext.Default.RunnerResourceStateArray);
+        var payload = Encoding.UTF8.GetBytes(Qyl.Api.Contracts.ContractJson.SerializeArray(states).GetRawText());
 
         context.Response.ContentType = "application/json";
         context.Response.Headers["Cache-Control"] = "no-store";
@@ -421,9 +418,7 @@ internal sealed partial class QylRunnerApi(
         }
 
         ContractLogLine[] lines = [.. logStore.Snapshot(resource).Select(QylRunnerContractMapper.ToContract)];
-        var payload = JsonSerializer.SerializeToUtf8Bytes(
-            lines,
-            QylRunnerJsonContext.Default.RunnerLogLineArray);
+        var payload = Encoding.UTF8.GetBytes(Qyl.Api.Contracts.ContractJson.SerializeArray(lines).GetRawText());
 
         context.Response.ContentType = "application/json";
         context.Response.Headers["Cache-Control"] = "no-store";
@@ -454,7 +449,7 @@ internal sealed partial class QylRunnerApi(
             {
                 var contract = QylRunnerContractMapper.ToContract(line);
                 await WriteFrameAsync(stream,
-                    JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), line.Sequence,
+                    Qyl.Api.Contracts.ContractJson.Serialize(contract).GetRawText(), line.Sequence,
                     requestToken)
                     .ConfigureAwait(false);
                 lastSequence = line.Sequence;
@@ -465,7 +460,7 @@ internal sealed partial class QylRunnerApi(
                 if (line.Sequence <= lastSequence) continue;
                 var contract = QylRunnerContractMapper.ToContract(line);
                 await WriteFrameAsync(stream,
-                    JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), line.Sequence,
+                    Qyl.Api.Contracts.ContractJson.Serialize(contract).GetRawText(), line.Sequence,
                     requestToken)
                     .ConfigureAwait(false);
                 lastSequence = line.Sequence;
@@ -551,7 +546,7 @@ internal sealed partial class QylRunnerApi(
         Stream stream,
         ContractResourceState state,
         CancellationToken cancellationToken) =>
-        WriteFrameAsync(stream, JsonSerializer.Serialize(state, QylRunnerJsonContext.Default.RunnerResourceState),
+        WriteFrameAsync(stream, Qyl.Api.Contracts.ContractJson.Serialize(state).GetRawText(),
             eventId: null, cancellationToken);
 
     private static Task RespondNotFoundAsync(HttpListenerContext context, string resource) =>
@@ -567,8 +562,7 @@ internal sealed partial class QylRunnerApi(
                 Detail = $"No runner resource named '{resource}' exists.",
                 ResourceType = "runner_resource",
                 ResourceId = resource
-            },
-            QylRunnerJsonContext.Default.NotFoundError);
+            });
 
     private static Task RespondForbiddenAsync(HttpListenerContext context, string detail) =>
         RespondProblemAsync(
@@ -582,8 +576,7 @@ internal sealed partial class QylRunnerApi(
                 Status = (int)HttpStatusCode.Forbidden,
                 Detail = detail,
                 RequiredPermission = "same-origin runner control"
-            },
-            QylRunnerJsonContext.Default.ForbiddenError);
+            });
 
     private static Task RespondConflictAsync(HttpListenerContext context, string resource, string? detail) =>
         RespondProblemAsync(
@@ -597,8 +590,7 @@ internal sealed partial class QylRunnerApi(
                 Status = (int)HttpStatusCode.Conflict,
                 Detail = detail,
                 ConflictingResource = resource
-            },
-            QylRunnerJsonContext.Default.ConflictError);
+            });
 
     private static Task RespondInternalErrorAsync(
         HttpListenerContext context,
@@ -614,8 +606,7 @@ internal sealed partial class QylRunnerApi(
                 Title = "Internal Server Error",
                 Status = (int)HttpStatusCode.InternalServerError,
                 Detail = detail ?? errorCode
-            },
-            QylRunnerJsonContext.Default.InternalServerError);
+            });
 
     private static Task RespondShuttingDownAsync(HttpListenerContext context) =>
         RespondServiceUnavailableAsync(
@@ -635,16 +626,14 @@ internal sealed partial class QylRunnerApi(
                 Status = (int)HttpStatusCode.ServiceUnavailable,
                 Detail = detail,
                 Reason = reason
-            },
-            QylRunnerJsonContext.Default.ServiceUnavailableError);
+            });
 
     private static async Task RespondProblemAsync<T>(
         HttpListenerContext context,
         HttpStatusCode status,
-        T problem,
-        JsonTypeInfo<T> jsonTypeInfo)
+        T problem)
     {
-        var payload = JsonSerializer.SerializeToUtf8Bytes(problem, jsonTypeInfo);
+        var payload = Encoding.UTF8.GetBytes(Qyl.Api.Contracts.ContractJson.Serialize(problem).GetRawText());
         context.Response.StatusCode = (int)status;
         context.Response.ContentType = ContractProblemDetailsMediaType.Value;
         context.Response.Headers["Cache-Control"] = "no-store";
@@ -681,18 +670,3 @@ internal sealed partial class QylRunnerApi(
         Message = "Runner API request failed: {Reason}")]
     private partial void LogRequestFailed(string reason);
 }
-
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    UseStringEnumConverter = true)]
-[JsonSerializable(typeof(ContractResourceState))]
-[JsonSerializable(typeof(ContractResourceState[]))]
-[JsonSerializable(typeof(ContractLogLine))]
-[JsonSerializable(typeof(ContractLogLine[]))]
-[JsonSerializable(typeof(ContractNotFoundError))]
-[JsonSerializable(typeof(ContractForbiddenError))]
-[JsonSerializable(typeof(ContractConflictError))]
-[JsonSerializable(typeof(ContractInternalServerError))]
-[JsonSerializable(typeof(ContractServiceUnavailableError))]
-internal sealed partial class QylRunnerJsonContext : JsonSerializerContext;

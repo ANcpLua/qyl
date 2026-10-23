@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Client, StreamableHTTPClientTransport, type CallToolResult } from "@modelcontextprotocol/client";
 import { createMcpHandler } from "@modelcontextprotocol/server";
-import documents from "./contracts/generated/tool-schemas.json" with { type: "json" };
-import { readContext } from "./analysis-context.test-helper.js";
+import documents from "./contracts/generated/contract-schemas.json" with { type: "json" };
 import { connectModernTestClient } from "./modern-test-client.test-helper.js";
 import { createServer, MAX_TOOL_INPUT_ELEMENTS } from "./server.js";
 
@@ -176,45 +175,29 @@ test("with several arguments wrong, the first the contract declares is named: an
   }
 });
 
-test("a JSON-quoted accepted string is that string; a free-text value keeps its quotes", async (context) => {
-  const forwarded = new Map<string, Record<string, unknown>>();
-  context.mock.method(globalThis, "fetch", async (input: string | Request | URL, init?: RequestInit) => {
-    const request = new Request(input, init);
-    const operation = new URL(request.url).pathname.split("/").at(-1)!;
-    forwarded.set(operation, await request.json() as Record<string, unknown>);
-    if (operation !== "compare_groups") return Response.json({ title: "fixture outage" }, { status: 503 });
-    return Response.json({ ...readContext(20), discriminators: [{ key: "cloud.region", value: "eu", share_a: 1, share_b: 0, count_a: 10, count_b: 0, lift: null }],
-      structural: [], durations: { a: { p50_ms: 20, p95_ms: 20, p99_ms: 20 }, b: { p50_ms: 20, p95_ms: 20, p99_ms: 20 } },
-      composition: { changed: true, traffic_mix_changed: false, same_traffic_changed: true, summary: "These are associations, not causes." },
-      size_a: 10, size_b: 30, excluded_keys: [] });
+test("JSON-quoted enum values are rejected before forwarding; free text keeps its quotes", async (context) => {
+  let forwarded: Record<string, unknown> | undefined;
+  context.mock.method(globalThis, "fetch", async (_input: string | Request | URL, init?: RequestInit) => {
+    if (typeof init?.body !== "string") throw new Error("Expected a JSON request body.");
+    forwarded = JSON.parse(init.body) as Record<string, unknown>;
+    return Response.json({ title: "fixture outage" }, { status: 503 });
   });
   const connection = await connectModernTestClient(
     { name: "quoted-arguments", version: "1.0.0" },
     () => createServer({ nativeExecution: false }),
   );
   context.after(() => connection.close());
-  const call = async (name: string, args: Record<string, unknown>): Promise<CallToolResult> =>
-    await connection.client.callTool({ name, arguments: args }) as CallToolResult;
-
-  // The reviewer's call: two models sent group_b with the quotes inside the string.
-  const groups = await call("compare_groups", { signal: "spans", group_a: { failure_id: "fail_1" }, group_b: "\"rest\"",
-    matchers: [{ key: "service.name", op: "\"eq\"", value: "\"regional\"" }] });
-  assert.equal(groups.isError, undefined, JSON.stringify(groups));
-  assert.equal(forwarded.get("compare_groups")?.group_b, "rest");
-  assert.deepEqual(forwarded.get("compare_groups")?.matchers, [{ key: "service.name", op: "eq", value: "\"regional\"" }],
-    "an enumerated op is unquoted; a free-text value is the caller's own text");
-
-  for (const [tool, args, field, value] of [
-    ["triage", { baseline: "\"previous_window\"" }, "baseline", "previous_window"],
-    ["query_metric", { metric_name: "requests.total", baseline: "\"previous_window\"" }, "baseline", "previous_window"],
-    ["get_mcp_stats", { baseline: "\"previous_window\"" }, "baseline", "previous_window"],
-    ["ci_log", { ci_run_id: "run-1", baseline: "\"last_success\"" }, "baseline", "last_success"],
-    ["triage", { status: "\"all\"" }, "status", "all"],
+  for (const [tool, args, field] of [
+    ["triage", { status: '"all"' }, "status"],
+    ["triage", { baseline: '"previous_window"' }, "baseline"],
+    ["compare_groups", { signal: "spans", group_a: { failure_id: "fail_1" }, group_b: '"rest"' }, "group_b"],
   ] as const) {
-    const result = await call(tool, args);
-    assert.notEqual((result.structuredContent as unknown as ErrorBody | undefined)?.error.code, "invalid_argument", `${tool}: ${JSON.stringify(result)}`);
-    assert.equal(forwarded.get(tool)?.[field], value, tool);
+    const result = await connection.client.callTool({ name: tool, arguments: args }) as CallToolResult;
+    assert.equal(errorOf(result).field, field);
+    assert.equal(forwarded, undefined);
   }
+  await connection.client.callTool({ name: "triage", arguments: { matchers: [{ key: "service.name", op: "eq", value: '"regional"' }] } });
+  assert.deepEqual(forwarded?.matchers, [{ key: "service.name", op: "eq", value: '"regional"' }]);
 });
 
 test("a 2025-era client gets the same structured invalid_argument", async (context) => {

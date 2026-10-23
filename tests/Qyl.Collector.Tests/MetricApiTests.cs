@@ -42,7 +42,7 @@ public sealed class MetricApiTests(TestContext testContext)
 
         Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var body = await ReadBodyAsync(context);
-        var page = JsonSerializer.Deserialize(body, QylSerializerContext.Default.CursorPageMetricDescriptor)!;
+        var page = JsonSerializer.Deserialize(body, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricDescriptor>())!;
 
         Assert.HasCount(2, page.Items);
         var active = page.Items.Single(static item => item.Name is "http.server.active");
@@ -74,7 +74,7 @@ public sealed class MetricApiTests(TestContext testContext)
 
         var page = JsonSerializer.Deserialize(
             await ReadBodyAsync(context),
-            QylSerializerContext.Default.CursorPageMetricDescriptor)!;
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricDescriptor>())!;
         Assert.AreEqual("http.server.active", Assert.ContainsSingle(page.Items).Name);
     }
 
@@ -91,7 +91,7 @@ public sealed class MetricApiTests(TestContext testContext)
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             all, "http.server.active", store, ct)).ExecuteAsync(all);
         var allPage = JsonSerializer.Deserialize(
-            await ReadBodyAsync(all), QylSerializerContext.Default.CursorPageMetricSeries)!;
+            await ReadBodyAsync(all), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricSeries>())!;
         Assert.HasCount(2, allPage.Items);
         allPage.Items.ToList().ForEach(static item => Assert.StartsWith("ms_", item.SeriesId, StringComparison.Ordinal));
         allPage.Items.ToList().ForEach(static item =>
@@ -101,7 +101,7 @@ public sealed class MetricApiTests(TestContext testContext)
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             exact, "http.server.active", store, ct)).ExecuteAsync(exact);
         var exactPage = JsonSerializer.Deserialize(
-            await ReadBodyAsync(exact), QylSerializerContext.Default.CursorPageMetricSeries)!;
+            await ReadBodyAsync(exact), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricSeries>())!;
         var only = Assert.ContainsSingle(exactPage.Items);
         Assert.AreEqual(
             "/a",
@@ -111,7 +111,7 @@ public sealed class MetricApiTests(TestContext testContext)
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             prefixed, "http.server.active", store, ct)).ExecuteAsync(prefixed);
         var prefixedPage = JsonSerializer.Deserialize(
-            await ReadBodyAsync(prefixed), QylSerializerContext.Default.CursorPageMetricSeries)!;
+            await ReadBodyAsync(prefixed), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricSeries>())!;
         Assert.HasCount(2, prefixedPage.Items);
     }
 
@@ -150,7 +150,7 @@ public sealed class MetricApiTests(TestContext testContext)
 
         Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var result = JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricQueryResult>())!;
 
         Assert.AreEqual("http.server.active", result.Name);
         Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricAggregation.Avg, result.Aggregation);
@@ -166,8 +166,8 @@ public sealed class MetricApiTests(TestContext testContext)
         Assert.AreEqual(1, routeA.Buckets[0].PointCount);
         // The second bucket starts exactly one step after the range start.
         Assert.AreEqual(
-            routeA.Buckets[0].BucketStart.AddMilliseconds(30_000),
-            routeA.Buckets[1].BucketStart);
+            DateTimeOffset.Parse(routeA.Buckets[0].BucketStart, CultureInfo.InvariantCulture).AddMilliseconds(30_000),
+            DateTimeOffset.Parse(routeA.Buckets[1].BucketStart, CultureInfo.InvariantCulture));
 
         var routeB = result.Series.Single(stream =>
             stream.Attributes.Any(static a => a.Key is "http.route" && AttributeString(a) is "/b"));
@@ -192,7 +192,7 @@ public sealed class MetricApiTests(TestContext testContext)
 
         Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var result = JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricQueryResult>())!;
 
         Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricKind.Histogram, result.Kind);
         Assert.AreEqual(Api.Contracts.OTel.Metrics.MetricAggregation.P50, result.Aggregation);
@@ -213,15 +213,15 @@ public sealed class MetricApiTests(TestContext testContext)
         var start = clock.GetUtcNow();
 
         var context = CreateContext(
-            $"start_time={Uri.EscapeDataString(start.ToString("O", CultureInfo.InvariantCulture))}&end_time={T0PlusMinuteIso}&step_ms=60000");
+            $"start_time={Uri.EscapeDataString(Qyl.Api.Contracts.ContractJson.FormatTimestamp(start))}&end_time={T0PlusMinuteIso}&step_ms=60000");
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
         Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var result = JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricQueryResult>())!;
         var bucket = Assert.ContainsSingle(Assert.ContainsSingle(result.Series).Buckets);
-        Assert.AreEqual(start, bucket.BucketStart);
+        Assert.AreEqual(start, DateTimeOffset.Parse(bucket.BucketStart, CultureInfo.InvariantCulture));
     }
 
     [TestMethod]
@@ -263,7 +263,7 @@ public sealed class MetricApiTests(TestContext testContext)
         Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
         Assert.AreEqual(Api.Contracts.Common.Errors.ProblemDetailsMediaType.Value, context.Response.ContentType);
         var error = Assert.ContainsSingle(JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.ValidationError)!.Errors);
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ValidationError>())!.Errors);
         Assert.AreEqual("aggregation", error.Field);
         Assert.AreEqual("aggregation.requires_histogram", error.Code);
         Assert.AreEqual("p95", error.RejectedValue);
@@ -285,7 +285,7 @@ public sealed class MetricApiTests(TestContext testContext)
 
         Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
         var error = Assert.ContainsSingle(JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.ValidationError)!.Errors);
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ValidationError>())!.Errors);
         Assert.AreEqual("aggregation", error.Field);
         Assert.AreEqual("aggregation.invalid", error.Code);
     }
@@ -306,7 +306,7 @@ public sealed class MetricApiTests(TestContext testContext)
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
         var result = JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricQueryResult>())!;
         Assert.HasCount(2, result.Series);
         Assert.IsTrue(result.Truncated);
     }
@@ -324,15 +324,15 @@ public sealed class MetricApiTests(TestContext testContext)
             (TimeConversions.ToUnixNanoUnsigned(start), 1d), (TimeConversions.ToUnixNanoUnsigned(end), 5d)));
 
         var context = CreateContext(
-            $"start_time={Uri.EscapeDataString(start.ToString("O", CultureInfo.InvariantCulture))}&end_time={Uri.EscapeDataString(end.ToString("O", CultureInfo.InvariantCulture))}&step_ms=60000&aggregation=max");
+            $"start_time={Uri.EscapeDataString(Qyl.Api.Contracts.ContractJson.FormatTimestamp(start))}&end_time={Uri.EscapeDataString(end.ToString("O", CultureInfo.InvariantCulture))}&step_ms=60000&aggregation=max");
         await (await CollectorEndpointExtensions.QueryMetricAsync(
             context, "http.server.active", store, ct)).ExecuteAsync(context);
 
         Assert.AreEqual(StatusCodes.Status200OK, context.Response.StatusCode);
         var result = JsonSerializer.Deserialize(
-            await ReadBodyAsync(context), QylSerializerContext.Default.MetricQueryResult)!;
+            await ReadBodyAsync(context), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.OTel.Metrics.MetricQueryResult>())!;
         var bucket = Assert.ContainsSingle(Assert.ContainsSingle(result.Series).Buckets);
-        Assert.AreEqual(start, bucket.BucketStart);
+        Assert.AreEqual(start, DateTimeOffset.Parse(bucket.BucketStart, CultureInfo.InvariantCulture));
         Assert.AreEqual(1d, BucketValue(bucket), 0.0000000005d);
     }
 
@@ -353,7 +353,7 @@ public sealed class MetricApiTests(TestContext testContext)
         var catalog = CreateContext($"limit={limit}");
         await (await CollectorEndpointExtensions.GetMetricsAsync(catalog, store, ct)).ExecuteAsync(catalog);
         var catalogPage = JsonSerializer.Deserialize(
-            await ReadBodyAsync(catalog), QylSerializerContext.Default.CursorPageMetricDescriptor)!;
+            await ReadBodyAsync(catalog), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricDescriptor>())!;
         Assert.HasCount(expectedItems, catalogPage.Items);
         Assert.AreEqual(expectedHasMore, catalogPage.HasMore);
 
@@ -361,7 +361,7 @@ public sealed class MetricApiTests(TestContext testContext)
         await (await CollectorEndpointExtensions.GetMetricSeriesAsync(
             series, "http.server.active", store, ct)).ExecuteAsync(series);
         var seriesPage = JsonSerializer.Deserialize(
-            await ReadBodyAsync(series), QylSerializerContext.Default.CursorPageMetricSeries)!;
+            await ReadBodyAsync(series), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Pagination.CursorPageMetricSeries>())!;
         Assert.HasCount(expectedItems, seriesPage.Items);
         Assert.AreEqual(expectedHasMore, seriesPage.HasMore);
     }

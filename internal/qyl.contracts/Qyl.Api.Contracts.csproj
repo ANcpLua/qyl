@@ -19,6 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Qyl/Api/Contracts/contract-schemas.json" LogicalName="qyl.contract-schemas.json" />
+    <None Include="../../contracts/THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="/" Visible="false" />
     <None Include="../../README.md" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>
 

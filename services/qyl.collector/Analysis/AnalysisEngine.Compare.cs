@@ -40,8 +40,21 @@ internal sealed partial class AnalysisEngine
     private static JsonObject SpanRef(AnalysisRecord s) => J.O(("trace_id", s.TraceId), ("span_id", s.Id));
     private static string Status(AnalysisRecord s) => s.Error ? "error" : s.Span?.StatusCode == 1 ? "ok" : "unset";
     // A difference between two spans, or a span only one side has, named by both span ids.
-    private static JsonObject Divergence(string kind, string key, JsonNode? a, JsonNode? b, string? aSpan, string? bSpan) =>
-        J.O(("kind", kind), ("key", key), ("a", a), ("b", b), ("a_span_id", aSpan), ("b_span_id", bSpan));
+    private static JsonObject Divergence(string kind, string key, (bool Present, JsonNode? Value) a, (bool Present, JsonNode? Value) b, string? aSpan, string? bSpan)
+    {
+        var result = J.O(("kind", kind), ("key", key), ("a_span_id", aSpan), ("b_span_id", bSpan));
+        if (a.Present) result["a"] = a.Value?.DeepClone();
+        if (b.Present) result["b"] = b.Value?.DeepClone();
+        return result;
+    }
+
+    private static JsonObject Difference(JsonObject divergence)
+    {
+        var result = divergence.DeepClone().AsObject();
+        result.Remove("a_span_id");
+        result.Remove("b_span_id");
+        return result;
+    }
     private JsonObject CompareTracesCore(JsonObject input)
     {
         var a = Execution(input["a"]); var b = Execution(input["b"]);
@@ -61,24 +74,24 @@ internal sealed partial class AnalysisEngine
             ct.ThrowIfCancellationRequested();
             var key = (left.Service, left.Name, Depth: Depth(left, a));
             if (!groupsB.TryGetValue(key, out var queue) || !queue.TryDequeue(out var right))
-            { var missing = Divergence("missing", left.Name, null, null, left.Id, null); unmatched.Add(missing); if (first is null) { first = missing; firstStart = left.Start; } continue; }
+            { var missing = Divergence("missing", left.Name, default, default, left.Id, null); unmatched.Add(missing); if (first is null) { first = missing; firstStart = left.Start; } continue; }
             var differences = new List<JsonObject>();
-            if (left.Error != right.Error) differences.Add(Divergence("status", "status", JsonValue.Create(Status(left)), JsonValue.Create(Status(right)), left.Id, right.Id));
+            if (left.Error != right.Error) differences.Add(Divergence("status", "status", (true, JsonValue.Create(Status(left))), (true, JsonValue.Create(Status(right))), left.Id, right.Id));
             // Per-request identities differ between any two executions and say nothing.
             foreach (var attribute in left.Attributes.Select(static p => p.Key).Union(right.Attributes.Select(static p => p.Key)).Where(k => !IsUniqueKey(k)).Order(StringComparer.Ordinal))
-                if (!JsonNode.DeepEquals(left.Attributes[attribute], right.Attributes[attribute]))
-                    differences.Add(Divergence("attribute", attribute, ContractValue(left.Attributes[attribute]), ContractValue(right.Attributes[attribute]), left.Id, right.Id));
+                if (left.Attributes.ContainsKey(attribute) != right.Attributes.ContainsKey(attribute) || !JsonNode.DeepEquals(left.Attributes[attribute], right.Attributes[attribute]))
+                    differences.Add(Divergence("attribute", attribute, (left.Attributes.ContainsKey(attribute), ContractValue(left.Attributes[attribute])), (right.Attributes.ContainsKey(attribute), ContractValue(right.Attributes[attribute])), left.Id, right.Id));
             if (Math.Abs(left.Duration - right.Duration) > Math.Max(1, Math.Min(left.Duration, right.Duration) * .1))
-                differences.Add(Divergence("duration", "duration_ms", ContractValue(JsonValue.Create(left.Duration)), ContractValue(JsonValue.Create(right.Duration)), left.Id, right.Id));
+                differences.Add(Divergence("duration", "duration_ms", (true, ContractValue(JsonValue.Create(left.Duration))), (true, ContractValue(JsonValue.Create(right.Duration))), left.Id, right.Id));
             aligned.Add(J.O(("a_span_id", left.Id), ("b_span_id", right.Id), ("name", left.Name),
-                ("differences", J.A(differences.Select(static d => J.O(("kind", d["kind"]?.DeepClone()), ("key", d["key"]?.DeepClone()), ("a", d["a"]?.DeepClone()), ("b", d["b"]?.DeepClone())))))));
+                ("differences", J.A(differences.Select(Difference)))));
             changes.AddRange(differences.Select(d => (left.Start, d)));
             // Prefer the deepest error boundary over an ancestor carrying propagated ERROR.
             if (differences.Count > 0 && (first is null || J.String(differences[0], "kind") == "status" && (J.String(first, "kind") != "status" || Depth(left, a) > firstDepth)))
             { first = differences[0]; firstDepth = Depth(left, a); firstStart = left.Start; }
         }
         foreach (var right in groupsB.Values.SelectMany(q => q))
-        { var extra = Divergence("extra", right.Name, null, null, null, right.Id); unmatched.Add(extra); if (first is null) { first = extra; firstStart = right.Start; } }
+        { var extra = Divergence("extra", right.Name, default, default, null, right.Id); unmatched.Add(extra); if (first is null) { first = extra; firstStart = right.Start; } }
         var after = firstStart is { } divergence ? changes.Where(c => c.Start > divergence).Select(static c => c.Divergence) : [];
         return J.O(("comparable", true), ("first_divergence", first?.DeepClone()), ("aligned", J.A(aligned)), ("unmatched", J.A(unmatched)), ("after_divergence", J.A(after)), ("coverage", Coverage(a.Count + b.Count, a.Count + b.Count, aligned.Count + unmatched.Count, false)));
     }
@@ -140,7 +153,8 @@ internal sealed partial class AnalysisEngine
             return J.O(("key", p.Key.Key), ("value", p.Key.Value), ("share_a", sa), ("share_b", sb), ("count_a", p.Value), ("count_b", bc), ("lift", sb is 0 ? null : sa / sb), ("difference", sa - sb)); })
             // A value no more common in A than in B (lift at most 1) does not discriminate A.
             .Where(static x => x["lift"] is null || J.Number(x, "lift") > 1)
-            .OrderByDescending(x => J.Number(x, "difference")).ThenBy(x => J.String(x, "key"), StringComparer.Ordinal).Take(limit));
+            .OrderByDescending(x => J.Number(x, "difference")).ThenBy(x => J.String(x, "key"), StringComparer.Ordinal).Take(limit)
+            .Select(static row => { row.Remove("difference"); return row; }));
     }
     private static bool IsUniqueKey(string key) => key.EndsWith(".id", StringComparison.Ordinal) || key.Contains("timestamp", StringComparison.Ordinal) || key.Contains("hash", StringComparison.Ordinal);
     private static JsonObject Merge(JsonObject a, JsonObject b) { var result = a.DeepClone().AsObject(); foreach (var p in b) result[p.Key] ??= p.Value?.DeepClone(); return result; }
@@ -268,7 +282,7 @@ internal sealed partial class AnalysisEngine
         // A failure is new only against a before window the snapshot holds completely.
         var knownFailures = _spans.Where(s => s.Error && Before(s)).Select(Signature).Concat(failures.Select(Signature)).ToHashSet(StringComparer.Ordinal);
         var guardrails = SpansComplete(beforeNs, sinceNs) ? _spans.Where(s => s.Error && After(s)).GroupBy(Signature).Where(g => !knownFailures.Contains(g.Key))
-            .Select(g => { var item = Failure(g); item["change"] = "new"; item["baseline_count"] = 0; return item; }) : [];
+            .Select(g => { var item = AsTriageFailure(Failure(g), g.First().TraceId); item["change"] = "new"; item["baseline_count"] = 0; return item; }) : [];
         return J.O(("verdict", verdict), ("change", change), ("before", Segment(beforeNs, sinceNs, failures.Count(Before), requests.Count(Before))), ("after", Segment(sinceNs, nowNs, afterFailures.Count, after.Count)),
             ("needs", verdict == "pending" ? J.O(("requests", Math.Max(0, minRequests - after.Count)), ("minutes", (long)Math.Max(0, Math.Ceiling(minMinutes - elapsed / 60_000_000_000d)))) : null),
             ("recurrences", afterFailures.Select(s => s.TraceId).OfType<string>().Distinct().Take(3)), ("guardrails", J.A(guardrails)), ("verify_id", handles.Issue(project, "verify_id", input)),

@@ -168,11 +168,11 @@ model TraceSummary {
 
   @doc("Trace start time")
   @encodedName("application/json", "start_time")
-  startTime: utcDateTime;
+  startTime: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("Trace end time")
   @encodedName("application/json", "end_time")
-  endTime: utcDateTime;
+  endTime: Qyl.Api.Contracts.Common.Timestamp;
 
   @doc("Services involved in this trace")
   services: string[];

@@ -16,21 +16,21 @@ namespace Qyl.Api.Contracts.Common;
 // =============================================================================
 
 @doc("Unique trace identifier (32 lowercase hex characters)")
-@pattern("^[a-f0-9]{32}$")
+@pattern("^[a-f0-9]{32}(?![\\s\\S])")
 @minLength(32)
 @maxLength(32)
 @example("0af7651916cd43dd8448eb211c80319c")
 scalar TraceId extends string;
 
 @doc("Unique span identifier (16 lowercase hex characters)")
-@pattern("^[a-f0-9]{16}$")
+@pattern("^[a-f0-9]{16}(?![\\s\\S])")
 @minLength(16)
 @maxLength(16)
 @example("b7ad6b7169203331")
 scalar SpanId extends string;
 
 @doc("W3C Trace Context traceparent header format")
-@pattern("^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$")
+@pattern("^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}(?![\\s\\S])")
 @example("00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
 scalar TraceParent extends string;
 
@@ -46,7 +46,7 @@ scalar OtlpFlags extends uint32;
 @doc("Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header.")
 @minLength(1)
 @maxLength(128)
-@pattern("^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$")
+@pattern("^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])")
 scalar SessionId extends string;
 
 @doc("User identifier (pseudonymized for privacy)")
@@ -58,9 +58,9 @@ scalar UserId extends string;
 // Temporal Scalars - Timestamps & Durations
 // =============================================================================
 
-@doc("ISO 8601 timestamp with nanosecond precision (RFC 3339)")
-@encode(DateTimeKnownEncoding.rfc3339)
-scalar Timestamp extends utcDateTime;
+@doc("RFC 3339 timestamp preserved exactly as text, including fractional precision and offset. Leap seconds are not supported. Execution windows additionally require an instant representable by the telemetry store.")
+@pattern("^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])")
+scalar Timestamp extends string;
 
 // Encoded as a decimal string, not a JSON number. A 2026 nanosecond timestamp is ~1.79e18,
 // well past Number.MAX_SAFE_INTEGER (9.007e15), so a bare JSON number is rounded to the
@@ -86,15 +86,15 @@ scalar DurationMs extends float64;
 scalar DurationS extends float64;
 
 @doc("ISO 8601 duration format (e.g., PT1H30M)")
-@encode(DurationKnownEncoding.ISO8601)
-scalar IsoDuration extends duration;
+@pattern("^P(?!$)(([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?|([0-9]+W)?)(?![\\s\\S])")
+scalar IsoDuration extends string;
 
 // =============================================================================
 // Network Scalars - IP Addresses & Ports
 // =============================================================================
 
 @doc("IPv4 address in dotted-decimal notation")
-@pattern("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
+@pattern("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![\\s\\S])")
 @example("192.168.1.1")
 scalar IPv4Address extends string;
 
@@ -111,7 +111,7 @@ scalar IpAddress extends string;
 scalar Port extends int32;
 
 @doc("MAC address in colon-separated hex notation")
-@pattern("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+@pattern("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}(?![\\s\\S])")
 @example("00:1A:2B:3C:4D:5E")
 scalar MacAddress extends string;
 
@@ -121,15 +121,20 @@ scalar MacAddress extends string;
 
 @doc("Size in bytes")
 @minValue(0)
-scalar ByteSize extends int64;
+scalar ByteSize extends JsonInteger;
 
 @doc("Token count (for LLM operations)")
 @minValue(0)
-scalar TokenCount extends int64;
+scalar TokenCount extends JsonInteger;
+
+@doc("A JSON integer exactly representable in both JavaScript and C#. Larger integers use decimal string encoding.")
+@minValue(-9007199254740991)
+@maxValue(9007199254740991)
+scalar JsonInteger extends int64;
 
 @doc("Generic non-negative counter")
 @minValue(0)
-scalar Count extends int64;
+scalar Count extends JsonInteger;
 
 @doc("Percentage value (0.0 to 100.0)")
 @minValue(0.0)
@@ -159,7 +164,7 @@ scalar Temperature extends float64;
 // =============================================================================
 
 @doc("SHA-256 hash in lowercase hex")
-@pattern("^[a-f0-9]{64}$")
+@pattern("^[a-f0-9]{64}(?![\\s\\S])")
 @minLength(64)
 @maxLength(64)
 scalar Sha256Hash extends string;
@@ -177,19 +182,20 @@ scalar Cursor extends string;
 // Truncated to 16 hex characters because it is compared for equality, never used
 // as a security boundary.
 @doc("Deterministic revision of the generated API contract: 'sha256:' followed by the first 16 hex characters of its canonical semantic digest.")
-@pattern("^sha256:[a-f0-9]{16}$")
+@pattern("^sha256:[a-f0-9]{16}(?![\\s\\S])")
 @minLength(23)
 @maxLength(23)
 @example("sha256:0f1e2d3c4b5a6978")
 scalar ContractRevision extends string;
 
 @doc("Semantic version string (e.g., 1.2.3)")
-@pattern("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$")
+@pattern("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?(?![\\s\\S])")
 @example("2.1.0")
 scalar SemVer extends string;
 
 @doc("URL string (absolute)")
-@format("uri")
+// RFC 3986 grammar, adapted from ajv-formats (MIT), with explicit ASCII case classes.
+@pattern("^(?:[A-Za-z][A-Za-z0-9+\\-.]*:)(?:\\/?\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})*@)?(?:\\[(?:(?:(?:(?:[0-9A-Fa-f]{1,4}:){6}|::(?:[0-9A-Fa-f]{1,4}:){5}|(?:[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,1}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){3}|(?:(?:[0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){2}|(?:(?:[0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}:|(?:(?:[0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})?::)(?:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?))|(?:(?:[0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})?::)|[Vv][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\]|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)|(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*)(?::\\d*)?(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*|\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)?|(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?:#(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?![\\s\\S])")
 scalar UrlString extends string;
 
 @doc("URL path component")
@@ -213,7 +219,7 @@ scalar ContentType extends string;
 scalar UserAgent extends string;
 
 @doc("Language/locale code (BCP 47)")
-@pattern("^[a-z]{2,3}(-[A-Z]{2})?$")
+@pattern("^[a-z]{2,3}(-[A-Z]{2})?(?![\\s\\S])")
 @example("en-US")
 scalar LanguageCode extends string;
 

@@ -137,7 +137,7 @@ public sealed class LogStreamingTests(TestContext testContext)
         context.Response.Body.Position = 0;
         var error = await JsonSerializer.DeserializeAsync(
             context.Response.Body,
-            QylSerializerContext.Default.ServiceUnavailableError,
+            global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ServiceUnavailableError>(),
             testContext.CancellationToken);
         Assert.AreEqual(
             "collector.log_stream_capacity",
@@ -153,7 +153,7 @@ public sealed class LogStreamingTests(TestContext testContext)
             TimeUnixNano = eventTime,
             SeverityNumber = 9,
             SeverityText = "info",
-            Body = JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(id), QylSerializerContext.Default.AttributeValue),
+            Body = JsonSerializer.Serialize(new Api.Contracts.Common.AttributeValue.StringValue(id), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.AttributeValue>()),
             ServiceName = "stream-regression"
         };
 

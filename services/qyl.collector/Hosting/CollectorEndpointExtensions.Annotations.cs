@@ -11,10 +11,6 @@ namespace Qyl.Collector.Hosting;
 internal static partial class CollectorEndpointExtensions
 {
     private const string AnnotationOperation = "annotations";
-    private static readonly ContractRules s_annotationCreateRules = new(AnnotationCreateRequest.Ranges, AnnotationCreateRequest.Lengths,
-        AnnotationCreateRequest.Patterns, AnnotationCreateRequest.Choices);
-    private static readonly ContractRules s_annotationUpdateRules = new(AnnotationUpdateRequest.Ranges, AnnotationUpdateRequest.Lengths,
-        AnnotationUpdateRequest.Patterns, AnnotationUpdateRequest.Choices);
 
     private static async Task<IResult> CreateAnnotationAsync(
         HttpContext httpContext,
@@ -25,13 +21,13 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIdempotencyKey(httpContext.Request, out var idempotencyKey) is { } keyError)
             return keyError;
 
-        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationCreateRequest,
-            s_annotationCreateRules, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Annotations.AnnotationCreateRequest>(),
+            ct).ConfigureAwait(false);
         if (request is null)
             return bodyError!;
 
         var projectId = ResolveProjectScope(httpContext);
-        var fingerprint = ResourceHttp.Fingerprint(request, QylSerializerContext.Default.AnnotationCreateRequest);
+        var fingerprint = ResourceHttp.Fingerprint(request);
         var notBefore = ResourceHttp.IdempotencyNotBefore(timeProvider);
 
         // A retry answers the annotation its key created, as it is now, even if the target has since
@@ -93,8 +89,7 @@ internal static partial class CollectorEndpointExtensions
         return outcome.Status switch
         {
             ResourceWriteStatus.Created => ResourceHttp.Created(
-                httpContext, AnnotationLocation(row.AnnotationId), row.Etag, annotation,
-                QylSerializerContext.Default.Annotation),
+                httpContext, AnnotationLocation(row.AnnotationId), row.Etag, annotation),
             ResourceWriteStatus.Replayed => await RepeatedAnnotationAsync(httpContext, store, outcome.Row!, ct).ConfigureAwait(false),
             _ => ResourceHttp.IdempotencyConflict(idempotencyKey!)
         };
@@ -134,7 +129,7 @@ internal static partial class CollectorEndpointExtensions
         }, ct).ConfigureAwait(false);
 
         var (page, hasMore) = SplitPage(rows, boundedLimit);
-        return Results.Json(new CursorPageAnnotation
+        return ContractHttp.Json(new CursorPageAnnotation
         {
             Items = await AnnotationContractsAsync(store, page, ct),
             HasMore = hasMore,
@@ -144,7 +139,7 @@ internal static partial class CollectorEndpointExtensions
                     PageCursorCodec.Hex(page[^1].CreatedAtUnixNano),
                     page[^1].AnnotationId)
                 : null
-        }, QylSerializerContext.Default.CursorPageAnnotation);
+        });
     }
 
     private static async Task<IResult> GetAnnotationAsync(HttpContext httpContext,
@@ -152,7 +147,7 @@ internal static partial class CollectorEndpointExtensions
     {
         if (await store.GetAnnotationAsync(ResolveProjectScope(httpContext), annotationId, ct).ConfigureAwait(false) is not { } row) return ContractErrorResults.NotFound("annotation", annotationId);
         var contracts = await AnnotationContractsAsync(store, [row], ct).ConfigureAwait(false);
-        return ResourceHttp.WithEtag(httpContext, row.Etag, contracts[0], QylSerializerContext.Default.Annotation);
+        return ResourceHttp.WithEtag(httpContext, row.Etag, contracts[0]);
     }
 
     private static async Task<IResult> UpdateAnnotationAsync(
@@ -165,8 +160,8 @@ internal static partial class CollectorEndpointExtensions
         if (ResourceHttp.ReadIfMatch(httpContext.Request, out var ifMatch) is { } preconditionError)
             return preconditionError;
 
-        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, QylSerializerContext.Default.AnnotationUpdateRequest,
-            s_annotationUpdateRules, ct).ConfigureAwait(false);
+        var (request, bodyError) = await ReadResourceBodyAsync(httpContext.Request, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Annotations.AnnotationUpdateRequest>(),
+            ct).ConfigureAwait(false);
         if (bodyError is not null)
             return bodyError;
 
@@ -188,7 +183,7 @@ internal static partial class CollectorEndpointExtensions
         return outcome.Status switch
         {
             ResourceWriteStatus.Updated => ResourceHttp.WithEtag(httpContext, outcome.Row!.Etag,
-                updatedContract, QylSerializerContext.Default.Annotation),
+                updatedContract),
             ResourceWriteStatus.PreconditionFailed => ContractErrorResults.PreconditionFailed(outcome.CurrentEtag),
             _ => ContractErrorResults.NotFound("annotation", annotationId)
         };
@@ -227,8 +222,7 @@ internal static partial class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var annotation = (await AnnotationContractsAsync(store, [current], ct).ConfigureAwait(false))[0];
-        return ResourceHttp.Created(httpContext, AnnotationLocation(current.AnnotationId), current.Etag, annotation,
-            QylSerializerContext.Default.Annotation);
+        return ResourceHttp.Created(httpContext, AnnotationLocation(current.AnnotationId), current.Etag, annotation);
     }
 
     private static async Task<IResult?> FindMissingTargetAsync(
@@ -263,14 +257,14 @@ internal static partial class CollectorEndpointExtensions
     private static AnalysisStateRow AnnotationMetadata(AnnotationRow row, Annotation annotation) => new()
     {
         ProjectId = row.ProjectId, StateKey = "annotation:" + row.AnnotationId, Etag = row.Etag, UpdatedAtUnixNano = row.UpdatedAtUnixNano,
-        ValueJson = JsonSerializer.Serialize(annotation, QylSerializerContext.Default.Annotation)
+        ValueJson = JsonSerializer.Serialize(annotation, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Annotations.Annotation>())
     };
     private static async Task<IReadOnlyList<Annotation>> AnnotationContractsAsync(IQylStore store, IReadOnlyList<AnnotationRow> rows, CancellationToken ct)
     {
         if (rows.Count is 0) return [];
         var state = await store.ReadAnalysisStateAsync(rows[0].ProjectId, rows.Select(row => "annotation:" + row.AnnotationId).ToArray(), ct).ConfigureAwait(false);
         return rows.Select(row => state.FirstOrDefault(s => s.StateKey == "annotation:" + row.AnnotationId) is { } metadata
-            ? JsonSerializer.Deserialize(metadata.ValueJson, QylSerializerContext.Default.Annotation)!
+            ? JsonSerializer.Deserialize(metadata.ValueJson, global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Annotations.Annotation>())!
             : AnnotationMapper.ToContract(row)).ToArray();
     }
 

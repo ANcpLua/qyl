@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Qyl.Collector.Storage;
+using WireContractJson = Qyl.Api.Contracts.ContractJson;
 using static Qyl.Collector.Tests.CollectorApiTestHost;
 
 namespace Qyl.Collector.Tests;
@@ -11,6 +12,9 @@ namespace Qyl.Collector.Tests;
 /// </summary>
 public sealed partial class AnalysisApiTests
 {
+    private const string TraceIdContract = "Common.TraceId";
+    private const string SpanIdContract = "Common.SpanId";
+    private const string SessionIdContract = "Common.SessionId";
     [TestMethod]
     public async Task A_rejected_argument_names_its_field_the_values_it_accepts_and_a_hint()
     {
@@ -69,17 +73,18 @@ public sealed partial class AnalysisApiTests
     /// a session id of dots only, a span id with a letter past f, a member of a union's object form and one of a pair's.
     /// </summary>
     [TestMethod]
-    [DataRow("get_trace", """{"trace_id":"0AF7651916CD43DD8448EB211C80319C"}""", "trace_id", "trace_id.pattern", "^[a-f0-9]{32}$")]
-    [DataRow("list_traces", """{"session_id":".."}""", "session_id", "session_id.pattern", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$")]
-    [DataRow("search_logs", """{"span_id":"b7ad6b716920333g"}""", "span_id", "span_id.pattern", "^[a-f0-9]{16}$")]
-    [DataRow("ci_log", """{"baseline":{"ci_run_id":"run 1"}}""", "baseline.ci_run_id", "baseline.ci_run_id.pattern", "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}$")]
-    [DataRow("compare_traces", """{"a":{"trace_id":"0AF7651916CD43DD8448EB211C80319C"},"b":{"trace_id":"0af7651916cd43dd8448eb211c80319c"}}""", "a.trace_id", "a.trace_id.pattern", "^[a-f0-9]{32}$")]
-    public async Task A_value_outside_its_contract_pattern_is_refused_naming_the_field(string operation, string input, string field, string code, string pattern)
+    [DataRow("get_trace", """{"trace_id":"0AF7651916CD43DD8448EB211C80319C"}""", "trace_id", "trace_id.pattern", TraceIdContract)]
+    [DataRow("list_traces", """{"session_id":".."}""", "session_id", "session_id.pattern", SessionIdContract)]
+    [DataRow("search_logs", """{"span_id":"b7ad6b716920333g"}""", "span_id", "span_id.pattern", SpanIdContract)]
+    [DataRow("ci_log", """{"baseline":{"ci_run_id":"run 1"}}""", "baseline.ci_run_id", "baseline.ci_run_id.pattern", SessionIdContract)]
+    [DataRow("compare_traces", """{"a":{"trace_id":"0AF7651916CD43DD8448EB211C80319C"},"b":{"trace_id":"0af7651916cd43dd8448eb211c80319c"}}""", "a.trace_id", "a.trace_id.pattern", TraceIdContract)]
+    public async Task A_value_outside_its_contract_pattern_is_refused_naming_the_field(string operation, string input, string field, string code, string contractName)
     {
         await using var host = await StartAsync(testContext.CancellationToken);
 
         var error = await RejectedAsync(host, operation, input);
 
+        var pattern = WireContractJson.Schema(contractName).GetProperty("pattern").GetString();
         Assert.AreEqual((field, code, $"must match pattern \"{pattern}\"", $"Correct {field}."),
             (error.GetProperty("field").GetString(), error.GetProperty("code").GetString(), error.GetProperty("message").GetString(), error.GetProperty("hint").GetString()));
     }
@@ -284,9 +289,9 @@ public sealed partial class AnalysisApiTests
     [DataRow("list_traces", """{"min_duration_ms":-0.5}""", "min_duration_ms", "Use min_duration_ms of at least 0.", "Omit min_duration_ms for the tool's default.")]
     [DataRow("aggregate_telemetry", """{"signal":"spans","measures":["count"],"step_ms":0}""", "step_ms", "Use step_ms from 1 to 86400000.", "Omit step_ms for the tool's default.")]
     [DataRow("aggregate_telemetry", """{"signal":"spans","measures":["count"],"step_ms":9223372036854775807}""", "step_ms", "Use step_ms from 1 to 86400000.", "Omit step_ms for the tool's default.")]
-    [DataRow("verify_fix", """{"min_requests":-1}""", "min_requests", "Use min_requests of at least 0.", "Omit min_requests for 100.")]
-    [DataRow("verify_fix", """{"min_minutes":-1}""", "min_minutes", "Use min_minutes of at least 0.", "Omit min_minutes for 30.")]
-    [DataRow("list_sessions", """{"min_tokens":-1}""", "min_tokens", "Use min_tokens of at least 0.", "Omit min_tokens for the tool's default.")]
+    [DataRow("verify_fix", """{"min_requests":-1}""", "min_requests", "Use min_requests from 0 to 2147483647.", "Omit min_requests for 100.")]
+    [DataRow("verify_fix", """{"min_minutes":-1}""", "min_minutes", "Use min_minutes from 0 to 2147483647.", "Omit min_minutes for 30.")]
+    [DataRow("list_sessions", """{"min_tokens":-1}""", "min_tokens", "Use min_tokens from 0 to 9007199254740991.", "Omit min_tokens for the tool's default.")]
     [DataRow("triage", """{"baseline":{"offset_minutes":0}}""", "baseline.offset_minutes", "Use baseline.offset_minutes from 1 to 43200.", "Correct baseline.offset_minutes.")]
     [DataRow("query_metric", """{"metric_name":"queue.depth","baseline":{"offset_minutes":1000000000}}""", "baseline.offset_minutes", "Use baseline.offset_minutes from 1 to 43200.", "Correct baseline.offset_minutes.")]
     [DataRow("get_mcp_stats", """{"baseline":{"offset_minutes":43201}}""", "baseline.offset_minutes", "Use baseline.offset_minutes from 1 to 43200.", "Correct baseline.offset_minutes.")]

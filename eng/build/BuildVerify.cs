@@ -40,8 +40,6 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
         .Description("Verify collector endpoint pagination limits match the OpenAPI contract")
         .Executes(() =>
         {
-            var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
-            var constants = ReadContractLimitConstants(endpointFile);
             using var document = ReadOpenApi();
 
             // The contract has one PageLimit: every list route's `limit` and SavedQueryRunRequest.limit
@@ -63,38 +61,7 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
                 throw new InvalidOperationException(
                     $"SavedQueryRunRequest.limit bounds {runLimit} must be the shared PageLimit {shared}.");
 
-            var seriesLimit = ReadOpenApiQueryBounds(document, "/api/v1/metrics/{metric_name}/query", "series_limit");
-            var stepMs = ReadOpenApiQueryBounds(document, "/api/v1/metrics/{metric_name}/query", "step_ms");
-            var expected = new Dictionary<string, int>(StringComparer.Ordinal)
-            {
-                ["DefaultPageLimit"] = shared.Default,
-                ["MaxPageLimit"] = shared.Maximum,
-                ["MetricSeriesDefaultLimit"] = seriesLimit.Default,
-                ["MetricSeriesMaxLimit"] = seriesLimit.Maximum,
-                ["MetricDefaultStepMs"] = stepMs.Default,
-                ["MetricMaxStepMs"] = stepMs.Maximum
-            };
-
-            var mismatches = expected
-                .Where(pair => !constants.TryGetValue(pair.Key, out var actual) || actual != pair.Value)
-                .Select(pair =>
-                {
-                    constants.TryGetValue(pair.Key, out var actual);
-                    return $"{pair.Key}: collector={actual}, openapi={pair.Value}";
-                })
-                .ToArray();
-
-            if (mismatches.Length is 0)
-            {
-                Log.Information("Collector endpoint pagination limits match the OpenAPI contract");
-                return;
-            }
-
-            foreach (var mismatch in mismatches)
-                Log.Error("  Contract limit mismatch: {Mismatch}", mismatch);
-
-            throw new InvalidOperationException(
-                "Collector endpoint limits must match the OpenAPI contract: change the contract and ContractLimits together.");
+            Log.Information("The shared page contract is consistent; runtime bounds are generated from TypeSpec");
         });
 
     Target VerifyCollectorRoutesMatchOpenApi => d => d
@@ -704,34 +671,6 @@ interface IVerify : ICollectorSemanticCatalog, IContracts
         }
 
         return false;
-    }
-
-    private static IReadOnlyDictionary<string, int> ReadContractLimitConstants(AbsolutePath endpointFile)
-    {
-        var root = ParseCompilationUnit(endpointFile);
-        var contractLimits = root.DescendantNodes()
-            .OfType<ClassDeclarationSyntax>()
-            .FirstOrDefault(static type => type.Identifier.ValueText == "ContractLimits")
-            ?? throw new InvalidOperationException("CollectorEndpointExtensions.cs must define ContractLimits.");
-
-        var constants = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var field in contractLimits.Members.OfType<FieldDeclarationSyntax>())
-        {
-            if (!field.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.ConstKeyword)))
-                continue;
-
-            foreach (var variable in field.Declaration.Variables)
-            {
-                if (variable.Initializer?.Value is LiteralExpressionSyntax literal &&
-                    literal.IsKind(SyntaxKind.NumericLiteralExpression) &&
-                    literal.Token.Value is int value)
-                {
-                    constants[variable.Identifier.ValueText] = value;
-                }
-            }
-        }
-
-        return constants;
     }
 
     /// <summary>Default and maximum of an integer schema, with a <c>$ref</c> to a components schema resolved.</summary>

@@ -38,6 +38,7 @@ internal sealed partial class AnalysisEngine
             if (J.Number(filter, "limit") > QueryMetricInput.LimitMaximum) filter["limit"] = QueryMetricInput.LimitMaximum;
             var metric = QueryMetric(filter);
             output["coverage"] = metric["coverage"]?.DeepClone();
+            metric.Remove("coverage");
             output["metric"] = metric;
             return output;
         }
@@ -48,5 +49,5 @@ internal sealed partial class AnalysisEngine
     }
 
     private static JsonObject SavedQueryJson(SavedQueryRow row) =>
-        JsonSerializer.SerializeToNode(SavedQueryMapper.ToContract(row), QylSerializerContext.Default.SavedQuery)!.AsObject();
+        JsonSerializer.SerializeToNode(SavedQueryMapper.ToContract(row), global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.SavedQueries.SavedQuery>())!.AsObject();
 }

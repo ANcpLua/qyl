@@ -83,7 +83,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
             {
                 var states = await JsonSerializer.DeserializeAsync(
                     body,
-                    QylRunnerJsonContext.Default.RunnerResourceStateArray,
+                    global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Runner.RunnerResourceState[]>(),
                     lifetime.Token);
                 var state = Assert.ContainsSingle(Assert.IsExactInstanceOfType<RunnerResourceState[]>(states));
                 Assert.AreEqual(DemoResourceName, state.Name);
@@ -99,7 +99,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
             {
                 var lines = await JsonSerializer.DeserializeAsync(
                     body,
-                    QylRunnerJsonContext.Default.RunnerLogLineArray,
+                    global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Runner.RunnerLogLine[]>(),
                     lifetime.Token);
                 var line = Assert.ContainsSingle(Assert.IsExactInstanceOfType<RunnerLogLine[]>(lines));
                 Assert.AreEqual("one line", line.Line);
@@ -110,7 +110,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
                 new Uri($"http://127.0.0.1:{port}/runner/resources/missing/logs"), lifetime.Token);
             Assert.AreEqual(HttpStatusCode.NotFound, missingLogs.StatusCode);
             Assert.AreEqual(ProblemDetailsMediaType.Value, missingLogs.Content.Headers.ContentType?.MediaType);
-            var problem = await missingLogs.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.NotFoundError, lifetime.Token);
+            var problem = await missingLogs.Content.ReadFromJsonAsync(global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.NotFoundError>(), lifetime.Token);
             var notFound = Assert.IsExactInstanceOfType<NotFoundError>(problem);
             Assert.AreEqual("Not Found", notFound.Title);
             Assert.AreEqual("missing", notFound.ResourceId);
@@ -126,7 +126,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
                 Assert.AreEqual("event: message", await reader.ReadLineAsync(lifetime.Token));
                 var data = Assert.IsExactInstanceOfType<string>(await reader.ReadLineAsync(lifetime.Token));
                 Assert.StartsWith("data: ", data, StringComparison.Ordinal);
-                var streamed = JsonSerializer.Deserialize(data[6..], QylRunnerJsonContext.Default.RunnerResourceState);
+                var streamed = JsonSerializer.Deserialize(data[6..], global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Runner.RunnerResourceState>());
                 Assert.AreEqual(DemoResourceName, Assert.IsExactInstanceOfType<RunnerResourceState>(streamed).Name);
                 Assert.AreEqual(string.Empty, await reader.ReadLineAsync(lifetime.Token));
             }
@@ -164,7 +164,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
                     $"headers: {crossOriginResponse.Headers}; body: {unexpectedBody}");
             }
             Assert.AreEqual(ProblemDetailsMediaType.Value, crossOriginResponse.Content.Headers.ContentType?.MediaType);
-            var forbidden = await crossOriginResponse.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ForbiddenError, lifetime.Token);
+            var forbidden = await crossOriginResponse.Content.ReadFromJsonAsync(global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ForbiddenError>(), lifetime.Token);
             var forbiddenError = Assert.IsExactInstanceOfType<ForbiddenError>(forbidden);
             Assert.AreEqual("Forbidden", forbiddenError.Title);
             Assert.AreEqual("same-origin runner control", forbiddenError.RequiredPermission);
@@ -248,7 +248,7 @@ public sealed partial class RunnerApiTests(TestContext testContext)
         using var response = await pending;
         Assert.AreEqual(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.AreEqual(ProblemDetailsMediaType.Value, response.Content.Headers.ContentType?.MediaType);
-        var problem = await response.Content.ReadFromJsonAsync(QylRunnerJsonContext.Default.ServiceUnavailableError, lifetime.Token);
+        var problem = await response.Content.ReadFromJsonAsync(global::Qyl.Api.Contracts.ContractTypes.TypeInfo<global::Qyl.Api.Contracts.Common.Errors.ServiceUnavailableError>(), lifetime.Token);
         var unavailable = Assert.IsExactInstanceOfType<ServiceUnavailableError>(problem);
         Assert.AreEqual("Service Unavailable", unavailable.Title);
         Assert.AreEqual("runner.shutting_down", unavailable.Reason);
